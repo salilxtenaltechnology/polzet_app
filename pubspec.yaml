@@ -1,0 +1,65 @@
+name: polzet_app
+description: "A new Flutter project."
+# The following line prevents the package from being accidentally published to
+# pub.dev using `flutter pub publish`. This is preferred for private packages.
+publish_to: 'none' # Remove this line if you wish to publish to pub.dev
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.10.3
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+  page_transition: ^2.2.1
+  google_fonts: ^6.3.3
+  flutter_screenutil: ^5.9.3
+  provider: ^6.1.5+1
+  feather_icons: ^1.2.0
+  shared_preferences: ^2.5.4
+  dio: ^5.9.0
+  curved_navigation_bar: ^1.0.6
+  lottie: ^3.3.2
+
+  flutter_localizations:
+    sdk: flutter
+  fluttertoast: ^9.0.0
+  shimmer: ^3.0.0
+  icons_plus: ^5.0.0
+  http: ^1.6.0
+  glass: ^2.0.0+2
+  dotted_border: ^3.1.0
+  image_cropper: ^11.0.0
+  image_picker: ^1.2.1
+  wechat_assets_picker: ^10.0.0
+  wechat_camera_picker: ^4.4.0
+  local_auth: ^3.0.0
+  firebase_core: ^4.3.0
+  firebase_messaging: ^16.1.0
+  flutter_local_notifications: ^19.5.0
+  cloud_firestore: ^6.1.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_launcher_icons: ^0.14.4
+
+flutter_icons:
+  android: true
+  ios: true
+  image_path: "assets/images/ic_app.png"  # Ensure the file exists in this path
+  adaptive_icon_background: "#ffffff"  # Background color (you can use an image too)
+  adaptive_icon_foreground: "assets/images/ic_app.png"
+
+flutter: 
+  generate: true
+  uses-material-design: true
+  assets:
+    - assets/images/
+
+flutter_assets:
+  assets_path: assets/images/
+  output_path: lib/core/constants
+  filename: app_images.dart
