@@ -1,0 +1,6 @@
+# Flutter
+.dart_tool/
+build/
+android/app/build/
+*.apk
+*.aab
