@@ -2,30 +2,29 @@
 
 import 'dart:math';
 import 'package:feather_icons/feather_icons.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:polzet_app/mixin/utility_mixins.dart';
-import 'package:polzet_app/screens/home/profile/public/public_profile.dart';
+import 'package:polzet_app/api/services/api_service.dart';
+import 'package:polzet_app/widgets/show_toast.dart';
 import 'package:provider/provider.dart';
 
 import '../../../../api/api_config.dart';
 import '../../../../core/constants/app_images.dart';
-import '../../../api/services/api_service.dart';
 import '../../../api/services/like/like_service.dart';
+import '../../../mixin/utility_mixins.dart';
 import '../../../models/home feed/home_feed_items_model.dart';
 import '../../../provider/user_provider.dart';
 import '../../../widgets/base64/image_convert.dart';
-import '../../../widgets/loader.dart';
-import '../../../widgets/show_toast.dart';
 import '../../../widgets/utils/bottomsheet_util.dart';
 import '../../../widgets/utils/like_util.dart';
+import '../home_imports.dart';
+import '../profile/public/public_profile.dart';
+import 'all_image_popup.dart.dart';
 
 class HomeFeedPostCard extends StatefulWidget {
   final HomeFeedPost post;
   final VoidCallback? onPressed;
   Function(List<int>)? onImageSelectionChanged;
-
   HomeFeedPostCard({
     super.key,
     required this.post,
@@ -41,11 +40,19 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
   late bool isLike;
   late int likesCount;
   late int commentsCount;
+  late List<LikeUser> viewLikes;
+  late int? user_id;
   bool isLikeLoading = false;
   List<int> randomImageIndices = [];
+  double? percentage;
   late Random random;
   List<int> selectionOrder = [];
   Map<String, List<int>> selectedOptions = {};
+
+  bool isPollVoting = false;
+  Map<String, bool> pollVotingStates = {};
+  Map<String, Set<int>> votedOptions = {};
+  Map<String, int> pollTotalVotes = {};
 
   int getSelectionNumber(int imageNumber) {
     int index = selectionOrder.indexOf(imageNumber);
@@ -82,52 +89,83 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
   void initState() {
     super.initState();
     random = Random();
-    _generateRandomImageIndices();
     isLike = widget.post.isLikedByCurrentUser;
     likesCount = widget.post.likesCount;
     commentsCount = widget.post.commentsCount;
-  }
+    viewLikes = List.from(widget.post.viewLikes);
 
-  void _generateRandomImageIndices() {
-    if (widget.post.images.isNotEmpty) {
-      List<int> allIndices = List.generate(
-        widget.post.images.length,
-        (index) => index,
-      );
+    final userProvider = Provider.of<UserProvider>(context, listen: false);
+    user_id = userProvider.userId;
 
-      allIndices.shuffle(random);
-      int maxImages = widget.post.images.length >= 4
-          ? 4
-          : widget.post.images.length;
-      randomImageIndices = allIndices.take(maxImages).toList();
+    // Initialize poll vote counts
+    for (var poll in widget.post.polls) {
+      pollTotalVotes[poll.id.toString()] = poll.totalVotes;
+
+      // NEW: Fetch poll results on initialization if user has already polled
+      if (poll.isPolledByCurrentUser ?? false) {}
     }
   }
 
   Future<void> _toggleLike() async {
     if (isLikeLoading) return;
 
+    final userProvider = Provider.of<UserProvider>(context, listen: false);
+    final currentUserId = userProvider.userId ?? 0;
+    final currentUsername = userProvider.username ?? '';
+    final currentUserImage = userProvider.profile_picture;
+
+    final previousIsLike = isLike;
+    final previousLikesCount = likesCount;
+    final previousViewLikes = List<LikeUser>.from(viewLikes);
+
     setState(() {
+      isLike = !isLike;
+
+      if (isLike) {
+        likesCount++;
+        viewLikes.insert(
+          0,
+          LikeUser(
+            id: currentUserId,
+            username: currentUsername,
+            profileImage: currentUserImage,
+          ),
+        );
+
+        if (viewLikes.length > 3) {
+          viewLikes = viewLikes.take(3).toList();
+        }
+      } else {
+        likesCount--;
+        viewLikes.removeWhere((like) => like.username == currentUsername);
+      }
+
       isLikeLoading = true;
     });
 
     final result = await LikeService().togglePostLike(
       context: context,
       postId: widget.post.id,
-      currentLikeState: isLike,
-      currentLikesCount: likesCount,
+      currentLikeState: previousIsLike,
+      currentLikesCount: previousLikesCount,
     );
 
     setState(() {
-      if (result.success) {
+      isLikeLoading = false;
+
+      if (!result.success) {
+        isLike = previousIsLike;
+        likesCount = previousLikesCount;
+        viewLikes = previousViewLikes;
+
+        if (result.message.isNotEmpty) {
+          showToast(message: result.message);
+        }
+      } else {
         isLike = result.isLiked;
         likesCount = result.likesCount;
       }
-      isLikeLoading = false;
     });
-
-    if (!result.success && result.message.isNotEmpty) {
-      print('Like error: ${result.message}');
-    }
   }
 
   Future<String?> _getCurrentUsername() async {
@@ -148,328 +186,128 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
   }
 
   void _showLikedUsersBottomSheet() {
+    List<LikeUser> likeUsers = viewLikes.map((viewLike) {
+      return LikeUser(
+        id: user_id!,
+        username: viewLike.username,
+        profileImage: viewLike.profileImage,
+      );
+    }).toList();
+
     BottomSheetUtils.showLikedUsersBottomSheet(
       context: context,
       postId: widget.post.id,
-      initialLikedUsers: widget.post.viewLikes,
+      initialLikedUsers: likeUsers,
     );
   }
 
-  Future<void> _submitAllImageVotes() async {
-    if (!areAllImagesSelected || selectionOrder.isEmpty) {
-      showToast(message: 'Please select all images first');
-      return;
-    }
-
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => Center(
-        child: Container(
-          padding: EdgeInsets.all(20.w),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12.r),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Loader(color: Theme.of(context).colorScheme.primary),
-              SizedBox(height: 15.h),
-              Text(
-                'Submitting votes...',
-                style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.w500),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-
-    List<Map<String, dynamic>> results = [];
-    int successCount = 0;
-    int failureCount = 0;
-
-    for (int i = 0; i < selectionOrder.length; i++) {
-      int imageNumber = selectionOrder[i];
-      int imageIndex = randomImageIndices[imageNumber - 1];
-      final imageId = widget.post.images[imageIndex].id;
-
-      final result = await ApiService.voteOnPoll(
-        postId: widget.post.id,
-        optionId: imageId,
-      );
-
-      print('IDs : ${result}');
-
-      results.add({
-        'selection_order': i + 1,
-        'image_index': imageIndex,
-        'option_id': imageId,
-        'result': result,
-      });
-
-      if (result['success'] == true) {
-        successCount++;
-      } else {
-        failureCount++;
-      }
-
-      if (i < selectionOrder.length - 1) {
-        await Future.delayed(Duration(milliseconds: 300));
-      }
-    }
-
-    if (mounted) Navigator.of(context).pop();
-    
-    if (failureCount == 0) {
-      showToast(
-        message: 'All votes submitted successfully! ($successCount/${selectionOrder.length})',
-      );
-      setState(() {
-        selectionOrder.clear();
-      });
-    } else if (successCount > 0) {
-      showToast(
-        message: 'Partially completed: $successCount succeeded, $failureCount failed',
-      );
-    } else {
-      showToast(message: 'Failed to submit votes. Please try again.');
-    }
-
-    if (kDebugMode) {
-      print('Vote submission results:');
-      for (var result in results) {
-        print(
-          'Selection ${result['selection_order']}: Option ID ${result['option_id']} - ${result['result']['success'] ? 'Success' : 'Failed'}',
-        );
-      }
-    }
+  bool _hasImageOptions(HomeFeedPoll poll) {
+    return poll.options.any((option) => option.image != null);
   }
 
-  Future<void> _submitAllPollVotes(HomeFeedPoll poll) async {
+  bool _hasTextOptions(HomeFeedPoll poll) {
+    return poll.options.any(
+      (option) => option.text != null && option.text!.isNotEmpty,
+    );
+  }
+
+  List<PollOptionImage> _getPollImages(HomeFeedPoll poll) {
+    return poll.options
+        .where((option) => option.image != null)
+        .map((option) => option.image!)
+        .toList();
+  }
+
+  void _showAllImagesGrid(List<PollOptionImage> images, HomeFeedPoll poll) {
+    Navigator.of(context)
+        .push(
+          MaterialPageRoute(
+            builder: (context) => AllImagesPopup(
+              images: poll.options,
+              postId: widget.post.id,
+              onImageTap: (index) {},
+            ),
+          ),
+        )
+        .then((result) {
+          if (result == true) {
+            setState(() {
+              // Refresh poll data here if needed
+            });
+          }
+        });
+  }
+
+  Future<void> _submitPollVotes(HomeFeedPoll poll) async {
     String pollKey = poll.id.toString();
 
-    if (!selectedOptions.containsKey(pollKey) ||
-        selectedOptions[pollKey]!.isEmpty) {
-      showToast(message: 'Please select poll options first');
-      return;
-    }
-
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => Center(
-        child: Container(
-          padding: EdgeInsets.all(20.w),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12.r),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Loader(color: Theme.of(context).colorScheme.primary),
-              SizedBox(height: 15.h),
-              Text(
-                'Submitting votes...',
-                style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.w500),
-              ),
-            ],
-          ),
-        ),
-      ),
+    final previousVotedOptions = Map<String, Set<int>>.from(votedOptions);
+    final previousTotalVotes = pollTotalVotes[pollKey] ?? poll.totalVotes;
+    final previousSelectedOptions = List<int>.from(
+      selectedOptions[pollKey] ?? [],
     );
 
-    List<Map<String, dynamic>> results = [];
-    int successCount = 0;
-    int failureCount = 0;
-    List<int> selectedIndices = selectedOptions[pollKey]!;
+    setState(() {
+      pollVotingStates[pollKey] = true;
 
-    for (int i = 0; i < selectedIndices.length; i++) {
-      int optionIndex = selectedIndices[i];
-      final option = poll.options[optionIndex];
+      if (!votedOptions.containsKey(pollKey)) {
+        votedOptions[pollKey] = {};
+      }
+      votedOptions[pollKey]!.addAll(selectedOptions[pollKey] ?? []);
 
-      final result = await ApiService.voteOnPoll(
+      pollTotalVotes[pollKey] =
+          (pollTotalVotes[pollKey] ?? poll.totalVotes) + 1;
+
+      selectedOptions[pollKey] = [];
+    });
+
+    showToast(message: 'Vote submitted!');
+
+    try {
+      List<Map<String, int>> votes = [];
+      List<int> selectedIndexes = previousSelectedOptions;
+
+      for (int i = 0; i < selectedIndexes.length; i++) {
+        int optionIndex = selectedIndexes[i];
+        HomeFeedPollOption option = poll.options[optionIndex];
+
+        votes.add({'option_id': option.id, 'rank': i + 1});
+      }
+
+      final result = await ApiService.voteOnPollMultiple(
         postId: widget.post.id,
-        optionId: option.id,
+        votes: votes,
       );
 
-      results.add({
-        'selection_order': i + 1,
-        'option_index': optionIndex,
-        'option_id': option.id,
-        'option_text': option.text,
-        'result': result,
-      });
+      if (!result['success']) {
+        setState(() {
+          pollVotingStates[pollKey] = false;
+          votedOptions = previousVotedOptions;
+          pollTotalVotes[pollKey] = previousTotalVotes;
+          selectedOptions[pollKey] = previousSelectedOptions;
+        });
+        showToast(message: 'Failed to submit votes. Please try again.');
+      } else {}
+    } catch (e) {
+      print('Error submitting poll votes: $e');
 
-      if (result['success'] == true) {
-        successCount++;
-      } else {
-        failureCount++;
-      }
-
-      if (i < selectedIndices.length - 1) {
-        await Future.delayed(Duration(milliseconds: 300));
-      }
-    }
-
-    if (mounted) Navigator.of(context).pop();
-
-    if (failureCount == 0) {
-      showToast(
-        message: 'All votes submitted successfully! ($successCount/${selectedIndices.length})',
-      );
       setState(() {
-        selectedOptions[pollKey] = [];
+        pollVotingStates[pollKey] = false;
+        votedOptions = previousVotedOptions;
+        pollTotalVotes[pollKey] = previousTotalVotes;
+        selectedOptions[pollKey] = previousSelectedOptions;
       });
-    } else if (successCount > 0) {
-      showToast(
-        message: 'Partially completed: $successCount succeeded, $failureCount failed',
-      );
-    } else {
-      showToast(message: 'Failed to submit votes. Please try again.');
-    }
 
-    if (kDebugMode) {
-      print('Poll vote submission results:');
-      for (var result in results) {
-        print(
-          'Selection ${result['selection_order']}: ${result['option_text']} (ID: ${result['option_id']}) - ${result['result']['success'] ? 'Success' : 'Failed'}',
-        );
-      }
+      showToast(message: 'An error occurred. Please try again.');
     }
-  }
-
-  void _showImageVotersBottomSheet(HomeFeedPostImage image) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        height: MediaQuery.of(context).size.height * 0.6,
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.only(
-            topLeft: Radius.circular(20.r),
-            topRight: Radius.circular(20.r),
-          ),
-        ),
-        child: Column(
-          children: [
-            Container(
-              padding: EdgeInsets.symmetric(vertical: 10.h),
-              margin: EdgeInsets.symmetric(horizontal: 10.w),
-              width: double.infinity,
-              decoration: BoxDecoration(
-                border: Border(
-                  bottom: BorderSide(
-                    color: Colors.grey.withOpacity(0.2),
-                    width: 1,
-                  ),
-                ),
-              ),
-              child: Column(
-                children: [
-                  Text(
-                    'Poll results',
-                    style: TextStyle(
-                      fontSize: 14.sp,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  SizedBox(height: 4.h),
-                  Text(
-                    '${image.voteCount} ${image.voteCount == 1 ? 'vote' : 'votes'}',
-                    style: TextStyle(
-                      fontSize: 11.sp,
-                      color: Colors.grey[600],
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Expanded(
-              child: image.userList.isEmpty
-                  ? Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.people_outline,
-                            size: 50.sp,
-                            color: Colors.grey.withOpacity(0.4),
-                          ),
-                          SizedBox(height: 10.h),
-                          Text(
-                            'No votes yet',
-                            style: TextStyle(
-                              fontSize: 14.sp,
-                              color: Colors.grey.withOpacity(0.6),
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ],
-                      ),
-                    )
-                  : ListView.builder(
-                      padding: EdgeInsets.symmetric(vertical: 4.h),
-                      itemCount: image.userList.length,
-                      itemBuilder: (context, index) {
-                        final user = image.userList[index];
-                        return ListTile(
-                          leading: CircleAvatar(
-                            radius: 15.r,
-                            backgroundColor: Theme.of(
-                              context,
-                            ).colorScheme.primary.withOpacity(0.15),
-                            backgroundImage:
-                                user.profileImage != null &&
-                                    user.profileImage!.isNotEmpty
-                                ? MemoryImage(
-                                    getProfileImage(user.profileImage)!,
-                                  )
-                                : null,
-                            child:
-                                user.profileImage == null ||
-                                    user.profileImage!.isEmpty
-                                ? Text(
-                                    user.firstLetter,
-                                    style: TextStyle(
-                                      fontSize: 14.sp,
-                                      fontWeight: FontWeight.w600,
-                                      color: Theme.of(
-                                        context,
-                                      ).colorScheme.primary,
-                                    ),
-                                  )
-                                : null,
-                          ),
-                          title: Text(
-                            user.username,
-                            style: TextStyle(
-                              fontSize: 12.sp,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-            ),
-          ],
-        ),
-      ),
-    );
   }
 
   @override
   Widget build(BuildContext context) {
-    final bool hasImages = widget.post.images.isNotEmpty;
     final bool hasPolls = widget.post.polls.isNotEmpty;
 
-    if (!hasImages && !hasPolls) {
-      return const SizedBox.shrink();
+    if (!hasPolls) {
+      return SizedBox.shrink();
     }
 
     return Column(
@@ -497,10 +335,28 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
                   children: [
                     GestureDetector(
                       onTap: () {
-                        navigationPush(
+                        final userProvider = Provider.of<UserProvider>(
                           context,
-                          PublicProfile(userId: widget.post.user.userid),
+                          listen: false,
                         );
+                        final currentUserId = userProvider.userId;
+
+                        if (widget.post.user.userid == currentUserId) {
+                          final homeScreenState = context
+                              .findAncestorStateOfType<HomeScreenState>();
+                          if (homeScreenState != null) {
+                            homeScreenState.setState(() {
+                              homeScreenState.pageIndex = 4;
+                            });
+                            homeScreenState.bottomNavigationKey.currentState
+                                ?.setPage(4);
+                          }
+                        } else {
+                          navigationPush(
+                            context,
+                            PublicProfile(userId: widget.post.user.userid),
+                          );
+                        }
                       },
                       child: CircleAvatar(
                         radius: 20,
@@ -543,7 +399,7 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
                           'Placed a post',
                           style: TextStyle(
                             fontSize: 10.sp,
-                            color: Colors.black.withOpacity(0.5),
+                            color: Theme.of(context).colorScheme.onBackground,
                             fontWeight: FontWeight.w500,
                           ),
                         ),
@@ -552,15 +408,7 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
                   ],
                 ),
 
-                if (hasImages)
-                  Container(
-                    margin: EdgeInsets.only(top: 8.h),
-                    height: 150.h,
-                    width: double.infinity,
-                    child: _buildImagesStack(widget.post.images),
-                  ),
-
-                if (hasPolls) _buildPollsSection(context),
+                if (hasPolls) ..._buildPollContent(),
 
                 SizedBox(height: 3.h),
                 Row(
@@ -630,7 +478,7 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
                     ),
                   ],
                 ),
-                widget.post.viewLikes.isEmpty
+                viewLikes.isEmpty
                     ? SizedBox.shrink()
                     : GestureDetector(
                         onTap: _showLikedUsersBottomSheet,
@@ -640,7 +488,7 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
                           children: [
                             LikeUtils.buildLikeAvatarsStack(
                               context,
-                              widget.post.viewLikes,
+                              viewLikes,
                               avatarSize: 15,
                             ),
                             SizedBox(width: 5.w),
@@ -653,7 +501,7 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
                                     overflow: TextOverflow.ellipsis,
                                     text: LikeUtils.buildLikedByRichText(
                                       context,
-                                      widget.post.viewLikes,
+                                      viewLikes,
                                     ),
                                   ),
                                 ),
@@ -662,58 +510,6 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
                           ],
                         ),
                       ),
-                AnimatedSwitcher(
-                  duration: Duration(milliseconds: 300),
-                  transitionBuilder: (child, animation) {
-                    return ScaleTransition(
-                      scale: animation,
-                      child: FadeTransition(opacity: animation, child: child),
-                    );
-                  },
-                  child: areAllImagesSelected
-                      ? GestureDetector(
-                          onTap: _submitAllImageVotes,
-                          child: Center(
-                            key: ValueKey("analytics_$areAllImagesSelected"),
-                            child: AnimatedOpacity(
-                              duration: Duration(milliseconds: 300),
-                              opacity: 1.0,
-                              child: Container(
-                                margin: EdgeInsets.only(top: 10.h),
-                                height: 45.h,
-                                width: 45.w,
-                                decoration: BoxDecoration(
-                                  color: Theme.of(context).colorScheme.primary,
-                                  shape: BoxShape.circle,
-                                  gradient: LinearGradient(
-                                    begin: Alignment.topLeft,
-                                    end: Alignment.bottomRight,
-                                    colors: [
-                                      Color(0xFFCF4B73),
-                                      Color(0xFFC76294),
-                                    ],
-                                  ),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Theme.of(context)
-                                          .colorScheme
-                                          .onBackground
-                                          .withOpacity(0.3),
-                                      blurRadius: 5,
-                                    ),
-                                  ],
-                                ),
-                                child: Icon(
-                                  Icons.analytics,
-                                  color: Colors.white,
-                                  size: 22.spMax,
-                                ),
-                              ),
-                            ),
-                          ),
-                        )
-                      : SizedBox.shrink(),
-                ),
               ],
             ),
           ),
@@ -722,219 +518,59 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
     );
   }
 
-  Widget _buildImageWithNumber(
-    String imageUrl,
-    int number,
-    double height, {
-    BoxFit fit = BoxFit.cover,
-  }) {
-    bool isSelected = isImageSelected(number);
-    int selectionNumber = getSelectionNumber(number);
+  List<Widget> _buildPollContent() {
+    List<Widget> widgets = [];
 
-    // Get the actual image object
-    int imageIndex = randomImageIndices[number - 1];
-    final image = widget.post.images[imageIndex];
+    for (var poll in widget.post.polls) {
+      if (_hasImageOptions(poll)) {
+        List<PollOptionImage> images = _getPollImages(poll);
+        if (images.isNotEmpty) {
+          String pollKey = poll.id.toString();
+          int displayVotes = pollTotalVotes[pollKey] ?? poll.totalVotes;
 
-    return GestureDetector(
-      onTap: () {
-        setState(() {
-          if (isImageSelected(number)) {
-            selectionOrder.remove(number);
-          } else {
-            selectionOrder.add(number);
-          }
-        });
-        if (widget.onImageSelectionChanged != null) {
-          widget.onImageSelectionChanged!(selectedImageIndices);
-        }
-      },
-      onLongPress: () {
-        // Show voters list on long press
-        _showImageVotersBottomSheet(image);
-      },
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Image container
-          ClipRRect(
-            borderRadius: BorderRadius.circular(8.r),
-            child: SizedBox(
-              height: height,
-              child: Stack(
-                children: [
-                  // Image with overlay when selected
-                  Stack(
-                    children: [
-                      Image.network(
-                        imageUrl,
-                        height: height,
-                        width: double.infinity,
-                        fit: fit,
-                        loadingBuilder: (context, child, loadingProgress) {
-                          if (loadingProgress == null) return child;
-                          return Container(
-                            height: height,
-                            color: Colors.grey[200],
-                            child: Center(
-                              child: Loader(
-                                color: Theme.of(context).colorScheme.primary,
-                              ),
-                            ),
-                          );
-                        },
-                        errorBuilder: (context, error, stackTrace) {
-                          return Container(
-                            height: height,
-                            color: Colors.grey[200],
-                            child: const Icon(
-                              Icons.image,
-                              size: 50,
-                              color: Colors.grey,
-                            ),
-                          );
-                        },
-                      ),
-                      if (isSelected)
-                        Container(
-                          height: height,
-                          width: double.infinity,
-                          decoration: BoxDecoration(
-                            color: Theme.of(
-                              context,
-                            ).colorScheme.onBackground.withOpacity(0.3),
-                            borderRadius: BorderRadius.circular(8.r),
-                          ),
-                        ),
-                    ],
+          widgets.add(
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (poll.question.isNotEmpty) ...[
+                  SizedBox(height: 5.h),
+                  Text(
+                    poll.question,
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.onBackground,
+                      fontSize: 12.5.sp,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
-                  // Selection number (bottom-right, inside image)
-                  if (isSelected)
-                    Positioned(
-                      bottom: 8,
-                      right: 8,
-                      child: AnimatedOpacity(
-                        duration: Duration(milliseconds: 300),
-                        opacity: 1.0,
-                        child: Container(
-                          width: 30.w,
-                          height: 30.h,
-                          decoration: BoxDecoration(
-                            color: Theme.of(context).colorScheme.primary,
-                            shape: BoxShape.circle,
-                          ),
-                          child: Center(
-                            child: Text(
-                              '$selectionNumber',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 16.sp,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
                 ],
-              ),
-            ),
-          ),
-          // Voter avatars and count (outside, below the image)
-          if (image.voteCount > 0)
-            Padding(
-              padding: EdgeInsets.only(top: 8.h, left: 4.w),
-              child: GestureDetector(
-                onTap: () => _showImageVotersBottomSheet(image),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Stacked user avatars
-                    SizedBox(
-                      height: 24.h,
-                      width: (image.userList.take(3).length * 16 + 8).w,
-                      child: Stack(
-                        alignment: Alignment.centerLeft,
-                        children: [
-                          for (
-                            int i = 0;
-                            i < image.userList.take(3).length;
-                            i++
-                          )
-                            Positioned(
-                              left: i * 14.0.w,
-                              child: Container(
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  border: Border.all(
-                                    color: Colors.white,
-                                    width: 2,
-                                  ),
-                                ),
-                                child: CircleAvatar(
-                                  radius: 12.r,
-                                  backgroundColor: Theme.of(
-                                    context,
-                                  ).colorScheme.primary.withOpacity(0.2),
-                                  backgroundImage:
-                                      image.userList[i].profileImage != null &&
-                                          image
-                                              .userList[i]
-                                              .profileImage!
-                                              .isNotEmpty
-                                      ? MemoryImage(
-                                          getProfileImage(
-                                            image.userList[i].profileImage,
-                                          )!,
-                                        )
-                                      : null,
-                                  child:
-                                      image.userList[i].profileImage == null ||
-                                          image
-                                              .userList[i]
-                                              .profileImage!
-                                              .isEmpty
-                                      ? Text(
-                                          image.userList[i].firstLetter,
-                                          style: TextStyle(
-                                            fontSize: 10.sp,
-                                            fontWeight: FontWeight.w600,
-                                            color: Theme.of(
-                                              context,
-                                            ).colorScheme.primary,
-                                          ),
-                                        )
-                                      : null,
-                                ),
-                              ),
-                            ),
-                        ],
-                      ),
-                    ),
-                    SizedBox(width: 8.w),
-                    // Vote count and text (Flexible for responsive wrapping)
-                    Expanded(
-                      child: Text(
-                        '${image.voteCount}+ picked this as top choice',
-                        style: TextStyle(
-                          color: Colors.grey[700],
-                          fontSize: 10.sp,
-                          fontWeight: FontWeight.w500,
-                          height: 1.3,
-                        ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                  ],
+                Container(
+                  margin: EdgeInsets.only(top: 8.h),
+                  height: 150.h,
+                  width: double.infinity,
+                  child: _buildImagesStack(images, poll),
                 ),
-              ),
+                SizedBox(height: 4.h),
+                Text(
+                  '$displayVotes Votes',
+                  style: TextStyle(
+                    fontSize: 10.7.sp,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.grey[600],
+                  ),
+                ),
+              ],
             ),
-        ],
-      ),
-    );
+          );
+        }
+      } else if (_hasTextOptions(poll)) {
+        widgets.add(_buildTextPollSection(context, poll, widget.post));
+      }
+    }
+
+    return widgets;
   }
 
-  Widget _buildImagesStack(List images) {
+  Widget _buildImagesStack(List<PollOptionImage> images, HomeFeedPoll poll) {
     List<Alignment> getAlignments(int totalImages) {
       switch (totalImages) {
         case 1:
@@ -966,367 +602,240 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
         double availableHeight = constraints.maxHeight;
         double imageHeight = 150.h;
 
-        return SizedBox(
-          height: availableHeight,
-          width: availableWidth,
-          child: Stack(
-            children: images
-                .asMap()
-                .entries
-                .map<Widget>((entry) {
-                  int index = entry.key;
-                  dynamic imageData = entry.value;
-                  Alignment alignment = alignments[index];
-                  double imageWidth = (availableWidth * 0.7) - (index * 8.0);
-                  imageWidth = imageWidth < 60.w ? 60.w : imageWidth;
+        return GestureDetector(
+          onTap: () => _showAllImagesGrid(images, poll),
+          child: SizedBox(
+            height: availableHeight,
+            width: availableWidth,
+            child: Stack(
+              children: images
+                  .asMap()
+                  .entries
+                  .map<Widget>((entry) {
+                    int index = entry.key;
+                    PollOptionImage imageData = entry.value;
+                    Alignment alignment = alignments[index];
+                    double imageWidth = (availableWidth * 0.7) - (index * 8.0);
+                    imageWidth = imageWidth < 60.w ? 60.w : imageWidth;
 
-                  return Align(
-                    alignment: alignment,
-                    child: Container(
-                      margin: EdgeInsets.symmetric(horizontal: 3.w),
-                      width: imageWidth,
-                      height: imageHeight,
+                    return Align(
+                      alignment: alignment,
                       child: Container(
-                        decoration: BoxDecoration(
-                          border: Border.all(color: Colors.white, width: 1),
-                          borderRadius: BorderRadius.circular(20.r),
-                        ),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(19.r),
-                          child: Image.network(
-                            '${ApiConfig.baseUrlImage}${imageData.url}',
-                            fit: BoxFit.cover,
-                            width: double.infinity,
-                            height: double.infinity,
-                            errorBuilder: (context, error, stackTrace) {
-                              return Container(
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(12.r),
-                                ),
-                                child: Icon(
-                                  Icons.image_not_supported,
-                                  color: Colors.grey[600],
-                                  size: 30,
-                                ),
-                              );
-                            },
-                            loadingBuilder: (context, child, loadingProgress) {
-                              if (loadingProgress == null) return child;
-                              return Container(
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(20.r),
-                                ),
-                                child: Center(
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    value:
-                                        loadingProgress.expectedTotalBytes !=
-                                            null
-                                        ? loadingProgress
-                                                  .cumulativeBytesLoaded /
-                                              loadingProgress
-                                                  .expectedTotalBytes!
-                                        : null,
+                        margin: EdgeInsets.symmetric(horizontal: 3.w),
+                        width: imageWidth,
+                        height: imageHeight,
+                        child: Container(
+                          decoration: BoxDecoration(
+                            border: Border.all(color: Colors.white, width: 1),
+                            borderRadius: BorderRadius.circular(20.r),
+                          ),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(19.r),
+                            child: Image.network(
+                              '${ApiConfig.baseUrlImage}${imageData.url}',
+                              fit: BoxFit.cover,
+                              width: double.infinity,
+                              height: double.infinity,
+                              errorBuilder: (context, error, stackTrace) {
+                                return Container(
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(12.r),
                                   ),
-                                ),
-                              );
-                            },
+                                  child: Icon(
+                                    Icons.image_not_supported,
+                                    color: Colors.grey[600],
+                                    size: 30,
+                                  ),
+                                );
+                              },
+                              loadingBuilder:
+                                  (context, child, loadingProgress) {
+                                    if (loadingProgress == null) return child;
+                                    return Container(
+                                      decoration: BoxDecoration(
+                                        borderRadius: BorderRadius.circular(
+                                          20.r,
+                                        ),
+                                      ),
+                                      child: Center(
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          value:
+                                              loadingProgress
+                                                      .expectedTotalBytes !=
+                                                  null
+                                              ? loadingProgress
+                                                        .cumulativeBytesLoaded /
+                                                    loadingProgress
+                                                        .expectedTotalBytes!
+                                              : null,
+                                        ),
+                                      ),
+                                    );
+                                  },
+                            ),
                           ),
                         ),
                       ),
-                    ),
-                  );
-                })
-                .toList()
-                .reversed
-                .toList(),
+                    );
+                  })
+                  .toList()
+                  .reversed
+                  .toList(),
+            ),
           ),
         );
       },
     );
   }
 
-  // Widget _buildImagesSection(BuildContext context) {
-  //   if (randomImageIndices.isEmpty) return const SizedBox.shrink();
+  Widget _buildTextPollSection(
+    BuildContext context,
+    HomeFeedPoll poll,
+    HomeFeedPost post,
+  ) {
+    List<HomeFeedPollOption> validOptions = poll.options
+        .where((option) => option.text != null && option.text!.isNotEmpty)
+        .toList();
 
-  //   // Description widget (reusable)
-  //   Widget buildDescription() {
-  //     if (widget.post.description.isNotEmpty &&
-  //         widget.post.description != 'fkglfd') {
-  //       return Padding(
-  //         padding: EdgeInsets.only(top: 5.h, bottom: 8.h),
-  //         child: Text(
-  //           widget.post.description,
-  //           style: CustomTextStyles.lblSecondryText(context),
-  //         ),
-  //       );
-  //     }
-  //     return const SizedBox.shrink();
-  //   }
+    if (validOptions.isEmpty) {
+      return SizedBox.shrink();
+    }
 
-  //   if (randomImageIndices.length == 1) {
-  //     return Column(
-  //       crossAxisAlignment: CrossAxisAlignment.start,
-  //       children: [
-  //         buildDescription(),
-  //         _buildImageWithNumber(
-  //           '${ApiConfig.baseUrlImage}${widget.post.images[randomImageIndices[0]].url}',
-  //           1,
-  //           200.h,
-  //         ),
-  //       ],
-  //     );
-  //   } else if (randomImageIndices.length == 2) {
-  //     return Column(
-  //       crossAxisAlignment: CrossAxisAlignment.start,
-  //       children: [
-  //         buildDescription(),
-  //         Row(
-  //           children: [
-  //             Expanded(
-  //               child: _buildImageWithNumber(
-  //                 '${ApiConfig.baseUrlImage}${widget.post.images[randomImageIndices[0]].url}',
-  //                 1,
-  //                 150.h,
-  //               ),
-  //             ),
-  //             SizedBox(width: 7.w),
-  //             Expanded(
-  //               child: _buildImageWithNumber(
-  //                 '${ApiConfig.baseUrlImage}${widget.post.images[randomImageIndices[1]].url}',
-  //                 2,
-  //                 150.h,
-  //               ),
-  //             ),
-  //           ],
-  //         ),
-  //       ],
-  //     );
-  //   } else if (randomImageIndices.length == 3) {
-  //     return Column(
-  //       crossAxisAlignment: CrossAxisAlignment.start,
-  //       children: [
-  //         buildDescription(),
-  //         Row(
-  //           children: [
-  //             Expanded(
-  //               child: _buildImageWithNumber(
-  //                 '${ApiConfig.baseUrlImage}${widget.post.images[randomImageIndices[0]].url}',
-  //                 1,
-  //                 150.h,
-  //               ),
-  //             ),
-  //             SizedBox(width: 5.w),
-  //             Expanded(
-  //               child: _buildImageWithNumber(
-  //                 '${ApiConfig.baseUrlImage}${widget.post.images[randomImageIndices[1]].url}',
-  //                 2,
-  //                 150.h,
-  //               ),
-  //             ),
-  //             SizedBox(width: 5.w),
-  //             Expanded(
-  //               child: _buildImageWithNumber(
-  //                 '${ApiConfig.baseUrlImage}${widget.post.images[randomImageIndices[2]].url}',
-  //                 3,
-  //                 150.h,
-  //               ),
-  //             ),
-  //           ],
-  //         ),
-  //       ],
-  //     );
-  //   } else if (randomImageIndices.length >= 4) {
-  //     // 4 or more images - show 2x2 grid
-  //     return Column(
-  //       crossAxisAlignment: CrossAxisAlignment.start,
-  //       children: [
-  //         buildDescription(),
-  //         Column(
-  //           children: [
-  //             // First row
-  //             Row(
-  //               children: [
-  //                 Expanded(
-  //                   child: _buildImageWithNumber(
-  //                     '${ApiConfig.baseUrlImage}${widget.post.images[randomImageIndices[0]].url}',
-  //                     1,
-  //                     100.h,
-  //                   ),
-  //                 ),
-  //                 SizedBox(width: 5.w),
-  //                 Expanded(
-  //                   child: _buildImageWithNumber(
-  //                     '${ApiConfig.baseUrlImage}${widget.post.images[randomImageIndices[1]].url}',
-  //                     2,
-  //                     100.h,
-  //                   ),
-  //                 ),
-  //               ],
-  //             ),
-  //             SizedBox(height: 5.h),
-  //             // Second row
-  //             Row(
-  //               children: [
-  //                 Expanded(
-  //                   child: _buildImageWithNumber(
-  //                     '${ApiConfig.baseUrlImage}${widget.post.images[randomImageIndices[2]].url}',
-  //                     3,
-  //                     100.h,
-  //                   ),
-  //                 ),
-  //                 SizedBox(width: 5.w),
-  //                 Expanded(
-  //                   child: _buildImageWithNumber(
-  //                     '${ApiConfig.baseUrlImage}${widget.post.images[randomImageIndices[3]].url}',
-  //                     4,
-  //                     100.h,
-  //                   ),
-  //                 ),
-  //               ],
-  //             ),
-  //           ],
-  //         ),
-  //       ],
-  //     );
-  //   }
+    String pollKey = poll.id.toString();
+    bool areAllOptionsSelected = _areAllPollOptionsSelected(poll);
+    bool isVoting = pollVotingStates[pollKey] ?? false;
+    int displayVotes = pollTotalVotes[pollKey] ?? poll.totalVotes;
+    bool hasUserPolled = poll.isPolledByCurrentUser ?? false;
 
-  //   return const SizedBox.shrink();
-  // }
-
-  Widget _buildPollsSection(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
-      children: widget.post.polls.map((poll) {
-        // Check if any option has null or empty text
-        bool hasInvalidOption = poll.options.any(
-          (option) => option.text.isEmpty,
-        );
+      children: [
+        SizedBox(height: 5.h),
+        Text(
+          poll.question,
+          style: TextStyle(
+            color: Theme.of(context).colorScheme.onBackground,
+            fontSize: 12.5.sp,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        SizedBox(height: 7.h),
 
-        // If any option is invalid, don't render this poll at all
-        if (hasInvalidOption) {
-          return SizedBox.shrink();
-        }
-
-        // Check if all options in this poll are selected
-        String pollKey = poll.id.toString();
-        bool areAllOptionsSelected = _areAllPollOptionsSelected(poll);
-
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        ...poll.options.asMap().entries.map((entry) {
+          if (entry.value.text == null || entry.value.text!.isEmpty) {
+            return SizedBox.shrink();
+          }
+          return _buildPollOption(
+            entry.value,
+            displayVotes,
+            context,
+            entry.key,
+            poll,
+            showPercentage: hasUserPolled,
+          );
+        }),
+        SizedBox(height: 2.h),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            SizedBox(height: 5.h),
             Text(
-              poll.question,
-              style: TextStyle(
-                color: Theme.of(context).colorScheme.onBackground,
-                fontSize: 12.5.sp,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-            SizedBox(height: 10.h),
-            ...poll.options.asMap().entries.map(
-              (entry) => _buildPollOption(
-                entry.value,
-                poll.totalVotes,
-                context,
-                entry.key,
-                poll,
-              ),
-            ),
-            SizedBox(height: 5.h),
-            Text(
-              '${poll.totalVotes.toString()} Votes',
+              '$displayVotes Votes',
               style: TextStyle(
                 fontSize: 10.7.sp,
                 fontWeight: FontWeight.w500,
                 color: Colors.grey[600],
               ),
             ),
-
-            // Show analytics button when all options are selected
-            AnimatedSwitcher(
-              duration: Duration(milliseconds: 300),
-              transitionBuilder: (child, animation) {
-                return ScaleTransition(
-                  scale: animation,
-                  child: FadeTransition(opacity: animation, child: child),
-                );
-              },
-              child: areAllOptionsSelected
-                  ? Center(
-                      key: ValueKey("analytics_$areAllImagesSelected"),
-                      child: AnimatedOpacity(
-                        duration: Duration(milliseconds: 300),
-                        opacity: 1.0,
-                        child: Container(
-                          height: 45.h,
-                          width: 45.w,
-                          decoration: BoxDecoration(
-                            color: Theme.of(context).colorScheme.primary,
-                            shape: BoxShape.circle,
-                            gradient: LinearGradient(
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                              colors: [Color(0xFFCF4B73), Color(0xFFC76294)],
-                            ),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Theme.of(
-                                  context,
-                                ).colorScheme.onBackground.withOpacity(0.3),
-                                blurRadius: 5,
-                              ),
-                            ],
-                          ),
-                          child: Icon(
-                            Icons.stacked_bar_chart,
-                            color: Colors.white,
-                            size: 20.spMax,
-                          ),
-                        ),
-                      ),
-                    )
-                  : SizedBox.shrink(),
-            ),
           ],
-        );
-      }).toList(),
+        ),
+        AnimatedSwitcher(
+          duration: Duration(milliseconds: 300),
+          transitionBuilder: (child, animation) {
+            return ScaleTransition(
+              scale: animation,
+              child: FadeTransition(opacity: animation, child: child),
+            );
+          },
+          child: !hasUserPolled && areAllOptionsSelected
+              ? GestureDetector(
+                  onTap: isVoting ? null : () => _submitPollVotes(poll),
+                  child: Center(
+                    key: ValueKey("analytics_${poll.id}"),
+                    child: AnimatedOpacity(
+                      duration: Duration(milliseconds: 300),
+                      opacity: 1.0,
+                      child: Container(
+                        margin: EdgeInsets.only(top: 10.h),
+                        height: 45.h,
+                        width: 45.w,
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).colorScheme.primary,
+                          shape: BoxShape.circle,
+                          gradient: LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [Color(0xFFCF4B73), Color(0xFFC76294)],
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.onBackground.withOpacity(0.3),
+                              blurRadius: 5,
+                            ),
+                          ],
+                        ),
+                        child: isVoting
+                            ? Padding(
+                                padding: EdgeInsets.all(12.w),
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                    Colors.white,
+                                  ),
+                                ),
+                              )
+                            : Icon(
+                                Icons.stacked_bar_chart,
+                                color: Colors.white,
+                                size: 20.spMax,
+                              ),
+                      ),
+                    ),
+                  ),
+                )
+              : SizedBox.shrink(),
+        ),
+      ],
     );
   }
 
-  // Helper method to check if all options in a poll are selected
   bool _areAllPollOptionsSelected(HomeFeedPoll poll) {
     String pollKey = poll.id.toString();
 
-    // Check if this poll has selections and if all options are selected
     if (!selectedOptions.containsKey(pollKey)) {
       return false;
     }
 
-    // Count only valid options (non-empty text)
     int validOptionsCount = poll.options
-        .where((option) => option.text.isNotEmpty)
+        .where((option) => option.text != null && option.text!.isNotEmpty)
         .length;
 
     return selectedOptions[pollKey]!.length == validOptionsCount;
   }
 
-  // Helper method to get selection number for an option
   int? _getSelectionNumber(String pollKey, int optionIndex) {
     if (!selectedOptions.containsKey(pollKey)) {
       return null;
     }
 
-    // Get the list of selected indices in order of selection
     List<int> selected = selectedOptions[pollKey]!;
 
-    // If this option is not selected, return null
     if (!selected.contains(optionIndex)) {
       return null;
     }
 
-    // Return the position (1-indexed) based on when it was selected
     return selected.indexOf(optionIndex) + 1;
   }
 
@@ -1335,158 +844,159 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
     int totalVotes,
     BuildContext context,
     int optionIndex,
-    HomeFeedPoll poll,
-  ) {
-    final percentage = totalVotes > 0
-        ? ((option.voteCount) / totalVotes * 100)
-        : 0.0;
+    HomeFeedPoll poll, {
+    bool showPercentage = false,
+  }) {
+    String pollKey = poll.id.toString();
 
-    // Define different gradient colors for dynamic options
+    // Get dynamic percentage from API results
+    int percentage = 25;
+
     List<Color> getGradientColors(int index) {
       final colors = [
-        [Color(0xFFFC3E7E), Color(0xFFEEA0F0)], // Option 1
-        [Color(0xFF4FC3F7), Color(0xFFB6E2F8)], // Option 2
-        [Colors.red, const Color(0xFFEFB0C3)], // Option 3
-        [Colors.green, Colors.teal], // Option 4
+        [Color(0xFFFC3E7E), Color(0xFFEEA0F0)],
+        [Color(0xFF4FC3F7), Color(0xFFB6E2F8)],
+        [Colors.red, const Color(0xFFEFB0C3)],
+        [Colors.green, Colors.teal],
       ];
       return colors[index % colors.length];
     }
 
     final gradientColors = getGradientColors(optionIndex);
 
-    int percentageFull = 100;
-    int totalVoteCount = ((option.voteCount * 100) / percentageFull).round();
-
-    // Check if this option is selected
-    String pollKey = poll.id.toString();
     bool isSelected =
         selectedOptions.containsKey(pollKey) &&
         selectedOptions[pollKey]!.contains(optionIndex);
 
-    // Get selection number
     int? selectionNumber = _getSelectionNumber(pollKey, optionIndex);
 
-    return GestureDetector(
-      onTap: () {
-        // Handle option selection/deselection
-        setState(() {
-          // Initialize the list if it doesn't exist
-          if (!selectedOptions.containsKey(pollKey)) {
-            selectedOptions[pollKey] = [];
-          }
+    bool hasUserPolled = poll.isPolledByCurrentUser ?? false;
 
-          // Toggle selection
-          if (selectedOptions[pollKey]!.contains(optionIndex)) {
-            // If already selected, unselect it
-            selectedOptions[pollKey]!.remove(optionIndex);
-          } else {
-            // If not selected, add it to the end (preserves selection order)
-            selectedOptions[pollKey]!.add(optionIndex);
-          }
-        });
-      },
-      child: Container(
-        margin: EdgeInsets.only(bottom: 8.h),
-        padding: EdgeInsets.all(5.w),
-        decoration: BoxDecoration(
-          border: isSelected
-              ? Border.all(
-                  color: Theme.of(context).primaryColor.withOpacity(0.8),
-                  width: 1.1,
-                )
-              : Border.all(color: Colors.transparent, width: 1.5),
-          borderRadius: BorderRadius.circular(8.r),
-          color: isSelected
-              ? const Color.fromARGB(24, 0, 0, 0)
-              : Colors.transparent,
-        ),
-        child: Stack(
-          alignment: Alignment.center,
-          children: [
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    // Show selection number if selected
-                    Expanded(
-                      child: Text(
-                        option.text,
-                        style: TextStyle(
-                          color: Theme.of(context).colorScheme.onBackground,
-                          fontSize: 12.sp,
-                          fontWeight: FontWeight.w500,
+    return GestureDetector(
+      onTap: hasUserPolled
+          ? null
+          : () {
+              setState(() {
+                if (!selectedOptions.containsKey(pollKey)) {
+                  selectedOptions[pollKey] = [];
+                }
+
+                if (selectedOptions[pollKey]!.contains(optionIndex)) {
+                  selectedOptions[pollKey]!.remove(optionIndex);
+                } else {
+                  selectedOptions[pollKey]!.add(optionIndex);
+                }
+              });
+            },
+      child: Opacity(
+        opacity: hasUserPolled ? 0.6 : 1.0,
+        child: Container(
+          margin: EdgeInsets.only(bottom: 8.h),
+          padding: EdgeInsets.all(5.w),
+          decoration: BoxDecoration(
+            border: hasUserPolled
+                ? Border.all(color: Colors.grey.withOpacity(0.4), width: 1.1)
+                : isSelected
+                ? Border.all(
+                    color: Theme.of(context).primaryColor.withOpacity(0.8),
+                    width: 1.1,
+                  )
+                : Border.all(color: Colors.transparent, width: 1.5),
+            borderRadius: BorderRadius.circular(8.r),
+            color: hasUserPolled
+                ? Colors.grey.withOpacity(0.1)
+                : isSelected
+                ? const Color.fromARGB(24, 0, 0, 0)
+                : Colors.transparent,
+          ),
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          option.text ?? '',
+                          style: TextStyle(
+                            color: hasUserPolled
+                                ? Colors.grey[600]
+                                : Theme.of(context).colorScheme.onBackground,
+                            fontSize: 12.sp,
+                            fontWeight: FontWeight.w500,
+                          ),
                         ),
                       ),
-                    ),
-                  ],
-                ),
-                SizedBox(height: 5.h),
-                Container(
-                  height: 5.h,
-                  width: double.infinity,
-                  decoration: BoxDecoration(
-                    color:
-                        Colors.grey[200], // Grey background for unfilled area
-                    borderRadius: BorderRadius.circular(4.r),
+                      // Show percentage from API
+                      if (showPercentage)
+                        Text(
+                          '${percentage.toString()}%',
+                          style: TextStyle(
+                            color: hasUserPolled
+                                ? Colors.grey[600]
+                                : Theme.of(context).colorScheme.onBackground,
+                            fontSize: 12.sp,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                    ],
                   ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(4.r),
-                    child: Stack(
-                      children: [
-                        // Only show filled area if total_vote_count > 0
-                        if (totalVoteCount > 0)
-                          FractionallySizedBox(
-                            alignment: Alignment.centerLeft,
-                            widthFactor: totalVoteCount / 100,
-                            child: Container(
-                              height: 8.h,
-                              decoration: BoxDecoration(
-                                gradient: LinearGradient(
-                                  colors: gradientColors,
-                                  begin: Alignment.centerLeft,
-                                  end: Alignment.centerRight,
+                  SizedBox(height: 5.h),
+                  Container(
+                    margin: EdgeInsets.only(bottom: 5.h),
+                    height: 5.h,
+                    width: double.infinity,
+                    decoration: BoxDecoration(
+                      color: Colors.grey[200],
+                      borderRadius: BorderRadius.circular(4.r),
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(4.r),
+                      child: Stack(
+                        children: [
+                          // Show progress bar with API percentage
+                          if (showPercentage && percentage > 0)
+                            FractionallySizedBox(
+                              alignment: Alignment.centerLeft,
+                              widthFactor: percentage / 100,
+                              child: Container(
+                                height: 8.h,
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(
+                                    colors: gradientColors,
+                                    begin: Alignment.centerLeft,
+                                    end: Alignment.centerRight,
+                                  ),
                                 ),
                               ),
                             ),
-                          ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
-                ),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    Text(
-                      '${totalVoteCount.toInt()}%',
-                      style: TextStyle(
-                        fontSize: 11.sp,
-                        fontWeight: FontWeight.w500,
-                        color: Colors.grey[600],
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-            isSelected
-                ? SizedBox(
-                    width: double.infinity,
-                    child: Center(
-                      child: Text(
-                        '$selectionNumber',
-                        style: TextStyle(
-                          color: Theme.of(
-                            context,
-                          ).colorScheme.primary.withOpacity(0.8),
-                          fontSize: 20.sp,
-                          fontWeight: FontWeight.bold,
+                ],
+              ),
+              isSelected
+                  ? SizedBox(
+                      width: double.infinity,
+                      child: Center(
+                        child: Text(
+                          '$selectionNumber',
+                          style: TextStyle(
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.primary.withOpacity(0.8),
+                            fontSize: 20.sp,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
-                    ),
-                  )
-                : SizedBox.shrink(),
-          ],
+                    )
+                  : SizedBox.shrink(),
+            ],
+          ),
         ),
       ),
     );

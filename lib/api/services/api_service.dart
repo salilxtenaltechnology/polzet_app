@@ -65,7 +65,7 @@ class ApiService with UtilityMixin {
     } on DioException catch (e) {
       if (e.response != null) {
         if (kDebugMode) {
-          print('Server error: ${e.response?.data}');
+          showToast(message: 'Internal Server Error');
         }
       } else {
         if (kDebugMode) {
@@ -1281,24 +1281,106 @@ class ApiService with UtilityMixin {
     }
   }
 
-  static Future<Map<String, dynamic>> voteOnPoll({
+  // static Future<Map<String, dynamic>> voteOnPoll({
+  //   required int postId,
+  //   required int optionId,
+  // }) async {
+  //   try {
+  //     final accessToken = await SharedPrefService.getAccessToken();
+
+  //     if (accessToken == null || accessToken.isEmpty) {
+  //       return {
+  //         'success': false,
+  //         'message': 'Authentication token not found',
+  //         'option_id': optionId,
+  //       };
+  //     }
+
+  //     final response = await _dio.post(
+  //       '${ApiConstants.baseUrl}/posts/$postId/vote/$optionId',
+  //       data: {'option': optionId},
+  //       options: Options(
+  //         headers: {
+  //           'Authorization': 'Bearer $accessToken',
+  //           'Content-Type': 'application/json',
+  //           'Accept': 'application/json',
+  //         },
+  //       ),
+  //     );
+
+  //     if (response.statusCode == 200 || response.statusCode == 201) {
+  //       return {
+  //         'success': true,
+  //         'message': 'Vote added successfully',
+  //         'data': response.data,
+  //         'option_id': optionId,
+  //       };
+  //     } else {
+  //       return {
+  //         'success': false,
+  //         'message': response.data['message'] ?? 'Failed to vote',
+  //         'status_code': response.statusCode,
+  //         'option_id': optionId,
+  //       };
+  //     }
+  //   } on DioException catch (e) {
+  //     if (kDebugMode) {
+  //       print('DioException voting for option $optionId: ${e.message}');
+  //       print('Response: ${e.response?.data}');
+  //     }
+
+  //     if (e.response?.statusCode == 401) {
+  //       return {
+  //         'success': false,
+  //         'message': 'Unauthorized. Please login again.',
+  //         'option_id': optionId,
+  //       };
+  //     } else if (e.response?.statusCode == 400) {
+  //       return {
+  //         'success': false,
+  //         'message': e.response?.data['message'] ?? 'Invalid vote data',
+  //         'option_id': optionId,
+  //       };
+  //     } else if (e.type == DioExceptionType.connectionTimeout) {
+  //       return {
+  //         'success': false,
+  //         'message':
+  //             'Connection timeout. Please check your internet connection',
+  //         'option_id': optionId,
+  //       };
+  //     } else {
+  //       return {
+  //         'success': false,
+  //         'message': e.response?.data['message'] ?? 'Network error',
+  //         'option_id': optionId,
+  //       };
+  //     }
+  //   } catch (e) {
+  //     if (kDebugMode) {
+  //       print('Error voting for option $optionId: $e');
+  //     }
+  //     return {
+  //       'success': false,
+  //       'message': 'An unexpected error occurred',
+  //       'option_id': optionId,
+  //     };
+  //   }
+  // }
+
+  static Future<Map<String, dynamic>> voteOnPollMultiple({
     required int postId,
-    required int optionId,
+    required List<Map<String, int>> votes,
   }) async {
     try {
       final accessToken = await SharedPrefService.getAccessToken();
 
       if (accessToken == null || accessToken.isEmpty) {
-        return {
-          'success': false,
-          'message': 'Authentication token not found',
-          'option_id': optionId,
-        };
+        return {'success': false, 'message': 'Authentication token not found'};
       }
 
       final response = await _dio.post(
-        '${ApiConstants.baseUrl}/posts/$postId/vote/$optionId',
-        data: {'option': optionId},
+        '${ApiConstants.baseUrl}/posts/$postId/vote',
+        data: {"votes": votes},
         options: Options(
           headers: {
             'Authorization': 'Bearer $accessToken',
@@ -1311,21 +1393,19 @@ class ApiService with UtilityMixin {
       if (response.statusCode == 200 || response.statusCode == 201) {
         return {
           'success': true,
-          'message': 'Vote added successfully',
-          'data': response.data,
-          'option_id': optionId,
+          'message': response.data['message'] ?? 'Votes saved successfully',
+          'data': response.data['data'],
         };
       } else {
         return {
           'success': false,
-          'message': response.data['message'] ?? 'Failed to vote',
+          'message': response.data['message'] ?? 'Failed to submit votes',
           'status_code': response.statusCode,
-          'option_id': optionId,
         };
       }
     } on DioException catch (e) {
       if (kDebugMode) {
-        print('DioException voting for option $optionId: ${e.message}');
+        print('DioException submitting votes: ${e.message}');
         print('Response: ${e.response?.data}');
       }
 
@@ -1333,37 +1413,52 @@ class ApiService with UtilityMixin {
         return {
           'success': false,
           'message': 'Unauthorized. Please login again.',
-          'option_id': optionId,
         };
       } else if (e.response?.statusCode == 400) {
         return {
           'success': false,
           'message': e.response?.data['message'] ?? 'Invalid vote data',
-          'option_id': optionId,
         };
       } else if (e.type == DioExceptionType.connectionTimeout) {
         return {
           'success': false,
           'message':
               'Connection timeout. Please check your internet connection',
-          'option_id': optionId,
         };
       } else {
         return {
           'success': false,
           'message': e.response?.data['message'] ?? 'Network error',
-          'option_id': optionId,
         };
       }
     } catch (e) {
       if (kDebugMode) {
-        print('Error voting for option $optionId: $e');
+        print('Error submitting votes: $e');
       }
-      return {
-        'success': false,
-        'message': 'An unexpected error occurred',
-        'option_id': optionId,
-      };
+      return {'success': false, 'message': 'An unexpected error occurred'};
+    }
+  }
+
+  Future<Map<String, dynamic>> getPollResults(int postId) async {
+    try {
+      final accessToken = await SharedPrefService.getAccessToken();
+
+      final response = await http.get(
+        Uri.parse('${ApiConstants.baseUrl}/api/posts/$postId/poll_results'),
+        headers: {
+          'Authorization': 'Bearer $accessToken',
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        return json.decode(response.body);
+      } else {
+        throw Exception('Failed to load poll results: ${response.statusCode}');
+      }
+    } catch (e) {
+      throw Exception('Error fetching poll results: $e');
     }
   }
 

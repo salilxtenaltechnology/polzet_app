@@ -18,7 +18,7 @@ class QuestionsPostsList extends StatefulWidget {
   QuestionsPostsList({
     super.key,
     required this.username,
-    required this.profileImage,
+    this.profileImage,
   });
 
   @override
@@ -61,9 +61,17 @@ class _QuestionsPostsListState extends State<QuestionsPostsList> {
 
     try {
       final posts = await apiService.fetchPostsPolls(widget.username!);
-      final filteredPosts = posts
-          .where((post) => post.polls.isNotEmpty)
-          .toList();
+      final filteredPosts = posts.where((post) {
+        // Check if post has polls
+        if (post.polls.isEmpty) return false;
+
+        // Check if all poll options have text (not images)
+        return post.polls.every(
+          (poll) => poll.options.every(
+            (option) => option.text != null && option.text!.isNotEmpty,
+          ),
+        );
+      }).toList();
 
       if (mounted) {
         setState(() {

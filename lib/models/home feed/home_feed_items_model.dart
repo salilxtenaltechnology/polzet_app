@@ -3,10 +3,9 @@ class HomeFeedPost {
   final HomeFeedUser user;
   final String description;
   final String createdAt;
-  final List<HomeFeedPostImage> images;
   final List<HomeFeedPoll> polls;
   final int likesCount;
-  final List<LikeUser> viewLikes; // Changed from List<dynamic>
+  final List<LikeUser> viewLikes;
   final bool isLikedByCurrentUser;
   final int commentsCount;
 
@@ -15,7 +14,6 @@ class HomeFeedPost {
     required this.user,
     required this.description,
     required this.createdAt,
-    required this.images,
     required this.polls,
     required this.likesCount,
     required this.viewLikes,
@@ -30,13 +28,15 @@ class HomeFeedPost {
         user: HomeFeedUser.fromJson(json['user'] ?? {}),
         description: _parseToString(json['description']),
         createdAt: _parseToString(json['created_at']),
-        images: _parseList<HomeFeedPostImage>(
-            json['images'], (item) => HomeFeedPostImage.fromJson(item)),
         polls: _parseList<HomeFeedPoll>(
-            json['polls'], (item) => HomeFeedPoll.fromJson(item)),
+          json['polls'],
+          (item) => HomeFeedPoll.fromJson(item),
+        ),
         likesCount: _parseToInt(json['likes_count']),
         viewLikes: _parseList<LikeUser>(
-            json['view_likes'], (item) => LikeUser.fromJson(item)),
+          json['view_likes'],
+          (item) => LikeUser.fromJson(item),
+        ),
         isLikedByCurrentUser: json['is_liked_by_current_user'] == true,
         commentsCount: _parseToInt(json['comments_count']),
       );
@@ -53,7 +53,6 @@ class HomeFeedPost {
       'user': user.toJson(),
       'description': description,
       'created_at': createdAt,
-      'images': images.map((image) => image.toJson()).toList(),
       'polls': polls.map((poll) => poll.toJson()).toList(),
       'likes_count': likesCount,
       'view_likes': viewLikes.map((like) => like.toJson()).toList(),
@@ -62,7 +61,6 @@ class HomeFeedPost {
     };
   }
 
-  // Helper methods for safe parsing
   static int _parseToInt(dynamic value) {
     if (value == null) return 0;
     if (value is int) return value;
@@ -76,7 +74,9 @@ class HomeFeedPost {
   }
 
   static List<T> _parseList<T>(
-      dynamic value, T Function(Map<String, dynamic>) fromJson) {
+    dynamic value,
+    T Function(Map<String, dynamic>) fromJson,
+  ) {
     if (value == null) return [];
     if (value is! List) return [];
 
@@ -95,19 +95,13 @@ class HomeFeedPost {
   }
 }
 
-// New class for users in view_likes list
 class LikeUser {
   final int id;
   final String username;
   final String? profileImage;
 
-  LikeUser({
-    required this.id,
-    required this.username,
-    this.profileImage,
-  });
+  LikeUser({required this.id, required this.username, this.profileImage});
 
-  // Helper method to get first letter uppercase
   String get firstLetter {
     if (username.isEmpty) return 'U';
     return username[0].toUpperCase();
@@ -122,11 +116,7 @@ class LikeUser {
   }
 
   Map<String, dynamic> toJson() {
-    return {
-      'id': id,
-      'username': username,
-      'profile_image': profileImage,
-    };
+    return {'id': id, 'username': username, 'profile_image': profileImage};
   }
 
   static int _parseToInt(dynamic value) {
@@ -155,7 +145,6 @@ class HomeFeedUser {
     this.location,
   });
 
-  // Helper method to get first letter uppercase
   String get firstLetter {
     if (username.isEmpty) return 'U';
     return username[0].toUpperCase();
@@ -192,32 +181,185 @@ class HomeFeedUser {
   }
 }
 
-class HomeFeedPostImage {
+class HomeFeedPoll {
   final int id;
-  final String? url;
-  final String? thumbnailUrl;
+  final String question;
+  final int maxOptions;
+  final List<HomeFeedPollOption> options;
+   int totalVotes;
+  final int? userVote;
+  bool isPolledByCurrentUser;
+
+  HomeFeedPoll({
+    required this.id,
+    required this.question,
+    required this.maxOptions,
+    required this.options,
+    required this.totalVotes,
+    this.userVote,
+    required this.isPolledByCurrentUser,
+  });
+
+  factory HomeFeedPoll.fromJson(Map<String, dynamic> json) {
+    return HomeFeedPoll(
+      id: _parseToInt(json['id']),
+      question: _parseToString(json['question']),
+      maxOptions: _parseToInt(json['max_options']),
+      options: _parseList<HomeFeedPollOption>(
+        json['options'],
+        (item) => HomeFeedPollOption.fromJson(item),
+      ),
+      totalVotes: _parseToInt(json['total_votes']),
+      userVote: json['user_vote'] != null
+          ? _parseToInt(json['user_vote'])
+          : null,
+      isPolledByCurrentUser: json['is_polled_by_current_user'] == true,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'question': question,
+      'max_options': maxOptions,
+      'options': options.map((option) => option.toJson()).toList(),
+      'total_votes': totalVotes,
+      'user_vote': userVote,
+      'is_polled_by_current_user': isPolledByCurrentUser,
+    };
+  }
+
+  static int _parseToInt(dynamic value) {
+    if (value == null) return 0;
+    if (value is int) return value;
+    if (value is String) return int.tryParse(value) ?? 0;
+    return int.tryParse(value.toString()) ?? 0;
+  }
+
+  static String _parseToString(dynamic value) {
+    if (value == null) return '';
+    return value.toString();
+  }
+
+  static List<T> _parseList<T>(
+    dynamic value,
+    T Function(Map<String, dynamic>) fromJson,
+  ) {
+    if (value == null) return [];
+    if (value is! List) return [];
+
+    List<T> result = [];
+    for (var item in value) {
+      try {
+        if (item is Map<String, dynamic>) {
+          result.add(fromJson(item));
+        }
+      } catch (e) {
+        print('Error parsing list item: $e');
+        continue;
+      }
+    }
+    return result;
+  }
+}
+
+class HomeFeedPollOption {
+  final int id;
+  final String? text;
+  final PollOptionImage? image;
+  final int voteCount;
+  final List<LikeUser> votersPreview;
+
+  HomeFeedPollOption({
+    required this.id,
+    this.text,
+    this.image,
+    required this.voteCount,
+    required this.votersPreview,
+  });
+
+  factory HomeFeedPollOption.fromJson(Map<String, dynamic> json) {
+    return HomeFeedPollOption(
+      id: _parseToInt(json['id']),
+      text: json['text']?.toString(),
+      image: json['image'] != null
+          ? PollOptionImage.fromJson(json['image'] as Map<String, dynamic>)
+          : null,
+      voteCount: _parseToInt(json['vote_count']),
+      votersPreview: _parseList<LikeUser>(
+        json['voters_preview'],
+        (item) => LikeUser.fromJson(item),
+      ),
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'text': text,
+      'image': image?.toJson(),
+      'vote_count': voteCount,
+      'voters_preview': votersPreview.map((user) => user.toJson()).toList(),
+    };
+  }
+
+  static int _parseToInt(dynamic value) {
+    if (value == null) return 0;
+    if (value is int) return value;
+    if (value is String) return int.tryParse(value) ?? 0;
+    return int.tryParse(value.toString()) ?? 0;
+  }
+
+  static List<T> _parseList<T>(
+    dynamic value,
+    T Function(Map<String, dynamic>) fromJson,
+  ) {
+    if (value == null) return [];
+    if (value is! List) return [];
+
+    List<T> result = [];
+    for (var item in value) {
+      try {
+        if (item is Map<String, dynamic>) {
+          result.add(fromJson(item));
+        }
+      } catch (e) {
+        print('Error parsing list item: $e');
+        continue;
+      }
+    }
+    return result;
+  }
+}
+
+class PollOptionImage {
+  final int id;
+  final String url;
+  final String thumbnailUrl;
   final int order;
   final int voteCount;
-  final List<LikeUser> userList; // Changed from List<dynamic>
+  final List<LikeUser> userList;
 
-  HomeFeedPostImage({
+  PollOptionImage({
     required this.id,
-    this.url,
-    this.thumbnailUrl,
+    required this.url,
+    required this.thumbnailUrl,
     required this.order,
     required this.voteCount,
     required this.userList,
   });
 
-  factory HomeFeedPostImage.fromJson(Map<String, dynamic> json) {
-    return HomeFeedPostImage(
+  factory PollOptionImage.fromJson(Map<String, dynamic> json) {
+    return PollOptionImage(
       id: _parseToInt(json['id']),
-      url: json['url']?.toString(),
-      thumbnailUrl: json['thumbnail_url']?.toString(),
+      url: _parseToString(json['url']),
+      thumbnailUrl: _parseToString(json['thumbnail_url']),
       order: _parseToInt(json['order']),
       voteCount: _parseToInt(json['vote_count']),
       userList: _parseList<LikeUser>(
-          json['user_list'], (item) => LikeUser.fromJson(item)),
+        json['user_list'],
+        (item) => LikeUser.fromJson(item),
+      ),
     );
   }
 
@@ -239,8 +381,15 @@ class HomeFeedPostImage {
     return int.tryParse(value.toString()) ?? 0;
   }
 
+  static String _parseToString(dynamic value) {
+    if (value == null) return '';
+    return value.toString();
+  }
+
   static List<T> _parseList<T>(
-      dynamic value, T Function(Map<String, dynamic>) fromJson) {
+    dynamic value,
+    T Function(Map<String, dynamic>) fromJson,
+  ) {
     if (value == null) return [];
     if (value is! List) return [];
 
@@ -259,119 +408,6 @@ class HomeFeedPostImage {
   }
 }
 
-class HomeFeedPoll {
-  final int id;
-  final String question;
-  final int maxOptions;
-  final List<HomeFeedPollOption> options;
-  final int totalVotes;
-  final String? userVote;
-
-  HomeFeedPoll({
-    required this.id,
-    required this.question,
-    required this.maxOptions,
-    required this.options,
-    required this.totalVotes,
-    this.userVote,
-  });
-
-  factory HomeFeedPoll.fromJson(Map<String, dynamic> json) {
-    return HomeFeedPoll(
-      id: _parseToInt(json['id']),
-      question: _parseToString(json['question']),
-      maxOptions: _parseToInt(json['max_options']),
-      options: _parseList<HomeFeedPollOption>(
-          json['options'], (item) => HomeFeedPollOption.fromJson(item)),
-      totalVotes: _parseToInt(json['total_votes']),
-      userVote: json['user_vote']?.toString(),
-    );
-  }
-
-  Map<String, dynamic> toJson() {
-    return {
-      'id': id,
-      'question': question,
-      'max_options': maxOptions,
-      'options': options.map((option) => option.toJson()).toList(),
-      'total_votes': totalVotes,
-      'user_vote': userVote,
-    };
-  }
-
-  static int _parseToInt(dynamic value) {
-    if (value == null) return 0;
-    if (value is int) return value;
-    if (value is String) return int.tryParse(value) ?? 0;
-    return int.tryParse(value.toString()) ?? 0;
-  }
-
-  static String _parseToString(dynamic value) {
-    if (value == null) return '';
-    return value.toString();
-  }
-
-  static List<T> _parseList<T>(
-      dynamic value, T Function(Map<String, dynamic>) fromJson) {
-    if (value == null) return [];
-    if (value is! List) return [];
-
-    List<T> result = [];
-    for (var item in value) {
-      try {
-        if (item is Map<String, dynamic>) {
-          result.add(fromJson(item));
-        }
-      } catch (e) {
-        print('Error parsing list item: $e');
-        continue;
-      }
-    }
-    return result;
-  }
-}
-
-class HomeFeedPollOption {
-  final int id;
-  final String text;
-  final int voteCount;
-
-  HomeFeedPollOption({
-    required this.id,
-    required this.text,
-    required this.voteCount,
-  });
-
-  factory HomeFeedPollOption.fromJson(Map<String, dynamic> json) {
-    return HomeFeedPollOption(
-      id: _parseToInt(json['id']),
-      text: _parseToString(json['text']),
-      voteCount: _parseToInt(json['vote_count']),
-    );
-  }
-
-  Map<String, dynamic> toJson() {
-    return {
-      'id': id,
-      'text': text,
-      'vote_count': voteCount,
-    };
-  }
-
-  static int _parseToInt(dynamic value) {
-    if (value == null) return 0;
-    if (value is int) return value;
-    if (value is String) return int.tryParse(value) ?? 0;
-    return int.tryParse(value.toString()) ?? 0;
-  }
-
-  static String _parseToString(dynamic value) {
-    if (value == null) return '';
-    return value.toString();
-  }
-}
-
-// Wrapper class for the API response
 class HomeFeedResponse {
   final int count;
   final String? next;
@@ -390,9 +426,11 @@ class HomeFeedResponse {
       count: json['count'] ?? 0,
       next: json['next']?.toString(),
       previous: json['previous']?.toString(),
-      results: (json['results'] as List<dynamic>?)
+      results:
+          (json['results'] as List<dynamic>?)
               ?.map(
-                  (item) => HomeFeedPost.fromJson(item as Map<String, dynamic>))
+                (item) => HomeFeedPost.fromJson(item as Map<String, dynamic>),
+              )
               .toList() ??
           [],
     );

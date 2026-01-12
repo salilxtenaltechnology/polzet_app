@@ -2,7 +2,7 @@
 part of 'dashboard_import.dart';
 
 class Dashboard extends StatefulWidget {
-  const Dashboard({super.key});
+  Dashboard({super.key});
 
   @override
   State<StatefulWidget> createState() {

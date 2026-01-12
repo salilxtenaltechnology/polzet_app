@@ -9,6 +9,7 @@ import '../../../../api/services/api_service.dart';
 import '../../../../api/services/like/like_service.dart';
 import '../../../../core/constants/app_images.dart';
 import '../../../../l10n/generated/app_localizations.dart';
+import '../../../../models/home feed/home_feed_items_model.dart';
 import '../../../../models/posts/image/post_image_model.dart';
 import '../../../../widgets/base64/image_convert.dart';
 import '../../../../widgets/button/back_button.dart';
@@ -21,11 +22,7 @@ import '../../../../widgets/utils/bottomsheet_util.dart';
 class ImagePostsList extends StatefulWidget {
   String? username;
   String? profileImage;
-  ImagePostsList({
-    super.key,
-    required this.username,
-    required this.profileImage,
-  });
+  ImagePostsList({super.key, required this.username, this.profileImage});
 
   @override
   State<ImagePostsList> createState() => _ImagePostsListState();
@@ -35,9 +32,6 @@ class _ImagePostsListState extends State<ImagePostsList> {
   late final ApiService apiService = ApiService();
   late final LikeService likeService = LikeService();
 
-  List<PostImagesModel> posts = [];
-  bool isLoading = false;
-
   // Track like state for each post
   Map<int, bool> postLikeStates = {};
   Map<int, int> postLikeCounts = {};
@@ -45,24 +39,34 @@ class _ImagePostsListState extends State<ImagePostsList> {
   // Track comments count for each post
   Map<int, int> postCommentsCounts = {};
 
-  // Cache the posts data to prevent reload
+  // Cache the posts data
   List<PostImagesModel>? cachedPosts;
+  bool isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    // Load posts when screen opens
     _loadPosts();
   }
 
   // Load posts and initialize like states and comments counts
   Future<void> _loadPosts() async {
+    setState(() {
+      isLoading = true;
+    });
+
     try {
       final postsImage = await apiService.fetchImagePosts(widget.username!);
 
       setState(() {
         cachedPosts = postsImage;
+        isLoading = false;
+        
         // Initialize like states and comments counts from fetched data
+        postLikeStates.clear();
+        postLikeCounts.clear();
+        postCommentsCounts.clear();
+        
         for (var post in postsImage) {
           postLikeStates[post.id] = post.isLiked;
           postLikeCounts[post.id] = post.likesCount;
@@ -70,23 +74,18 @@ class _ImagePostsListState extends State<ImagePostsList> {
         }
       });
     } catch (e) {
-      // Handle error if needed
       print('Error loading posts: $e');
       setState(() {
-        cachedPosts = []; // Set empty list on error
+        cachedPosts = [];
+        isLoading = false;
       });
     }
   }
 
-  Future<void> _toggleLike(
-    int postId,
-    int index,
-    List<PostImagesModel> postsImage,
-  ) async {
-    final currentLikeState =
-        postLikeStates[postId] ?? postsImage[index].isLiked;
-    final currentLikeCount =
-        postLikeCounts[postId] ?? postsImage[index].likesCount;
+  Future<void> _toggleLike(int postId) async {
+    // Get current state from our tracking maps
+    final currentLikeState = postLikeStates[postId] ?? false;
+    final currentLikeCount = postLikeCounts[postId] ?? 0;
 
     // Optimistically update UI
     setState(() {
@@ -96,31 +95,33 @@ class _ImagePostsListState extends State<ImagePostsList> {
           : currentLikeCount + 1;
     });
 
-    // Call the LikeService
-    final result = await likeService.togglePostLike(
-      context: context,
-      postId: postId,
-      currentLikeState: currentLikeState,
-      currentLikesCount: currentLikeCount,
-    );
+    try {
+      // Call the LikeService
+      final result = await likeService.togglePostLike(
+        context: context,
+        postId: postId,
+        currentLikeState: currentLikeState,
+        currentLikesCount: currentLikeCount,
+      );
 
-    // Update UI with server response
-    setState(() {
-      postLikeStates[postId] = result.isLiked;
-      postLikeCounts[postId] = result.likesCount;
-    });
+      // Update UI with server response
+      setState(() {
+        postLikeStates[postId] = result.isLiked;
+        postLikeCounts[postId] = result.likesCount;
+      });
 
-    // Show error message if operation failed
-    if (!result.success) {
-      showToast(message: result.message);
+      // Show error message if operation failed
+      if (!result.success) {
+        showToast(message: result.message);
+      }
+    } catch (e) {
+      // Revert optimistic update on error
+      setState(() {
+        postLikeStates[postId] = currentLikeState;
+        postLikeCounts[postId] = currentLikeCount;
+      });
+      showToast(message: 'Failed to update like');
     }
-  }
-
-  // Method to update comments count after adding/deleting a comment
-  void updateCommentsCount(int postId, int newCount) {
-    setState(() {
-      postCommentsCounts[postId] = newCount;
-    });
   }
 
   // Comments Bottom Sheet
@@ -135,14 +136,13 @@ class _ImagePostsListState extends State<ImagePostsList> {
     );
   }
 
-  Future<void> deletePost(int postId, int index, List posts) async {
+  Future<void> deletePost(int postId, int index) async {
     try {
       // Call the API to delete
       bool success = await apiService.userDeletePost(postId);
       if (success) {
         // Remove from UI after successful API call
         setState(() {
-          posts.removeAt(index);
           cachedPosts?.removeAt(index);
           // Clean up tracking maps
           postLikeStates.remove(postId);
@@ -155,8 +155,6 @@ class _ImagePostsListState extends State<ImagePostsList> {
         showToast(message: 'Failed to delete post');
       }
     } catch (error) {
-      // Close loading dialog
-      Navigator.of(context).pop();
       showToast(message: 'Error: ${error.toString()}');
     }
   }
@@ -184,16 +182,16 @@ class _ImagePostsListState extends State<ImagePostsList> {
         backgroundColor: Theme.of(context).colorScheme.background,
         surfaceTintColor: Theme.of(context).colorScheme.background,
       ),
-      body: cachedPosts == null
+      body: isLoading
           ? Center(child: Loader(color: Theme.of(context).colorScheme.primary))
-          : cachedPosts!.isEmpty
-          ? Center(
-              child: Text(
-                AppLocalizations.of(context)!.nopostsfound,
-                style: TextStyle(color: Colors.grey[600], fontSize: 12.sp),
-              ),
-            )
-          : _buildPostsList(cachedPosts!),
+          : cachedPosts == null || cachedPosts!.isEmpty
+              ? Center(
+                  child: Text(
+                    AppLocalizations.of(context)!.nopostsfound,
+                    style: TextStyle(color: Colors.grey[600], fontSize: 12.sp),
+                  ),
+                )
+              : _buildPostsList(cachedPosts!),
     );
   }
 
@@ -203,7 +201,7 @@ class _ImagePostsListState extends State<ImagePostsList> {
       itemBuilder: (context, index) {
         final imagePost = postsImage[index];
 
-        // Get current like state and counts
+        // IMPORTANT: Always read from state maps, use model as fallback only
         final isLiked = postLikeStates[imagePost.id] ?? imagePost.isLiked;
         final likesCount = postLikeCounts[imagePost.id] ?? imagePost.likesCount;
         final commentsCount =
@@ -280,7 +278,7 @@ class _ImagePostsListState extends State<ImagePostsList> {
                     onTap: () {
                       showUserDeletePostDiolog(context, () {
                         Navigator.pop(context);
-                        deletePost(imagePost.id, index, postsImage);
+                        deletePost(imagePost.id, index);
                       });
                     },
                     child: Icon(FeatherIcons.moreVertical, size: 16.spMax),
@@ -302,7 +300,7 @@ class _ImagePostsListState extends State<ImagePostsList> {
                 children: [
                   // Like button
                   GestureDetector(
-                    onTap: () => _toggleLike(imagePost.id, index, postsImage),
+                    onTap: () => _toggleLike(imagePost.id),
                     child: Row(
                       children: [
                         AnimatedSwitcher(

@@ -6,6 +6,7 @@ import '../models/user/user_model.dart';
 
 class UserProvider with ChangeNotifier {
   final ApiService apiService = ApiService();
+  int? userId; // Add this field
   String? username;
   String? firstName;
   String? lastName;
@@ -34,6 +35,7 @@ class UserProvider with ChangeNotifier {
     try {
       var data = await apiService.fetchUserData();
       await apiService.getFollowersList();
+      userId = data?['id']; // Add this line
       username = data?['username'];
       firstName = data?['first_name'];
       lastName = data?['last_name'];
@@ -65,6 +67,7 @@ class UserProvider with ChangeNotifier {
       var data = await apiService.fetchUserData();
 
       // Update all fields with fresh data
+      userId = data?['id']; // Add this line
       username = data?['username'];
       firstName = data?['first_name'];
       lastName = data?['last_name'];
@@ -108,6 +111,7 @@ class UserProvider with ChangeNotifier {
 
   // Helper method to clear user fields
   void _clearUserFields() {
+    userId = null; // Add this line
     username = null;
     firstName = null;
     lastName = null;
@@ -128,6 +132,9 @@ class UserProvider with ChangeNotifier {
   // Method to update specific fields and notify listeners immediately
   void updateUserField(String field, dynamic value) {
     switch (field) {
+      case 'userId': // Add this case
+        userId = value;
+        break;
       case 'username':
         username = value;
         break;

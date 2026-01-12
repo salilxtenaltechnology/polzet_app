@@ -22,7 +22,7 @@ class ThingsQustionsCard extends StatefulWidget {
     required this.onLikeChanged,
     required this.onCommentsChanged,
     required this.onCommentsIconTap,
-    required this.profileImage,
+    this.profileImage,
     required this.username,
     this.currentLikeState,
     this.currentLikesCount,
@@ -286,7 +286,7 @@ class _ThingsQustionsCardState extends State<ThingsQustionsCard> {
         ),
         SizedBox(height: 5.h),
         Text(
-          pollQuestion.question,
+          pollQuestion.question, //  post.description,
           style: TextStyle(
             color: Colors.black,
             fontSize: 12.5.sp,

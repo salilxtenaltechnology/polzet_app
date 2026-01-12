@@ -118,7 +118,6 @@ class NotificationService {
   // Save token to your backend
   Future<void> _saveTokenToBackend(String token) async {
     try {
-      // TODO: Send token to your backend API
       // Example:
       // final response = await http.post(
       //   Uri.parse('YOUR_API_URL/save-fcm-token'),

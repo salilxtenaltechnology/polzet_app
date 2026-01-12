@@ -22,6 +22,8 @@ class ProfileState extends State<UserProfile>
   bool isLoading = true;
   bool isImageLoading = false;
   bool autoRefreshEnabled = true;
+  String? coverImage;
+  String? profileImage;
 
   // Track posts future
   Future<List<PostImagesModel>>? _postsFuture;
@@ -44,6 +46,7 @@ class ProfileState extends State<UserProfile>
     // Initialize followers and following futures
     getFollowers = apiService.getFollowersList();
     getFollowing = apiService.getFollowingList();
+    getUserProfile();
 
     // Initialize posts future
     if (userProvider.username != null && userProvider.username!.isNotEmpty) {
@@ -66,7 +69,38 @@ class ProfileState extends State<UserProfile>
     // Refresh data when app comes to foreground
     if (state == AppLifecycleState.resumed && autoRefreshEnabled) {
       _refreshPosts();
+      getUserProfile();
     }
+  }
+
+  Future<void> getUserProfile() async {
+    final accessToken = await SharedPrefService.getAccessToken();
+    var dio = Dio();
+
+    try {
+      var response = await dio.get(
+        ApiConstants.userProfile,
+        options: Options(
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer $accessToken',
+          },
+        ),
+      );
+
+      if (response.statusCode == 200) {
+        Map<String, dynamic> data = response.data;
+        setState(() {
+          coverImage = data['cover_photo_url'] ?? '';
+          profileImage = data['profile_picture_url'] ?? '';
+        });
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error fetching user profile: $e');
+      }
+      return;
+    } finally {}
   }
 
   // Create a method to always load fresh posts silently
@@ -151,7 +185,9 @@ class ProfileState extends State<UserProfile>
   @override
   Widget build(BuildContext context) {
     final userProvider = Provider.of<UserProvider>(context, listen: false);
-    apiService.fetchPostsPolls(userProvider.username!);
+    if (userProvider.username != null && userProvider.username!.isNotEmpty) {
+      apiService.fetchPostsPolls(userProvider.username!);
+    }
 
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.background,
@@ -168,15 +204,15 @@ class ProfileState extends State<UserProfile>
                 width: double.infinity,
                 padding: EdgeInsets.all(8.w),
                 decoration: BoxDecoration(
-                  image: userProvider.cover_photo == null
+                  image:
+                      userProvider.cover_photo == null ||
+                          getCoverImage(coverImage) == null
                       ? DecorationImage(
                           image: AssetImage(Assets.assetsImagesDefaultCover),
                           fit: BoxFit.fill,
                         )
                       : DecorationImage(
-                          image: MemoryImage(
-                            getCoverImage(userProvider.cover_photo)!,
-                          ),
+                          image: MemoryImage(getCoverImage(coverImage)!),
                           fit: BoxFit.fill,
                         ),
                 ),
@@ -224,7 +260,10 @@ class ProfileState extends State<UserProfile>
                                       color: Colors.white,
                                       width: 1.5.w,
                                     ),
-                                    image: userProvider.profile_picture == null
+                                    image:
+                                        userProvider.profile_picture == null ||
+                                            getProfileImage(profileImage) ==
+                                                null
                                         ? DecorationImage(
                                             image: AssetImage(
                                               Assets.assetsImagesIcUser,
@@ -233,9 +272,7 @@ class ProfileState extends State<UserProfile>
                                           )
                                         : DecorationImage(
                                             image: MemoryImage(
-                                              getProfileImage(
-                                                userProvider.profile_picture,
-                                              )!,
+                                              getProfileImage(profileImage)!,
                                             ),
                                             fit: BoxFit.cover,
                                           ),
@@ -726,7 +763,7 @@ class ProfileState extends State<UserProfile>
                           context,
                           ImagePostsList(
                             username: userProvider.username!,
-                            profileImage: userProvider.profile_picture!,
+                            profileImage: userProvider.profile_picture,
                           ),
                         );
                       },
@@ -748,7 +785,7 @@ class ProfileState extends State<UserProfile>
                           context,
                           QuestionsPostsList(
                             username: userProvider.username!,
-                            profileImage: userProvider.profile_picture!,
+                            profileImage: userProvider.profile_picture,
                           ),
                         );
                       },
@@ -777,7 +814,7 @@ class ProfileState extends State<UserProfile>
                           context,
                           ImagePostsList(
                             username: userProvider.username!,
-                            profileImage: userProvider.profile_picture!,
+                            profileImage: userProvider.profile_picture,
                           ),
                         );
                       },
@@ -946,7 +983,18 @@ class ProfileState extends State<UserProfile>
                       itemCount: posts.length > 4 ? 4 : posts.length,
                       itemBuilder: (context, index) {
                         final post = posts[index];
-                        return _buildImagesStack(post.images);
+                        return GestureDetector(
+                          onTap: () {
+                            navigationPush(
+                              context,
+                              ImagePostsList(
+                                username: userProvider.username!,
+                                profileImage: userProvider.profile_picture,
+                              ),
+                            );
+                          },
+                          child: _buildImagesStack(post.images),
+                        );
                       },
                     );
                   },
@@ -972,7 +1020,7 @@ class ProfileState extends State<UserProfile>
                           context,
                           QuestionsPostsList(
                             username: userProvider.username!,
-                            profileImage: userProvider.profile_picture!,
+                            profileImage: userProvider.profile_picture,
                           ),
                         );
                       },
@@ -1026,11 +1074,24 @@ class ProfileState extends State<UserProfile>
                   }
 
                   final postsPolls = snapshot.data ?? const <PostPolls>[];
-                  final postsWithPolls = postsPolls
-                      .where((post) => post.polls.isNotEmpty)
-                      .toList();
 
-                  if (postsWithPolls.isEmpty) {
+                  // Filter posts: only show polls where ALL options have text (image == null)
+                  final postsWithTextPolls = postsPolls.where((post) {
+                    // Check if post has polls
+                    if (post.polls.isEmpty) return false;
+
+                    // Check if ALL poll options have text and NO images
+                    return post.polls.every(
+                      (poll) => poll.options.every(
+                        (option) =>
+                            option.text != null &&
+                            option.text!.isNotEmpty &&
+                            option.image == null,
+                      ),
+                    );
+                  }).toList();
+
+                  if (postsWithTextPolls.isEmpty) {
                     return Padding(
                       padding: EdgeInsets.symmetric(
                         horizontal: 12.w,
@@ -1100,9 +1161,9 @@ class ProfileState extends State<UserProfile>
                     padding: EdgeInsets.all(12.w),
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
-                    itemCount: postsWithPolls.length > 3
+                    itemCount: postsWithTextPolls.length > 3
                         ? 3
-                        : postsWithPolls.length,
+                        : postsWithTextPolls.length,
                     itemBuilder: (context, index) {
                       const List<List<Color>> gradientOptions = [
                         [Color(0xFFFC3E7E), Color(0xFFEEA0F0)],
@@ -1112,12 +1173,25 @@ class ProfileState extends State<UserProfile>
 
                       return Padding(
                         padding: EdgeInsets.only(
-                          bottom: index < postsWithPolls.length - 1 ? 12.h : 0,
+                          bottom: index < postsWithTextPolls.length - 1
+                              ? 12.h
+                              : 0,
                         ),
-                        child: UserThingsCard(
-                          post: postsWithPolls[index],
-                          gradientColors:
-                              gradientOptions[index % gradientOptions.length],
+                        child: GestureDetector(
+                          onTap: () {
+                            navigationPush(
+                              context,
+                              QuestionsPostsList(
+                                username: userProvider.username!,
+                                profileImage: userProvider.profile_picture,
+                              ),
+                            );
+                          },
+                          child: UserThingsCard(
+                            post: postsWithTextPolls[index],
+                            gradientColors:
+                                gradientOptions[index % gradientOptions.length],
+                          ),
                         ),
                       );
                     },

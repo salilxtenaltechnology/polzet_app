@@ -14,16 +14,22 @@ class HomeScreenState extends State<HomeScreen> with UtilityMixin {
   String? firstname;
   String? lastname;
   int pageIndex = 0;
-  GlobalKey<CurvedNavigationBarState> _bottomNavigationKey = GlobalKey();
+  GlobalKey<CurvedNavigationBarState> bottomNavigationKey = GlobalKey();
 
   final List screens = [
     Dashboard(),
     InsightsScreen(),
     PollPop(),
-    //TestNotifications(),
     Notifications(),
     UserProfile(),
   ];
+
+  void navigateToUserProfile() {
+    setState(() {
+      pageIndex = 4;
+    });
+    bottomNavigationKey.currentState?.setPage(4);
+  }
 
   @override
   void didChangeDependencies() {
@@ -138,7 +144,7 @@ class HomeScreenState extends State<HomeScreen> with UtilityMixin {
                 SizedBox(width: 8.w),
               ],
             ),
-      body: SafeArea(child: screens[pageIndex]), // screens[pageIndex],
+      body: SafeArea(child: screens[pageIndex]), 
       floatingActionButton: SafeArea(
         child: CustomFloatingActionButton(
           onTap: () {
@@ -150,7 +156,7 @@ class HomeScreenState extends State<HomeScreen> with UtilityMixin {
       bottomNavigationBar: SafeArea(
         child: CustomBottomNavigationBar(
           index: pageIndex,
-          bottomNavigationKey: _bottomNavigationKey,
+          bottomNavigationKey: bottomNavigationKey,
           onTap: (index) {
             setState(() {
               pageIndex = index;
