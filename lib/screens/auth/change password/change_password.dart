@@ -92,7 +92,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
     return Container(
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.background,
-        image: DecorationImage(
+        image: const DecorationImage(
           image: AssetImage(Assets.assetsImagesBg),
           fit: BoxFit.cover,
         ),

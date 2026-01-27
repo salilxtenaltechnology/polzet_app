@@ -26,6 +26,16 @@ import '../../../../widgets/simmer/public_profile_simmer.dart';
 import '../posts/public_posts_list.dart';
 import 'public_things_questions_list.dart';
 
+// Friend Status Enum
+// Follow Status Enum - Updated to match API response
+enum FollowStatus {
+  none, // Not following, not followed
+  following, // User is following this profile (show "Chased")
+  follower, // This profile is following the user (show "Chase Back")
+  both, // Mutual follow (show "Chased")
+  pending, // Friend request sent, waiting
+}
+
 // ignore: must_be_immutable
 class PublicProfile extends StatefulWidget {
   int userId;
@@ -52,8 +62,8 @@ class _PublicProfileState extends State<PublicProfile>
   bool isLoading = true;
   bool autoRefreshEnabled = true;
 
-  bool _isChaseRequestSent = false;
-  bool _isLoadingChaseStatus = true;
+  final bool _isChaseRequestSent = false;
+  final bool _isLoadingChaseStatus = true;
 
   // Silent data loading futures
   Future<List<PublicPost>>? _postsFuture;
@@ -63,15 +73,33 @@ class _PublicProfileState extends State<PublicProfile>
 
   final ApiService apiService = ApiService();
 
+  // Friend status management
+  FollowStatus? _localFollowStatus;
+  bool _isProcessingRequest = false;
+
+  String? _cachedProfilePictureUrl;
+  String? _cachedCoverPictureUrl;
+  Uint8List? _cachedProfileImageBytes;
+  Uint8List? _cachedCoverImageBytes;
+
   @override
   void initState() {
     super.initState();
+    debugPrint('PublicProfile userId: ${widget.userId}');
     autoRefreshEnabled = true;
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<PublicProfileProvider>().fetchPublicUserProfile(
         widget.userId,
       );
+      final provider = context.read<PublicProfileProvider>();
+
+      provider.addListener(() {
+        if (provider.userProfile != null && _cachedProfilePictureUrl == null) {
+          _cachedProfilePictureUrl = provider.userProfile!.profilePictureUrl;
+          _cachedCoverPictureUrl = provider.userProfile!.coverPictureUrl;
+        }
+      });
 
       // Initialize with empty data to show "No posts" initially
       _postsFuture = Future.value(<PublicPost>[]);
@@ -96,6 +124,202 @@ class _PublicProfileState extends State<PublicProfile>
       CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
     );
     _scrollController.addListener(_scrollListener);
+  }
+
+  // Helper method to determine if posts should be visible
+  bool _canViewPosts(bool isFriend, bool isPrivate) {
+    // Logic breakdown:
+    // is_private = false → always show posts (return true)
+    // is_private = true AND is_friend = true → show posts (return true)
+    // is_private = true AND is_friend = false → don't show posts (return false)
+
+    if (!isPrivate) {
+      return true; // Account is public, always show posts
+    }
+    return isFriend; // Account is private, show only if they're friends
+  }
+
+  // Helper method to determine effective friend status
+  FollowStatus _getEffectiveFollowStatus(String? profileFollowStatus) {
+    // If we have a local status change, use that
+    if (_localFollowStatus != null) {
+      return _localFollowStatus!;
+    }
+
+    // Otherwise, parse the profile data
+    return _parseFollowStatus(profileFollowStatus);
+  }
+
+  FollowStatus _parseFollowStatus(String? status) {
+    if (status == null || status.isEmpty) return FollowStatus.none;
+
+    switch (status.toLowerCase()) {
+      case 'following':
+        return FollowStatus.following;
+      case 'follower':
+        return FollowStatus.follower;
+      case 'both':
+        return FollowStatus.both;
+      case 'pending':
+        return FollowStatus.pending;
+      default:
+        return FollowStatus.none;
+    }
+  }
+
+  // Helper method to get button state
+  Map<String, dynamic> _getButtonState(FollowStatus status) {
+    switch (status) {
+      case FollowStatus.none:
+        return {
+          'icon': FeatherIcons.userPlus,
+          'text': 'Chase',
+          'canTap': !_isProcessingRequest,
+          'isFollowing': false,
+        };
+      case FollowStatus.follower:
+        return {
+          'icon': Icons.sync,
+          'text': 'Chase Back',
+          'canTap': !_isProcessingRequest,
+          'isFollowing': false,
+        };
+      case FollowStatus.following:
+      case FollowStatus.both:
+        return {
+          'icon': Icons.verified,
+          'text': 'Chased',
+          'canTap': !_isProcessingRequest,
+          'isFollowing': true,
+        };
+      case FollowStatus.pending:
+        return {
+          'icon': Icons.schedule,
+          'text': 'Chasing',
+          'canTap': false,
+          'isFollowing': false,
+        };
+    }
+  }
+
+  // Method to handle friend/unfriend actions
+  // Method to handle follow/unfollow actions
+  Future<void> _handleFollowAction(
+    String username,
+    bool isFollowing,
+    bool isPrivate,
+  ) async {
+    if (_isProcessingRequest) return;
+
+    setState(() {
+      _isProcessingRequest = true;
+    });
+
+    try {
+      Map<String, dynamic> response;
+
+      if (isFollowing) {
+        // Unfollow action - Update UI immediately
+        setState(() {
+          _localFollowStatus = FollowStatus.none;
+          _isProcessingRequest = false;
+        });
+
+        // Make API call in background
+        response = await apiService.unfriend(widget.userId);
+
+        if (response['status'] == 'success') {
+          // if (mounted) {
+          //   ScaffoldMessenger.of(context).showSnackBar(
+          //     const SnackBar(
+          //       content: Text('Unfollowed successfully!'),
+          //       backgroundColor: Colors.orange,
+          //       duration: Duration(seconds: 2),
+          //     ),
+          //   );
+          // }
+          // No screen reload - just silent background update if needed
+        } else {
+          // Revert if failed
+          setState(() {
+            _localFollowStatus = FollowStatus.following;
+          });
+
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Failed to unfollow. Please try again.'),
+                backgroundColor: Colors.red,
+                duration: Duration(seconds: 2),
+              ),
+            );
+          }
+        }
+      } else {
+        // Send follow/friend request
+        // If profile is public, immediately show "Chased" (Following)
+        // If profile is private, show "Chasing" (Pending)
+        setState(() {
+          _localFollowStatus = isPrivate
+              ? FollowStatus.pending
+              : FollowStatus.following;
+          _isProcessingRequest = false;
+        });
+
+        // Make API call in background
+        final bool requestResult = await apiService.sendFriendRequest(username);
+
+        if (requestResult) {
+          // if (mounted) {
+          //   ScaffoldMessenger.of(context).showSnackBar(
+          //     SnackBar(
+          //       content: Text(
+          //         isPrivate
+          //             ? 'Follow request sent successfully!'
+          //             : 'Now following $username!',
+          //       ),
+          //       backgroundColor: Colors.green,
+          //       duration: const Duration(seconds: 2),
+          //     ),
+          //   );
+          // }
+          // No screen reload - just silent background update if needed
+        } else {
+          // Revert if failed
+          setState(() {
+            _localFollowStatus = null;
+          });
+
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text(
+                  'Failed to send follow request. Please try again.',
+                ),
+                backgroundColor: Colors.red,
+                duration: Duration(seconds: 2),
+              ),
+            );
+          }
+        }
+      }
+    } catch (e) {
+      // Revert on error
+      setState(() {
+        _localFollowStatus = null;
+        _isProcessingRequest = false;
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: ${e.toString()}'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+    }
   }
 
   void _loadFreshPostsData() {
@@ -169,10 +393,10 @@ class _PublicProfileState extends State<PublicProfile>
     }
   }
 
-  Uint8List? getProfileImage(profile_picture) {
-    if (profile_picture == null || profile_picture.isEmpty) return null;
+  Uint8List? getProfileImage(profilePicture) {
+    if (profilePicture == null || profilePicture.isEmpty) return null;
     try {
-      String base64Data = profile_picture.replaceFirst(
+      String base64Data = profilePicture.replaceFirst(
         RegExp(r'data:image/[^;]+;base64,'),
         '',
       );
@@ -202,7 +426,7 @@ class _PublicProfileState extends State<PublicProfile>
             child: Consumer<PublicProfileProvider>(
               builder: (context, publicProfileProvider, child) {
                 if (publicProfileProvider.isLoading) {
-                  return PublicProfileSimmer();
+                  return const PublicProfileSimmer();
                 }
                 // ERROR STATE
                 if (publicProfileProvider.error != null) {
@@ -235,19 +459,19 @@ class _PublicProfileState extends State<PublicProfile>
                           const SizedBox(height: 24),
                           ElevatedButton.icon(
                             onPressed: () {
-                              print(
+                              debugPrint(
                                 '🔄 Retry button pressed for: ${widget.userId}',
                               );
                               publicProfileProvider.fetchPublicUserProfile(
                                 widget.userId,
                               );
                             },
-                            icon: Icon(Icons.refresh),
-                            label: Text('Try Again'),
+                            icon: const Icon(Icons.refresh),
+                            label: const Text('Try Again'),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.blue,
                               foregroundColor: Colors.white,
-                              padding: EdgeInsets.symmetric(
+                              padding: const EdgeInsets.symmetric(
                                 horizontal: 24,
                                 vertical: 12,
                               ),
@@ -286,6 +510,21 @@ class _PublicProfileState extends State<PublicProfile>
                   );
                 }
 
+                // Get effective friend status from profile data
+                final effectiveStatus = _getEffectiveFollowStatus(
+                  profile.followStatus,
+                );
+                // Get button state based on effective status
+                final buttonState = _getButtonState(effectiveStatus);
+
+                // Determine if user is friend (for posts visibility)
+                final isFriend =
+                    effectiveStatus == FollowStatus.following ||
+                    effectiveStatus == FollowStatus.both;
+
+                // Determine if posts can be viewed based on privacy settings
+                final canViewPosts = _canViewPosts(isFriend, profile.isPrivate);
+
                 return Column(
                   children: [
                     Container(
@@ -293,8 +532,10 @@ class _PublicProfileState extends State<PublicProfile>
                       width: double.infinity,
                       padding: EdgeInsets.all(8.w),
                       decoration: BoxDecoration(
-                        image: (profile.coverPictureUrl.isEmpty)
-                            ? DecorationImage(
+                        image:
+                            ((_cachedCoverPictureUrl ?? profile.coverPictureUrl)
+                                .isEmpty)
+                            ? const DecorationImage(
                                 image: AssetImage(
                                   Assets.assetsImagesDefaultCover,
                                 ),
@@ -302,7 +543,10 @@ class _PublicProfileState extends State<PublicProfile>
                               )
                             : DecorationImage(
                                 image: MemoryImage(
-                                  getConvertImage(profile.coverPictureUrl)!,
+                                  getConvertImage(
+                                    _cachedCoverPictureUrl ??
+                                        profile.coverPictureUrl,
+                                  )!,
                                 ),
                                 fit: BoxFit.fill,
                               ),
@@ -328,10 +572,10 @@ class _PublicProfileState extends State<PublicProfile>
                                             width: 1.5.w,
                                           ),
                                           image:
-                                              (profile
-                                                  .profilePictureUrl
+                                              ((_cachedProfilePictureUrl ??
+                                                      profile.profilePictureUrl)
                                                   .isEmpty)
-                                              ? DecorationImage(
+                                              ? const DecorationImage(
                                                   image: AssetImage(
                                                     Assets.assetsImagesIcUser,
                                                   ),
@@ -340,7 +584,9 @@ class _PublicProfileState extends State<PublicProfile>
                                               : DecorationImage(
                                                   image: MemoryImage(
                                                     getConvertImage(
-                                                      profile.profilePictureUrl,
+                                                      _cachedProfilePictureUrl ??
+                                                          profile
+                                                              .profilePictureUrl,
                                                     )!,
                                                   ),
                                                   fit: BoxFit.cover,
@@ -391,75 +637,84 @@ class _PublicProfileState extends State<PublicProfile>
                                                 ),
                                                 Row(
                                                   children: [
-                                                    Container(
-                                                      height: 25.h,
-                                                      width: 90.w,
-                                                      margin: EdgeInsets.only(
-                                                        top: 4.h,
-                                                      ),
-                                                      decoration: BoxDecoration(
-                                                        color: AppColors
-                                                            .primaryColor
-                                                            .withOpacity(0.8),
-                                                        borderRadius:
-                                                            BorderRadius.circular(
-                                                              8.r,
+                                                    // Chase/Chased Button
+                                                    // Chase/Chased Button - Updated dimensions
+                                                    GestureDetector(
+                                                      onTap:
+                                                          buttonState['canTap']
+                                                          ? () {
+                                                              _handleFollowAction(
+                                                                profile
+                                                                    .username,
+                                                                buttonState['isFollowing'],
+                                                                profile
+                                                                    .isPrivate,
+                                                              );
+                                                            }
+                                                          : null,
+                                                      child: Container(
+                                                        height: 25.h,
+                                                        width: 100
+                                                            .w, // Changed from 100.w
+                                                        margin: EdgeInsets.only(
+                                                          top: 4.h,
+                                                        ),
+                                                        decoration: BoxDecoration(
+                                                          color: AppColors
+                                                              .primaryColor
+                                                              .withOpacity(
+                                                                buttonState['canTap']
+                                                                    ? 0.8
+                                                                    : 0.5,
+                                                              ),
+                                                          borderRadius:
+                                                              BorderRadius.circular(
+                                                                8.r,
+                                                              ),
+                                                        ),
+                                                        child: Row(
+                                                          mainAxisAlignment:
+                                                              MainAxisAlignment
+                                                                  .center,
+                                                          children: [
+                                                            Icon(
+                                                              buttonState['icon'],
+                                                              size: 14
+                                                                  .sp, // Changed from 15.sp
+                                                              color:
+                                                                  Colors.white,
                                                             ),
-                                                      ),
-                                                      child: Row(
-                                                        mainAxisAlignment:
-                                                            MainAxisAlignment
-                                                                .center,
-                                                        children: [
-                                                          profile.isFriend
-                                                              ? Icon(
-                                                                  Icons
-                                                                      .verified,
-                                                                  size: 15.sp,
+                                                            SizedBox(
+                                                              width: 3.w,
+                                                            ), // Changed from 4.w
+                                                            Flexible(
+                                                              // Added Flexible wrapper
+                                                              child: Text(
+                                                                buttonState['text'],
+                                                                style: TextStyle(
                                                                   color: Colors
                                                                       .white,
-                                                                )
-                                                              : Icon(
-                                                                  FeatherIcons
-                                                                      .userPlus,
-                                                                  size: 15.sp,
-                                                                  color: Colors
-                                                                      .white,
+                                                                  fontSize:
+                                                                      10.8.sp,
+                                                                  fontWeight:
+                                                                      FontWeight
+                                                                          .w500,
                                                                 ),
-                                                          SizedBox(width: 4.w),
-                                                          profile.isFriend
-                                                              ? Text(
-                                                                  'Chased',
-                                                                  style: TextStyle(
-                                                                    color: Colors
-                                                                        .white,
-                                                                    fontSize:
-                                                                        11.3.sp,
-                                                                    fontWeight:
-                                                                        FontWeight
-                                                                            .w500,
-                                                                  ),
-                                                                )
-                                                              : Text(
-                                                                  'Chase',
-                                                                  style: TextStyle(
-                                                                    color: Colors
-                                                                        .white,
-                                                                    fontSize:
-                                                                        11.3.sp,
-                                                                    fontWeight:
-                                                                        FontWeight
-                                                                            .w500,
-                                                                  ),
-                                                                ),
-                                                        ],
+                                                                overflow:
+                                                                    TextOverflow
+                                                                        .ellipsis, // Added overflow handling
+                                                              ),
+                                                            ),
+                                                          ],
+                                                        ),
                                                       ),
                                                     ),
+                                                    // Message Button
                                                     Container(
                                                       height: 25.h,
-                                                      width: 50.w,
+                                                      width: 100.w,
                                                       margin: EdgeInsets.only(
-                                                        left: 10.w,
+                                                        left: 8.w,
                                                         top: 4.h,
                                                       ),
                                                       decoration: BoxDecoration(
@@ -513,13 +768,13 @@ class _PublicProfileState extends State<PublicProfile>
                     ),
 
                     // Main Content Area with Stats and Chase/Re-chase
-                    (profile.isFriend == false)
-                        ? SizedBox.shrink()
+                    // Only show if can view posts
+                    !canViewPosts
+                        ? const SizedBox.shrink()
                         : Row(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               // Stats Column - Animated (slides left to hide)
-                              // Use flex: 0 when hidden, flex: 1 when visible for proper space allocation
                               SizedBox(
                                 width: 100, // Fixed width when visible
                                 child: Column(
@@ -529,7 +784,7 @@ class _PublicProfileState extends State<PublicProfile>
                                       width: 80.w,
                                       height: 80.h,
                                       decoration: BoxDecoration(
-                                        color: Color(0xFF9A2C3E),
+                                        color: const Color(0xFF9A2C3E),
                                         borderRadius: BorderRadius.circular(
                                           20.r,
                                         ),
@@ -559,7 +814,7 @@ class _PublicProfileState extends State<PublicProfile>
                                       width: 80.w,
                                       height: 80.h,
                                       decoration: BoxDecoration(
-                                        color: Color(0xFF9A2C3E),
+                                        color: const Color(0xFF9A2C3E),
                                         borderRadius: BorderRadius.circular(
                                           20.r,
                                         ),
@@ -588,7 +843,7 @@ class _PublicProfileState extends State<PublicProfile>
                                   ],
                                 ),
                               ),
-                              // Chase/Re-chase Section - Now properly expands to fill remaining width
+                              // Chase/Re-chase Section
                               Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
@@ -615,7 +870,7 @@ class _PublicProfileState extends State<PublicProfile>
                                         height: 55.h,
                                         width: 55.w,
                                         margin: EdgeInsets.only(right: 8.w),
-                                        decoration: BoxDecoration(
+                                        decoration: const BoxDecoration(
                                           shape: BoxShape.circle,
                                           image: DecorationImage(
                                             image: AssetImage(
@@ -628,7 +883,7 @@ class _PublicProfileState extends State<PublicProfile>
                                         height: 55.h,
                                         width: 55.w,
                                         margin: EdgeInsets.only(right: 8.w),
-                                        decoration: BoxDecoration(
+                                        decoration: const BoxDecoration(
                                           shape: BoxShape.circle,
                                           image: DecorationImage(
                                             image: AssetImage(
@@ -641,7 +896,7 @@ class _PublicProfileState extends State<PublicProfile>
                                         height: 55.h,
                                         width: 55.w,
                                         margin: EdgeInsets.only(right: 8.w),
-                                        decoration: BoxDecoration(
+                                        decoration: const BoxDecoration(
                                           shape: BoxShape.circle,
                                           image: DecorationImage(
                                             image: AssetImage(
@@ -654,7 +909,7 @@ class _PublicProfileState extends State<PublicProfile>
                                         height: 55.h,
                                         width: 55.w,
                                         margin: EdgeInsets.only(right: 8.w),
-                                        decoration: BoxDecoration(
+                                        decoration: const BoxDecoration(
                                           shape: BoxShape.circle,
                                           image: DecorationImage(
                                             image: AssetImage(
@@ -688,7 +943,7 @@ class _PublicProfileState extends State<PublicProfile>
                                         height: 55.h,
                                         width: 55.w,
                                         margin: EdgeInsets.only(right: 8.w),
-                                        decoration: BoxDecoration(
+                                        decoration: const BoxDecoration(
                                           shape: BoxShape.circle,
                                           image: DecorationImage(
                                             image: AssetImage(
@@ -701,7 +956,7 @@ class _PublicProfileState extends State<PublicProfile>
                                         height: 55.h,
                                         width: 55.w,
                                         margin: EdgeInsets.only(right: 8.w),
-                                        decoration: BoxDecoration(
+                                        decoration: const BoxDecoration(
                                           shape: BoxShape.circle,
                                           image: DecorationImage(
                                             image: AssetImage(
@@ -714,7 +969,7 @@ class _PublicProfileState extends State<PublicProfile>
                                         height: 55.h,
                                         width: 55.w,
                                         margin: EdgeInsets.only(right: 8.w),
-                                        decoration: BoxDecoration(
+                                        decoration: const BoxDecoration(
                                           shape: BoxShape.circle,
                                           image: DecorationImage(
                                             image: AssetImage(
@@ -727,7 +982,7 @@ class _PublicProfileState extends State<PublicProfile>
                                         height: 55.h,
                                         width: 55.w,
                                         margin: EdgeInsets.only(right: 8.w),
-                                        decoration: BoxDecoration(
+                                        decoration: const BoxDecoration(
                                           shape: BoxShape.circle,
                                           image: DecorationImage(
                                             image: AssetImage(
@@ -743,14 +998,17 @@ class _PublicProfileState extends State<PublicProfile>
                               ),
                             ],
                           ),
-                    (profile.isFriend == false)
-                        ? Column(
+
+                    // Show privacy message if posts cannot be viewed
+                    canViewPosts
+                        ? const SizedBox.shrink()
+                        : Column(
                             children: [
                               Container(
-                                width: double.infinity, // Full device width
+                                width: double.infinity,
                                 height: 46.h,
                                 decoration: BoxDecoration(
-                                  color: Color(0xFF9A2C3E),
+                                  color: const Color(0xFF9A2C3E),
                                   borderRadius: BorderRadius.circular(10.r),
                                 ),
                                 padding: EdgeInsets.symmetric(vertical: 5.h),
@@ -759,7 +1017,7 @@ class _PublicProfileState extends State<PublicProfile>
                                   right: 10.w,
                                   top: 10.h,
                                   bottom: 70.h,
-                                ), // Remove horizontal margins for full width
+                                ),
                                 child: Row(
                                   mainAxisAlignment:
                                       MainAxisAlignment.spaceEvenly,
@@ -803,10 +1061,10 @@ class _PublicProfileState extends State<PublicProfile>
                                         ],
                                       ),
                                     ),
-                                    Container(
+                                    SizedBox(
                                       height: 30.h,
-                                      child: VerticalDivider(
-                                        color: const Color(0xA7FFFFFF),
+                                      child: const VerticalDivider(
+                                        color: Color(0xA7FFFFFF),
                                         thickness: 0.63,
                                         width: 1,
                                       ),
@@ -850,10 +1108,10 @@ class _PublicProfileState extends State<PublicProfile>
                                         ],
                                       ),
                                     ),
-                                    Container(
+                                    SizedBox(
                                       height: 30.h,
-                                      child: VerticalDivider(
-                                        color: const Color(0xA7FFFFFF),
+                                      child: const VerticalDivider(
+                                        color: Color(0xA7FFFFFF),
                                         thickness: 0.63,
                                         width: 1,
                                       ),
@@ -863,10 +1121,10 @@ class _PublicProfileState extends State<PublicProfile>
                                       (profile.imagePostCount).toString(),
                                       () {},
                                     ),
-                                    Container(
+                                    SizedBox(
                                       height: 30.h,
-                                      child: VerticalDivider(
-                                        color: const Color(0xA7FFFFFF),
+                                      child: const VerticalDivider(
+                                        color: Color(0xA7FFFFFF),
                                         thickness: 0.63,
                                         width: 1,
                                       ),
@@ -908,47 +1166,71 @@ class _PublicProfileState extends State<PublicProfile>
                                 ),
                               ),
                               GestureDetector(
-                                onTap: () {
-                                  publicProfileProvider.sendFriendRequest(
-                                    profile.username,
-                                  );
-                                },
+                                onTap: isFriend || _isProcessingRequest
+                                    ? null
+                                    : () {
+                                        _handleFollowAction(
+                                          profile.username,
+                                          false,
+                                          profile.isPrivate,
+                                        );
+                                      },
                                 child: Container(
                                   height: 30.h,
                                   width: 120.w,
                                   margin: EdgeInsets.only(top: 12.h),
                                   decoration: BoxDecoration(
-                                    color: AppColors.primaryColor,
+                                    color: _isProcessingRequest
+                                        ? AppColors.primaryColor.withOpacity(
+                                            0.5,
+                                          )
+                                        : AppColors.primaryColor,
                                     borderRadius: BorderRadius.circular(8.r),
                                   ),
                                   child: Center(
-                                    child: Text(
-                                      'Start Chasing',
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 11.5.sp,
-                                        fontWeight: FontWeight.w500,
-                                      ),
-                                    ),
+                                    child: _isProcessingRequest
+                                        ? SizedBox(
+                                            width: 20.sp,
+                                            height: 20.sp,
+                                            child:
+                                                const CircularProgressIndicator(
+                                                  strokeWidth: 2,
+                                                  valueColor:
+                                                      AlwaysStoppedAnimation<
+                                                        Color
+                                                      >(Colors.white),
+                                                ),
+                                          )
+                                        : Text(
+                                            'Start Chasing',
+                                            style: TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 11.5.sp,
+                                              fontWeight: FontWeight.w500,
+                                            ),
+                                          ),
                                   ),
                                 ),
                               ),
                             ],
-                          )
+                          ),
+
+                    // Posts count section - Show if can view posts
+                    !canViewPosts
+                        ? const SizedBox.shrink()
                         : Container(
-                            width: double.infinity, // Full device width
+                            width: double.infinity,
                             height: 38.h,
                             decoration: BoxDecoration(
-                              color: Color(0xFF9A2C3E),
+                              color: const Color(0xFF9A2C3E),
                               borderRadius: BorderRadius.circular(10.r),
                             ),
-                            // padding: EdgeInsets.symmetric(vertical: 5.h),
                             margin: EdgeInsets.only(
                               left: 10.w,
                               right: 10.w,
                               top: 10.h,
-                              bottom: 10.h.h,
-                            ), // Remove horizontal margins for full width
+                              bottom: 10.h,
+                            ),
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                               children: [
@@ -964,7 +1246,7 @@ class _PublicProfileState extends State<PublicProfile>
                                           MainAxisAlignment.center,
                                       children: [
                                         Text(
-                                          '${(profile.imagePostCount).toString()}',
+                                          (profile.imagePostCount).toString(),
                                           style: TextStyle(
                                             color: Colors.white,
                                             fontSize: 13.sp,
@@ -981,16 +1263,14 @@ class _PublicProfileState extends State<PublicProfile>
                                     ),
                                   ),
                                 ),
-
-                                Container(
+                                SizedBox(
                                   height: 30.h,
-                                  child: VerticalDivider(
-                                    color: const Color(0xA7FFFFFF),
+                                  child: const VerticalDivider(
+                                    color: Color(0xA7FFFFFF),
                                     thickness: 0.63,
                                     width: 1,
                                   ),
                                 ),
-
                                 GestureDetector(
                                   onTap: () {},
                                   child: Container(
@@ -1003,7 +1283,7 @@ class _PublicProfileState extends State<PublicProfile>
                                           MainAxisAlignment.center,
                                       children: [
                                         Text(
-                                          '${(profile.textPostCount).toString()}',
+                                          (profile.textPostCount).toString(),
                                           style: TextStyle(
                                             color: Colors.white,
                                             fontSize: 13.sp,
@@ -1023,8 +1303,10 @@ class _PublicProfileState extends State<PublicProfile>
                               ],
                             ),
                           ),
-                    (profile.isFriend == false)
-                        ? SizedBox.shrink()
+
+                    // Poll section header
+                    !canViewPosts
+                        ? const SizedBox.shrink()
                         : Padding(
                             padding: EdgeInsets.fromLTRB(10.w, 0, 10.w, 0.h),
                             child: Row(
@@ -1039,7 +1321,7 @@ class _PublicProfileState extends State<PublicProfile>
                                     fontWeight: FontWeight.w600,
                                   ),
                                 ),
-                                Spacer(),
+                                const Spacer(),
                                 GestureDetector(
                                   onTap: () {
                                     navigationPush(
@@ -1070,8 +1352,10 @@ class _PublicProfileState extends State<PublicProfile>
                               ],
                             ),
                           ),
-                    (profile.isFriend == false)
-                        ? SizedBox.shrink()
+
+                    // Posts grid
+                    !canViewPosts
+                        ? const SizedBox.shrink()
                         : Padding(
                             padding: EdgeInsets.symmetric(horizontal: 10.w),
                             child: FutureBuilder<List<PublicPost>>(
@@ -1141,7 +1425,7 @@ class _PublicProfileState extends State<PublicProfile>
                                         SizedBox(height: 10.h),
                                         ElevatedButton(
                                           onPressed: _refreshPostsData,
-                                          child: Text('Retry'),
+                                          child: const Text('Retry'),
                                         ),
                                       ],
                                     ),
@@ -1155,17 +1439,17 @@ class _PublicProfileState extends State<PublicProfile>
                                       mainAxisAlignment:
                                           MainAxisAlignment.center,
                                       children: [
-                                        SizedBox(height: 10.h),
+                                        SizedBox(height: 20.h),
                                         Icon(
                                           Icons.photo_library_outlined,
-                                          size: 45.spMax,
+                                          size: 40.spMax,
                                           color: Colors.grey.withOpacity(0.5),
                                         ),
                                         SizedBox(height: 10.h),
                                         Text(
                                           'No posts with image',
                                           style: TextStyle(
-                                            fontSize: 11.5.sp,
+                                            fontSize: 11.sp,
                                             color: Colors.grey,
                                           ),
                                         ),
@@ -1197,8 +1481,10 @@ class _PublicProfileState extends State<PublicProfile>
                               },
                             ),
                           ),
-                    (profile.isFriend == false)
-                        ? SizedBox.shrink()
+
+                    // Things section header
+                    !canViewPosts
+                        ? const SizedBox.shrink()
                         : Padding(
                             padding: EdgeInsets.fromLTRB(10.w, 10.h, 10.w, 0.h),
                             child: Row(
@@ -1213,7 +1499,7 @@ class _PublicProfileState extends State<PublicProfile>
                                     fontWeight: FontWeight.w600,
                                   ),
                                 ),
-                                Spacer(),
+                                const Spacer(),
                                 GestureDetector(
                                   onTap: () {
                                     navigationPush(
@@ -1246,8 +1532,10 @@ class _PublicProfileState extends State<PublicProfile>
                               ],
                             ),
                           ),
-                    (profile.isFriend == false)
-                        ? SizedBox.shrink()
+
+                    // Things/Polls list
+                    !canViewPosts
+                        ? const SizedBox.shrink()
                         : FutureBuilder<List<PublicPostPolls>>(
                             key: ValueKey(_pollsFuture.hashCode),
                             future: _pollsFuture,
@@ -1298,7 +1586,7 @@ class _PublicProfileState extends State<PublicProfile>
                                       SizedBox(height: 10.h),
                                       ElevatedButton(
                                         onPressed: _refreshPollsData,
-                                        child: Text('Retry'),
+                                        child: const Text('Retry'),
                                       ),
                                     ],
                                   ),
@@ -1339,7 +1627,7 @@ class _PublicProfileState extends State<PublicProfile>
                               return ListView.builder(
                                 padding: const EdgeInsets.all(12),
                                 shrinkWrap: true,
-                                physics: NeverScrollableScrollPhysics(),
+                                physics: const NeverScrollableScrollPhysics(),
                                 itemCount: postsWithPolls.length > 3
                                     ? 3
                                     : postsWithPolls.length,
@@ -1347,7 +1635,7 @@ class _PublicProfileState extends State<PublicProfile>
                                   const List<List<Color>> gradientOptions = [
                                     [Color(0xFFFC3E7E), Color(0xFFEEA0F0)],
                                     [Color(0xFF4FC3F7), Color(0xFFB6E2F8)],
-                                    [Colors.red, const Color(0xFFEFB0C3)],
+                                    [Colors.red, Color(0xFFEFB0C3)],
                                   ];
                                   return PublicThingsCard(
                                     publicPosts: postsWithPolls[index],
@@ -1371,7 +1659,7 @@ class _PublicProfileState extends State<PublicProfile>
 
   Widget _buildBioWidget(double maxWidth, String userbio) {
     final bio = userbio;
-    if (bio.isEmpty) return SizedBox.shrink();
+    if (bio.isEmpty) return const SizedBox.shrink();
 
     final textStyle = TextStyle(color: Colors.white, fontSize: 11.3.sp);
 
@@ -1379,7 +1667,7 @@ class _PublicProfileState extends State<PublicProfile>
     final textPainter = TextPainter(
       text: textSpan,
       textDirection: TextDirection.ltr,
-      maxLines: 2,
+      maxLines: 1,
     );
 
     textPainter.layout(maxWidth: maxWidth);
@@ -1389,33 +1677,40 @@ class _PublicProfileState extends State<PublicProfile>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        AnimatedContainer(
-          duration: Duration(milliseconds: 300),
-          child: Text(
-            bio,
-            style: textStyle,
-            maxLines: isExpanded ? null : 2,
-            overflow: isExpanded ? null : TextOverflow.ellipsis,
-          ),
-        ),
-        if (isTextOverflowing) ...[
-          SizedBox(height: 3.h),
-          GestureDetector(
-            onTap: () {
-              setState(() {
-                isExpanded = !isExpanded;
-              });
-            },
-            child: Text(
-              isExpanded ? 'Read Less' : 'Read More',
-              style: TextStyle(
-                color: Colors.blue.shade300,
-                fontSize: 11.sp,
-                fontWeight: FontWeight.w500,
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 300),
+                child: Text(
+                  bio,
+                  style: textStyle,
+                  maxLines: isExpanded ? null : 1,
+                  overflow: isExpanded ? null : TextOverflow.ellipsis,
+                ),
               ),
             ),
-          ),
-        ],
+            if (isTextOverflowing) ...[
+              SizedBox(width: 8.w),
+              GestureDetector(
+                onTap: () {
+                  setState(() {
+                    isExpanded = !isExpanded;
+                  });
+                },
+                child: Text(
+                  isExpanded ? 'Less' : 'More',
+                  style: TextStyle(
+                    color: Colors.blue.shade300,
+                    fontSize: 11.sp,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+            ],
+          ],
+        ),
       ],
     );
   }

@@ -1,3 +1,5 @@
+// ignore_for_file: non_constant_identifier_names
+
 import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'dart:typed_data';
@@ -182,22 +184,26 @@ class UserProvider with ChangeNotifier {
   UserModel? _user;
   UserModel? get user => _user;
 
-  Uint8List? getProfileImage(profile_picture) {
-    if (profile_picture == null || profile_picture.isEmpty) return null;
+  Uint8List? getProfileImage(profilePicture) {
+    if (profilePicture == null || profilePicture.isEmpty) return null;
     try {
-      String base64Data =
-          profile_picture.replaceFirst(RegExp(r'data:image/[^;]+;base64,'), '');
+      String base64Data = profilePicture.replaceFirst(
+        RegExp(r'data:image/[^;]+;base64,'),
+        '',
+      );
       return base64Decode(base64Data);
     } catch (e) {
       return null;
     }
   }
 
-  Uint8List? getCoverImage(cover_photo) {
-    if (cover_photo == null || cover_photo.isEmpty) return null;
+  Uint8List? getCoverImage(coverPhoto) {
+    if (coverPhoto == null || coverPhoto.isEmpty) return null;
     try {
-      String base64Data =
-          cover_photo.replaceFirst(RegExp(r'data:image/[^;]+;base64,'), '');
+      String base64Data = coverPhoto.replaceFirst(
+        RegExp(r'data:image/[^;]+;base64,'),
+        '',
+      );
       return base64Decode(base64Data);
     } catch (e) {
       return null;

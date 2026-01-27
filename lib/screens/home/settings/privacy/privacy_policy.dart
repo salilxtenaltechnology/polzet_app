@@ -29,7 +29,7 @@ class PrivacyState extends State<PrivacyPolicy> {
 
   // Define the text styles for the labletext
   static TextStyle labelStyle = TextStyle(
-    color: Color(0XFF545454),
+    color: const Color(0XFF545454),
     fontSize: 11.4.sp,
     fontWeight: FontWeight.w600,
   );
@@ -38,7 +38,7 @@ class PrivacyState extends State<PrivacyPolicy> {
   Widget build(BuildContext context) {
     // Define the text styles for the subtitle
     final TextStyle subtitleStyle = TextStyle(
-      color: Color(0XFF2B607B),
+      color: const Color(0XFF2B607B),
       fontSize: 12.sp,
       fontWeight: FontWeight.w600,
     );
@@ -47,7 +47,7 @@ class PrivacyState extends State<PrivacyPolicy> {
       appBar: AppBar(
         automaticallyImplyLeading: false,
         toolbarHeight: 25.h,
-        leading: PrimaryBackButton(),
+        leading: const PrimaryBackButton(),
         title: Text(
           AppLocalizations.of(context)!.privacypolicy,
           style: CustomTextStyles.appBarTitleText(context),
@@ -496,7 +496,7 @@ class PrivacyState extends State<PrivacyPolicy> {
                 TextSpan(
                   text: ' contact@polzet.com.',
                   style: TextStyle(
-                    color: Color(0xFF2194FF),
+                    color: const Color(0xFF2194FF),
                     fontSize: 14.5.sp,
                     fontWeight: FontWeight.w600,
                   ),
@@ -540,7 +540,7 @@ class PrivacyState extends State<PrivacyPolicy> {
               Text(
                 'contact@polzet.com',
                 style: TextStyle(
-                  color: Color(0xFF2194FF),
+                  color: const Color(0xFF2194FF),
                   fontSize: 13.sp,
                   fontWeight: FontWeight.w600,
                 ),

@@ -29,7 +29,7 @@ class HelpSupportState extends State<HelpSupport> with UtilityMixin {
   // Define the text styles for the labelText
   // Define the text styles for the labletext
   static TextStyle labelStyle = TextStyle(
-    color: Color(0XFF545454),
+    color: const Color(0XFF545454),
     fontSize: 11.4.sp,
     fontWeight: FontWeight.w600,
   );
@@ -38,7 +38,7 @@ class HelpSupportState extends State<HelpSupport> with UtilityMixin {
   Widget build(BuildContext context) {
     // Define the text styles for the subtitle
     final TextStyle subtitleStyle = TextStyle(
-      color: Color(0XFF2B607B),
+      color: const Color(0XFF2B607B),
       fontSize: 11.5.sp,
       fontWeight: FontWeight.w600,
     );
@@ -46,7 +46,7 @@ class HelpSupportState extends State<HelpSupport> with UtilityMixin {
       backgroundColor: Theme.of(context).colorScheme.background,
       appBar: AppBar(
         automaticallyImplyLeading: false,
-        leading: PrimaryBackButton(),
+        leading: const PrimaryBackButton(),
         title: Text(
           AppLocalizations.of(context)!.supportandabout,
           style: CustomTextStyles.appBarTitleText(context),
@@ -136,7 +136,7 @@ class HelpSupportState extends State<HelpSupport> with UtilityMixin {
               Text(
                 'contact@polzet.com',
                 style: TextStyle(
-                  color: Color(0xFF2194FF),
+                  color: const Color(0xFF2194FF),
                   fontSize: 13.sp,
                   fontWeight: FontWeight.w600,
                 ),
@@ -352,7 +352,7 @@ class HelpSupportState extends State<HelpSupport> with UtilityMixin {
               Text(
                 'contact@polzet.com',
                 style: TextStyle(
-                  color: Color(0xFF2194FF),
+                  color: const Color(0xFF2194FF),
                   fontSize: 13.sp,
                   fontWeight: FontWeight.w600,
                 ),

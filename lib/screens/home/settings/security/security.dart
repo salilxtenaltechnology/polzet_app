@@ -21,6 +21,8 @@ import 'pin/pin_status.dart';
 import 'pin/set_pin_screen.dart';
 
 class Security extends StatefulWidget {
+  const Security({super.key});
+
   @override
   State<StatefulWidget> createState() {
     return SecurityState();
@@ -47,7 +49,7 @@ class SecurityState extends State<Security> with UtilityMixin {
   String _initialCurrentPassword = "";
   String _initialNewPassword = "";
   String _initialConfirmPassword = "";
-  String _passwordErrorText = '';
+  final String _passwordErrorText = '';
 
   String? currentPasswordErrorText;
   String? newPasswordErrorText;
@@ -152,7 +154,7 @@ class SecurityState extends State<Security> with UtilityMixin {
         final result = await Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => SetPinScreen(
+            builder: (context) => const SetPinScreen(
               isSettingNewPin: true,
             ),
           ),
@@ -267,7 +269,7 @@ class SecurityState extends State<Security> with UtilityMixin {
       final result = await Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (context) => SetPinScreen(
+          builder: (context) => const SetPinScreen(
             isSettingNewPin: false, // Changing existing PIN
           ),
         ),
@@ -404,7 +406,7 @@ class SecurityState extends State<Security> with UtilityMixin {
         currentPasswordErrorText = null;
         newPasswordErrorText = null;
         confirmPasswordErrorText = null;
-        Future.delayed(Duration(seconds: 3), () {
+        Future.delayed(const Duration(seconds: 3), () {
           setState(() {
             _showUpdatePasswordButton = false;
           });
@@ -508,7 +510,7 @@ class SecurityState extends State<Security> with UtilityMixin {
                           ),
                         );
                       }
-                      return SizedBox.shrink();
+                      return const SizedBox.shrink();
                     },
                   ),
                 ],
@@ -624,7 +626,7 @@ class SecurityState extends State<Security> with UtilityMixin {
                 Text(
                   AppLocalizations.of(context)!.currentpassword,
                   style: TextStyle(
-                      color: Color(0xFF8E8D8D),
+                      color: const Color(0xFF8E8D8D),
                       fontSize: 12.sp,
                       fontWeight: FontWeight.w500),
                 ),
@@ -650,7 +652,7 @@ class SecurityState extends State<Security> with UtilityMixin {
                   children: [
                     GestureDetector(
                       onTap: () {
-                        navigationPush(context, ForgotPasswordScreen());
+                        navigationPush(context, const ForgotPasswordScreen());
                       },
                       child: Text(
                         AppLocalizations.of(context)!.forgotyourpassword,
@@ -666,7 +668,7 @@ class SecurityState extends State<Security> with UtilityMixin {
                 Text(
                   AppLocalizations.of(context)!.newpassword,
                   style: TextStyle(
-                      color: Color(0xFF8E8D8D),
+                      color: const Color(0xFF8E8D8D),
                       fontSize: 12.sp,
                       fontWeight: FontWeight.w500),
                 ),
@@ -690,7 +692,7 @@ class SecurityState extends State<Security> with UtilityMixin {
                 Text(
                   AppLocalizations.of(context)!.confirmpassword,
                   style: TextStyle(
-                      color: Color(0xFF8E8D8D),
+                      color: const Color(0xFF8E8D8D),
                       fontSize: 12.sp,
                       fontWeight: FontWeight.w500),
                 ),

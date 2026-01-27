@@ -1,5 +1,5 @@
 // lib/screens/set_pin_screen.dart
-// ignore_for_file: deprecated_member_use, unused_element
+// ignore_for_file: deprecated_member_use, unused_element, library_private_types_in_public_api
 
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -12,9 +12,9 @@ class SetPinScreen extends StatefulWidget {
   final bool isSettingNewPin;
 
   const SetPinScreen({
-    Key? key,
+    super.key,
     required this.isSettingNewPin,
-  }) : super(key: key);
+  });
 
   @override
   _SetPinScreenState createState() => _SetPinScreenState();
@@ -115,7 +115,7 @@ class _SetPinScreenState extends State<SetPinScreen> {
                           ),
                         );
                       }
-                      return SizedBox.shrink();
+                      return const SizedBox.shrink();
                     },
                   ),
                 ],
@@ -125,8 +125,9 @@ class _SetPinScreenState extends State<SetPinScreen> {
   }
 
   String _getScreenTitle() {
-    if (_isEnteringOldPin)
+    if (_isEnteringOldPin) {
       return AppLocalizations.of(context)!.verifycurrentpin;
+    }
     if (_isConfirmingPin) return AppLocalizations.of(context)!.confirmnewpin;
     return widget.isSettingNewPin
         ? AppLocalizations.of(context)!.setpin
@@ -135,8 +136,9 @@ class _SetPinScreenState extends State<SetPinScreen> {
 
   String _getInstructionText() {
     if (_isEnteringOldPin) return AppLocalizations.of(context)!.entercurrentpin;
-    if (_isConfirmingPin)
+    if (_isConfirmingPin) {
       return AppLocalizations.of(context)!.reenteryournewpin;
+    }
     return AppLocalizations.of(context)!.enterfourdigitpin;
   }
 
@@ -314,7 +316,7 @@ class _SetPinScreenState extends State<SetPinScreen> {
               _moveToConfirmation();
             } else {
               // Show warning but allow user to continue
-              Future.delayed(Duration(milliseconds: 500), () {
+              Future.delayed(const Duration(milliseconds: 500), () {
                 _moveToConfirmation();
               });
             }

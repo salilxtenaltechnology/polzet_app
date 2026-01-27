@@ -2,6 +2,8 @@
 part of 'user_search_import.dart';
 
 class UserSearch extends StatefulWidget {
+  const UserSearch({super.key});
+
   @override
   State<StatefulWidget> createState() {
     return UserSearchState();
@@ -50,7 +52,7 @@ class UserSearchState extends State<UserSearch>
   bool _isUser = false;
   bool _isLoading = false;
   bool _isShowCategory = true;
-  bool _isShowTab = true;
+  final bool _isShowTab = true;
   bool _hasSearched = false;
   bool _showSearchHistory = false;
 
@@ -93,8 +95,9 @@ class UserSearchState extends State<UserSearch>
 
   void _saveSearchHistory() async {
     final prefs = await SharedPreferences.getInstance();
-    final historyJson =
-        _searchHistory.map((item) => jsonEncode(item.toJson())).toList();
+    final historyJson = _searchHistory
+        .map((item) => jsonEncode(item.toJson()))
+        .toList();
     await prefs.setStringList('user_search_history', historyJson);
   }
 
@@ -102,17 +105,15 @@ class UserSearchState extends State<UserSearch>
     if (query.trim().isEmpty) return;
 
     // Remove existing search query to avoid duplicates
-    _searchHistory
-        .removeWhere((item) => item.text == query && item.type == 'search');
+    _searchHistory.removeWhere(
+      (item) => item.text == query && item.type == 'search',
+    );
 
     // Add new search to the beginning
     _searchHistory.insert(
-        0,
-        SearchHistoryItem(
-          text: query,
-          type: 'search',
-          timestamp: DateTime.now(),
-        ));
+      0,
+      SearchHistoryItem(text: query, type: 'search', timestamp: DateTime.now()),
+    );
 
     // Keep only the last 20 items
     if (_searchHistory.length > 20) {
@@ -125,18 +126,20 @@ class UserSearchState extends State<UserSearch>
     if (username.trim().isEmpty) return;
 
     // Remove existing profile to avoid duplicates
-    _searchHistory
-        .removeWhere((item) => item.userId == userId && item.type == 'profile');
+    _searchHistory.removeWhere(
+      (item) => item.userId == userId && item.type == 'profile',
+    );
 
     // Add new profile visit to the beginning
     _searchHistory.insert(
-        0,
-        SearchHistoryItem(
-          text: username,
-          type: 'profile',
-          userId: userId,
-          timestamp: DateTime.now(),
-        ));
+      0,
+      SearchHistoryItem(
+        text: username,
+        type: 'profile',
+        userId: userId,
+        timestamp: DateTime.now(),
+      ),
+    );
 
     // Keep only the last 20 items
     if (_searchHistory.length > 20) {
@@ -232,20 +235,21 @@ class UserSearchState extends State<UserSearch>
                       context: context,
                       builder: (BuildContext context) {
                         return AlertDialog(
-                          title: Text('Clear Search History'),
-                          content: Text(
-                              'Are you sure you want to clear all search history?'),
+                          title: const Text('Clear Search History'),
+                          content: const Text(
+                            'Are you sure you want to clear all search history?',
+                          ),
                           actions: [
                             TextButton(
                               onPressed: () => Navigator.of(context).pop(),
-                              child: Text('Cancel'),
+                              child: const Text('Cancel'),
                             ),
                             TextButton(
                               onPressed: () {
                                 _clearSearchHistory();
                                 Navigator.of(context).pop();
                               },
-                              child: Text('Clear All'),
+                              child: const Text('Clear All'),
                             ),
                           ],
                         );
@@ -254,18 +258,13 @@ class UserSearchState extends State<UserSearch>
                   },
                   child: Text(
                     'Clear All',
-                    style: TextStyle(
-                      fontSize: 12.sp,
-                      color: Colors.red,
-                    ),
+                    style: TextStyle(fontSize: 12.sp, color: Colors.red),
                   ),
                 ),
               ],
             ),
             SizedBox(height: 8.h),
-            ..._searchHistory
-                .map((item) => _buildSearchHistoryItem(item))
-                .toList(),
+            ..._searchHistory.map((item) => _buildSearchHistoryItem(item)),
           ] else ...[
             // Show "No history" when empty
             Container(
@@ -277,10 +276,9 @@ class UserSearchState extends State<UserSearch>
                   Icon(
                     Icons.history,
                     size: 48.sp,
-                    color: Theme.of(context)
-                        .colorScheme
-                        .onBackground
-                        .withOpacity(0.3),
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.onBackground.withOpacity(0.3),
                   ),
                   SizedBox(height: 16.h),
                   Text(
@@ -288,10 +286,9 @@ class UserSearchState extends State<UserSearch>
                     style: TextStyle(
                       fontSize: 16.sp,
                       fontWeight: FontWeight.w500,
-                      color: Theme.of(context)
-                          .colorScheme
-                          .onBackground
-                          .withOpacity(0.6),
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.onBackground.withOpacity(0.6),
                     ),
                   ),
                   SizedBox(height: 8.h),
@@ -300,10 +297,9 @@ class UserSearchState extends State<UserSearch>
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 12.sp,
-                      color: Theme.of(context)
-                          .colorScheme
-                          .onBackground
-                          .withOpacity(0.4),
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.onBackground.withOpacity(0.4),
                     ),
                   ),
                 ],
@@ -341,14 +337,19 @@ class UserSearchState extends State<UserSearch>
                   future: _getUserFromSearchResults(item.text),
                   builder: (context, snapshot) {
                     final user = snapshot.data;
-                    final userProvider =
-                        Provider.of<UserProvider>(context, listen: false);
+                    final userProvider = Provider.of<UserProvider>(
+                      context,
+                      listen: false,
+                    );
 
                     return CircleAvatar(
                       radius: 16.r,
                       backgroundImage: user?.profilePicture != null
-                          ? MemoryImage(userProvider
-                              .getProfileImage(user!.profilePicture)!)
+                          ? MemoryImage(
+                              userProvider.getProfileImage(
+                                user!.profilePicture,
+                              )!,
+                            )
                           : null,
                       child: user?.profilePicture == null
                           ? Image.asset(
@@ -365,10 +366,9 @@ class UserSearchState extends State<UserSearch>
                 Icon(
                   Icons.history,
                   size: 16.sp,
-                  color: Theme.of(context)
-                      .colorScheme
-                      .onBackground
-                      .withOpacity(0.6),
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.onBackground.withOpacity(0.6),
                 ),
               ],
 
@@ -398,10 +398,9 @@ class UserSearchState extends State<UserSearch>
                 _formatTimestamp(item.timestamp),
                 style: TextStyle(
                   fontSize: 10.sp,
-                  color: Theme.of(context)
-                      .colorScheme
-                      .onBackground
-                      .withOpacity(0.4),
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.onBackground.withOpacity(0.4),
                 ),
               ),
 
@@ -413,12 +412,11 @@ class UserSearchState extends State<UserSearch>
                 icon: Icon(
                   Icons.close,
                   size: 16.sp,
-                  color: Theme.of(context)
-                      .colorScheme
-                      .onBackground
-                      .withOpacity(0.4),
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.onBackground.withOpacity(0.4),
                 ),
-                constraints: BoxConstraints(),
+                constraints: const BoxConstraints(),
                 padding: EdgeInsets.zero,
               ),
             ],
@@ -428,17 +426,18 @@ class UserSearchState extends State<UserSearch>
     );
   }
 
-// Helper method to get user data from search results or cache
+  // Helper method to get user data from search results or cache
   Future<SearchUserModel?> _getUserFromSearchResults(String username) async {
     // First, check if the user is in the current search results
     final userInResults = _users.firstWhere(
       (user) => user.username == username,
       orElse: () => SearchUserModel(
-          id: 0,
-          username: username,
-          firstName: '',
-          lastName: '',
-          profilePicture: null),
+        id: 0,
+        username: username,
+        firstName: '',
+        lastName: '',
+        profilePicture: null,
+      ),
     );
 
     if (userInResults.id != 0) {
@@ -468,7 +467,6 @@ class UserSearchState extends State<UserSearch>
     }
   }
 
-  
   late TabController _tabController;
 
   @override
@@ -494,7 +492,7 @@ class UserSearchState extends State<UserSearch>
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               SizedBox(width: 7.w),
-              Expanded(child: PrimaryBackButton()),
+              const Expanded(child: PrimaryBackButton()),
               Expanded(
                 flex: 10,
                 child: Container(
@@ -503,7 +501,7 @@ class UserSearchState extends State<UserSearch>
                   decoration: BoxDecoration(
                     color: Theme.of(context).colorScheme.background,
                     borderRadius: BorderRadius.circular(15.r),
-                    boxShadow: [
+                    boxShadow: const [
                       BoxShadow(
                         color: Colors.black12,
                         blurRadius: 5,
@@ -514,23 +512,14 @@ class UserSearchState extends State<UserSearch>
                   child: TextField(
                     controller: _searchController,
                     decoration: InputDecoration(
-                      contentPadding:
-                          EdgeInsets.only(right: 12.w, left: 12.w, top: 10.h),
+                      contentPadding: EdgeInsets.only(
+                        right: 12.w,
+                        left: 12.w,
+                        top: 10.h,
+                      ),
                       hintText: AppLocalizations.of(context)!.searchusers,
                       hintStyle: CustomTextStyles.lblPrimaryHintText(context),
                       border: InputBorder.none,
-                      // prefixIcon: GestureDetector(
-                      //   onTap: () {
-                      //     setState(() {
-                      //      _isShowCategory = !_isShowCategory;
-                      //       _isShowTab = !_isShowTab;
-                      //       _showSearchHistory = false;
-                      //     });
-                      //   },
-                      //   child: Icon(Icons.grid_view,
-                      //       size: 17.spMax,
-                      //       color: Theme.of(context).colorScheme.primary),
-                      // ),
                       suffixIcon: _searchController.text.isNotEmpty
                           ? Row(
                               mainAxisSize: MainAxisSize.min,
@@ -548,9 +537,9 @@ class UserSearchState extends State<UserSearch>
                                   child: Icon(
                                     Icons.clear,
                                     size: 17.spMax,
-                                    color: Theme.of(context)
-                                        .colorScheme
-                                        .onBackground,
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onBackground,
                                   ),
                                 ),
                                 SizedBox(width: 8.w),
@@ -560,9 +549,9 @@ class UserSearchState extends State<UserSearch>
                                   child: Icon(
                                     FeatherIcons.search,
                                     size: 17.spMax,
-                                    color: Theme.of(context)
-                                        .colorScheme
-                                        .onBackground,
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onBackground,
                                   ),
                                 ),
                                 SizedBox(width: 8.w),
@@ -574,21 +563,26 @@ class UserSearchState extends State<UserSearch>
                               child: Icon(
                                 FeatherIcons.search,
                                 size: 17.spMax,
-                                color:
-                                    Theme.of(context).colorScheme.onBackground,
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onBackground,
                               ),
                             ),
                       enabledBorder: OutlineInputBorder(
-                          borderSide: BorderSide(
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .onBackground
-                                  .withOpacity(0.1)),
-                          borderRadius: BorderRadius.circular(15.r)),
+                        borderSide: BorderSide(
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onBackground.withOpacity(0.1),
+                        ),
+                        borderRadius: BorderRadius.circular(15.r),
+                      ),
                       focusedBorder: OutlineInputBorder(
-                          borderSide: BorderSide(
-                              color: AppColors.primaryColor, width: 0.7),
-                          borderRadius: BorderRadius.circular(15.r)),
+                        borderSide: const BorderSide(
+                          color: AppColors.primaryColor,
+                          width: 0.7,
+                        ),
+                        borderRadius: BorderRadius.circular(15.r),
+                      ),
                     ),
                     style: TextStyle(
                       color: Theme.of(context).colorScheme.onBackground,
@@ -609,7 +603,7 @@ class UserSearchState extends State<UserSearch>
           Padding(
             padding: EdgeInsets.symmetric(horizontal: 5.w),
             child: TabBar(
-              overlayColor: WidgetStatePropertyAll(Colors.transparent),
+              overlayColor: const WidgetStatePropertyAll(Colors.transparent),
               tabAlignment: TabAlignment.fill,
               indicator: FadeUnderlineTabIndicator(),
               controller: _tabController,
@@ -617,12 +611,13 @@ class UserSearchState extends State<UserSearch>
               indicatorSize: TabBarIndicatorSize.tab,
               labelColor: Theme.of(context).colorScheme.primary,
               labelStyle: TextStyle(
-                  color: Theme.of(context).colorScheme.onBackground,
-                  fontSize: 11.2.sp,
-                  fontWeight: FontWeight.w500),
+                color: Theme.of(context).colorScheme.onBackground,
+                fontSize: 11.2.sp,
+                fontWeight: FontWeight.w500,
+              ),
               dividerColor: Colors.transparent,
               unselectedLabelColor: Theme.of(context).colorScheme.onBackground,
-              tabs: [
+              tabs: const [
                 Tab(text: 'Top'),
                 Tab(text: 'Accounts'),
                 Tab(text: 'Photos'),
@@ -632,172 +627,177 @@ class UserSearchState extends State<UserSearch>
             ),
           ),
           Expanded(
-            child: TabBarView(controller: _tabController, children: [
-              Column(
-                children: [
-                  // Search History
-                  if (_showSearchHistory)
-                    Expanded(
-                      child: SingleChildScrollView(
-                        child: _buildSearchHistory(),
+            child: TabBarView(
+              controller: _tabController,
+              children: [
+                Column(
+                  children: [
+                    // Search History
+                    if (_showSearchHistory)
+                      Expanded(
+                        child: SingleChildScrollView(
+                          child: _buildSearchHistory(),
+                        ),
                       ),
-                    ),
-                  // Search Results
-                  SizedBox(height: 10.h),
-                  Visibility(
-                    visible: _isShowTab && !_showSearchHistory,
-                    child: _isLoading
-                        ? SearchUserSimmer()
-                        : !_hasSearched
-                            ? Center(
+                    // Search Results
+                    SizedBox(height: 10.h),
+                    Visibility(
+                      visible: _isShowTab && !_showSearchHistory,
+                      child: _isLoading
+                          ? const SearchUserSimmer()
+                          : !_hasSearched
+                          ? Center(
+                              child: Text(
+                                '',
+                                style: CustomTextStyles.lblPrimaryText(context),
+                              ),
+                            )
+                          : _users.isEmpty
+                          ? Expanded(
+                              child: Center(
                                 child: Text(
-                                  '',
-                                  style:
-                                      CustomTextStyles.lblPrimaryText(context),
+                                  AppLocalizations.of(context)!.usernotfound,
+                                  style: TextStyle(
+                                    fontSize: 11.sp,
+                                    color: const Color(0XFF999999),
+                                    fontWeight: FontWeight.w500,
+                                  ),
                                 ),
-                              )
-                            : _users.isEmpty
-                                ? Expanded(
-                                    child: Center(
-                                      child: Text(
-                                        AppLocalizations.of(context)!
-                                            .usernotfound,
-                                        style: TextStyle(
-                                            fontSize: 11.sp,
-                                            color: Color(0XFF999999),
-                                            fontWeight: FontWeight.w500),
+                              ),
+                            )
+                          : Expanded(
+                              child: ListView.builder(
+                                itemCount: _users.length,
+                                itemBuilder: (context, index) {
+                                  final user = _users[index];
+                                  final userProvider =
+                                      Provider.of<UserProvider>(context);
+                                  return Padding(
+                                    padding: EdgeInsets.only(
+                                      bottom: 10.h,
+                                      right: 10.w,
+                                      left: 10.w,
+                                    ),
+                                    child: CustomCard(
+                                      widget: Row(
+                                        children: [
+                                          GestureDetector(
+                                            onTap: () {
+                                              // Add to profile history when visiting - Fixed: Convert id to String
+                                              _addProfileToHistory(
+                                                user.username,
+                                                user.id.toString(),
+                                              );
+
+                                              navigationPush(
+                                                context,
+                                                PublicProfile(userId: user.id),
+                                              );
+                                            },
+                                            child: CircleAvatar(
+                                              backgroundImage:
+                                                  user.profilePicture != null
+                                                  ? MemoryImage(
+                                                      userProvider
+                                                          .getProfileImage(
+                                                            user.profilePicture,
+                                                          )!,
+                                                    )
+                                                  : null,
+                                              child: user.profilePicture == null
+                                                  ? Image.asset(
+                                                      Assets.assetsImagesIcUser,
+                                                      height: 27.h,
+                                                      width: 27.w,
+                                                    )
+                                                  : null,
+                                            ),
+                                          ),
+                                          SizedBox(width: 12.w),
+                                          Expanded(
+                                            child: GestureDetector(
+                                              onTap: () {
+                                                // Add to profile history when visiting - Fixed: Convert id to String
+                                                _addProfileToHistory(
+                                                  user.username,
+                                                  user.id.toString(),
+                                                );
+                                                navigationPush(
+                                                  context,
+                                                  PublicProfile(
+                                                    userId: user.id,
+                                                  ),
+                                                );
+                                              },
+                                              child: Column(
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.start,
+                                                children: [
+                                                  Text(
+                                                    user.username,
+                                                    maxLines: 1,
+                                                    overflow:
+                                                        TextOverflow.ellipsis,
+                                                    softWrap: false,
+                                                    style: TextStyle(
+                                                      color: Theme.of(context)
+                                                          .colorScheme
+                                                          .onBackground,
+                                                      fontSize: 11.7.sp,
+                                                      fontWeight:
+                                                          FontWeight.w400,
+                                                    ),
+                                                  ),
+                                                  Text(
+                                                    '${user.firstName} ${user.lastName}',
+                                                    style: TextStyle(
+                                                      color: Theme.of(context)
+                                                          .colorScheme
+                                                          .onBackground
+                                                          .withOpacity(0.4),
+                                                      fontSize: 11.sp,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                          ),
+                                          SizedBox(width: 5.w),
+                                          _buttonEvent(
+                                            const Color(0XFFC8FEC5),
+                                            Assets.assetsImagesIcFollow,
+                                            onTap: () {
+                                              userProvider.sendFriendRequest(
+                                                user.username,
+                                              );
+                                            },
+                                          ),
+
+                                          SizedBox(width: 5.w),
+                                          _buttonEvent(
+                                            const Color(0XFFFFEAEA),
+                                            Assets.assetsImagesIcBlock,
+                                            onTap: () {
+                                              _showBlockSheet(context);
+                                            },
+                                          ),
+                                        ],
                                       ),
                                     ),
-                                  )
-                                : Expanded(
-                                    child: ListView.builder(
-                                      itemCount: _users.length,
-                                      itemBuilder: (context, index) {
-                                        final user = _users[index];
-                                        final userProvider =
-                                            Provider.of<UserProvider>(context);
-                                        return Padding(
-                                          padding: EdgeInsets.only(
-                                              bottom: 10.h,
-                                              right: 10.w,
-                                              left: 10.w),
-                                          child: CustomCard(
-                                              widget: Row(
-                                            children: [
-                                              GestureDetector(
-                                                onTap: () {
-                                                  // Add to profile history when visiting - Fixed: Convert id to String
-                                                  _addProfileToHistory(
-                                                      user.username,
-                                                      user.id.toString());
-
-                                                  navigationPush(
-                                                      context,
-                                                      PublicProfile(
-                                                          userId: user.id));
-                                                },
-                                                child: CircleAvatar(
-                                                  backgroundImage: user
-                                                              .profilePicture !=
-                                                          null
-                                                      ? MemoryImage(userProvider
-                                                          .getProfileImage(user
-                                                              .profilePicture)!)
-                                                      : null,
-                                                  child: user.profilePicture ==
-                                                          null
-                                                      ? Image.asset(
-                                                          Assets
-                                                              .assetsImagesIcUser,
-                                                          height: 27.h,
-                                                          width: 27.w)
-                                                      : null,
-                                                ),
-                                              ),
-                                              SizedBox(width: 12.w),
-                                              Expanded(
-                                                child: GestureDetector(
-                                                  onTap: () {
-                                                    // Add to profile history when visiting - Fixed: Convert id to String
-                                                    _addProfileToHistory(
-                                                        user.username,
-                                                        user.id.toString());
-                                                    navigationPush(
-                                                        context,
-                                                        PublicProfile(
-                                                            userId: user.id));
-                                                  },
-                                                  child: Column(
-                                                    crossAxisAlignment:
-                                                        CrossAxisAlignment
-                                                            .start,
-                                                    children: [
-                                                      Text(user.username,
-                                                          maxLines: 1,
-                                                          overflow: TextOverflow
-                                                              .ellipsis,
-                                                          softWrap: false,
-                                                          style: TextStyle(
-                                                              color: Theme.of(
-                                                                      context)
-                                                                  .colorScheme
-                                                                  .onBackground,
-                                                              fontSize: 11.7.sp,
-                                                              fontWeight:
-                                                                  FontWeight
-                                                                      .w400)),
-                                                      Text(
-                                                          '${user.firstName} ${user.lastName}',
-                                                          style: TextStyle(
-                                                            color: Theme.of(
-                                                                    context)
-                                                                .colorScheme
-                                                                .onBackground
-                                                                .withOpacity(
-                                                                    0.4),
-                                                            fontSize: 11.sp,
-                                                          )),
-                                                    ],
-                                                  ),
-                                                ),
-                                              ),
-                                              SizedBox(width: 5.w),
-                                              _buttonEvent(Color(0XFFC8FEC5),
-                                                  Assets.assetsImagesIcFollow,
-                                                  onTap: () {
-                                                userProvider.sendFriendRequest(
-                                                    user.username);
-                                              }),
-                                              
-                                              SizedBox(width: 5.w),
-                                              _buttonEvent(Color(0XFFFFEAEA),
-                                                  Assets.assetsImagesIcBlock,
-                                                  onTap: () {
-                                                _showBlockSheet(context);
-                                              }),
-                                            ],
-                                          )),
-                                        );
-                                      },
-                                    ),
-                                  ),
-                  ),
-                ],
-              ),
-              Center(
-                child: Text('Accounts'),
-              ),
-              Center(
-                child: Text('Photos'),
-              ),
-              Center(
-                child: Text('Tags'),
-              ),
-              Center(
-                child: Text('Places'),
-              ),
-            ]),
-          )
+                                  );
+                                },
+                              ),
+                            ),
+                    ),
+                  ],
+                ),
+                const Center(child: Text('Accounts')),
+                const Center(child: Text('Photos')),
+                const Center(child: Text('Tags')),
+                const Center(child: Text('Places')),
+              ],
+            ),
+          ),
         ],
       ),
     );
@@ -809,7 +809,7 @@ class UserSearchState extends State<UserSearch>
       child: Container(
         height: 25.h,
         width: 25.w,
-        padding: EdgeInsets.all(5).w,
+        padding: const EdgeInsets.all(5).w,
         decoration: BoxDecoration(
           color: btnColor,
           borderRadius: BorderRadius.circular(5.r),
@@ -830,8 +830,9 @@ class UserSearchState extends State<UserSearch>
               decoration: BoxDecoration(
                 color: Theme.of(context).colorScheme.secondaryContainer,
                 borderRadius: BorderRadius.only(
-                    topLeft: Radius.circular(50.r),
-                    topRight: Radius.circular(50.r)),
+                  topLeft: Radius.circular(50.r),
+                  topRight: Radius.circular(50.r),
+                ),
               ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -840,37 +841,41 @@ class UserSearchState extends State<UserSearch>
                     height: 2.h,
                     width: 70.w,
                     decoration: BoxDecoration(
-                        color: Color(0x7C868686),
-                        borderRadius: BorderRadius.circular(5.r)),
+                      color: const Color(0x7C868686),
+                      borderRadius: BorderRadius.circular(5.r),
+                    ),
                   ),
                   SizedBox(height: 15.h),
-                  Text(AppLocalizations.of(context)!.blockadweekttl,
-                      style: CustomTextStyles.popTitleText(context)),
+                  Text(
+                    AppLocalizations.of(context)!.blockadweekttl,
+                    style: CustomTextStyles.popTitleText(context),
+                  ),
                   Divider(
-                    color: Theme.of(context)
-                        .colorScheme
-                        .onBackground
-                        .withOpacity(0.1),
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.onBackground.withOpacity(0.1),
                     height: 25.h,
                   ),
                   Text(
                     AppLocalizations.of(context)!.theywonotbeable,
                     textAlign: TextAlign.center,
                     style: TextStyle(
-                        color: Color(0XFFAAAAAA),
-                        fontSize: 11.5.sp,
-                        fontWeight: FontWeight.w400),
+                      color: const Color(0XFFAAAAAA),
+                      fontSize: 11.5.sp,
+                      fontWeight: FontWeight.w400,
+                    ),
                   ),
                   SizedBox(height: 20.h),
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      Icon(FeatherIcons.users),
+                      const Icon(FeatherIcons.users),
                       SizedBox(width: 10.w),
                       Expanded(
                         child: Text(
-                          AppLocalizations.of(context)!
-                              .blockadweekandnewaccounts,
+                          AppLocalizations.of(
+                            context,
+                          )!.blockadweekandnewaccounts,
                           textAlign: TextAlign.start,
                           style: CustomTextStyles.lblSecondryText(context),
                         ),
@@ -886,24 +891,25 @@ class UserSearchState extends State<UserSearch>
                           height: 20.h,
                           width: 20.w,
                           decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              border: Border.all(
-                                  color: _isUsers
-                                      ? AppColors.primaryColor
-                                      : Theme.of(context)
-                                          .colorScheme
-                                          .onBackground
-                                          .withOpacity(0.2),
-                                  width: _isUsers ? 4 : 1)),
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: _isUsers
+                                  ? AppColors.primaryColor
+                                  : Theme.of(
+                                      context,
+                                    ).colorScheme.onBackground.withOpacity(0.2),
+                              width: _isUsers ? 4 : 1,
+                            ),
+                          ),
                         ),
-                      )
+                      ),
                     ],
                   ),
                   SizedBox(height: 12.h),
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      Icon(FeatherIcons.user),
+                      const Icon(FeatherIcons.user),
                       SizedBox(width: 10.w),
                       Expanded(
                         child: Text(
@@ -923,31 +929,32 @@ class UserSearchState extends State<UserSearch>
                           height: 20.h,
                           width: 20.w,
                           decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              border: Border.all(
-                                  color: _isUser
-                                      ? AppColors.primaryColor
-                                      : Theme.of(context)
-                                          .colorScheme
-                                          .onBackground
-                                          .withOpacity(0.2),
-                                  width: _isUser ? 4 : 1)),
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: _isUser
+                                  ? AppColors.primaryColor
+                                  : Theme.of(
+                                      context,
+                                    ).colorScheme.onBackground.withOpacity(0.2),
+                              width: _isUser ? 4 : 1,
+                            ),
+                          ),
                         ),
-                      )
+                      ),
                     ],
                   ),
                   Divider(
-                    color: Theme.of(context)
-                        .colorScheme
-                        .onBackground
-                        .withOpacity(0.1),
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.onBackground.withOpacity(0.1),
                     height: 20.h,
                   ),
                   PrimaryButton(
-                      onPressed: () {},
-                      height: 35.h,
-                      title: AppLocalizations.of(context)!.block,
-                      isLoading: _isLoading),
+                    onPressed: () {},
+                    height: 35.h,
+                    title: AppLocalizations.of(context)!.block,
+                    isLoading: _isLoading,
+                  ),
                 ],
               ),
             );

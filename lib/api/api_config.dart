@@ -6,16 +6,21 @@ class ApiConfig {
   // www.polzet.com : Domain
 
   static String get baseUrl {
-    final protocol = useHttps ? 'https' : 'http';
-    final domain = 'testbackend.polzet.in';
+    const protocol = useHttps ? 'https' : 'http';
+    const domain = 'testbackend.polzet.in';
     return '$protocol://$domain/api';
   }
 
   // https://testbackend.polzet.in
 
   static String get baseUrlImage {
-    final protocol = useHttps ? 'https' : 'http';
-    final domain = 'testbackend.polzet.in';
+    const protocol = useHttps ? 'https' : 'http';
+    const domain = 'testbackend.polzet.in';
     return '$protocol://$domain';
+  }
+
+  static String get sharePostBaseUrl {
+    const domain = 'www.testbackend.polzet.in';
+    return 'https://$domain';
   }
 }

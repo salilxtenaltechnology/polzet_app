@@ -39,7 +39,7 @@ class PostImagesModel {
             .map((e) => PostImage.fromJson(e))
             .toList(),
         likesCount: json['likes_count'] as int? ?? 0,
-        isLiked: json['is_liked'] == true,
+        isLiked: json['is_liked'] == false,
         commentsCount: (json['comments'] as List<dynamic>?)?.length ?? 0, // Calculate from comments array
       );
 

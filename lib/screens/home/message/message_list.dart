@@ -29,7 +29,7 @@ class _MessageListState extends State<MessageList> with UtilityMixin {
             onTap: () {
               Navigator.pop(context);
             },
-            child: Icon(Icons.arrow_back_ios)),
+            child: const Icon(Icons.arrow_back_ios)),
         title: Text(AppLocalizations.of(context)!.messages,
             style: CustomTextStyles.appBarTitleText(context)),
         centerTitle: true,
@@ -51,7 +51,7 @@ class _MessageListState extends State<MessageList> with UtilityMixin {
             leading: CircleAvatar(
               radius: 24,
               backgroundColor: Colors.grey[700],
-              backgroundImage: AssetImage(Assets.assetsImagesPeople3),
+              backgroundImage: const AssetImage(Assets.assetsImagesPeople3),
             ),
             title: Text('Samuel Garry',
                 style: TextStyle(
@@ -70,11 +70,11 @@ class _MessageListState extends State<MessageList> with UtilityMixin {
               children: [
                 Text(
                   'Yesterday',
-                  style: TextStyle(fontSize: 8.5.sp, color: Color(0XFF999999)),
+                  style: TextStyle(fontSize: 8.5.sp, color: const Color(0XFF999999)),
                 ),
                 const SizedBox(height: 8),
                 Container(
-                  padding: EdgeInsets.all(5).w,
+                  padding: const EdgeInsets.all(5).w,
                   decoration: const BoxDecoration(
                     color: AppColors.primaryColor,
                     shape: BoxShape.circle,
@@ -96,7 +96,7 @@ class _MessageListState extends State<MessageList> with UtilityMixin {
             leading: CircleAvatar(
               radius: 24,
               backgroundColor: Colors.grey[700],
-              backgroundImage: AssetImage(Assets.assetsImagesPeople4),
+              backgroundImage: const AssetImage(Assets.assetsImagesPeople4),
             ),
             title: Text('Margareth Joanne',
                 style: TextStyle(
@@ -115,11 +115,11 @@ class _MessageListState extends State<MessageList> with UtilityMixin {
               children: [
                 Text(
                   '07/18/2022',
-                  style: TextStyle(fontSize: 8.5.sp, color: Color(0XFF999999)),
+                  style: TextStyle(fontSize: 8.5.sp, color: const Color(0XFF999999)),
                 ),
                 const SizedBox(height: 8),
                 Container(
-                  padding: EdgeInsets.all(5).w,
+                  padding: const EdgeInsets.all(5).w,
                   decoration: const BoxDecoration(
                     color: AppColors.primaryColor,
                     shape: BoxShape.circle,

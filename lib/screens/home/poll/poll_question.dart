@@ -314,7 +314,7 @@ class _PollQuestionState extends State<PollQuestion> with UtilityMixin {
       backgroundColor: Theme.of(context).colorScheme.background,
       appBar: AppBar(
         automaticallyImplyLeading: false,
-        leading: PrimaryBackButton(),
+        leading: const PrimaryBackButton(),
         centerTitle: true,
         title: Text(
           AppLocalizations.of(context)!.addnewpollanswer,

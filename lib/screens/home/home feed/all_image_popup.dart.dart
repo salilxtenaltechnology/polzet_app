@@ -13,13 +13,15 @@ class AllImagesPopup extends StatefulWidget {
   final List<HomeFeedPollOption> images;
   final Function(int) onImageTap;
   final int postId;
+  final bool isPolledByCurrentUser;
 
   const AllImagesPopup({
-    Key? key,
+    super.key,
     required this.images,
     required this.onImageTap,
     required this.postId,
-  }) : super(key: key);
+    required this.isPolledByCurrentUser,
+  });
 
   @override
   State<AllImagesPopup> createState() => _AllImagesPopupState();
@@ -32,6 +34,12 @@ class _AllImagesPopupState extends State<AllImagesPopup> {
   bool isSubmitting = false;
 
   void toggleImageSelection(int index) {
+    // Disable selection if user has already polled
+    if (widget.isPolledByCurrentUser) {
+      showToast(message: 'You have already voted on this poll');
+      return;
+    }
+
     setState(() {
       if (selectedImages.containsKey(index)) {
         // Unselect: Remove from map and reorder remaining selections
@@ -59,6 +67,12 @@ class _AllImagesPopupState extends State<AllImagesPopup> {
 
   Future<void> submitPollVotes() async {
     if (selectedImages.isEmpty) return;
+
+    // Additional check before submission
+    if (widget.isPolledByCurrentUser) {
+      showToast(message: 'You have already voted on this poll');
+      return;
+    }
 
     setState(() {
       isSubmitting = true;
@@ -124,13 +138,13 @@ class _AllImagesPopupState extends State<AllImagesPopup> {
         }
       }
     } catch (e) {
-      print('Error submitting poll votes: $e');
+      debugPrint('Error submitting poll votes: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('An error occurred: $e'),
             backgroundColor: Colors.red,
-            duration: Duration(seconds: 3),
+            duration: const Duration(seconds: 3),
           ),
         );
       }
@@ -196,17 +210,43 @@ class _AllImagesPopupState extends State<AllImagesPopup> {
                           ),
                         ),
                       ],
+                      // Show "Already Voted" indicator
+                      if (widget.isPolledByCurrentUser) ...[
+                        SizedBox(width: 10.w),
+                        Container(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: 8.w,
+                            vertical: 4.h,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.grey,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            'Polled',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 11.sp,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                      ],
                     ],
                   ),
                   GestureDetector(
                     onTap: () => Navigator.of(context).pop(),
                     child: Container(
-                      padding: EdgeInsets.all(5),
-                      decoration: BoxDecoration(
+                      padding: const EdgeInsets.all(5),
+                      decoration: const BoxDecoration(
                         color: AppColors.primaryColor,
                         shape: BoxShape.circle,
                       ),
-                      child: Icon(Icons.close, color: Colors.white, size: 17),
+                      child: const Icon(
+                        Icons.close,
+                        color: Colors.white,
+                        size: 17,
+                      ),
                     ),
                   ),
                 ],
@@ -222,33 +262,41 @@ class _AllImagesPopupState extends State<AllImagesPopup> {
                   final image = widget.images[index];
                   final isSelected = selectedImages.containsKey(index);
                   final selectionNumber = selectedImages[index];
-                  return GestureDetector(
-                    onTap: () => toggleImageSelection(index),
-                    onLongPress: () => widget.onImageTap(index),
-                    child: Container(
-                      width: double.infinity,
-                      margin: EdgeInsets.only(bottom: 1.h),
-                      child: Stack(
-                        children: [
-                          Hero(
-                            tag: 'image_${widget.images[index].id}',
-                            child: Container(
-                              margin: EdgeInsets.all(8.w),
-                              decoration: BoxDecoration(
-                                border: isSelected
-                                    ? Border.all(
-                                        color: AppColors.primaryColor,
-                                        width: 2,
-                                      )
-                                    : null,
-                              ),
-                              child: Image.network(
-                                '${ApiConfig.baseUrlImage}${image.image!.url}',
-                                width: double.infinity,
-                                fit: BoxFit.cover,
-                                loadingBuilder:
-                                    (context, child, loadingProgress) {
-                                      if (loadingProgress == null) return child;
+                  final percentage = image.percentage.round();
+
+                  return IgnorePointer(
+                    ignoring: widget.isPolledByCurrentUser,
+                    child: GestureDetector(
+                      onTap: () => toggleImageSelection(index),
+                      onLongPress: () => widget.onImageTap(index),
+                      child: AnimatedOpacity(
+                        duration: const Duration(milliseconds: 200),
+                        opacity: 1,
+                        child: Container(
+                          width: double.infinity,
+                          margin: EdgeInsets.only(bottom: 1.h),
+                          child: Stack(
+                            children: [
+                              Hero(
+                                tag: 'image_${widget.images[index].id}',
+                                child: Container(
+                                  margin: EdgeInsets.all(10.w),
+                                  decoration: BoxDecoration(
+                                    border: Border.all(
+                                      color: widget.isPolledByCurrentUser
+                                          ? Colors.grey.withOpacity(0.4)
+                                          : AppColors.primaryColor,
+                                      width: 1,
+                                    ),
+                                  ),
+                                  child: Image.network(
+                                    '${ApiConfig.baseUrlImage}${image.image!.url}',
+                                    width: double.infinity,
+                                    fit: BoxFit.cover,
+                                    loadingBuilder: (context, child, loadingProgress) {
+                                      if (loadingProgress == null) {
+                                        return child;
+                                      }
                                       return Container(
                                         height: 250.h,
                                         color: Colors.grey[900],
@@ -269,59 +317,167 @@ class _AllImagesPopupState extends State<AllImagesPopup> {
                                         ),
                                       );
                                     },
-                                errorBuilder: (context, error, stackTrace) {
-                                  return Container(
-                                    height: 250.h,
-                                    color: Colors.grey[900],
+                                    errorBuilder: (context, error, stackTrace) {
+                                      return Container(
+                                        height: 250.h,
+                                        color: Colors.grey[900],
+                                        child: const Center(
+                                          child: Icon(
+                                            Icons.broken_image,
+                                            size: 50,
+                                            color: Colors.white54,
+                                          ),
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                ),
+                              ),
+
+                              // Circular Percentage display (only when user has already polled)
+                              if (widget.isPolledByCurrentUser)
+                                Positioned(
+                                  bottom: 15.h,
+                                  left: 17.w,
+                                  child: TweenAnimationBuilder<double>(
+                                    duration: const Duration(milliseconds: 800),
+                                    curve: Curves.easeOut,
+                                    tween: Tween<double>(
+                                      begin: 0,
+                                      end: percentage / 100,
+                                    ),
+                                    builder: (context, value, child) {
+                                      return SizedBox(
+                                        width: 60,
+                                        height: 60,
+                                        child: Stack(
+                                          alignment: Alignment.center,
+                                          children: [
+                                            // Background circle
+                                            SizedBox(
+                                              width: 60,
+                                              height: 60,
+                                              child: CircularProgressIndicator(
+                                                value: 1.0,
+                                                strokeWidth: 5,
+                                                backgroundColor:
+                                                    Colors.transparent,
+                                                valueColor:
+                                                    AlwaysStoppedAnimation<
+                                                      Color
+                                                    >(
+                                                      Colors.white.withOpacity(
+                                                        0.3,
+                                                      ),
+                                                    ),
+                                              ),
+                                            ),
+                                            // Progress circle
+                                            SizedBox(
+                                              width: 60,
+                                              height: 60,
+                                              child: CircularProgressIndicator(
+                                                value: value,
+                                                strokeWidth: 5,
+                                                backgroundColor:
+                                                    Colors.transparent,
+                                                valueColor:
+                                                    const AlwaysStoppedAnimation<
+                                                      Color
+                                                    >(AppColors.primaryColor),
+                                              ),
+                                            ),
+                                            // Percentage text
+                                            Container(
+                                              width: 48,
+                                              height: 48,
+                                              decoration: BoxDecoration(
+                                                color: Colors.white,
+                                                shape: BoxShape.circle,
+                                                boxShadow: [
+                                                  BoxShadow(
+                                                    color: Colors.black
+                                                        .withOpacity(0.2),
+                                                    blurRadius: 8,
+                                                    spreadRadius: 1,
+                                                  ),
+                                                ],
+                                              ),
+                                              child: Center(
+                                                child: TweenAnimationBuilder<int>(
+                                                  duration: const Duration(
+                                                    milliseconds: 800,
+                                                  ),
+                                                  curve: Curves.easeOut,
+                                                  tween: IntTween(
+                                                    begin: 0,
+                                                    end: percentage,
+                                                  ),
+                                                  builder:
+                                                      (
+                                                        context,
+                                                        intValue,
+                                                        child,
+                                                      ) {
+                                                        return Text(
+                                                          '$intValue%',
+                                                          style: TextStyle(
+                                                            color: AppColors
+                                                                .primaryColor,
+                                                            fontSize: 14.sp,
+                                                            fontWeight:
+                                                                FontWeight.bold,
+                                                          ),
+                                                        );
+                                                      },
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                ),
+
+                              // Selection indicator (only when user hasn't polled)
+                              if (isSelected && !widget.isPolledByCurrentUser)
+                                Positioned(
+                                  top: 15.h,
+                                  right: 17.w,
+                                  child: Container(
+                                    width: 35,
+                                    height: 35,
+                                    decoration: BoxDecoration(
+                                      color: AppColors.primaryColor,
+                                      shape: BoxShape.circle,
+                                      border: Border.all(
+                                        color: Colors.white,
+                                        width: 1,
+                                      ),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.black.withOpacity(0.3),
+                                          blurRadius: 5,
+                                          spreadRadius: 1,
+                                        ),
+                                      ],
+                                    ),
                                     child: Center(
-                                      child: Icon(
-                                        Icons.broken_image,
-                                        size: 50,
-                                        color: Colors.white54,
+                                      child: Text(
+                                        '$selectionNumber',
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.bold,
+                                        ),
                                       ),
                                     ),
-                                  );
-                                },
-                              ),
-                            ),
+                                  ),
+                                ),
+                            ],
                           ),
-
-                          // Selection indicator
-                          if (isSelected)
-                            Positioned(
-                              top: 15.h,
-                              right: 17.w,
-                              child: Container(
-                                width: 35,
-                                height: 35,
-                                decoration: BoxDecoration(
-                                  color: AppColors.primaryColor,
-                                  shape: BoxShape.circle,
-                                  border: Border.all(
-                                    color: Colors.white,
-                                    width: 1,
-                                  ),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.black.withOpacity(0.3),
-                                      blurRadius: 8,
-                                      spreadRadius: 1,
-                                    ),
-                                  ],
-                                ),
-                                child: Center(
-                                  child: Text(
-                                    '$selectionNumber',
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                        ],
+                        ),
                       ),
                     ),
                   );
@@ -329,9 +485,11 @@ class _AllImagesPopupState extends State<AllImagesPopup> {
               ),
             ),
 
-            // Poll button (shown when ALL images are selected)
-            if (selectedImages.length == widget.images.length)
+            // Poll button (shown when ALL images are selected AND user hasn't polled)
+            if (selectedImages.length == widget.images.length &&
+                !widget.isPolledByCurrentUser)
               Container(
+                width: 150.w,
                 padding: EdgeInsets.all(15.w),
                 decoration: BoxDecoration(
                   color: Colors.white,
@@ -358,21 +516,21 @@ class _AllImagesPopupState extends State<AllImagesPopup> {
                           .withOpacity(0.5),
                     ),
                     child: isSubmitting
-                        ? SizedBox(
+                        ? const SizedBox(
                             height: 20,
                             width: 20,
                             child: CircularProgressIndicator(
                               color: Colors.white,
-                              strokeWidth: 2,
+                              strokeWidth: 1.1,
                             ),
                           )
                         : Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Icon(Icons.poll, size: 22),
+                              const Icon(Icons.poll, size: 22),
                               SizedBox(width: 10.w),
                               Text(
-                                'Create Poll',
+                                'Poll',
                                 style: TextStyle(
                                   fontSize: 15.sp,
                                   fontWeight: FontWeight.w600,

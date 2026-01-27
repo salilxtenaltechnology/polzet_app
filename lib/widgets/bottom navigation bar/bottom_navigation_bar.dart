@@ -37,7 +37,7 @@ class CustomBottomNavigationBar extends StatelessWidget {
                   : Theme.of(context).colorScheme.onPrimary),
           IconButton(
             onPressed: () {},
-            icon: SizedBox.shrink(),
+            icon: const SizedBox.shrink(),
             color: Theme.of(context).colorScheme.tertiaryContainer,
           ),
           Icon(FeatherIcons.bell,
@@ -54,7 +54,7 @@ class CustomBottomNavigationBar extends StatelessWidget {
         backgroundColor: Theme.of(context).colorScheme.background,
         color: Theme.of(context).colorScheme.tertiaryContainer,
         animationCurve: Curves.easeInOut,
-        animationDuration: Duration(milliseconds: 300),
+        animationDuration: const Duration(milliseconds: 300),
         buttonBackgroundColor: AppColors.primaryColor,
         maxWidth: double.infinity,
         onTap: onTap,

@@ -40,7 +40,7 @@ class _PublicThingsQuestionsListState extends State<PublicThingsQuestionsList> {
       backgroundColor: Theme.of(context).colorScheme.background,
       appBar: AppBar(
         automaticallyImplyLeading: false,
-        leading: PrimaryBackButton(),
+        leading: const PrimaryBackButton(),
         centerTitle: true,
         title: Text(AppLocalizations.of(context)!.pollthings,
             style: CustomTextStyles.appBarTitleText(context)),

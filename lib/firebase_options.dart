@@ -41,48 +41,49 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'AIzaSyDCvOr6v7dz-wQqSzG5zsnU8B6VAuNrJ54',
-    appId: '1:423728107242:web:a24a9aa2bfac0c5d1ed193',
-    messagingSenderId: '423728107242',
-    projectId: 'polzet-a8faa',
-    authDomain: 'polzet-a8faa.firebaseapp.com',
-    storageBucket: 'polzet-a8faa.firebasestorage.app',
-    measurementId: 'G-B8H2BD92MW',
+    apiKey: 'AIzaSyB8b7ycJqc8-vwWphCUBl3-PLd-k7Dvwus',
+    appId: '1:470797111076:web:09dbc5941bf70669f4adb1',
+    messagingSenderId: '470797111076',
+    projectId: 'polzet-notifications',
+    authDomain: 'polzet-notifications.firebaseapp.com',
+    storageBucket: 'polzet-notifications.firebasestorage.app',
+    measurementId: 'G-MXDGFS57XQ',
   );
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyCnyfhH1d1wUWuaosEG5e1SG9CQffHouSA',
-    appId: '1:423728107242:android:4dbc5c76751d2e641ed193',
-    messagingSenderId: '423728107242',
-    projectId: 'polzet-a8faa',
-    storageBucket: 'polzet-a8faa.firebasestorage.app',
+    apiKey: 'AIzaSyB6ISjRSx1wFRu8rJVWEruGhhcUaUpv0H4',
+    appId: '1:470797111076:android:793dbacf8390af66f4adb1',
+    messagingSenderId: '470797111076',
+    projectId: 'polzet-notifications',
+    storageBucket: 'polzet-notifications.firebasestorage.app',
   );
 
   static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'AIzaSyCIymc9zms5Erx3SsNQEdNYRsqZVr_Np6Q',
-    appId: '1:423728107242:ios:0fc2b2a1c9c0cc2a1ed193',
-    messagingSenderId: '423728107242',
-    projectId: 'polzet-a8faa',
-    storageBucket: 'polzet-a8faa.firebasestorage.app',
+    apiKey: 'AIzaSyC-YYmYrZy0sFIBGS0ej8cCCJbh4Ts1kTQ',
+    appId: '1:470797111076:ios:731343ba61472f0bf4adb1',
+    messagingSenderId: '470797111076',
+    projectId: 'polzet-notifications',
+    storageBucket: 'polzet-notifications.firebasestorage.app',
     iosBundleId: 'com.example.polzetApp',
   );
 
   static const FirebaseOptions macos = FirebaseOptions(
-    apiKey: 'AIzaSyCIymc9zms5Erx3SsNQEdNYRsqZVr_Np6Q',
-    appId: '1:423728107242:ios:0fc2b2a1c9c0cc2a1ed193',
-    messagingSenderId: '423728107242',
-    projectId: 'polzet-a8faa',
-    storageBucket: 'polzet-a8faa.firebasestorage.app',
+    apiKey: 'AIzaSyC-YYmYrZy0sFIBGS0ej8cCCJbh4Ts1kTQ',
+    appId: '1:470797111076:ios:731343ba61472f0bf4adb1',
+    messagingSenderId: '470797111076',
+    projectId: 'polzet-notifications',
+    storageBucket: 'polzet-notifications.firebasestorage.app',
     iosBundleId: 'com.example.polzetApp',
   );
 
   static const FirebaseOptions windows = FirebaseOptions(
-    apiKey: 'AIzaSyDCvOr6v7dz-wQqSzG5zsnU8B6VAuNrJ54',
-    appId: '1:423728107242:web:59010fa92dfb101d1ed193',
-    messagingSenderId: '423728107242',
-    projectId: 'polzet-a8faa',
-    authDomain: 'polzet-a8faa.firebaseapp.com',
-    storageBucket: 'polzet-a8faa.firebasestorage.app',
-    measurementId: 'G-1BTN9FYQYK',
+    apiKey: 'AIzaSyB8b7ycJqc8-vwWphCUBl3-PLd-k7Dvwus',
+    appId: '1:470797111076:web:0579649906becf67f4adb1',
+    messagingSenderId: '470797111076',
+    projectId: 'polzet-notifications',
+    authDomain: 'polzet-notifications.firebaseapp.com',
+    storageBucket: 'polzet-notifications.firebasestorage.app',
+    measurementId: 'G-D6YKLHVYX5',
   );
+
 }

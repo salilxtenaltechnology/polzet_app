@@ -1,4 +1,4 @@
-// ignore_for_file: deprecated_member_use, avoid_print
+// ignore_for_file: deprecated_member_use, avoid_print, library_private_types_in_public_api
 
 part of 'signup_imports.dart';
 
@@ -238,7 +238,7 @@ class _SignupScreenState extends State<SignupScreen> with UtilityMixin {
 
         // Show success message
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
+          const SnackBar(
             content: Row(
               children: [
                 Icon(Icons.check_circle, color: Colors.white),
@@ -258,9 +258,9 @@ class _SignupScreenState extends State<SignupScreen> with UtilityMixin {
         );
 
         // Navigate to login screen after a short delay
-        await Future.delayed(Duration(seconds: 1));
+        await Future.delayed(const Duration(seconds: 1));
         if (mounted) {
-          navigationPushReplacement(context, LoginScreen());
+          navigationPushReplacement(context, const LoginScreen());
         }
       } else {
         // Handle non-success status codes
@@ -440,7 +440,7 @@ class _SignupScreenState extends State<SignupScreen> with UtilityMixin {
       builder: (context, child) {
         return Theme(
           data: ThemeData(
-            colorScheme: ColorScheme.light(
+            colorScheme: const ColorScheme.light(
               primary: AppColors.primaryColor,
             ),
             dialogBackgroundColor: AppColors.primaryColor.withOpacity(0.1),
@@ -466,7 +466,7 @@ class _SignupScreenState extends State<SignupScreen> with UtilityMixin {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: BoxDecoration(
+      decoration: const BoxDecoration(
         image: DecorationImage(
           image: AssetImage(Assets.assetsImagesBg),
           fit: BoxFit.cover,
@@ -659,7 +659,7 @@ class _SignupScreenState extends State<SignupScreen> with UtilityMixin {
                         ),
                         child: Row(
                           children: [
-                            Icon(Icons.error_outline,
+                            const Icon(Icons.error_outline,
                                 color: Colors.red, size: 20),
                             SizedBox(width: 8.w),
                             Expanded(
@@ -697,7 +697,7 @@ class _SignupScreenState extends State<SignupScreen> with UtilityMixin {
                             Navigator.pushReplacement(
                               context,
                               MaterialPageRoute(
-                                  builder: (context) => LoginScreen()),
+                                  builder: (context) => const LoginScreen()),
                             );
                           },
                           child: Text(

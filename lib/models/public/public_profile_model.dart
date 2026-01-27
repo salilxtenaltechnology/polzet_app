@@ -16,7 +16,9 @@ class PublicProfileModel {
   final int textPostCount;
   final String profilePictureUrl;
   final String coverPictureUrl;
-  final bool isFriend; 
+  final bool isPrivate;
+  final bool isFriend;
+  final String? followStatus; // New field for follow status
 
   PublicProfileModel({
     required this.id,
@@ -36,7 +38,9 @@ class PublicProfileModel {
     required this.textPostCount,
     required this.profilePictureUrl,
     required this.coverPictureUrl,
-    required this.isFriend, 
+    required this.isPrivate,
+    required this.isFriend,
+    this.followStatus, // Optional field
   });
 
   factory PublicProfileModel.fromJson(Map<String, dynamic> json) {
@@ -59,7 +63,56 @@ class PublicProfileModel {
       textPostCount: data['text_post_count'] ?? 0,
       profilePictureUrl: data['profile_picture_url'] ?? '',
       coverPictureUrl: data['cover_thumbnail_url'] ?? '',
-      isFriend: data['is_friend'] ?? false, 
+      isPrivate: data['is_private'] ?? false,
+      isFriend: data['is_friend'] ?? false,
+      followStatus: data['follow_status'], // Parse follow_status from API
+    );
+  }
+
+  // Optional: Create a copy method for easier state updates
+  PublicProfileModel copyWith({
+    int? id,
+    String? username,
+    String? email,
+    String? firstName,
+    String? lastName,
+    String? dob,
+    String? gender,
+    String? countryCode,
+    String? mobileNumber,
+    String? bio,
+    String? nextUsernameChange,
+    int? followersCount,
+    int? followingCount,
+    int? imagePostCount,
+    int? textPostCount,
+    String? profilePictureUrl,
+    String? coverPictureUrl,
+    bool? isPrivate,
+    bool? isFriend,
+    String? followStatus,
+  }) {
+    return PublicProfileModel(
+      id: id ?? this.id,
+      username: username ?? this.username,
+      email: email ?? this.email,
+      firstName: firstName ?? this.firstName,
+      lastName: lastName ?? this.lastName,
+      dob: dob ?? this.dob,
+      gender: gender ?? this.gender,
+      countryCode: countryCode ?? this.countryCode,
+      mobileNumber: mobileNumber ?? this.mobileNumber,
+      bio: bio ?? this.bio,
+      nextUsernameChange: nextUsernameChange ?? this.nextUsernameChange,
+      followersCount: followersCount ?? this.followersCount,
+      followingCount: followingCount ?? this.followingCount,
+      imagePostCount: imagePostCount ?? this.imagePostCount,
+      textPostCount: textPostCount ?? this.textPostCount,
+      profilePictureUrl: profilePictureUrl ?? this.profilePictureUrl,
+      coverPictureUrl: coverPictureUrl ?? this.coverPictureUrl,
+      isPrivate: isPrivate ?? this.isPrivate,
+      isFriend: isFriend ?? this.isFriend,
+      followStatus: followStatus ?? this.followStatus,
     );
   }
 }

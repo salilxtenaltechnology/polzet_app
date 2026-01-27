@@ -32,7 +32,7 @@ class CommentsService {
       }
     } catch (e) {
       showToast(message: 'Unable to load comments');
-      print('Comments fetch error: $e');
+      debugPrint('Comments fetch error: $e');
     }
 
     return [];
@@ -58,7 +58,7 @@ class CommentsService {
       }
     } catch (e) {
       showToast(message: 'Unable to post comment');
-      print('Comment post error: $e');
+      debugPrint('Comment post error: $e');
     }
 
     return null;
@@ -84,7 +84,7 @@ class CommentsService {
       }
     } catch (e) {
       showToast(message: 'Unable to edit comment');
-      print('Comment edit error: $e');
+      debugPrint('Comment edit error: $e');
     }
 
     return null;
@@ -101,7 +101,7 @@ class CommentsService {
       }
     } catch (e) {
       showToast(message: 'Unable to delete comment');
-      print('Comment delete error: $e');
+      debugPrint('Comment delete error: $e');
     }
 
     return false;

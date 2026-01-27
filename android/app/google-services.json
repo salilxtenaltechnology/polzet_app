@@ -1,13 +1,13 @@
 {
   "project_info": {
-    "project_number": "423728107242",
-    "project_id": "polzet-a8faa",
-    "storage_bucket": "polzet-a8faa.firebasestorage.app"
+    "project_number": "470797111076",
+    "project_id": "polzet-notifications",
+    "storage_bucket": "polzet-notifications.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:423728107242:android:4dbc5c76751d2e641ed193",
+        "mobilesdk_app_id": "1:470797111076:android:793dbacf8390af66f4adb1",
         "android_client_info": {
           "package_name": "com.polzet_app"
         }
@@ -15,7 +15,7 @@
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyCnyfhH1d1wUWuaosEG5e1SG9CQffHouSA"
+          "current_key": "AIzaSyB6ISjRSx1wFRu8rJVWEruGhhcUaUpv0H4"
         }
       ],
       "services": {

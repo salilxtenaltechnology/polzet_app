@@ -29,6 +29,7 @@ class ApiConstants {
   static String publicProfile = "$baseUrl/users";
   static String homeFeed = "$baseUrl/home_feed";
   static String pollOnThings = "$baseUrl/posts";
+  static String notifications = "$baseUrl/notifications";
   static String likePost = "$baseUrl/posts";
   static String logout = "$baseUrl/logout";
 }

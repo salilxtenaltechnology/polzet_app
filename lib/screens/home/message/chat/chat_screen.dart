@@ -45,11 +45,11 @@ class ChatScreenState extends State<ChatScreen> with UtilityMixin {
     _messageController.clear();
     
     // Scroll to bottom after sending message
-    Future.delayed(Duration(milliseconds: 100), () {
+    Future.delayed(const Duration(milliseconds: 100), () {
       if (_scrollController.hasClients) {
         _scrollController.animateTo(
           _scrollController.position.maxScrollExtent,
-          duration: Duration(milliseconds: 300),
+          duration: const Duration(milliseconds: 300),
           curve: Curves.easeOut,
         );
       }
@@ -60,7 +60,7 @@ class ChatScreenState extends State<ChatScreen> with UtilityMixin {
   }
 
   void _simulateReceivedMessage() {
-    Future.delayed(Duration(seconds: 2), () {
+    Future.delayed(const Duration(seconds: 2), () {
       if (mounted) {
         setState(() {
           _messages.add(ChatMessage(
@@ -71,11 +71,11 @@ class ChatScreenState extends State<ChatScreen> with UtilityMixin {
         });
 
         // Scroll to bottom
-        Future.delayed(Duration(milliseconds: 100), () {
+        Future.delayed(const Duration(milliseconds: 100), () {
           if (_scrollController.hasClients) {
             _scrollController.animateTo(
               _scrollController.position.maxScrollExtent,
-              duration: Duration(milliseconds: 300),
+              duration: const Duration(milliseconds: 300),
               curve: Curves.easeOut,
             );
           }
@@ -102,8 +102,8 @@ class ChatScreenState extends State<ChatScreen> with UtilityMixin {
           borderRadius: BorderRadius.only(
             topLeft: Radius.circular(12.r),
             topRight: Radius.circular(12.r),
-            bottomLeft: message.isSentByMe ? Radius.circular(12.r) : Radius.circular(0),
-            bottomRight: message.isSentByMe ? Radius.circular(0) : Radius.circular(12.r),
+            bottomLeft: message.isSentByMe ? Radius.circular(12.r) : const Radius.circular(0),
+            bottomRight: message.isSentByMe ? const Radius.circular(0) : Radius.circular(12.r),
           ),
         ),
         child: Column(
@@ -125,7 +125,7 @@ class ChatScreenState extends State<ChatScreen> with UtilityMixin {
               style: TextStyle(
                 color: message.isSentByMe
                     ? Colors.white.withOpacity(0.7)
-                    : Color(0XFF8593A8),
+                    : const Color(0XFF8593A8),
                 fontSize: 10.sp,
                 fontWeight: FontWeight.w300,
               ),
@@ -150,12 +150,12 @@ class ChatScreenState extends State<ChatScreen> with UtilityMixin {
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               SizedBox(width: 12.w),
-              PrimaryBackButton(),
+              const PrimaryBackButton(),
               CircleAvatar(
                 radius: 20.r,
-                backgroundColor: Color(0XFFEEEEEE),
-                foregroundColor: Color(0XFFEEEEEE),
-                backgroundImage: AssetImage(Assets.assetsImagesPeople3),
+                backgroundColor: const Color(0XFFEEEEEE),
+                foregroundColor: const Color(0XFFEEEEEE),
+                backgroundImage: const AssetImage(Assets.assetsImagesPeople3),
               ),
               SizedBox(width: 7.w),
               GestureDetector(
@@ -199,7 +199,7 @@ class ChatScreenState extends State<ChatScreen> with UtilityMixin {
                       child: Text(
                         'No messages yet. Start the conversation!',
                         style: TextStyle(
-                          color: Color(0XFF8593A8),
+                          color: const Color(0XFF8593A8),
                           fontSize: 13.sp,
                         ),
                       ),
@@ -218,7 +218,7 @@ class ChatScreenState extends State<ChatScreen> with UtilityMixin {
             Container(
               height: 37.h,
               width: double.infinity,
-              margin: EdgeInsets.all(12).w,
+              margin: const EdgeInsets.all(12).w,
               padding: EdgeInsets.symmetric(horizontal: 10.w),
               decoration: BoxDecoration(
                 color: Theme.of(context).colorScheme.tertiaryContainer,
@@ -229,7 +229,7 @@ class ChatScreenState extends State<ChatScreen> with UtilityMixin {
                   Expanded(
                     child: TextField(
                       controller: _messageController,
-                      decoration: InputDecoration(
+                      decoration: const InputDecoration(
                         border: InputBorder.none,
                         hintText: 'Type here...',
                         hintStyle: TextStyle(
@@ -246,7 +246,7 @@ class ChatScreenState extends State<ChatScreen> with UtilityMixin {
                     child: Icon(
                       FeatherIcons.image,
                       size: 20.spMax,
-                      color: Color(0XFF8593A8),
+                      color: const Color(0XFF8593A8),
                     ),
                   ),
                   SizedBox(width: 7.w),
@@ -257,7 +257,7 @@ class ChatScreenState extends State<ChatScreen> with UtilityMixin {
                     child: Icon(
                       FeatherIcons.smile,
                       size: 20.spMax,
-                      color: Color(0XFF8593A8),
+                      color: const Color(0XFF8593A8),
                     ),
                   ),
                   SizedBox(width: 7.w),

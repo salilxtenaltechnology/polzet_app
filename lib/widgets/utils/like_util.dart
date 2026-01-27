@@ -26,7 +26,7 @@ class LikeUtils {
     List<dynamic> likeUsers,
   ) {
     if (likeUsers.isEmpty) {
-      return TextSpan(text: '');
+      return const TextSpan(text: '');
     }
 
     final baseStyle = TextStyle(
@@ -45,7 +45,7 @@ class LikeUtils {
       return TextSpan(
         style: baseStyle,
         children: [
-          TextSpan(text: 'Liked by '),
+          const TextSpan(text: 'Liked by '),
           TextSpan(text: likeUsers[0].username, style: boldStyle),
         ],
       );
@@ -53,9 +53,9 @@ class LikeUtils {
       return TextSpan(
         style: baseStyle,
         children: [
-          TextSpan(text: 'Liked by '),
+          const TextSpan(text: 'Liked by '),
           TextSpan(text: likeUsers[0].username, style: boldStyle),
-          TextSpan(text: ' and '),
+          const TextSpan(text: ' and '),
           TextSpan(text: likeUsers[1].username, style: boldStyle),
         ],
       );
@@ -64,9 +64,9 @@ class LikeUtils {
       return TextSpan(
         style: baseStyle,
         children: [
-          TextSpan(text: 'Liked by '),
+          const TextSpan(text: 'Liked by '),
           TextSpan(text: likeUsers[0].username, style: boldStyle),
-          TextSpan(text: ' and '),
+          const TextSpan(text: ' and '),
           TextSpan(
             text: '$othersCount ${othersCount == 1 ? 'other' : 'others'}',
             style: boldStyle,

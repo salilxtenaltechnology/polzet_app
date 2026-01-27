@@ -30,10 +30,10 @@ class _InsightsScreenState extends State<InsightsScreen> {
             CustomCard(
                 widget: Row(
               children: [
-                Icon(Icons.bar_chart, color: Colors.pink),
+                const Icon(Icons.bar_chart, color: Colors.pink),
                 SizedBox(width: 7.w),
                 Text(AppLocalizations.of(context)!.totalviews),
-                Spacer(),
+                const Spacer(),
                 Text('12,430',
                     style: TextStyle(
                         fontSize: 11.sp, fontWeight: FontWeight.bold)),
@@ -43,10 +43,10 @@ class _InsightsScreenState extends State<InsightsScreen> {
             CustomCard(
                 widget: Row(
               children: [
-                Icon(Icons.people, color: Colors.orange),
+                const Icon(Icons.people, color: Colors.orange),
                 SizedBox(width: 7.w),
                 Text(AppLocalizations.of(context)!.vibe),
-                Spacer(),
+                const Spacer(),
                 Text('3,210',
                     style: TextStyle(
                         fontSize: 11.sp, fontWeight: FontWeight.bold)),
@@ -56,10 +56,10 @@ class _InsightsScreenState extends State<InsightsScreen> {
             CustomCard(
                 widget: Row(
               children: [
-                Icon(Icons.trending_up, color: Colors.green),
+                const Icon(Icons.trending_up, color: Colors.green),
                 SizedBox(width: 7.w),
                 Text(AppLocalizations.of(context)!.engagementrate),
-                Spacer(),
+                const Spacer(),
                 Text('8.2%',
                     style: TextStyle(
                         fontSize: 11.sp, fontWeight: FontWeight.bold)),
@@ -126,7 +126,7 @@ class _InsightsScreenState extends State<InsightsScreen> {
                       child: Center(
                         child: Text(
                           AppLocalizations.of(context)!.switchtobusinessaccount,
-                          style: TextStyle(
+                          style: const TextStyle(
                             color: Colors.white,
                             fontWeight: FontWeight.bold,
                             letterSpacing: 1,

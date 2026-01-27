@@ -27,7 +27,7 @@ class PublicQuestionsCard extends StatelessWidget {
             // Each poll in this post
             ...post.publicPollQuestion
                 .map((p) => PublicQuestionsBlock(pollQuestion: p, postIndex: postIndex))
-                .toList(),
+                ,
           ],
         ),
       ),

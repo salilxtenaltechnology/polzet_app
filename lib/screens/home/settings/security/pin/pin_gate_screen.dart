@@ -1,5 +1,5 @@
 // lib/screens/home/settings/security/pin/pin_gate_screen.dart
-// ignore_for_file: deprecated_member_use
+// ignore_for_file: deprecated_member_use, library_private_types_in_public_api
 
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -8,12 +8,11 @@ import '../../../../splash/splash_screen.dart';
 import 'pin_status.dart';
 
 class PinGateScreen extends StatefulWidget {
-  const PinGateScreen({Key? key}) : super(key: key);
+  const PinGateScreen({super.key});
 
   @override
   _PinGateScreenState createState() => _PinGateScreenState();
 }
-
 class _PinGateScreenState extends State<PinGateScreen> {
   String _enteredPin = '';
   bool _isLoading = false;
@@ -79,10 +78,9 @@ class _PinGateScreenState extends State<PinGateScreen> {
                       'Enter your 4-digit PIN to continue',
                       style: TextStyle(
                         fontSize: 13.sp,
-                        color: Theme.of(context)
-                            .colorScheme
-                            .onBackground
-                            .withOpacity(0.6),
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.onBackground.withOpacity(0.6),
                       ),
                       textAlign: TextAlign.center,
                     ),
@@ -99,10 +97,9 @@ class _PinGateScreenState extends State<PinGateScreen> {
                             shape: BoxShape.circle,
                             color: index < _enteredPin.length
                                 ? Theme.of(context).colorScheme.primary
-                                : Theme.of(context)
-                                    .colorScheme
-                                    .primary
-                                    .withOpacity(0.2),
+                                : Theme.of(
+                                    context,
+                                  ).colorScheme.primary.withOpacity(0.2),
                           ),
                         );
                       }),
@@ -112,17 +109,16 @@ class _PinGateScreenState extends State<PinGateScreen> {
                     if (_errorMessage.isNotEmpty) ...[
                       Container(
                         padding: EdgeInsets.symmetric(
-                            horizontal: 16.w, vertical: 8.h),
+                          horizontal: 16.w,
+                          vertical: 8.h,
+                        ),
                         decoration: BoxDecoration(
                           color: Colors.red.withOpacity(0.1),
                           borderRadius: BorderRadius.circular(8.r),
                         ),
                         child: Text(
                           _errorMessage,
-                          style: TextStyle(
-                            color: Colors.red,
-                            fontSize: 12.sp,
-                          ),
+                          style: TextStyle(color: Colors.red, fontSize: 12.sp),
                           textAlign: TextAlign.center,
                         ),
                       ),
@@ -132,10 +128,7 @@ class _PinGateScreenState extends State<PinGateScreen> {
                     if (!_isLocked && _remainingAttempts < 3) ...[
                       Text(
                         '${AppLocalizations.of(context)!.remainingattempts}$_remainingAttempts',
-                        style: TextStyle(
-                          fontSize: 12.sp,
-                          color: Colors.orange,
-                        ),
+                        style: TextStyle(fontSize: 12.sp, color: Colors.orange),
                       ),
                       SizedBox(height: 20.h),
                     ],
@@ -296,9 +289,7 @@ class _PinGateScreenState extends State<PinGateScreen> {
       if (authResult.success) {
         // PIN verified successfully - navigate to main app
         Navigator.of(context).pushReplacement(
-          MaterialPageRoute(
-            builder: (context) => SplashScreen(isLogged: true),
-          ),
+          MaterialPageRoute(builder: (context) => SplashScreen(isLogged: true)),
         );
       } else {
         // PIN verification failed

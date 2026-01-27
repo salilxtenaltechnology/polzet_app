@@ -1,4 +1,4 @@
-// ignore_for_file: deprecated_member_use, unused_local_variable, must_be_immutable, unused_element, avoid_function_literals_in_foreach_calls, dead_code
+// ignore_for_file: deprecated_member_use, unused_local_variable, must_be_immutable, unused_element, avoid_function_literals_in_foreach_calls, dead_code, non_constant_identifier_names
 
 import 'dart:math';
 import 'package:feather_icons/feather_icons.dart';
@@ -11,12 +11,15 @@ import 'package:provider/provider.dart';
 import '../../../../api/api_config.dart';
 import '../../../../core/constants/app_images.dart';
 import '../../../api/services/like/like_service.dart';
+import '../../../api/services/share/share_service.dart';
+import '../../../core/constants/app_colors.dart';
 import '../../../mixin/utility_mixins.dart';
 import '../../../models/home feed/home_feed_items_model.dart';
 import '../../../provider/user_provider.dart';
 import '../../../widgets/base64/image_convert.dart';
 import '../../../widgets/utils/bottomsheet_util.dart';
 import '../../../widgets/utils/like_util.dart';
+import '../dashboard/dashboard_import.dart';
 import '../home_imports.dart';
 import '../profile/public/public_profile.dart';
 import 'all_image_popup.dart.dart';
@@ -102,7 +105,7 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
       pollTotalVotes[poll.id.toString()] = poll.totalVotes;
 
       // NEW: Fetch poll results on initialization if user has already polled
-      if (poll.isPolledByCurrentUser ?? false) {}
+      if (poll.isPolledByCurrentUser) {}
     }
   }
 
@@ -226,6 +229,7 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
               images: poll.options,
               postId: widget.post.id,
               onImageTap: (index) {},
+              isPolledByCurrentUser: poll.isPolledByCurrentUser,
             ),
           ),
         )
@@ -241,27 +245,22 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
   Future<void> _submitPollVotes(HomeFeedPoll poll) async {
     String pollKey = poll.id.toString();
 
-    final previousVotedOptions = Map<String, Set<int>>.from(votedOptions);
-    final previousTotalVotes = pollTotalVotes[pollKey] ?? poll.totalVotes;
     final previousSelectedOptions = List<int>.from(
       selectedOptions[pollKey] ?? [],
     );
 
+    // Store previous poll state for rollback
+    final previousIsPolled = poll.isPolledByCurrentUser;
+    final previousTotalVotes = poll.totalVotes;
+    final previousPercentages = poll.options
+        .map((opt) => opt.percentage)
+        .toList();
+
+    // Immediately update UI - disable selection and clear selections
     setState(() {
-      pollVotingStates[pollKey] = true;
-
-      if (!votedOptions.containsKey(pollKey)) {
-        votedOptions[pollKey] = {};
-      }
-      votedOptions[pollKey]!.addAll(selectedOptions[pollKey] ?? []);
-
-      pollTotalVotes[pollKey] =
-          (pollTotalVotes[pollKey] ?? poll.totalVotes) + 1;
-
+      poll.isPolledByCurrentUser = true;
       selectedOptions[pollKey] = [];
     });
-
-    showToast(message: 'Vote submitted!');
 
     try {
       List<Map<String, int>> votes = [];
@@ -270,7 +269,6 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
       for (int i = 0; i < selectedIndexes.length; i++) {
         int optionIndex = selectedIndexes[i];
         HomeFeedPollOption option = poll.options[optionIndex];
-
         votes.add({'option_id': option.id, 'rank': i + 1});
       }
 
@@ -279,26 +277,102 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
         votes: votes,
       );
 
-      if (!result['success']) {
+      if (result['success']) {
+        // INSTANT UPDATE: Apply API response data immediately
         setState(() {
-          pollVotingStates[pollKey] = false;
-          votedOptions = previousVotedOptions;
-          pollTotalVotes[pollKey] = previousTotalVotes;
+          if (result['data'] != null) {
+            // Update total votes
+            if (result['data']['total_votes'] != null) {
+              final newTotalVotes = result['data']['total_votes'];
+              pollTotalVotes[pollKey] = newTotalVotes;
+              poll.totalVotes = newTotalVotes;
+            }
+
+            // Update percentages for each option
+            if (result['data']['options'] != null) {
+              List<dynamic> optionsData = result['data']['options'];
+
+              for (var optionData in optionsData) {
+                int optionId = optionData['option_id'];
+                double percentage = optionData['percentage']?.toDouble() ?? 0.0;
+                int voteCount = optionData['votes'] ?? 0;
+
+                for (var option in poll.options) {
+                  if (option.id == optionId) {
+                    option.percentage = percentage;
+
+                    break;
+                  }
+                }
+              }
+            }
+          }
+        });
+
+        showToast(message: 'Vote submitted successfully!');
+
+        // Notify Dashboard stream of the change for instant update
+        _notifyDashboardOfUpdate();
+
+        // Background refresh for complete data sync
+        Future.delayed(const Duration(milliseconds: 500), () {
+          _refreshHomeFeedSilently();
+        });
+      } else {
+        // Revert on failure
+        setState(() {
+          poll.isPolledByCurrentUser = previousIsPolled;
+          poll.totalVotes = previousTotalVotes;
+
+          for (int i = 0; i < poll.options.length; i++) {
+            if (i < previousPercentages.length) {
+              poll.options[i].percentage = previousPercentages[i];
+            }
+          }
+
           selectedOptions[pollKey] = previousSelectedOptions;
         });
-        showToast(message: 'Failed to submit votes. Please try again.');
-      } else {}
+
+        showToast(
+          message:
+              result['message'] ?? 'Failed to submit votes. Please try again.',
+        );
+      }
     } catch (e) {
-      print('Error submitting poll votes: $e');
+      debugPrint('Error submitting poll votes: $e');
 
       setState(() {
-        pollVotingStates[pollKey] = false;
-        votedOptions = previousVotedOptions;
-        pollTotalVotes[pollKey] = previousTotalVotes;
+        poll.isPolledByCurrentUser = previousIsPolled;
+        poll.totalVotes = previousTotalVotes;
+
+        for (int i = 0; i < poll.options.length; i++) {
+          if (i < previousPercentages.length) {
+            poll.options[i].percentage = previousPercentages[i];
+          }
+        }
+
         selectedOptions[pollKey] = previousSelectedOptions;
       });
 
       showToast(message: 'An error occurred. Please try again.');
+    }
+  }
+
+  void _notifyDashboardOfUpdate() {
+    try {
+      final dashboardState = context.findAncestorStateOfType<DashboardState>();
+      dashboardState?.notifyPostsChanged();
+    } catch (e) {
+      debugPrint('Could not notify dashboard: $e');
+    }
+  }
+
+  void _refreshHomeFeedSilently() {
+    try {
+      final dashboardState = context.findAncestorStateOfType<DashboardState>();
+      dashboardState?.fetchHomeFeed(showLoader: false);
+    } catch (e) {
+      debugPrint('Could not refresh home feed: $e');
     }
   }
 
@@ -307,7 +381,7 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
     final bool hasPolls = widget.post.polls.isNotEmpty;
 
     if (!hasPolls) {
-      return SizedBox.shrink();
+      return const SizedBox.shrink();
     }
 
     return Column(
@@ -318,9 +392,9 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(8.r),
-            boxShadow: [
+            boxShadow: const [
               BoxShadow(
-                color: const Color.fromARGB(30, 0, 0, 0),
+                color: Color.fromARGB(30, 0, 0, 0),
                 blurRadius: 8,
                 spreadRadius: 2,
               ),
@@ -418,7 +492,7 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
                       child: Row(
                         children: [
                           AnimatedSwitcher(
-                            duration: Duration(milliseconds: 200),
+                            duration: const Duration(milliseconds: 200),
                             transitionBuilder: (child, animation) {
                               return ScaleTransition(
                                 scale: animation,
@@ -428,16 +502,16 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
                             child: isLike
                                 ? Image.asset(
                                     Assets.assetsImagesIcHeartFilled,
-                                    key: ValueKey('filled'),
+                                    key: const ValueKey('filled'),
                                     height: 23.h,
                                     width: 23.w,
                                   )
                                 : Image.asset(
                                     Assets.assetsImagesIcHeart,
-                                    key: ValueKey('outline'),
+                                    key: const ValueKey('outline'),
                                     height: 23.h,
                                     width: 23.w,
-                                    color: Color(0xFFC6C5C5),
+                                    color: const Color(0xFFC6C5C5),
                                   ),
                           ),
                           SizedBox(width: 3.w),
@@ -462,7 +536,7 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
                           Icon(
                             FeatherIcons.messageSquare,
                             size: 21.sp,
-                            color: Color(0xFFC6C5C5),
+                            color: const Color(0xFFC6C5C5),
                           ),
                           SizedBox(width: 3.w),
                           Text(
@@ -476,10 +550,20 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
                         ],
                       ),
                     ),
+                    SizedBox(width: 10.w),
+                    GestureDetector(
+                      onTap: () =>
+                          ShareService.sharePost(widget.post, context: context),
+                      child: Icon(
+                        FeatherIcons.send,
+                        size: 20.sp,
+                        color: const Color(0xFFC6C5C5),
+                      ),
+                    ),
                   ],
                 ),
                 viewLikes.isEmpty
-                    ? SizedBox.shrink()
+                    ? const SizedBox.shrink()
                     : GestureDetector(
                         onTap: _showLikedUsersBottomSheet,
                         child: Row(
@@ -549,15 +633,7 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
                   width: double.infinity,
                   child: _buildImagesStack(images, poll),
                 ),
-                SizedBox(height: 4.h),
-                Text(
-                  '$displayVotes Votes',
-                  style: TextStyle(
-                    fontSize: 10.7.sp,
-                    fontWeight: FontWeight.w500,
-                    color: Colors.grey[600],
-                  ),
-                ),
+                SizedBox(height: 5.h),
               ],
             ),
           );
@@ -699,14 +775,14 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
         .toList();
 
     if (validOptions.isEmpty) {
-      return SizedBox.shrink();
+      return const SizedBox.shrink();
     }
 
     String pollKey = poll.id.toString();
     bool areAllOptionsSelected = _areAllPollOptionsSelected(poll);
     bool isVoting = pollVotingStates[pollKey] ?? false;
     int displayVotes = pollTotalVotes[pollKey] ?? poll.totalVotes;
-    bool hasUserPolled = poll.isPolledByCurrentUser ?? false;
+    bool hasUserPolled = poll.isPolledByCurrentUser;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -724,7 +800,7 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
 
         ...poll.options.asMap().entries.map((entry) {
           if (entry.value.text == null || entry.value.text!.isEmpty) {
-            return SizedBox.shrink();
+            return const SizedBox.shrink();
           }
           return _buildPollOption(
             entry.value,
@@ -735,22 +811,8 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
             showPercentage: hasUserPolled,
           );
         }),
-        SizedBox(height: 2.h),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              '$displayVotes Votes',
-              style: TextStyle(
-                fontSize: 10.7.sp,
-                fontWeight: FontWeight.w500,
-                color: Colors.grey[600],
-              ),
-            ),
-          ],
-        ),
         AnimatedSwitcher(
-          duration: Duration(milliseconds: 300),
+          duration: const Duration(milliseconds: 300),
           transitionBuilder: (child, animation) {
             return ScaleTransition(
               scale: animation,
@@ -763,7 +825,7 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
                   child: Center(
                     key: ValueKey("analytics_${poll.id}"),
                     child: AnimatedOpacity(
-                      duration: Duration(milliseconds: 300),
+                      duration: const Duration(milliseconds: 300),
                       opacity: 1.0,
                       child: Container(
                         margin: EdgeInsets.only(top: 10.h),
@@ -772,7 +834,7 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
                         decoration: BoxDecoration(
                           color: Theme.of(context).colorScheme.primary,
                           shape: BoxShape.circle,
-                          gradient: LinearGradient(
+                          gradient: const LinearGradient(
                             begin: Alignment.topLeft,
                             end: Alignment.bottomRight,
                             colors: [Color(0xFFCF4B73), Color(0xFFC76294)],
@@ -789,7 +851,7 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
                         child: isVoting
                             ? Padding(
                                 padding: EdgeInsets.all(12.w),
-                                child: CircularProgressIndicator(
+                                child: const CircularProgressIndicator(
                                   strokeWidth: 2,
                                   valueColor: AlwaysStoppedAnimation<Color>(
                                     Colors.white,
@@ -805,7 +867,7 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
                     ),
                   ),
                 )
-              : SizedBox.shrink(),
+              : const SizedBox.shrink(),
         ),
       ],
     );
@@ -848,14 +910,12 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
     bool showPercentage = false,
   }) {
     String pollKey = poll.id.toString();
-
-    // Get dynamic percentage from API results
-    int percentage = 25;
+    int percentage = option.percentage.round();
 
     List<Color> getGradientColors(int index) {
       final colors = [
-        [Color(0xFFFC3E7E), Color(0xFFEEA0F0)],
-        [Color(0xFF4FC3F7), Color(0xFFB6E2F8)],
+        [const Color(0xFFFC3E7E), const Color(0xFFEEA0F0)],
+        [const Color(0xFF4FC3F7), const Color(0xFFB6E2F8)],
         [Colors.red, const Color(0xFFEFB0C3)],
         [Colors.green, Colors.teal],
       ];
@@ -869,8 +929,7 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
         selectedOptions[pollKey]!.contains(optionIndex);
 
     int? selectionNumber = _getSelectionNumber(pollKey, optionIndex);
-
-    bool hasUserPolled = poll.isPolledByCurrentUser ?? false;
+    bool hasUserPolled = poll.isPolledByCurrentUser;
 
     return GestureDetector(
       onTap: hasUserPolled
@@ -888,115 +947,101 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
                 }
               });
             },
-      child: Opacity(
-        opacity: hasUserPolled ? 0.6 : 1.0,
-        child: Container(
-          margin: EdgeInsets.only(bottom: 8.h),
-          padding: EdgeInsets.all(5.w),
-          decoration: BoxDecoration(
-            border: hasUserPolled
-                ? Border.all(color: Colors.grey.withOpacity(0.4), width: 1.1)
-                : isSelected
-                ? Border.all(
-                    color: Theme.of(context).primaryColor.withOpacity(0.8),
-                    width: 1.1,
-                  )
-                : Border.all(color: Colors.transparent, width: 1.5),
-            borderRadius: BorderRadius.circular(8.r),
-            color: hasUserPolled
-                ? Colors.grey.withOpacity(0.1)
-                : isSelected
-                ? const Color.fromARGB(24, 0, 0, 0)
-                : Colors.transparent,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 250),
+        curve: Curves.easeInOut,
+        margin: EdgeInsets.only(bottom: 10.h),
+        height: 32.h,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(10.r),
+          color: Colors.white,
+          border: Border.all(
+            color: isSelected && !hasUserPolled
+                ? AppColors.primaryColor.withOpacity(0.5)
+                : Colors.grey.withOpacity(0.3),
+            width: isSelected && !hasUserPolled ? 1.2 : 1,
           ),
-          child: Stack(
-            alignment: Alignment.center,
-            children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          option.text ?? '',
-                          style: TextStyle(
-                            color: hasUserPolled
-                                ? Colors.grey[600]
-                                : Theme.of(context).colorScheme.onBackground,
-                            fontSize: 12.sp,
-                            fontWeight: FontWeight.w500,
-                          ),
+        ),
+        child: Stack(
+          children: [
+            // Background fill for percentage (only when voted)
+            if (showPercentage && percentage > 0)
+              Positioned.fill(
+                child: TweenAnimationBuilder<double>(
+                  duration: const Duration(milliseconds: 800),
+                  curve: Curves.easeOutCubic,
+                  tween: Tween<double>(begin: 0, end: percentage / 100),
+                  builder: (context, value, child) {
+                    return FractionallySizedBox(
+                      alignment: Alignment.centerLeft,
+                      widthFactor: value,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF0F0F0),
+                          borderRadius: BorderRadius.circular(10.r),
                         ),
                       ),
-                      // Show percentage from API
-                      if (showPercentage)
-                        Text(
-                          '${percentage.toString()}%',
+                    );
+                  },
+                ),
+              ),
+
+            // Content row
+            Padding(
+              padding: EdgeInsets.fromLTRB(8.w, 5.h, 8.w, 0),
+              child: Row(
+                children: [
+                  // Option text
+                  Expanded(
+                    child: Text(
+                      option.text ?? '',
+                      style: TextStyle(
+                        color: hasUserPolled
+                            ? Colors.grey[700]
+                            : Theme.of(context).colorScheme.onBackground,
+                        fontSize: 15.sp,
+                        fontWeight: isSelected && !hasUserPolled
+                            ? FontWeight.w500
+                            : FontWeight.w500,
+                        letterSpacing: 0.2,
+                      ),
+                    ),
+                  ),
+
+                  SizedBox(width: 12.w),
+
+                  // Right side indicator
+                  if (showPercentage)
+                    // Show percentage when voted
+                    TweenAnimationBuilder<int>(
+                      duration: const Duration(milliseconds: 600),
+                      curve: Curves.easeOut,
+                      tween: IntTween(begin: 0, end: percentage),
+                      builder: (context, value, child) {
+                        return Text(
+                          '$value%',
                           style: TextStyle(
-                            color: hasUserPolled
-                                ? Colors.grey[600]
-                                : Theme.of(context).colorScheme.onBackground,
-                            fontSize: 12.sp,
+                            color: Colors.grey[800],
+                            fontSize: 15.sp,
                             fontWeight: FontWeight.w600,
                           ),
-                        ),
-                    ],
-                  ),
-                  SizedBox(height: 5.h),
-                  Container(
-                    margin: EdgeInsets.only(bottom: 5.h),
-                    height: 5.h,
-                    width: double.infinity,
-                    decoration: BoxDecoration(
-                      color: Colors.grey[200],
-                      borderRadius: BorderRadius.circular(4.r),
-                    ),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(4.r),
-                      child: Stack(
-                        children: [
-                          // Show progress bar with API percentage
-                          if (showPercentage && percentage > 0)
-                            FractionallySizedBox(
-                              alignment: Alignment.centerLeft,
-                              widthFactor: percentage / 100,
-                              child: Container(
-                                height: 8.h,
-                                decoration: BoxDecoration(
-                                  gradient: LinearGradient(
-                                    colors: gradientColors,
-                                    begin: Alignment.centerLeft,
-                                    end: Alignment.centerRight,
-                                  ),
-                                ),
-                              ),
-                            ),
-                        ],
+                        );
+                      },
+                    )
+                  else if (isSelected)
+                    // Show selection number when selected (simple text)
+                    Text(
+                      '$selectionNumber',
+                      style: TextStyle(
+                        color: AppColors.primaryColor,
+                        fontSize: 16.sp,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
-                  ),
                 ],
               ),
-              isSelected
-                  ? SizedBox(
-                      width: double.infinity,
-                      child: Center(
-                        child: Text(
-                          '$selectionNumber',
-                          style: TextStyle(
-                            color: Theme.of(
-                              context,
-                            ).colorScheme.primary.withOpacity(0.8),
-                            fontSize: 20.sp,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    )
-                  : SizedBox.shrink(),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

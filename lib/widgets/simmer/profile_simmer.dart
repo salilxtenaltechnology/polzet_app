@@ -39,7 +39,7 @@ class ProfileSimmer extends StatelessWidget {
                             height: 100.h,
                             width: 110.w,
                             margin: EdgeInsets.only(bottom: 10.h),
-                            padding: EdgeInsets.all(2).w,
+                            padding: const EdgeInsets.all(2).w,
                             decoration: BoxDecoration(
                               color: Theme.of(context).colorScheme.background,
                               shape: BoxShape.circle,

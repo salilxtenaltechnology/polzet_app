@@ -128,11 +128,11 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
             actions: [
               TextButton(
                 onPressed: () => Navigator.of(context).pop(false),
-                child: Text('Cancel'),
+                child: const Text('Cancel'),
               ),
               TextButton(
                 onPressed: () => Navigator.of(context).pop(true),
-                child: Text(
+                child: const Text(
                   'Delete',
                   style: TextStyle(
                     color: Colors.red,
@@ -190,7 +190,7 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
 
   Widget _buildCommentsList() {
     if (isLoading) {
-      return Center(child: CircularProgressIndicator());
+      return const Center(child: CircularProgressIndicator());
     }
 
     if (comments.isEmpty) {
@@ -297,7 +297,7 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
                               color: Colors.grey.withOpacity(0.7),
                             ),
                           ),
-                          Spacer(),
+                          const Spacer(),
                           if (isCurrentUserComment && !isEditing)
                             Row(
                               children: [

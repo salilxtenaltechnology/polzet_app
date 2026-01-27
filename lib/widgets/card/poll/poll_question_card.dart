@@ -124,11 +124,11 @@ class _ThingsQustionsCardState extends State<ThingsQustionsCard> {
       padding: EdgeInsets.only(bottom: 15.h),
       child: Container(
         width: double.infinity,
-        padding: EdgeInsets.all(10).w,
+        padding: const EdgeInsets.all(10).w,
         decoration: BoxDecoration(
           color: Theme.of(context).colorScheme.secondaryContainer,
           borderRadius: BorderRadius.circular(10.r),
-          boxShadow: [
+          boxShadow: const [
             BoxShadow(color: Colors.black12, blurRadius: 5, spreadRadius: 2),
           ],
         ),
@@ -156,7 +156,7 @@ class _ThingsQustionsCardState extends State<ThingsQustionsCard> {
           child: Row(
             children: [
               AnimatedSwitcher(
-                duration: Duration(milliseconds: 200),
+                duration: const Duration(milliseconds: 200),
                 transitionBuilder: (child, animation) {
                   return ScaleTransition(scale: animation, child: child);
                 },
@@ -172,7 +172,7 @@ class _ThingsQustionsCardState extends State<ThingsQustionsCard> {
                         key: ValueKey('outline_${widget.post.id}'),
                         height: 23.h,
                         width: 23.w,
-                        color: Color(0xFFC6C5C5),
+                        color: const Color(0xFFC6C5C5),
                       ),
               ),
               SizedBox(width: 3.w),
@@ -196,7 +196,7 @@ class _ThingsQustionsCardState extends State<ThingsQustionsCard> {
               Icon(
                 FeatherIcons.messageSquare,
                 size: 21.sp,
-                color: Color(0xFFC6C5C5),
+                color: const Color(0xFFC6C5C5),
               ),
               SizedBox(width: 3.w),
               Text(
@@ -268,7 +268,7 @@ class _ThingsQustionsCardState extends State<ThingsQustionsCard> {
                 ),
               ],
             ),
-            Spacer(),
+            const Spacer(),
             GestureDetector(
               onTap: () {
                 if (kDebugMode) {
@@ -331,9 +331,9 @@ class _ThingsQustionsCardState extends State<ThingsQustionsCard> {
     // Define different gradient colors for dynamic options
     List<Color> getGradientColors(int index) {
       final colors = [
-        [Color(0xFFFC3E7E), Color(0xFFEEA0F0)], // Option 1
-        [Color(0xFF4FC3F7), Color(0xFFB6E2F8)], // Option 2
-        [Colors.red, Color(0xFFEFB0C3)], // Option 3
+        [const Color(0xFFFC3E7E), const Color(0xFFEEA0F0)], // Option 1
+        [const Color(0xFF4FC3F7), const Color(0xFFB6E2F8)], // Option 2
+        [Colors.red, const Color(0xFFEFB0C3)], // Option 3
         [Colors.green, Colors.teal], // Option 4
         [Colors.orange, Colors.deepOrange], // Option 5
         [Colors.purple, Colors.deepPurple], // Option 6
@@ -361,7 +361,7 @@ class _ThingsQustionsCardState extends State<ThingsQustionsCard> {
             ),
             SizedBox(width: 8.w),
             voteCount == 0
-                ? Text('')
+                ? const Text('')
                 : Text(
                     '$voteCount ${voteCount == 1 ? 'vote' : 'votes'}',
                     style: TextStyle(

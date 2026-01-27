@@ -3,17 +3,17 @@
 <plist version="1.0">
 <dict>
 	<key>API_KEY</key>
-	<string>AIzaSyCIymc9zms5Erx3SsNQEdNYRsqZVr_Np6Q</string>
+	<string>AIzaSyC-YYmYrZy0sFIBGS0ej8cCCJbh4Ts1kTQ</string>
 	<key>GCM_SENDER_ID</key>
-	<string>423728107242</string>
+	<string>470797111076</string>
 	<key>PLIST_VERSION</key>
 	<string>1</string>
 	<key>BUNDLE_ID</key>
 	<string>com.example.polzetApp</string>
 	<key>PROJECT_ID</key>
-	<string>polzet-a8faa</string>
+	<string>polzet-notifications</string>
 	<key>STORAGE_BUCKET</key>
-	<string>polzet-a8faa.firebasestorage.app</string>
+	<string>polzet-notifications.firebasestorage.app</string>
 	<key>IS_ADS_ENABLED</key>
 	<false></false>
 	<key>IS_ANALYTICS_ENABLED</key>
@@ -25,6 +25,6 @@
 	<key>IS_SIGNIN_ENABLED</key>
 	<true></true>
 	<key>GOOGLE_APP_ID</key>
-	<string>1:423728107242:ios:0fc2b2a1c9c0cc2a1ed193</string>
+	<string>1:470797111076:ios:731343ba61472f0bf4adb1</string>
 </dict>
 </plist>

@@ -16,7 +16,7 @@ class SearchUserSimmer extends StatelessWidget {
           height: 200.h, 
           child: ListView.builder(
             itemCount: 3, 
-            physics: NeverScrollableScrollPhysics(),
+            physics: const NeverScrollableScrollPhysics(),
             itemBuilder: (context, index) {
               return Container(
                 height: 50.h,

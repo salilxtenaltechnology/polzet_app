@@ -1,4 +1,5 @@
 // lib/services/biometric_service.dart
+import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:local_auth/local_auth.dart';
 import 'package:local_auth_android/local_auth_android.dart';
@@ -18,7 +19,7 @@ class BiometricService {
       final bool isDeviceSupported = await _localAuth.isDeviceSupported();
       return isAvailable && isDeviceSupported;
     } catch (e) {
-      print('Error checking biometric availability: $e');
+      debugPrint('Error checking biometric availability: $e');
       return false;
     }
   }
@@ -28,7 +29,7 @@ class BiometricService {
     try {
       return await _localAuth.getAvailableBiometrics();
     } catch (e) {
-      print('Error getting available biometrics: $e');
+      debugPrint('Error getting available biometrics: $e');
       return [];
     }
   }
@@ -52,7 +53,7 @@ class BiometricService {
       );
       return isAuthenticated;
     } on PlatformException catch (e) {
-      print('Biometric authentication error: ${e.message}');
+      debugPrint('Biometric authentication error: ${e.message}');
       return false;
     }
   }

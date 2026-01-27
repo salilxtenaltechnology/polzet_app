@@ -158,7 +158,7 @@ class _QuestionsPostsListState extends State<QuestionsPostsList> {
       backgroundColor: Theme.of(context).colorScheme.surface,
       appBar: AppBar(
         automaticallyImplyLeading: false,
-        leading: PrimaryBackButton(),
+        leading: const PrimaryBackButton(),
         centerTitle: true,
         title: Text(
           AppLocalizations.of(context)!.pollthings,

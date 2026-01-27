@@ -7,7 +7,7 @@ import '../../../l10n/generated/app_localizations.dart';
 import '../custom_text_styles.dart';
 
 class BlockUserDiolog extends StatelessWidget {
-  BlockUserDiolog({required this.onPressed});
+  const BlockUserDiolog({super.key, required this.onPressed});
 
   final VoidCallback? onPressed;
 

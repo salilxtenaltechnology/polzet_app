@@ -119,7 +119,7 @@ class _LoginScreenState extends State<LoginScreen> with UtilityMixin {
     return Container(
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.background,
-        image: DecorationImage(
+        image: const DecorationImage(
           image: AssetImage(Assets.assetsImagesBg),
           fit: BoxFit.cover,
         ),
@@ -250,7 +250,7 @@ class _LoginScreenState extends State<LoginScreen> with UtilityMixin {
               controller: _userEmailController,
               isPassword: false,
               keyboardType: TextInputType.text,
-              autofillHints: [AutofillHints.username, AutofillHints.email],
+              autofillHints: const [AutofillHints.username, AutofillHints.email],
               labelText: 'Email or Username',
               prefixIcon: Icon(
                 FeatherIcons.user,
@@ -268,7 +268,7 @@ class _LoginScreenState extends State<LoginScreen> with UtilityMixin {
             isPassword: _isPasswordHidden,
             keyboardType: TextInputType.visiblePassword,
             labelText: AppStrings.lblPassword,
-            autofillHints: [AutofillHints.password],
+            autofillHints: const [AutofillHints.password],
             prefixIcon: Icon(
               FeatherIcons.lock,
               size: 20,
@@ -375,13 +375,13 @@ class _LoginScreenState extends State<LoginScreen> with UtilityMixin {
             SizedBox(
               width: 22.w,
               child: Checkbox(
-                side: BorderSide(color: Color(0XFFD9D9D9), width: 1.1),
+                side: const BorderSide(color: Color(0XFFD9D9D9), width: 1.1),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(3),
                 ),
                 value: _isChecked,
                 checkColor: Colors.white,
-                activeColor: Color(0xFF9B3046),
+                activeColor: const Color(0xFF9B3046),
                 onChanged: (value) {
                   setState(() {
                     _isChecked = value ?? false;
@@ -395,7 +395,7 @@ class _LoginScreenState extends State<LoginScreen> with UtilityMixin {
         ),
         GestureDetector(
           onTap: () {
-            navigationPush(context, ForgotPasswordScreen());
+            navigationPush(context, const ForgotPasswordScreen());
           },
           child: Text(
             AppStrings.lblForgotPassword,
@@ -424,7 +424,7 @@ class _LoginScreenState extends State<LoginScreen> with UtilityMixin {
         ),
         GestureDetector(
           onTap: () {
-            navigationPush(context, RegisterEmailVerification(email: ''));
+            navigationPush(context, const RegisterEmailVerification(email: ''));
           },
           child: Text(
             AppStrings.lblSignup,

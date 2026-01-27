@@ -43,7 +43,7 @@ class _SplashScreenState extends State<SplashScreen>
     _logoAnimation = Tween<double>(begin: 0.02, end: 1.0).animate(
       CurvedAnimation(
         parent: _controller,
-        curve: Interval(0.0, 0.7, curve: Curves.easeInCubic),
+        curve: const Interval(0.0, 0.7, curve: Curves.easeInCubic),
       ),
     );
 
@@ -54,7 +54,7 @@ class _SplashScreenState extends State<SplashScreen>
     ).animate(
       CurvedAnimation(
         parent: _controller,
-        curve: Interval(0.7, 1.0, curve: Curves.decelerate),
+        curve: const Interval(0.7, 1.0, curve: Curves.decelerate),
       ),
     );
 
@@ -129,10 +129,10 @@ class _SplashScreenState extends State<SplashScreen>
   }
 
   void redirectToLoginScreen() {
-    clearStackAndAddScreen(context, LoginScreen());
+    clearStackAndAddScreen(context, const LoginScreen());
   }
 
   void redirectToHomeScreen() {
-    clearStackAndAddScreen(context, HomeScreen());
+    clearStackAndAddScreen(context, const HomeScreen());
   }
 }

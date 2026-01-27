@@ -22,7 +22,7 @@ class PublicThingsCard extends StatelessWidget {
       padding: EdgeInsets.only(bottom: 12.h),
       child: Container(
         width: double.infinity,
-        padding: EdgeInsets.all(10).w,
+        padding: const EdgeInsets.all(10).w,
         decoration: BoxDecoration(
           gradient: gradientColors != null
               ? LinearGradient(
@@ -35,7 +35,7 @@ class PublicThingsCard extends StatelessWidget {
               ? Theme.of(context).colorScheme.secondaryContainer
               : null,
           borderRadius: BorderRadius.circular(15.r),
-          boxShadow: [
+          boxShadow: const [
             BoxShadow(
               color: Colors.black12,
               blurRadius: 6,
@@ -50,7 +50,7 @@ class PublicThingsCard extends StatelessWidget {
                 .map((question) => ThingsBlock(
                       publicPollsQuestion: question,
                     ))
-                .toList(),
+                ,
           ],
         ),
       ),

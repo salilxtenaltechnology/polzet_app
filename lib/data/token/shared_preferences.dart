@@ -3,6 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 class SharedPrefService {
   static const String _accessKey = 'access_token';
   static const String _refreshKey = 'refresh_token';
+  static const String _fcmToken = 'fcm_token';
   static const String _firstName = 'first_name';
   static const String _lastName = 'last_name';
   static const String _username = 'username';
@@ -17,6 +18,11 @@ class SharedPrefService {
   Future<void> saveRefreshToken(String token) async {
     final pref = await SharedPreferences.getInstance();
     await pref.setString(_refreshKey, token);
+  }
+
+  static Future<void> saveFcmToken(String token) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_fcmToken, token);
   }
 
   // Save User firstname and lastname
@@ -49,6 +55,11 @@ class SharedPrefService {
   static Future<String?> getRefreshToken() async {
     final pref = await SharedPreferences.getInstance();
     return pref.getString(_refreshKey);
+  }
+
+  static Future<String?> getFcmToken() async {
+    final pref = await SharedPreferences.getInstance();
+    return pref.getString(_fcmToken);
   }
 
   // Get User firstname, lastname, username, bio
@@ -93,6 +104,11 @@ class SharedPrefService {
   static Future<void> deleteAccessToken() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_accessKey);
+  }
+
+  static Future<void> removeFcmToken() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_fcmToken);
   }
 
   static Future<void> clearFirstname() async {

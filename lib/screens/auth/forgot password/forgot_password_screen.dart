@@ -107,7 +107,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen>
         Map<String, dynamic> responseData = json.decode(response.body);
         // ignore: non_constant_identifier_names
         final JWT_TOKEN = responseData['data']['access_token'];
-        print('JWT_TOKEN :  $JWT_TOKEN');
+        debugPrint('JWT_TOKEN :  $JWT_TOKEN');
         // _prefService.saveAccessToken(JWT_TOKEN);
 
         navigationPushReplacement(
@@ -143,7 +143,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen>
     return Container(
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.background,
-        image: DecorationImage(
+        image: const DecorationImage(
           image: AssetImage(Assets.assetsImagesBg),
           fit: BoxFit.cover,
         ),
@@ -252,13 +252,13 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen>
                   child: Container(
                     width: 40.w,
                     height: 42.h,
-                    decoration: BoxDecoration(shape: BoxShape.circle),
+                    decoration: const BoxDecoration(shape: BoxShape.circle),
                     child: TextField(
                       controller: _otpControllers[index],
                       focusNode: _otpFocusNodes[index],
                       keyboardType: TextInputType.number,
                       textAlign: TextAlign.center,
-                      cursorColor: Color(0xFF9B3046),
+                      cursorColor: const Color(0xFF9B3046),
                       cursorHeight: 16.sp,
                       cursorWidth: 1.5,
                       inputFormatters: [

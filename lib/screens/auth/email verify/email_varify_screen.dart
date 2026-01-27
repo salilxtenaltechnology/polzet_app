@@ -1,4 +1,4 @@
-// ignore_for_file: deprecated_member_use, unused_element, curly_braces_in_flow_control_structures
+// ignore_for_file: deprecated_member_use, unused_element, curly_braces_in_flow_control_structures, library_private_types_in_public_api
 part of 'email_verify_import.dart';
 
 class RegisterEmailVerification extends StatefulWidget {
@@ -109,7 +109,7 @@ class _EmailVerificationScreenState extends State<RegisterEmailVerification>
     return Container(
       decoration: BoxDecoration(
           color: Theme.of(context).colorScheme.background,
-          image: DecorationImage(
+          image: const DecorationImage(
               image: AssetImage(Assets.assetsImagesBg), fit: BoxFit.cover)),
       child: Scaffold(
         backgroundColor: Colors.transparent,
@@ -194,17 +194,17 @@ class _EmailVerificationScreenState extends State<RegisterEmailVerification>
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: List.generate(6, (index) {
                 return Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 1),
+                  padding: const EdgeInsets.symmetric(horizontal: 1),
                   child: Container(
                     width: 40.w,
                     height: 42.h,
-                    decoration: BoxDecoration(shape: BoxShape.circle),
+                    decoration: const BoxDecoration(shape: BoxShape.circle),
                     child: TextField(
                       controller: _otpControllers[index],
                       focusNode: _otpFocusNodes[index],
                       keyboardType: TextInputType.number,
                       textAlign: TextAlign.center,
-                      cursorColor: Color(0xFF9B3046),
+                      cursorColor: const Color(0xFF9B3046),
                       cursorHeight: 16.sp,
                       cursorWidth: 1.5,
                       inputFormatters: [
@@ -297,16 +297,16 @@ class _EmailVerificationScreenState extends State<RegisterEmailVerification>
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             _authSocialMedia(() {}, Image.asset(Assets.assetsImagesIcGoogle),
-                EdgeInsets.all(4).w),
-            SizedBox(width: 7.w),
-            _authSocialMedia(
-                () {},
-                Image.asset(Assets.assetsImagesIcX,
-                    color: Theme.of(context).colorScheme.onBackground),
-                EdgeInsets.all(5).w),
-            SizedBox(width: 7.w),
-            _authSocialMedia(() {}, Image.asset(Assets.assetsImagesIcFacebook),
-                EdgeInsets.all(3).w),
+                const EdgeInsets.all(4).w),
+            // SizedBox(width: 7.w),
+            // _authSocialMedia(
+            //     () {},
+            //     Image.asset(Assets.assetsImagesIcX,
+            //         color: Theme.of(context).colorScheme.onBackground),
+            //     const EdgeInsets.all(5).w),
+            // SizedBox(width: 7.w),
+            // _authSocialMedia(() {}, Image.asset(Assets.assetsImagesIcFacebook),
+            //     const EdgeInsets.all(3).w),
           ],
         ),
       ],

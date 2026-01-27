@@ -36,7 +36,7 @@ class _ChatDetailsState extends State<ChatDetails> with UtilityMixin {
             onTap: () {
               Navigator.pop(context);
             },
-            child: Icon(Icons.arrow_back_ios)),
+            child: const Icon(Icons.arrow_back_ios)),
         centerTitle: true,
         backgroundColor: Theme.of(context).colorScheme.background,
         surfaceTintColor: Theme.of(context).colorScheme.background,
@@ -67,7 +67,7 @@ class _ChatDetailsState extends State<ChatDetails> with UtilityMixin {
                             .withOpacity(0.1),
                         width: 1.w,
                       ),
-                      image: DecorationImage(
+                      image: const DecorationImage(
                         image: AssetImage(Assets.assetsImagesIcUser),
                         fit: BoxFit.cover,
                       ),
@@ -111,7 +111,7 @@ class _ChatDetailsState extends State<ChatDetails> with UtilityMixin {
                     SizedBox(width: 8.w),
                     Text('Media, Links & Documents',
                         style: CustomTextStyles.lblContentText(context)),
-                    Spacer(),
+                    const Spacer(),
                     Text('155',
                         style: CustomTextStyles.lblContentText(context)),
                     SizedBox(width: 10.w),
@@ -135,7 +135,7 @@ class _ChatDetailsState extends State<ChatDetails> with UtilityMixin {
                   SizedBox(width: 8.w),
                   Text('Mute Notification',
                       style: CustomTextStyles.lblContentText(context)),
-                  Spacer(),
+                  const Spacer(),
                   Container(
                     color: Colors.white,
                     width: 35.w,
@@ -160,7 +160,7 @@ class _ChatDetailsState extends State<ChatDetails> with UtilityMixin {
                   SizedBox(width: 8.w),
                   Text('Custom Notification',
                       style: CustomTextStyles.lblContentText(context)),
-                  Spacer(),
+                  const Spacer(),
                   Icon(
                     FeatherIcons.chevronRight,
                     color: Theme.of(context)
@@ -180,7 +180,7 @@ class _ChatDetailsState extends State<ChatDetails> with UtilityMixin {
                   SizedBox(width: 8.w),
                   Text('Protected Chat',
                       style: CustomTextStyles.lblContentText(context)),
-                  Spacer(),
+                  const Spacer(),
                   SizedBox(
                     width: 30.w,
                     height: 20.h,
@@ -204,7 +204,7 @@ class _ChatDetailsState extends State<ChatDetails> with UtilityMixin {
                   SizedBox(width: 8.w),
                   Text('Hide Chat',
                       style: CustomTextStyles.lblContentText(context)),
-                  Spacer(),
+                  const Spacer(),
                   SizedBox(
                     width: 30.w,
                     height: 20.h,
@@ -228,7 +228,7 @@ class _ChatDetailsState extends State<ChatDetails> with UtilityMixin {
                   SizedBox(width: 8.w),
                   Text('Hide Chat History',
                       style: CustomTextStyles.lblContentText(context)),
-                  Spacer(),
+                  const Spacer(),
                   SizedBox(
                     width: 30.w,
                     height: 20.h,
@@ -252,7 +252,7 @@ class _ChatDetailsState extends State<ChatDetails> with UtilityMixin {
                   SizedBox(width: 8.w),
                   Text('Custom Color Chat',
                       style: CustomTextStyles.lblContentText(context)),
-                  Spacer(),
+                  const Spacer(),
                   Container(
                     height: 18.h,
                     width: 20.w,
@@ -271,12 +271,12 @@ class _ChatDetailsState extends State<ChatDetails> with UtilityMixin {
                   SizedBox(width: 8.w),
                   Text('Custom Background Chat',
                       style: CustomTextStyles.lblContentText(context)),
-                  Spacer(),
+                  const Spacer(),
                   Container(
                     height: 18.h,
                     width: 20.w,
                     decoration: BoxDecoration(
-                        color: Color(0XFFF0F0F3),
+                        color: const Color(0XFFF0F0F3),
                         borderRadius: BorderRadius.circular(5.r)),
                   ),
                 ],
@@ -289,12 +289,12 @@ class _ChatDetailsState extends State<ChatDetails> with UtilityMixin {
                   Icon(
                     Icons.warning_amber_outlined,
                     size: 19.spMax,
-                    color: Color(0XFFF44336),
+                    color: const Color(0XFFF44336),
                   ),
                   SizedBox(width: 8.w),
                   Text('Report',
                       style: TextStyle(
-                          color: Color(0XFFF44336),
+                          color: const Color(0XFFF44336),
                           fontSize: 13.sp,
                           fontWeight: FontWeight.w600)),
                 ],
@@ -313,12 +313,12 @@ class _ChatDetailsState extends State<ChatDetails> with UtilityMixin {
                     Icon(
                       Icons.block,
                       size: 19.spMax,
-                      color: Color(0XFFF44336),
+                      color: const Color(0XFFF44336),
                     ),
                     SizedBox(width: 8.w),
                     Text('Block',
                         style: TextStyle(
-                            color: Color(0XFFF44336),
+                            color: const Color(0XFFF44336),
                             fontSize: 13.sp,
                             fontWeight: FontWeight.w600)),
                   ],

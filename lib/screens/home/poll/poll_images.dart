@@ -195,7 +195,7 @@ class _PollImagesState extends State<PollImages> {
       backgroundColor: Theme.of(context).colorScheme.background,
       appBar: AppBar(
         automaticallyImplyLeading: false,
-        leading: PrimaryBackButton(),
+        leading: const PrimaryBackButton(),
         centerTitle: true,
         title: Text(
           AppLocalizations.of(context)!.addnewpollimage,
@@ -237,7 +237,7 @@ class _PollImagesState extends State<PollImages> {
           // Dynamic image grid
           GridView.builder(
             shrinkWrap: true,
-            physics: NeverScrollableScrollPhysics(),
+            physics: const NeverScrollableScrollPhysics(),
             gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: 2,
               crossAxisSpacing: 10.w,
@@ -263,7 +263,7 @@ class _PollImagesState extends State<PollImages> {
                             color: AppColors.primaryColor,
                             shape: BoxShape.circle,
                             border: Border.all(color: Colors.white, width: 1),
-                            boxShadow: [
+                            boxShadow: const [
                               BoxShadow(
                                 color: Colors.black26,
                                 blurRadius: 4,

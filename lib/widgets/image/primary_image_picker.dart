@@ -43,7 +43,7 @@ class PrimaryImagePicker extends StatelessWidget {
               height: 115.h,
               width: 150.w,
               child: Container(
-                margin: EdgeInsets.all(3).w,
+                margin: const EdgeInsets.all(3).w,
                 decoration: BoxDecoration(
                   color: Theme.of(context).colorScheme.tertiaryContainer,
                   borderRadius: BorderRadius.circular(7.r),

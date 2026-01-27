@@ -8,6 +8,30 @@
       "languageVersion": "3.2"
     },
     {
+      "name": "app_links",
+      "rootUri": "file:///Users/pratik.patadiyaicloud/.pub-cache/hosted/pub.dev/app_links-7.0.0",
+      "packageUri": "lib/",
+      "languageVersion": "3.10"
+    },
+    {
+      "name": "app_links_linux",
+      "rootUri": "file:///Users/pratik.patadiyaicloud/.pub-cache/hosted/pub.dev/app_links_linux-1.0.3",
+      "packageUri": "lib/",
+      "languageVersion": "3.2"
+    },
+    {
+      "name": "app_links_platform_interface",
+      "rootUri": "file:///Users/pratik.patadiyaicloud/.pub-cache/hosted/pub.dev/app_links_platform_interface-2.0.2",
+      "packageUri": "lib/",
+      "languageVersion": "3.2"
+    },
+    {
+      "name": "app_links_web",
+      "rootUri": "file:///Users/pratik.patadiyaicloud/.pub-cache/hosted/pub.dev/app_links_web-1.0.4",
+      "packageUri": "lib/",
+      "languageVersion": "3.2"
+    },
+    {
       "name": "archive",
       "rootUri": "file:///Users/pratik.patadiyaicloud/.pub-cache/hosted/pub.dev/archive-4.0.7",
       "packageUri": "lib/",
@@ -260,6 +284,12 @@
       "languageVersion": "3.4"
     },
     {
+      "name": "fixnum",
+      "rootUri": "file:///Users/pratik.patadiyaicloud/.pub-cache/hosted/pub.dev/fixnum-1.1.1",
+      "packageUri": "lib/",
+      "languageVersion": "3.1"
+    },
+    {
       "name": "flutter",
       "rootUri": "file:///Users/pratik.patadiyaicloud/flutter/packages/flutter",
       "packageUri": "lib/",
@@ -270,6 +300,12 @@
       "rootUri": "file:///Users/pratik.patadiyaicloud/.pub-cache/hosted/pub.dev/flutter_launcher_icons-0.14.4",
       "packageUri": "lib/",
       "languageVersion": "3.0"
+    },
+    {
+      "name": "flutter_lints",
+      "rootUri": "file:///Users/pratik.patadiyaicloud/.pub-cache/hosted/pub.dev/flutter_lints-3.0.2",
+      "packageUri": "lib/",
+      "languageVersion": "3.1"
     },
     {
       "name": "flutter_local_notifications",
@@ -348,6 +384,12 @@
       "rootUri": "file:///Users/pratik.patadiyaicloud/.pub-cache/hosted/pub.dev/google_fonts-6.3.3",
       "packageUri": "lib/",
       "languageVersion": "3.9"
+    },
+    {
+      "name": "gtk",
+      "rootUri": "file:///Users/pratik.patadiyaicloud/.pub-cache/hosted/pub.dev/gtk-2.1.0",
+      "packageUri": "lib/",
+      "languageVersion": "3.0"
     },
     {
       "name": "html",
@@ -486,6 +528,12 @@
       "rootUri": "file:///Users/pratik.patadiyaicloud/.pub-cache/hosted/pub.dev/leak_tracker_testing-3.0.2",
       "packageUri": "lib/",
       "languageVersion": "3.2"
+    },
+    {
+      "name": "lints",
+      "rootUri": "file:///Users/pratik.patadiyaicloud/.pub-cache/hosted/pub.dev/lints-3.0.0",
+      "packageUri": "lib/",
+      "languageVersion": "3.0"
     },
     {
       "name": "local_auth",
@@ -668,6 +716,18 @@
       "languageVersion": "2.18"
     },
     {
+      "name": "share_plus",
+      "rootUri": "file:///Users/pratik.patadiyaicloud/.pub-cache/hosted/pub.dev/share_plus-12.0.1",
+      "packageUri": "lib/",
+      "languageVersion": "3.4"
+    },
+    {
+      "name": "share_plus_platform_interface",
+      "rootUri": "file:///Users/pratik.patadiyaicloud/.pub-cache/hosted/pub.dev/share_plus_platform_interface-6.1.0",
+      "packageUri": "lib/",
+      "languageVersion": "2.18"
+    },
+    {
       "name": "shared_preferences",
       "rootUri": "file:///Users/pratik.patadiyaicloud/.pub-cache/hosted/pub.dev/shared_preferences-2.5.4",
       "packageUri": "lib/",
@@ -776,6 +836,36 @@
       "languageVersion": "3.5"
     },
     {
+      "name": "url_launcher_linux",
+      "rootUri": "file:///Users/pratik.patadiyaicloud/.pub-cache/hosted/pub.dev/url_launcher_linux-3.2.2",
+      "packageUri": "lib/",
+      "languageVersion": "3.8"
+    },
+    {
+      "name": "url_launcher_platform_interface",
+      "rootUri": "file:///Users/pratik.patadiyaicloud/.pub-cache/hosted/pub.dev/url_launcher_platform_interface-2.3.2",
+      "packageUri": "lib/",
+      "languageVersion": "3.1"
+    },
+    {
+      "name": "url_launcher_web",
+      "rootUri": "file:///Users/pratik.patadiyaicloud/.pub-cache/hosted/pub.dev/url_launcher_web-2.4.1",
+      "packageUri": "lib/",
+      "languageVersion": "3.6"
+    },
+    {
+      "name": "url_launcher_windows",
+      "rootUri": "file:///Users/pratik.patadiyaicloud/.pub-cache/hosted/pub.dev/url_launcher_windows-3.1.5",
+      "packageUri": "lib/",
+      "languageVersion": "3.8"
+    },
+    {
+      "name": "uuid",
+      "rootUri": "file:///Users/pratik.patadiyaicloud/.pub-cache/hosted/pub.dev/uuid-4.5.2",
+      "packageUri": "lib/",
+      "languageVersion": "3.0"
+    },
+    {
       "name": "vector_graphics",
       "rootUri": "file:///Users/pratik.patadiyaicloud/.pub-cache/hosted/pub.dev/vector_graphics-1.1.19",
       "packageUri": "lib/",
@@ -848,6 +938,18 @@
       "languageVersion": "3.4"
     },
     {
+      "name": "web_socket",
+      "rootUri": "file:///Users/pratik.patadiyaicloud/.pub-cache/hosted/pub.dev/web_socket-1.0.1",
+      "packageUri": "lib/",
+      "languageVersion": "3.4"
+    },
+    {
+      "name": "web_socket_channel",
+      "rootUri": "file:///Users/pratik.patadiyaicloud/.pub-cache/hosted/pub.dev/web_socket_channel-3.0.3",
+      "packageUri": "lib/",
+      "languageVersion": "3.3"
+    },
+    {
       "name": "wechat_assets_picker",
       "rootUri": "file:///Users/pratik.patadiyaicloud/.pub-cache/hosted/pub.dev/wechat_assets_picker-10.1.0",
       "packageUri": "lib/",
@@ -864,6 +966,12 @@
       "rootUri": "file:///Users/pratik.patadiyaicloud/.pub-cache/hosted/pub.dev/wechat_picker_library-1.0.7",
       "packageUri": "lib/",
       "languageVersion": "3.4"
+    },
+    {
+      "name": "win32",
+      "rootUri": "file:///Users/pratik.patadiyaicloud/.pub-cache/hosted/pub.dev/win32-5.15.0",
+      "packageUri": "lib/",
+      "languageVersion": "3.8"
     },
     {
       "name": "xdg_directories",

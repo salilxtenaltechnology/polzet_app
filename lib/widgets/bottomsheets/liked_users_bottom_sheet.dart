@@ -10,10 +10,10 @@ class LikedUsersBottomSheet extends StatefulWidget {
   final int postId;
 
   const LikedUsersBottomSheet({
-    Key? key,
+    super.key,
     required this.likedUsers,
     required this.postId,
-  }) : super(key: key);
+  });
 
   @override
   State<LikedUsersBottomSheet> createState() => _LikedUsersBottomSheetState();
@@ -21,7 +21,7 @@ class LikedUsersBottomSheet extends StatefulWidget {
 
 class _LikedUsersBottomSheetState extends State<LikedUsersBottomSheet> {
   late List<LikeUser> _likedUsers;
-  bool _isLoading = false;
+  final bool _isLoading = false;
 
   @override
   void initState() {
@@ -65,7 +65,7 @@ class _LikedUsersBottomSheetState extends State<LikedUsersBottomSheet> {
           // List of users who liked
           Expanded(
             child: _isLoading
-                ? Center(child: CircularProgressIndicator())
+                ? const Center(child: CircularProgressIndicator())
                 : _likedUsers.isEmpty
                 ? Center(
                     child: Text(

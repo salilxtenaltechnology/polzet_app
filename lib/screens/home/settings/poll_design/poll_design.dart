@@ -18,7 +18,7 @@ class _PollDesignState extends State<PollDesign> {
     return Scaffold(
       appBar: AppBar(
         automaticallyImplyLeading: false,
-        leading: PrimaryBackButton(),
+        leading: const PrimaryBackButton(),
         centerTitle: true,
         title: Text(
           'Poll Design',
@@ -28,7 +28,7 @@ class _PollDesignState extends State<PollDesign> {
 
         surfaceTintColor: Theme.of(context).colorScheme.background,
       ),
-      body: Center(child: Text('Poll Design Screen')),
+      body: const Center(child: Text('Poll Design Screen')),
     );
   }
 }

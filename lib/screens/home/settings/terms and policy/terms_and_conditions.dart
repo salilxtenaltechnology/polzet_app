@@ -29,7 +29,7 @@ class TermsState extends State<TermsAndConditions> {
 
   // Define the text styles for the labletext
   static TextStyle labelStyle = TextStyle(
-    color: Color(0XFF545454),
+    color: const Color(0XFF545454),
     fontSize: 11.4.sp,
     fontWeight: FontWeight.w600,
   );
@@ -40,7 +40,7 @@ class TermsState extends State<TermsAndConditions> {
       backgroundColor: Theme.of(context).colorScheme.background,
       appBar: AppBar(
         automaticallyImplyLeading: false,
-        leading: PrimaryBackButton(),
+        leading: const PrimaryBackButton(),
         title: Text(
           AppLocalizations.of(context)!.termsandconditions,
           style: CustomTextStyles.appBarTitleText(context),
@@ -364,7 +364,7 @@ class TermsState extends State<TermsAndConditions> {
               Text(
                 'contact@polzet.com',
                 style: TextStyle(
-                  color: Color(0xFF2194FF),
+                  color: const Color(0xFF2194FF),
                   fontSize: 13.sp,
                   fontWeight: FontWeight.w600,
                 ),

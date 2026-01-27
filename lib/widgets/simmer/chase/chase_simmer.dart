@@ -14,7 +14,7 @@ class ChaseSimmer extends StatelessWidget {
           height: 200.h,
           child: ListView.builder(
             itemCount: 15, 
-            physics: NeverScrollableScrollPhysics(), 
+            physics: const NeverScrollableScrollPhysics(), 
             itemBuilder: (context, index) {
               return Container(
                 height: 43.h,

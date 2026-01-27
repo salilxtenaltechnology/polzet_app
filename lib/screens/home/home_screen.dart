@@ -17,11 +17,12 @@ class HomeScreenState extends State<HomeScreen> with UtilityMixin {
   GlobalKey<CurvedNavigationBarState> bottomNavigationKey = GlobalKey();
 
   final List screens = [
-    Dashboard(),
-    InsightsScreen(),
-    PollPop(),
-    Notifications(),
-    UserProfile(),
+    const Dashboard(),
+    const InsightsScreen(),
+    const PollPop(),
+    const Notifications(),
+    //const TestNotificationsScreen(),
+    const UserProfile(),
   ];
 
   void navigateToUserProfile() {
@@ -45,7 +46,10 @@ class HomeScreenState extends State<HomeScreen> with UtilityMixin {
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.background,
       appBar: pageIndex == 4
-          ? PreferredSize(preferredSize: Size.zero, child: SizedBox.shrink())
+          ? const PreferredSize(
+              preferredSize: Size.zero,
+              child: SizedBox.shrink(),
+            )
           : AppBar(
               backgroundColor: Theme.of(context).colorScheme.background,
               surfaceTintColor: Theme.of(context).colorScheme.background,
@@ -121,7 +125,7 @@ class HomeScreenState extends State<HomeScreen> with UtilityMixin {
                 if (pageIndex == 0)
                   AppIcons(
                     onTap: () {
-                      navigationPush(context, UserSearch());
+                      navigationPush(context, const UserSearch());
                     },
                     icon: FeatherIcons.search,
                   ),
@@ -129,7 +133,7 @@ class HomeScreenState extends State<HomeScreen> with UtilityMixin {
                 if (pageIndex == 0)
                   AppIcons(
                     onTap: () {
-                      navigationPush(context, MessageList());
+                      navigationPush(context, const MessageList());
                     },
                     icon: FeatherIcons.messageSquare,
                   ),
@@ -137,14 +141,14 @@ class HomeScreenState extends State<HomeScreen> with UtilityMixin {
                 if (pageIndex == 0)
                   AppIcons(
                     onTap: () {
-                      navigationPush(context, Settings());
+                      navigationPush(context, const Settings());
                     },
                     icon: FeatherIcons.settings,
                   ),
                 SizedBox(width: 8.w),
               ],
             ),
-      body: SafeArea(child: screens[pageIndex]), 
+      body: SafeArea(child: screens[pageIndex]),
       floatingActionButton: SafeArea(
         child: CustomFloatingActionButton(
           onTap: () {
@@ -173,7 +177,7 @@ class HomeScreenState extends State<HomeScreen> with UtilityMixin {
       builder: (BuildContext context) {
         return Builder(
           builder: (BuildContext context) {
-            return NewPollBottomsheet();
+            return const NewPollBottomsheet();
           },
         );
       },

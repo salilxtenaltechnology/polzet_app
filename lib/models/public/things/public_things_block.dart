@@ -5,7 +5,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'things_question.dart';
 
 class ThingsBlock extends StatelessWidget {
-  const ThingsBlock({required this.publicPollsQuestion});
+  const ThingsBlock({super.key, required this.publicPollsQuestion});
 
   final PublicPollsQuestion publicPollsQuestion;
 
@@ -17,11 +17,18 @@ class ThingsBlock extends StatelessWidget {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(publicPollsQuestion.question,
+            Expanded(
+              child: Text(
+                publicPollsQuestion.question,
                 style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 12.5.sp,
-                    fontWeight: FontWeight.w400)),
+                  color: Colors.white,
+                  fontSize: 12.5.sp,
+                  fontWeight: FontWeight.w400,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
           ],
         ),
       ],

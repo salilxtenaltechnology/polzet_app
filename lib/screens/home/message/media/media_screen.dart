@@ -50,12 +50,12 @@ class _MediaScreenState extends State<MediaScreen>
               indicatorColor: Theme.of(context).colorScheme.primary,
               indicatorSize: TabBarIndicatorSize.tab,
               labelColor: Theme.of(context).colorScheme.primary,
-              labelStyle: TextStyle(fontWeight: FontWeight.w500),
+              labelStyle: const TextStyle(fontWeight: FontWeight.w500),
               dividerColor: Colors.transparent,
               indicator: FadeUnderlineTabIndicator(),
-              overlayColor: WidgetStatePropertyAll(Colors.transparent),
+              overlayColor: const WidgetStatePropertyAll(Colors.transparent),
               unselectedLabelColor: Theme.of(context).colorScheme.onBackground,
-              tabs: [
+              tabs: const [
                 Tab(text: 'Media'),
                 Tab(text: 'Link'),
                 Tab(text: 'Document'),
@@ -64,7 +64,7 @@ class _MediaScreenState extends State<MediaScreen>
             Expanded(
               child: TabBarView(
                 controller: _tabController,
-                children: [
+                children: const [
                   Center(child: Text('Photos & Videos')),
                   Center(child: Text('Links')),
                   Center(child: Text('Documents')),

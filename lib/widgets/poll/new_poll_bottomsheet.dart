@@ -18,9 +18,9 @@ class NewPollBottomsheet extends StatelessWidget with UtilityMixin {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: EdgeInsets.all(12).w,
+      padding: const EdgeInsets.all(12).w,
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.secondaryContainer,
+        color: Theme.of(context).colorScheme.tertiaryContainer,
         borderRadius: BorderRadius.only(
           topLeft: Radius.circular(50.r),
           topRight: Radius.circular(50.r),
@@ -33,7 +33,7 @@ class NewPollBottomsheet extends StatelessWidget with UtilityMixin {
             height: 2.h,
             width: 100.w,
             decoration: BoxDecoration(
-              color: Color(0x7C868686),
+              color: const Color(0x7C868686),
               borderRadius: BorderRadius.circular(5.r),
             ),
           ),
@@ -54,12 +54,12 @@ class NewPollBottomsheet extends StatelessWidget with UtilityMixin {
                   GestureDetector(
                     onTap: () {
                      Navigator.pop(context);
-                      navigationPush(context, PollQuestion());
+                      navigationPush(context, const PollQuestion());
                     },
                     child: Container(
                       height: 55.h,
                       width: 55.w,
-                      decoration: BoxDecoration(
+                      decoration: const BoxDecoration(
                         shape: BoxShape.circle,
                         color: AppColors.primaryColor,
                       ),
@@ -83,12 +83,12 @@ class NewPollBottomsheet extends StatelessWidget with UtilityMixin {
                   GestureDetector(
                     onTap: () {
                        Navigator.pop(context);
-                      navigationPush(context, PollImages());
+                      navigationPush(context, const PollImages());
                     },
                     child: Container(
                       height: 55.h,
                       width: 55.w,
-                      decoration: BoxDecoration(
+                      decoration: const BoxDecoration(
                         shape: BoxShape.circle,
                         color: AppColors.primaryColor,
                       ),

@@ -11,24 +11,32 @@ class PrimaryTextfield extends StatelessWidget {
   final bool isPassword;
   final bool isRead;
   final int? maxLength;
-  final autofillHints;
+  
+  // Change this line:
+  final Iterable<String>? autofillHints; 
+  
   final String labelText;
   final Widget? prefixIcon;
   final IconButton? suffixIcon;
   final ValueChanged<String>? onSubmitted;
-  bool icon = true;
-  PrimaryTextfield(
-      {super.key,
-      required this.controller,
-      required this.labelText,
-      this.keyboardType = TextInputType.text,
-      this.isPassword = true,
-      this.isRead = false,
-      this.maxLength,
-      this.autofillHints,
-      this.prefixIcon,
-      this.suffixIcon,
-      this.onSubmitted});
+  
+  // Note: 'icon' should likely be final since this is a StatelessWidget
+  final bool icon; 
+
+  const PrimaryTextfield({
+    super.key,
+    required this.controller,
+    required this.labelText,
+    this.keyboardType = TextInputType.text,
+    this.isPassword = false, // Usually false by default for general textfields
+    this.isRead = false,
+    this.maxLength,
+    this.autofillHints,
+    this.prefixIcon,
+    this.suffixIcon,
+    this.onSubmitted,
+    this.icon = true,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -44,7 +52,7 @@ class PrimaryTextfield extends StatelessWidget {
           maxLength: maxLength,
           style: CustomTextStyles.lblPrimaryText(context),
           decoration: InputDecoration(
-            contentPadding: EdgeInsets.only(bottom: 8, right: 10),
+            contentPadding: const EdgeInsets.only(bottom: 8, right: 10),
             counterText: '',
             hintText: labelText,
             hintStyle: CustomTextStyles.lblPrimaryHintText(context),

@@ -74,16 +74,16 @@ class _PublicQuestionsBlockState extends State<PublicQuestionsBlock> {
           children: [
             Image.asset(
               Assets.assetsImagesIcHeart,
-              key: ValueKey('outline'),
+              key: const ValueKey('outline'),
               height: 23.h,
               width: 23.w,
-              color: Color(0xFFC6C5C5),
+              color: const Color(0xFFC6C5C5),
             ),
             SizedBox(width: 10.w),
             Icon(
               FeatherIcons.messageSquare,
               size: 21.sp,
-              color: Color(0xFFC6C5C5),
+              color: const Color(0xFFC6C5C5),
             ),
           ],
         ),
@@ -99,17 +99,17 @@ class _PublicQuestionsBlockState extends State<PublicQuestionsBlock> {
         // Animated button that appears when an option is selected
         Center(
           child: AnimatedOpacity(
-            duration: Duration(milliseconds: 300),
+            duration: const Duration(milliseconds: 300),
             opacity: isAnyOptionSelected ? 1.0 : 0.0,
             child: AnimatedContainer(
-              duration: Duration(milliseconds: 300),
+              duration: const Duration(milliseconds: 300),
               margin: EdgeInsets.only(top: isAnyOptionSelected ? 10.h : 0),
               height: isAnyOptionSelected ? 45.h : 0,
               width: isAnyOptionSelected ? 45.w : 0,
               decoration: BoxDecoration(
                 color: Theme.of(context).colorScheme.primary,
                 shape: BoxShape.circle,
-                gradient: LinearGradient(
+                gradient: const LinearGradient(
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                   colors: [Color(0xFFCF4B73), Color(0xFFC76294)],
@@ -130,13 +130,13 @@ class _PublicQuestionsBlockState extends State<PublicQuestionsBlock> {
                     ? () {
                         // Handle analytics button tap
                         // Add your analytics logic here
-                        print(
+                        debugPrint(
                           'Analytics button tapped for poll: ${widget.pollQuestion.id}',
                         );
                         String pollKey = widget.pollQuestion.id.toString();
                         int? selectedIndex = selectedOptions[pollKey];
                         if (selectedIndex != null) {
-                          print(
+                          debugPrint(
                             'Selected option: ${widget.pollQuestion.options[selectedIndex].text}',
                           );
                         }
@@ -168,8 +168,8 @@ class _PublicQuestionsBlockState extends State<PublicQuestionsBlock> {
     // Define different gradient colors for dynamic options
     List<Color> getGradientColors(int index) {
       final colors = [
-        [Color(0xFFFC3E7E), Color(0xFFEEA0F0)], // Option 1
-        [Color(0xFF4FC3F7), Color(0xFFB6E2F8)], // Option 2
+        [const Color(0xFFFC3E7E), const Color(0xFFEEA0F0)], // Option 1
+        [const Color(0xFF4FC3F7), const Color(0xFFB6E2F8)], // Option 2
         [Colors.red, const Color(0xFFEFB0C3)], // Option 3
         [Colors.green, Colors.teal], // Option 4
       ];
@@ -178,9 +178,9 @@ class _PublicQuestionsBlockState extends State<PublicQuestionsBlock> {
 
     final gradientColors = getGradientColors(optionIndex);
 
-    int percentage_full = 100;
-    int total_vote_count =
-        ((pollQuestion.options[optionIndex].voteCount * 100) / percentage_full)
+    int percentageFull = 100;
+    int totalVoteCount =
+        ((pollQuestion.options[optionIndex].voteCount * 100) / percentageFull)
             .round();
 
     // Check if this option is selected using poll ID and option index
@@ -235,10 +235,10 @@ class _PublicQuestionsBlockState extends State<PublicQuestionsBlock> {
                   child: Stack(
                     children: [
                       // Only show filled area if total_vote_count > 0
-                      if (total_vote_count > 0)
+                      if (totalVoteCount > 0)
                         FractionallySizedBox(
                           alignment: Alignment.centerLeft,
-                          widthFactor: total_vote_count / 100,
+                          widthFactor: totalVoteCount / 100,
                           child: Container(
                             height: 8.h,
                             decoration: BoxDecoration(
@@ -259,7 +259,7 @@ class _PublicQuestionsBlockState extends State<PublicQuestionsBlock> {
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
                   Text(
-                    '${total_vote_count.toInt()}%',
+                    '${totalVoteCount.toInt()}%',
                     style: TextStyle(
                       fontSize: 11.sp,
                       fontWeight: FontWeight.w500,

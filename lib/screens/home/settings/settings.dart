@@ -14,6 +14,40 @@ class SettingsState extends State<Settings>
     with UtilityMixin, WidgetsBindingObserver {
   String _errorText = '';
 
+  Future<void> _clearAllCaches() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+
+      // List of all cache keys used in your app
+      const cacheKeys = [
+        'home_feed_cache', 
+        'home_feed_cache_time',
+        'cached_notifications',
+        'cached_friend_requests',
+        'cached_user_profile',
+        'cached_posts',
+        'cached_followers',
+        'cached_following',
+      ];
+
+      // Remove each cache key
+      for (String key in cacheKeys) {
+        await prefs.remove(key);
+      }
+
+      // Alternative: Clear ALL SharedPreferences (be careful with this)
+      // await prefs.clear(); // This removes EVERYTHING including tokens
+
+      if (kDebugMode) {
+        print('✅ All caches cleared successfully');
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print('❌ Error clearing caches: $e');
+      }
+    }
+  }
+
   Future<void> _logout() async {
     final accessToken = await SharedPrefService.getAccessToken(); // ac_token
     final refreshToken = await SharedPrefService.getRefreshToken(); // re_token
@@ -27,13 +61,15 @@ class SettingsState extends State<Settings>
       );
 
       if (response.statusCode == 205) {
+         await _clearAllCaches();
         await SharedPrefService.deleteAccessToken();
         await SharedPrefService.clearFirstname();
         await SharedPrefService.clearLastname();
         await SharedPrefService.clearUsername();
         await SharedPrefService.clearUserBio();
+        await SharedPrefService.removeFcmToken();
 
-        clearStackAndAddScreen(context, LoginScreen());
+        clearStackAndAddScreen(context, const LoginScreen());
         showToast(message: 'Logged out successfully');
       } else {
         showToast(message: 'Token expired');
@@ -54,7 +90,7 @@ class SettingsState extends State<Settings>
       appBar: AppBar(
         automaticallyImplyLeading: false,
         toolbarHeight: 25.h,
-        leading: PrimaryBackButton(),
+        leading: const PrimaryBackButton(),
         title: Text(
           'Settings',
           style: CustomTextStyles.appBarTitleText(context),
@@ -84,7 +120,7 @@ class SettingsState extends State<Settings>
                         AppLocalizations.of(context)!.darkmode,
                         style: CustomTextStyles.lblPrimaryText(context),
                       ),
-                      Spacer(),
+                      const Spacer(),
                       SizedBox(
                         height: 17.h,
                         child: CupertinoSwitch(
@@ -109,7 +145,7 @@ class SettingsState extends State<Settings>
                     FeatherIcons.user,
                     AppLocalizations.of(context)!.editprofile,
                     onTap: () {
-                      navigationPush(context, EditProfile());
+                      navigationPush(context, const EditProfile());
                     },
                   ),
 
@@ -125,7 +161,7 @@ class SettingsState extends State<Settings>
                     FeatherIcons.bell,
                     AppLocalizations.of(context)!.notifications,
                     onTap: () {
-                      navigationPush(context, NotificationsSettings());
+                      navigationPush(context, const NotificationsSettings());
                     },
                   ),
                   SizedBox(height: 5.h),
@@ -140,7 +176,7 @@ class SettingsState extends State<Settings>
                     FeatherIcons.lock,
                     AppLocalizations.of(context)!.privacypolicy,
                     onTap: () {
-                      navigationPush(context, PrivacyPolicy());
+                      navigationPush(context, const PrivacyPolicy());
                     },
                   ),
                   SizedBox(height: 5.h),
@@ -155,7 +191,7 @@ class SettingsState extends State<Settings>
                     Icons.translate,
                     AppLocalizations.of(context)!.language,
                     onTap: () {
-                      navigationPush(context, Languages());
+                      navigationPush(context, const Languages());
                     },
                   ),
                   SizedBox(height: 5.h),
@@ -170,7 +206,22 @@ class SettingsState extends State<Settings>
                     Icons.security,
                     AppLocalizations.of(context)!.security,
                     onTap: () {
-                      navigationPush(context, Security());
+                      navigationPush(context, const Security());
+                    },
+                  ),
+                  SizedBox(height: 5.h),
+                  Divider(
+                    thickness: 1,
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.onBackground.withOpacity(0.1),
+                  ),
+                  SizedBox(height: 5.h),
+                  _lalbelModel(
+                    Icons.privacy_tip_outlined,
+                    'Account Privacy',
+                    onTap: () {
+                      navigationPush(context, const PrivateAccount());
                     },
                   ),
                 ],
@@ -187,7 +238,7 @@ class SettingsState extends State<Settings>
                     FeatherIcons.helpCircle,
                     AppLocalizations.of(context)!.helpandsupport,
                     onTap: () {
-                      navigationPush(context, HelpSupport());
+                      navigationPush(context, const HelpSupport());
                     },
                   ),
                   SizedBox(height: 5.h),
@@ -202,7 +253,7 @@ class SettingsState extends State<Settings>
                     Icons.description_outlined,
                     AppLocalizations.of(context)!.termsandconditions,
                     onTap: () {
-                      navigationPush(context, TermsAndConditions());
+                      navigationPush(context, const TermsAndConditions());
                     },
                   ),
                 ],
@@ -255,7 +306,7 @@ class SettingsState extends State<Settings>
     return Container(
       width: double.infinity,
       margin: EdgeInsets.only(top: 7.h, bottom: 12.h),
-      padding: EdgeInsets.all(12).w,
+      padding: const EdgeInsets.all(12).w,
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.tertiaryContainer,
         borderRadius: BorderRadius.circular(10.r),
@@ -280,7 +331,7 @@ class SettingsState extends State<Settings>
             AppIcons(icon: icon),
             SizedBox(width: 10.w),
             Text(labelName, style: CustomTextStyles.lblPrimaryText(context)),
-            Spacer(),
+            const Spacer(),
             Icon(
               FeatherIcons.chevronRight,
               color: Theme.of(

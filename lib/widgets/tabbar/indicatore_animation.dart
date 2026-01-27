@@ -11,7 +11,7 @@ class _FadeUnderlinePainter extends BoxPainter {
   @override
   void paint(Canvas canvas, Offset offset, ImageConfiguration configuration) {
     final Paint paint = Paint()
-      ..color = Color(0XFF9B3046)
+      ..color = const Color(0XFF9B3046)
       ..strokeWidth = 1;
 
     final double x = offset.dx;

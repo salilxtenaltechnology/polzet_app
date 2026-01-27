@@ -22,7 +22,7 @@ class CustomTextStyles {
       fontWeight: FontWeight.w500);
 
   static TextStyle msgAuthTitleText(BuildContext context) =>
-      TextStyle(fontSize: 11.sp, color: Color(0XFF999999));
+      TextStyle(fontSize: 11.sp, color: const Color(0XFF999999));
 
   static TextStyle lblPrimaryHintText(BuildContext context) => TextStyle(
         color: Theme.of(context).colorScheme.onBackground.withOpacity(0.25),
@@ -51,7 +51,7 @@ class CustomTextStyles {
       fontWeight: FontWeight.w600);
 
   static TextStyle lblProfileContentText(BuildContext context) => TextStyle(
-      color: Color(0XFF888888), fontSize: 12.sp, fontWeight: FontWeight.w600);
+      color: const Color(0XFF888888), fontSize: 12.sp, fontWeight: FontWeight.w600);
 
   static TextStyle lblNoInternetText(BuildContext context) => TextStyle(
       color: Theme.of(context).colorScheme.onBackground,
@@ -59,7 +59,7 @@ class CustomTextStyles {
       fontWeight: FontWeight.w500);
 
   static TextStyle msgNoInternetText(BuildContext context) => TextStyle(
-      fontSize: 12.5.sp, color: Color(0XFF999999), fontWeight: FontWeight.w500);
+      fontSize: 12.5.sp, color: const Color(0XFF999999), fontWeight: FontWeight.w500);
 
   static TextStyle popTitleText(BuildContext context) => TextStyle(
       fontSize: 13.7.sp,

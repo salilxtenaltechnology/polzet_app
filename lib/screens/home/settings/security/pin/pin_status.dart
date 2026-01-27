@@ -1,4 +1,5 @@
 // lib/screens/home/settings/security/pin/pin_service.dart
+import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:crypto/crypto.dart';
 import 'dart:convert';
@@ -102,7 +103,7 @@ class PinService {
 
       return true;
     } catch (e) {
-      print('Error saving PIN: $e');
+      debugPrint('Error saving PIN: $e');
       return false;
     }
   }
@@ -156,7 +157,7 @@ class PinService {
         if (newAttemptsCount >= _maxAttempts) {
           // Lock the account
           final lockoutEndTime = DateTime.now().add(
-            Duration(minutes: _lockoutDurationMinutes),
+            const Duration(minutes: _lockoutDurationMinutes),
           );
 
           final updatedStatus = PinStatus(
@@ -196,7 +197,7 @@ class PinService {
         }
       }
     } catch (e) {
-      print('Error authenticating PIN: $e');
+      debugPrint('Error authenticating PIN: $e');
       return PinAuthResult(
         success: false,
         message: 'Authentication error',
@@ -222,7 +223,7 @@ class PinService {
 
       await prefs.setString(_pinStatusKey, json.encode(updatedStatus.toJson()));
     } catch (e) {
-      print('Error resetting attempts: $e');
+      debugPrint('Error resetting attempts: $e');
     }
   }
 
@@ -242,7 +243,7 @@ class PinService {
         remainingAttempts: _maxAttempts,
       );
     } catch (e) {
-      print('Error getting PIN status: $e');
+      debugPrint('Error getting PIN status: $e');
       return PinStatus(
         isSet: false,
         remainingAttempts: _maxAttempts,
@@ -256,7 +257,7 @@ class PinService {
       final prefs = await SharedPreferences.getInstance();
       return prefs.containsKey(_pinKey);
     } catch (e) {
-      print('Error checking if PIN is set: $e');
+      debugPrint('Error checking if PIN is set: $e');
       return false;
     }
   }
@@ -267,7 +268,7 @@ class PinService {
       final prefs = await SharedPreferences.getInstance();
       return prefs.getBool(_pinSecurityEnabledKey) ?? false;
     } catch (e) {
-      print('Error checking PIN security status: $e');
+      debugPrint('Error checking PIN security status: $e');
       return false;
     }
   }
@@ -278,7 +279,7 @@ class PinService {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setBool(_pinSecurityEnabledKey, enabled);
     } catch (e) {
-      print('Error setting PIN security status: $e');
+      debugPrint('Error setting PIN security status: $e');
     }
   }
 
@@ -290,7 +291,7 @@ class PinService {
       await prefs.remove(_pinStatusKey);
       await prefs.remove(_pinSecurityEnabledKey);
     } catch (e) {
-      print('Error clearing PIN: $e');
+      debugPrint('Error clearing PIN: $e');
     }
   }
 
@@ -342,7 +343,7 @@ class PinService {
       // Save new PIN
       return await savePin(newPin);
     } catch (e) {
-      print('Error changing PIN: $e');
+      debugPrint('Error changing PIN: $e');
       return false;
     }
   }

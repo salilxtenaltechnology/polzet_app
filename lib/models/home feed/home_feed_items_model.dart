@@ -1,3 +1,5 @@
+import 'package:flutter/material.dart';
+
 class HomeFeedPost {
   final int id;
   final HomeFeedUser user;
@@ -41,8 +43,8 @@ class HomeFeedPost {
         commentsCount: _parseToInt(json['comments_count']),
       );
     } catch (e) {
-      print('Error parsing HomeFeedPost: $e');
-      print('JSON data: $json');
+      debugPrint('Error parsing HomeFeedPost: $e');
+      debugPrint('JSON data: $json');
       rethrow;
     }
   }
@@ -87,7 +89,7 @@ class HomeFeedPost {
           result.add(fromJson(item));
         }
       } catch (e) {
-        print('Error parsing list item: $e');
+        debugPrint('Error parsing list item: $e');
         continue;
       }
     }
@@ -186,7 +188,7 @@ class HomeFeedPoll {
   final String question;
   final int maxOptions;
   final List<HomeFeedPollOption> options;
-   int totalVotes;
+  int totalVotes;
   final int? userVote;
   bool isPolledByCurrentUser;
 
@@ -255,7 +257,7 @@ class HomeFeedPoll {
           result.add(fromJson(item));
         }
       } catch (e) {
-        print('Error parsing list item: $e');
+        debugPrint('Error parsing list item: $e');
         continue;
       }
     }
@@ -269,6 +271,8 @@ class HomeFeedPollOption {
   final PollOptionImage? image;
   final int voteCount;
   final List<LikeUser> votersPreview;
+  final int score;
+   double percentage;
 
   HomeFeedPollOption({
     required this.id,
@@ -276,6 +280,8 @@ class HomeFeedPollOption {
     this.image,
     required this.voteCount,
     required this.votersPreview,
+    required this.score,
+    required this.percentage,
   });
 
   factory HomeFeedPollOption.fromJson(Map<String, dynamic> json) {
@@ -290,6 +296,8 @@ class HomeFeedPollOption {
         json['voters_preview'],
         (item) => LikeUser.fromJson(item),
       ),
+      score: _parseToInt(json['score']),
+      percentage: _parseToDouble(json['percentage']),
     );
   }
 
@@ -300,7 +308,17 @@ class HomeFeedPollOption {
       'image': image?.toJson(),
       'vote_count': voteCount,
       'voters_preview': votersPreview.map((user) => user.toJson()).toList(),
+      'score': score,
+      'percentage': percentage,
     };
+  }
+
+  static double _parseToDouble(dynamic value) {
+    if (value == null) return 0.0;
+    if (value is double) return value;
+    if (value is int) return value.toDouble();
+    if (value is String) return double.tryParse(value) ?? 0.0;
+    return 0.0;
   }
 
   static int _parseToInt(dynamic value) {
@@ -324,7 +342,7 @@ class HomeFeedPollOption {
           result.add(fromJson(item));
         }
       } catch (e) {
-        print('Error parsing list item: $e');
+        debugPrint('Error parsing list item: $e');
         continue;
       }
     }
@@ -400,7 +418,7 @@ class PollOptionImage {
           result.add(fromJson(item));
         }
       } catch (e) {
-        print('Error parsing list item: $e');
+        debugPrint('Error parsing list item: $e');
         continue;
       }
     }

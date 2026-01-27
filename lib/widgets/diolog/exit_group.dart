@@ -6,7 +6,7 @@ import '../../../core/constants/app_images.dart';
 import '../custom_text_styles.dart';
 
 class ExitGroupDiolog extends StatelessWidget {
-  ExitGroupDiolog({required this.onPressed});
+  const ExitGroupDiolog({super.key, required this.onPressed});
 
   final VoidCallback? onPressed;
 
@@ -45,13 +45,13 @@ class ExitGroupDiolog extends StatelessWidget {
                   width: 110.w,
                   height: 30.h,
                   decoration: BoxDecoration(
-                    color: Color(0XFFC8FEC5),
+                    color: const Color(0XFFC8FEC5),
                     borderRadius: BorderRadius.circular(5.r),
                   ),
                   child: Center(
                     child: Text('Archive instead',
                         style: TextStyle(
-                            color: Color(0XFF0A9C03),
+                            color: const Color(0XFF0A9C03),
                             fontSize: 12.sp,
                             fontWeight: FontWeight.w500)),
                   ),
@@ -61,13 +61,13 @@ class ExitGroupDiolog extends StatelessWidget {
                 width: 110.w,
                 height: 30.h,
                 decoration: BoxDecoration(
-                  color: Color(0XFFFFEAEA),
+                  color: const Color(0XFFFFEAEA),
                   borderRadius: BorderRadius.circular(5.r),
                 ),
                 child: Center(
                   child: Text('Exit group',
                       style: TextStyle(
-                          color: Color(0XFFDE0004),
+                          color: const Color(0XFFDE0004),
                           fontSize: 12.sp,
                           fontWeight: FontWeight.w500)),
                 ),

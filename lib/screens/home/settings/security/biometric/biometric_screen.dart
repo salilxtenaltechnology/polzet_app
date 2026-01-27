@@ -11,7 +11,7 @@ import '../../../../splash/splash_screen.dart';
 import 'biometric_service.dart';
 
 class BiometricGateScreen extends StatefulWidget {
-  const BiometricGateScreen({Key? key}) : super(key: key);
+  const BiometricGateScreen({super.key});
 
   @override
   State<BiometricGateScreen> createState() => _BiometricGateScreenState();

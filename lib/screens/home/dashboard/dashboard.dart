@@ -2,7 +2,7 @@
 part of 'dashboard_import.dart';
 
 class Dashboard extends StatefulWidget {
-  Dashboard({super.key});
+  const Dashboard({super.key});
 
   @override
   State<StatefulWidget> createState() {
@@ -16,6 +16,9 @@ class DashboardState extends State<Dashboard> with UtilityMixin {
   bool isLoading = false;
   bool isInitialLoad = true;
   String? errorMessage;
+
+  final StreamController<List<HomeFeedPost>> _postsStreamController =
+      StreamController<List<HomeFeedPost>>.broadcast();
 
   // Sample categories list (you can replace this with your actual data)
   final List<Category> categories = [
@@ -36,6 +39,12 @@ class DashboardState extends State<Dashboard> with UtilityMixin {
   void initState() {
     super.initState();
     _loadInitialData();
+  }
+
+  @override
+  void dispose() {
+    _postsStreamController.close();
+    super.dispose();
   }
 
   /// Load cached data first, then fetch fresh data
@@ -93,6 +102,8 @@ class DashboardState extends State<Dashboard> with UtilityMixin {
             posts = cachedPosts;
             isInitialLoad = false;
           });
+          // Emit to stream
+          _postsStreamController.add(posts);
         }
         debugPrint('Loaded ${cachedPosts.length} posts from cache');
       }
@@ -101,7 +112,7 @@ class DashboardState extends State<Dashboard> with UtilityMixin {
     }
   }
 
-  Future<void> fetchHomeFeed({bool showLoader = true}) async {
+  Future<void> fetchHomeFeed({bool showLoader = false}) async {
     try {
       if (showLoader) {
         setState(() {
@@ -117,26 +128,33 @@ class DashboardState extends State<Dashboard> with UtilityMixin {
 
       if (mounted) {
         setState(() {
-          posts = fetchedPosts;
+          // Smart merge: update existing posts instead of replacing
+          if (!showLoader && posts.isNotEmpty) {
+            _mergePostsData(fetchedPosts);
+          } else {
+            posts = fetchedPosts;
+          }
+
           isLoading = false;
           isInitialLoad = false;
           errorMessage = null;
         });
+
+        // Emit updated posts to stream for instant UI update
+        _postsStreamController.add(posts);
       }
     } catch (e) {
       debugPrint('Error fetching home feed: $e');
 
-      // If we have cached posts, show them instead of error
       if (posts.isNotEmpty) {
         if (mounted) {
           setState(() {
             isLoading = false;
             isInitialLoad = false;
-            errorMessage = null; // Don't show error if we have cached data
+            errorMessage = null;
           });
         }
       } else {
-        // Only show error if no cached data available
         if (mounted) {
           setState(() {
             errorMessage = e.toString();
@@ -146,6 +164,59 @@ class DashboardState extends State<Dashboard> with UtilityMixin {
         }
       }
     }
+  }
+
+  void _mergePostsData(List<HomeFeedPost> fetchedPosts) {
+    Map<int, HomeFeedPost> fetchedPostsMap = {
+      for (var post in fetchedPosts) post.id: post,
+    };
+
+    for (int i = 0; i < posts.length; i++) {
+      final currentPost = posts[i];
+      final fetchedPost = fetchedPostsMap[currentPost.id];
+
+      if (fetchedPost != null) {
+        if (currentPost.polls.isNotEmpty && fetchedPost.polls.isNotEmpty) {
+          for (int j = 0; j < currentPost.polls.length; j++) {
+            if (j < fetchedPost.polls.length) {
+              final currentPoll = currentPost.polls[j];
+              final fetchedPoll = fetchedPost.polls[j];
+
+              currentPoll.isPolledByCurrentUser =
+                  fetchedPoll.isPolledByCurrentUser;
+              currentPoll.totalVotes = fetchedPoll.totalVotes;
+
+              for (int k = 0; k < currentPoll.options.length; k++) {
+                if (k < fetchedPoll.options.length) {
+                  currentPoll.options[k].percentage =
+                      fetchedPoll.options[k].percentage;
+                }
+              }
+            }
+          }
+        }
+
+        fetchedPostsMap.remove(currentPost.id);
+      }
+    }
+
+    posts.addAll(fetchedPostsMap.values);
+  }
+
+  /// Method to update a specific post in the stream
+  /// Call this from HomeFeedPostCard after voting
+  void updatePostInStream(HomeFeedPost updatedPost) {
+    final index = posts.indexWhere((post) => post.id == updatedPost.id);
+    if (index != -1) {
+      posts[index] = updatedPost;
+      // Emit updated list to stream
+      _postsStreamController.add(List.from(posts));
+    }
+  }
+
+  /// Method to notify stream of any changes without full refresh
+  void notifyPostsChanged() {
+    _postsStreamController.add(List.from(posts));
   }
 
   @override
@@ -159,7 +230,7 @@ class DashboardState extends State<Dashboard> with UtilityMixin {
   Widget _buildBody() {
     // Show loader during initial load
     if (isLoading && isInitialLoad) {
-      return HomeFeedSimmer();
+      return const HomeFeedSimmer();
     }
 
     if (errorMessage != null) {
@@ -203,19 +274,46 @@ class DashboardState extends State<Dashboard> with UtilityMixin {
 
     return RefreshIndicator(
       onRefresh: fetchHomeFeed,
-      child: ListView(
-        children: [
-          ListView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            padding: EdgeInsets.all(10.w),
-            itemCount: posts.length,
-            itemBuilder: (context, index) {
-              final post = posts[index];
-              return HomeFeedPostCard(post: post, onPressed: () {});
-            },
-          ),
-        ],
+      child: StreamBuilder<List<HomeFeedPost>>(
+        stream: _postsStreamController.stream,
+        initialData: posts,
+        builder: (context, snapshot) {
+          // Handle different stream states
+          if (snapshot.connectionState == ConnectionState.waiting &&
+              posts.isEmpty) {
+            return const HomeFeedSimmer();
+          }
+
+          final currentPosts = snapshot.data ?? posts;
+
+          if (currentPosts.isEmpty) {
+            return ListView(
+              children: [
+                SizedBox(height: 200.h),
+                const Center(child: Text('No posts available')),
+              ],
+            );
+          }
+
+          return ListView(
+            children: [
+              ListView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                padding: EdgeInsets.all(10.w),
+                itemCount: currentPosts.length,
+                itemBuilder: (context, index) {
+                  final post = currentPosts[index];
+                  return HomeFeedPostCard(
+                    key: ValueKey(post.id), // Important for proper rebuilding
+                    post: post,
+                    onPressed: () {},
+                  );
+                },
+              ),
+            ],
+          );
+        },
       ),
     );
   }

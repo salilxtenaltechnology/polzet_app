@@ -65,12 +65,12 @@ class _PublicPostsListState extends State<PublicPostsList> {
 
         return Container(
           width: double.infinity,
-          padding: EdgeInsets.all(10).w,
+          padding: const EdgeInsets.all(10).w,
           margin: EdgeInsets.only(bottom: 10.h, right: 10.w, left: 10.w),
           decoration: BoxDecoration(
             color: Theme.of(context).colorScheme.secondaryContainer,
             borderRadius: BorderRadius.circular(10.r),
-            boxShadow: [
+            boxShadow: const [
               BoxShadow(color: Colors.black12, blurRadius: 6, spreadRadius: 2),
             ],
           ),
@@ -82,21 +82,21 @@ class _PublicPostsListState extends State<PublicPostsList> {
                 children: [
                   Image.asset(
                     Assets.assetsImagesIcHeart,
-                    key: ValueKey('outline'),
+                    key: const ValueKey('outline'),
                     height: 23.h,
                     width: 23.w,
-                    color: Color(0xFFC6C5C5),
+                    color: const Color(0xFFC6C5C5),
                   ),
                   SizedBox(width: 10.w),
                   Icon(
                     FeatherIcons.messageSquare,
                     size: 21.sp,
-                    color: Color(0xFFC6C5C5),
+                    color: const Color(0xFFC6C5C5),
                   ),
                 ],
               ),
               AnimatedSwitcher(
-                duration: Duration(milliseconds: 300),
+                duration: const Duration(milliseconds: 300),
                 transitionBuilder: (child, animation) {
                   return ScaleTransition(
                     scale: animation,
@@ -110,7 +110,7 @@ class _PublicPostsListState extends State<PublicPostsList> {
                         width: 45.w,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          gradient: LinearGradient(
+                          gradient: const LinearGradient(
                             begin: Alignment.topLeft,
                             end: Alignment.bottomRight,
                             colors: [Color(0xFFCF4B73), Color(0xFFC76294)],
@@ -130,7 +130,7 @@ class _PublicPostsListState extends State<PublicPostsList> {
                           size: 22.spMax,
                         ),
                       )
-                    : SizedBox.shrink(), // hidden when false
+                    : const SizedBox.shrink(), // hidden when false
               ),
             ],
           ),
@@ -159,7 +159,7 @@ class _PublicPostsListState extends State<PublicPostsList> {
       backgroundColor: Theme.of(context).colorScheme.background,
       appBar: AppBar(
         automaticallyImplyLeading: false,
-        leading: PrimaryBackButton(),
+        leading: const PrimaryBackButton(),
         centerTitle: true,
         title: Text(
           AppLocalizations.of(context)!.posts,
@@ -477,7 +477,7 @@ class _PublicPostsListState extends State<PublicPostsList> {
       },
       child: ClipRRect(
         borderRadius: BorderRadius.circular(8.r),
-        child: Container(
+        child: SizedBox(
           height: height,
           child: Stack(
             children: [
@@ -537,7 +537,7 @@ class _PublicPostsListState extends State<PublicPostsList> {
                   bottom: 8,
                   right: 8,
                   child: AnimatedOpacity(
-                    duration: Duration(milliseconds: 300),
+                    duration: const Duration(milliseconds: 300),
                     opacity: 1.0,
                     child: Container(
                       width: 30.w,

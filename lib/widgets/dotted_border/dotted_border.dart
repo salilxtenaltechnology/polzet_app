@@ -19,14 +19,14 @@ class DottedBorderPainter extends CustomPainter {
       ..strokeWidth = strokeWidth
       ..style = PaintingStyle.stroke;
 
-    final borderRadius = 10.0;
+    const borderRadius = 10.0;
     final rect = Rect.fromLTWH(
       strokeWidth / 1,
       strokeWidth / 1,
       size.width - strokeWidth,
       size.height - strokeWidth,
     );
-    final rrect = RRect.fromRectAndRadius(rect, Radius.circular(borderRadius));
+    final rrect = RRect.fromRectAndRadius(rect, const Radius.circular(borderRadius));
 
     _drawDottedRRect(canvas, paint, rrect);
   }

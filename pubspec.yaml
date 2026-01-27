@@ -1,65 +1,78 @@
 name: polzet_app
 description: "A new Flutter project."
-# The following line prevents the package from being accidentally published to
-# pub.dev using `flutter pub publish`. This is preferred for private packages.
-publish_to: 'none' # Remove this line if you wish to publish to pub.dev
+publish_to: 'none'
 
 version: 1.0.0+1
 
 environment:
-  sdk: ^3.10.3
+  sdk: '>=3.10.3 <4.0.0'
 
 dependencies:
   flutter:
     sdk: flutter
-  cupertino_icons: ^1.0.8
-  page_transition: ^2.2.1
-  google_fonts: ^6.3.3
-  flutter_screenutil: ^5.9.3
-  provider: ^6.1.5+1
-  feather_icons: ^1.2.0
-  shared_preferences: ^2.5.4
-  dio: ^5.9.0
-  curved_navigation_bar: ^1.0.6
-  lottie: ^3.3.2
-
   flutter_localizations:
     sdk: flutter
-  fluttertoast: ^9.0.0
-  shimmer: ^3.0.0
+  
+  # Icons & UI
+  cupertino_icons: ^1.0.8
+  feather_icons: ^1.2.0
   icons_plus: ^5.0.0
-  http: ^1.6.0
+  google_fonts: ^6.3.3
+  flutter_screenutil: ^5.9.3
+  page_transition: ^2.2.1
+  curved_navigation_bar: ^1.0.6
+  lottie: ^3.3.2
+  shimmer: ^3.0.0
   glass: ^2.0.0+2
   dotted_border: ^3.1.0
+  
+  # State Management & Logic
+  provider: ^6.1.5+1
+  shared_preferences: ^2.5.4
+  local_auth: ^3.0.0
+  
+  # Networking & Data
+  dio: ^5.9.0
+  http: ^1.6.0
+  web_socket_channel: ^3.0.3
+  crypto: ^3.0.3  # Added this to fix your previous error
+  
+  # Firebase
+  firebase_core: ^4.3.0
+  firebase_messaging: ^16.1.0
+  cloud_firestore: ^6.1.1
+  
+  # Media & Hardware
   image_cropper: ^11.0.0
   image_picker: ^1.2.1
   wechat_assets_picker: ^10.0.0
   wechat_camera_picker: ^4.4.0
-  local_auth: ^3.0.0
-  firebase_core: ^4.3.0
-  firebase_messaging: ^16.1.0
+  
+  # Utils
+  fluttertoast: ^9.0.0
   flutter_local_notifications: ^19.5.0
-  cloud_firestore: ^6.1.1
+  share_plus: ^12.0.1
+  app_links: ^7.0.0
+  local_auth_android: ^2.0.4
+  path: ^1.9.1
+  intl: ^0.20.2
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
+  flutter_lints: ^3.0.0  # Kept at 3.0.0 for better compatibility with SDK 3.10
   flutter_launcher_icons: ^0.14.4
 
-flutter_icons:
-  android: true
+flutter_launcher_icons: # Fixed name (was flutter_icons)
+  android: "launcher_icon"
   ios: true
-  image_path: "assets/images/ic_app.png"  # Ensure the file exists in this path
-  adaptive_icon_background: "#ffffff"  # Background color (you can use an image too)
+  image_path: "assets/images/ic_app.png"
+  adaptive_icon_background: "#ffffff"
   adaptive_icon_foreground: "assets/images/ic_app.png"
 
-flutter: 
-  generate: true
+flutter:
   uses-material-design: true
+  generate: true
+  
   assets:
     - assets/images/
-
-flutter_assets:
-  assets_path: assets/images/
-  output_path: lib/core/constants
-  filename: app_images.dart

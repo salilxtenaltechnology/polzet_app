@@ -14,7 +14,7 @@ class UserThingsCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: EdgeInsets.all(10).w,
+      padding: const EdgeInsets.all(10).w,
       decoration: BoxDecoration(
         gradient: gradientColors != null
             ? LinearGradient(
@@ -27,7 +27,7 @@ class UserThingsCard extends StatelessWidget {
             ? Theme.of(context).colorScheme.secondaryContainer
             : null,
         borderRadius: BorderRadius.circular(15.r),
-        boxShadow: [
+        boxShadow: const [
           BoxShadow(
             color: Colors.black12,
             blurRadius: 6,

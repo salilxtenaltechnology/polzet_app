@@ -9,7 +9,6 @@ import '../../../../api/services/api_service.dart';
 import '../../../../api/services/like/like_service.dart';
 import '../../../../core/constants/app_images.dart';
 import '../../../../l10n/generated/app_localizations.dart';
-import '../../../../models/home feed/home_feed_items_model.dart';
 import '../../../../models/posts/image/post_image_model.dart';
 import '../../../../widgets/base64/image_convert.dart';
 import '../../../../widgets/button/back_button.dart';
@@ -74,7 +73,7 @@ class _ImagePostsListState extends State<ImagePostsList> {
         }
       });
     } catch (e) {
-      print('Error loading posts: $e');
+      debugPrint('Error loading posts: $e');
       setState(() {
         cachedPosts = [];
         isLoading = false;
@@ -173,7 +172,7 @@ class _ImagePostsListState extends State<ImagePostsList> {
       backgroundColor: Theme.of(context).colorScheme.background,
       appBar: AppBar(
         automaticallyImplyLeading: false,
-        leading: PrimaryBackButton(),
+        leading: const PrimaryBackButton(),
         centerTitle: true,
         title: Text(
           AppLocalizations.of(context)!.posts,
@@ -213,9 +212,9 @@ class _ImagePostsListState extends State<ImagePostsList> {
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(8.r),
-            boxShadow: [
+            boxShadow: const [
               BoxShadow(
-                color: const Color.fromARGB(30, 0, 0, 0),
+                color: Color.fromARGB(30, 0, 0, 0),
                 blurRadius: 5,
                 spreadRadius: 2,
               ),
@@ -273,7 +272,7 @@ class _ImagePostsListState extends State<ImagePostsList> {
                       ),
                     ],
                   ),
-                  Spacer(),
+                  const Spacer(),
                   GestureDetector(
                     onTap: () {
                       showUserDeletePostDiolog(context, () {
@@ -292,7 +291,7 @@ class _ImagePostsListState extends State<ImagePostsList> {
                   style: Theme.of(context).textTheme.titleMedium,
                 ),
               ),
-              SizedBox(height: 8),
+              const SizedBox(height: 8),
               if (imagePost.images.isNotEmpty)
                 _buildImagesSection(context, imagePost.images),
               SizedBox(height: 3.h),
@@ -304,7 +303,7 @@ class _ImagePostsListState extends State<ImagePostsList> {
                     child: Row(
                       children: [
                         AnimatedSwitcher(
-                          duration: Duration(milliseconds: 200),
+                          duration: const Duration(milliseconds: 200),
                           transitionBuilder: (child, animation) {
                             return ScaleTransition(
                               scale: animation,
@@ -323,7 +322,7 @@ class _ImagePostsListState extends State<ImagePostsList> {
                                   key: ValueKey('outline_${imagePost.id}'),
                                   height: 23.h,
                                   width: 23.w,
-                                  color: Color(0xFFC6C5C5),
+                                  color: const Color(0xFFC6C5C5),
                                 ),
                         ),
                         SizedBox(width: 3.w),
@@ -349,7 +348,7 @@ class _ImagePostsListState extends State<ImagePostsList> {
                         Icon(
                           FeatherIcons.messageSquare,
                           size: 21.sp,
-                          color: Color(0xFFC6C5C5),
+                          color: const Color(0xFFC6C5C5),
                         ),
                         SizedBox(width: 3.w),
                         Text(

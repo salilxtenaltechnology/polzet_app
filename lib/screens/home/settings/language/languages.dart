@@ -48,7 +48,7 @@ class _LanguagesState extends State<Languages> {
       appBar: AppBar(
         automaticallyImplyLeading: false,
         toolbarHeight: 25.h,
-        leading: PrimaryBackButton(),
+        leading: const PrimaryBackButton(),
         title: Text(AppLocalizations.of(context)!.language,
             style: CustomTextStyles.appBarTitleText(context)),
         centerTitle: true,

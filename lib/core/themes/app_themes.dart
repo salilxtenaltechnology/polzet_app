@@ -10,7 +10,7 @@ class AppThemes {
     useMaterial3: true,
     brightness: Brightness.light,
     fontFamily: GoogleFonts.poppins().fontFamily,
-    colorScheme: ColorScheme.light(
+    colorScheme: const ColorScheme.light(
       background: Colors.white, // Screen background color
       primary: AppColors.primaryColor,
       onPrimary: AppColors.primaryColor, // Text on primary background
@@ -26,8 +26,8 @@ class AppThemes {
     useMaterial3: true,
     brightness: Brightness.dark,
     fontFamily: GoogleFonts.poppins().fontFamily,
-    colorScheme: ColorScheme.dark(
-      background: const Color(0xFF0A0A0A),
+    colorScheme: const ColorScheme.dark(
+      background: Color(0xFF0A0A0A),
       primary: Colors.white,
       onPrimary: Colors.white,
       onBackground: Colors.white,

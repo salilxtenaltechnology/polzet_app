@@ -3,6 +3,7 @@
 import 'package:feather_icons/feather_icons.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:polzet_app/widgets/show_toast.dart';
 
 import '../../../../api/services/api_service.dart';
 import '../../../../core/constants/app_colors.dart';
@@ -35,11 +36,10 @@ class UserChase extends StatefulWidget {
 class _UserChaseState extends State<UserChase>
     with SingleTickerProviderStateMixin, UtilityMixin {
   final ApiService apiService = ApiService();
-  late Future<List<Map<String, dynamic>>> getFollowers;
-  late Future<List<Map<String, dynamic>>> getFollowing;
   late TabController _tabController;
 
-  bool isFollowing = true;
+  // Track following status for each user
+  Map<String, bool> followingStatus = {};
 
   // Search controller and filtered lists
   final TextEditingController _searchController = TextEditingController();
@@ -49,11 +49,21 @@ class _UserChaseState extends State<UserChase>
   List<Map<String, dynamic>> _filteredFollowers = [];
   List<Map<String, dynamic>> _filteredFollowing = [];
 
+  bool _isLoadingFollowers = true;
+  bool _isLoadingFollowing = true;
+
+  // Dynamic counts
+  int _followerCount = 0;
+  int _followingCount = 0;
+
   @override
   void initState() {
     super.initState();
-    getFollowers = apiService.getFollowersList();
-    getFollowing = apiService.getFollowingList();
+
+    // Initialize counts from widget parameters
+    _followerCount = int.tryParse(widget.followerCount) ?? 0;
+    _followingCount = int.tryParse(widget.followingCount) ?? 0;
+
     _tabController = TabController(
       length: 2,
       vsync: this,
@@ -67,6 +77,11 @@ class _UserChaseState extends State<UserChase>
   // Load data from API
   void _loadData() async {
     try {
+      setState(() {
+        _isLoadingFollowers = true;
+        _isLoadingFollowing = true;
+      });
+
       final followers = await apiService.getFollowersList();
       final following = await apiService.getFollowingList();
 
@@ -75,10 +90,147 @@ class _UserChaseState extends State<UserChase>
         _allFollowing = following;
         _filteredFollowers = followers;
         _filteredFollowing = following;
+        _isLoadingFollowers = false;
+        _isLoadingFollowing = false;
+
+        // Update counts based on actual data
+        _followerCount = followers.length;
+        _followingCount = following.length;
+
+        // Initialize following status for all users in following list
+        for (var user in following) {
+          final username = user['username'] as String?;
+          if (username != null) {
+            followingStatus[username] = true;
+          }
+        }
       });
     } catch (e) {
-      // Handle error if needed
-      print('Error loading data: $e');
+      setState(() {
+        _isLoadingFollowers = false;
+        _isLoadingFollowing = false;
+      });
+      debugPrint('Error loading data: $e');
+    }
+  }
+
+  // Remove follower (unfriend) - only removes from followers list
+  Future<void> _removeFollower(int userId) async {
+    try {
+      // Find the username before removing
+      String? removedUsername;
+      final removedUser = _allFollowers.firstWhere(
+        (user) => user['id'] == userId,
+        orElse: () => {},
+      );
+      if (removedUser.isNotEmpty) {
+        removedUsername = removedUser['username'] as String?;
+      }
+
+      // Optimistically remove ONLY from followers list
+      setState(() {
+        _allFollowers.removeWhere((user) => user['id'] == userId);
+        _filteredFollowers.removeWhere((user) => user['id'] == userId);
+
+        // Update ONLY follower count
+        _followerCount = _allFollowers.length;
+      });
+
+      // Call API to remove follower
+      final response = await apiService.unfriend(userId);
+
+      if (response['status'] == 'success') {
+        // Show success message
+        if (mounted) {
+          showToast(
+            message: response['data'] ?? 'Follower removed successfully',
+          );
+        }
+      } else {
+        // If failed, reload data to restore the user
+        _loadData();
+
+        if (mounted) {
+          showToast(
+            message: response['message'] ?? 'Failed to remove follower',
+          );
+        }
+      }
+    } catch (e) {
+      // If error, reload data to restore the user
+      _loadData();
+
+      if (mounted) {
+        showToast(message: 'Error: ${e.toString()}');
+      }
+      debugPrint('Error removing follower: $e');
+    }
+  }
+
+  // Toggle follow/unfollow in Following tab
+  Future<void> _toggleFollow(String username, int userId) async {
+    try {
+      final isCurrentlyFollowing = followingStatus[username] ?? false;
+
+      if (isCurrentlyFollowing) {
+        // Optimistically update UI - remove from following list
+        setState(() {
+          _allFollowing.removeWhere((user) => user['id'] == userId);
+          _filteredFollowing.removeWhere((user) => user['id'] == userId);
+          _followingCount = _allFollowing.length;
+          followingStatus[username] = false;
+        });
+
+        // Unfollow: call unfriend API
+        final response = await apiService.unfriend(userId);
+
+        if (response['status'] == 'success') {
+          if (mounted) {
+            showToast(message: 'Unfollowed successfully');
+          }
+        } else {
+          // If failed, reload data to restore
+          _loadData();
+
+          if (mounted) {
+            showToast(message: 'Failed to unfollow');
+          }
+        }
+      } else {
+        // Optimistically update UI
+        setState(() {
+          followingStatus[username] = true;
+        });
+
+        // Follow: send friend request
+        final success = await apiService.sendFriendRequest(username);
+
+        if (success) {
+          // Successfully followed - reload to get updated following list
+          _loadData();
+          
+          if (mounted) {
+            showToast(message: 'Friend request sent successfully');
+          }
+        } else {
+          // If failed, revert the change
+          setState(() {
+            followingStatus[username] = false;
+          });
+
+          if (mounted) {
+            showToast(message: 'Failed to send friend request');
+          }
+        }
+      }
+    } catch (e) {
+      // If error, reload data to restore proper state
+      _loadData();
+
+      if (mounted) {
+        showToast(message: 'Error: ${e.toString()}');
+      }
+      debugPrint('Error toggling follow: $e');
     }
   }
 
@@ -131,65 +283,26 @@ class _UserChaseState extends State<UserChase>
   }) {
     return Center(
       child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          SizedBox(height: 150.h),
           Icon(
             icon,
-            size: 50.sp,
+            size: 40.sp,
             color: Theme.of(context).colorScheme.onBackground.withOpacity(0.3),
           ),
-          SizedBox(height: 16.h),
+          SizedBox(height: 12.h),
           Text(
             message,
             style: TextStyle(
-              fontSize: 16.sp,
+              fontSize: 15.5.sp,
               fontWeight: FontWeight.w500,
               color: Theme.of(context).colorScheme.onBackground,
             ),
           ),
           if (subtitle != null) ...[
-            SizedBox(height: 8.h),
+            SizedBox(height: 5.h),
             Text(
               subtitle,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 13.sp,
-                color: Theme.of(
-                  context,
-                ).colorScheme.onBackground.withOpacity(0.6),
-              ),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-
-  // Build error state widget
-  Widget _buildErrorState(String error) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.error_outline,
-            size: 64.sp,
-            color: Colors.red.withOpacity(0.6),
-          ),
-          SizedBox(height: 16.h),
-          Text(
-            'Something went wrong',
-            style: TextStyle(
-              fontSize: 16.sp,
-              fontWeight: FontWeight.w500,
-              color: Theme.of(context).colorScheme.onBackground,
-            ),
-          ),
-          SizedBox(height: 8.h),
-          Padding(
-            padding: EdgeInsets.symmetric(horizontal: 32.w),
-            child: Text(
-              error,
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 12.sp,
@@ -198,18 +311,7 @@ class _UserChaseState extends State<UserChase>
                 ).colorScheme.onBackground.withOpacity(0.6),
               ),
             ),
-          ),
-          SizedBox(height: 16.h),
-          TextButton(
-            onPressed: () {
-              setState(() {
-                getFollowers = apiService.getFollowersList();
-                getFollowing = apiService.getFollowingList();
-                _loadData();
-              });
-            },
-            child: Text('Retry'),
-          ),
+          ],
         ],
       ),
     );
@@ -224,6 +326,11 @@ class _UserChaseState extends State<UserChase>
     final firstName =
         user['first_name'] as String? ?? user['name'] as String? ?? '';
     final firstLetter = firstName.isNotEmpty ? firstName[0].toUpperCase() : '?';
+    final userId = user['id'] as int;
+    final username = user['username'] as String? ?? '';
+
+    // Check if you're following this user (for both tabs)
+    final isFollowing = followingStatus[username] ?? false;
 
     return Container(
       height: 40.h,
@@ -233,13 +340,13 @@ class _UserChaseState extends State<UserChase>
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.background,
         borderRadius: BorderRadius.circular(12.r),
-        boxShadow: [
+        boxShadow: const [
           BoxShadow(color: Color(0x1C000000), blurRadius: 5, spreadRadius: 1),
         ],
       ),
       child: GestureDetector(
         onTap: () {
-          navigationPush(context, PublicProfile(userId: user['id']));
+          navigationPush(context, PublicProfile(userId: userId));
         },
         child: Row(
           children: [
@@ -280,22 +387,26 @@ class _UserChaseState extends State<UserChase>
             // Username
             Expanded(
               child: Text(
-                '${user['username']}',
+                username,
                 style: CustomTextStyles.lblSecondryText(context),
                 overflow: TextOverflow.ellipsis,
               ),
             ),
             // Action Button
             if (isFollowersTab)
+              // Remove Chase button for Followers tab
               GestureDetector(
-                onTap: () {},
+                onTap: () => _removeFollower(userId),
                 child: Container(
-                  width: 95.w,
+                  width: 100.w,
                   margin: EdgeInsets.fromLTRB(3.w, 3.h, 0, 3.h),
                   decoration: BoxDecoration(
                     color: Theme.of(context).colorScheme.background,
                     borderRadius: BorderRadius.circular(8.r),
-                    border: Border.all(color: Color(0XFFD9D9D9), width: 1),
+                    border: Border.all(
+                      color: const Color(0XFFD9D9D9),
+                      width: 1,
+                    ),
                   ),
                   child: Center(
                     child: Text(
@@ -310,50 +421,44 @@ class _UserChaseState extends State<UserChase>
                 ),
               )
             else
-              Row(
-                children: [
-                  GestureDetector(
-                    onTap: () {
-                      setState(() {
-                        isFollowing = !isFollowing;
-                      });
-                    },
-                    child: Container(
-                      width: 72.w,
-                      margin: EdgeInsets.fromLTRB(3.w, 3.h, 0, 3.h),
-                      decoration: BoxDecoration(
+              // Chasing/Chase button for Following tab
+              GestureDetector(
+                onTap: () {
+                  // Call toggle follow when tapped
+                  _toggleFollow(username, userId);
+                },
+                child: Container(
+                  width: 72.w,
+                  margin: EdgeInsets.fromLTRB(3.w, 3.h, 0, 3.h),
+                  decoration: BoxDecoration(
+                    // If following: white background, else: primary color
+                    color: isFollowing
+                        ? Theme.of(context).colorScheme.background
+                        : AppColors.primaryColor,
+                    borderRadius: BorderRadius.circular(8.r),
+                    border: Border.all(
+                      // If following: gray border, else: primary color border
+                      color: isFollowing
+                          ? const Color(0XFFD9D9D9)
+                          : AppColors.primaryColor,
+                      width: 1,
+                    ),
+                  ),
+                  child: Center(
+                    child: Text(
+                      // If following: show "Chasing", else: show "Chase"
+                      isFollowing ? 'Chasing' : 'Chase',
+                      style: TextStyle(
+                        // If following: dark text, else: white text
                         color: isFollowing
-                            ? Theme.of(context).colorScheme.background
-                            : AppColors.primaryColor,
-                        borderRadius: BorderRadius.circular(8.r),
-                        border: Border.all(
-                          color: isFollowing
-                              ? Color(0XFFD9D9D9)
-                              : AppColors.primaryColor,
-                          width: 1,
-                        ),
-                      ),
-                      child: Center(
-                        child: Text(
-                          isFollowing ? 'Chasing' : 'Chase',
-                          style: TextStyle(
-                            color: isFollowing
-                                ? Theme.of(context).colorScheme.onBackground
-                                : Colors.white,
-                            fontSize: 10.5.sp,
-                            fontWeight: FontWeight.w400,
-                          ),
-                        ),
+                            ? Theme.of(context).colorScheme.onBackground
+                            : Colors.white,
+                        fontSize: 10.5.sp,
+                        fontWeight: FontWeight.w400,
                       ),
                     ),
                   ),
-                  SizedBox(width: 3.w),
-                  Icon(
-                    Icons.more_vert,
-                    size: 20.spMax,
-                    color: Theme.of(context).colorScheme.onBackground,
-                  ),
-                ],
+                ),
               ),
           ],
         ),
@@ -366,7 +471,7 @@ class _UserChaseState extends State<UserChase>
     return Scaffold(
       appBar: AppBar(
         automaticallyImplyLeading: false,
-        leading: PrimaryBackButton(),
+        leading: const PrimaryBackButton(),
         title: Text(
           widget.username,
           style: CustomTextStyles.appBarTitleText(context),
@@ -381,22 +486,22 @@ class _UserChaseState extends State<UserChase>
           children: [
             TabBar(
               controller: _tabController,
-              overlayColor: WidgetStatePropertyAll(Colors.transparent),
+              overlayColor: const WidgetStatePropertyAll(Colors.transparent),
               indicatorColor: Theme.of(context).colorScheme.primary,
               indicatorSize: TabBarIndicatorSize.tab,
               indicator: FadeUnderlineTabIndicator(),
               labelColor: Theme.of(context).colorScheme.primary,
-              labelStyle: TextStyle(fontWeight: FontWeight.w500),
+              labelStyle: const TextStyle(fontWeight: FontWeight.w500),
               dividerColor: Colors.transparent,
               unselectedLabelColor: Theme.of(context).colorScheme.onBackground,
               tabs: [
                 Tab(
                   text:
-                      '${widget.followerCount}  ${AppLocalizations.of(context)!.vibe}',
+                      '$_followerCount  ${AppLocalizations.of(context)!.vibe}',
                 ),
                 Tab(
                   text:
-                      '${widget.followingCount} ${AppLocalizations.of(context)!.revibe}',
+                      '$_followingCount ${AppLocalizations.of(context)!.revibe}',
                 ),
               ],
             ),
@@ -407,7 +512,7 @@ class _UserChaseState extends State<UserChase>
               decoration: BoxDecoration(
                 color: Theme.of(context).colorScheme.background,
                 borderRadius: BorderRadius.circular(12.r),
-                boxShadow: [
+                boxShadow: const [
                   BoxShadow(
                     color: Color(0x1C000000),
                     blurRadius: 8,
@@ -440,7 +545,7 @@ class _UserChaseState extends State<UserChase>
                     borderRadius: BorderRadius.circular(13.r),
                   ),
                   focusedBorder: OutlineInputBorder(
-                    borderSide: BorderSide(
+                    borderSide: const BorderSide(
                       color: AppColors.primaryColor,
                       width: 0.7,
                     ),
@@ -468,25 +573,10 @@ class _UserChaseState extends State<UserChase>
                       left: 2.5.w,
                       right: 2.5.w,
                     ),
-                    child: FutureBuilder<List<Map<String, dynamic>>>(
-                      future: getFollowers,
-                      builder: (context, snapshot) {
-                        if (snapshot.connectionState ==
-                            ConnectionState.waiting) {
-                          return ChaseSimmer();
-                        }
-
-                        if (snapshot.hasError) {
-                          return _buildErrorState(snapshot.error.toString());
-                        }
-
-                        // Use filtered list if search is active
-                        final users = _searchQuery.isEmpty
-                            ? (snapshot.data ?? [])
-                            : _filteredFollowers;
-
-                        if (users.isEmpty) {
-                          return _buildEmptyState(
+                    child: _isLoadingFollowers
+                        ? const ChaseSimmer()
+                        : _filteredFollowers.isEmpty
+                        ? _buildEmptyState(
                             icon: FeatherIcons.users,
                             message: _searchQuery.isEmpty
                                 ? 'No chase yet'
@@ -494,20 +584,16 @@ class _UserChaseState extends State<UserChase>
                             subtitle: _searchQuery.isEmpty
                                 ? 'When people chase you, they\'ll appear here'
                                 : 'Try searching with a different keyword',
-                          );
-                        }
-
-                        return ListView.builder(
-                          itemCount: users.length,
-                          itemBuilder: (context, index) {
-                            return _buildUserListItem(
-                              user: users[index],
-                              isFollowersTab: true,
-                            );
-                          },
-                        );
-                      },
-                    ),
+                          )
+                        : ListView.builder(
+                            itemCount: _filteredFollowers.length,
+                            itemBuilder: (context, index) {
+                              return _buildUserListItem(
+                                user: _filteredFollowers[index],
+                                isFollowersTab: true,
+                              );
+                            },
+                          ),
                   ),
                   // Following Tab (Re-chase)
                   Padding(
@@ -516,25 +602,10 @@ class _UserChaseState extends State<UserChase>
                       left: 2.5.w,
                       right: 2.5.w,
                     ),
-                    child: FutureBuilder<List<Map<String, dynamic>>>(
-                      future: getFollowing,
-                      builder: (context, snapshot) {
-                        if (snapshot.connectionState ==
-                            ConnectionState.waiting) {
-                          return ChaseSimmer();
-                        }
-
-                        if (snapshot.hasError) {
-                          return _buildErrorState(snapshot.error.toString());
-                        }
-
-                        // Use filtered list if search is active
-                        final users = _searchQuery.isEmpty
-                            ? (snapshot.data ?? [])
-                            : _filteredFollowing;
-
-                        if (users.isEmpty) {
-                          return _buildEmptyState(
+                    child: _isLoadingFollowing
+                        ? const ChaseSimmer()
+                        : _filteredFollowing.isEmpty
+                        ? _buildEmptyState(
                             icon: FeatherIcons.userPlus,
                             message: _searchQuery.isEmpty
                                 ? 'Not re-chase anyone yet'
@@ -542,20 +613,16 @@ class _UserChaseState extends State<UserChase>
                             subtitle: _searchQuery.isEmpty
                                 ? 'Start re-chase people to see them here'
                                 : 'Try searching with a different keyword',
-                          );
-                        }
-
-                        return ListView.builder(
-                          itemCount: users.length,
-                          itemBuilder: (context, index) {
-                            return _buildUserListItem(
-                              user: users[index],
-                              isFollowersTab: false,
-                            );
-                          },
-                        );
-                      },
-                    ),
+                          )
+                        : ListView.builder(
+                            itemCount: _filteredFollowing.length,
+                            itemBuilder: (context, index) {
+                              return _buildUserListItem(
+                                user: _filteredFollowing[index],
+                                isFollowersTab: false,
+                              );
+                            },
+                          ),
                   ),
                 ],
               ),
