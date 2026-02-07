@@ -43,7 +43,7 @@ class ImagePickerService {
                     Icons.camera_alt,
                     color: AppColors.primaryColor,
                   ),
-                  title:const Text('Take Photo'),
+                  title: const Text('Take Photo'),
                   onTap: () => Navigator.pop(context, 'camera'),
                 ),
               ListTile(
@@ -64,7 +64,7 @@ class ImagePickerService {
   static Future<File?> _pickFromCamera(BuildContext context) async {
     final AssetEntity? asset = await CameraPicker.pickFromCamera(
       context,
-      pickerConfig:const CameraPickerConfig(enableRecording: false),
+      pickerConfig: const CameraPickerConfig(enableRecording: false),
     );
     return await asset?.file;
   }
@@ -75,7 +75,7 @@ class ImagePickerService {
       pickerConfig: const AssetPickerConfig(
         maxAssets: 1,
         requestType: RequestType.image,
-        textDelegate:  EnglishAssetPickerTextDelegate(),
+        textDelegate: EnglishAssetPickerTextDelegate(),
       ),
     );
     if (assets != null && assets.isNotEmpty) {

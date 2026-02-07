@@ -24,31 +24,41 @@ class LogoutDialog extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(AppLocalizations.of(context)!.logout,
-              style: CustomTextStyles.appBarTitleText(context)),
+          Text(
+            AppLocalizations.of(context)!.logout,
+            style: CustomTextStyles.appBarTitleText(context),
+          ),
           SizedBox(height: 8.h),
-          Text(AppLocalizations.of(context)!.areyousurewanttologout,
-              style: CustomTextStyles.lblPrimaryText(context)),
+          Text(
+            AppLocalizations.of(context)!.areyousurewanttologout,
+            style: CustomTextStyles.lblPrimaryText(context),
+          ),
           SizedBox(height: 10.h),
           Row(
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
               GestureDetector(
                 onTap: () => Navigator.of(context).pop(),
-                child: Text(AppLocalizations.of(context)!.close.toUpperCase(),
-                    style: TextStyle(
-                        fontSize: 12.sp,
-                        color: Theme.of(context).colorScheme.onBackground,
-                        fontWeight: FontWeight.w500)),
+                child: Text(
+                  AppLocalizations.of(context)!.close.toUpperCase(),
+                  style: TextStyle(
+                    fontSize: 12.sp,
+                    color: Theme.of(context).colorScheme.onBackground,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
               ),
               SizedBox(width: 15.w),
               GestureDetector(
                 onTap: onPressed,
-                child: Text(AppLocalizations.of(context)!.logout.toUpperCase(),
-                    style: TextStyle(
-                        fontSize: 12.sp,
-                        color: AppColors.redColor,
-                        fontWeight: FontWeight.w500)),
+                child: Text(
+                  AppLocalizations.of(context)!.logout.toUpperCase(),
+                  style: TextStyle(
+                    fontSize: 12.sp,
+                    color: AppColors.redColor,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
               ),
             ],
           ),

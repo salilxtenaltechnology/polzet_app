@@ -49,8 +49,10 @@ class _LanguagesState extends State<Languages> {
         automaticallyImplyLeading: false,
         toolbarHeight: 25.h,
         leading: const PrimaryBackButton(),
-        title: Text(AppLocalizations.of(context)!.language,
-            style: CustomTextStyles.appBarTitleText(context)),
+        title: Text(
+          AppLocalizations.of(context)!.language,
+          style: CustomTextStyles.appBarTitleText(context),
+        ),
         centerTitle: true,
         backgroundColor: Theme.of(context).colorScheme.background,
         surfaceTintColor: Theme.of(context).colorScheme.background,
@@ -74,35 +76,40 @@ class _LanguagesState extends State<Languages> {
                       margin: EdgeInsets.symmetric(vertical: 5.h),
                       padding: EdgeInsets.symmetric(horizontal: 10.w),
                       decoration: BoxDecoration(
+                        color: isSelected
+                            ? Theme.of(
+                                context,
+                              ).colorScheme.primary.withOpacity(0.13)
+                            : Colors.transparent,
+                        borderRadius: BorderRadius.circular(12.r),
+                        border: Border.all(
                           color: isSelected
-                              ? Theme.of(context)
-                                  .colorScheme
-                                  .primary
-                                  .withOpacity(0.13)
-                              : Colors.transparent,
-                          borderRadius: BorderRadius.circular(12.r),
-                          border: Border.all(
-                              color: isSelected
-                                  ? Theme.of(context).colorScheme.primary
-                                  : Theme.of(context)
-                                      .colorScheme
-                                      .onBackground
-                                      .withOpacity(0.1),
-                              width: 1)),
+                              ? Theme.of(context).colorScheme.primary
+                              : Theme.of(
+                                  context,
+                                ).colorScheme.onBackground.withOpacity(0.1),
+                          width: 1,
+                        ),
+                      ),
                       child: Row(
                         children: [
-                          Text(lang["flag"]!,
-                              style: TextStyle(fontSize: 15.5.spMax)),
+                          Text(
+                            lang["flag"]!,
+                            style: TextStyle(fontSize: 15.5.spMax),
+                          ),
                           SizedBox(width: 10.w),
                           Expanded(
-                            child: Text(lang["name"]!,
-                                style:
-                                    CustomTextStyles.lblPrimaryText(context)),
+                            child: Text(
+                              lang["name"]!,
+                              style: CustomTextStyles.lblPrimaryText(context),
+                            ),
                           ),
                           if (isSelected)
-                            Icon(Icons.circle,
-                                size: 16.spMax,
-                                color: Theme.of(context).colorScheme.primary),
+                            Icon(
+                              Icons.circle,
+                              size: 16.spMax,
+                              color: Theme.of(context).colorScheme.primary,
+                            ),
                         ],
                       ),
                     ),

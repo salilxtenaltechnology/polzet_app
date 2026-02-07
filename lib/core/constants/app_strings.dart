@@ -81,5 +81,4 @@ class AppStrings {
   static const String lblSaveChanges = 'Save Changes';
   static const String lblNoInternet = 'No Internet Connection';
   static const String msgNoInternet = 'Check your connection or try again!';
-
 }

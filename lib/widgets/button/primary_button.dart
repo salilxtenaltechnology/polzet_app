@@ -7,12 +7,13 @@ import '../custom_text_styles.dart';
 import '../loader.dart';
 
 class PrimaryButton extends StatelessWidget {
-  PrimaryButton(
-      {super.key,
-      required this.title,
-      required this.onPressed,
-      required this.isLoading,
-      this.height});
+  PrimaryButton({
+    super.key,
+    required this.title,
+    required this.onPressed,
+    required this.isLoading,
+    this.height,
+  });
 
   final double? height;
   final String title;
@@ -26,11 +27,16 @@ class PrimaryButton extends StatelessWidget {
       child: Container(
         height: height,
         width: double.infinity,
-        margin:
-            EdgeInsets.only(left: 15.w, right: 15.w, bottom: 10.h, top: 5.h),
+        margin: EdgeInsets.only(
+          left: 15.w,
+          right: 15.w,
+          bottom: 10.h,
+          top: 5.h,
+        ),
         decoration: BoxDecoration(
-            color: AppColors.primaryColor,
-            borderRadius: BorderRadius.circular(50.r)),
+          color: AppColors.primaryColor,
+          borderRadius: BorderRadius.circular(50.r),
+        ),
         child: Center(
           child: isLoading
               ? Loader(color: Colors.white)

@@ -12,11 +12,12 @@ class AppIcons extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-        onTap: onTap,
-        child: Icon(
-          icon,
-          size: 18.5.spMax,
-          color: Theme.of(context).colorScheme.onBackground,
-        ));
+      onTap: onTap,
+      child: Icon(
+        icon,
+        size: 18.5.spMax,
+        color: Theme.of(context).colorScheme.onBackground,
+      ),
+    );
   }
 }

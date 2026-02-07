@@ -50,10 +50,10 @@ void showDeleteAccountDiolog(BuildContext context, VoidCallback onTap) {
 
 // block user diolog
 showBlockUserDiolog(BuildContext context, VoidCallback onTap) {
-  diologanimation(context, BlockUserDiolog(onPressed: onTap,));
+  diologanimation(context, BlockUserDiolog(onPressed: onTap));
 }
 
 // exit group diolog
 showExitGroupDiolog(BuildContext context, VoidCallback onTap) {
-  diologanimation(context,ExitGroupDiolog(onPressed: onTap));
+  diologanimation(context, ExitGroupDiolog(onPressed: onTap));
 }

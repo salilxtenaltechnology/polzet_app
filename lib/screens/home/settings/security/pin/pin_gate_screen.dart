@@ -13,6 +13,7 @@ class PinGateScreen extends StatefulWidget {
   @override
   _PinGateScreenState createState() => _PinGateScreenState();
 }
+
 class _PinGateScreenState extends State<PinGateScreen> {
   String _enteredPin = '';
   bool _isLoading = false;

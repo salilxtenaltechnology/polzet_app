@@ -16,8 +16,9 @@ void diologanimation(BuildContext context, Widget widget) {
         opacity: animation,
         child: ScaleTransition(
           scale: CurvedAnimation(parent: animation, curve: Curves.easeOutBack),
-          child:
-              Center(child: Material(color: Colors.transparent, child: widget)),
+          child: Center(
+            child: Material(color: Colors.transparent, child: widget),
+          ),
         ),
       );
     },

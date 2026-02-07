@@ -85,5 +85,4 @@ class DefaultFirebaseOptions {
     storageBucket: 'polzet-notifications.firebasestorage.app',
     measurementId: 'G-D6YKLHVYX5',
   );
-
 }

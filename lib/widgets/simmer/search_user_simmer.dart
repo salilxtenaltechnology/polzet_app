@@ -8,14 +8,14 @@ class SearchUserSimmer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Align(
-       alignment: Alignment.centerLeft,
+      alignment: Alignment.centerLeft,
       child: Shimmer.fromColors(
         baseColor: Colors.grey[300]!,
         highlightColor: Colors.grey[100]!,
         child: SizedBox(
-          height: 200.h, 
+          height: 200.h,
           child: ListView.builder(
-            itemCount: 3, 
+            itemCount: 3,
             physics: const NeverScrollableScrollPhysics(),
             itemBuilder: (context, index) {
               return Container(

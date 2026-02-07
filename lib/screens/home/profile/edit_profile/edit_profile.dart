@@ -397,7 +397,9 @@ class _EditProfileState extends State<EditProfile> with UtilityMixin {
       builder: (context, child) {
         return Theme(
           data: ThemeData(
-            colorScheme: const ColorScheme.light(primary: AppColors.primaryColor),
+            colorScheme: const ColorScheme.light(
+              primary: AppColors.primaryColor,
+            ),
           ),
           child: child!,
         );

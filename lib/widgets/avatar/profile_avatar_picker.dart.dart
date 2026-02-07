@@ -17,7 +17,8 @@ class ProfileAvatarPicker extends StatelessWidget {
   final VoidCallback onTap;
   final bool isCoverPhoto;
 
-  const ProfileAvatarPicker({super.key, 
+  const ProfileAvatarPicker({
+    super.key,
     required this.cachedImage,
     required this.selectedImage,
     required this.isUploading,

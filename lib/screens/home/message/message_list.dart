@@ -26,12 +26,15 @@ class _MessageListState extends State<MessageList> with UtilityMixin {
         automaticallyImplyLeading: false,
         toolbarHeight: 25.h,
         leading: GestureDetector(
-            onTap: () {
-              Navigator.pop(context);
-            },
-            child: const Icon(Icons.arrow_back_ios)),
-        title: Text(AppLocalizations.of(context)!.messages,
-            style: CustomTextStyles.appBarTitleText(context)),
+          onTap: () {
+            Navigator.pop(context);
+          },
+          child: const Icon(Icons.arrow_back_ios),
+        ),
+        title: Text(
+          AppLocalizations.of(context)!.messages,
+          style: CustomTextStyles.appBarTitleText(context),
+        ),
         centerTitle: true,
         backgroundColor: Theme.of(context).colorScheme.background,
         surfaceTintColor: Theme.of(context).colorScheme.background,
@@ -41,11 +44,7 @@ class _MessageListState extends State<MessageList> with UtilityMixin {
         children: [
           ListTile(
             onTap: () {
-              navigationPush(
-                  context,
-                  ChatScreen(
-                    memberName: 'Samuel Garry',
-                  ));
+              navigationPush(context, ChatScreen(memberName: 'Samuel Garry'));
             },
             contentPadding: EdgeInsets.zero,
             leading: CircleAvatar(
@@ -53,11 +52,14 @@ class _MessageListState extends State<MessageList> with UtilityMixin {
               backgroundColor: Colors.grey[700],
               backgroundImage: const AssetImage(Assets.assetsImagesPeople3),
             ),
-            title: Text('Samuel Garry',
-                style: TextStyle(
-                    color: Theme.of(context).colorScheme.onBackground,
-                    fontSize: 11.sp,
-                    fontWeight: FontWeight.w600)),
+            title: Text(
+              'Samuel Garry',
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onBackground,
+                fontSize: 11.sp,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
             subtitle: Text(
               'Just sent the design, feel thi lemme join ur club, buddy',
               maxLines: 1,
@@ -70,7 +72,10 @@ class _MessageListState extends State<MessageList> with UtilityMixin {
               children: [
                 Text(
                   'Yesterday',
-                  style: TextStyle(fontSize: 8.5.sp, color: const Color(0XFF999999)),
+                  style: TextStyle(
+                    fontSize: 8.5.sp,
+                    color: const Color(0XFF999999),
+                  ),
                 ),
                 const SizedBox(height: 8),
                 Container(
@@ -90,7 +95,9 @@ class _MessageListState extends State<MessageList> with UtilityMixin {
           ListTile(
             onTap: () {
               navigationPush(
-                  context, ChatScreen(memberName: 'Margareth Joanne'));
+                context,
+                ChatScreen(memberName: 'Margareth Joanne'),
+              );
             },
             contentPadding: EdgeInsets.zero,
             leading: CircleAvatar(
@@ -98,11 +105,14 @@ class _MessageListState extends State<MessageList> with UtilityMixin {
               backgroundColor: Colors.grey[700],
               backgroundImage: const AssetImage(Assets.assetsImagesPeople4),
             ),
-            title: Text('Margareth Joanne',
-                style: TextStyle(
-                    color: Theme.of(context).colorScheme.onBackground,
-                    fontSize: 11.sp,
-                    fontWeight: FontWeight.w600)),
+            title: Text(
+              'Margareth Joanne',
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onBackground,
+                fontSize: 11.sp,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
             subtitle: Text(
               'Whats up Sam, it’s Frankie.😏',
               maxLines: 1,
@@ -115,7 +125,10 @@ class _MessageListState extends State<MessageList> with UtilityMixin {
               children: [
                 Text(
                   '07/18/2022',
-                  style: TextStyle(fontSize: 8.5.sp, color: const Color(0XFF999999)),
+                  style: TextStyle(
+                    fontSize: 8.5.sp,
+                    color: const Color(0XFF999999),
+                  ),
                 ),
                 const SizedBox(height: 8),
                 Container(
@@ -131,7 +144,7 @@ class _MessageListState extends State<MessageList> with UtilityMixin {
                 ),
               ],
             ),
-          )
+          ),
         ],
       ),
     );

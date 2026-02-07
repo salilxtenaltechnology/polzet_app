@@ -55,7 +55,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        
+
         setState(() {
           postData = data;
           isLoading = false;
@@ -202,23 +202,21 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                     'Post ID: ${widget.postId}',
                     style: TextStyle(
                       fontSize: 12.sp,
-                      color: Theme.of(context)
-                          .colorScheme
-                          .onSurface
-                          .withOpacity(0.6),
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.onSurface.withOpacity(0.6),
                     ),
                   ),
                 ],
               ),
             ),
-            
+
             SizedBox(height: 16.h),
 
             // Post content area
             if (postData != null) ...[
               // Replace this with your actual post widget
               // Example: YourPostWidget(post: postData),
-              
               Container(
                 width: double.infinity,
                 padding: EdgeInsets.all(16.w),
@@ -226,10 +224,9 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                   color: Theme.of(context).colorScheme.surface,
                   borderRadius: BorderRadius.circular(12.r),
                   border: Border.all(
-                    color: Theme.of(context)
-                        .colorScheme
-                        .onSurface
-                        .withOpacity(0.1),
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.onSurface.withOpacity(0.1),
                   ),
                 ),
                 child: Column(
@@ -248,14 +245,13 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                       'Replace this with your actual post widget that displays polls, images, text, etc.',
                       style: TextStyle(
                         fontSize: 14.sp,
-                        color: Theme.of(context)
-                            .colorScheme
-                            .onSurface
-                            .withOpacity(0.7),
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.onSurface.withOpacity(0.7),
                       ),
                     ),
                     SizedBox(height: 16.h),
-                    
+
                     // Debug info (remove in production)
                     Container(
                       padding: EdgeInsets.all(12.w),

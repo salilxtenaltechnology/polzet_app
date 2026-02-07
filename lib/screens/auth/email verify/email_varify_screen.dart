@@ -14,10 +14,14 @@ class RegisterEmailVerification extends StatefulWidget {
 class _EmailVerificationScreenState extends State<RegisterEmailVerification>
     with UtilityMixin {
   final TextEditingController _emailController = TextEditingController();
-  final List<TextEditingController> _otpControllers =
-      List.generate(6, (index) => TextEditingController());
-  final List<FocusNode> _otpFocusNodes =
-      List.generate(6, (index) => FocusNode());
+  final List<TextEditingController> _otpControllers = List.generate(
+    6,
+    (index) => TextEditingController(),
+  );
+  final List<FocusNode> _otpFocusNodes = List.generate(
+    6,
+    (index) => FocusNode(),
+  );
   bool _isLoading = false;
   bool _isSendingOtp = false;
   bool _isShowButton = false; // To OTP text box and Verify Button
@@ -45,8 +49,10 @@ class _EmailVerificationScreenState extends State<RegisterEmailVerification>
     var body = {'email': _emailController.text};
 
     try {
-      final response =
-          await http.post(Uri.parse(ApiConstants.emailVerify), body: body);
+      final response = await http.post(
+        Uri.parse(ApiConstants.emailVerify),
+        body: body,
+      );
 
       if (response.statusCode == 200) {
         setState(() {
@@ -56,7 +62,8 @@ class _EmailVerificationScreenState extends State<RegisterEmailVerification>
       } else {
         final errorData = json.decode(response.body);
         setState(
-            () => _errorMessage = errorData['message'] ?? 'Failed to send OTP');
+          () => _errorMessage = errorData['message'] ?? 'Failed to send OTP',
+        );
       }
     } catch (e) {
       setState(() => _errorMessage = 'Connection error: ${e.toString()}');
@@ -80,13 +87,17 @@ class _EmailVerificationScreenState extends State<RegisterEmailVerification>
     var body = {'email': _emailController.text, 'otp': otp};
 
     try {
-      final response =
-          await http.post(Uri.parse(ApiConstants.validateOtp), body: body);
+      final response = await http.post(
+        Uri.parse(ApiConstants.validateOtp),
+        body: body,
+      );
 
       if (response.statusCode == 200) {
         navigationPushReplacement(
-            // ignore: use_build_context_synchronously
-            context, SignupScreen(email: _emailController.text));
+          // ignore: use_build_context_synchronously
+          context,
+          SignupScreen(email: _emailController.text),
+        );
       } else {
         final errorData = json.decode(response.body);
         setState(() => _errorMessage = errorData['message'] ?? 'Invalid OTP');
@@ -100,17 +111,20 @@ class _EmailVerificationScreenState extends State<RegisterEmailVerification>
 
   bool _validateEmail(String email) {
     return RegExp(
-            r"^[a-zA-Z0-9.a-zA-Z0-9.!#$%&'*+-/=?^_`{|}~]+@[a-zA-Z0-9]+\.[a-zA-Z]+")
-        .hasMatch(email);
+      r"^[a-zA-Z0-9.a-zA-Z0-9.!#$%&'*+-/=?^_`{|}~]+@[a-zA-Z0-9]+\.[a-zA-Z]+",
+    ).hasMatch(email);
   }
 
   @override
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.background,
-          image: const DecorationImage(
-              image: AssetImage(Assets.assetsImagesBg), fit: BoxFit.cover)),
+        color: Theme.of(context).colorScheme.background,
+        image: const DecorationImage(
+          image: AssetImage(Assets.assetsImagesBg),
+          fit: BoxFit.cover,
+        ),
+      ),
       child: Scaffold(
         backgroundColor: Colors.transparent,
         body: LayoutBuilder(
@@ -137,180 +151,195 @@ class _EmailVerificationScreenState extends State<RegisterEmailVerification>
 
   Widget _buildEmailVerifyCard() {
     return CustomCard(
-        widget: Column(
-      children: [
-        Text(
-          AppStrings.appName.toUpperCase(),
-          style: CustomTextStyles.appTitleText(context),
-        ),
-        SizedBox(height: 12.h),
-        Text(
-          AppStrings.msgSignUp,
-          textAlign: TextAlign.center,
-          style: CustomTextStyles.msgAuthTitleText(context),
-        ),
-        SizedBox(height: 20.h),
-        PrimaryTextfield(
-          controller: _emailController,
-          isPassword: false,
-          labelText: AppStrings.lblEmail,
-          prefixIcon: Icon(FeatherIcons.mail,size: 20,
-                  color: Theme.of(context)
-                      .colorScheme
-                      .onBackground
-                      .withOpacity(0.13)),
-        ),
-        if (_errorMessage.isNotEmpty)
-          Padding(
-            padding: EdgeInsets.only(top: 5.h),
-            child: Text(_errorMessage, style: CustomTextStyles.msgErrorText),
+      widget: Column(
+        children: [
+          Text(
+            AppStrings.appName.toUpperCase(),
+            style: CustomTextStyles.appTitleText(context),
           ),
-        if (_successMessage.isNotEmpty)
-          Padding(
-            padding: EdgeInsets.only(top: 5.h),
-            child:
-                Text(_successMessage, style: CustomTextStyles.msgSuccessText),
+          SizedBox(height: 12.h),
+          Text(
+            AppStrings.msgSignUp,
+            textAlign: TextAlign.center,
+            style: CustomTextStyles.msgAuthTitleText(context),
           ),
-        SizedBox(height: 10.h),
-        AuthButton(
+          SizedBox(height: 20.h),
+          PrimaryTextfield(
+            controller: _emailController,
+            isPassword: false,
+            labelText: AppStrings.lblEmail,
+            prefixIcon: Icon(
+              FeatherIcons.mail,
+              size: 20,
+              color: Theme.of(
+                context,
+              ).colorScheme.onBackground.withOpacity(0.13),
+            ),
+          ),
+          if (_errorMessage.isNotEmpty)
+            Padding(
+              padding: EdgeInsets.only(top: 5.h),
+              child: Text(_errorMessage, style: CustomTextStyles.msgErrorText),
+            ),
+          if (_successMessage.isNotEmpty)
+            Padding(
+              padding: EdgeInsets.only(top: 5.h),
+              child: Text(
+                _successMessage,
+                style: CustomTextStyles.msgSuccessText,
+              ),
+            ),
+          SizedBox(height: 10.h),
+          AuthButton(
             onPressed: () {
               String email = _emailController.text.trim();
               if (email.isEmpty) {
                 setState(() => _errorMessage = 'Please enter email');
               } else if (!_isValidEmail(_emailController.text)) {
-                setState(() =>
-                    _errorMessage = 'Please enter a valid email address.');
+                setState(
+                  () => _errorMessage = 'Please enter a valid email address.',
+                );
               } else {
                 _sendOtp();
               }
             },
             title: 'Get OTP',
-            isLoading: _isSendingOtp),
-        SizedBox(height: 10.h),
-        if (_isShowButton)
-          Padding(
-            padding: EdgeInsets.only(top: 10.h),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: List.generate(6, (index) {
-                return Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 1),
-                  child: Container(
-                    width: 40.w,
-                    height: 42.h,
-                    decoration: const BoxDecoration(shape: BoxShape.circle),
-                    child: TextField(
-                      controller: _otpControllers[index],
-                      focusNode: _otpFocusNodes[index],
-                      keyboardType: TextInputType.number,
-                      textAlign: TextAlign.center,
-                      cursorColor: const Color(0xFF9B3046),
-                      cursorHeight: 16.sp,
-                      cursorWidth: 1.5,
-                      inputFormatters: [
-                        FilteringTextInputFormatter.digitsOnly,
-                        LengthLimitingTextInputFormatter(1),
-                      ],
-                      decoration: InputDecoration(
-                        border: InputBorder.none,
-                        enabledBorder: OutlineInputBorder(
-                            borderSide: BorderSide(
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .onBackground
-                                    .withOpacity(0.1),
-                                width: 1),
-                            borderRadius: BorderRadius.circular(100)),
-                        focusedBorder: OutlineInputBorder(
-                            borderSide: BorderSide(
-                                color: AppColors.primaryColor.withOpacity(0.8),
-                                width: 1),
-                            borderRadius: BorderRadius.circular(100)),
-                        contentPadding: EdgeInsets.zero,
-                      ),
-                      style: TextStyle(
-                        fontSize: 16.sp,
-                      ),
-                      onChanged: (value) {
-                        setState(() => _errorMessage = '');
-                        if (value.isNotEmpty) {
-                          if (index < 5) {
-                            FocusScope.of(context)
-                                .requestFocus(_otpFocusNodes[index + 1]);
-                          } else {
-                            FocusScope.of(context).unfocus();
-                          }
-                        } else {
-                          if (index > 0) {
-                            FocusScope.of(context)
-                                .requestFocus(_otpFocusNodes[index - 1]);
-                          }
-                        }
-                      },
-                    ),
-                  ),
-                );
-              }),
-            ),
+            isLoading: _isSendingOtp,
           ),
-        if (_isShowButton) SizedBox(height: 15.h),
-        if (_isShowButton)
-          AuthButton(
+          SizedBox(height: 10.h),
+          if (_isShowButton)
+            Padding(
+              padding: EdgeInsets.only(top: 10.h),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: List.generate(6, (index) {
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 1),
+                    child: Container(
+                      width: 40.w,
+                      height: 42.h,
+                      decoration: const BoxDecoration(shape: BoxShape.circle),
+                      child: TextField(
+                        controller: _otpControllers[index],
+                        focusNode: _otpFocusNodes[index],
+                        keyboardType: TextInputType.number,
+                        textAlign: TextAlign.center,
+                        cursorColor: const Color(0xFF9B3046),
+                        cursorHeight: 16.sp,
+                        cursorWidth: 1.5,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly,
+                          LengthLimitingTextInputFormatter(1),
+                        ],
+                        decoration: InputDecoration(
+                          border: InputBorder.none,
+                          enabledBorder: OutlineInputBorder(
+                            borderSide: BorderSide(
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.onBackground.withOpacity(0.1),
+                              width: 1,
+                            ),
+                            borderRadius: BorderRadius.circular(100),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderSide: BorderSide(
+                              color: AppColors.primaryColor.withOpacity(0.8),
+                              width: 1,
+                            ),
+                            borderRadius: BorderRadius.circular(100),
+                          ),
+                          contentPadding: EdgeInsets.zero,
+                        ),
+                        style: TextStyle(fontSize: 16.sp),
+                        onChanged: (value) {
+                          setState(() => _errorMessage = '');
+                          if (value.isNotEmpty) {
+                            if (index < 5) {
+                              FocusScope.of(
+                                context,
+                              ).requestFocus(_otpFocusNodes[index + 1]);
+                            } else {
+                              FocusScope.of(context).unfocus();
+                            }
+                          } else {
+                            if (index > 0) {
+                              FocusScope.of(
+                                context,
+                              ).requestFocus(_otpFocusNodes[index - 1]);
+                            }
+                          }
+                        },
+                      ),
+                    ),
+                  );
+                }),
+              ),
+            ),
+          if (_isShowButton) SizedBox(height: 15.h),
+          if (_isShowButton)
+            AuthButton(
               onPressed: _isLoading ? null : _verifyOtp,
               title: AppStrings.lblVerify,
-              isLoading: _isLoading),
-        if (_isShowButton) SizedBox(height: 10.h),
-        Center(
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                AppStrings.lblHaveAcc,
-                style: TextStyle(
-                  fontSize: 11.sp,
-                  color: Theme.of(context).colorScheme.onBackground,
-                ),
-              ),
-              GestureDetector(
-                onTap: () => Navigator.pop(context),
-                child: Text(
-                  AppStrings.lblLogin,
+              isLoading: _isLoading,
+            ),
+          if (_isShowButton) SizedBox(height: 10.h),
+          Center(
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  AppStrings.lblHaveAcc,
                   style: TextStyle(
+                    fontSize: 11.sp,
+                    color: Theme.of(context).colorScheme.onBackground,
+                  ),
+                ),
+                GestureDetector(
+                  onTap: () => Navigator.pop(context),
+                  child: Text(
+                    AppStrings.lblLogin,
+                    style: TextStyle(
                       color: Theme.of(context).colorScheme.primary,
                       fontWeight: FontWeight.bold,
-                      fontSize: 12.sp),
+                      fontSize: 12.sp,
+                    ),
+                  ),
                 ),
+              ],
+            ),
+          ),
+          SizedBox(height: 10.h),
+          Text(
+            'Or continue with',
+            style: TextStyle(
+              fontSize: 11.sp,
+              color: Theme.of(context).colorScheme.onBackground,
+            ),
+          ),
+          SizedBox(height: 10.h),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              _authSocialMedia(
+                () {},
+                Image.asset(Assets.assetsImagesIcGoogle),
+                const EdgeInsets.all(4).w,
               ),
+              // SizedBox(width: 7.w),
+              // _authSocialMedia(
+              //     () {},
+              //     Image.asset(Assets.assetsImagesIcX,
+              //         color: Theme.of(context).colorScheme.onBackground),
+              //     const EdgeInsets.all(5).w),
+              // SizedBox(width: 7.w),
+              // _authSocialMedia(() {}, Image.asset(Assets.assetsImagesIcFacebook),
+              //     const EdgeInsets.all(3).w),
             ],
           ),
-        ),
-        SizedBox(height: 10.h),
-        Text(
-          'Or continue with',
-          style: TextStyle(
-            fontSize: 11.sp,
-            color: Theme.of(context).colorScheme.onBackground,
-          ),
-        ),
-        SizedBox(height: 10.h),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            _authSocialMedia(() {}, Image.asset(Assets.assetsImagesIcGoogle),
-                const EdgeInsets.all(4).w),
-            // SizedBox(width: 7.w),
-            // _authSocialMedia(
-            //     () {},
-            //     Image.asset(Assets.assetsImagesIcX,
-            //         color: Theme.of(context).colorScheme.onBackground),
-            //     const EdgeInsets.all(5).w),
-            // SizedBox(width: 7.w),
-            // _authSocialMedia(() {}, Image.asset(Assets.assetsImagesIcFacebook),
-            //     const EdgeInsets.all(3).w),
-          ],
-        ),
-      ],
-    ));
+        ],
+      ),
+    );
   }
 
   @override
@@ -321,7 +350,10 @@ class _EmailVerificationScreenState extends State<RegisterEmailVerification>
   }
 
   Widget _authSocialMedia(
-      VoidCallback onTap, Widget image, EdgeInsets padding) {
+    VoidCallback onTap,
+    Widget image,
+    EdgeInsets padding,
+  ) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -329,11 +361,12 @@ class _EmailVerificationScreenState extends State<RegisterEmailVerification>
         width: 35.w,
         padding: padding,
         decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            border: Border.all(
-                color:
-                    Theme.of(context).colorScheme.onBackground.withOpacity(0.1),
-                width: 1)),
+          shape: BoxShape.circle,
+          border: Border.all(
+            color: Theme.of(context).colorScheme.onBackground.withOpacity(0.1),
+            width: 1,
+          ),
+        ),
         child: image,
       ),
     );

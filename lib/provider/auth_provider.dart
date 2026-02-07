@@ -10,7 +10,11 @@ class AuthProvider with ChangeNotifier {
     isLoading = true;
     notifyListeners();
 
-    await ApiService().loginUser(email_username: email, password: password,context: context);
+    await ApiService().loginUser(
+      email_username: email,
+      password: password,
+      context: context,
+    );
 
     isLoading = false;
     notifyListeners();

@@ -40,8 +40,9 @@ class CommentItem extends StatelessWidget {
         children: [
           CircleAvatar(
             radius: 13.r,
-            backgroundColor:
-                Theme.of(context).colorScheme.primary.withOpacity(0.15),
+            backgroundColor: Theme.of(
+              context,
+            ).colorScheme.primary.withOpacity(0.15),
             child: Text(
               comment.user.isNotEmpty ? comment.user[0].toUpperCase() : 'U',
               style: TextStyle(

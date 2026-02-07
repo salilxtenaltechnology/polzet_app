@@ -3,7 +3,7 @@ class ApiConfig {
 
   // prodbackend.polzet.in :  For Produation
   // testbackend.polzet.in : For Test
-  // www.polzet.com : Domain
+  // www.polzet.com : Official Domain
 
   static String get baseUrl {
     const protocol = useHttps ? 'https' : 'http';

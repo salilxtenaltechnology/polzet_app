@@ -11,10 +11,7 @@ import 'pin_status.dart';
 class SetPinScreen extends StatefulWidget {
   final bool isSettingNewPin;
 
-  const SetPinScreen({
-    super.key,
-    required this.isSettingNewPin,
-  });
+  const SetPinScreen({super.key, required this.isSettingNewPin});
 
   @override
   _SetPinScreenState createState() => _SetPinScreenState();
@@ -87,10 +84,9 @@ class _SetPinScreenState extends State<SetPinScreen> {
                           shape: BoxShape.circle,
                           color: index < currentPin.length
                               ? Theme.of(context).colorScheme.primary
-                              : Theme.of(context)
-                                  .colorScheme
-                                  .primary
-                                  .withOpacity(0.2),
+                              : Theme.of(
+                                  context,
+                                ).colorScheme.primary.withOpacity(0.2),
                         ),
                       );
                     }),
@@ -340,8 +336,9 @@ class _SetPinScreenState extends State<SetPinScreen> {
         if (_enteredPin.isNotEmpty) {
           _enteredPin = _enteredPin.substring(0, _enteredPin.length - 1);
           // Update PIN strength message
-          _pinStrengthMessage =
-              _enteredPin.isEmpty ? '' : PinService.getPinStrength(_enteredPin);
+          _pinStrengthMessage = _enteredPin.isEmpty
+              ? ''
+              : PinService.getPinStrength(_enteredPin);
         }
       }
     });

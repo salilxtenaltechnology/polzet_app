@@ -199,11 +199,7 @@ class _PollQuestionState extends State<PollQuestion> with UtilityMixin {
       final response = await _dio.post(
         ApiConstants.userPosts,
         data: formData,
-        options: Options(
-          headers: {
-            'Authorization': 'Bearer $accessToken',
-          },
-        ),
+        options: Options(headers: {'Authorization': 'Bearer $accessToken'}),
       );
 
       // Handle success
@@ -261,7 +257,8 @@ class _PollQuestionState extends State<PollQuestion> with UtilityMixin {
           errorMsg = 'Server error. Please try again later.';
           break;
         default:
-          errorMsg = errorData?['message']?.toString() ??
+          errorMsg =
+              errorData?['message']?.toString() ??
               'Error: ${e.response?.statusMessage}';
       }
     } else if (e.type == DioExceptionType.connectionTimeout) {
@@ -329,20 +326,20 @@ class _PollQuestionState extends State<PollQuestion> with UtilityMixin {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             SizedBox(height: 10.h),
-            
+
             // Question Field
             _buildQuestionField(),
-            
+
             SizedBox(height: 15.h),
-            
+
             // Description Field
             _buildDescriptionField(),
-            
+
             SizedBox(height: 15.h),
-            
+
             // Poll Options
             _buildPollOptionsSection(),
-            
+
             SizedBox(height: 20.h),
           ],
         ),
@@ -408,41 +405,30 @@ class _PollQuestionState extends State<PollQuestion> with UtilityMixin {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'Poll Options',
-          style: CustomTextStyles.lblPrimaryText(context),
-        ),
+        Text('Poll Options', style: CustomTextStyles.lblPrimaryText(context)),
         SizedBox(height: 10.h),
-        
+
         // Option fields
         ...List.generate(optionControllers.length, (index) {
           return _buildOptionField(index);
         }),
-        
+
         // Add option button
         if (optionControllers.length < maxOptions)
           TextButton.icon(
             onPressed: addOptionField,
-            icon: Icon(
-              Icons.add,
-              color: Theme.of(context).colorScheme.primary,
-            ),
+            icon: Icon(Icons.add, color: Theme.of(context).colorScheme.primary),
             label: Text(
               AppLocalizations.of(context)!.addoption,
-              style: TextStyle(
-                color: Theme.of(context).colorScheme.primary,
-              ),
+              style: TextStyle(color: Theme.of(context).colorScheme.primary),
             ),
           ),
-        
+
         // Options error message
         if (optionsErrorText.isNotEmpty)
           Padding(
             padding: EdgeInsets.only(top: 5.h, bottom: 10.h),
-            child: Text(
-              optionsErrorText,
-              style: CustomTextStyles.msgErrorText,
-            ),
+            child: Text(optionsErrorText, style: CustomTextStyles.msgErrorText),
           ),
       ],
     );

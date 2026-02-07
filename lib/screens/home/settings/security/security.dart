@@ -63,7 +63,9 @@ class SecurityState extends State<Security> with UtilityMixin {
     _checkBiometricSupport();
     _currentPasswordController.addListener(() {
       checkIfChangedPassword(
-          _currentPasswordController.text, _initialCurrentPassword);
+        _currentPasswordController.text,
+        _initialCurrentPassword,
+      );
     });
 
     _newPasswordController.addListener(() {
@@ -72,7 +74,9 @@ class SecurityState extends State<Security> with UtilityMixin {
 
     _confirmPasswordController.addListener(() {
       checkIfChangedPassword(
-          _confirmPasswordController.text, _initialConfirmPassword);
+        _confirmPasswordController.text,
+        _initialConfirmPassword,
+      );
     });
   }
 
@@ -154,9 +158,7 @@ class SecurityState extends State<Security> with UtilityMixin {
         final result = await Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => const SetPinScreen(
-              isSettingNewPin: true,
-            ),
+            builder: (context) => const SetPinScreen(isSettingNewPin: true),
           ),
         );
 
@@ -166,17 +168,18 @@ class SecurityState extends State<Security> with UtilityMixin {
           await PinService.setPinSecurityEnabled(true);
           _saveSettings();
           _showSuccessSnackBar('PIN security enabled successfully');
-       } else {
-         // User cancelled or PIN setting failed
-         setState(() => _isPinSecurity = false);
-       }
-       }
-     } else {
-       // Disable PIN security
-       final shouldDisable = await showDisablePINDiolog(
-           context,
-         AppLocalizations.of(context)!.disablepinsecurity,
-         AppLocalizations.of(context)!.areyousurewanttodisablepinsecurity);
+        } else {
+          // User cancelled or PIN setting failed
+          setState(() => _isPinSecurity = false);
+        }
+      }
+    } else {
+      // Disable PIN security
+      final shouldDisable = await showDisablePINDiolog(
+        context,
+        AppLocalizations.of(context)!.disablepinsecurity,
+        AppLocalizations.of(context)!.areyousurewanttodisablepinsecurity,
+      );
 
       if (shouldDisable) {
         setState(() => _isPinSecurity = false);
@@ -185,7 +188,7 @@ class SecurityState extends State<Security> with UtilityMixin {
         _showSuccessSnackBar('PIN security disabled');
       }
     }
-   }
+  }
 
   Future<void> _handleFaceLockToggle(bool value) async {}
 
@@ -198,13 +201,15 @@ class SecurityState extends State<Security> with UtilityMixin {
 
     if (value && !_isBiometricAvailable) {
       _showErrorSnackBar(
-          'Biometric authentication is not available on this device');
+        'Biometric authentication is not available on this device',
+      );
       return;
     }
 
     if (value) {
-      final isAuthenticated =
-          await _authenticateUser('Enable Fingerprint Security');
+      final isAuthenticated = await _authenticateUser(
+        'Enable Fingerprint Security',
+      );
       _saveSettings();
       if (!isAuthenticated) return;
     }
@@ -362,8 +367,9 @@ class SecurityState extends State<Security> with UtilityMixin {
     String newPassword = _newPasswordController.text.trim();
     String confirmPassword = _confirmPasswordController.text.trim();
 
-    if (!RegExp(r'^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$')
-        .hasMatch(newPassword)) {
+    if (!RegExp(
+      r'^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$',
+    ).hasMatch(newPassword)) {
       if (!mounted) return;
       setState(() {
         newPasswordErrorText =
@@ -461,10 +467,9 @@ class SecurityState extends State<Security> with UtilityMixin {
                 Divider(
                   thickness: 1,
                   height: 30,
-                  color: Theme.of(context)
-                      .colorScheme
-                      .onBackground
-                      .withOpacity(0.1),
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.onBackground.withOpacity(0.1),
                 ),
                 _labelModel(
                   Icons.password_outlined,
@@ -499,8 +504,9 @@ class SecurityState extends State<Security> with UtilityMixin {
                                 child: Text(
                                   AppLocalizations.of(context)!.change,
                                   style: TextStyle(
-                                    color:
-                                        Theme.of(context).colorScheme.primary,
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.primary,
                                     fontSize: 10.sp,
                                     fontWeight: FontWeight.w500,
                                   ),
@@ -521,7 +527,8 @@ class SecurityState extends State<Security> with UtilityMixin {
                   AppLocalizations.of(context)!.facerecognition,
                   _isFaceLock,
                   _handleFaceLockToggle,
-                  isEnabled: _isSecurity &&
+                  isEnabled:
+                      _isSecurity &&
                       _availableBiometrics.contains(BiometricType.face),
                 ),
                 SizedBox(height: 10.h),
@@ -540,16 +547,14 @@ class SecurityState extends State<Security> with UtilityMixin {
                   Container(
                     padding: EdgeInsets.all(12.w),
                     decoration: BoxDecoration(
-                      color: Theme.of(context)
-                          .colorScheme
-                          .primary
-                          .withOpacity(0.1),
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.primary.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(8.r),
                       border: Border.all(
-                        color: Theme.of(context)
-                            .colorScheme
-                            .primary
-                            .withOpacity(0.3),
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.primary.withOpacity(0.3),
                       ),
                     ),
                     child: Row(
@@ -562,8 +567,9 @@ class SecurityState extends State<Security> with UtilityMixin {
                         SizedBox(width: 10.w),
                         Expanded(
                           child: Text(
-                            AppLocalizations.of(context)!
-                                .enablesecurityfirsttoaccess,
+                            AppLocalizations.of(
+                              context,
+                            )!.enablesecurityfirsttoaccess,
                             style: TextStyle(
                               color: Theme.of(context).colorScheme.primary,
                               fontSize: 11.4.sp,
@@ -582,9 +588,7 @@ class SecurityState extends State<Security> with UtilityMixin {
                     decoration: BoxDecoration(
                       color: Colors.orange.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(8.r),
-                      border: Border.all(
-                        color: Colors.orange.withOpacity(0.3),
-                      ),
+                      border: Border.all(color: Colors.orange.withOpacity(0.3)),
                     ),
                     child: Row(
                       children: [
@@ -610,41 +614,46 @@ class SecurityState extends State<Security> with UtilityMixin {
                 Divider(
                   thickness: 1.1,
                   height: 30,
-                  color: Theme.of(context)
-                      .colorScheme
-                      .onBackground
-                      .withOpacity(0.2),
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.onBackground.withOpacity(0.2),
                 ),
                 Text(
                   AppLocalizations.of(context)!.changepassword,
                   style: TextStyle(
-                      color: Theme.of(context).colorScheme.onBackground,
-                      fontSize: 12.sp,
-                      fontWeight: FontWeight.w600),
+                    color: Theme.of(context).colorScheme.onBackground,
+                    fontSize: 12.sp,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
                 SizedBox(height: 10.h),
                 Text(
                   AppLocalizations.of(context)!.currentpassword,
                   style: TextStyle(
-                      color: const Color(0xFF8E8D8D),
-                      fontSize: 12.sp,
-                      fontWeight: FontWeight.w500),
+                    color: const Color(0xFF8E8D8D),
+                    fontSize: 12.sp,
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
                 SizedBox(height: 5.h),
                 _buildPasswordTextField(
-                    _currentPasswordController,
-                    TextInputType.visiblePassword,
-                    AppLocalizations.of(context)!.entercurrentpassword,
-                    _isCurrentPasswordHidden, () {
-                  setState(() {
-                    _isCurrentPasswordHidden = !_isCurrentPasswordHidden;
-                  });
-                }),
+                  _currentPasswordController,
+                  TextInputType.visiblePassword,
+                  AppLocalizations.of(context)!.entercurrentpassword,
+                  _isCurrentPasswordHidden,
+                  () {
+                    setState(() {
+                      _isCurrentPasswordHidden = !_isCurrentPasswordHidden;
+                    });
+                  },
+                ),
                 if (currentPasswordErrorText != null)
                   Padding(
                     padding: EdgeInsets.only(top: 5.h),
-                    child: Text(currentPasswordErrorText ?? '',
-                        style: CustomTextStyles.msgErrorText),
+                    child: Text(
+                      currentPasswordErrorText ?? '',
+                      style: CustomTextStyles.msgErrorText,
+                    ),
                   ),
                 SizedBox(height: 5.h),
                 Row(
@@ -668,49 +677,59 @@ class SecurityState extends State<Security> with UtilityMixin {
                 Text(
                   AppLocalizations.of(context)!.newpassword,
                   style: TextStyle(
-                      color: const Color(0xFF8E8D8D),
-                      fontSize: 12.sp,
-                      fontWeight: FontWeight.w500),
+                    color: const Color(0xFF8E8D8D),
+                    fontSize: 12.sp,
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
                 SizedBox(height: 5.h),
                 _buildPasswordTextField(
-                    _newPasswordController,
-                    TextInputType.visiblePassword,
-                    AppLocalizations.of(context)!.enternewpassword,
-                    _isNewPasswordHidden, () {
-                  setState(() {
-                    _isNewPasswordHidden = !_isNewPasswordHidden;
-                  });
-                }),
+                  _newPasswordController,
+                  TextInputType.visiblePassword,
+                  AppLocalizations.of(context)!.enternewpassword,
+                  _isNewPasswordHidden,
+                  () {
+                    setState(() {
+                      _isNewPasswordHidden = !_isNewPasswordHidden;
+                    });
+                  },
+                ),
                 if (newPasswordErrorText != null)
                   Padding(
                     padding: EdgeInsets.only(top: 5.h),
-                    child: Text(newPasswordErrorText ?? '',
-                        style: CustomTextStyles.msgErrorText),
+                    child: Text(
+                      newPasswordErrorText ?? '',
+                      style: CustomTextStyles.msgErrorText,
+                    ),
                   ),
                 SizedBox(height: 12.h),
                 Text(
                   AppLocalizations.of(context)!.confirmpassword,
                   style: TextStyle(
-                      color: const Color(0xFF8E8D8D),
-                      fontSize: 12.sp,
-                      fontWeight: FontWeight.w500),
+                    color: const Color(0xFF8E8D8D),
+                    fontSize: 12.sp,
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
                 SizedBox(height: 5.h),
                 _buildPasswordTextField(
-                    _confirmPasswordController,
-                    TextInputType.visiblePassword,
-                    AppLocalizations.of(context)!.enterconfirmpassword,
-                    _isConfirmPasswordHidden, () {
-                  setState(() {
-                    _isConfirmPasswordHidden = !_isConfirmPasswordHidden;
-                  });
-                }),
+                  _confirmPasswordController,
+                  TextInputType.visiblePassword,
+                  AppLocalizations.of(context)!.enterconfirmpassword,
+                  _isConfirmPasswordHidden,
+                  () {
+                    setState(() {
+                      _isConfirmPasswordHidden = !_isConfirmPasswordHidden;
+                    });
+                  },
+                ),
                 if (confirmPasswordErrorText != null)
                   Padding(
                     padding: EdgeInsets.only(top: 5.h),
-                    child: Text(confirmPasswordErrorText ?? '',
-                        style: CustomTextStyles.msgErrorText),
+                    child: Text(
+                      confirmPasswordErrorText ?? '',
+                      style: CustomTextStyles.msgErrorText,
+                    ),
                   ),
                 if (_showUpdatePasswordButton)
                   GestureDetector(
@@ -724,16 +743,19 @@ class SecurityState extends State<Security> with UtilityMixin {
                       width: double.infinity,
                       margin: EdgeInsets.only(top: 10.h),
                       decoration: BoxDecoration(
-                          color: AppColors.primaryColor,
-                          borderRadius: BorderRadius.circular(50.r)),
+                        color: AppColors.primaryColor,
+                        borderRadius: BorderRadius.circular(50.r),
+                      ),
                       child: Center(
                         child: _isSavePassword
                             ? Loader(color: Colors.white)
-                            : Text(AppLocalizations.of(context)!.savechanges,
-                                style: CustomTextStyles.btnPrimaryText),
+                            : Text(
+                                AppLocalizations.of(context)!.savechanges,
+                                style: CustomTextStyles.btnPrimaryText,
+                              ),
                       ),
                     ),
-                  )
+                  ),
               ],
             ),
     );
@@ -759,23 +781,29 @@ class SecurityState extends State<Security> with UtilityMixin {
           hintStyle: CustomTextStyles.lblPrimaryHintText(context),
           border: InputBorder.none,
           suffixIcon: IconButton(
-              onPressed: onTap,
-              icon: Icon(isHidden ? FeatherIcons.eyeOff : FeatherIcons.eye,
-                  size: 20,
-                  color: Theme.of(context)
-                      .colorScheme
-                      .onBackground
-                      .withOpacity(0.13))),
+            onPressed: onTap,
+            icon: Icon(
+              isHidden ? FeatherIcons.eyeOff : FeatherIcons.eye,
+              size: 20,
+              color: Theme.of(
+                context,
+              ).colorScheme.onBackground.withOpacity(0.13),
+            ),
+          ),
           enabledBorder: OutlineInputBorder(
-              borderSide: BorderSide(
-                color:
-                    Theme.of(context).colorScheme.onBackground.withOpacity(0.1),
-              ),
-              borderRadius: BorderRadius.circular(7)),
+            borderSide: BorderSide(
+              color: Theme.of(
+                context,
+              ).colorScheme.onBackground.withOpacity(0.1),
+            ),
+            borderRadius: BorderRadius.circular(7),
+          ),
           focusedBorder: OutlineInputBorder(
-              borderSide:
-                  BorderSide(color: AppColors.primaryColor.withOpacity(0.7)),
-              borderRadius: BorderRadius.circular(7)),
+            borderSide: BorderSide(
+              color: AppColors.primaryColor.withOpacity(0.7),
+            ),
+            borderRadius: BorderRadius.circular(7),
+          ),
         ),
       ),
     );

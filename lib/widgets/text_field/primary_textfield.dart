@@ -11,17 +11,17 @@ class PrimaryTextfield extends StatelessWidget {
   final bool isPassword;
   final bool isRead;
   final int? maxLength;
-  
+
   // Change this line:
-  final Iterable<String>? autofillHints; 
-  
+  final Iterable<String>? autofillHints;
+
   final String labelText;
   final Widget? prefixIcon;
   final IconButton? suffixIcon;
   final ValueChanged<String>? onSubmitted;
-  
+
   // Note: 'icon' should likely be final since this is a StatelessWidget
-  final bool icon; 
+  final bool icon;
 
   const PrimaryTextfield({
     super.key,
@@ -41,37 +41,40 @@ class PrimaryTextfield extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-        height: 45.h,
-        child: TextField(
-          controller: controller,
-          obscureText: isPassword,
-          keyboardType: keyboardType,
-          onSubmitted: onSubmitted,
-          autofillHints: autofillHints,
-          readOnly: isRead,
-          maxLength: maxLength,
-          style: CustomTextStyles.lblPrimaryText(context),
-          decoration: InputDecoration(
-            contentPadding: const EdgeInsets.only(bottom: 8, right: 10),
-            counterText: '',
-            hintText: labelText,
-            hintStyle: CustomTextStyles.lblPrimaryHintText(context),
-            prefixIcon: prefixIcon,
-            suffixIcon: suffixIcon,
-            border: InputBorder.none,
-            enabledBorder: OutlineInputBorder(
-                borderSide: BorderSide(
-                  color: Theme.of(context)
-                      .colorScheme
-                      .onBackground
-                      .withOpacity(0.1),
-                ),
-                borderRadius: BorderRadius.circular(50)),
-            focusedBorder: OutlineInputBorder(
-                borderSide:
-                    BorderSide(color: AppColors.primaryColor.withOpacity(0.7)),
-                borderRadius: BorderRadius.circular(50)),
+      height: 45.h,
+      child: TextField(
+        controller: controller,
+        obscureText: isPassword,
+        keyboardType: keyboardType,
+        onSubmitted: onSubmitted,
+        autofillHints: autofillHints,
+        readOnly: isRead,
+        maxLength: maxLength,
+        style: CustomTextStyles.lblPrimaryText(context),
+        decoration: InputDecoration(
+          contentPadding: const EdgeInsets.only(bottom: 8, right: 10),
+          counterText: '',
+          hintText: labelText,
+          hintStyle: CustomTextStyles.lblPrimaryHintText(context),
+          prefixIcon: prefixIcon,
+          suffixIcon: suffixIcon,
+          border: InputBorder.none,
+          enabledBorder: OutlineInputBorder(
+            borderSide: BorderSide(
+              color: Theme.of(
+                context,
+              ).colorScheme.onBackground.withOpacity(0.1),
+            ),
+            borderRadius: BorderRadius.circular(50),
           ),
-        ));
+          focusedBorder: OutlineInputBorder(
+            borderSide: BorderSide(
+              color: AppColors.primaryColor.withOpacity(0.7),
+            ),
+            borderRadius: BorderRadius.circular(50),
+          ),
+        ),
+      ),
+    );
   }
 }

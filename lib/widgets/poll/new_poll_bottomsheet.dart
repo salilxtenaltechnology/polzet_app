@@ -53,7 +53,7 @@ class NewPollBottomsheet extends StatelessWidget with UtilityMixin {
                 children: [
                   GestureDetector(
                     onTap: () {
-                     Navigator.pop(context);
+                      Navigator.pop(context);
                       navigationPush(context, const PollQuestion());
                     },
                     child: Container(
@@ -82,7 +82,7 @@ class NewPollBottomsheet extends StatelessWidget with UtilityMixin {
                 children: [
                   GestureDetector(
                     onTap: () {
-                       Navigator.pop(context);
+                      Navigator.pop(context);
                       navigationPush(context, const PollImages());
                     },
                     child: Container(

@@ -2,22 +2,32 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import '../public_profile_model.dart';
 
-import 'public_post_things_model.dart';
-import 'public_things_block.dart';
+class PublicPollTextCard extends StatelessWidget {
+  final PublicPost publicPost;
+  final List<Color>? gradientColors;
 
-class PublicThingsCard extends StatelessWidget {
-  const PublicThingsCard({
+  const PublicPollTextCard({
     super.key,
-    required this.publicPosts,
+    required this.publicPost,
     this.gradientColors,
   });
 
-  final PublicPostPolls publicPosts;
-  final List<Color>? gradientColors;
-
   @override
   Widget build(BuildContext context) {
+    // Get the first poll from the post
+    final poll = publicPost.polls.isNotEmpty ? publicPost.polls.first : null;
+
+    if (poll == null) return const SizedBox.shrink();
+
+    // Filter options to show ONLY text-based options (ignore image options)
+    final textOptions = poll.options
+        .where((option) => option.text != null)
+        .toList();
+
+    if (textOptions.isEmpty) return const SizedBox.shrink();
+
     return Padding(
       padding: EdgeInsets.only(bottom: 12.h),
       child: Container(
@@ -36,21 +46,21 @@ class PublicThingsCard extends StatelessWidget {
               : null,
           borderRadius: BorderRadius.circular(15.r),
           boxShadow: const [
-            BoxShadow(
-              color: Colors.black12,
-              blurRadius: 6,
-              spreadRadius: 2,
-            ),
+            BoxShadow(color: Colors.black12, blurRadius: 6, spreadRadius: 2),
           ],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            ...publicPosts.publicPollQuestion
-                .map((question) => ThingsBlock(
-                      publicPollsQuestion: question,
-                    ))
-                ,
+            // Poll Question
+            Text(
+              poll.question,
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 12.5.sp,
+                fontWeight: FontWeight.w400,
+              ),
+            ),
           ],
         ),
       ),

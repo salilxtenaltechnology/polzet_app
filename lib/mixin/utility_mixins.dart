@@ -9,7 +9,7 @@ mixin UtilityMixin {
     );
   }
 
-   void navigationPush(BuildContext context, Widget screen) {
+  void navigationPush(BuildContext context, Widget screen) {
     Navigator.push(
       context,
       PageTransition(

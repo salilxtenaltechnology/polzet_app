@@ -2,7 +2,8 @@
 part of 'home_imports.dart';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+  final int initialIndex;
+  const HomeScreen({super.key, this.initialIndex = 0});
 
   @override
   State<StatefulWidget> createState() {
@@ -16,6 +17,12 @@ class HomeScreenState extends State<HomeScreen> with UtilityMixin {
   int pageIndex = 0;
   GlobalKey<CurvedNavigationBarState> bottomNavigationKey = GlobalKey();
 
+  @override
+  void initState() {
+    super.initState();
+    pageIndex = widget.initialIndex;
+  }
+
   final List screens = [
     const Dashboard(),
     const InsightsScreen(),
@@ -24,6 +31,13 @@ class HomeScreenState extends State<HomeScreen> with UtilityMixin {
     //const TestNotificationsScreen(),
     const UserProfile(),
   ];
+
+  void navigateToNotifications() {
+    setState(() {
+      pageIndex = 3;
+    });
+    bottomNavigationKey.currentState?.setPage(3);
+  }
 
   void navigateToUserProfile() {
     setState(() {

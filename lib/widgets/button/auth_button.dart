@@ -8,11 +8,12 @@ import '../custom_text_styles.dart';
 import '../loader.dart';
 
 class AuthButton extends StatelessWidget {
-  AuthButton(
-      {super.key,
-      required this.title,
-      required this.onPressed,
-      required this.isLoading});
+  AuthButton({
+    super.key,
+    required this.title,
+    required this.onPressed,
+    required this.isLoading,
+  });
 
   final String title;
   final VoidCallback? onPressed;
@@ -26,9 +27,10 @@ class AuthButton extends StatelessWidget {
         height: 35.h,
         width: double.infinity,
         decoration: BoxDecoration(
-            color: Colors.transparent,
-            borderRadius: BorderRadius.circular(50.r),
-            border: Border.all(color: AppColors.primaryColor, width: 0.7)),
+          color: Colors.transparent,
+          borderRadius: BorderRadius.circular(50.r),
+          border: Border.all(color: AppColors.primaryColor, width: 0.7),
+        ),
         child: Center(
           child: isLoading
               ? Loader(color: Theme.of(context).colorScheme.onPrimary)

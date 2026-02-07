@@ -17,8 +17,7 @@ class AppThemes {
       onBackground: Colors.black, // General text color
       primaryContainer: Colors.white,
       secondaryContainer: Colors.white,
-      tertiaryContainer: Color(0xFFf4f4f7),  
-
+      tertiaryContainer: Color(0xFFf4f4f7),
     ),
   );
 

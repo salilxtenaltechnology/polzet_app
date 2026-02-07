@@ -20,7 +20,7 @@ class SettingsState extends State<Settings>
 
       // List of all cache keys used in your app
       const cacheKeys = [
-        'home_feed_cache', 
+        'home_feed_cache',
         'home_feed_cache_time',
         'cached_notifications',
         'cached_friend_requests',
@@ -61,7 +61,7 @@ class SettingsState extends State<Settings>
       );
 
       if (response.statusCode == 205) {
-         await _clearAllCaches();
+        await _clearAllCaches();
         await SharedPrefService.deleteAccessToken();
         await SharedPrefService.clearFirstname();
         await SharedPrefService.clearLastname();

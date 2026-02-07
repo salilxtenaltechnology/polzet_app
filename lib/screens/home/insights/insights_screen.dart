@@ -17,7 +17,7 @@ class InsightsScreen extends StatefulWidget {
 }
 
 class _InsightsScreenState extends State<InsightsScreen> {
-// bool _showBusinessInsights = false; // track state
+  // bool _showBusinessInsights = false; // track state
 
   @override
   Widget build(BuildContext context) {
@@ -28,49 +28,65 @@ class _InsightsScreenState extends State<InsightsScreen> {
         child: Column(
           children: [
             CustomCard(
-                widget: Row(
-              children: [
-                const Icon(Icons.bar_chart, color: Colors.pink),
-                SizedBox(width: 7.w),
-                Text(AppLocalizations.of(context)!.totalviews),
-                const Spacer(),
-                Text('12,430',
+              widget: Row(
+                children: [
+                  const Icon(Icons.bar_chart, color: Colors.pink),
+                  SizedBox(width: 7.w),
+                  Text(AppLocalizations.of(context)!.totalviews),
+                  const Spacer(),
+                  Text(
+                    '12,430',
                     style: TextStyle(
-                        fontSize: 11.sp, fontWeight: FontWeight.bold)),
-              ],
-            )),
+                      fontSize: 11.sp,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            ),
             SizedBox(height: 10.h),
             CustomCard(
-                widget: Row(
-              children: [
-                const Icon(Icons.people, color: Colors.orange),
-                SizedBox(width: 7.w),
-                Text(AppLocalizations.of(context)!.vibe),
-                const Spacer(),
-                Text('3,210',
+              widget: Row(
+                children: [
+                  const Icon(Icons.people, color: Colors.orange),
+                  SizedBox(width: 7.w),
+                  Text(AppLocalizations.of(context)!.vibe),
+                  const Spacer(),
+                  Text(
+                    '3,210',
                     style: TextStyle(
-                        fontSize: 11.sp, fontWeight: FontWeight.bold)),
-              ],
-            )),
+                      fontSize: 11.sp,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            ),
             SizedBox(height: 7.h),
             CustomCard(
-                widget: Row(
-              children: [
-                const Icon(Icons.trending_up, color: Colors.green),
-                SizedBox(width: 7.w),
-                Text(AppLocalizations.of(context)!.engagementrate),
-                const Spacer(),
-                Text('8.2%',
+              widget: Row(
+                children: [
+                  const Icon(Icons.trending_up, color: Colors.green),
+                  SizedBox(width: 7.w),
+                  Text(AppLocalizations.of(context)!.engagementrate),
+                  const Spacer(),
+                  Text(
+                    '8.2%',
                     style: TextStyle(
-                        fontSize: 11.sp, fontWeight: FontWeight.bold)),
-              ],
-            )),
+                      fontSize: 11.sp,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            ),
             SizedBox(height: 10.h),
             Divider(
               thickness: 1,
               height: 30,
-              color:
-                  Theme.of(context).colorScheme.onBackground.withOpacity(0.1),
+              color: Theme.of(
+                context,
+              ).colorScheme.onBackground.withOpacity(0.1),
             ),
             SizedBox(height: 10.h),
             CustomCard(

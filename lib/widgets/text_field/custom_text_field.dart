@@ -15,7 +15,8 @@ class CustomTextField extends StatelessWidget {
   final VoidCallback? onTap;
   final Widget? suffixIcon;
 
-  const CustomTextField({super.key, 
+  const CustomTextField({
+    super.key,
     required this.controller,
     required this.hintText,
     this.keyboardType = TextInputType.text,

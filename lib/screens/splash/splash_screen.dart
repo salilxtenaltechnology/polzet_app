@@ -12,11 +12,8 @@ import '../home/home_imports.dart';
 
 class SplashScreen extends StatefulWidget {
   bool? isLogged;
-  
-  SplashScreen({
-    super.key, 
-    required this.isLogged,
-  });
+
+  SplashScreen({super.key, required this.isLogged});
 
   @override
   // ignore: library_private_types_in_public_api
@@ -48,15 +45,13 @@ class _SplashScreenState extends State<SplashScreen>
     );
 
     // Text animation: right to left
-    _textAnimation = Tween<Offset>(
-      begin: const Offset(2.2, 0.0),
-      end: Offset.zero,
-    ).animate(
-      CurvedAnimation(
-        parent: _controller,
-        curve: const Interval(0.7, 1.0, curve: Curves.decelerate),
-      ),
-    );
+    _textAnimation =
+        Tween<Offset>(begin: const Offset(2.2, 0.0), end: Offset.zero).animate(
+          CurvedAnimation(
+            parent: _controller,
+            curve: const Interval(0.7, 1.0, curve: Curves.decelerate),
+          ),
+        );
 
     // Start animation
     _controller.forward();

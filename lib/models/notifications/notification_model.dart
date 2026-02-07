@@ -18,7 +18,8 @@ class NotificationsResponse {
   factory NotificationsResponse.fromJson(Map<String, dynamic> json) {
     return NotificationsResponse(
       status: json['status'] as String? ?? 'success',
-      notifications: (json['notifications'] as List<dynamic>?)
+      notifications:
+          (json['notifications'] as List<dynamic>?)
               ?.map((e) {
                 try {
                   return NotificationItem.fromJson(e as Map<String, dynamic>);
@@ -54,7 +55,8 @@ class NotificationItem {
   final String? message; // NULLABLE - not all notifications have messages
   final Post? post;
   final UserInfo actor;
-  final UserInfo? postOwner; // NULLABLE - FOLLOW notifications don't have post owners
+  final UserInfo?
+  postOwner; // NULLABLE - FOLLOW notifications don't have post owners
   final DateTime createdAt;
   final bool isRead;
 

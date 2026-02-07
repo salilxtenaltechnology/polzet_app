@@ -84,8 +84,10 @@ class _SignupScreenState extends State<SignupScreen> with UtilityMixin {
     // Username validation (alphanumeric and underscore only)
     final usernameRegex = RegExp(r'^[a-zA-Z0-9_]{3,20}$');
     if (!usernameRegex.hasMatch(username)) {
-      setState(() => _errorText =
-          "Username must be 3-20 characters (letters, numbers, underscore only).");
+      setState(
+        () => _errorText =
+            "Username must be 3-20 characters (letters, numbers, underscore only).",
+      );
       return;
     }
 
@@ -127,18 +129,22 @@ class _SignupScreenState extends State<SignupScreen> with UtilityMixin {
 
     // Strong password validation
     final passwordRegex = RegExp(
-        r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$');
+      r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$',
+    );
     if (!passwordRegex.hasMatch(password)) {
-      setState(() => _errorText =
-          "Password must be 8+ characters with uppercase, lowercase, number & special character");
+      setState(
+        () => _errorText =
+            "Password must be 8+ characters with uppercase, lowercase, number & special character",
+      );
       return;
     }
 
     // Phone validation - more flexible for international numbers
     final phoneRegex = RegExp(r'^[0-9]{7,15}$');
     if (!phoneRegex.hasMatch(phone)) {
-      setState(() =>
-          _errorText = "Invalid phone number format (7-15 digits required)");
+      setState(
+        () => _errorText = "Invalid phone number format (7-15 digits required)",
+      );
       return;
     }
 
@@ -160,7 +166,8 @@ class _SignupScreenState extends State<SignupScreen> with UtilityMixin {
       }
       if (age < 13) {
         setState(
-            () => _errorText = "You must be at least 13 years old to register");
+          () => _errorText = "You must be at least 13 years old to register",
+        );
         return;
       }
     } catch (e) {
@@ -184,7 +191,7 @@ class _SignupScreenState extends State<SignupScreen> with UtilityMixin {
         "email": email,
         "mobile_number": phone,
         "password": password,
-        "country_code": "+${_countryCode ?? '91'}" // Ensure + prefix
+        "country_code": "+${_countryCode ?? '91'}", // Ensure + prefix
       };
 
       // Create Dio instance with proper configuration
@@ -209,22 +216,21 @@ class _SignupScreenState extends State<SignupScreen> with UtilityMixin {
 
       // Add interceptor for detailed logging (only in debug mode)
       if (kDebugMode) {
-        dio.interceptors.add(LogInterceptor(
-          request: true,
-          requestBody: true,
-          requestHeader: true,
-          responseBody: true,
-          responseHeader: false,
-          error: true,
-          logPrint: (obj) => print(obj),
-        ));
+        dio.interceptors.add(
+          LogInterceptor(
+            request: true,
+            requestBody: true,
+            requestHeader: true,
+            responseBody: true,
+            responseHeader: false,
+            error: true,
+            logPrint: (obj) => print(obj),
+          ),
+        );
       }
 
       // Make the API call
-      final response = await dio.post(
-        ApiConstants.registration,
-        data: body,
-      );
+      final response = await dio.post(ApiConstants.registration, data: body);
 
       // print('Response Status: ${response.statusCode}');
       // print('Response Headers: ${response.headers}');
@@ -276,8 +282,10 @@ class _SignupScreenState extends State<SignupScreen> with UtilityMixin {
       _handleDioException(e);
     } on SocketException catch (e) {
       print('SocketException: $e');
-      setState(() =>
-          _errorText = 'Network error: Please check your internet connection');
+      setState(
+        () =>
+            _errorText = 'Network error: Please check your internet connection',
+      );
     } on TimeoutException catch (e) {
       print('TimeoutException: $e');
       setState(() => _errorText = 'Connection timeout: Please try again');
@@ -287,7 +295,8 @@ class _SignupScreenState extends State<SignupScreen> with UtilityMixin {
     } catch (e) {
       print('Unexpected error: $e');
       setState(
-          () => _errorText = 'An unexpected error occurred. Please try again.');
+        () => _errorText = 'An unexpected error occurred. Please try again.',
+      );
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);
@@ -303,7 +312,8 @@ class _SignupScreenState extends State<SignupScreen> with UtilityMixin {
         final data = response.data as Map<String, dynamic>;
 
         // Try different possible error message fields
-        errorMessage = data['message'] ??
+        errorMessage =
+            data['message'] ??
             data['error'] ??
             data['detail'] ??
             data['errors']?.toString() ??
@@ -427,10 +437,16 @@ class _SignupScreenState extends State<SignupScreen> with UtilityMixin {
 
   Future<void> _selectDate() async {
     final DateTime now = DateTime.now();
-    final DateTime eighteenYearsAgo =
-        DateTime(now.year - 18, now.month, now.day);
-    final DateTime thirteenYearsAgo =
-        DateTime(now.year - 13, now.month, now.day);
+    final DateTime eighteenYearsAgo = DateTime(
+      now.year - 18,
+      now.month,
+      now.day,
+    );
+    final DateTime thirteenYearsAgo = DateTime(
+      now.year - 13,
+      now.month,
+      now.day,
+    );
 
     final DateTime? pickedDate = await showDatePicker(
       context: context,
@@ -485,235 +501,236 @@ class _SignupScreenState extends State<SignupScreen> with UtilityMixin {
           child: Padding(
             padding: const EdgeInsets.all(15).w,
             child: CustomCard(
-              widget: ListView(children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    // App Title
-                    Text(
-                      AppStrings.appName.toUpperCase(),
-                      style: CustomTextStyles.appTitleText(context),
-                    ),
-                    SizedBox(height: 12.h),
-
-                    // Signup Message
-                    Text(
-                      AppStrings.msgSignUp,
-                      style: CustomTextStyles.msgAuthTitleText(context),
-                    ),
-                    SizedBox(height: 15.h),
-
-                    // First Name
-                    PrimaryTextfield(
-                      isPassword: false,
-                      controller: _firstNameController,
-                      labelText: AppStrings.lblFirstName,
-                      prefixIcon: Icon(
-                        FeatherIcons.user,
-                        size: 20,
-                        color: Theme.of(context)
-                            .colorScheme
-                            .onBackground
-                            .withOpacity(0.13),
+              widget: ListView(
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      // App Title
+                      Text(
+                        AppStrings.appName.toUpperCase(),
+                        style: CustomTextStyles.appTitleText(context),
                       ),
-                    ),
-                    SizedBox(height: 5.h),
+                      SizedBox(height: 12.h),
 
-                    // Last Name
-                    PrimaryTextfield(
-                      isPassword: false,
-                      controller: _lastNameController,
-                      labelText: AppStrings.lblLastName,
-                      prefixIcon: Icon(
-                        FeatherIcons.user,
-                        size: 20,
-                        color: Theme.of(context)
-                            .colorScheme
-                            .onBackground
-                            .withOpacity(0.13),
+                      // Signup Message
+                      Text(
+                        AppStrings.msgSignUp,
+                        style: CustomTextStyles.msgAuthTitleText(context),
                       ),
-                    ),
-                    SizedBox(height: 5.h),
+                      SizedBox(height: 15.h),
 
-                    // Username
-                    PrimaryTextfield(
-                      isPassword: false,
-                      controller: _usernameController,
-                      labelText: AppStrings.lblUsername,
-                      prefixIcon: Icon(
-                        FeatherIcons.atSign,
-                        size: 20,
-                        color: Theme.of(context)
-                            .colorScheme
-                            .onBackground
-                            .withOpacity(0.13),
-                      ),
-                    ),
-                    SizedBox(height: 5.h),
-
-                    // Date of Birth
-                    buildDateOfBirthField(),
-                    SizedBox(height: 12.h),
-
-                    // Gender
-                    buildGenderField(),
-                    SizedBox(height: 12.h),
-
-                    // Phone Number with Country Code
-                    _buildPhoneNumber(_phoneController, _countryCode ?? '91'),
-                    SizedBox(height: 12.h),
-
-                    // Email (Read-only)
-                    PrimaryTextfield(
-                      isPassword: false,
-                      isRead: true,
-                      controller: _emailController,
-                      labelText: AppStrings.lblEmail,
-                      prefixIcon: Icon(
-                        Icons.alternate_email,
-                        size: 20,
-                        color: Theme.of(context)
-                            .colorScheme
-                            .onBackground
-                            .withOpacity(0.13),
-                      ),
-                    ),
-                    SizedBox(height: 5.h),
-
-                    // Password
-                    PrimaryTextfield(
-                      controller: _passwordController,
-                      isPassword: _isPasswordHidden,
-                      labelText: AppStrings.lblPassword,
-                      prefixIcon: Icon(
-                        FeatherIcons.lock,
-                        size: 20,
-                        color: Theme.of(context)
-                            .colorScheme
-                            .onBackground
-                            .withOpacity(0.13),
-                      ),
-                      suffixIcon: IconButton(
-                        icon: Icon(
-                          _isPasswordHidden
-                              ? FeatherIcons.eyeOff
-                              : FeatherIcons.eye,
-                          color: Theme.of(context)
-                              .colorScheme
-                              .onBackground
-                              .withOpacity(0.13),
+                      // First Name
+                      PrimaryTextfield(
+                        isPassword: false,
+                        controller: _firstNameController,
+                        labelText: AppStrings.lblFirstName,
+                        prefixIcon: Icon(
+                          FeatherIcons.user,
                           size: 20,
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onBackground.withOpacity(0.13),
                         ),
-                        onPressed: () {
-                          setState(() {
-                            _isPasswordHidden = !_isPasswordHidden;
-                          });
-                        },
                       ),
-                    ),
-                    SizedBox(height: 5.h),
+                      SizedBox(height: 5.h),
 
-                    // Confirm Password
-                    PrimaryTextfield(
-                      controller: _confirmPasswordController,
-                      isPassword: _isConfirmPasswordHidden,
-                      labelText: AppStrings.lblConfirmPassword,
-                      prefixIcon: Icon(
-                        FeatherIcons.lock,
-                        size: 20,
-                        color: Theme.of(context)
-                            .colorScheme
-                            .onBackground
-                            .withOpacity(0.13),
-                      ),
-                      suffixIcon: IconButton(
-                        icon: Icon(
-                          _isConfirmPasswordHidden
-                              ? FeatherIcons.eyeOff
-                              : FeatherIcons.eye,
-                          color: Theme.of(context)
-                              .colorScheme
-                              .onBackground
-                              .withOpacity(0.13),
+                      // Last Name
+                      PrimaryTextfield(
+                        isPassword: false,
+                        controller: _lastNameController,
+                        labelText: AppStrings.lblLastName,
+                        prefixIcon: Icon(
+                          FeatherIcons.user,
                           size: 20,
-                        ),
-                        onPressed: () {
-                          setState(() => _isConfirmPasswordHidden =
-                              !_isConfirmPasswordHidden);
-                        },
-                      ),
-                    ),
-                    SizedBox(height: 10.h),
-
-                    // Error Message
-                    if (_errorText.isNotEmpty)
-                      Container(
-                        width: double.infinity,
-                        margin: EdgeInsets.only(bottom: 10.h),
-                        padding: EdgeInsets.all(12.r),
-                        decoration: BoxDecoration(
-                          color: Colors.red.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(8.r),
-                          border:
-                              Border.all(color: Colors.red.withOpacity(0.3)),
-                        ),
-                        child: Row(
-                          children: [
-                            const Icon(Icons.error_outline,
-                                color: Colors.red, size: 20),
-                            SizedBox(width: 8.w),
-                            Expanded(
-                              child: Text(
-                                _errorText,
-                                style: TextStyle(
-                                  color: Colors.red,
-                                  fontSize: 12.sp,
-                                  fontWeight: FontWeight.w400,
-                                ),
-                              ),
-                            ),
-                          ],
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onBackground.withOpacity(0.13),
                         ),
                       ),
+                      SizedBox(height: 5.h),
 
-                    // Register Button
-                    AuthButton(
-                      onPressed: _isLoading ? null : _registrationAcc,
-                      title: AppStrings.lblSignup,
-                      isLoading: _isLoading,
-                    ),
-                    SizedBox(height: 12.h),
-
-                    // Login Link
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          "Already have an account? ",
-                          style: CustomTextStyles.lblSecondryText(context),
+                      // Username
+                      PrimaryTextfield(
+                        isPassword: false,
+                        controller: _usernameController,
+                        labelText: AppStrings.lblUsername,
+                        prefixIcon: Icon(
+                          FeatherIcons.atSign,
+                          size: 20,
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onBackground.withOpacity(0.13),
                         ),
-                        GestureDetector(
-                          onTap: () {
-                            Navigator.pushReplacement(
+                      ),
+                      SizedBox(height: 5.h),
+
+                      // Date of Birth
+                      buildDateOfBirthField(),
+                      SizedBox(height: 12.h),
+
+                      // Gender
+                      buildGenderField(),
+                      SizedBox(height: 12.h),
+
+                      // Phone Number with Country Code
+                      _buildPhoneNumber(_phoneController, _countryCode ?? '91'),
+                      SizedBox(height: 12.h),
+
+                      // Email (Read-only)
+                      PrimaryTextfield(
+                        isPassword: false,
+                        isRead: true,
+                        controller: _emailController,
+                        labelText: AppStrings.lblEmail,
+                        prefixIcon: Icon(
+                          Icons.alternate_email,
+                          size: 20,
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onBackground.withOpacity(0.13),
+                        ),
+                      ),
+                      SizedBox(height: 5.h),
+
+                      // Password
+                      PrimaryTextfield(
+                        controller: _passwordController,
+                        isPassword: _isPasswordHidden,
+                        labelText: AppStrings.lblPassword,
+                        prefixIcon: Icon(
+                          FeatherIcons.lock,
+                          size: 20,
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onBackground.withOpacity(0.13),
+                        ),
+                        suffixIcon: IconButton(
+                          icon: Icon(
+                            _isPasswordHidden
+                                ? FeatherIcons.eyeOff
+                                : FeatherIcons.eye,
+                            color: Theme.of(
                               context,
-                              MaterialPageRoute(
-                                  builder: (context) => const LoginScreen()),
+                            ).colorScheme.onBackground.withOpacity(0.13),
+                            size: 20,
+                          ),
+                          onPressed: () {
+                            setState(() {
+                              _isPasswordHidden = !_isPasswordHidden;
+                            });
+                          },
+                        ),
+                      ),
+                      SizedBox(height: 5.h),
+
+                      // Confirm Password
+                      PrimaryTextfield(
+                        controller: _confirmPasswordController,
+                        isPassword: _isConfirmPasswordHidden,
+                        labelText: AppStrings.lblConfirmPassword,
+                        prefixIcon: Icon(
+                          FeatherIcons.lock,
+                          size: 20,
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onBackground.withOpacity(0.13),
+                        ),
+                        suffixIcon: IconButton(
+                          icon: Icon(
+                            _isConfirmPasswordHidden
+                                ? FeatherIcons.eyeOff
+                                : FeatherIcons.eye,
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onBackground.withOpacity(0.13),
+                            size: 20,
+                          ),
+                          onPressed: () {
+                            setState(
+                              () => _isConfirmPasswordHidden =
+                                  !_isConfirmPasswordHidden,
                             );
                           },
-                          child: Text(
-                            "Login",
-                            style: CustomTextStyles.lblPrimaryText(context)
-                                .copyWith(
-                              color: AppColors.primaryColor,
-                              fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      SizedBox(height: 10.h),
+
+                      // Error Message
+                      if (_errorText.isNotEmpty)
+                        Container(
+                          width: double.infinity,
+                          margin: EdgeInsets.only(bottom: 10.h),
+                          padding: EdgeInsets.all(12.r),
+                          decoration: BoxDecoration(
+                            color: Colors.red.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(8.r),
+                            border: Border.all(
+                              color: Colors.red.withOpacity(0.3),
                             ),
                           ),
+                          child: Row(
+                            children: [
+                              const Icon(
+                                Icons.error_outline,
+                                color: Colors.red,
+                                size: 20,
+                              ),
+                              SizedBox(width: 8.w),
+                              Expanded(
+                                child: Text(
+                                  _errorText,
+                                  style: TextStyle(
+                                    color: Colors.red,
+                                    fontSize: 12.sp,
+                                    fontWeight: FontWeight.w400,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
-                      ],
-                    ),
-                  ],
-                ),
-              ]),
+
+                      // Register Button
+                      AuthButton(
+                        onPressed: _isLoading ? null : _registrationAcc,
+                        title: AppStrings.lblSignup,
+                        isLoading: _isLoading,
+                      ),
+                      SizedBox(height: 12.h),
+
+                      // Login Link
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            "Already have an account? ",
+                            style: CustomTextStyles.lblSecondryText(context),
+                          ),
+                          GestureDetector(
+                            onTap: () {
+                              Navigator.pushReplacement(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => const LoginScreen(),
+                                ),
+                              );
+                            },
+                            child: Text(
+                              "Login",
+                              style: CustomTextStyles.lblPrimaryText(context)
+                                  .copyWith(
+                                    color: AppColors.primaryColor,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -800,8 +817,9 @@ class _SignupScreenState extends State<SignupScreen> with UtilityMixin {
               onChanged: (String? newValue) {
                 setState(() => _selectedGender = newValue);
               },
-              iconEnabledColor:
-                  Theme.of(context).colorScheme.onBackground.withOpacity(0.7),
+              iconEnabledColor: Theme.of(
+                context,
+              ).colorScheme.onBackground.withOpacity(0.7),
               dropdownColor: Theme.of(context).scaffoldBackgroundColor,
             ),
           ),
@@ -811,7 +829,9 @@ class _SignupScreenState extends State<SignupScreen> with UtilityMixin {
   }
 
   Widget _buildPhoneNumber(
-      TextEditingController controller, String countryCode) {
+    TextEditingController controller,
+    String countryCode,
+  ) {
     Country? initialCountry = getCountryByDialCode(_countryCode ?? '91');
 
     return Container(

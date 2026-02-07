@@ -1,6 +1,6 @@
 // ignore_for_file: deprecated_member_use, unused_field, strict_top_level_inference
 
-part of 'user_profile_import.dart';
+part of 'posts/user_profile_import.dart';
 
 class UserProfile extends StatefulWidget {
   const UserProfile({super.key});
@@ -16,7 +16,7 @@ class ProfileState extends State<UserProfile>
   final ApiService apiService = ApiService();
 
   // Cached data
-  List<PostImagesModel> _cachedPosts = [];
+  List<UserPostModel> _cachedPosts = [];
   List<Map<String, dynamic>> _cachedFollowers = [];
   List<Map<String, dynamic>> _cachedFollowing = [];
   String? _cachedCoverImage;
@@ -25,7 +25,7 @@ class ProfileState extends State<UserProfile>
   // Futures for UI
   late Future<List<Map<String, dynamic>>> getFollowers;
   late Future<List<Map<String, dynamic>>> getFollowing;
-  late Future<List<PostImagesModel>> _postsFuture;
+  late Future<List<UserPostModel>> _postsFuture;
 
   bool isInitialLoad = true;
   bool autoRefreshEnabled = true;
@@ -89,7 +89,6 @@ class ProfileState extends State<UserProfile>
       if (kDebugMode) {
         print('Error fetching user profile: $e');
       }
-      // Silent fail - use cached data
     }
   }
 
@@ -132,7 +131,7 @@ class ProfileState extends State<UserProfile>
   }
 
   // POSTS - Load with cache
-  Future<List<PostImagesModel>> _loadPostsWithCache(String? username) async {
+  Future<List<UserPostModel>> _loadPostsWithCache(String? username) async {
     if (username == null || username.isEmpty) {
       return _cachedPosts;
     }
@@ -141,16 +140,16 @@ class ProfileState extends State<UserProfile>
       final posts = await apiService.fetchPostsImages(username);
       final imagePosts = posts.where((p) => p.images.isNotEmpty).toList();
       imagePosts.sort((a, b) => b.createdAt.compareTo(a.createdAt));
-      
+
       final latestPosts = imagePosts.take(4).toList();
-      
+
       if (mounted) {
         setState(() {
           _cachedPosts = latestPosts;
           isInitialLoad = false;
         });
       }
-      
+
       return latestPosts;
     } catch (e) {
       if (kDebugMode) {
@@ -170,39 +169,47 @@ class ProfileState extends State<UserProfile>
 
     // Refresh followers/following silently
     if (mounted) {
-      apiService.getFollowersList().then((followers) {
-        if (mounted) {
-          setState(() {
-            _cachedFollowers = followers;
-            getFollowers = Future.value(followers);
+      apiService
+          .getFollowersList()
+          .then((followers) {
+            if (mounted) {
+              setState(() {
+                _cachedFollowers = followers;
+                getFollowers = Future.value(followers);
+              });
+            }
+          })
+          .catchError((e) {
+            if (kDebugMode) print('Silent refresh followers error: $e');
           });
-        }
-      }).catchError((e) {
-        if (kDebugMode) print('Silent refresh followers error: $e');
-      });
 
-      apiService.getFollowingList().then((following) {
-        if (mounted) {
-          setState(() {
-            _cachedFollowing = following;
-            getFollowing = Future.value(following);
+      apiService
+          .getFollowingList()
+          .then((following) {
+            if (mounted) {
+              setState(() {
+                _cachedFollowing = following;
+                getFollowing = Future.value(following);
+              });
+            }
+          })
+          .catchError((e) {
+            if (kDebugMode) print('Silent refresh following error: $e');
           });
-        }
-      }).catchError((e) {
-        if (kDebugMode) print('Silent refresh following error: $e');
-      });
 
       // Refresh posts silently
       if (userProvider.username != null && userProvider.username!.isNotEmpty) {
-        _loadPostsWithCache(userProvider.username).then((posts) {
-          if (mounted) {
-            setState(() {
-              _postsFuture = Future.value(posts);
+        _loadPostsWithCache(userProvider.username)
+            .then((posts) {
+              if (mounted) {
+                setState(() {
+                  _postsFuture = Future.value(posts);
+                });
+              }
+            })
+            .catchError((e) {
+              if (kDebugMode) print('Silent refresh posts error: $e');
             });
-          }
-        }).catchError((e) {
-          if (kDebugMode) print('Silent refresh posts error: $e');
-        });
       }
     }
   }
@@ -319,67 +326,72 @@ class ProfileState extends State<UserProfile>
                     ),
                     Align(
                       alignment: Alignment.bottomCenter,
-                      child: Container(
-                        width: double.infinity,
-                        height: 60.h,
-                        padding: EdgeInsets.all(8.w),
-                        child: Row(
-                          children: [
-                            Container(
-                              height: 50.h,
-                              width: 50.h,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                border: Border.all(
-                                  color: Colors.white,
-                                  width: 1.5.w,
-                                ),
-                                image: getProfileImage(_cachedProfileImage) == null
-                                    ? const DecorationImage(
-                                        image: AssetImage(
-                                          Assets.assetsImagesIcUser,
-                                        ),
-                                        fit: BoxFit.fill,
-                                      )
-                                    : DecorationImage(
-                                        image: MemoryImage(
-                                          getProfileImage(_cachedProfileImage)!,
-                                        ),
-                                        fit: BoxFit.cover,
-                                      ),
-                              ),
-                            ),
-                            SizedBox(width: 10.w),
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
+                      child:
+                          Container(
+                            width: double.infinity,
+                            height: 60.h,
+                            padding: EdgeInsets.all(8.w),
+                            child: Row(
                               children: [
-                                Text(
-                                  userProvider.isLoading
-                                      ? '-'
-                                      : userProvider.username ?? '-',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 14.sp,
+                                Container(
+                                  height: 50.h,
+                                  width: 50.h,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    border: Border.all(
+                                      color: Colors.white,
+                                      width: 1.5.w,
+                                    ),
+                                    image:
+                                        getProfileImage(_cachedProfileImage) ==
+                                            null
+                                        ? const DecorationImage(
+                                            image: AssetImage(
+                                              Assets.assetsImagesIcUser,
+                                            ),
+                                            fit: BoxFit.fill,
+                                          )
+                                        : DecorationImage(
+                                            image: MemoryImage(
+                                              getProfileImage(
+                                                _cachedProfileImage,
+                                              )!,
+                                            ),
+                                            fit: BoxFit.cover,
+                                          ),
                                   ),
                                 ),
-                                SizedBox(height: 2.h),
-                                Text(
-                                  userProvider.isLoading
-                                      ? '-'
-                                      : userProvider.bio ?? '-',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 12.sp,
-                                  ),
+                                SizedBox(width: 10.w),
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      userProvider.isLoading
+                                          ? '-'
+                                          : userProvider.username ?? '-',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 14.sp,
+                                      ),
+                                    ),
+                                    SizedBox(height: 2.h),
+                                    Text(
+                                      userProvider.isLoading
+                                          ? '-'
+                                          : userProvider.bio ?? '-',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 12.sp,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ],
                             ),
-                          ],
-                        ),
-                      ).asGlass(
-                        tintColor: Colors.black,
-                        clipBorderRadius: BorderRadius.circular(12.r),
-                      ),
+                          ).asGlass(
+                            tintColor: Colors.black,
+                            clipBorderRadius: BorderRadius.circular(12.r),
+                          ),
                     ),
                   ],
                 ),
@@ -478,7 +490,9 @@ class ProfileState extends State<UserProfile>
                             Text(
                               AppLocalizations.of(context)!.revibe,
                               style: TextStyle(
-                                color: Theme.of(context).colorScheme.onBackground,
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onBackground,
                                 fontSize: 11.5.sp,
                                 fontWeight: FontWeight.w600,
                               ),
@@ -505,7 +519,7 @@ class ProfileState extends State<UserProfile>
                                     Text(
                                       AppLocalizations.of(context)!.seeall,
                                       style: TextStyle(
-                                        fontSize: 11.2.sp,
+                                        fontSize: 11.sp,
                                         fontWeight: FontWeight.w600,
                                         color: AppColors.primaryColor
                                             .withOpacity(0.8),
@@ -513,8 +527,10 @@ class ProfileState extends State<UserProfile>
                                     ),
                                     Icon(
                                       Icons.arrow_forward_ios,
-                                      size: 15.5.spMax,
-                                      color: AppColors.primaryColor.withOpacity(0.8),
+                                      size: 14.spMax,
+                                      color: AppColors.primaryColor.withOpacity(
+                                        0.8,
+                                      ),
                                     ),
                                   ],
                                 ),
@@ -529,14 +545,20 @@ class ProfileState extends State<UserProfile>
                             // Show cached data immediately while loading
                             final usersVibe = snapshot.data ?? _cachedFollowing;
 
-                            if (isInitialLoad && snapshot.connectionState == ConnectionState.waiting && _cachedFollowing.isEmpty) {
+                            if (isInitialLoad &&
+                                snapshot.connectionState ==
+                                    ConnectionState.waiting &&
+                                _cachedFollowing.isEmpty) {
                               return const UserChaseSimmer();
                             }
 
                             if (usersVibe.isEmpty) {
                               return Center(
                                 child: Padding(
-                                  padding: EdgeInsets.only(top: 15.h, bottom: 30.h),
+                                  padding: EdgeInsets.only(
+                                    top: 15.h,
+                                    bottom: 30.h,
+                                  ),
                                   child: const Text(
                                     'No re-chase yet 👀',
                                     style: TextStyle(
@@ -584,7 +606,9 @@ class ProfileState extends State<UserProfile>
                                       decoration: BoxDecoration(
                                         shape: BoxShape.circle,
                                         border: Border.all(
-                                          color: const Color(0xFFD1D1D1).withOpacity(0.7),
+                                          color: const Color(
+                                            0xFFD1D1D1,
+                                          ).withOpacity(0.7),
                                         ),
                                         image: profilePic != null
                                             ? DecorationImage(
@@ -595,7 +619,9 @@ class ProfileState extends State<UserProfile>
                                               )
                                             : null,
                                         color: profilePic == null
-                                            ? Theme.of(context).primaryColor.withOpacity(0.08)
+                                            ? Theme.of(
+                                                context,
+                                              ).primaryColor.withOpacity(0.08)
                                             : null,
                                       ),
                                       child: profilePic == null
@@ -605,7 +631,9 @@ class ProfileState extends State<UserProfile>
                                                 style: TextStyle(
                                                   fontSize: 20.sp,
                                                   fontWeight: FontWeight.bold,
-                                                  color: Theme.of(context).primaryColor,
+                                                  color: Theme.of(
+                                                    context,
+                                                  ).primaryColor,
                                                 ),
                                               ),
                                             )
@@ -623,7 +651,9 @@ class ProfileState extends State<UserProfile>
                             Text(
                               AppLocalizations.of(context)!.vibe,
                               style: TextStyle(
-                                color: Theme.of(context).colorScheme.onBackground,
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onBackground,
                                 fontSize: 11.5.sp,
                                 fontWeight: FontWeight.w600,
                               ),
@@ -650,7 +680,7 @@ class ProfileState extends State<UserProfile>
                                     Text(
                                       AppLocalizations.of(context)!.seeall,
                                       style: TextStyle(
-                                        fontSize: 11.2.sp,
+                                        fontSize: 11.sp,
                                         fontWeight: FontWeight.w600,
                                         color: AppColors.primaryColor
                                             .withOpacity(0.8),
@@ -658,8 +688,10 @@ class ProfileState extends State<UserProfile>
                                     ),
                                     Icon(
                                       Icons.arrow_forward_ios,
-                                      size: 15.5.spMax,
-                                      color: AppColors.primaryColor.withOpacity(0.8),
+                                      size: 14.spMax,
+                                      color: AppColors.primaryColor.withOpacity(
+                                        0.8,
+                                      ),
                                     ),
                                   ],
                                 ),
@@ -674,7 +706,10 @@ class ProfileState extends State<UserProfile>
                             // Show cached data immediately while loading
                             final usersVibe = snapshot.data ?? _cachedFollowers;
 
-                            if (isInitialLoad && snapshot.connectionState == ConnectionState.waiting && _cachedFollowers.isEmpty) {
+                            if (isInitialLoad &&
+                                snapshot.connectionState ==
+                                    ConnectionState.waiting &&
+                                _cachedFollowers.isEmpty) {
                               return const UserChaseSimmer();
                             }
 
@@ -729,7 +764,9 @@ class ProfileState extends State<UserProfile>
                                       decoration: BoxDecoration(
                                         shape: BoxShape.circle,
                                         border: Border.all(
-                                          color: const Color(0xFFD1D1D1).withOpacity(0.7),
+                                          color: const Color(
+                                            0xFFD1D1D1,
+                                          ).withOpacity(0.7),
                                         ),
                                         image: profilePic != null
                                             ? DecorationImage(
@@ -740,7 +777,9 @@ class ProfileState extends State<UserProfile>
                                               )
                                             : null,
                                         color: profilePic == null
-                                            ? Theme.of(context).primaryColor.withOpacity(0.08)
+                                            ? Theme.of(
+                                                context,
+                                              ).primaryColor.withOpacity(0.08)
                                             : null,
                                       ),
                                       child: profilePic == null
@@ -750,7 +789,9 @@ class ProfileState extends State<UserProfile>
                                                 style: TextStyle(
                                                   fontSize: 22.sp,
                                                   fontWeight: FontWeight.bold,
-                                                  color: Theme.of(context).primaryColor,
+                                                  color: Theme.of(
+                                                    context,
+                                                  ).primaryColor,
                                                 ),
                                               ),
                                             )
@@ -856,14 +897,14 @@ class ProfileState extends State<UserProfile>
                           Text(
                             AppLocalizations.of(context)!.seeall,
                             style: TextStyle(
-                              fontSize: 11.2.sp,
+                              fontSize: 11.sp,
                               fontWeight: FontWeight.w600,
                               color: AppColors.primaryColor.withOpacity(0.8),
                             ),
                           ),
                           Icon(
                             Icons.arrow_forward_ios,
-                            size: 15.5.spMax,
+                            size: 14.spMax,
                             color: AppColors.primaryColor.withOpacity(0.8),
                           ),
                         ],
@@ -876,13 +917,15 @@ class ProfileState extends State<UserProfile>
               // Posts Grid
               Padding(
                 padding: EdgeInsets.symmetric(horizontal: 12.w),
-                child: FutureBuilder<List<PostImagesModel>>(
+                child: FutureBuilder<List<UserPostModel>>(
                   future: _postsFuture,
                   builder: (context, snapshot) {
                     // Show cached data immediately while loading
                     final posts = snapshot.data ?? _cachedPosts;
 
-                    if (isInitialLoad && snapshot.connectionState == ConnectionState.waiting && _cachedPosts.isEmpty) {
+                    if (isInitialLoad &&
+                        snapshot.connectionState == ConnectionState.waiting &&
+                        _cachedPosts.isEmpty) {
                       return Shimmer.fromColors(
                         baseColor: Colors.grey[300]!,
                         highlightColor: Colors.grey[100]!,
@@ -893,7 +936,9 @@ class ProfileState extends State<UserProfile>
                               width: double.infinity,
                               margin: EdgeInsets.only(bottom: 5.h),
                               decoration: BoxDecoration(
-                                color: Theme.of(context).colorScheme.secondaryContainer,
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.secondaryContainer,
                                 borderRadius: BorderRadius.circular(10.r),
                               ),
                             ),
@@ -902,7 +947,9 @@ class ProfileState extends State<UserProfile>
                               width: double.infinity,
                               margin: EdgeInsets.only(bottom: 5.h),
                               decoration: BoxDecoration(
-                                color: Theme.of(context).colorScheme.secondaryContainer,
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.secondaryContainer,
                                 borderRadius: BorderRadius.circular(10.r),
                               ),
                             ),
@@ -947,7 +994,9 @@ class ProfileState extends State<UserProfile>
                                         borderRadius: BorderRadius.circular(12),
                                         boxShadow: [
                                           BoxShadow(
-                                            color: Colors.black.withOpacity(0.1),
+                                            color: Colors.black.withOpacity(
+                                              0.1,
+                                            ),
                                             blurRadius: 8,
                                             offset: const Offset(0, 3),
                                           ),
@@ -976,12 +1025,13 @@ class ProfileState extends State<UserProfile>
                     return GridView.builder(
                       shrinkWrap: true,
                       physics: const NeverScrollableScrollPhysics(),
-                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 2,
-                        crossAxisSpacing: 8,
-                        mainAxisSpacing: 8,
-                        childAspectRatio: 1.3,
-                      ),
+                      gridDelegate:
+                          const SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 2,
+                            crossAxisSpacing: 8,
+                            mainAxisSpacing: 8,
+                            childAspectRatio: 1.3,
+                          ),
                       itemCount: posts.length > 4 ? 4 : posts.length,
                       itemBuilder: (context, index) {
                         final post = posts[index];
@@ -995,7 +1045,7 @@ class ProfileState extends State<UserProfile>
                               ),
                             );
                           },
-                          child: _buildImagesStack(post.images),
+                          child: _buildImagesStack(post.polls),
                         );
                       },
                     );
@@ -1032,14 +1082,14 @@ class ProfileState extends State<UserProfile>
                           Text(
                             AppLocalizations.of(context)!.seeall,
                             style: TextStyle(
-                              fontSize: 11.2.sp,
+                              fontSize: 11.sp,
                               fontWeight: FontWeight.w600,
                               color: AppColors.primaryColor.withOpacity(0.8),
                             ),
                           ),
                           Icon(
                             Icons.arrow_forward_ios,
-                            size: 15.5.spMax,
+                            size: 14.spMax,
                             color: AppColors.primaryColor.withOpacity(0.8),
                           ),
                         ],
@@ -1050,7 +1100,7 @@ class ProfileState extends State<UserProfile>
               ),
 
               // Things Polls Section
-              FutureBuilder<List<PostPolls>>(
+              FutureBuilder<List<UserPostModel>>(
                 future: apiService.fetchOnlyPollPosts(userProvider.username!),
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
@@ -1077,13 +1127,13 @@ class ProfileState extends State<UserProfile>
                     );
                   }
 
-                  final postsPolls = snapshot.data ?? const <PostPolls>[];
+                  final postsPolls = snapshot.data ?? const <UserPostModel>[];
 
                   // Filter posts: only show polls where ALL options have text (image == null)
                   final postsWithTextPolls = postsPolls.where((post) {
                     if (post.polls.isEmpty) return false;
                     return post.polls.every(
-                      (poll) => poll.options.every(
+                      (poll) => poll.options!.every(
                         (option) =>
                             option.text != null &&
                             option.text!.isNotEmpty &&
@@ -1286,7 +1336,25 @@ class ProfileState extends State<UserProfile>
     );
   }
 
-  Widget _buildImagesStack(List images) {
+  Widget _buildImagesStack(List<UserPollQuestion> polls) {
+    // Extract images from poll options
+    List<PollOptionImage> validImages = [];
+
+    for (var poll in polls) {
+      if (poll.options != null) {
+        for (var option in poll.options!) {
+          if (option.image != null) {
+            validImages.add(option.image!);
+          }
+        }
+      }
+    }
+
+    // If no valid images, return empty container
+    if (validImages.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
     List<Alignment> getAlignments(int totalImages) {
       switch (totalImages) {
         case 1:
@@ -1310,24 +1378,23 @@ class ProfileState extends State<UserProfile>
       }
     }
 
-    List<Alignment> alignments = getAlignments(images.length);
+    List<Alignment> alignments = getAlignments(validImages.length);
 
     return LayoutBuilder(
       builder: (context, constraints) {
         double availableWidth = constraints.maxWidth;
-        double availableHeight = constraints.maxHeight;
-        double imageHeight = 120.h;
+        double imageHeight = 150.h;
 
         return SizedBox(
-          height: availableHeight,
+          height: imageHeight,
           width: availableWidth,
           child: Stack(
-            children: images
+            children: validImages
                 .asMap()
                 .entries
                 .map<Widget>((entry) {
                   int index = entry.key;
-                  dynamic imageData = entry.value;
+                  PollOptionImage imageData = entry.value;
                   Alignment alignment = alignments[index];
                   double imageWidth = (availableWidth * 0.7) - (index * 8.0);
                   imageWidth = imageWidth < 60.w ? 60.w : imageWidth;
@@ -1354,6 +1421,7 @@ class ProfileState extends State<UserProfile>
                               return Container(
                                 decoration: BoxDecoration(
                                   borderRadius: BorderRadius.circular(12.r),
+                                  color: Colors.grey[200],
                                 ),
                                 child: Icon(
                                   Icons.image_not_supported,
@@ -1367,6 +1435,7 @@ class ProfileState extends State<UserProfile>
                               return Container(
                                 decoration: BoxDecoration(
                                   borderRadius: BorderRadius.circular(20.r),
+                                  color: Colors.grey[200],
                                 ),
                                 child: Center(
                                   child: CircularProgressIndicator(

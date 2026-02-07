@@ -1,13 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
-import '../../models/posts/post_polls_model.dart';
+import '../../models/posts/user_post_model.dart';
 
 class UserThingsCard extends StatelessWidget {
-  const UserThingsCard(
-      {super.key, required this.post, required this.gradientColors});
+  const UserThingsCard({
+    super.key,
+    required this.post,
+    required this.gradientColors,
+  });
 
-  final PostPolls post;
+  final UserPostModel post;
   final List<Color>? gradientColors;
 
   @override
@@ -28,11 +31,7 @@ class UserThingsCard extends StatelessWidget {
             : null,
         borderRadius: BorderRadius.circular(15.r),
         boxShadow: const [
-          BoxShadow(
-            color: Colors.black12,
-            blurRadius: 6,
-            spreadRadius: 2,
-          ),
+          BoxShadow(color: Colors.black12, blurRadius: 6, spreadRadius: 2),
         ],
       ),
       child: Text(

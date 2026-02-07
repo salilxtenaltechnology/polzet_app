@@ -14,11 +14,7 @@ class CustomCard extends StatelessWidget {
         color: Theme.of(context).colorScheme.secondaryContainer,
         borderRadius: BorderRadius.circular(15.r),
         boxShadow: const [
-          BoxShadow(
-            color: Colors.black12,
-            blurRadius: 6,
-            spreadRadius: 2,
-          ),
+          BoxShadow(color: Colors.black12, blurRadius: 6, spreadRadius: 2),
         ],
       ),
       child: widget,

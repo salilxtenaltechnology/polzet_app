@@ -191,7 +191,8 @@ class _PrivateAccountState extends State<PrivateAccount> {
                     ],
                   ),
                 ),
-                if (isUpdating) const Center(child: CircularProgressIndicator()),
+                if (isUpdating)
+                  const Center(child: CircularProgressIndicator()),
               ],
             ),
     );

@@ -2,7 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
-import '../../models/home feed/home_feed_items_model.dart';
+import '../../models/posts/homefeed_posts_model.dart';
 import '../../widgets/base64/image_convert.dart';
 
 class LikedUsersBottomSheet extends StatefulWidget {

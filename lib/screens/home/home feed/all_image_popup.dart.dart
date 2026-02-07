@@ -6,7 +6,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../../api/api_config.dart';
 import '../../../api/services/api_service.dart';
 import '../../../core/constants/app_colors.dart';
-import '../../../models/home feed/home_feed_items_model.dart';
+import '../../../models/posts/homefeed_posts_model.dart';
 import '../../../widgets/show_toast.dart';
 
 class AllImagesPopup extends StatefulWidget {
@@ -185,7 +185,7 @@ class _AllImagesPopupState extends State<AllImagesPopup> {
                         'All Images',
                         style: TextStyle(
                           color: AppColors.primaryColor,
-                          fontSize: 14.sp,
+                          fontSize: 12.sp,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
@@ -216,17 +216,17 @@ class _AllImagesPopupState extends State<AllImagesPopup> {
                         Container(
                           padding: EdgeInsets.symmetric(
                             horizontal: 8.w,
-                            vertical: 4.h,
+                            vertical: 2.h,
                           ),
                           decoration: BoxDecoration(
-                            color: Colors.grey,
+                            color: Colors.grey.withOpacity(0.8),
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: Text(
                             'Polled',
                             style: TextStyle(
                               color: Colors.white,
-                              fontSize: 11.sp,
+                              fontSize: 10.sp,
                               fontWeight: FontWeight.w500,
                             ),
                           ),

@@ -39,13 +39,9 @@ class _BiometricGateScreenState extends State<BiometricGateScreen>
       duration: const Duration(milliseconds: 1500),
       vsync: this,
     );
-    _pulseAnimation = Tween<double>(
-      begin: 0.8,
-      end: 1.2,
-    ).animate(CurvedAnimation(
-      parent: _animationController,
-      curve: Curves.easeInOut,
-    ));
+    _pulseAnimation = Tween<double>(begin: 0.8, end: 1.2).animate(
+      CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
+    );
   }
 
   @override
@@ -87,10 +83,10 @@ class _BiometricGateScreenState extends State<BiometricGateScreen>
       final String reason = await BiometricService.getBiometricMessage();
       final bool isAuthenticated =
           await BiometricService.authenticateWithBiometrics(
-        reason: reason,
-        useErrorDialogs: true,
-        stickyAuth: true,
-      );
+            reason: reason,
+            useErrorDialogs: true,
+            stickyAuth: true,
+          );
 
       if (isAuthenticated) {
         setState(() {
@@ -216,9 +212,13 @@ class _BiometricGateScreenState extends State<BiometricGateScreen>
                         padding: EdgeInsets.all(50.w),
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          color: Theme.of(context).primaryColor.withOpacity(0.1),
+                          color: Theme.of(
+                            context,
+                          ).primaryColor.withOpacity(0.1),
                           border: Border.all(
-                            color: Theme.of(context).primaryColor.withOpacity(0.3),
+                            color: Theme.of(
+                              context,
+                            ).primaryColor.withOpacity(0.3),
                             width: 2.5,
                           ),
                         ),
@@ -250,10 +250,9 @@ class _BiometricGateScreenState extends State<BiometricGateScreen>
                     fontSize: 14.sp,
                     color: _authenticationFailed
                         ? Colors.red
-                        : Theme.of(context)
-                            .colorScheme
-                            .onBackground
-                            .withOpacity(0.6),
+                        : Theme.of(
+                            context,
+                          ).colorScheme.onBackground.withOpacity(0.6),
                   ),
                   textAlign: TextAlign.center,
                   maxLines: 3,

@@ -7,6 +7,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:polzet_app/screens/home/profile/public/public_profile.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -58,6 +59,14 @@ class NotificationState extends State<Notifications>
   final Map<String, Uint8List> _imageCache = {};
   List<NotificationItem> _lastNotifications = [];
 
+  // Pagination variables
+  bool _isLoadingMore = false;
+  bool _hasMoreData = true;
+  String? _nextPageUrl;
+  final ScrollController _allNotificationsScrollController = ScrollController();
+  final ScrollController _pollNotificationsScrollController =
+      ScrollController();
+
   // Get auth headers
   Future<Map<String, String>> _getAuthHeaders() async {
     final accessToken = await SharedPrefService.getAccessToken();
@@ -69,7 +78,6 @@ class NotificationState extends State<Notifications>
   }
 
   // Load notifications from cache
-  // Load notifications from cache
   Future<void> _loadNotificationsFromCache() async {
     if (_isDisposed) return;
 
@@ -77,7 +85,7 @@ class NotificationState extends State<Notifications>
       final prefs = await SharedPreferences.getInstance();
       final cachedData = prefs.getString(_notificationsCacheKey);
 
-      if (_isDisposed) return; // Check after async operation
+      if (_isDisposed) return;
 
       if (cachedData != null && cachedData.isNotEmpty) {
         final Map<String, dynamic> jsonData = json.decode(cachedData);
@@ -89,7 +97,6 @@ class NotificationState extends State<Notifications>
           );
           _lastNotifications = notificationsResponse.notifications;
 
-          // Only add if stream is not closed
           if (!_isDisposed && !_notificationStreamController.isClosed) {
             _notificationStreamController.add(_lastNotifications);
           }
@@ -105,7 +112,6 @@ class NotificationState extends State<Notifications>
       if (kDebugMode) {
         print('Error loading notifications from cache: $e');
       }
-      // Clear corrupted cache
       if (!_isDisposed) {
         final prefs = await SharedPreferences.getInstance();
         await prefs.remove(_notificationsCacheKey);
@@ -172,7 +178,7 @@ class NotificationState extends State<Notifications>
     }
   }
 
-  // Fetch notifications with caching
+  // Fetch notifications with caching (Initial load)
   Future<void> fetchNotifications({bool showLoader = false}) async {
     if (_isDisposed || !mounted) return;
 
@@ -187,12 +193,9 @@ class NotificationState extends State<Notifications>
         options: Options(headers: headers),
       );
 
-     // debugPrint('Notification response: ${response.data}');
-
       if (_isDisposed || !mounted) return;
 
       if (response.data['status'] == 'success') {
-        // IMPORTANT: Check the response structure
         if (response.data['notifications'] == null) {
           debugPrint('⚠️ Notifications array is null in response');
           return;
@@ -204,12 +207,13 @@ class NotificationState extends State<Notifications>
         if (_isDisposed || _notificationStreamController.isClosed) return;
 
         try {
-          // Parse with better error handling
           final notificationsResponse = NotificationsResponse.fromJson(
             response.data,
           );
 
           _lastNotifications = notificationsResponse.notifications;
+          _nextPageUrl = response.data['next'];
+          _hasMoreData = _nextPageUrl != null;
 
           if (!_notificationStreamController.isClosed) {
             _notificationStreamController.add(_lastNotifications);
@@ -219,6 +223,7 @@ class NotificationState extends State<Notifications>
             print(
               '✅ Successfully parsed ${notificationsResponse.notifications.length} notifications',
             );
+            print('Next page URL: $_nextPageUrl');
           }
         } catch (parseError) {
           if (kDebugMode) {
@@ -229,7 +234,6 @@ class NotificationState extends State<Notifications>
             }
           }
 
-          // Try to parse manually to identify the issue
           if (response.data['notifications'] is List) {
             final notificationsList = response.data['notifications'] as List;
             if (notificationsList.isNotEmpty) {
@@ -279,6 +283,76 @@ class NotificationState extends State<Notifications>
     }
   }
 
+  // Load more notifications (Pagination)
+  Future<void> _loadMoreNotifications() async {
+    if (_isLoadingMore || !_hasMoreData || _nextPageUrl == null) return;
+
+    setState(() {
+      _isLoadingMore = true;
+    });
+
+    try {
+      final headers = await _getAuthHeaders();
+      final response = await _dio.get(
+        _nextPageUrl!,
+        options: Options(headers: headers),
+      );
+
+      if (response.data['status'] == 'success') {
+        final notificationsResponse = NotificationsResponse.fromJson(
+          response.data,
+        );
+
+        // Append new notifications to existing list
+        _lastNotifications.addAll(notificationsResponse.notifications);
+        _nextPageUrl = response.data['next'];
+        _hasMoreData = _nextPageUrl != null;
+
+        if (!_notificationStreamController.isClosed) {
+          _notificationStreamController.add(_lastNotifications);
+        }
+
+        if (kDebugMode) {
+          print(
+            '✅ Loaded ${notificationsResponse.notifications.length} more notifications',
+          );
+          print('Total notifications: ${_lastNotifications.length}');
+          print('Next page URL: $_nextPageUrl');
+        }
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print('❌ Error loading more notifications: $e');
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoadingMore = false;
+        });
+      }
+    }
+  }
+
+  // Scroll listener for All Notifications tab
+  void _onAllNotificationsScroll() {
+    if (_allNotificationsScrollController.position.pixels >=
+            _allNotificationsScrollController.position.maxScrollExtent * 0.8 &&
+        !_isLoadingMore &&
+        _hasMoreData) {
+      _loadMoreNotifications();
+    }
+  }
+
+  // Scroll listener for Poll Notifications tab
+  void _onPollNotificationsScroll() {
+    if (_pollNotificationsScrollController.position.pixels >=
+            _pollNotificationsScrollController.position.maxScrollExtent * 0.8 &&
+        !_isLoadingMore &&
+        _hasMoreData) {
+      _loadMoreNotifications();
+    }
+  }
+
   Future<List<IncomingData>> getFriendRequests() async {
     final accessToken = await SharedPrefService.getAccessToken();
     try {
@@ -290,7 +364,6 @@ class NotificationState extends State<Notifications>
       if (response.data['status'] == 'success') {
         incoming = response.data['data']['incoming'];
 
-        // Save to cache
         await _saveFriendRequestsToCache(incoming);
 
         return incoming.map((e) => IncomingData.fromJson(e)).toList();
@@ -301,7 +374,6 @@ class NotificationState extends State<Notifications>
       if (kDebugMode) {
         print('Error fetching data: $e');
       }
-      // Return cached data on error
       return await _loadFriendRequestsFromCache();
     }
   }
@@ -334,7 +406,6 @@ class NotificationState extends State<Notifications>
           incoming.removeWhere(
             (request) => request['id'].toString() == requestId.toString(),
           );
-          // Update cache after removing
           _saveFriendRequestsToCache(incoming);
           friendRequestsFuture = getFriendRequests();
         });
@@ -379,30 +450,23 @@ class NotificationState extends State<Notifications>
   }
 
   String getNotificationMessage(NotificationItem notification) {
-    String message = notification.message ?? '';
-
-    if (message.isEmpty) {
-      // Generate message based on type
-      switch (notification.type.toUpperCase()) {
-        case 'FOLLOW':
-          return 'started following you';
-        case 'LIKE':
-          return 'liked your post';
-        case 'COMMENT':
-          return 'commented on your post';
-        default:
-          return 'sent you a notification';
-      }
+    switch (notification.type.toUpperCase()) {
+      case 'FOLLOW':
+        return 'started chasing you';
+      case 'LIKE':
+        return 'liked your post';
+      case 'COMMENT':
+        String message = notification.message ?? '';
+        if (message.contains('commented on your post: ')) {
+          String commentText = message.split('commented on your post: ').last;
+          return 'commented on your post: $commentText';
+        }
+        return 'commented on your post';
+      case 'VOTE':
+        return 'voted on your poll';
+      default:
+        return 'sent you a notification';
     }
-
-    // Remove the username from the message (assuming actor has username field)
-    // If your UserInfo model has a username field, use it:
-    // message = message.replaceFirst(notification.actor.username, '').trim();
-
-    // Otherwise, remove first word (which is the username)
-    message = message.replaceFirst(RegExp(r'^\S+\s+'), '').trim();
-
-    return message;
   }
 
   @override
@@ -419,21 +483,21 @@ class NotificationState extends State<Notifications>
       }
     });
 
-    // Load cached data first (synchronously displays old data)
+    // Add scroll listeners
+    _allNotificationsScrollController.addListener(_onAllNotificationsScroll);
+    _pollNotificationsScrollController.addListener(_onPollNotificationsScroll);
+
     _loadNotificationsFromCache().then((_) {
-      // Then fetch fresh data from network
       fetchNotifications();
     });
 
-    // Load friend requests cache, then fetch fresh data
     friendRequestsFuture = _loadFriendRequestsFromCache().then((
       cachedRequests,
     ) {
-      getFriendRequests(); // Fetch in background
+      getFriendRequests();
       return cachedRequests;
     });
 
-    // Auto-refresh every 30 seconds
     _refreshTimer = Timer.periodic(const Duration(seconds: 30), (timer) {
       if (!_isLoadingFromNetwork) {
         fetchNotifications();
@@ -444,7 +508,6 @@ class NotificationState extends State<Notifications>
   Uint8List? getUserImage(String? imageUrl) {
     if (imageUrl == null || imageUrl.isEmpty) return null;
 
-    // Check cache first
     if (_imageCache.containsKey(imageUrl)) {
       return _imageCache[imageUrl];
     }
@@ -456,7 +519,6 @@ class NotificationState extends State<Notifications>
       );
       final decoded = base64Decode(base64Data);
 
-      // Store in cache
       _imageCache[imageUrl] = decoded;
 
       return decoded;
@@ -475,6 +537,8 @@ class NotificationState extends State<Notifications>
     _notificationStreamController.close();
     _refreshTimer?.cancel();
     _imageCache.clear();
+    _allNotificationsScrollController.dispose();
+    _pollNotificationsScrollController.dispose();
     super.dispose();
   }
 
@@ -506,7 +570,6 @@ class NotificationState extends State<Notifications>
               tabs: [
                 Tab(text: AppLocalizations.of(context)!.all),
                 Tab(text: AppLocalizations.of(context)!.poll),
-                //  Tab(text: AppLocalizations.of(context)!.request),
               ],
             ),
             Expanded(
@@ -515,7 +578,12 @@ class NotificationState extends State<Notifications>
                 children: [
                   // All Notifications Tab
                   RefreshIndicator(
-                    onRefresh: fetchNotifications,
+                    onRefresh: () async {
+                      _lastNotifications.clear();
+                      _hasMoreData = true;
+                      _nextPageUrl = null;
+                      await fetchNotifications();
+                    },
                     child: StreamBuilder<List<NotificationItem>>(
                       stream: _notificationStreamController.stream,
                       initialData: _lastNotifications.isNotEmpty
@@ -533,12 +601,30 @@ class NotificationState extends State<Notifications>
                             ),
                           );
                         }
-                        // Show cached data immediately, even while loading
+
                         if (snapshot.hasData && snapshot.data!.isNotEmpty) {
                           final notifications = snapshot.data!;
                           return ListView.builder(
-                            itemCount: notifications.length,
+                            controller: _allNotificationsScrollController,
+                            itemCount:
+                                notifications.length + (_hasMoreData ? 1 : 0),
                             itemBuilder: (context, index) {
+                              // Show loading indicator at the bottom
+                              if (index == notifications.length) {
+                                return Center(
+                                  child: Padding(
+                                    padding: EdgeInsets.all(16.h),
+                                    child: _isLoadingMore
+                                        ? Loader(
+                                            color: Theme.of(
+                                              context,
+                                            ).colorScheme.primary,
+                                          )
+                                        : const SizedBox.shrink(),
+                                  ),
+                                );
+                              }
+
                               final notification = notifications[index];
                               final post = notification.post;
                               return GestureDetector(
@@ -549,12 +635,10 @@ class NotificationState extends State<Notifications>
                                       NotificationDetails(postId: post.postId),
                                     );
                                   } else if (notification.type == 'FOLLOW') {
-                                    // Navigate to user profile for follow notifications
-                                    // navigationPush(context, UserProfile(userId: notification.actor.userId));
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                        content: Text('Follow notification'),
-                                        duration: Duration(seconds: 1),
+                                    navigationPush(
+                                      context,
+                                      PublicProfile(
+                                        userId: notification.actor.userId,
                                       ),
                                     );
                                   } else {
@@ -571,7 +655,6 @@ class NotificationState extends State<Notifications>
                                   color: Colors.transparent,
                                   child: Row(
                                     children: [
-                                      // Avatar
                                       (notification.actor.avatarUrl != null &&
                                               notification
                                                   .actor
@@ -613,8 +696,6 @@ class NotificationState extends State<Notifications>
                                               ),
                                             ),
                                       SizedBox(width: 8.w),
-
-                                      // Notification text - ONLY NAME, NO USERNAME
                                       Expanded(
                                         child: Column(
                                           crossAxisAlignment:
@@ -627,7 +708,6 @@ class NotificationState extends State<Notifications>
                                                       context,
                                                     ),
                                                 children: <TextSpan>[
-                                                  // Only show name (first + last name)
                                                   TextSpan(
                                                     text:
                                                         notification.actor.name,
@@ -640,7 +720,6 @@ class NotificationState extends State<Notifications>
                                                           FontWeight.w600,
                                                     ),
                                                   ),
-                                                  // Show the custom notification message
                                                   TextSpan(
                                                     text:
                                                         ' ${getNotificationMessage(notification)}',
@@ -670,8 +749,6 @@ class NotificationState extends State<Notifications>
                                           ],
                                         ),
                                       ),
-
-                                      // Post image - only show if post exists and has image
                                       if (post != null &&
                                           post.imageUrl.isNotEmpty)
                                         Container(
@@ -737,9 +814,278 @@ class NotificationState extends State<Notifications>
                       },
                     ),
                   ),
+
                   // Poll Tab
-                  const Center(child: Text('Poll')),
-                  // Request Tab
+                  RefreshIndicator(
+                    onRefresh: () async {
+                      _lastNotifications.clear();
+                      _hasMoreData = true;
+                      _nextPageUrl = null;
+                      await fetchNotifications();
+                    },
+                    child: StreamBuilder<List<NotificationItem>>(
+                      stream: _notificationStreamController.stream,
+                      initialData: _lastNotifications.isNotEmpty
+                          ? _lastNotifications
+                          : null,
+                      builder: (context, snapshot) {
+                        if (snapshot.connectionState ==
+                                ConnectionState.waiting &&
+                            (!snapshot.hasData ||
+                                snapshot.data == null ||
+                                snapshot.data!.isEmpty)) {
+                          return Center(
+                            child: Loader(
+                              color: Theme.of(context).colorScheme.primary,
+                            ),
+                          );
+                        }
+
+                        if (snapshot.hasData && snapshot.data!.isNotEmpty) {
+                          final notifications = snapshot.data!;
+
+                          final voteNotifications = notifications
+                              .where(
+                                (notification) => notification.type == 'VOTE',
+                              )
+                              .toList();
+
+                          if (voteNotifications.isEmpty) {
+                            return Center(
+                              child: Text(
+                                'No vote notifications available',
+                                style: CustomTextStyles.lblSecondryText(
+                                  context,
+                                ),
+                              ),
+                            );
+                          }
+
+                          return ListView.builder(
+                            controller: _pollNotificationsScrollController,
+                            itemCount:
+                                voteNotifications.length +
+                                (_hasMoreData ? 1 : 0),
+                            itemBuilder: (context, index) {
+                              // Show loading indicator at the bottom
+                              if (index == voteNotifications.length) {
+                                return Center(
+                                  child: Padding(
+                                    padding: EdgeInsets.all(16.h),
+                                    child: _isLoadingMore
+                                        ? Loader(
+                                            color: Theme.of(
+                                              context,
+                                            ).colorScheme.primary,
+                                          )
+                                        : const SizedBox.shrink(),
+                                  ),
+                                );
+                              }
+
+                              final notification = voteNotifications[index];
+                              final post = notification.post;
+
+                              return GestureDetector(
+                                onTap: () {
+                                  if (post != null) {
+                                    navigationPush(
+                                      context,
+                                      NotificationDetails(postId: post.postId),
+                                    );
+                                  } else if (notification.type == 'FOLLOW') {
+                                    navigationPush(
+                                      context,
+                                      PublicProfile(
+                                        userId: notification.actor.userId,
+                                      ),
+                                    );
+                                  } else {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text('Post not available'),
+                                      ),
+                                    );
+                                  }
+                                },
+                                child: Container(
+                                  margin: EdgeInsets.fromLTRB(0, 5.h, 0, 0),
+                                  padding: EdgeInsets.fromLTRB(0, 5.h, 0, 5.h),
+                                  color: Colors.transparent,
+                                  child: Row(
+                                    children: [
+                                      (notification.actor.avatarUrl != null &&
+                                              notification
+                                                  .actor
+                                                  .avatarUrl!
+                                                  .isNotEmpty)
+                                          ? CircleAvatar(
+                                              backgroundImage: MemoryImage(
+                                                getUserImage(
+                                                  notification.actor.avatarUrl,
+                                                )!,
+                                              ),
+                                              radius: 17.w,
+                                              onBackgroundImageError:
+                                                  (exception, stackTrace) {
+                                                    if (kDebugMode) {
+                                                      print(
+                                                        'Error loading avatar: $exception',
+                                                      );
+                                                    }
+                                                  },
+                                            )
+                                          : CircleAvatar(
+                                              radius: 17.w,
+                                              backgroundColor: Theme.of(context)
+                                                  .colorScheme
+                                                  .primary
+                                                  .withOpacity(0.15),
+                                              child: Text(
+                                                getInitial(
+                                                  notification.actor.name,
+                                                ),
+                                                style: TextStyle(
+                                                  fontSize: 14.sp,
+                                                  fontWeight: FontWeight.w600,
+                                                  color: Theme.of(
+                                                    context,
+                                                  ).colorScheme.primary,
+                                                ),
+                                              ),
+                                            ),
+                                      SizedBox(width: 8.w),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            RichText(
+                                              text: TextSpan(
+                                                style:
+                                                    CustomTextStyles.lblPrimaryText(
+                                                      context,
+                                                    ),
+                                                children: <TextSpan>[
+                                                  TextSpan(
+                                                    text:
+                                                        notification.actor.name,
+                                                    style: TextStyle(
+                                                      color: const Color(
+                                                        0XFF1A1F36,
+                                                      ),
+                                                      fontSize: 12.2.sp,
+                                                      fontWeight:
+                                                          FontWeight.w600,
+                                                    ),
+                                                  ),
+                                                  TextSpan(
+                                                    text:
+                                                        ' ${getNotificationMessage(notification)}',
+                                                    style: TextStyle(
+                                                      fontSize: 12.sp,
+                                                      fontWeight:
+                                                          FontWeight.w400,
+                                                      color: const Color(
+                                                        0XFF1A1F36,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                            SizedBox(height: 2.h),
+                                            Text(
+                                              formatDateTime(
+                                                notification.createdAt
+                                                    .toString(),
+                                              ),
+                                              style: TextStyle(
+                                                fontSize: 9.sp,
+                                                color: const Color(0XFF999999),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      if (post != null &&
+                                          post.imageUrl.isNotEmpty)
+                                        Container(
+                                          width: 35.w,
+                                          height: 30.h,
+                                          decoration: BoxDecoration(
+                                            borderRadius: BorderRadius.circular(
+                                              8.r,
+                                            ),
+                                            image: DecorationImage(
+                                              image: NetworkImage(
+                                                '${ApiConfig.baseUrlImage}${post.imageUrl}',
+                                              ),
+                                              fit: BoxFit.cover,
+                                              onError: (exception, stackTrace) {
+                                                if (kDebugMode) {
+                                                  print(
+                                                    'Error loading poll: $exception',
+                                                  );
+                                                }
+                                              },
+                                            ),
+                                          ),
+                                        ),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            },
+                          );
+                        } else if (snapshot.connectionState ==
+                            ConnectionState.waiting) {
+                          return Center(
+                            child: Loader(
+                              color: Theme.of(context).colorScheme.primary,
+                            ),
+                          );
+                        } else if (snapshot.hasError &&
+                            (!snapshot.hasData ||
+                                snapshot.data == null ||
+                                snapshot.data!.isEmpty)) {
+                          return Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const Text('Error loading notifications'),
+                                SizedBox(height: 16.h),
+                                ElevatedButton(
+                                  onPressed: fetchNotifications,
+                                  child: const Text('Retry'),
+                                ),
+                              ],
+                            ),
+                          );
+                        } else {
+                          return Center(
+                            child: Text(
+                              'No notifications available',
+                              style: CustomTextStyles.lblSecondryText(context),
+                            ),
+                          );
+                        }
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+
+
+ // Request Tab
                   // FutureBuilder<List<IncomingData>>(
                   //   future: friendRequestsFuture,
                   //   builder: (context, snapshot) {
@@ -936,12 +1282,4 @@ class NotificationState extends State<Notifications>
                   //     }
                   //   },
                   // ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
+                  //  ],

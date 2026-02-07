@@ -8,7 +8,7 @@ class DeepLinkService {
   static final DeepLinkService _instance = DeepLinkService._internal();
   factory DeepLinkService() => _instance;
   DeepLinkService._internal();
-  
+
   final _appLinks = AppLinks();
 
   StreamSubscription<Uri>? _sub;

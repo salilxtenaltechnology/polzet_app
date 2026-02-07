@@ -272,7 +272,7 @@ class HomeFeedPollOption {
   final int voteCount;
   final List<LikeUser> votersPreview;
   final int score;
-   double percentage;
+  double percentage;
 
   HomeFeedPollOption({
     required this.id,

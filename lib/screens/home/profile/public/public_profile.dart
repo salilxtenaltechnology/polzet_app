@@ -1,12 +1,12 @@
 // ignore_for_file: deprecated_member_use, unused_local_variable, unused_field, unused_element
-
-import 'dart:convert';
 import 'dart:typed_data';
+
 import 'package:dio/dio.dart';
 import 'package:feather_icons/feather_icons.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:glass/glass.dart';
+import 'package:polzet_app/screens/home/profile/public/chase/public_chase_list.dart';
 import 'package:provider/provider.dart';
 import 'package:shimmer/shimmer.dart';
 
@@ -16,25 +16,19 @@ import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_images.dart';
 import '../../../../l10n/generated/app_localizations.dart';
 import '../../../../mixin/utility_mixins.dart';
-import '../../../../models/public/images/public_user_posts.dart';
-import '../../../../models/public/things/public_post_things_model.dart';
+import '../../../../models/public/public_profile_model.dart';
 import '../../../../models/public/things/public_things_card.dart';
-import '../../../../models/public/things/things_question.dart';
 import '../../../../provider/public_profile_provider.dart';
 import '../../../../widgets/base64/image_convert.dart';
 import '../../../../widgets/simmer/public_profile_simmer.dart';
-import '../posts/public_posts_list.dart';
+import '../posts/public_image_posts_list.dart';
 import 'public_things_questions_list.dart';
+import 'widgets/bio_widget.dart';
+import 'widgets/poll_images_stack.dart';
+import 'widgets/profile_stats_tiles.dart';
 
-// Friend Status Enum
 // Follow Status Enum - Updated to match API response
-enum FollowStatus {
-  none, // Not following, not followed
-  following, // User is following this profile (show "Chased")
-  follower, // This profile is following the user (show "Chase Back")
-  both, // Mutual follow (show "Chased")
-  pending, // Friend request sent, waiting
-}
+enum FollowStatus { none, rechase, chase, both, pending }
 
 // ignore: must_be_immutable
 class PublicProfile extends StatefulWidget {
@@ -66,10 +60,9 @@ class _PublicProfileState extends State<PublicProfile>
   final bool _isLoadingChaseStatus = true;
 
   // Silent data loading futures
-  Future<List<PublicPost>>? _postsFuture;
-  Future<List<PublicPostPolls>>? _pollsFuture;
+  Future<List<PublicPost>>? _pollsFuture;
 
-  late PublicPollsQuestion publicPollsQuestion;
+  late PublicPoll publicPollsQuestion;
 
   final ApiService apiService = ApiService();
 
@@ -77,10 +70,13 @@ class _PublicProfileState extends State<PublicProfile>
   FollowStatus? _localFollowStatus;
   bool _isProcessingRequest = false;
 
+  // Image caching - Store image URLs for network loading
   String? _cachedProfilePictureUrl;
   String? _cachedCoverPictureUrl;
   Uint8List? _cachedProfileImageBytes;
   Uint8List? _cachedCoverImageBytes;
+
+  bool _imagesInitialized = false;
 
   @override
   void initState() {
@@ -92,18 +88,10 @@ class _PublicProfileState extends State<PublicProfile>
       context.read<PublicProfileProvider>().fetchPublicUserProfile(
         widget.userId,
       );
-      final provider = context.read<PublicProfileProvider>();
-
-      provider.addListener(() {
-        if (provider.userProfile != null && _cachedProfilePictureUrl == null) {
-          _cachedProfilePictureUrl = provider.userProfile!.profilePictureUrl;
-          _cachedCoverPictureUrl = provider.userProfile!.coverPictureUrl;
-        }
-      });
 
       // Initialize with empty data to show "No posts" initially
-      _postsFuture = Future.value(<PublicPost>[]);
-      _pollsFuture = Future.value(<PublicPostPolls>[]);
+
+      _pollsFuture = Future.value(<PublicPost>[]);
 
       // Load fresh data silently in background
       _loadFreshPostsData();
@@ -124,6 +112,53 @@ class _PublicProfileState extends State<PublicProfile>
       CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
     );
     _scrollController.addListener(_scrollListener);
+  }
+
+  // Initialize images once and cache URLs
+  void _initializeImages(profile) {
+    if (!_imagesInitialized && profile != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && !_imagesInitialized) {
+          String? profileUrl;
+          String? coverUrl;
+
+          // Use thumbnail URLs if available, otherwise use full URLs
+          if (profile.profileThumbnailUrl != null &&
+              profile.profileThumbnailUrl.isNotEmpty) {
+            profileUrl = profile.profileThumbnailUrl;
+          } else if (profile.profilePictureUrl != null &&
+              profile.profilePictureUrl.isNotEmpty) {
+            profileUrl = profile.profilePictureUrl;
+          }
+
+          if (profile.coverThumbnailUrl != null &&
+              profile.coverThumbnailUrl.isNotEmpty) {
+            coverUrl = profile.coverThumbnailUrl;
+          }
+
+          if (mounted) {
+            setState(() {
+              _cachedProfilePictureUrl = profileUrl;
+              _cachedCoverPictureUrl = coverUrl;
+              _imagesInitialized = true;
+            });
+          }
+        }
+      });
+    }
+  }
+
+  // Reset cache when user changes
+  @override
+  void didUpdateWidget(covariant PublicProfile oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.userId != widget.userId) {
+      setState(() {
+        _imagesInitialized = false;
+        _cachedProfilePictureUrl = null;
+        _cachedCoverPictureUrl = null;
+      });
+    }
   }
 
   // Helper method to determine if posts should be visible
@@ -155,9 +190,9 @@ class _PublicProfileState extends State<PublicProfile>
 
     switch (status.toLowerCase()) {
       case 'following':
-        return FollowStatus.following;
-      case 'follower':
-        return FollowStatus.follower;
+        return FollowStatus.rechase;
+      case 'followers':
+        return FollowStatus.chase;
       case 'both':
         return FollowStatus.both;
       case 'pending':
@@ -177,14 +212,14 @@ class _PublicProfileState extends State<PublicProfile>
           'canTap': !_isProcessingRequest,
           'isFollowing': false,
         };
-      case FollowStatus.follower:
+      case FollowStatus.chase:
         return {
           'icon': Icons.sync,
           'text': 'Chase Back',
           'canTap': !_isProcessingRequest,
           'isFollowing': false,
         };
-      case FollowStatus.following:
+      case FollowStatus.rechase:
       case FollowStatus.both:
         return {
           'icon': Icons.verified,
@@ -242,7 +277,7 @@ class _PublicProfileState extends State<PublicProfile>
         } else {
           // Revert if failed
           setState(() {
-            _localFollowStatus = FollowStatus.following;
+            _localFollowStatus = FollowStatus.rechase;
           });
 
           if (mounted) {
@@ -262,7 +297,7 @@ class _PublicProfileState extends State<PublicProfile>
         setState(() {
           _localFollowStatus = isPrivate
               ? FollowStatus.pending
-              : FollowStatus.following;
+              : FollowStatus.rechase;
           _isProcessingRequest = false;
         });
 
@@ -270,20 +305,7 @@ class _PublicProfileState extends State<PublicProfile>
         final bool requestResult = await apiService.sendFriendRequest(username);
 
         if (requestResult) {
-          // if (mounted) {
-          //   ScaffoldMessenger.of(context).showSnackBar(
-          //     SnackBar(
-          //       content: Text(
-          //         isPrivate
-          //             ? 'Follow request sent successfully!'
-          //             : 'Now following $username!',
-          //       ),
-          //       backgroundColor: Colors.green,
-          //       duration: const Duration(seconds: 2),
-          //     ),
-          //   );
-          // }
-          // No screen reload - just silent background update if needed
+          //
         } else {
           // Revert if failed
           setState(() {
@@ -327,12 +349,11 @@ class _PublicProfileState extends State<PublicProfile>
         .fetchPostsWithImages(widget.userId)
         .then((freshPosts) {
           if (mounted) {
-            _postsFuture = Future.value(freshPosts);
             setState(() {});
           }
         })
         .catchError((error) {
-          debugPrint("Error loading fresh posts: $error");
+          //  debugPrint("Error loading fresh posts: $error");
         });
   }
 
@@ -346,7 +367,7 @@ class _PublicProfileState extends State<PublicProfile>
           }
         })
         .catchError((error) {
-          debugPrint("Error loading fresh polls: $error");
+          // ("Error loading fresh polls: $error");
         });
   }
 
@@ -393,17 +414,15 @@ class _PublicProfileState extends State<PublicProfile>
     }
   }
 
-  Uint8List? getProfileImage(profilePicture) {
-    if (profilePicture == null || profilePicture.isEmpty) return null;
-    try {
-      String base64Data = profilePicture.replaceFirst(
-        RegExp(r'data:image/[^;]+;base64,'),
-        '',
-      );
-      return base64Decode(base64Data);
-    } catch (e) {
-      return null;
+  // Helper method to build network image URL
+  String _getFullImageUrl(String? url) {
+    if (url == null || url.isEmpty) return '';
+    // If URL already starts with http/https, return as is
+    if (url.startsWith('http://') || url.startsWith('https://')) {
+      return url;
     }
+    // Otherwise, prepend base URL
+    return '${ApiConfig.baseUrlImage}$url';
   }
 
   @override
@@ -510,6 +529,9 @@ class _PublicProfileState extends State<PublicProfile>
                   );
                 }
 
+                // Initialize images ONCE
+                _initializeImages(profile);
+
                 // Get effective friend status from profile data
                 final effectiveStatus = _getEffectiveFollowStatus(
                   profile.followStatus,
@@ -519,7 +541,7 @@ class _PublicProfileState extends State<PublicProfile>
 
                 // Determine if user is friend (for posts visibility)
                 final isFriend =
-                    effectiveStatus == FollowStatus.following ||
+                    effectiveStatus == FollowStatus.rechase ||
                     effectiveStatus == FollowStatus.both;
 
                 // Determine if posts can be viewed based on privacy settings
@@ -527,243 +549,236 @@ class _PublicProfileState extends State<PublicProfile>
 
                 return Column(
                   children: [
-                    Container(
-                      height: 180.h,
-                      width: double.infinity,
-                      padding: EdgeInsets.all(8.w),
-                      decoration: BoxDecoration(
-                        image:
-                            ((_cachedCoverPictureUrl ?? profile.coverPictureUrl)
-                                .isEmpty)
-                            ? const DecorationImage(
-                                image: AssetImage(
-                                  Assets.assetsImagesDefaultCover,
+                    RepaintBoundary(
+                      child: Container(
+                        height: 180.h,
+                        width: double.infinity,
+                        padding: EdgeInsets.all(8.w),
+                        decoration: BoxDecoration(
+                          image: _cachedCoverPictureUrl != null
+                              ? DecorationImage(
+                                  image: MemoryImage(
+                                    getConvertImage(profile.coverThumbnailUrl)!,
+                                  ),
+                                  fit: BoxFit.fill,
+                                )
+                              : const DecorationImage(
+                                  image: AssetImage(
+                                    Assets.assetsImagesDefaultCover,
+                                  ),
+                                  fit: BoxFit.fill,
                                 ),
-                                fit: BoxFit.fill,
-                              )
-                            : DecorationImage(
-                                image: MemoryImage(
-                                  getConvertImage(
-                                    _cachedCoverPictureUrl ??
-                                        profile.coverPictureUrl,
-                                  )!,
-                                ),
-                                fit: BoxFit.fill,
-                              ),
-                      ),
-                      child: Stack(
-                        children: [
-                          Align(
-                            alignment: Alignment.bottomCenter,
-                            child:
-                                Container(
-                                  width: double.infinity,
-                                  padding: EdgeInsets.all(8.w),
-                                  child: Row(
-                                    children: [
-                                      // Profile Picture
-                                      Container(
-                                        height: 50.h,
-                                        width: 50.h,
-                                        decoration: BoxDecoration(
-                                          shape: BoxShape.circle,
-                                          border: Border.all(
-                                            color: Colors.white,
-                                            width: 1.5.w,
-                                          ),
-                                          image:
-                                              ((_cachedProfilePictureUrl ??
-                                                      profile.profilePictureUrl)
-                                                  .isEmpty)
-                                              ? const DecorationImage(
-                                                  image: AssetImage(
-                                                    Assets.assetsImagesIcUser,
-                                                  ),
-                                                  fit: BoxFit.fill,
-                                                )
-                                              : DecorationImage(
-                                                  image: MemoryImage(
-                                                    getConvertImage(
-                                                      _cachedProfilePictureUrl ??
-                                                          profile
-                                                              .profilePictureUrl,
-                                                    )!,
-                                                  ),
-                                                  fit: BoxFit.cover,
-                                                ),
-                                        ),
-                                      ),
-                                      SizedBox(width: 10.w),
-                                      Expanded(
-                                        child: LayoutBuilder(
-                                          builder: (context, constraints) {
-                                            return Column(
-                                              crossAxisAlignment:
-                                                  CrossAxisAlignment.start,
-                                              mainAxisSize: MainAxisSize.min,
-                                              children: [
-                                                // Username
-                                                Flexible(
-                                                  child: Text(
-                                                    profile.username,
-                                                    style: TextStyle(
-                                                      color: Colors.white,
-                                                      fontSize: 13.5.sp,
-                                                      fontWeight:
-                                                          FontWeight.w600,
+                        ),
+                        child: Stack(
+                          children: [
+                            Align(
+                              alignment: Alignment.bottomCenter,
+                              child:
+                                  Container(
+                                    width: double.infinity,
+                                    padding: EdgeInsets.all(8.w),
+                                    child: Row(
+                                      children: [
+                                        // Profile Picture
+                                        Container(
+                                          height: 50.h,
+                                          width: 50.h,
+                                          decoration: BoxDecoration(
+                                            shape: BoxShape.circle,
+                                            border: Border.all(
+                                              color: Colors.white,
+                                              width: 1.5.w,
+                                            ),
+                                            image:
+                                                _cachedProfilePictureUrl != null
+                                                ? DecorationImage(
+                                                    image: MemoryImage(
+                                                      getConvertImage(
+                                                        profile
+                                                            .profilePictureUrl,
+                                                      )!,
                                                     ),
-                                                    overflow:
-                                                        TextOverflow.ellipsis,
+                                                    fit: BoxFit.cover,
+                                                  )
+                                                : const DecorationImage(
+                                                    image: AssetImage(
+                                                      Assets.assetsImagesIcUser,
+                                                    ),
+                                                    fit: BoxFit.fill,
                                                   ),
-                                                ),
-                                                SizedBox(height: 2.h),
-
-                                                // Name
-                                                Text(
-                                                  '${profile.firstName} ${profile.lastName}',
-                                                  style: TextStyle(
-                                                    color: Colors.white,
-                                                    fontSize: 12.5.sp,
+                                          ),
+                                        ),
+                                        SizedBox(width: 10.w),
+                                        Expanded(
+                                          child: LayoutBuilder(
+                                            builder: (context, constraints) {
+                                              return Column(
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.start,
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  // Username
+                                                  Flexible(
+                                                    child: Text(
+                                                      profile.username,
+                                                      style: TextStyle(
+                                                        color: Colors.white,
+                                                        fontSize: 13.5.sp,
+                                                        fontWeight:
+                                                            FontWeight.w600,
+                                                      ),
+                                                      overflow:
+                                                          TextOverflow.ellipsis,
+                                                    ),
                                                   ),
-                                                  overflow:
-                                                      TextOverflow.ellipsis,
-                                                ),
-                                                SizedBox(height: 3.h),
+                                                  SizedBox(height: 2.h),
 
-                                                // Bio with advanced text handling
-                                                _buildBioWidget(
-                                                  constraints.maxWidth,
-                                                  profile.bio,
-                                                ),
-                                                Row(
-                                                  children: [
-                                                    // Chase/Chased Button
-                                                    // Chase/Chased Button - Updated dimensions
-                                                    GestureDetector(
-                                                      onTap:
-                                                          buttonState['canTap']
-                                                          ? () {
-                                                              _handleFollowAction(
-                                                                profile
-                                                                    .username,
-                                                                buttonState['isFollowing'],
-                                                                profile
-                                                                    .isPrivate,
-                                                              );
-                                                            }
-                                                          : null,
-                                                      child: Container(
+                                                  // Bio with advanced text handling
+                                                  BioWidget(
+                                                    maxWidth:
+                                                        constraints.maxWidth,
+                                                    userBio: profile.bio ?? '',
+                                                    isExpanded: isExpanded,
+                                                    onToggleExpand: () {
+                                                      setState(() {
+                                                        isExpanded =
+                                                            !isExpanded;
+                                                      });
+                                                    },
+                                                  ),
+                                                  Row(
+                                                    children: [
+                                                      // Chase/Chased Button
+                                                      // Chase/Chased Button - Updated dimensions
+                                                      GestureDetector(
+                                                        onTap:
+                                                            buttonState['canTap']
+                                                            ? () {
+                                                                _handleFollowAction(
+                                                                  profile
+                                                                      .username,
+                                                                  buttonState['isFollowing'],
+                                                                  profile
+                                                                      .isPrivate,
+                                                                );
+                                                              }
+                                                            : null,
+                                                        child: Container(
+                                                          height: 25.h,
+                                                          width: 100
+                                                              .w, // Changed from 100.w
+                                                          margin:
+                                                              EdgeInsets.only(
+                                                                top: 4.h,
+                                                              ),
+                                                          decoration: BoxDecoration(
+                                                            color: AppColors
+                                                                .primaryColor
+                                                                .withOpacity(
+                                                                  buttonState['canTap']
+                                                                      ? 0.8
+                                                                      : 0.5,
+                                                                ),
+                                                            borderRadius:
+                                                                BorderRadius.circular(
+                                                                  8.r,
+                                                                ),
+                                                          ),
+                                                          child: Row(
+                                                            mainAxisAlignment:
+                                                                MainAxisAlignment
+                                                                    .center,
+                                                            children: [
+                                                              Icon(
+                                                                buttonState['icon'],
+                                                                size: 14
+                                                                    .sp, // Changed from 15.sp
+                                                                color: Colors
+                                                                    .white,
+                                                              ),
+                                                              SizedBox(
+                                                                width: 3.w,
+                                                              ), // Changed from 4.w
+                                                              Flexible(
+                                                                // Added Flexible wrapper
+                                                                child: Text(
+                                                                  buttonState['text'],
+                                                                  style: TextStyle(
+                                                                    color: Colors
+                                                                        .white,
+                                                                    fontSize:
+                                                                        10.8.sp,
+                                                                    fontWeight:
+                                                                        FontWeight
+                                                                            .w500,
+                                                                  ),
+                                                                  overflow:
+                                                                      TextOverflow
+                                                                          .ellipsis, // Added overflow handling
+                                                                ),
+                                                              ),
+                                                            ],
+                                                          ),
+                                                        ),
+                                                      ),
+                                                      // Message Button
+                                                      Container(
                                                         height: 25.h,
-                                                        width: 100
-                                                            .w, // Changed from 100.w
+                                                        width: 100.w,
                                                         margin: EdgeInsets.only(
+                                                          left: 8.w,
                                                           top: 4.h,
                                                         ),
                                                         decoration: BoxDecoration(
                                                           color: AppColors
-                                                              .primaryColor
-                                                              .withOpacity(
-                                                                buttonState['canTap']
-                                                                    ? 0.8
-                                                                    : 0.5,
-                                                              ),
+                                                              .whiteColor
+                                                              .withOpacity(0.3),
                                                           borderRadius:
                                                               BorderRadius.circular(
                                                                 8.r,
                                                               ),
                                                         ),
-                                                        child: Row(
-                                                          mainAxisAlignment:
-                                                              MainAxisAlignment
-                                                                  .center,
-                                                          children: [
-                                                            Icon(
-                                                              buttonState['icon'],
-                                                              size: 14
-                                                                  .sp, // Changed from 15.sp
-                                                              color:
-                                                                  Colors.white,
-                                                            ),
-                                                            SizedBox(
-                                                              width: 3.w,
-                                                            ), // Changed from 4.w
-                                                            Flexible(
-                                                              // Added Flexible wrapper
-                                                              child: Text(
-                                                                buttonState['text'],
-                                                                style: TextStyle(
-                                                                  color: Colors
-                                                                      .white,
-                                                                  fontSize:
-                                                                      10.8.sp,
-                                                                  fontWeight:
-                                                                      FontWeight
-                                                                          .w500,
-                                                                ),
-                                                                overflow:
-                                                                    TextOverflow
-                                                                        .ellipsis, // Added overflow handling
-                                                              ),
-                                                            ),
-                                                          ],
+                                                        child: Icon(
+                                                          FeatherIcons
+                                                              .messageSquare,
+                                                          size: 17.sp,
+                                                          color: Colors.white,
                                                         ),
                                                       ),
-                                                    ),
-                                                    // Message Button
-                                                    Container(
-                                                      height: 25.h,
-                                                      width: 100.w,
-                                                      margin: EdgeInsets.only(
-                                                        left: 8.w,
-                                                        top: 4.h,
-                                                      ),
-                                                      decoration: BoxDecoration(
-                                                        color: AppColors
-                                                            .whiteColor
-                                                            .withOpacity(0.3),
-                                                        borderRadius:
-                                                            BorderRadius.circular(
-                                                              8.r,
-                                                            ),
-                                                      ),
-                                                      child: Icon(
-                                                        FeatherIcons
-                                                            .messageSquare,
-                                                        size: 17.sp,
-                                                        color: Colors.white,
-                                                      ),
-                                                    ),
-                                                  ],
-                                                ),
-                                              ],
-                                            );
-                                          },
+                                                    ],
+                                                  ),
+                                                ],
+                                              );
+                                            },
+                                          ),
                                         ),
-                                      ),
-                                    ],
+                                      ],
+                                    ),
+                                  ).asGlass(
+                                    tintColor: Colors.black,
+                                    clipBorderRadius: BorderRadius.circular(
+                                      12.r,
+                                    ),
                                   ),
-                                ).asGlass(
-                                  tintColor: Colors.black,
-                                  clipBorderRadius: BorderRadius.circular(12.r),
-                                ),
-                          ),
-                          Positioned(
-                            top: 16.h,
-                            child: GestureDetector(
-                              onTap: () {
-                                Navigator.pop(context);
-                              },
-                              child: Container(
-                                padding: EdgeInsets.all(8.w),
-                                child: Icon(
-                                  Icons.arrow_back_ios,
-                                  size: 21.spMax,
-                                  color: Colors.white,
+                            ),
+                            Positioned(
+                              top: 16.h,
+                              child: GestureDetector(
+                                onTap: () {
+                                  Navigator.pop(context);
+                                },
+                                child: Container(
+                                  padding: EdgeInsets.all(8.w),
+                                  child: Icon(
+                                    Icons.arrow_back_ios,
+                                    size: 21.spMax,
+                                    color: Colors.white,
+                                  ),
                                 ),
                               ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
 
@@ -843,158 +858,314 @@ class _PublicProfileState extends State<PublicProfile>
                                   ],
                                 ),
                               ),
-                              // Chase/Re-chase Section
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  SizedBox(height: 10.h),
-                                  Row(
-                                    children: [
-                                      Text(
-                                        AppLocalizations.of(context)!.revibe,
-                                        style: TextStyle(
-                                          color: Theme.of(
-                                            context,
-                                          ).colorScheme.onBackground,
-                                          fontSize: 11.5.sp,
-                                          fontWeight: FontWeight.w600,
+                              // Chase / Re-chase Section
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    SizedBox(height: 10.h),
+                                    // Vibe (Chase) Section
+                                    Row(
+                                      children: [
+                                        Text(
+                                          AppLocalizations.of(context)!.vibe,
+                                          style: TextStyle(
+                                            color: Theme.of(
+                                              context,
+                                            ).colorScheme.onBackground,
+                                            fontSize: 11.5.sp,
+                                            fontWeight: FontWeight.w600,
+                                          ),
                                         ),
-                                      ),
-                                    ],
-                                  ),
-                                  SizedBox(height: 5.h),
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.start,
-                                    children: [
-                                      Container(
-                                        height: 55.h,
-                                        width: 55.w,
-                                        margin: EdgeInsets.only(right: 8.w),
-                                        decoration: const BoxDecoration(
-                                          shape: BoxShape.circle,
-                                          image: DecorationImage(
-                                            image: AssetImage(
-                                              Assets.assetsImagesIcUser,
+                                        const Spacer(),
+                                        GestureDetector(
+                                          onTap: () {
+                                            navigationPush(
+                                              context,
+                                              PublicChaseList(
+                                                userId: profile.id,
+                                                username: profile.username,
+                                              ),
+                                            );
+                                          },
+                                          child: Padding(
+                                            padding: EdgeInsets.only(
+                                              right: 10.w,
+                                            ),
+                                            child: Row(
+                                              children: [
+                                                Text(
+                                                  AppLocalizations.of(
+                                                    context,
+                                                  )!.seeall,
+                                                  style: TextStyle(
+                                                    fontSize: 11.sp,
+                                                    fontWeight: FontWeight.w600,
+                                                    color: AppColors
+                                                        .primaryColor
+                                                        .withOpacity(0.8),
+                                                  ),
+                                                ),
+                                                Icon(
+                                                  Icons.arrow_forward_ios,
+                                                  size: 14.spMax,
+                                                  color: AppColors.primaryColor
+                                                      .withOpacity(0.8),
+                                                ),
+                                              ],
                                             ),
                                           ),
                                         ),
-                                      ),
-                                      Container(
-                                        height: 55.h,
-                                        width: 55.w,
-                                        margin: EdgeInsets.only(right: 8.w),
-                                        decoration: const BoxDecoration(
-                                          shape: BoxShape.circle,
-                                          image: DecorationImage(
-                                            image: AssetImage(
-                                              Assets.assetsImagesIcUser,
+                                      ],
+                                    ),
+                                    SizedBox(height: 5.h),
+                                    SizedBox(
+                                      height: 55.h,
+                                      child:
+                                          (profile.chaseList?.isEmpty ?? true)
+                                          ? Center(
+                                              child: Text(
+                                                'No chase users',
+                                                style: TextStyle(
+                                                  color: Colors.grey,
+                                                  fontSize: 10.sp,
+                                                ),
+                                              ),
+                                            )
+                                          : ListView.builder(
+                                              scrollDirection: Axis.horizontal,
+                                              shrinkWrap: true,
+                                              itemCount:
+                                                  (profile.chaseList!.length >
+                                                      4)
+                                                  ? 4
+                                                  : profile.chaseList!.length,
+                                              itemBuilder: (context, index) {
+                                                final chaseUser =
+                                                    profile.chaseList![index];
+                                                return Container(
+                                                  height: 55.h,
+                                                  width: 55.w,
+                                                  margin: EdgeInsets.only(
+                                                    right: 8.w,
+                                                  ),
+                                                  decoration: BoxDecoration(
+                                                    shape: BoxShape.circle,
+                                                    border: Border.all(
+                                                      width: 1.w,
+                                                      color: const Color(
+                                                        0xFFD1D1D1,
+                                                      ).withOpacity(0.7),
+                                                    ),
+                                                    color: Theme.of(context)
+                                                        .primaryColor
+                                                        .withOpacity(0.08),
+                                                    image:
+                                                        chaseUser.avatarUrl !=
+                                                                null &&
+                                                            chaseUser
+                                                                .avatarUrl!
+                                                                .isNotEmpty
+                                                        ? DecorationImage(
+                                                            image: MemoryImage(
+                                                              getConvertImage(
+                                                                chaseUser
+                                                                    .avatarUrl,
+                                                              )!,
+                                                            ),
+                                                            fit: BoxFit.cover,
+                                                          )
+                                                        : null,
+                                                  ),
+                                                  child:
+                                                      chaseUser.avatarUrl ==
+                                                              null ||
+                                                          chaseUser
+                                                              .avatarUrl!
+                                                              .isEmpty
+                                                      ? Center(
+                                                          child: Text(
+                                                            chaseUser
+                                                                    .username
+                                                                    .isNotEmpty
+                                                                ? chaseUser
+                                                                      .username[0]
+                                                                      .toUpperCase()
+                                                                : '?',
+                                                            style: TextStyle(
+                                                              color: Theme.of(
+                                                                context,
+                                                              ).primaryColor,
+                                                              fontSize: 20.sp,
+                                                              fontWeight:
+                                                                  FontWeight
+                                                                      .bold,
+                                                            ),
+                                                          ),
+                                                        )
+                                                      : null,
+                                                );
+                                              },
+                                            ),
+                                    ),
+                                    SizedBox(height: 8.h),
+                                    // Revibe (Rechase) Section
+                                    Row(
+                                      children: [
+                                        Text(
+                                          AppLocalizations.of(context)!.revibe,
+                                          style: TextStyle(
+                                            color: Theme.of(
+                                              context,
+                                            ).colorScheme.onBackground,
+                                            fontSize: 11.5.sp,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                        const Spacer(),
+                                        GestureDetector(
+                                          onTap: () {
+                                            navigationPush(
+                                              context,
+                                              PublicChaseList(
+                                                userId: profile.id,
+                                                username: profile.username,
+                                              ),
+                                            );
+                                          },
+                                          child: Padding(
+                                            padding: EdgeInsets.only(
+                                              right: 10.w,
+                                            ),
+                                            child: Row(
+                                              children: [
+                                                Text(
+                                                  AppLocalizations.of(
+                                                    context,
+                                                  )!.seeall,
+                                                  style: TextStyle(
+                                                    fontSize: 11.sp,
+                                                    fontWeight: FontWeight.w600,
+                                                    color: AppColors
+                                                        .primaryColor
+                                                        .withOpacity(0.8),
+                                                  ),
+                                                ),
+                                                Icon(
+                                                  Icons.arrow_forward_ios,
+                                                  size: 14.spMax,
+                                                  color: AppColors.primaryColor
+                                                      .withOpacity(0.8),
+                                                ),
+                                              ],
                                             ),
                                           ),
                                         ),
-                                      ),
-                                      Container(
-                                        height: 55.h,
-                                        width: 55.w,
-                                        margin: EdgeInsets.only(right: 8.w),
-                                        decoration: const BoxDecoration(
-                                          shape: BoxShape.circle,
-                                          image: DecorationImage(
-                                            image: AssetImage(
-                                              Assets.assetsImagesIcUser,
+                                      ],
+                                    ),
+                                    SizedBox(height: 5.h),
+                                    SizedBox(
+                                      height: 55.h,
+                                      child:
+                                          (profile.rechaseList?.isEmpty ?? true)
+                                          ? Center(
+                                              child: Text(
+                                                'No rechase users',
+                                                style: TextStyle(
+                                                  color: Colors.grey,
+                                                  fontSize: 10.sp,
+                                                ),
+                                              ),
+                                            )
+                                          : ListView.builder(
+                                              scrollDirection: Axis.horizontal,
+                                              shrinkWrap: true,
+                                              itemCount:
+                                                  (profile.rechaseList!.length >
+                                                      4)
+                                                  ? 4
+                                                  : profile.rechaseList!.length,
+                                              itemBuilder: (context, index) {
+                                                final rechaseUser =
+                                                    profile.rechaseList![index];
+                                                return GestureDetector(
+                                                  onTap: () {
+                                                    navigationPush(
+                                                      context,
+                                                      PublicProfile(
+                                                        userId:
+                                                            rechaseUser.userId,
+                                                      ),
+                                                    );
+                                                  },
+                                                  child: Container(
+                                                    height: 55.h,
+                                                    width: 55.w,
+                                                    margin: EdgeInsets.only(
+                                                      right: 8.w,
+                                                    ),
+                                                    decoration: BoxDecoration(
+                                                      shape: BoxShape.circle,
+                                                      border: Border.all(
+                                                        color: const Color(
+                                                          0xFFD1D1D1,
+                                                        ).withOpacity(0.7),
+                                                      ),
+                                                      color: Theme.of(context)
+                                                          .primaryColor
+                                                          .withOpacity(0.08),
+                                                      image:
+                                                          rechaseUser.avatarUrl !=
+                                                                  null &&
+                                                              rechaseUser
+                                                                  .avatarUrl!
+                                                                  .isNotEmpty
+                                                          ? DecorationImage(
+                                                              image: MemoryImage(
+                                                                getProfileImage(
+                                                                  rechaseUser
+                                                                      .avatarUrl,
+                                                                )!,
+                                                              ),
+                                                              fit: BoxFit.cover,
+                                                            )
+                                                          : null,
+                                                    ),
+                                                    child:
+                                                        rechaseUser.avatarUrl ==
+                                                                null ||
+                                                            rechaseUser
+                                                                .avatarUrl!
+                                                                .isEmpty
+                                                        ? Center(
+                                                            child: Text(
+                                                              rechaseUser
+                                                                      .username
+                                                                      .isNotEmpty
+                                                                  ? rechaseUser
+                                                                        .username[0]
+                                                                        .toUpperCase()
+                                                                  : '?',
+                                                              style: TextStyle(
+                                                                color: Theme.of(
+                                                                  context,
+                                                                ).primaryColor,
+                                                                fontSize: 20.sp,
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .bold,
+                                                              ),
+                                                            ),
+                                                          )
+                                                        : null,
+                                                  ),
+                                                );
+                                              },
                                             ),
-                                          ),
-                                        ),
-                                      ),
-                                      Container(
-                                        height: 55.h,
-                                        width: 55.w,
-                                        margin: EdgeInsets.only(right: 8.w),
-                                        decoration: const BoxDecoration(
-                                          shape: BoxShape.circle,
-                                          image: DecorationImage(
-                                            image: AssetImage(
-                                              Assets.assetsImagesIcUser,
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  SizedBox(height: 8.h),
-                                  Row(
-                                    children: [
-                                      Text(
-                                        AppLocalizations.of(context)!.vibe,
-                                        style: TextStyle(
-                                          color: Theme.of(
-                                            context,
-                                          ).colorScheme.onBackground,
-                                          fontSize: 11.5.sp,
-                                          fontWeight: FontWeight.w600,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  SizedBox(height: 5.h),
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.start,
-                                    children: [
-                                      Container(
-                                        height: 55.h,
-                                        width: 55.w,
-                                        margin: EdgeInsets.only(right: 8.w),
-                                        decoration: const BoxDecoration(
-                                          shape: BoxShape.circle,
-                                          image: DecorationImage(
-                                            image: AssetImage(
-                                              Assets.assetsImagesIcUser,
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                      Container(
-                                        height: 55.h,
-                                        width: 55.w,
-                                        margin: EdgeInsets.only(right: 8.w),
-                                        decoration: const BoxDecoration(
-                                          shape: BoxShape.circle,
-                                          image: DecorationImage(
-                                            image: AssetImage(
-                                              Assets.assetsImagesIcUser,
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                      Container(
-                                        height: 55.h,
-                                        width: 55.w,
-                                        margin: EdgeInsets.only(right: 8.w),
-                                        decoration: const BoxDecoration(
-                                          shape: BoxShape.circle,
-                                          image: DecorationImage(
-                                            image: AssetImage(
-                                              Assets.assetsImagesIcUser,
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                      Container(
-                                        height: 55.h,
-                                        width: 55.w,
-                                        margin: EdgeInsets.only(right: 8.w),
-                                        decoration: const BoxDecoration(
-                                          shape: BoxShape.circle,
-                                          image: DecorationImage(
-                                            image: AssetImage(
-                                              Assets.assetsImagesIcUser,
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  SizedBox(height: 5.h),
-                                ],
+                                    ),
+                                    SizedBox(height: 5.h),
+                                  ],
+                                ),
                               ),
                             ],
                           ),
@@ -1326,7 +1497,11 @@ class _PublicProfileState extends State<PublicProfile>
                                   onTap: () {
                                     navigationPush(
                                       context,
-                                      PublicPostsList(userId: profile.id),
+                                      PublicImagePostsList(
+                                        userId: profile.id,
+                                        username: profile.username,
+                                        profileImage: profile.profilePictureUrl,
+                                      ),
                                     );
                                   },
                                   child: Row(
@@ -1334,7 +1509,7 @@ class _PublicProfileState extends State<PublicProfile>
                                       Text(
                                         AppLocalizations.of(context)!.seeall,
                                         style: TextStyle(
-                                          fontSize: 11.2.sp,
+                                          fontSize: 11.sp,
                                           fontWeight: FontWeight.w600,
                                           color: AppColors.primaryColor
                                               .withOpacity(0.8),
@@ -1342,7 +1517,7 @@ class _PublicProfileState extends State<PublicProfile>
                                       ),
                                       Icon(
                                         Icons.arrow_forward_ios,
-                                        size: 15.5.spMax,
+                                        size: 14.spMax,
                                         color: AppColors.primaryColor
                                             .withOpacity(0.8),
                                       ),
@@ -1359,8 +1534,8 @@ class _PublicProfileState extends State<PublicProfile>
                         : Padding(
                             padding: EdgeInsets.symmetric(horizontal: 10.w),
                             child: FutureBuilder<List<PublicPost>>(
-                              key: ValueKey(_postsFuture.hashCode),
-                              future: _postsFuture,
+                              key: ValueKey(_pollsFuture.hashCode),
+                              future: _pollsFuture,
                               builder: (context, snapshot) {
                                 if (snapshot.connectionState ==
                                     ConnectionState.waiting) {
@@ -1432,17 +1607,33 @@ class _PublicProfileState extends State<PublicProfile>
                                   );
                                 }
 
-                                final postsWithImages = snapshot.data ?? [];
-                                if (postsWithImages.isEmpty) {
+                                final allPosts = snapshot.data ?? [];
+
+                                // Filter posts that have polls with image options
+                                final postsWithPollImages = allPosts.where((
+                                  post,
+                                ) {
+                                  // Check if post has polls
+                                  if (post.polls.isEmpty) return false;
+
+                                  // Check if any poll has options with images
+                                  return post.polls.any((poll) {
+                                    return poll.options.any(
+                                      (option) => option.image != null,
+                                    );
+                                  });
+                                }).toList();
+
+                                if (postsWithPollImages.isEmpty) {
                                   return Center(
                                     child: Column(
                                       mainAxisAlignment:
                                           MainAxisAlignment.center,
                                       children: [
-                                        SizedBox(height: 20.h),
+                                        SizedBox(height: 30.h),
                                         Icon(
                                           Icons.photo_library_outlined,
-                                          size: 40.spMax,
+                                          size: 35.spMax,
                                           color: Colors.grey.withOpacity(0.5),
                                         ),
                                         SizedBox(height: 10.h),
@@ -1470,12 +1661,19 @@ class _PublicProfileState extends State<PublicProfile>
                                         mainAxisSpacing: 8,
                                         childAspectRatio: 1.3,
                                       ),
-                                  itemCount: postsWithImages.length > 4
+                                  itemCount: postsWithPollImages.length > 4
                                       ? 4
-                                      : postsWithImages.length,
+                                      : postsWithPollImages.length,
                                   itemBuilder: (context, index) {
-                                    final posts = postsWithImages[index];
-                                    return _buildImagesStack(posts.images);
+                                    final post = postsWithPollImages[index];
+                                    // Extract images from poll options
+                                    final pollImages = post.polls
+                                        .expand((poll) => poll.options)
+                                        .where((option) => option.image != null)
+                                        .map((option) => option.image!)
+                                        .toList();
+
+                                    return PollImagesStack(pollImages);
                                   },
                                 );
                               },
@@ -1505,6 +1703,8 @@ class _PublicProfileState extends State<PublicProfile>
                                     navigationPush(
                                       context,
                                       PublicThingsQuestionsList(
+                                        username: profile.username,
+                                        profileImage: profile.profilePictureUrl,
                                         userId: profile.id,
                                       ),
                                     );
@@ -1514,7 +1714,7 @@ class _PublicProfileState extends State<PublicProfile>
                                       Text(
                                         AppLocalizations.of(context)!.seeall,
                                         style: TextStyle(
-                                          fontSize: 11.2.sp,
+                                          fontSize: 11.sp,
                                           fontWeight: FontWeight.w600,
                                           color: AppColors.primaryColor
                                               .withOpacity(0.8),
@@ -1522,7 +1722,7 @@ class _PublicProfileState extends State<PublicProfile>
                                       ),
                                       Icon(
                                         Icons.arrow_forward_ios,
-                                        size: 15.5.spMax,
+                                        size: 14.spMax,
                                         color: AppColors.primaryColor
                                             .withOpacity(0.8),
                                       ),
@@ -1536,7 +1736,7 @@ class _PublicProfileState extends State<PublicProfile>
                     // Things/Polls list
                     !canViewPosts
                         ? const SizedBox.shrink()
-                        : FutureBuilder<List<PublicPostPolls>>(
+                        : FutureBuilder<List<PublicPost>>(
                             key: ValueKey(_pollsFuture.hashCode),
                             future: _pollsFuture,
                             builder: (context, snapshot) {
@@ -1593,13 +1793,32 @@ class _PublicProfileState extends State<PublicProfile>
                                 );
                               }
 
-                              final postsPolls =
-                                  snapshot.data ?? const <PublicPostPolls>[];
-                              if (postsPolls.isEmpty) {
+                              final allPosts = snapshot.data ?? <PublicPost>[];
+
+                              // FILTERING LOGIC:
+                              // 1. Get posts that have polls
+                              // 2. Filter polls where ALL options have text != null (ignore image-based options)
+                              // 3. Take only first 3 posts
+                              final filteredPosts = allPosts
+                                  .where((post) {
+                                    // Check if post has polls
+                                    if (post.polls.isEmpty) return false;
+
+                                    // Check if any poll has at least one option with text != null
+                                    return post.polls.any((poll) {
+                                      return poll.options.any(
+                                        (option) => option.text != null,
+                                      );
+                                    });
+                                  })
+                                  .take(3)
+                                  .toList(); // Take only first 3
+
+                              if (filteredPosts.isEmpty) {
                                 return Center(
                                   child: Column(
                                     children: [
-                                      SizedBox(height: 20.h),
+                                      SizedBox(height: 30.h),
                                       Text(
                                         'No posts with things',
                                         style: TextStyle(
@@ -1611,34 +1830,21 @@ class _PublicProfileState extends State<PublicProfile>
                                   ),
                                 );
                               }
-                              final postsWithPolls = postsPolls
-                                  .where(
-                                    (post) =>
-                                        post.publicPollQuestion.isNotEmpty,
-                                  )
-                                  .toList();
-
-                              if (postsWithPolls.isEmpty) {
-                                return const Center(
-                                  child: Text('No active polls found'),
-                                );
-                              }
 
                               return ListView.builder(
                                 padding: const EdgeInsets.all(12),
                                 shrinkWrap: true,
                                 physics: const NeverScrollableScrollPhysics(),
-                                itemCount: postsWithPolls.length > 3
-                                    ? 3
-                                    : postsWithPolls.length,
+                                itemCount: filteredPosts.length,
                                 itemBuilder: (context, index) {
                                   const List<List<Color>> gradientOptions = [
                                     [Color(0xFFFC3E7E), Color(0xFFEEA0F0)],
                                     [Color(0xFF4FC3F7), Color(0xFFB6E2F8)],
                                     [Colors.red, Color(0xFFEFB0C3)],
                                   ];
-                                  return PublicThingsCard(
-                                    publicPosts: postsWithPolls[index],
+
+                                  return PublicPollTextCard(
+                                    publicPost: filteredPosts[index],
                                     gradientColors:
                                         gradientOptions[index %
                                             gradientOptions.length],
@@ -1656,106 +1862,6 @@ class _PublicProfileState extends State<PublicProfile>
       ),
     );
   }
-
-  Widget _buildBioWidget(double maxWidth, String userbio) {
-    final bio = userbio;
-    if (bio.isEmpty) return const SizedBox.shrink();
-
-    final textStyle = TextStyle(color: Colors.white, fontSize: 11.3.sp);
-
-    final textSpan = TextSpan(text: bio, style: textStyle);
-    final textPainter = TextPainter(
-      text: textSpan,
-      textDirection: TextDirection.ltr,
-      maxLines: 1,
-    );
-
-    textPainter.layout(maxWidth: maxWidth);
-
-    final isTextOverflowing = textPainter.didExceedMaxLines;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 300),
-                child: Text(
-                  bio,
-                  style: textStyle,
-                  maxLines: isExpanded ? null : 1,
-                  overflow: isExpanded ? null : TextOverflow.ellipsis,
-                ),
-              ),
-            ),
-            if (isTextOverflowing) ...[
-              SizedBox(width: 8.w),
-              GestureDetector(
-                onTap: () {
-                  setState(() {
-                    isExpanded = !isExpanded;
-                  });
-                },
-                child: Text(
-                  isExpanded ? 'Less' : 'More',
-                  style: TextStyle(
-                    color: Colors.blue.shade300,
-                    fontSize: 11.sp,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ),
-            ],
-          ],
-        ),
-      ],
-    );
-  }
-}
-
-Widget statTile(IconData icon, String value, VoidCallback onTap) {
-  return GestureDetector(
-    onTap: onTap,
-    child: Container(
-      color: Colors.transparent,
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Image.asset(
-                Assets.assetsImagesCurrentUser,
-                height: 18.5.h,
-                width: 18.5.w,
-              ),
-              SizedBox(height: 2.h),
-              Icon(icon, size: 20.spMax, color: Colors.white.withOpacity(0.8)),
-              SizedBox(height: 2.h),
-              Image.asset(
-                Assets.assetsImagesAddUsers,
-                height: 18.5.h,
-                width: 18.5.w,
-              ),
-            ],
-          ),
-          SizedBox(width: 5.h),
-          Text(
-            value,
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 14.sp,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-        ],
-      ),
-    ),
-  );
 }
 
 Widget pollThingsTile(String icon, String value, VoidCallback onTap) {
@@ -1781,110 +1887,5 @@ Widget pollThingsTile(String icon, String value, VoidCallback onTap) {
         ],
       ),
     ),
-  );
-}
-
-Widget _buildImagesStack(List images) {
-  List<Alignment> getAlignments(int totalImages) {
-    switch (totalImages) {
-      case 1:
-        return [Alignment.center];
-      case 2:
-        return [Alignment.centerLeft, Alignment.centerRight];
-      case 3:
-        return [Alignment.centerLeft, Alignment.center, Alignment.centerRight];
-      case 4:
-      default:
-        return [
-          Alignment.centerLeft,
-          Alignment.center,
-          Alignment.centerRight,
-          Alignment.centerRight,
-        ];
-    }
-  }
-
-  List<Alignment> alignments = getAlignments(images.length);
-
-  return LayoutBuilder(
-    builder: (context, constraints) {
-      double availableWidth = constraints.maxWidth;
-      double availableHeight = constraints.maxHeight;
-      double imageHeight = 120.h;
-
-      return SizedBox(
-        height: availableHeight,
-        width: availableWidth,
-        child: Stack(
-          children: images
-              .asMap()
-              .entries
-              .map<Widget>((entry) {
-                int index = entry.key;
-                dynamic imageData = entry.value;
-                Alignment alignment = alignments[index];
-                double imageWidth = (availableWidth * 0.7) - (index * 8.0);
-                imageWidth = imageWidth < 60.w ? 60.w : imageWidth;
-
-                return Align(
-                  alignment: alignment,
-                  child: Container(
-                    margin: EdgeInsets.symmetric(horizontal: 3.w),
-                    width: imageWidth,
-                    height: imageHeight,
-                    child: Container(
-                      decoration: BoxDecoration(
-                        border: Border.all(color: Colors.white, width: 1),
-                        borderRadius: BorderRadius.circular(20.r),
-                      ),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(19.r),
-                        child: Image.network(
-                          '${ApiConfig.baseUrlImage}${imageData.url}',
-                          fit: BoxFit.cover,
-                          width: double.infinity,
-                          height: double.infinity,
-                          errorBuilder: (context, error, stackTrace) {
-                            return Container(
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(12.r),
-                              ),
-                              child: Icon(
-                                Icons.image_not_supported,
-                                color: Colors.grey[600],
-                                size: 30,
-                              ),
-                            );
-                          },
-                          loadingBuilder: (context, child, loadingProgress) {
-                            if (loadingProgress == null) return child;
-                            return Container(
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(20.r),
-                              ),
-                              child: Center(
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  value:
-                                      loadingProgress.expectedTotalBytes != null
-                                      ? loadingProgress.cumulativeBytesLoaded /
-                                            loadingProgress.expectedTotalBytes!
-                                      : null,
-                                ),
-                              ),
-                            );
-                          },
-                        ),
-                      ),
-                    ),
-                  ),
-                );
-              })
-              .toList()
-              .reversed
-              .toList(),
-        ),
-      );
-    },
   );
 }

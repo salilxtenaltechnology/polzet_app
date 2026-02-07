@@ -23,18 +23,22 @@ class ExitGroupDiolog extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.center,
         mainAxisSize: MainAxisSize.min,
         children: [
-          Image.asset(Assets.assetsImagesIcLogout,
-              width: 50.w, height: 50.h),
-              SizedBox(height: 15.h),
-          Text('Exit “Food” Group?',
-              style: TextStyle(
-                  color: Theme.of(context).colorScheme.onBackground,
-                  fontSize: 14.sp,
-                  fontWeight: FontWeight.w600)),
+          Image.asset(Assets.assetsImagesIcLogout, width: 50.w, height: 50.h),
+          SizedBox(height: 15.h),
+          Text(
+            'Exit “Food” Group?',
+            style: TextStyle(
+              color: Theme.of(context).colorScheme.onBackground,
+              fontSize: 14.sp,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
           SizedBox(height: 12.h),
-          Text('Only group admins will be notified that you left the group.',
-              textAlign: TextAlign.center,
-              style: CustomTextStyles.lblPrimaryText(context)),
+          Text(
+            'Only group admins will be notified that you left the group.',
+            textAlign: TextAlign.center,
+            style: CustomTextStyles.lblPrimaryText(context),
+          ),
           SizedBox(height: 15.h),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -49,11 +53,14 @@ class ExitGroupDiolog extends StatelessWidget {
                     borderRadius: BorderRadius.circular(5.r),
                   ),
                   child: Center(
-                    child: Text('Archive instead',
-                        style: TextStyle(
-                            color: const Color(0XFF0A9C03),
-                            fontSize: 12.sp,
-                            fontWeight: FontWeight.w500)),
+                    child: Text(
+                      'Archive instead',
+                      style: TextStyle(
+                        color: const Color(0XFF0A9C03),
+                        fontSize: 12.sp,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
                   ),
                 ),
               ),
@@ -65,11 +72,14 @@ class ExitGroupDiolog extends StatelessWidget {
                   borderRadius: BorderRadius.circular(5.r),
                 ),
                 child: Center(
-                  child: Text('Exit group',
-                      style: TextStyle(
-                          color: const Color(0XFFDE0004),
-                          fontSize: 12.sp,
-                          fontWeight: FontWeight.w500)),
+                  child: Text(
+                    'Exit group',
+                    style: TextStyle(
+                      color: const Color(0XFFDE0004),
+                      fontSize: 12.sp,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
                 ),
               ),
             ],

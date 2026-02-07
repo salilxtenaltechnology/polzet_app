@@ -12,42 +12,44 @@ class ProfileSimmer extends StatelessWidget {
     return Shimmer.fromColors(
       baseColor: Colors.grey[300]!,
       highlightColor: Colors.grey[100]!,
-      child: ListView(children: [
-        Padding(
-            padding: EdgeInsets.symmetric(horizontal: 12.w,vertical: 5.h),
+      child: ListView(
+        children: [
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 5.h),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 SizedBox(
-                    height: 195.h,
-                    child: Stack(
-                      children: [
-                        Align(
-                          alignment: Alignment.topCenter,
-                          child: Container(
-                            height: 140.h,
-                            width: double.infinity,
-                            decoration: BoxDecoration(
-                              color: Theme.of(context).colorScheme.background,
-                              borderRadius: BorderRadius.circular(7.r),
-                            ),
+                  height: 195.h,
+                  child: Stack(
+                    children: [
+                      Align(
+                        alignment: Alignment.topCenter,
+                        child: Container(
+                          height: 140.h,
+                          width: double.infinity,
+                          decoration: BoxDecoration(
+                            color: Theme.of(context).colorScheme.background,
+                            borderRadius: BorderRadius.circular(7.r),
                           ),
                         ),
-                        Align(
-                          alignment: Alignment.bottomCenter,
-                          child: Container(
-                            height: 100.h,
-                            width: 110.w,
-                            margin: EdgeInsets.only(bottom: 10.h),
-                            padding: const EdgeInsets.all(2).w,
-                            decoration: BoxDecoration(
-                              color: Theme.of(context).colorScheme.background,
-                              shape: BoxShape.circle,
-                            ),
+                      ),
+                      Align(
+                        alignment: Alignment.bottomCenter,
+                        child: Container(
+                          height: 100.h,
+                          width: 110.w,
+                          margin: EdgeInsets.only(bottom: 10.h),
+                          padding: const EdgeInsets.all(2).w,
+                          decoration: BoxDecoration(
+                            color: Theme.of(context).colorScheme.background,
+                            shape: BoxShape.circle,
                           ),
                         ),
-                      ],
-                    )),
+                      ),
+                    ],
+                  ),
+                ),
                 SizedBox(height: 20.h),
                 Container(
                   height: 250.h,
@@ -67,8 +69,10 @@ class ProfileSimmer extends StatelessWidget {
                   ),
                 ),
               ],
-            ))
-      ]),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

@@ -9,8 +9,8 @@ import '../../../api/api_config.dart';
 import '../../../api/services/api_service.dart';
 import '../../../api/services/like/like_service.dart';
 import '../../../core/constants/app_images.dart';
-import '../../../models/home feed/home_feed_items_model.dart';
-import '../../../models/posts/image/post_image_model.dart';
+import '../../../models/posts/homefeed_posts_model.dart';
+import '../../../models/posts/user_post_model.dart';
 import '../../../provider/user_provider.dart';
 import '../../../widgets/base64/image_convert.dart';
 import '../../../widgets/button/back_button.dart';
@@ -34,10 +34,10 @@ class _NotificationDetailsState extends State<NotificationDetails> {
   List<LikeUser> viewLikes = [];
 
   final ApiService apiService = ApiService();
-  PostImagesModel? currentPost;
+  UserPostModel? currentPost;
 
   // Store the Future to prevent recreating it on every build
-  late Future<PostImagesModel?> _postFuture;
+  late Future<UserPostModel?> _postFuture;
 
   @override
   void initState() {
@@ -47,7 +47,7 @@ class _NotificationDetailsState extends State<NotificationDetails> {
   }
 
   // Initialize like state from loaded post
-  void _initializeLikeState(PostImagesModel post) {
+  void _initializeLikeState(UserPostModel post) {
     currentPost = post;
     isLike = post.isLiked;
     likesCount = post.likesCount;
@@ -61,7 +61,7 @@ class _NotificationDetailsState extends State<NotificationDetails> {
     debugPrint('========================');
   }
 
-  Future<PostImagesModel?> loadSinglePost(int postId) async {
+  Future<UserPostModel?> loadSinglePost(int postId) async {
     if (postId == 0) {
       return null;
     }
@@ -368,7 +368,7 @@ class _NotificationDetailsState extends State<NotificationDetails> {
         backgroundColor: Theme.of(context).colorScheme.surface,
         surfaceTintColor: Theme.of(context).colorScheme.surface,
       ),
-      body: FutureBuilder<PostImagesModel?>(
+      body: FutureBuilder<UserPostModel?>(
         future: _postFuture, // Use the stored Future
         builder: (context, snapshot) {
           // Loading state

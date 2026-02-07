@@ -77,7 +77,10 @@ class LikeService {
   }
 
   /// Check if current user has liked the post
-  static bool hasUserLikedPost(List<dynamic> viewLikes, String? currentUsername) {
+  static bool hasUserLikedPost(
+    List<dynamic> viewLikes,
+    String? currentUsername,
+  ) {
     if (currentUsername == null || currentUsername.isEmpty) return false;
     return viewLikes.any(
       (user) => user.username?.toLowerCase() == currentUsername.toLowerCase(),

@@ -117,10 +117,13 @@ class PinService {
       // Check if account is locked
       if (status.isLocked && status.lockoutEndTime != null) {
         if (DateTime.now().isBefore(status.lockoutEndTime!)) {
-          final remainingTime = status.lockoutEndTime!.difference(DateTime.now());
+          final remainingTime = status.lockoutEndTime!.difference(
+            DateTime.now(),
+          );
           return PinAuthResult(
             success: false,
-            message: 'Account locked. Try again in ${remainingTime.inMinutes} minutes.',
+            message:
+                'Account locked. Try again in ${remainingTime.inMinutes} minutes.',
             isLocked: true,
             remainingAttempts: 0,
           );
@@ -169,11 +172,15 @@ class PinService {
             lockoutEndTime: lockoutEndTime,
           );
 
-          await prefs.setString(_pinStatusKey, json.encode(updatedStatus.toJson()));
+          await prefs.setString(
+            _pinStatusKey,
+            json.encode(updatedStatus.toJson()),
+          );
 
           return PinAuthResult(
             success: false,
-            message: 'Too many failed attempts. Account locked for $_lockoutDurationMinutes minutes.',
+            message:
+                'Too many failed attempts. Account locked for $_lockoutDurationMinutes minutes.',
             isLocked: true,
             remainingAttempts: 0,
           );
@@ -187,7 +194,10 @@ class PinService {
             isLocked: false,
           );
 
-          await prefs.setString(_pinStatusKey, json.encode(updatedStatus.toJson()));
+          await prefs.setString(
+            _pinStatusKey,
+            json.encode(updatedStatus.toJson()),
+          );
 
           return PinAuthResult(
             success: false,
@@ -244,10 +254,7 @@ class PinService {
       );
     } catch (e) {
       debugPrint('Error getting PIN status: $e');
-      return PinStatus(
-        isSet: false,
-        remainingAttempts: _maxAttempts,
-      );
+      return PinStatus(isSet: false, remainingAttempts: _maxAttempts);
     }
   }
 
@@ -322,8 +329,22 @@ class PinService {
     }
 
     // Check for common weak PINs
-    final weakPins = ['1234', '4321', '0000', '1111', '2222', '3333', '4444', 
-                      '5555', '6666', '7777', '8888', '9999', '1212', '2323'];
+    final weakPins = [
+      '1234',
+      '4321',
+      '0000',
+      '1111',
+      '2222',
+      '3333',
+      '4444',
+      '5555',
+      '6666',
+      '7777',
+      '8888',
+      '9999',
+      '1212',
+      '2323',
+    ];
     if (weakPins.contains(pin)) {
       return 'Too weak';
     }

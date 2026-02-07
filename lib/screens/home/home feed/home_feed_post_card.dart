@@ -14,7 +14,7 @@ import '../../../api/services/like/like_service.dart';
 import '../../../api/services/share/share_service.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../mixin/utility_mixins.dart';
-import '../../../models/home feed/home_feed_items_model.dart';
+import '../../../models/posts/homefeed_posts_model.dart';
 import '../../../provider/user_provider.dart';
 import '../../../widgets/base64/image_convert.dart';
 import '../../../widgets/utils/bottomsheet_util.dart';
@@ -951,7 +951,7 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
         duration: const Duration(milliseconds: 250),
         curve: Curves.easeInOut,
         margin: EdgeInsets.only(bottom: 10.h),
-        height: 32.h,
+        height: 25.h,
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(10.r),
           color: Colors.white,
@@ -999,7 +999,7 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
                         color: hasUserPolled
                             ? Colors.grey[700]
                             : Theme.of(context).colorScheme.onBackground,
-                        fontSize: 15.sp,
+                        fontSize: 11.sp,
                         fontWeight: isSelected && !hasUserPolled
                             ? FontWeight.w500
                             : FontWeight.w500,
@@ -1022,8 +1022,8 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
                           '$value%',
                           style: TextStyle(
                             color: Colors.grey[800],
-                            fontSize: 15.sp,
-                            fontWeight: FontWeight.w600,
+                            fontSize: 11.sp,
+                            fontWeight: FontWeight.w500,
                           ),
                         );
                       },
@@ -1034,7 +1034,7 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
                       '$selectionNumber',
                       style: TextStyle(
                         color: AppColors.primaryColor,
-                        fontSize: 16.sp,
+                        fontSize: 11.5.sp,
                         fontWeight: FontWeight.bold,
                       ),
                     ),

@@ -11,43 +11,48 @@ class NotificationsDiolog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-        width: 270.w,
-        margin: EdgeInsets.symmetric(horizontal: 40.w),
-        padding: EdgeInsets.fromLTRB(0, 10.h, 0, 10.h),
-        decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.secondaryContainer,
-          borderRadius: BorderRadius.circular(20.r),
-        ),
-        child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              _label(context, '1 Hours', () {
-                Navigator.pop(context);
-              }),
-              _primaryDivider(context),
-              _label(context, '8 Hours', () {
-                Navigator.pop(context);
-              }),
-              _primaryDivider(context),
-              _label(context, '24 Hours', () {
-                Navigator.pop(context);
-              }),
-              _primaryDivider(context),
-              _label(context, '7 Days', () {
-                Navigator.pop(context);
-              }),
-            ]));
+      width: 270.w,
+      margin: EdgeInsets.symmetric(horizontal: 40.w),
+      padding: EdgeInsets.fromLTRB(0, 10.h, 0, 10.h),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.secondaryContainer,
+        borderRadius: BorderRadius.circular(20.r),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _label(context, '1 Hours', () {
+            Navigator.pop(context);
+          }),
+          _primaryDivider(context),
+          _label(context, '8 Hours', () {
+            Navigator.pop(context);
+          }),
+          _primaryDivider(context),
+          _label(context, '24 Hours', () {
+            Navigator.pop(context);
+          }),
+          _primaryDivider(context),
+          _label(context, '7 Days', () {
+            Navigator.pop(context);
+          }),
+        ],
+      ),
+    );
   }
 
   Widget _label(BuildContext context, String text, VoidCallback? onTap) {
     return GestureDetector(
       onTap: onTap,
-      child: Text(text,
-          style: TextStyle(
-              color: Theme.of(context).colorScheme.onBackground,
-              fontSize: 12.sp,
-              fontWeight: FontWeight.w400)),
+      child: Text(
+        text,
+        style: TextStyle(
+          color: Theme.of(context).colorScheme.onBackground,
+          fontSize: 12.sp,
+          fontWeight: FontWeight.w400,
+        ),
+      ),
     );
   }
 

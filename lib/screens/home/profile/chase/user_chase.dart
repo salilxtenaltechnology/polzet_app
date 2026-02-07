@@ -173,11 +173,8 @@ class _UserChaseState extends State<UserChase>
       final isCurrentlyFollowing = followingStatus[username] ?? false;
 
       if (isCurrentlyFollowing) {
-        // Optimistically update UI - remove from following list
+        // Optimistically update UI - just change button status, DON'T remove from list
         setState(() {
-          _allFollowing.removeWhere((user) => user['id'] == userId);
-          _filteredFollowing.removeWhere((user) => user['id'] == userId);
-          _followingCount = _allFollowing.length;
           followingStatus[username] = false;
         });
 
@@ -185,12 +182,14 @@ class _UserChaseState extends State<UserChase>
         final response = await apiService.unfriend(userId);
 
         if (response['status'] == 'success') {
-          if (mounted) {
-            showToast(message: 'Unfollowed successfully');
-          }
+          // if (mounted) {
+          //   showToast(message: 'Unfollowed successfully');
+          // }
         } else {
-          // If failed, reload data to restore
-          _loadData();
+          // If failed, revert the button status
+          setState(() {
+            followingStatus[username] = true;
+          });
 
           if (mounted) {
             showToast(message: 'Failed to unfollow');
@@ -206,12 +205,10 @@ class _UserChaseState extends State<UserChase>
         final success = await apiService.sendFriendRequest(username);
 
         if (success) {
-          // Successfully followed - reload to get updated following list
-          _loadData();
-          
-          if (mounted) {
-            showToast(message: 'Friend request sent successfully');
-          }
+          // Successfully followed
+          // if (mounted) {
+          //   showToast(message: 'Friend request sent successfully');
+          // }
         } else {
           // If failed, revert the change
           setState(() {
@@ -224,8 +221,10 @@ class _UserChaseState extends State<UserChase>
         }
       }
     } catch (e) {
-      // If error, reload data to restore proper state
-      _loadData();
+      // If error, revert the button status
+      setState(() {
+        followingStatus[username] = !followingStatus[username]!;
+      });
 
       if (mounted) {
         showToast(message: 'Error: ${e.toString()}');
@@ -333,10 +332,10 @@ class _UserChaseState extends State<UserChase>
     final isFollowing = followingStatus[username] ?? false;
 
     return Container(
-      height: 40.h,
+      height: 38.h,
       width: double.infinity,
       padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 5.h),
-      margin: EdgeInsets.only(bottom: 10.h),
+      margin: EdgeInsets.only(bottom: 7.h, right: 10.w, left: 10.w, top: 5.h),
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.background,
         borderRadius: BorderRadius.circular(12.r),
@@ -352,8 +351,8 @@ class _UserChaseState extends State<UserChase>
           children: [
             // Profile Picture
             Container(
-              height: 35.h,
-              width: 35.w,
+              height: 32.h,
+              width: 32.w,
               margin: EdgeInsets.only(right: 5.w),
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
@@ -375,7 +374,7 @@ class _UserChaseState extends State<UserChase>
                       child: Text(
                         firstLetter,
                         style: TextStyle(
-                          fontSize: 20.sp,
+                          fontSize: 18.sp,
                           fontWeight: FontWeight.w500,
                           color: Theme.of(context).primaryColor,
                         ),
@@ -395,31 +394,7 @@ class _UserChaseState extends State<UserChase>
             // Action Button
             if (isFollowersTab)
               // Remove Chase button for Followers tab
-              GestureDetector(
-                onTap: () => _removeFollower(userId),
-                child: Container(
-                  width: 100.w,
-                  margin: EdgeInsets.fromLTRB(3.w, 3.h, 0, 3.h),
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.background,
-                    borderRadius: BorderRadius.circular(8.r),
-                    border: Border.all(
-                      color: const Color(0XFFD9D9D9),
-                      width: 1,
-                    ),
-                  ),
-                  child: Center(
-                    child: Text(
-                      'Remove Chase',
-                      style: TextStyle(
-                        color: Theme.of(context).colorScheme.onBackground,
-                        fontSize: 10.5.sp,
-                        fontWeight: FontWeight.w400,
-                      ),
-                    ),
-                  ),
-                ),
-              )
+              GestureDetector(onTap: () {}, child: const SizedBox.shrink())
             else
               // Chasing/Chase button for Following tab
               GestureDetector(
@@ -480,155 +455,144 @@ class _UserChaseState extends State<UserChase>
         backgroundColor: Theme.of(context).colorScheme.background,
         toolbarHeight: 25.h,
       ),
-      body: Padding(
-        padding: EdgeInsets.symmetric(horizontal: 12.w),
-        child: Column(
-          children: [
-            TabBar(
-              controller: _tabController,
-              overlayColor: const WidgetStatePropertyAll(Colors.transparent),
-              indicatorColor: Theme.of(context).colorScheme.primary,
-              indicatorSize: TabBarIndicatorSize.tab,
-              indicator: FadeUnderlineTabIndicator(),
-              labelColor: Theme.of(context).colorScheme.primary,
-              labelStyle: const TextStyle(fontWeight: FontWeight.w500),
-              dividerColor: Colors.transparent,
-              unselectedLabelColor: Theme.of(context).colorScheme.onBackground,
-              tabs: [
-                Tab(
-                  text:
-                      '$_followerCount  ${AppLocalizations.of(context)!.vibe}',
-                ),
-                Tab(
-                  text:
-                      '$_followingCount ${AppLocalizations.of(context)!.revibe}',
+      body: Column(
+        children: [
+          TabBar(
+            padding: EdgeInsets.symmetric(horizontal: 10.w),
+            controller: _tabController,
+            overlayColor: const WidgetStatePropertyAll(Colors.transparent),
+            indicatorColor: Theme.of(context).colorScheme.primary,
+            indicatorSize: TabBarIndicatorSize.tab,
+            indicator: FadeUnderlineTabIndicator(),
+            labelColor: Theme.of(context).colorScheme.primary,
+            labelStyle: const TextStyle(fontWeight: FontWeight.w500),
+            dividerColor: Colors.transparent,
+            unselectedLabelColor: Theme.of(context).colorScheme.onBackground,
+            tabs: [
+              Tab(
+                text: '$_followerCount  ${AppLocalizations.of(context)!.vibe}',
+              ),
+              Tab(
+                text:
+                    '$_followingCount ${AppLocalizations.of(context)!.revibe}',
+              ),
+            ],
+          ),
+          Container(
+            height: 33.h,
+            width: double.infinity,
+            margin: EdgeInsets.symmetric(vertical: 7.h, horizontal: 10.w),
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.background,
+              borderRadius: BorderRadius.circular(12.r),
+              boxShadow: const [
+                BoxShadow(
+                  color: Color(0x1C000000),
+                  blurRadius: 8,
+                  spreadRadius: 1,
                 ),
               ],
             ),
-            Container(
-              height: 33.h,
-              width: double.infinity,
-              margin: EdgeInsets.symmetric(vertical: 7.h),
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.background,
-                borderRadius: BorderRadius.circular(12.r),
-                boxShadow: const [
-                  BoxShadow(
-                    color: Color(0x1C000000),
-                    blurRadius: 8,
-                    spreadRadius: 1,
-                  ),
-                ],
-              ),
-              child: TextField(
-                controller: _searchController,
-                decoration: InputDecoration(
-                  contentPadding: EdgeInsets.only(
-                    right: 12.w,
-                    left: 12.w,
-                    top: 10.h,
-                  ),
-                  hintText: AppLocalizations.of(context)!.searchusers,
-                  hintStyle: CustomTextStyles.lblPrimaryHintText(context),
-                  border: InputBorder.none,
-                  suffixIcon: Icon(
-                    FeatherIcons.search,
-                    size: 17.spMax,
-                    color: Theme.of(context).colorScheme.onBackground,
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderSide: BorderSide(
-                      color: Theme.of(
-                        context,
-                      ).colorScheme.onBackground.withOpacity(0.1),
-                    ),
-                    borderRadius: BorderRadius.circular(13.r),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderSide: const BorderSide(
-                      color: AppColors.primaryColor,
-                      width: 0.7,
-                    ),
-                    borderRadius: BorderRadius.circular(13.r),
-                  ),
+            child: TextField(
+              controller: _searchController,
+              decoration: InputDecoration(
+                contentPadding: EdgeInsets.only(
+                  right: 12.w,
+                  left: 12.w,
+                  top: 10.h,
                 ),
-                style: TextStyle(
+                hintText: AppLocalizations.of(context)!.searchusers,
+                hintStyle: CustomTextStyles.lblPrimaryHintText(context),
+                border: InputBorder.none,
+                suffixIcon: Icon(
+                  FeatherIcons.search,
+                  size: 17.spMax,
                   color: Theme.of(context).colorScheme.onBackground,
-                  fontSize: 13.sp,
-                  fontWeight: FontWeight.w400,
                 ),
-                onChanged: (value) {
-                  _filterUsers(value);
-                },
-              ),
-            ),
-            Expanded(
-              child: TabBarView(
-                controller: _tabController,
-                children: [
-                  // Followers Tab (Chase)
-                  Padding(
-                    padding: EdgeInsets.only(
-                      top: 5.h,
-                      left: 2.5.w,
-                      right: 2.5.w,
-                    ),
-                    child: _isLoadingFollowers
-                        ? const ChaseSimmer()
-                        : _filteredFollowers.isEmpty
-                        ? _buildEmptyState(
-                            icon: FeatherIcons.users,
-                            message: _searchQuery.isEmpty
-                                ? 'No chase yet'
-                                : 'No users found',
-                            subtitle: _searchQuery.isEmpty
-                                ? 'When people chase you, they\'ll appear here'
-                                : 'Try searching with a different keyword',
-                          )
-                        : ListView.builder(
-                            itemCount: _filteredFollowers.length,
-                            itemBuilder: (context, index) {
-                              return _buildUserListItem(
-                                user: _filteredFollowers[index],
-                                isFollowersTab: true,
-                              );
-                            },
-                          ),
+                enabledBorder: OutlineInputBorder(
+                  borderSide: BorderSide(
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.onBackground.withOpacity(0.1),
                   ),
-                  // Following Tab (Re-chase)
-                  Padding(
-                    padding: EdgeInsets.only(
-                      top: 5.h,
-                      left: 2.5.w,
-                      right: 2.5.w,
-                    ),
-                    child: _isLoadingFollowing
-                        ? const ChaseSimmer()
-                        : _filteredFollowing.isEmpty
-                        ? _buildEmptyState(
-                            icon: FeatherIcons.userPlus,
-                            message: _searchQuery.isEmpty
-                                ? 'Not re-chase anyone yet'
-                                : 'No users found',
-                            subtitle: _searchQuery.isEmpty
-                                ? 'Start re-chase people to see them here'
-                                : 'Try searching with a different keyword',
-                          )
-                        : ListView.builder(
-                            itemCount: _filteredFollowing.length,
-                            itemBuilder: (context, index) {
-                              return _buildUserListItem(
-                                user: _filteredFollowing[index],
-                                isFollowersTab: false,
-                              );
-                            },
-                          ),
+                  borderRadius: BorderRadius.circular(13.r),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderSide: const BorderSide(
+                    color: AppColors.primaryColor,
+                    width: 0.7,
                   ),
-                ],
+                  borderRadius: BorderRadius.circular(13.r),
+                ),
               ),
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onBackground,
+                fontSize: 13.sp,
+                fontWeight: FontWeight.w400,
+              ),
+              onChanged: (value) {
+                _filterUsers(value);
+              },
             ),
-          ],
-        ),
+          ),
+          Expanded(
+            child: TabBarView(
+              controller: _tabController,
+              children: [
+                // Followers Tab (Chase)
+                Padding(
+                  padding: EdgeInsets.only(top: 5.h, left: 2.5.w, right: 2.5.w),
+                  child: _isLoadingFollowers
+                      ? const ChaseSimmer()
+                      : _filteredFollowers.isEmpty
+                      ? _buildEmptyState(
+                          icon: FeatherIcons.users,
+                          message: _searchQuery.isEmpty
+                              ? 'No chase yet'
+                              : 'No users found',
+                          subtitle: _searchQuery.isEmpty
+                              ? 'When people chase you, they\'ll appear here'
+                              : 'Try searching with a different keyword',
+                        )
+                      : ListView.builder(
+                          itemCount: _filteredFollowers.length,
+                          itemBuilder: (context, index) {
+                            return _buildUserListItem(
+                              user: _filteredFollowers[index],
+                              isFollowersTab: true,
+                            );
+                          },
+                        ),
+                ),
+                // Following Tab (Re-chase)
+                Padding(
+                  padding: EdgeInsets.only(top: 5.h, left: 2.5.w, right: 2.5.w),
+                  child: _isLoadingFollowing
+                      ? const ChaseSimmer()
+                      : _filteredFollowing.isEmpty
+                      ? _buildEmptyState(
+                          icon: FeatherIcons.userPlus,
+                          message: _searchQuery.isEmpty
+                              ? 'Not re-chase anyone yet'
+                              : 'No users found',
+                          subtitle: _searchQuery.isEmpty
+                              ? 'Start re-chase people to see them here'
+                              : 'Try searching with a different keyword',
+                        )
+                      : ListView.builder(
+                          itemCount: _filteredFollowing.length,
+                          itemBuilder: (context, index) {
+                            return _buildUserListItem(
+                              user: _filteredFollowing[index],
+                              isFollowersTab: false,
+                            );
+                          },
+                        ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

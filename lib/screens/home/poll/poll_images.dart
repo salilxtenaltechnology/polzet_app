@@ -96,99 +96,113 @@ class _PollImagesState extends State<PollImages> {
   }
 
   void postImage() async {
-  final accessToken = await SharedPrefService.getAccessToken();
-  
-  // Validate inputs
-  if (descriptionController.text.trim().isEmpty) {
-    setState(() {
-      descriptionErrorText = AppLocalizations.of(context)!.pleaseenteraquestion;
-    });
-    return;
-  }
+    final accessToken = await SharedPrefService.getAccessToken();
 
-  // Filter out null images
-  List<File> selectedImages = _images
-      .where((image) => image != null)
-      .cast<File>()
-      .toList();
-
-  if (selectedImages.length < 2) {
-    setState(() {
-      imageErrorText = AppLocalizations.of(context)!.pleaseenteratleastoneimage;
-    });
-    return;
-  }
-
-  if (selectedImages.length > maxImages) {
-    setState(() {
-      imageErrorText = 'Maximum $maxImages images allowed';
-    });
-    return;
-  }
-
-  setState(() {
-    isLoading = true;
-    uploadProgress = 0.0;
-    descriptionErrorText = '';
-    imageErrorText = '';
-  });
-
-  try {
-    // Upload the poll
-    Map<String, dynamic>? result = await ApiService.uploadImagePoll(
-      description: descriptionController.text.trim(),
-      question: 'Image Preference Poll', // You can add a question field if needed
-      pollOptions: selectedImages,
-      maxOptions: maxImages,
-      authToken: accessToken,
-      onProgress: (progress) {
-        if (mounted) {
-          setState(() {
-            uploadProgress = progress;
-          });
-        }
-        if (kDebugMode) {
-          print('Upload progress: ${(progress * 100).toStringAsFixed(1)}%');
-        }
-      },
-    );
-
-    if (result != null && mounted) {
-      showToast(message: 'Poll created successfully!');
-      descriptionController.clear();
+    // Validate inputs
+    if (descriptionController.text.trim().isEmpty) {
       setState(() {
-        _images = [null, null];
-        uploadProgress = 0.0;
+        descriptionErrorText = AppLocalizations.of(
+          context,
+        )!.pleaseenteraquestion;
       });
-      Navigator.of(context).pop(result);
+      return;
     }
-  } catch (e) {
-    if (kDebugMode) {
-      print('Error creating poll: $e');
+
+    // Filter out null images
+    List<File> selectedImages = _images
+        .where((image) => image != null)
+        .cast<File>()
+        .toList();
+
+    if (selectedImages.length < 2) {
+      setState(() {
+        imageErrorText = AppLocalizations.of(
+          context,
+        )!.pleaseenteratleastoneimage;
+      });
+      return;
     }
-    
-    if (mounted) {
-      String errorMessage = e.toString().replaceAll('Exception: ', '');
-      
-      // Show user-friendly error messages
-      if (errorMessage.contains('too large') || errorMessage.contains('10MB')) {
-        showToast(message: 'Image too large. Maximum size allowed is 10MB per image');
-      } else if (errorMessage.contains('internet') || errorMessage.contains('network')) {
-        showToast(message: 'Network error. Please check your connection');
-      } else if (errorMessage.contains('timeout')) {
-        showToast(message: 'Upload timeout. Please try again');
-      } else {
-        showToast(message: errorMessage.isEmpty ? 'Error uploading poll' : errorMessage);
+
+    if (selectedImages.length > maxImages) {
+      setState(() {
+        imageErrorText = 'Maximum $maxImages images allowed';
+      });
+      return;
+    }
+
+    setState(() {
+      isLoading = true;
+      uploadProgress = 0.0;
+      descriptionErrorText = '';
+      imageErrorText = '';
+    });
+
+    try {
+      // Upload the poll
+      Map<String, dynamic>? result = await ApiService.uploadImagePoll(
+        description: descriptionController.text.trim(),
+        question:
+            'Image Preference Poll', // You can add a question field if needed
+        pollOptions: selectedImages,
+        maxOptions: maxImages,
+        authToken: accessToken,
+        onProgress: (progress) {
+          if (mounted) {
+            setState(() {
+              uploadProgress = progress;
+            });
+          }
+          if (kDebugMode) {
+            print('Upload progress: ${(progress * 100).toStringAsFixed(1)}%');
+          }
+        },
+      );
+
+      if (result != null && mounted) {
+        showToast(message: 'Poll created successfully!');
+        descriptionController.clear();
+        setState(() {
+          _images = [null, null];
+          uploadProgress = 0.0;
+        });
+        Navigator.of(context).pop(result);
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error creating poll: $e');
+      }
+
+      if (mounted) {
+        String errorMessage = e.toString().replaceAll('Exception: ', '');
+
+        // Show user-friendly error messages
+        if (errorMessage.contains('too large') ||
+            errorMessage.contains('10MB')) {
+          showToast(
+            message: 'Image too large. Maximum size allowed is 10MB per image',
+          );
+        } else if (errorMessage.contains('internet') ||
+            errorMessage.contains('network')) {
+          showToast(message: 'Network error. Please check your connection');
+        } else if (errorMessage.contains('timeout')) {
+          showToast(message: 'Upload timeout. Please try again');
+        } else {
+          showToast(
+            message: errorMessage.isEmpty
+                ? 'Error uploading poll'
+                : errorMessage,
+          );
+        }
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          isLoading = false;
+        });
       }
     }
-  } finally {
-    if (mounted) {
-      setState(() {
-        isLoading = false;
-      });
-    }
   }
-}
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -434,4 +448,3 @@ class _PollImagesState extends State<PollImages> {
     super.dispose();
   }
 }
-

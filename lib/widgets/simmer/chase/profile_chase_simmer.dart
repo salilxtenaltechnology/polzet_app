@@ -12,44 +12,47 @@ class UserChaseSimmer extends StatelessWidget {
       child: Shimmer.fromColors(
         baseColor: Colors.grey[300]!,
         highlightColor: Colors.grey[100]!,
-        child: ListView(scrollDirection: Axis.horizontal, children: [
-          Container(
-            height: 55.h,
-            width: 55.w,
-            margin: EdgeInsets.symmetric(horizontal: 5.w),
-            decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.secondaryContainer,
-              shape: BoxShape.circle,
+        child: ListView(
+          scrollDirection: Axis.horizontal,
+          children: [
+            Container(
+              height: 55.h,
+              width: 55.w,
+              margin: EdgeInsets.symmetric(horizontal: 5.w),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.secondaryContainer,
+                shape: BoxShape.circle,
+              ),
             ),
-          ),
-          Container(
-            height: 55.h,
-            width: 55.w,
-            margin: EdgeInsets.symmetric(horizontal: 5.w),
-            decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.secondaryContainer,
-              shape: BoxShape.circle,
+            Container(
+              height: 55.h,
+              width: 55.w,
+              margin: EdgeInsets.symmetric(horizontal: 5.w),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.secondaryContainer,
+                shape: BoxShape.circle,
+              ),
             ),
-          ),
-          Container(
-            height: 55.h,
-            width: 55.w,
-            margin: EdgeInsets.symmetric(horizontal: 5.w),
-            decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.secondaryContainer,
-              shape: BoxShape.circle,
+            Container(
+              height: 55.h,
+              width: 55.w,
+              margin: EdgeInsets.symmetric(horizontal: 5.w),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.secondaryContainer,
+                shape: BoxShape.circle,
+              ),
             ),
-          ),
-          Container(
-            height: 55.h,
-            width: 55.w,
-            margin: EdgeInsets.symmetric(horizontal: 5.w),
-            decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.secondaryContainer,
-              shape: BoxShape.circle,
+            Container(
+              height: 55.h,
+              width: 55.w,
+              margin: EdgeInsets.symmetric(horizontal: 5.w),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.secondaryContainer,
+                shape: BoxShape.circle,
+              ),
             ),
-          )
-        ]),
+          ],
+        ),
       ),
     );
   }

@@ -1,6 +1,4 @@
 // ignore_for_file: unused_field, deprecated_member_use, unused_element, library_private_types_in_public_api
-import 'dart:io';
-
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
@@ -9,7 +7,6 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'api/services/fcm/fcm_service.dart';
 import 'api/services/link/deeplink_generator_service.dart';
 import 'api/services/notification/notification_services.dart';
 import 'core/constants/app_strings.dart';
@@ -21,22 +18,28 @@ import 'l10n/generated/app_localizations.dart';
 import 'provider/public_profile_provider.dart';
 import 'provider/user_provider.dart';
 import 'screens/home/home feed/post/post_details_screen.dart';
+import 'screens/home/home_imports.dart';
+import 'screens/home/notifications/notification_details.dart';
+import 'screens/home/profile/public/public_profile.dart';
 import 'screens/home/settings/security/biometric/biometric_screen.dart';
 import 'screens/home/settings/security/biometric/biometric_service.dart';
 import 'screens/home/settings/security/pin/pin_gate_screen.dart';
 import 'screens/home/settings/security/pin/pin_status.dart';
 import 'screens/splash/splash_screen.dart';
 
-// ✅ Background message handler - MUST be top-level function
+// ✅ Background message handler - CRITICAL for tap handling when app is killed/background
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
-  debugPrint("🔔 ===== BACKGROUND MESSAGE =====");
+  debugPrint("🔔 ===== BACKGROUND MESSAGE HANDLER =====");
   debugPrint("Title: ${message.notification?.title}");
   debugPrint("Body: ${message.notification?.body}");
   debugPrint("Data: ${message.data}");
-  debugPrint("================================");
+  debugPrint("========================================");
+
+  // ✅ The notification is automatically shown by FCM in background
+  // We just need to log here - tap handling is done in onMessageOpenedApp
 }
 
 void main() async {
@@ -47,6 +50,7 @@ void main() async {
       options: DefaultFirebaseOptions.currentPlatform,
     );
 
+    // ✅ CRITICAL: Register background handler
     FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 
     await NotificationService().initialize();
@@ -86,7 +90,6 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   String? _pendingUsername;
   String? _pendingPostId;
   bool _isAppInitialized = false;
-  OverlayEntry? _notificationOverlay;
 
   @override
   void initState() {
@@ -94,13 +97,14 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     WidgetsBinding.instance.addObserver(this);
     _loadSavedLanguage();
     _initializeDeepLinking();
-    _setupNotifications();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _setupNotificationCallbacks();
+    });
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
-    _removeNotificationOverlay();
     DeepLinkService().dispose();
     NotificationService().dispose();
     super.dispose();
@@ -110,18 +114,25 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   void didChangeAppLifecycleState(AppLifecycleState state) {
     super.didChangeAppLifecycleState(state);
 
+    // ✅ CRITICAL: Update NotificationService with app state
+    NotificationService().updateAppLifecycleState(state);
+
     switch (state) {
       case AppLifecycleState.resumed:
-        debugPrint('📱 App resumed');
+        debugPrint('📱 App resumed - ONLINE');
         _reconnectWebSocketIfNeeded();
         break;
       case AppLifecycleState.paused:
-        debugPrint('📱 App paused');
-        _removeNotificationOverlay();
+        debugPrint('📱 App paused - OFFLINE');
         break;
       case AppLifecycleState.inactive:
+        debugPrint('📱 App inactive');
+        break;
       case AppLifecycleState.detached:
+        debugPrint('📱 App detached - TERMINATED');
+        break;
       case AppLifecycleState.hidden:
+        debugPrint('📱 App hidden');
         break;
     }
   }
@@ -147,119 +158,136 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     });
   }
 
-  Future<void> _setupNotifications() async {
-    await Future.delayed(const Duration(milliseconds: 500));
+  // ✅ Only setup notification tap callbacks here - permission handled in HomeScreen
+  Future<void> _setupNotificationCallbacks() async {
+    debugPrint('🔧 Setting up notification tap callbacks...');
 
-    NotificationService().onNotificationReceived = (payload) {
-      _showNotificationPopup(payload);
-    };
-
+    // ✅ CRITICAL: Callback for notification TAPS
     NotificationService().onFCMMessageTap = (payload) {
+      debugPrint('👆 ===== NOTIFICATION TAPPED =====');
+      debugPrint('Type: ${payload.type}');
+      debugPrint('Data: ${payload.data}');
+      debugPrint('==================================');
+
       _handleNotificationTap(payload);
     };
 
-    final loggedIn = await isLoggedIn();
-    if (loggedIn) {
-      await _connectWebSocket();
-      await _registerFCMToken();
-    }
-  }
-
-  Future<void> _registerFCMToken() async {
-    try {
-      final fcmToken = await NotificationService().getFCMToken();
-      if (fcmToken != null) {
-        String platform = Platform.isAndroid ? 'android' : 'ios';
-        await FcmApiService.registerFcmToken(fcmToken, platform);
-        await SharedPrefService.saveFcmToken(fcmToken);
-      }
-    } catch (e) {
-      debugPrint('❌ Error registering FCM token: $e');
-    }
-  }
-
-  Future<void> _connectWebSocket() async {
-    final accessToken = await SharedPrefService.getAccessToken();
-    if (accessToken != null) {
-      debugPrint('🔌 Connecting to WebSocket...');
-      await NotificationService().connectToWebSocket(accessToken);
-    }
+    debugPrint('✅ Notification tap callback registered');
   }
 
   Future<void> _reconnectWebSocketIfNeeded() async {
     final loggedIn = await isLoggedIn();
     if (loggedIn && !NotificationService().isWebSocketConnected) {
       debugPrint('🔄 Reconnecting WebSocket...');
-      await _connectWebSocket();
+      final accessToken = await SharedPrefService.getAccessToken();
+      if (accessToken != null) {
+        await NotificationService().connectToWebSocket(accessToken);
+      }
     }
   }
 
-  void _showNotificationPopup(NotificationPayload payload) {
-    _removeNotificationOverlay();
-
-    final context = navigatorKey.currentContext;
-    if (context == null || !mounted) return;
-
-    _notificationOverlay = OverlayEntry(
-      builder: (context) => NotificationPopup(
-        payload: payload,
-        onTap: () {
-          _removeNotificationOverlay();
-          _handleNotificationTap(payload);
-        },
-        onDismiss: _removeNotificationOverlay,
-      ),
-    );
-
-    Overlay.of(context).insert(_notificationOverlay!);
-
-    Future.delayed(const Duration(seconds: 4), () {
-      _removeNotificationOverlay();
-    });
-  }
-
-  void _removeNotificationOverlay() {
-    _notificationOverlay?.remove();
-    _notificationOverlay = null;
-  }
-
   void _handleNotificationTap(NotificationPayload payload) {
+    debugPrint('🎯 _handleNotificationTap called');
+    debugPrint('Context available: ${navigatorKey.currentContext != null}');
+    debugPrint('Mounted: $mounted');
+
     final context = navigatorKey.currentContext;
-    if (context == null || !mounted) return;
+    if (context == null || !mounted) {
+      debugPrint('⚠️ Cannot handle tap - context not available or not mounted');
+      // Retry after a short delay
+      Future.delayed(const Duration(milliseconds: 500), () {
+        if (mounted && navigatorKey.currentContext != null) {
+          debugPrint('🔄 Retrying notification tap handling...');
+          _handleNotificationTap(payload);
+        }
+      });
+      return;
+    }
 
     final type = payload.type.toLowerCase();
+    debugPrint('📱 Handling notification tap - Type: $type');
 
     switch (type) {
-      case 'post':
       case 'like':
       case 'comment':
+      case 'vote':
         final postId = payload.data['post_id'];
-        final username = payload.data['username'];
-        if (postId != null && username != null) {
-          Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (_) =>
-                  PostDetailScreen(username: username, postId: postId),
-            ),
-          );
+        debugPrint('Post ID: $postId');
+
+        if (postId != null) {
+          // Convert to int if it's a string
+          final postIdInt = postId is int
+              ? postId
+              : int.tryParse(postId.toString());
+
+          if (postIdInt != null) {
+            debugPrint(
+              '📝 Navigating to NotificationDetails with postId: $postIdInt',
+            );
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => NotificationDetails(postId: postIdInt),
+              ),
+            );
+          } else {
+            debugPrint('⚠️ Invalid post_id, going to notifications tab');
+            _navigateToNotificationScreen(context);
+          }
+        } else {
+          debugPrint('⚠️ Missing post_id, going to notifications tab');
+          _navigateToNotificationScreen(context);
         }
         break;
 
       case 'follow':
-        final userId = payload.data['user_id'];
-        debugPrint('Navigate to profile: $userId');
+        final userId = payload.data['sender_id'];
+        debugPrint('👤 Follow notification - User ID: $userId');
+
+        if (userId != null) {
+          // Convert to int if it's a string
+          final userIdInt = userId is int
+              ? userId
+              : int.tryParse(userId.toString());
+
+          if (userIdInt != null) {
+            debugPrint(
+              '👤 Navigating to PublicProfile with userId: $userIdInt',
+            );
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => PublicProfile(userId: userIdInt),
+              ),
+            );
+          } else {
+            debugPrint('⚠️ Invalid user_id, going to notifications tab');
+            _navigateToNotificationScreen(context);
+          }
+        } else {
+          debugPrint('⚠️ Missing user_id, going to notifications tab');
+          _navigateToNotificationScreen(context);
+        }
         break;
 
+      case 'post':
       case 'new_message':
       case 'chat':
-        final chatId = payload.data['chat_id'];
-        final senderId = payload.data['sender_id'];
-        debugPrint('Navigate to chat: $chatId from sender: $senderId');
-        break;
-
+      case 'notification':
       default:
-        debugPrint('Unknown notification type: ${payload.type}');
+        debugPrint('🔔 Redirecting to notifications tab for type: $type');
+        _navigateToNotificationScreen(context);
+        break;
     }
+  }
+
+  void _navigateToNotificationScreen(BuildContext context) {
+    debugPrint('📲 Navigating to notification screen (tab index 3)');
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(
+        builder: (_) => const HomeScreen(initialIndex: 3),
+        settings: const RouteSettings(name: '/notifications'),
+      ),
+      (route) => false,
+    );
   }
 
   void _initializeDeepLinking() {
@@ -304,6 +332,28 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       });
 
       _navigateToPostDetail(username, postId);
+    }
+  }
+
+  void _handlePendingNotification() {
+    final message = NotificationService().pendingInitialMessage;
+    if (message != null) {
+      debugPrint('🚀 ===== HANDLING PENDING NOTIFICATION =====');
+      debugPrint('Title: ${message.notification?.title}');
+      debugPrint('Data: ${message.data}');
+      debugPrint('==========================================');
+
+      final payload = NotificationPayload.fromFCM(message);
+
+      // When app opens from terminated state, handle the notification
+      Future.delayed(const Duration(milliseconds: 800), () {
+        if (mounted) {
+          debugPrint('🎯 Processing pending notification tap...');
+          _handleNotificationTap(payload);
+        }
+      });
+    } else {
+      debugPrint('ℹ️ No pending notification from terminated state');
     }
   }
 
@@ -388,247 +438,12 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                 _isAppInitialized = true;
                 WidgetsBinding.instance.addPostFrameCallback((_) {
                   _handlePendingDeepLink();
+                  _handlePendingNotification();
                 });
               }
               return asyncSnapshot.data ?? SplashScreen(isLogged: false);
             }
           },
-        ),
-      ),
-    );
-  }
-}
-
-class NotificationPopup extends StatefulWidget {
-  final NotificationPayload payload;
-  final VoidCallback onTap;
-  final VoidCallback onDismiss;
-
-  const NotificationPopup({
-    super.key,
-    required this.payload,
-    required this.onTap,
-    required this.onDismiss,
-  });
-
-  @override
-  State<NotificationPopup> createState() => _NotificationPopupState();
-}
-
-class _NotificationPopupState extends State<NotificationPopup>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  late Animation<Offset> _slideAnimation;
-  late Animation<double> _opacityAnimation;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      duration: const Duration(milliseconds: 300),
-      vsync: this,
-    );
-
-    _slideAnimation = Tween<Offset>(
-      begin: const Offset(0, -1),
-      end: Offset.zero,
-    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
-
-    _opacityAnimation = Tween<double>(
-      begin: 0.0,
-      end: 1.0,
-    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeIn));
-
-    _controller.forward();
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  void _dismiss() async {
-    await _controller.reverse();
-    widget.onDismiss();
-  }
-
-  IconData _getIconForType(String type) {
-    switch (type.toLowerCase()) {
-      case 'like':
-        return Icons.favorite;
-      case 'comment':
-        return Icons.comment;
-      case 'follow':
-        return Icons.person_add;
-      case 'post':
-        return Icons.article;
-      case 'new_message':
-      case 'chat':
-        return Icons.message;
-      default:
-        return Icons.notifications;
-    }
-  }
-
-  Color _getColorForType(String type) {
-    switch (type.toLowerCase()) {
-      case 'like':
-        return Colors.pink;
-      case 'comment':
-        return Colors.blue;
-      case 'follow':
-        return Colors.purple;
-      case 'post':
-        return Colors.orange;
-      case 'new_message':
-      case 'chat':
-        return Colors.green;
-      default:
-        return Colors.grey;
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final color = _getColorForType(widget.payload.type);
-    final icon = _getIconForType(widget.payload.type);
-
-    return Positioned(
-      top: 0,
-      left: 0,
-      right: 0,
-      child: FadeTransition(
-        opacity: _opacityAnimation,
-        child: SlideTransition(
-          position: _slideAnimation,
-          child: SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: GestureDetector(
-                onTap: () {
-                  _dismiss();
-                  widget.onTap();
-                },
-                onHorizontalDragEnd: (details) {
-                  if (details.primaryVelocity!.abs() > 100) {
-                    _dismiss();
-                  }
-                },
-                child: Material(
-                  elevation: 8,
-                  borderRadius: BorderRadius.circular(12),
-                  color: Colors.white,
-                  child: Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(12),
-                      gradient: LinearGradient(
-                        colors: [Colors.white, color.withOpacity(0.05)],
-                      ),
-                      border: Border.all(
-                        color: color.withOpacity(0.3),
-                        width: 1,
-                      ),
-                    ),
-                    child: Row(
-                      children: [
-                        Container(
-                          width: 48,
-                          height: 48,
-                          decoration: BoxDecoration(
-                            color: color.withOpacity(0.1),
-                            shape: BoxShape.circle,
-                          ),
-                          child: Icon(icon, color: color, size: 28),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Row(
-                                children: [
-                                  Expanded(
-                                    child: Text(
-                                      widget.payload.title,
-                                      style: const TextStyle(
-                                        fontSize: 15,
-                                        fontWeight: FontWeight.bold,
-                                        color: Colors.black87,
-                                      ),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 8,
-                                      vertical: 4,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color:
-                                          widget.payload.source ==
-                                              NotificationSource.webSocket
-                                          ? Colors.blue[100]
-                                          : Colors.green[100],
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    child: Text(
-                                      widget.payload.source ==
-                                              NotificationSource.webSocket
-                                          ? 'LIVE'
-                                          : 'PUSH',
-                                      style: TextStyle(
-                                        fontSize: 9,
-                                        fontWeight: FontWeight.bold,
-                                        color:
-                                            widget.payload.source ==
-                                                NotificationSource.webSocket
-                                            ? Colors.blue[900]
-                                            : Colors.green[900],
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                widget.payload.body,
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  color: Colors.grey[700],
-                                ),
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        GestureDetector(
-                          onTap: _dismiss,
-                          child: Container(
-                            padding: const EdgeInsets.all(4),
-                            decoration: BoxDecoration(
-                              color: Colors.grey[200],
-                              shape: BoxShape.circle,
-                            ),
-                            child: Icon(
-                              Icons.close,
-                              size: 18,
-                              color: Colors.grey[600],
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
         ),
       ),
     );

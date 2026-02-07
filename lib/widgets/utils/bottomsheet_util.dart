@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../models/home feed/home_feed_items_model.dart';
+import '../../models/posts/homefeed_posts_model.dart';
 import '../bottomsheets/comments_bottom_sheet.dart';
 import '../bottomsheets/liked_users_bottom_sheet.dart';
 

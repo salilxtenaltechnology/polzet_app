@@ -9,5 +9,4 @@ class AppColors {
   static const Color redColor = Color(0XFFBF0711);
 }
 
-
 // color : Theme.of(context).colorScheme.onBackground

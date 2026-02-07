@@ -1,16 +1,14 @@
 // ignore_for_file: deprecated_member_use, must_be_immutable
 
 import 'package:feather_icons/feather_icons.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../../api/services/api_service.dart';
 import '../../../api/services/like/like_service.dart';
 import '../../../core/constants/app_images.dart';
-import '../../../models/polls/poll_question_model.dart';
-import '../../../models/posts/post_polls_model.dart';
-import '../../../widgets/show_toast.dart';
+import '../../../models/posts/user_post_model.dart';
+import '../../show_toast.dart';
 import '../../base64/image_convert.dart';
 import '../../diolog/custom_diolog.dart';
 
@@ -29,7 +27,8 @@ class ThingsQustionsCard extends StatefulWidget {
     this.currentCommentsCount,
   });
 
-  final PostPolls post;
+  final UserPostModel
+  post; // FIXED: Changed from PostImagesResponse to PostImagesModel
   final Function(int postId) onDelete;
   final Function(int postId, bool isLiked, int likesCount) onLikeChanged;
   final Function(int postId, int commentsCount) onCommentsChanged;
@@ -136,10 +135,11 @@ class _ThingsQustionsCardState extends State<ThingsQustionsCard> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             ...widget.post.polls.map(
-              (p) => _thigsQuestionsBloc(p, widget.post, context),
+              (p) => _thingsQuestionsBlock(
+                p,
+                context,
+              ), // FIXED: Renamed method and changed params
             ),
-            // Add Like and Comment section at the bottom
-            SizedBox(height: 8.h),
             _buildInteractionSection(),
           ],
         ),
@@ -187,7 +187,7 @@ class _ThingsQustionsCardState extends State<ThingsQustionsCard> {
             ],
           ),
         ),
-        SizedBox(width: 12.w),
+        SizedBox(width: 5.w),
         // Comments button
         GestureDetector(
           onTap: widget.onCommentsIconTap,
@@ -214,19 +214,23 @@ class _ThingsQustionsCardState extends State<ThingsQustionsCard> {
     );
   }
 
-  Widget _thigsQuestionsBloc(
-    PollQuestion pollQuestion,
-    final PostPolls post,
+  Widget _thingsQuestionsBlock(
+    UserPollQuestion
+    pollQuestion, // FIXED: Changed from PollQuestion to UserPollQuestion
     BuildContext context,
   ) {
     final ApiService apiService = ApiService();
+
+    // Parse total votes from String to int
+    final totalVotes = int.tryParse(pollQuestion.totalVotes) ?? 0;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           children: [
             CircleAvatar(
-              radius: 20,
+              radius: 17,
               backgroundColor: Theme.of(
                 context,
               ).colorScheme.primary.withOpacity(0.15),
@@ -252,9 +256,9 @@ class _ThingsQustionsCardState extends State<ThingsQustionsCard> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  widget.username!,
+                  widget.username ?? '',
                   style: TextStyle(
-                    fontSize: 12.8.sp,
+                    fontSize: 12.sp,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -271,13 +275,10 @@ class _ThingsQustionsCardState extends State<ThingsQustionsCard> {
             const Spacer(),
             GestureDetector(
               onTap: () {
-                if (kDebugMode) {
-                  print('ID : ${post.id}');
-                }
                 showUserDeletePostDiolog(context, () async {
                   Navigator.pop(context);
-                  await apiService.userDeletePost(post.id);
-                  widget.onDelete(post.id);
+                  await apiService.userDeletePost(widget.post.id);
+                  widget.onDelete(widget.post.id);
                 });
               },
               child: Icon(Icons.more_vert, size: 17.spMax),
@@ -286,7 +287,7 @@ class _ThingsQustionsCardState extends State<ThingsQustionsCard> {
         ),
         SizedBox(height: 5.h),
         Text(
-          pollQuestion.question, //  post.description,
+          pollQuestion.question,
           style: TextStyle(
             color: Colors.black,
             fontSize: 12.5.sp,
@@ -294,130 +295,96 @@ class _ThingsQustionsCardState extends State<ThingsQustionsCard> {
           ),
         ),
         SizedBox(height: 8.h),
-        ...pollQuestion.options.map(
-          (option) => _buildPollOption(
-            pollQuestion,
-            pollQuestion.totalVotesCount,
-            context,
-            pollQuestion.options.indexOf(option),
+        // FIXED: Added null check for options
+        if (pollQuestion.options != null)
+          ...pollQuestion.options!.asMap().entries.map(
+            (entry) => _buildPollOption(
+              pollQuestion.options![entry.key],
+              totalVotes,
+              context,
+              entry.key,
+            ),
           ),
-        ),
-        Text(
-          '${pollQuestion.totalVotesCount} votes',
-          style: TextStyle(
-            fontSize: 10.7.sp,
-            fontWeight: FontWeight.w500,
-            color: Colors.grey[600],
-          ),
-        ),
       ],
     );
   }
 
   Widget _buildPollOption(
-    final PollQuestion pollQuestion,
+    UserPollOption option,
     int totalVotes,
     BuildContext context,
     int optionIndex,
   ) {
-    final option = pollQuestion.options[optionIndex];
-
-    // Parse vote count from String to int
-    final voteCount = option.voteCountInt;
-
+    //final voteCount = int.tryParse(option.voteCount) ?? 0;
+    final percentage = option.percentage;
     // Calculate percentage
-    final percentage = totalVotes > 0 ? (voteCount / totalVotes * 100) : 0;
+    // final percentage = totalVotes > 0 ? (voteCount / totalVotes * 100) : 0.0;
 
-    // Define different gradient colors for dynamic options
-    List<Color> getGradientColors(int index) {
-      final colors = [
-        [const Color(0xFFFC3E7E), const Color(0xFFEEA0F0)], // Option 1
-        [const Color(0xFF4FC3F7), const Color(0xFFB6E2F8)], // Option 2
-        [Colors.red, const Color(0xFFEFB0C3)], // Option 3
-        [Colors.green, Colors.teal], // Option 4
-        [Colors.orange, Colors.deepOrange], // Option 5
-        [Colors.purple, Colors.deepPurple], // Option 6
-      ];
-      return colors[index % colors.length];
-    }
-
-    final gradientColors = getGradientColors(optionIndex);
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    return Padding(
+      padding: EdgeInsets.only(bottom: 10.h),
+      child: Container(
+        height: 25.h,
+        width: double.infinity,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(10.r),
+          border: Border.all(color: Colors.grey.withOpacity(0.3), width: 1.w),
+        ),
+        child: Stack(
           children: [
-            Expanded(
-              child: Text(
-                option.displayText,
-                style: TextStyle(
-                  color: Theme.of(context).colorScheme.onBackground,
-                  fontSize: 12.sp,
-                  fontWeight: FontWeight.w500,
+            // Progress bar background
+            if (percentage > 0)
+              Positioned.fill(
+                child: TweenAnimationBuilder<double>(
+                  duration: const Duration(milliseconds: 300),
+                  curve: Curves.easeOutCubic,
+                  tween: Tween<double>(begin: 0, end: percentage / 100),
+                  builder: (context, value, child) {
+                    return FractionallySizedBox(
+                      alignment: Alignment.centerLeft,
+                      widthFactor: value,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF0F0F0),
+                          borderRadius: BorderRadius.circular(10.r),
+                        ),
+                      ),
+                    );
+                  },
                 ),
               ),
-            ),
-            SizedBox(width: 8.w),
-            voteCount == 0
-                ? const Text('')
-                : Text(
-                    '$voteCount ${voteCount == 1 ? 'vote' : 'votes'}',
-                    style: TextStyle(
-                      fontSize: 10.sp,
-                      fontWeight: FontWeight.w400,
-                      color: Colors.grey[600],
-                    ),
-                  ),
-          ],
-        ),
-        SizedBox(height: 8.h),
-        Container(
-          height: 8.h,
-          width: double.infinity,
-          decoration: BoxDecoration(
-            color: Colors.grey[200],
-            borderRadius: BorderRadius.circular(4.r),
-          ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(4.r),
-            child: Stack(
-              children: [
-                if (percentage > 0)
-                  FractionallySizedBox(
-                    alignment: Alignment.centerLeft,
-                    widthFactor: percentage / 100,
-                    child: Container(
-                      height: 8.h,
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: gradientColors,
-                          begin: Alignment.centerLeft,
-                          end: Alignment.centerRight,
-                        ),
+            // Content overlay
+            Padding(
+              padding: EdgeInsets.fromLTRB(8.w, 4.h, 8.w, 0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  // Option text
+                  Expanded(
+                    child: Text(
+                      option.text ?? '',
+                      style: TextStyle(
+                        color: Colors.grey[700],
+                        fontSize: 11.2.sp,
+                        fontWeight: FontWeight.w400,
                       ),
                     ),
                   ),
-              ],
-            ),
-          ),
-        ),
-        SizedBox(height: 2.h),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.end,
-          children: [
-            Text(
-              '${percentage.toStringAsFixed(1)}%',
-              style: TextStyle(
-                fontSize: 11.sp,
-                fontWeight: FontWeight.w500,
-                color: Colors.grey[600],
+                  // Percentage
+                  Text(
+                    '${percentage.toStringAsFixed(0)}%',
+                    style: TextStyle(
+                      color: Colors.grey[800],
+                      fontSize: 11.sp,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
               ),
             ),
           ],
         ),
-      ],
+      ),
     );
   }
 }

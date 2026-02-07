@@ -9,7 +9,7 @@ import '../../../../api/services/api_service.dart';
 import '../../../../api/services/like/like_service.dart';
 import '../../../../core/constants/app_images.dart';
 import '../../../../l10n/generated/app_localizations.dart';
-import '../../../../models/posts/image/post_image_model.dart';
+import '../../../../models/posts/user_post_model.dart';
 import '../../../../widgets/base64/image_convert.dart';
 import '../../../../widgets/button/back_button.dart';
 import '../../../../widgets/custom_text_styles.dart';
@@ -17,6 +17,7 @@ import '../../../../widgets/diolog/custom_diolog.dart';
 import '../../../../widgets/loader.dart';
 import '../../../../widgets/show_toast.dart';
 import '../../../../widgets/utils/bottomsheet_util.dart';
+import 'image_grid.dart';
 
 class ImagePostsList extends StatefulWidget {
   String? username;
@@ -39,7 +40,7 @@ class _ImagePostsListState extends State<ImagePostsList> {
   Map<int, int> postCommentsCounts = {};
 
   // Cache the posts data
-  List<PostImagesModel>? cachedPosts;
+  List<UserPostModel>? cachedPosts;
   bool isLoading = true;
 
   @override
@@ -57,20 +58,30 @@ class _ImagePostsListState extends State<ImagePostsList> {
     try {
       final postsImage = await apiService.fetchImagePosts(widget.username!);
 
+      // DEBUG: Print raw response data
+      debugPrint('====== API RESPONSE DEBUG ======');
+      debugPrint('Total posts received: ${postsImage.length}');
+
       setState(() {
         cachedPosts = postsImage;
         isLoading = false;
-        
+
         // Initialize like states and comments counts from fetched data
         postLikeStates.clear();
         postLikeCounts.clear();
         postCommentsCounts.clear();
-        
+
         for (var post in postsImage) {
           postLikeStates[post.id] = post.isLiked;
           postLikeCounts[post.id] = post.likesCount;
           postCommentsCounts[post.id] = post.commentsCount;
+
+          // DEBUG: Print the like state
+          debugPrint(
+            'Post ID: ${post.id}, isLiked: ${post.isLiked}, likesCount: ${post.likesCount}',
+          );
         }
+        debugPrint('====== END API RESPONSE DEBUG ======');
       });
     } catch (e) {
       debugPrint('Error loading posts: $e');
@@ -79,6 +90,28 @@ class _ImagePostsListState extends State<ImagePostsList> {
         isLoading = false;
       });
     }
+  }
+
+  void _showAllImagesGrid(int postId, UserPollQuestion poll) {
+    Navigator.of(context)
+        .push(
+          MaterialPageRoute(
+            builder: (context) => ShowImagesPopup(
+              images: poll.options ?? [],
+              postId: postId,
+              onImageTap: (index) {},
+              isPolledByCurrentUser: true,
+            ),
+          ),
+        )
+        .then((result) {
+          if (result == true) {
+            setState(() {
+              // Refresh poll data here if needed
+              _loadPosts();
+            });
+          }
+        });
   }
 
   Future<void> _toggleLike(int postId) async {
@@ -92,6 +125,19 @@ class _ImagePostsListState extends State<ImagePostsList> {
       postLikeCounts[postId] = currentLikeState
           ? currentLikeCount - 1
           : currentLikeCount + 1;
+
+      // Also update the cached post model
+      if (cachedPosts != null) {
+        final postIndex = cachedPosts!.indexWhere((post) => post.id == postId);
+        if (postIndex != -1) {
+          cachedPosts![postIndex] = cachedPosts![postIndex].copyWith(
+            isLiked: !currentLikeState,
+            likesCount: currentLikeState
+                ? currentLikeCount - 1
+                : currentLikeCount + 1,
+          );
+        }
+      }
     });
 
     try {
@@ -107,6 +153,19 @@ class _ImagePostsListState extends State<ImagePostsList> {
       setState(() {
         postLikeStates[postId] = result.isLiked;
         postLikeCounts[postId] = result.likesCount;
+
+        // Update the cached post model with server response
+        if (cachedPosts != null) {
+          final postIndex = cachedPosts!.indexWhere(
+            (post) => post.id == postId,
+          );
+          if (postIndex != -1) {
+            cachedPosts![postIndex] = cachedPosts![postIndex].copyWith(
+              isLiked: result.isLiked,
+              likesCount: result.likesCount,
+            );
+          }
+        }
       });
 
       // Show error message if operation failed
@@ -118,6 +177,19 @@ class _ImagePostsListState extends State<ImagePostsList> {
       setState(() {
         postLikeStates[postId] = currentLikeState;
         postLikeCounts[postId] = currentLikeCount;
+
+        // Revert the cached post model
+        if (cachedPosts != null) {
+          final postIndex = cachedPosts!.indexWhere(
+            (post) => post.id == postId,
+          );
+          if (postIndex != -1) {
+            cachedPosts![postIndex] = cachedPosts![postIndex].copyWith(
+              isLiked: currentLikeState,
+              likesCount: currentLikeCount,
+            );
+          }
+        }
       });
       showToast(message: 'Failed to update like');
     }
@@ -184,27 +256,43 @@ class _ImagePostsListState extends State<ImagePostsList> {
       body: isLoading
           ? Center(child: Loader(color: Theme.of(context).colorScheme.primary))
           : cachedPosts == null || cachedPosts!.isEmpty
-              ? Center(
-                  child: Text(
-                    AppLocalizations.of(context)!.nopostsfound,
-                    style: TextStyle(color: Colors.grey[600], fontSize: 12.sp),
-                  ),
-                )
-              : _buildPostsList(cachedPosts!),
+          ? Center(
+              child: Text(
+                AppLocalizations.of(context)!.nopostsfound,
+                style: TextStyle(color: Colors.grey[600], fontSize: 12.sp),
+              ),
+            )
+          : _buildPostsList(cachedPosts!),
     );
   }
 
-  Widget _buildPostsList(List<PostImagesModel> postsImage) {
+  Widget _buildPostsList(List<UserPostModel> postsImage) {
     return ListView.builder(
       itemCount: postsImage.length,
       itemBuilder: (context, index) {
         final imagePost = postsImage[index];
 
-        // IMPORTANT: Always read from state maps, use model as fallback only
+        // Check if post has images in polls
+        bool hasImages = imagePost.polls.any(
+          (poll) =>
+              poll.options?.any((option) => option.image != null) ?? false,
+        );
+
+        // Skip posts without images in polls
+        if (!hasImages) {
+          return const SizedBox.shrink();
+        }
+
+        // Read directly from tracking maps (they are always initialized in _loadPosts)
         final isLiked = postLikeStates[imagePost.id] ?? imagePost.isLiked;
         final likesCount = postLikeCounts[imagePost.id] ?? imagePost.likesCount;
         final commentsCount =
             postCommentsCounts[imagePost.id] ?? imagePost.commentsCount;
+
+        // DEBUG: Print what we're rendering
+        debugPrint(
+          'Rendering Post ID: ${imagePost.id}, isLiked from map: ${postLikeStates[imagePost.id]}, isLiked from model: ${imagePost.isLiked}, final isLiked: $isLiked',
+        );
 
         return Container(
           padding: EdgeInsets.all(8.w),
@@ -288,12 +376,11 @@ class _ImagePostsListState extends State<ImagePostsList> {
                 padding: EdgeInsets.only(top: 8.h),
                 child: Text(
                   imagePost.description,
-                  style: Theme.of(context).textTheme.titleMedium,
+                  style: Theme.of(context).textTheme.titleSmall,
                 ),
               ),
               const SizedBox(height: 8),
-              if (imagePost.images.isNotEmpty)
-                _buildImagesSection(context, imagePost.images),
+              _buildImagesStack(imagePost.id, imagePost.polls),
               SizedBox(height: 3.h),
               Row(
                 children: [
@@ -373,389 +460,143 @@ class _ImagePostsListState extends State<ImagePostsList> {
     );
   }
 
-  Widget _buildImagesSection(BuildContext context, List images) {
-    if (images.length == 1) {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(8),
-            child: SizedBox(
-              height: 200,
-              width: double.infinity,
-              child: Image.network(
-                '${ApiConfig.baseUrlImage}${images[0].url}',
-                height: 150.h,
-                width: double.infinity,
-                fit: BoxFit.cover,
-                loadingBuilder: (context, child, loadingProgress) {
-                  if (loadingProgress == null) return child;
-                  return Container(
-                    height: 150.h,
-                    color: Colors.grey[200],
-                    child: Center(
-                      child: Loader(
-                        color: Theme.of(context).colorScheme.primary,
+  Widget _buildImagesStack(int postId, List<UserPollQuestion> polls) {
+    // Extract images from poll options
+    List<PollOptionImage> validImages = [];
+    UserPollQuestion? firstPollWithImages;
+
+    for (var poll in polls) {
+      if (poll.options != null) {
+        for (var option in poll.options!) {
+          if (option.image != null) {
+            validImages.add(option.image!);
+            firstPollWithImages ??= poll; // Store first poll with images
+          }
+        }
+      }
+    }
+
+    // If no valid images, return empty container
+    if (validImages.isEmpty || firstPollWithImages == null) {
+      return const SizedBox.shrink();
+    }
+
+    List<Alignment> getAlignments(int totalImages) {
+      switch (totalImages) {
+        case 1:
+          return [Alignment.center];
+        case 2:
+          return [Alignment.centerLeft, Alignment.centerRight];
+        case 3:
+          return [
+            Alignment.centerLeft,
+            Alignment.center,
+            Alignment.centerRight,
+          ];
+        case 4:
+        default:
+          return [
+            Alignment.centerLeft,
+            Alignment.center,
+            Alignment.centerRight,
+            Alignment.centerRight,
+          ];
+      }
+    }
+
+    List<Alignment> alignments = getAlignments(validImages.length);
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        double availableWidth = constraints.maxWidth;
+        double imageHeight = 150.h;
+
+        return GestureDetector(
+          onTap: () => _showAllImagesGrid(postId, firstPollWithImages!),
+          child: SizedBox(
+            height: imageHeight,
+            width: availableWidth,
+            child: Stack(
+              children: validImages
+                  .asMap()
+                  .entries
+                  .map<Widget>((entry) {
+                    int index = entry.key;
+                    PollOptionImage imageData = entry.value;
+                    Alignment alignment = alignments[index];
+                    double imageWidth = (availableWidth * 0.7) - (index * 8.0);
+                    imageWidth = imageWidth < 60.w ? 60.w : imageWidth;
+
+                    return Align(
+                      alignment: alignment,
+                      child: Container(
+                        margin: EdgeInsets.symmetric(horizontal: 3.w),
+                        width: imageWidth,
+                        height: imageHeight,
+                        child: Container(
+                          decoration: BoxDecoration(
+                            border: Border.all(color: Colors.white, width: 1),
+                            borderRadius: BorderRadius.circular(20.r),
+                          ),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(19.r),
+                            child: Image.network(
+                              '${ApiConfig.baseUrlImage}${imageData.url}',
+                              fit: BoxFit.cover,
+                              width: double.infinity,
+                              height: double.infinity,
+                              errorBuilder: (context, error, stackTrace) {
+                                return Container(
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(12.r),
+                                    color: Colors.grey[200],
+                                  ),
+                                  child: Icon(
+                                    Icons.image_not_supported,
+                                    color: Colors.grey[600],
+                                    size: 30,
+                                  ),
+                                );
+                              },
+                              loadingBuilder:
+                                  (context, child, loadingProgress) {
+                                    if (loadingProgress == null) return child;
+                                    return Container(
+                                      decoration: BoxDecoration(
+                                        borderRadius: BorderRadius.circular(
+                                          20.r,
+                                        ),
+                                        color: Colors.grey[200],
+                                      ),
+                                      child: Center(
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          value:
+                                              loadingProgress
+                                                      .expectedTotalBytes !=
+                                                  null
+                                              ? loadingProgress
+                                                        .cumulativeBytesLoaded /
+                                                    loadingProgress
+                                                        .expectedTotalBytes!
+                                              : null,
+                                        ),
+                                      ),
+                                    );
+                                  },
+                            ),
+                          ),
+                        ),
                       ),
-                    ),
-                  );
-                },
-                errorBuilder: (context, error, stackTrace) {
-                  return Container(
-                    height: 200,
-                    color: Colors.grey[200],
-                    child: const Icon(
-                      Icons.image,
-                      size: 50,
-                      color: Colors.grey,
-                    ),
-                  );
-                },
-              ),
+                    );
+                  })
+                  .toList()
+                  .reversed
+                  .toList(),
             ),
           ),
-        ],
-      );
-    } else if (images.length == 2) {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(8.r),
-                  child: Image.network(
-                    '${ApiConfig.baseUrlImage}${images[0].url}',
-                    height: 150.h,
-                    fit: BoxFit.cover,
-                    loadingBuilder: (context, child, loadingProgress) {
-                      if (loadingProgress == null) return child;
-                      return Container(
-                        height: 150.h,
-                        color: Colors.grey[200],
-                        child: Center(
-                          child: Loader(
-                            color: Theme.of(context).colorScheme.primary,
-                          ),
-                        ),
-                      );
-                    },
-                    errorBuilder: (context, error, stackTrace) {
-                      return Container(
-                        height: 200,
-                        color: Colors.grey[200],
-                        child: const Icon(
-                          Icons.image,
-                          size: 50,
-                          color: Colors.grey,
-                        ),
-                      );
-                    },
-                  ),
-                ),
-              ),
-              SizedBox(width: 7.w),
-              Expanded(
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(8.r),
-                  child: Image.network(
-                    '${ApiConfig.baseUrlImage}${images[1].url}',
-                    height: 150.h,
-                    fit: BoxFit.cover,
-                    loadingBuilder: (context, child, loadingProgress) {
-                      if (loadingProgress == null) return child;
-                      return Container(
-                        height: 150.h,
-                        color: Colors.grey[300],
-                        child: Center(
-                          child: Loader(
-                            color: Theme.of(context).colorScheme.primary,
-                          ),
-                        ),
-                      );
-                    },
-                    errorBuilder: (context, error, stackTrace) {
-                      return Container(
-                        height: 200,
-                        color: Colors.grey[300],
-                        child: const Icon(
-                          Icons.image,
-                          size: 50,
-                          color: Colors.grey,
-                        ),
-                      );
-                    },
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
-      );
-    } else if (images.length == 3) {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(8.r),
-                  child: Image.network(
-                    '${ApiConfig.baseUrlImage}${images[0].url}',
-                    height: 150.h,
-                    fit: BoxFit.cover,
-                    loadingBuilder: (context, child, loadingProgress) {
-                      if (loadingProgress == null) return child;
-                      return Container(
-                        height: 150.h,
-                        color: Colors.grey[200],
-                        child: Center(
-                          child: Loader(
-                            color: Theme.of(context).colorScheme.primary,
-                          ),
-                        ),
-                      );
-                    },
-                    errorBuilder: (context, error, stackTrace) {
-                      return Container(
-                        height: 200,
-                        color: Colors.grey[200],
-                        child: const Icon(
-                          Icons.image,
-                          size: 50,
-                          color: Colors.grey,
-                        ),
-                      );
-                    },
-                  ),
-                ),
-              ),
-              SizedBox(width: 5.w),
-              Expanded(
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(8.r),
-                  child: Image.network(
-                    '${ApiConfig.baseUrlImage}${images[1].url}',
-                    height: 150.h,
-                    fit: BoxFit.cover,
-                    loadingBuilder: (context, child, loadingProgress) {
-                      if (loadingProgress == null) return child;
-                      return Container(
-                        height: 150.h,
-                        color: Colors.grey[300],
-                        child: Center(
-                          child: Loader(
-                            color: Theme.of(context).colorScheme.primary,
-                          ),
-                        ),
-                      );
-                    },
-                    errorBuilder: (context, error, stackTrace) {
-                      return Container(
-                        height: 200,
-                        color: Colors.grey[300],
-                        child: const Icon(
-                          Icons.image,
-                          size: 50,
-                          color: Colors.grey,
-                        ),
-                      );
-                    },
-                  ),
-                ),
-              ),
-              SizedBox(width: 5.w),
-              Expanded(
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(8.r),
-                  child: Image.network(
-                    '${ApiConfig.baseUrlImage}${images[2].url}',
-                    height: 150.h,
-                    fit: BoxFit.cover,
-                    loadingBuilder: (context, child, loadingProgress) {
-                      if (loadingProgress == null) return child;
-                      return Container(
-                        height: 150.h,
-                        color: Colors.grey[300],
-                        child: Center(
-                          child: Loader(
-                            color: Theme.of(context).colorScheme.primary,
-                          ),
-                        ),
-                      );
-                    },
-                    errorBuilder: (context, error, stackTrace) {
-                      return Container(
-                        height: 200,
-                        color: Colors.grey[300],
-                        child: const Icon(
-                          Icons.image,
-                          size: 50,
-                          color: Colors.grey,
-                        ),
-                      );
-                    },
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
-      );
-    } else if (images.length == 4) {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // First Row
-          Row(
-            children: [
-              Expanded(
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(8.r),
-                  child: Image.network(
-                    '${ApiConfig.baseUrlImage}${images[0].url}',
-                    height: 150.h,
-                    fit: BoxFit.cover,
-                    loadingBuilder: (context, child, loadingProgress) {
-                      if (loadingProgress == null) return child;
-                      return Container(
-                        height: 150.h,
-                        color: Colors.grey[200],
-                        child: Center(
-                          child: Loader(
-                            color: Theme.of(context).colorScheme.primary,
-                          ),
-                        ),
-                      );
-                    },
-                    errorBuilder: (context, error, stackTrace) {
-                      return Container(
-                        height: 150.h,
-                        color: Colors.grey[200],
-                        child: const Icon(
-                          Icons.image,
-                          size: 50,
-                          color: Colors.grey,
-                        ),
-                      );
-                    },
-                  ),
-                ),
-              ),
-              SizedBox(width: 5.w),
-              Expanded(
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(8.r),
-                  child: Image.network(
-                    '${ApiConfig.baseUrlImage}${images[1].url}',
-                    height: 150.h,
-                    fit: BoxFit.cover,
-                    loadingBuilder: (context, child, loadingProgress) {
-                      if (loadingProgress == null) return child;
-                      return Container(
-                        height: 150.h,
-                        color: Colors.grey[300],
-                        child: Center(
-                          child: Loader(
-                            color: Theme.of(context).colorScheme.primary,
-                          ),
-                        ),
-                      );
-                    },
-                    errorBuilder: (context, error, stackTrace) {
-                      return Container(
-                        height: 150.h,
-                        color: Colors.grey[300],
-                        child: const Icon(
-                          Icons.image,
-                          size: 50,
-                          color: Colors.grey,
-                        ),
-                      );
-                    },
-                  ),
-                ),
-              ),
-            ],
-          ),
-          SizedBox(height: 5.w),
-          // Second Row
-          Row(
-            children: [
-              Expanded(
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(8.r),
-                  child: Image.network(
-                    '${ApiConfig.baseUrlImage}${images[2].url}',
-                    height: 150.h,
-                    fit: BoxFit.cover,
-                    loadingBuilder: (context, child, loadingProgress) {
-                      if (loadingProgress == null) return child;
-                      return Container(
-                        height: 150.h,
-                        color: Colors.grey[200],
-                        child: Center(
-                          child: Loader(
-                            color: Theme.of(context).colorScheme.primary,
-                          ),
-                        ),
-                      );
-                    },
-                    errorBuilder: (context, error, stackTrace) {
-                      return Container(
-                        height: 150.h,
-                        color: Colors.grey[200],
-                        child: const Icon(
-                          Icons.image,
-                          size: 50,
-                          color: Colors.grey,
-                        ),
-                      );
-                    },
-                  ),
-                ),
-              ),
-              SizedBox(width: 5.w),
-              Expanded(
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(8.r),
-                  child: Image.network(
-                    '${ApiConfig.baseUrlImage}${images[3].url}',
-                    height: 150.h,
-                    fit: BoxFit.cover,
-                    loadingBuilder: (context, child, loadingProgress) {
-                      if (loadingProgress == null) return child;
-                      return Container(
-                        height: 150.h,
-                        color: Colors.grey[300],
-                        child: Center(
-                          child: Loader(
-                            color: Theme.of(context).colorScheme.primary,
-                          ),
-                        ),
-                      );
-                    },
-                    errorBuilder: (context, error, stackTrace) {
-                      return Container(
-                        height: 150.h,
-                        color: Colors.grey[300],
-                        child: const Icon(
-                          Icons.image,
-                          size: 50,
-                          color: Colors.grey,
-                        ),
-                      );
-                    },
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
-      );
-    }
-    return const SizedBox.shrink();
+        );
+      },
+    );
   }
 }

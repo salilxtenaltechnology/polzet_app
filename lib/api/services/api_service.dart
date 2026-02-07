@@ -13,12 +13,9 @@ import 'package:http/http.dart' as http;
 
 import '../../data/token/shared_preferences.dart';
 import '../../mixin/utility_mixins.dart';
-import '../../models/home feed/home_feed_items_model.dart';
-import '../../models/posts/image/post_image_model.dart';
-import '../../models/posts/post_polls_model.dart';
-import '../../models/public/images/public_user_posts.dart';
+import '../../models/posts/homefeed_posts_model.dart';
+import '../../models/posts/user_post_model.dart';
 import '../../models/public/public_profile_model.dart';
-import '../../models/public/things/public_post_things_model.dart';
 import '../../models/search/search_user_model.dart';
 import '../../provider/user_provider.dart';
 import '../../screens/home/home_imports.dart';
@@ -37,8 +34,8 @@ class ApiService with UtilityMixin {
 
   static final Dio _dio = Dio(
     BaseOptions(
-      connectTimeout: const Duration(seconds: 30),
-      receiveTimeout: const Duration(seconds: 30),
+      connectTimeout: const Duration(seconds: 60),
+      receiveTimeout: const Duration(seconds: 60),
       validateStatus: (status) => status != null && status < 500,
     ),
   );
@@ -394,11 +391,11 @@ class ApiService with UtilityMixin {
   }
 
   /// Fetch user posts with polls things
-  Future<List<PostPolls>> fetchPostsPolls(String username) async {
+  Future<List<UserPostModel>> fetchPostsPolls(String username) async {
     try {
       final response = await _dio.get('${ApiConstants.userPosts}/$username');
       final data = response.data['results'] as List<dynamic>;
-      return data.map((e) => PostPolls.fromJson(e)).toList();
+      return data.map((e) => UserPostModel.fromJson(e)).toList();
     } on DioException catch (e) {
       debugPrint('Error fetching posts: $e');
       rethrow;
@@ -406,27 +403,51 @@ class ApiService with UtilityMixin {
   }
 
   /// Fetch only poll things posts
-  Future<List<PostPolls>> fetchOnlyPollPosts(String username) async {
+  Future<List<UserPostModel>> fetchOnlyPollPosts(String username) async {
     final allPosts = await fetchPostsPolls(username);
     return allPosts.where((post) => post.polls.isNotEmpty).toList();
   }
 
   /// Fetch user posts with images
-  Future<List<PostImagesModel>> fetchPostsImages(String username) async {
+  Future<List<UserPostModel>> fetchPostsImages(String username) async {
     try {
       final response = await _dio.get('${ApiConstants.userPosts}/$username');
+
+      // DEBUG: Print raw response to verify is_liked values
+      // debugPrint('====== RAW API RESPONSE ======');
+      // debugPrint('Full Response: ${response.data}');
+
+      final results = response.data['results'] as List<dynamic>;
+      // debugPrint('Number of posts: ${results.length}');
+
+      // Print is_liked for each post
+      // for (var post in results) {
+      //   debugPrint(
+      //     'Post ID: ${post['id']}, is_liked in API: ${post['is_liked']}',
+      //   );
+      // }
+      debugPrint('====== END RAW RESPONSE ======');
+
       final data = response.data['results'] as List<dynamic>;
-      return data.map((e) => PostImagesModel.fromJson(e)).toList();
+      return data.map((e) => UserPostModel.fromJson(e)).toList();
     } on DioException catch (e) {
       debugPrint('Error fetching image posts: $e');
       rethrow;
     }
   }
 
-  /// Fetch only image posts
-  Future<List<PostImagesModel>> fetchImagePosts(String username) async {
+  /// Fetch only posts that have images in polls
+  Future<List<UserPostModel>> fetchImagePosts(String username) async {
     final allPosts = await fetchPostsImages(username);
-    return allPosts.where((p) => p.images.isNotEmpty).toList();
+
+    // Filter by posts that have images in POLLS (matching your UI logic)
+    final filteredPosts = allPosts.where((post) => post.hasPollImages).toList();
+
+    // debugPrint(
+    //   'Filtered ${filteredPosts.length} posts with poll images from ${allPosts.length} total posts',
+    // );
+
+    return filteredPosts;
   }
 
   /// Upload image poll
@@ -545,78 +566,115 @@ class ApiService with UtilityMixin {
   // ==================== SOCIAL ====================
 
   /// Get followers list
- Future<List<Map<String, dynamic>>> getFollowersList() async {
-  try {
-    final response = await _dio.get(
-      ApiConstants.chaseList,
-      options: Options(headers: await _getAuthHeaders()),
-    );
+  Future<List<Map<String, dynamic>>> getFollowersList() async {
+    try {
+      final response = await _dio.get(
+        ApiConstants.chaseList,
+        options: Options(headers: await _getAuthHeaders()),
+      );
 
-    if (response.statusCode == 200) {
-      final data = response.data;
-      
-      // If data is directly a list
-      if (data is List) {
-        return List<Map<String, dynamic>>.from(data);
-      }
-      
-      // If data is a map, try to extract the list
-      if (data is Map<String, dynamic>) {
-        // Try different possible keys
-        final list = data['data'] ?? data['followers'] ?? data['results'];
-        
-        // Ensure it's actually a list before converting
-        if (list is List) {
-          return List<Map<String, dynamic>>.from(list);
+      if (response.statusCode == 200) {
+        final data = response.data;
+
+        // If data is directly a list
+        if (data is List) {
+          return List<Map<String, dynamic>>.from(data);
+        }
+
+        // If data is a map, try to extract the list
+        if (data is Map<String, dynamic>) {
+          // Try different possible keys
+          final list = data['data'] ?? data['followers'] ?? data['results'];
+
+          // Ensure it's actually a list before converting
+          if (list is List) {
+            return List<Map<String, dynamic>>.from(list);
+          }
         }
       }
+      return [];
+    } on DioException catch (e) {
+      debugPrint('Error fetching followers: $e');
+      return [];
+    } catch (e) {
+      debugPrint('Unexpected error fetching followers: $e');
+      return [];
     }
-    return [];
-  } on DioException catch (e) {
-    debugPrint('Error fetching followers: $e');
-    return [];
-  } catch (e) {
-    debugPrint('Unexpected error fetching followers: $e');
-    return [];
   }
-}
 
-/// Get following list
-Future<List<Map<String, dynamic>>> getFollowingList() async {
-  try {
-    final response = await _dio.get(
-      ApiConstants.reChaseList,
-      options: Options(headers: await _getAuthHeaders()),
-    );
+  /// Get following list
+  Future<List<Map<String, dynamic>>> getFollowingList() async {
+    try {
+      final response = await _dio.get(
+        ApiConstants.reChaseList,
+        options: Options(headers: await _getAuthHeaders()),
+      );
 
-    if (response.statusCode == 200) {
-      final data = response.data;
-      
-      // If data is directly a list
-      if (data is List) {
-        return List<Map<String, dynamic>>.from(data);
-      }
-      
-      // If data is a map, try to extract the list
-      if (data is Map<String, dynamic>) {
-        // Try different possible keys
-        final list = data['data'] ?? data['following'] ?? data['results'];
-        
-        // Ensure it's actually a list before converting
-        if (list is List) {
-          return List<Map<String, dynamic>>.from(list);
+      if (response.statusCode == 200) {
+        final data = response.data;
+
+        // If data is directly a list
+        if (data is List) {
+          return List<Map<String, dynamic>>.from(data);
+        }
+
+        // If data is a map, try to extract the list
+        if (data is Map<String, dynamic>) {
+          // Try different possible keys
+          final list = data['data'] ?? data['following'] ?? data['results'];
+
+          // Ensure it's actually a list before converting
+          if (list is List) {
+            return List<Map<String, dynamic>>.from(list);
+          }
         }
       }
+      return [];
+    } on DioException catch (e) {
+      debugPrint('Error fetching following: $e');
+      return [];
+    } catch (e) {
+      debugPrint('Unexpected error fetching following: $e');
+      return [];
     }
-    return [];
-  } on DioException catch (e) {
-    debugPrint('Error fetching following: $e');
-    return [];
-  } catch (e) {
-    debugPrint('Unexpected error fetching following: $e');
-    return [];
   }
-}
+
+  /// Get connections list
+  Future<Map<String, dynamic>> getConnectionsList({
+    required int userId,
+    String? type,
+  }) async {
+    try {
+      final response = await _dio.get(
+        '${ApiConstants.baseUrl}/users/$userId/connections',
+        queryParameters: type != null ? {'type': type} : null,
+        options: Options(headers: await _getAuthHeaders()),
+      );
+
+      if (response.statusCode == 200) {
+        final data = response.data;
+
+        if (data is Map<String, dynamic>) {
+          return {
+            'count': data['count'] ?? 0,
+            'next': data['next'],
+            'previous': data['previous'],
+            'results': data['results'] is List
+                ? List<Map<String, dynamic>>.from(data['results'])
+                : [],
+          };
+        }
+      }
+
+      return {'count': 0, 'next': null, 'previous': null, 'results': []};
+    } on DioException catch (e) {
+      debugPrint('Error fetching connections: $e');
+      return {'count': 0, 'next': null, 'previous': null, 'results': []};
+    } catch (e) {
+      debugPrint('Unexpected error fetching connections: $e');
+      return {'count': 0, 'next': null, 'previous': null, 'results': []};
+    }
+  }
 
   // Unfriend users
   Future<Map<String, dynamic>> unfriend(int userId) async {
@@ -808,7 +866,7 @@ Future<List<Map<String, dynamic>>> getFollowingList() async {
   }
 
   /// Fetch public posts with polls
-  Future<List<PublicPostPolls>> fetchPublicPostsPolls(int userId) async {
+  Future<List<PublicPost>> fetchPublicPostsPolls(int userId) async {
     try {
       final response = await _dio.get(
         '${ApiConstants.publicProfile}/$userId/profile',
@@ -820,11 +878,10 @@ Future<List<Map<String, dynamic>>> getFollowingList() async {
         if (jsonData['status'] == 'success') {
           final postsData = jsonData['data']['posts']['results'] as List;
           final allPosts = postsData
-              .map((json) => PublicPostPolls.fromJson(json))
+              .map((json) => PublicPost.fromJson(json))
               .toList();
-          return allPosts
-              .where((post) => post.publicPollQuestion.isNotEmpty)
-              .toList();
+          // Filter to only return posts that have at least one poll
+          return allPosts.where((post) => post.polls.isNotEmpty).toList();
         }
         throw Exception('API Error: ${jsonData['message']}');
       }

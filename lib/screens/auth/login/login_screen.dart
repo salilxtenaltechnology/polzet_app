@@ -250,7 +250,10 @@ class _LoginScreenState extends State<LoginScreen> with UtilityMixin {
               controller: _userEmailController,
               isPassword: false,
               keyboardType: TextInputType.text,
-              autofillHints: const [AutofillHints.username, AutofillHints.email],
+              autofillHints: const [
+                AutofillHints.username,
+                AutofillHints.email,
+              ],
               labelText: 'Email or Username',
               prefixIcon: Icon(
                 FeatherIcons.user,
@@ -440,6 +443,4 @@ class _LoginScreenState extends State<LoginScreen> with UtilityMixin {
   }
 }
 
-
-
-// salsa --  sora -- zcoolXiaoWei  -- yesevaOne -- 
+// salsa --  sora -- zcoolXiaoWei  -- yesevaOne --

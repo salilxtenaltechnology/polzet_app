@@ -5,9 +5,9 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../../../api/services/api_service.dart';
 import '../../../../l10n/generated/app_localizations.dart';
-import '../../../../models/posts/post_polls_model.dart';
+import '../../../../models/posts/user_post_model.dart';
 import '../../../../widgets/button/back_button.dart';
-import '../../../../widgets/card/poll/poll_question_card.dart';
+import '../../../../widgets/card/things/poll_question_card.dart';
 import '../../../../widgets/custom_text_styles.dart';
 import '../../../../widgets/loader.dart';
 import '../../../../widgets/utils/bottomsheet_util.dart';
@@ -15,19 +15,15 @@ import '../../../../widgets/utils/bottomsheet_util.dart';
 class QuestionsPostsList extends StatefulWidget {
   String? username;
   String? profileImage;
-  QuestionsPostsList({
-    super.key,
-    required this.username,
-    this.profileImage,
-  });
+  QuestionsPostsList({super.key, required this.username, this.profileImage});
 
   @override
-  State<QuestionsPostsList> createState() => _QuestionsPostsListState();
+  State<QuestionsPostsList> createState() => QuestionsPostsListState();
 }
 
-class _QuestionsPostsListState extends State<QuestionsPostsList> {
+class QuestionsPostsListState extends State<QuestionsPostsList> {
   late final ApiService apiService = ApiService();
-  List<PostPolls> postsPolls = [];
+  List<UserPostModel> postsPolls = [];
   bool isLoading = true;
   String? errorMessage;
 
@@ -41,10 +37,10 @@ class _QuestionsPostsListState extends State<QuestionsPostsList> {
   @override
   void initState() {
     super.initState();
-    _loadPosts();
+    loadPosts();
   }
 
-  Future<void> _loadPosts() async {
+  Future<void> loadPosts() async {
     // Add null check before loading
     if (widget.username == null || widget.username!.isEmpty) {
       setState(() {
@@ -60,16 +56,22 @@ class _QuestionsPostsListState extends State<QuestionsPostsList> {
     });
 
     try {
-      final posts = await apiService.fetchPostsPolls(widget.username!);
-      final filteredPosts = posts.where((post) {
+      // Fetch posts using PostImagesResponse
+      final List<UserPostModel> fetchedPosts = await apiService
+          .fetchOnlyPollPosts(widget.username!);
+
+      // Filter posts to only include those with text-based poll options
+      final filteredPosts = fetchedPosts.where((post) {
         // Check if post has polls
         if (post.polls.isEmpty) return false;
 
         // Check if all poll options have text (not images)
         return post.polls.every(
-          (poll) => poll.options.every(
-            (option) => option.text != null && option.text!.isNotEmpty,
-          ),
+          (poll) =>
+              poll.options != null &&
+              poll.options!.every(
+                (option) => option.text != null && option.text!.isNotEmpty,
+              ),
         );
       }).toList();
 
@@ -183,7 +185,7 @@ class _QuestionsPostsListState extends State<QuestionsPostsList> {
                   ),
                   SizedBox(height: 16.h),
                   ElevatedButton(
-                    onPressed: _loadPosts,
+                    onPressed: loadPosts,
                     child: const Text('Retry'),
                   ),
                 ],
@@ -208,7 +210,7 @@ class _QuestionsPostsListState extends State<QuestionsPostsList> {
               ),
             )
           : RefreshIndicator(
-              onRefresh: _loadPosts,
+              onRefresh: loadPosts,
               child: ListView.builder(
                 padding: EdgeInsets.symmetric(vertical: 12.h, horizontal: 10.w),
                 itemCount: postsPolls.length,

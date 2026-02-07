@@ -3,8 +3,9 @@ class FormValidators {
     if (value == null || value.isEmpty) {
       return 'Password is required';
     }
-    if (!RegExp(r'^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$')
-        .hasMatch(value)) {
+    if (!RegExp(
+      r'^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$',
+    ).hasMatch(value)) {
       return 'Password must be 8+ characters with uppercase, number & special character';
     }
     return null;

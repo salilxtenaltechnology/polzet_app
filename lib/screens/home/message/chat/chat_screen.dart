@@ -35,15 +35,17 @@ class ChatScreenState extends State<ChatScreen> with UtilityMixin {
     if (_messageController.text.trim().isEmpty) return;
 
     setState(() {
-      _messages.add(ChatMessage(
-        text: _messageController.text.trim(),
-        timestamp: DateTime.now(),
-        isSentByMe: true,
-      ));
+      _messages.add(
+        ChatMessage(
+          text: _messageController.text.trim(),
+          timestamp: DateTime.now(),
+          isSentByMe: true,
+        ),
+      );
     });
 
     _messageController.clear();
-    
+
     // Scroll to bottom after sending message
     Future.delayed(const Duration(milliseconds: 100), () {
       if (_scrollController.hasClients) {
@@ -63,11 +65,13 @@ class ChatScreenState extends State<ChatScreen> with UtilityMixin {
     Future.delayed(const Duration(seconds: 2), () {
       if (mounted) {
         setState(() {
-          _messages.add(ChatMessage(
-            text: "Thanks for your message! 👍",
-            timestamp: DateTime.now(),
-            isSentByMe: false,
-          ));
+          _messages.add(
+            ChatMessage(
+              text: "Thanks for your message! 👍",
+              timestamp: DateTime.now(),
+              isSentByMe: false,
+            ),
+          );
         });
 
         // Scroll to bottom
@@ -90,7 +94,9 @@ class ChatScreenState extends State<ChatScreen> with UtilityMixin {
 
   Widget _buildMessageBubble(ChatMessage message) {
     return Align(
-      alignment: message.isSentByMe ? Alignment.centerRight : Alignment.centerLeft,
+      alignment: message.isSentByMe
+          ? Alignment.centerRight
+          : Alignment.centerLeft,
       child: Container(
         margin: EdgeInsets.symmetric(vertical: 4.h, horizontal: 12.w),
         padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
@@ -102,8 +108,12 @@ class ChatScreenState extends State<ChatScreen> with UtilityMixin {
           borderRadius: BorderRadius.only(
             topLeft: Radius.circular(12.r),
             topRight: Radius.circular(12.r),
-            bottomLeft: message.isSentByMe ? Radius.circular(12.r) : const Radius.circular(0),
-            bottomRight: message.isSentByMe ? const Radius.circular(0) : Radius.circular(12.r),
+            bottomLeft: message.isSentByMe
+                ? Radius.circular(12.r)
+                : const Radius.circular(0),
+            bottomRight: message.isSentByMe
+                ? const Radius.circular(0)
+                : Radius.circular(12.r),
           ),
         ),
         child: Column(
@@ -160,25 +170,34 @@ class ChatScreenState extends State<ChatScreen> with UtilityMixin {
               SizedBox(width: 7.w),
               GestureDetector(
                 onTap: () {
-                  navigationPush(context, ChatDetails(memberName: widget.memberName));
+                  navigationPush(
+                    context,
+                    ChatDetails(memberName: widget.memberName),
+                  );
                 },
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Text(widget.memberName!,
-                        style: TextStyle(
-                            color: Theme.of(context).colorScheme.onBackground,
-                            fontSize: 13.sp,
-                            fontWeight: FontWeight.w600)),
-                    Text('Online',
-                        style: TextStyle(
-                            color: Colors.green,
-                            fontSize: 11.2.sp,
-                            fontWeight: FontWeight.w300))
+                    Text(
+                      widget.memberName!,
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.onBackground,
+                        fontSize: 13.sp,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    Text(
+                      'Online',
+                      style: TextStyle(
+                        color: Colors.green,
+                        fontSize: 11.2.sp,
+                        fontWeight: FontWeight.w300,
+                      ),
+                    ),
                   ],
                 ),
-              )
+              ),
             ],
           ),
           backgroundColor: Theme.of(context).colorScheme.background,
@@ -213,7 +232,7 @@ class ChatScreenState extends State<ChatScreen> with UtilityMixin {
                       },
                     ),
             ),
-            
+
             // Message Input Field
             Container(
               height: 37.h,
@@ -232,9 +251,7 @@ class ChatScreenState extends State<ChatScreen> with UtilityMixin {
                       decoration: const InputDecoration(
                         border: InputBorder.none,
                         hintText: 'Type here...',
-                        hintStyle: TextStyle(
-                          color: Color(0XFF8593A8),
-                        ),
+                        hintStyle: TextStyle(color: Color(0XFF8593A8)),
                       ),
                       onSubmitted: (_) => _sendMessage(),
                     ),

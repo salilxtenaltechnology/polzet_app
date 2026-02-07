@@ -68,27 +68,28 @@ class _CountryCodePickerState extends State<CustomCountryCode> {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-        onTap: _showCountryPicker,
-        child: Padding(
-          padding: EdgeInsets.symmetric(horizontal: 10.w),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                selectedCountry?.flag ?? '🌍',
-                style: TextStyle(
-                  color: Theme.of(context).colorScheme.onBackground,
-                  fontSize: 20.sp,
-                  fontWeight: FontWeight.w400,
-                ),
+      onTap: _showCountryPicker,
+      child: Padding(
+        padding: EdgeInsets.symmetric(horizontal: 10.w),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              selectedCountry?.flag ?? '🌍',
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onBackground,
+                fontSize: 20.sp,
+                fontWeight: FontWeight.w400,
               ),
-              SizedBox(width: 8.w),
-              Text(
-                selectedCountry?.dialCode ?? '+1',
-                style: CustomTextStyles.lblPrimaryText(context),
-              ),
-            ],
-          ),
-        ));
+            ),
+            SizedBox(width: 8.w),
+            Text(
+              selectedCountry?.dialCode ?? '+1',
+              style: CustomTextStyles.lblPrimaryText(context),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }

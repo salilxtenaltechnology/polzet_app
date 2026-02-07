@@ -14,31 +14,30 @@ class DeletePostDiolog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-        width: 280.w,
-        padding: EdgeInsets.fromLTRB(0, 10.h, 0, 10.h),
-        decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.secondaryContainer,
-          borderRadius: BorderRadius.circular(20.r),
-        ),
-        child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              _label(context, AppLocalizations.of(context)!.delete, onPressed),
-              _primaryDivider(context),
-              _label(context, AppLocalizations.of(context)!.cancel, () {
-                Navigator.pop(context);
-              }),
-            ]));
+      width: 280.w,
+      padding: EdgeInsets.fromLTRB(0, 10.h, 0, 10.h),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.secondaryContainer,
+        borderRadius: BorderRadius.circular(20.r),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _label(context, AppLocalizations.of(context)!.delete, onPressed),
+          _primaryDivider(context),
+          _label(context, AppLocalizations.of(context)!.cancel, () {
+            Navigator.pop(context);
+          }),
+        ],
+      ),
+    );
   }
 
   Widget _label(BuildContext context, String text, VoidCallback? onTap) {
     return GestureDetector(
       onTap: onTap,
-      child: Text(
-        text,
-        style: CustomTextStyles.lblPrimaryText(context),
-      ),
+      child: Text(text, style: CustomTextStyles.lblPrimaryText(context)),
     );
   }
 

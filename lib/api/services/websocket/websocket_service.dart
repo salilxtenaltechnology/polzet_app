@@ -84,17 +84,17 @@
 //     try {
 //       // Try to parse as JSON
 //       final data = jsonDecode(message);
-      
+
 //       // Call the callback if set
 //       if (onNotificationReceived != null) {
 //         onNotificationReceived!(data);
 //       }
-      
+
 //       // Handle different notification types here
 //       // Example:
 //       // if (data['type'] == 'like') { ... }
 //       // if (data['type'] == 'comment') { ... }
-      
+
 //     } catch (e) {
 //       debugPrint('Error parsing notification: $e');
 //       // If not JSON, handle as plain text
@@ -106,7 +106,7 @@
 
 //   void _handleDisconnection() {
 //     _cleanup();
-    
+
 //     if (_shouldStayConnected && _reconnectAttempts < _maxReconnectAttempts) {
 //       _scheduleReconnect();
 //     } else if (_reconnectAttempts >= _maxReconnectAttempts) {
@@ -116,13 +116,13 @@
 
 //   void _scheduleReconnect() {
 //     _reconnectTimer?.cancel();
-    
+
 //     // Exponential backoff: 2s, 4s, 8s, 16s, 32s
 //     final delay = _initialReconnectDelay * (1 << _reconnectAttempts);
-    
+
 //     _reconnectAttempts++;
 //     debugPrint('Scheduling reconnection attempt $_reconnectAttempts in ${delay.inSeconds}s');
-    
+
 //     _reconnectTimer = Timer(delay, () {
 //       if (_shouldStayConnected) {
 //         connectToNotifications();
@@ -156,13 +156,13 @@
 //     _shouldStayConnected = false;
 //     _reconnectTimer?.cancel();
 //     _reconnectTimer = null;
-    
+
 //     try {
 //       _channel?.sink.close(status.goingAway);
 //     } catch (e) {
 //       debugPrint('Error closing WebSocket: $e');
 //     }
-    
+
 //     _cleanup();
 //     debugPrint('WebSocket disconnected');
 //   }

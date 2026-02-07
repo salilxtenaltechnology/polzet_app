@@ -60,7 +60,12 @@ final List<Country> _allCountries = [
   Country(name: 'Thailand', code: 'TH', dialCode: '+66', flag: '🇹🇭'),
   Country(name: 'Turkey', code: 'TR', dialCode: '+90', flag: '🇹🇷'),
   Country(name: 'Ukraine', code: 'UA', dialCode: '+380', flag: '🇺🇦'),
-  Country(name: 'United Arab Emirates', code: 'AE', dialCode: '+971', flag: '🇦🇪'),
+  Country(
+    name: 'United Arab Emirates',
+    code: 'AE',
+    dialCode: '+971',
+    flag: '🇦🇪',
+  ),
   Country(name: 'United Kingdom', code: 'GB', dialCode: '+44', flag: '🇬🇧'),
   Country(name: 'United States', code: 'US', dialCode: '+1', flag: '🇺🇸'),
   Country(name: 'Vietnam', code: 'VN', dialCode: '+84', flag: '🇻🇳'),

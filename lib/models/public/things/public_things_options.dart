@@ -9,7 +9,8 @@ class PublicPollOption {
     required this.voteCount,
   });
 
-  factory PublicPollOption.fromJson(Map<String, dynamic> json) => PublicPollOption(
+  factory PublicPollOption.fromJson(Map<String, dynamic> json) =>
+      PublicPollOption(
         id: json['id'] as int,
         text: json['text'] as String? ?? '',
         // Fix: Parse string to int
