@@ -411,7 +411,7 @@ class ProfileState extends State<UserProfile>
                           width: 80.w,
                           height: 80.h,
                           decoration: BoxDecoration(
-                            color: const Color(0xFF9A2C3E),
+                            color: Theme.of(context).primaryColor,
                             borderRadius: BorderRadius.circular(20.r),
                           ),
                           padding: EdgeInsets.symmetric(vertical: 8.h),
@@ -445,7 +445,7 @@ class ProfileState extends State<UserProfile>
                           width: 80.w,
                           height: 80.h,
                           decoration: BoxDecoration(
-                            color: const Color(0xFF9A2C3E),
+                            color: Theme.of(context).primaryColor,
                             borderRadius: BorderRadius.circular(20.r),
                           ),
                           padding: EdgeInsets.symmetric(vertical: 7.h),
@@ -606,9 +606,10 @@ class ProfileState extends State<UserProfile>
                                       decoration: BoxDecoration(
                                         shape: BoxShape.circle,
                                         border: Border.all(
-                                          color: const Color(
-                                            0xFFD1D1D1,
-                                          ).withOpacity(0.7),
+                                          color: Theme.of(context)
+                                              .colorScheme
+                                              .outline
+                                              .withOpacity(0.7),
                                         ),
                                         image: profilePic != null
                                             ? DecorationImage(
@@ -764,9 +765,10 @@ class ProfileState extends State<UserProfile>
                                       decoration: BoxDecoration(
                                         shape: BoxShape.circle,
                                         border: Border.all(
-                                          color: const Color(
-                                            0xFFD1D1D1,
-                                          ).withOpacity(0.7),
+                                          color: Theme.of(context)
+                                              .colorScheme
+                                              .outline
+                                              .withOpacity(0.7),
                                         ),
                                         image: profilePic != null
                                             ? DecorationImage(
@@ -815,7 +817,7 @@ class ProfileState extends State<UserProfile>
                 width: double.infinity,
                 height: 38.h,
                 decoration: BoxDecoration(
-                  color: const Color(0xFF9A2C3E),
+                  color: Theme.of(context).primaryColor,
                   borderRadius: BorderRadius.circular(20.r),
                 ),
                 padding: EdgeInsets.symmetric(vertical: 5.h),
@@ -1217,9 +1219,9 @@ class ProfileState extends State<UserProfile>
                         : postsWithTextPolls.length,
                     itemBuilder: (context, index) {
                       const List<List<Color>> gradientOptions = [
-                        [Color(0xFFFC3E7E), Color(0xFFEEA0F0)],
-                        [Color(0xFF4FC3F7), Color(0xFFB6E2F8)],
-                        [Colors.red, Color(0xFFEFB0C3)],
+                        [Color(0xFFFC3E7E), Color.fromARGB(255, 147, 89, 148)],
+                        [Color(0xFF4FC3F7), Color.fromARGB(255, 124, 156, 172)],
+                        [Colors.red, Color.fromARGB(255, 159, 108, 123)],
                       ];
 
                       return Padding(

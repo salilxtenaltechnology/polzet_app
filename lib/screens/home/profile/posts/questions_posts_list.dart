@@ -1,10 +1,11 @@
-// ignore_for_file: must_be_immutable
+// ignore_for_file: must_be_immutable, deprecated_member_use
 
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../../../api/services/api_service.dart';
 import '../../../../l10n/generated/app_localizations.dart';
+import '../../../../models/like/like_uers_model.dart';
 import '../../../../models/posts/user_post_model.dart';
 import '../../../../widgets/button/back_button.dart';
 import '../../../../widgets/card/things/poll_question_card.dart';
@@ -33,6 +34,10 @@ class QuestionsPostsListState extends State<QuestionsPostsList> {
 
   // Track comments count for each post
   Map<int, int> postCommentsCounts = {};
+
+  // Track liked users for each post (fetched on-demand)
+  Map<int, List<LikeUser>> postLikedUsers = {};
+  Map<int, bool> likedUsersLoading = {};
 
   @override
   void initState() {
@@ -81,10 +86,21 @@ class QuestionsPostsListState extends State<QuestionsPostsList> {
           isLoading = false;
 
           // Initialize like states and comments counts from fetched data
+          postLikeStates.clear();
+          postLikeCounts.clear();
+          postCommentsCounts.clear();
+          postLikedUsers.clear();
+          likedUsersLoading.clear();
+
           for (var post in filteredPosts) {
             postLikeStates[post.id] = post.isLiked;
             postLikeCounts[post.id] = post.likesCount;
             postCommentsCounts[post.id] = post.commentsCount;
+
+            // Fetch liked users for posts with likes
+            if (post.likesCount > 0) {
+              _fetchLikedUsers(post.id);
+            }
           }
         });
       }
@@ -93,6 +109,36 @@ class QuestionsPostsListState extends State<QuestionsPostsList> {
         setState(() {
           errorMessage = e.toString();
           isLoading = false;
+        });
+      }
+    }
+  }
+
+  // Fetch liked users for a specific post
+  Future<void> _fetchLikedUsers(int postId) async {
+    // Don't fetch if already loading or already loaded
+    if (likedUsersLoading[postId] == true || postLikedUsers.containsKey(postId)) {
+      return;
+    }
+
+    setState(() {
+      likedUsersLoading[postId] = true;
+    });
+
+    try {
+      final users = await ApiService().fetchLikedUsers(postId);
+      
+      if (mounted) {
+        setState(() {
+          postLikedUsers[postId] = users.take(3).toList(); // Only keep first 3 for display
+          likedUsersLoading[postId] = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error fetching liked users for post $postId: $e');
+      if (mounted) {
+        setState(() {
+          likedUsersLoading[postId] = false;
         });
       }
     }
@@ -117,6 +163,15 @@ class QuestionsPostsListState extends State<QuestionsPostsList> {
     }
   }
 
+  // Handle liked users updates from child
+  void _handleLikedUsersUpdated(int postId, List<LikeUser> users) {
+    if (mounted) {
+      setState(() {
+        postLikedUsers[postId] = users;
+      });
+    }
+  }
+
   // Handle post deletion
   void _deletePost(int postId) {
     if (mounted) {
@@ -126,6 +181,8 @@ class QuestionsPostsListState extends State<QuestionsPostsList> {
         postLikeStates.remove(postId);
         postLikeCounts.remove(postId);
         postCommentsCounts.remove(postId);
+        postLikedUsers.remove(postId);
+        likedUsersLoading.remove(postId);
       });
     }
   }
@@ -157,7 +214,7 @@ class QuestionsPostsListState extends State<QuestionsPostsList> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Theme.of(context).colorScheme.surface,
+      backgroundColor: Theme.of(context).colorScheme.background,
       appBar: AppBar(
         automaticallyImplyLeading: false,
         leading: const PrimaryBackButton(),
@@ -166,8 +223,9 @@ class QuestionsPostsListState extends State<QuestionsPostsList> {
           AppLocalizations.of(context)!.pollthings,
           style: CustomTextStyles.appBarTitleText(context),
         ),
-        backgroundColor: Theme.of(context).colorScheme.surface,
-        surfaceTintColor: Theme.of(context).colorScheme.surface,
+        backgroundColor: Theme.of(context).colorScheme.background,
+        surfaceTintColor: Theme.of(context).colorScheme.background,
+        toolbarHeight: 25.h,
       ),
       body: isLoading
           ? Center(child: Loader(color: Theme.of(context).colorScheme.primary))
@@ -229,6 +287,8 @@ class QuestionsPostsListState extends State<QuestionsPostsList> {
                     currentLikeState: postLikeStates[post.id],
                     currentLikesCount: postLikeCounts[post.id],
                     currentCommentsCount: postCommentsCounts[post.id],
+                    currentLikedUsers: postLikedUsers[post.id],
+                    onLikedUsersUpdated: _handleLikedUsersUpdated,
                   );
                 },
               ),

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import '../../models/posts/homefeed_posts_model.dart';
 import '../bottomsheets/comments_bottom_sheet.dart';
 import '../bottomsheets/liked_users_bottom_sheet.dart';
+import '../bottomsheets/post_voters_bottom_sheet.dart';
 
 class BottomSheetUtils {
   static void showCommentsBottomSheet({
@@ -25,14 +25,25 @@ class BottomSheetUtils {
   static void showLikedUsersBottomSheet({
     required BuildContext context,
     required int postId,
-    required List<LikeUser> initialLikedUsers,
   }) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) =>
-          LikedUsersBottomSheet(likedUsers: initialLikedUsers, postId: postId),
+      builder: (context) => LikedUsersBottomSheet(postId: postId),
+    );
+  }
+
+  static void showPostVotersBottomSheet({
+    required BuildContext context,
+    required int pollId,
+    required int optionId,
+  }) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => PostVotersBottomSheet(pollId: pollId, optionId: optionId),
     );
   }
 }

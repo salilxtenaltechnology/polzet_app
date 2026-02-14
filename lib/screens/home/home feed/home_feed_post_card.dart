@@ -12,7 +12,6 @@ import '../../../../api/api_config.dart';
 import '../../../../core/constants/app_images.dart';
 import '../../../api/services/like/like_service.dart';
 import '../../../api/services/share/share_service.dart';
-import '../../../core/constants/app_colors.dart';
 import '../../../mixin/utility_mixins.dart';
 import '../../../models/posts/homefeed_posts_model.dart';
 import '../../../provider/user_provider.dart';
@@ -43,7 +42,7 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
   late bool isLike;
   late int likesCount;
   late int commentsCount;
-  late List<LikeUser> viewLikes;
+  late List<HomeFeedLikeUser> viewLikes;
   late int? user_id;
   bool isLikeLoading = false;
   List<int> randomImageIndices = [];
@@ -119,7 +118,7 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
 
     final previousIsLike = isLike;
     final previousLikesCount = likesCount;
-    final previousViewLikes = List<LikeUser>.from(viewLikes);
+    final previousViewLikes = List<HomeFeedLikeUser>.from(viewLikes);
 
     setState(() {
       isLike = !isLike;
@@ -128,7 +127,7 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
         likesCount++;
         viewLikes.insert(
           0,
-          LikeUser(
+          HomeFeedLikeUser(
             id: currentUserId,
             username: currentUsername,
             profileImage: currentUserImage,
@@ -189,18 +188,9 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
   }
 
   void _showLikedUsersBottomSheet() {
-    List<LikeUser> likeUsers = viewLikes.map((viewLike) {
-      return LikeUser(
-        id: user_id!,
-        username: viewLike.username,
-        profileImage: viewLike.profileImage,
-      );
-    }).toList();
-
     BottomSheetUtils.showLikedUsersBottomSheet(
       context: context,
       postId: widget.post.id,
-      initialLikedUsers: likeUsers,
     );
   }
 
@@ -228,6 +218,7 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
             builder: (context) => AllImagesPopup(
               images: poll.options,
               postId: widget.post.id,
+              pollId: poll.id,
               onImageTap: (index) {},
               isPolledByCurrentUser: poll.isPolledByCurrentUser,
             ),
@@ -249,14 +240,12 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
       selectedOptions[pollKey] ?? [],
     );
 
-    // Store previous poll state for rollback
     final previousIsPolled = poll.isPolledByCurrentUser;
     final previousTotalVotes = poll.totalVotes;
     final previousPercentages = poll.options
         .map((opt) => opt.percentage)
         .toList();
 
-    // Immediately update UI - disable selection and clear selections
     setState(() {
       poll.isPolledByCurrentUser = true;
       selectedOptions[pollKey] = [];
@@ -278,17 +267,14 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
       );
 
       if (result['success']) {
-        // INSTANT UPDATE: Apply API response data immediately
         setState(() {
           if (result['data'] != null) {
-            // Update total votes
             if (result['data']['total_votes'] != null) {
               final newTotalVotes = result['data']['total_votes'];
               pollTotalVotes[pollKey] = newTotalVotes;
               poll.totalVotes = newTotalVotes;
             }
 
-            // Update percentages for each option
             if (result['data']['options'] != null) {
               List<dynamic> optionsData = result['data']['options'];
 
@@ -379,6 +365,7 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
   @override
   Widget build(BuildContext context) {
     final bool hasPolls = widget.post.polls.isNotEmpty;
+    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
     if (!hasPolls) {
       return const SizedBox.shrink();
@@ -390,11 +377,11 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
           margin: EdgeInsets.only(bottom: 15.h),
           padding: EdgeInsets.only(top: 10.h, bottom: 10.h),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: Theme.of(context).colorScheme.primaryContainer,
             borderRadius: BorderRadius.circular(8.r),
-            boxShadow: const [
+            boxShadow: [
               BoxShadow(
-                color: Color.fromARGB(30, 0, 0, 0),
+                color: Colors.black.withOpacity(isDarkMode ? 0.3 : 0.05),
                 blurRadius: 8,
                 spreadRadius: 2,
               ),
@@ -433,7 +420,7 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
                         }
                       },
                       child: CircleAvatar(
-                        radius: 20,
+                        radius: 17,
                         backgroundColor: Theme.of(
                           context,
                         ).colorScheme.primary.withOpacity(0.15),
@@ -450,7 +437,7 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
                             ? Text(
                                 widget.post.user.firstLetter,
                                 style: TextStyle(
-                                  fontSize: 18.sp,
+                                  fontSize: 15.sp,
                                   fontWeight: FontWeight.w600,
                                   color: Theme.of(context).colorScheme.primary,
                                 ),
@@ -465,15 +452,18 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
                         Text(
                           widget.post.user.username,
                           style: TextStyle(
-                            fontSize: 12.8.sp,
+                            fontSize: 11.5.sp,
                             fontWeight: FontWeight.w600,
+                            color: Theme.of(context).colorScheme.onBackground,
                           ),
                         ),
                         Text(
                           'Placed a post',
                           style: TextStyle(
-                            fontSize: 10.sp,
-                            color: Theme.of(context).colorScheme.onBackground,
+                            fontSize: 8.8.sp,
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurface.withOpacity(0.6),
                             fontWeight: FontWeight.w500,
                           ),
                         ),
@@ -484,7 +474,7 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
 
                 if (hasPolls) ..._buildPollContent(),
 
-                SizedBox(height: 3.h),
+                // SizedBox(height: 3.h),
                 Row(
                   children: [
                     GestureDetector(
@@ -503,15 +493,17 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
                                 ? Image.asset(
                                     Assets.assetsImagesIcHeartFilled,
                                     key: const ValueKey('filled'),
-                                    height: 23.h,
-                                    width: 23.w,
+                                    height: 21.h,
+                                    width: 21.w,
                                   )
                                 : Image.asset(
                                     Assets.assetsImagesIcHeart,
                                     key: const ValueKey('outline'),
-                                    height: 23.h,
-                                    width: 23.w,
-                                    color: const Color(0xFFC6C5C5),
+                                    height: 21.h,
+                                    width: 21.w,
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onSurface.withOpacity(0.6),
                                   ),
                           ),
                           SizedBox(width: 3.w),
@@ -520,23 +512,27 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
                                 ? LikeService.getLikesCountText(likesCount)
                                 : '',
                             style: TextStyle(
-                              fontSize: 12.sp,
+                              fontSize: 10.5.sp,
                               fontWeight: FontWeight.w500,
-                              color: Colors.black.withOpacity(0.7),
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.onSurface.withOpacity(0.8),
                             ),
                           ),
                         ],
                       ),
                     ),
-                    SizedBox(width: 10.w),
+                    SizedBox(width: 8.w),
                     GestureDetector(
                       onTap: () => _showCommentsBottomSheet(widget.post.id),
                       child: Row(
                         children: [
                           Icon(
                             FeatherIcons.messageSquare,
-                            size: 21.sp,
-                            color: const Color(0xFFC6C5C5),
+                            size: 20.sp,
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurface.withOpacity(0.6),
                           ),
                           SizedBox(width: 3.w),
                           Text(
@@ -544,20 +540,24 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
                             style: TextStyle(
                               fontSize: 12.sp,
                               fontWeight: FontWeight.w500,
-                              color: Colors.black.withOpacity(0.7),
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.onSurface.withOpacity(0.8),
                             ),
                           ),
                         ],
                       ),
                     ),
-                    SizedBox(width: 10.w),
+                    SizedBox(width: 8.w),
                     GestureDetector(
                       onTap: () =>
                           ShareService.sharePost(widget.post, context: context),
                       child: Icon(
                         FeatherIcons.send,
-                        size: 20.sp,
-                        color: const Color(0xFFC6C5C5),
+                        size: 18.3.sp,
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.onSurface.withOpacity(0.6),
                       ),
                     ),
                   ],
@@ -603,6 +603,8 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
   }
 
   List<Widget> _buildPollContent() {
+    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
+
     List<Widget> widgets = [];
 
     for (var poll in widget.post.polls) {
@@ -622,7 +624,7 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
                     poll.question,
                     style: TextStyle(
                       color: Theme.of(context).colorScheme.onBackground,
-                      fontSize: 12.5.sp,
+                      fontSize: 11.sp,
                       fontWeight: FontWeight.w500,
                     ),
                   ),
@@ -702,7 +704,10 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
                         height: imageHeight,
                         child: Container(
                           decoration: BoxDecoration(
-                            border: Border.all(color: Colors.white, width: 1),
+                            border: Border.all(
+                              color: Theme.of(context).colorScheme.surface,
+                              width: 1,
+                            ),
                             borderRadius: BorderRadius.circular(20.r),
                           ),
                           child: ClipRRect(
@@ -719,7 +724,9 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
                                   ),
                                   child: Icon(
                                     Icons.image_not_supported,
-                                    color: Colors.grey[600],
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onSurface.withOpacity(0.6),
                                     size: 30,
                                   ),
                                 );
@@ -792,7 +799,7 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
           poll.question,
           style: TextStyle(
             color: Theme.of(context).colorScheme.onBackground,
-            fontSize: 12.5.sp,
+            fontSize: 11.sp,
             fontWeight: FontWeight.w500,
           ),
         ),
@@ -909,20 +916,9 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
     HomeFeedPoll poll, {
     bool showPercentage = false,
   }) {
+    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
     String pollKey = poll.id.toString();
     int percentage = option.percentage.round();
-
-    List<Color> getGradientColors(int index) {
-      final colors = [
-        [const Color(0xFFFC3E7E), const Color(0xFFEEA0F0)],
-        [const Color(0xFF4FC3F7), const Color(0xFFB6E2F8)],
-        [Colors.red, const Color(0xFFEFB0C3)],
-        [Colors.green, Colors.teal],
-      ];
-      return colors[index % colors.length];
-    }
-
-    final gradientColors = getGradientColors(optionIndex);
 
     bool isSelected =
         selectedOptions.containsKey(pollKey) &&
@@ -951,20 +947,21 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
         duration: const Duration(milliseconds: 250),
         curve: Curves.easeInOut,
         margin: EdgeInsets.only(bottom: 10.h),
-        height: 25.h,
+        height: 23.h,
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(10.r),
-          color: Colors.white,
+          color: isDarkMode ? const Color(0xFF242831) : const Color(0xFFF5F6F7),
           border: Border.all(
             color: isSelected && !hasUserPolled
-                ? AppColors.primaryColor.withOpacity(0.5)
-                : Colors.grey.withOpacity(0.3),
+                ? Theme.of(context).colorScheme.primary.withOpacity(0.5)
+                : isDarkMode
+                ? const Color(0xFF30353D)
+                : const Color(0xFFE8E8E8),
             width: isSelected && !hasUserPolled ? 1.2 : 1,
           ),
         ),
         child: Stack(
           children: [
-            // Background fill for percentage (only when voted)
             if (showPercentage && percentage > 0)
               Positioned.fill(
                 child: TweenAnimationBuilder<double>(
@@ -977,7 +974,9 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
                       widthFactor: value,
                       child: Container(
                         decoration: BoxDecoration(
-                          color: const Color(0xFFF0F0F0),
+                          color: isDarkMode
+                              ? const Color(0xFF30353D)
+                              : const Color(0xFFE8E8E8),
                           borderRadius: BorderRadius.circular(10.r),
                         ),
                       ),
@@ -988,7 +987,7 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
 
             // Content row
             Padding(
-              padding: EdgeInsets.fromLTRB(8.w, 5.h, 8.w, 0),
+              padding: EdgeInsets.fromLTRB(8.w, 3.h, 8.w, 0),
               child: Row(
                 children: [
                   // Option text
@@ -996,12 +995,10 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
                     child: Text(
                       option.text ?? '',
                       style: TextStyle(
-                        color: hasUserPolled
-                            ? Colors.grey[700]
-                            : Theme.of(context).colorScheme.onBackground,
-                        fontSize: 11.sp,
+                        color: Theme.of(context).colorScheme.onBackground,
+                        fontSize: 10.5.sp,
                         fontWeight: isSelected && !hasUserPolled
-                            ? FontWeight.w500
+                            ? FontWeight.w600
                             : FontWeight.w500,
                         letterSpacing: 0.2,
                       ),
@@ -1021,19 +1018,21 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
                         return Text(
                           '$value%',
                           style: TextStyle(
-                            color: Colors.grey[800],
-                            fontSize: 11.sp,
-                            fontWeight: FontWeight.w500,
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onBackground.withOpacity(0.6),
+                            fontSize: 10.5.sp,
+                            fontWeight: FontWeight.w600,
                           ),
                         );
                       },
                     )
                   else if (isSelected)
-                    // Show selection number when selected (simple text)
+                    // Show selection number when selected
                     Text(
                       '$selectionNumber',
                       style: TextStyle(
-                        color: AppColors.primaryColor,
+                        color: Theme.of(context).colorScheme.primary,
                         fontSize: 11.5.sp,
                         fontWeight: FontWeight.bold,
                       ),

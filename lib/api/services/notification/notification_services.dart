@@ -16,7 +16,10 @@ class NotificationService {
   static final NotificationService _instance = NotificationService._internal();
 
   // Firebase & Local Notifications
-  final FirebaseMessaging _fcm = FirebaseMessaging.instance;
+  // Firebase & Local Notifications
+  // ✅ FIXED: Use getter to lazy load instance. Prevents crash in background isolates
+  // where Firebase is not initialized yet.
+  FirebaseMessaging get _fcm => FirebaseMessaging.instance;
   final FlutterLocalNotificationsPlugin _localNotifications =
       FlutterLocalNotificationsPlugin();
 
@@ -47,7 +50,6 @@ class NotificationService {
   Function(NotificationPayload)? get onFCMMessageTap => _onFCMMessageTap;
 
   set onFCMMessageTap(Function(NotificationPayload)? callback) {
-    debugPrint('👆 Setting onFCMMessageTap callback');
     _onFCMMessageTap = callback;
     if (callback != null && _pendingTapPayload != null) {
       debugPrint('🚀 Processing pending notification tap');
@@ -71,7 +73,8 @@ class NotificationService {
   // ========== INITIALIZATION ==========
   Future<void> initialize() async {
     if (_isInitialized) {
-      debugPrint('⚠️ NotificationService already initialized');
+      // Even if initialized, we should check if token needs syncing (e.g. app came to foreground)
+      await _checkAndSyncToken();
       return;
     }
 
@@ -79,11 +82,172 @@ class NotificationService {
     await _initializeFCM();
     _startCleanupTimer();
     _isInitialized = true;
+
+    // Sync token after initialization
+    await _checkAndSyncToken();
+  }
+
+  /// ✅ NEW: Sync FCM token with backend if user is logged in
+  Future<void> _checkAndSyncToken() async {
+    try {
+      final accessToken = await SharedPrefService.getAccessToken();
+      if (accessToken != null && accessToken.isNotEmpty) {
+        String? token = await _fcm.getToken();
+        if (token != null) {
+          debugPrint("🔄 Syncing FCM Token with backend...");
+          final platform = Platform.isAndroid ? 'android' : 'ios';
+          await FcmApiService.registerFcmToken(token, platform);
+        }
+      }
+    } catch (e) {
+      debugPrint("❌ Error syncing FCM token: $e");
+    }
+  }
+
+  // ✅ Helper method to generate consistent notification content
+  static NotificationContent _getNotificationContent(
+    Map<String, dynamic> data,
+    RemoteMessage? message,
+  ) {
+    // Try to extract data from nested 'notification' key or root data
+    final notificationData = data['notification'] is Map
+        ? data['notification'] as Map<String, dynamic>
+        : (data['notification'] != null
+              ? jsonDecode(data['notification'])
+              : data);
+
+    final String type =
+        notificationData['type']?.toString().toUpperCase() ??
+        data['type']?.toString().toUpperCase() ??
+        'GENERAL';
+
+    String title = 'Polzet';
+    String body = 'New notification';
+
+    // Customize based on type
+    switch (type) {
+      case 'FOLLOW':
+        final sender =
+            notificationData['sender'] ?? data['sender'] ?? 'Someone';
+        title = 'New Chase';
+        body = '$sender started chasing you';
+        break;
+      case 'VOTE':
+        title = notificationData['title'] ?? data['title'] ?? 'New Vote';
+        body =
+            notificationData['message_preview'] ??
+            notificationData['body'] ??
+            data['message_preview'] ??
+            'Someone voted on your poll';
+        break;
+      case 'LIKE':
+        title = notificationData['title'] ?? data['title'] ?? 'New Like';
+        body =
+            notificationData['body'] ??
+            data['body'] ??
+            'Someone liked your post';
+        break;
+      case 'COMMENT':
+        title = 'New Comment';
+        body =
+            notificationData['body'] ??
+            data['body'] ??
+            'Someone commented on your post';
+        break;
+      default:
+        title =
+            message?.notification?.title ??
+            notificationData['title'] ??
+            data['title'] ??
+            'Polzet';
+        body =
+            message?.notification?.body ??
+            notificationData['body'] ??
+            data['body'] ??
+            'You have a new notification';
+    }
+
+    return NotificationContent(title, body, type);
+  }
+
+  // ✅ NEW: Static method to show notification from background isolate
+  @pragma('vm:entry-point')
+  static Future<void> showBackgroundNotification(RemoteMessage message) async {
+    debugPrint('🌙 Background Notification Service Triggered');
+    debugPrint('   Data: ${message.data}');
+
+    // ✅ CHECK: If notification payload exists, OS already showed it. No need to show another one.
+    // NOTE: To show custom text ("started chasing you"), the backend MUST send data-only messages.
+    // If it sends a 'notification' block, the OS shows the default text and we skip this logic to avoid duplicates.
+    if (message.notification != null) {
+      debugPrint(
+        '🌙 Background message has notification payload - OS handles it. Skipping local display to prevent duplicates.',
+      );
+      return;
+    }
+ 
+    // 1. Initialize FlutterLocalNotificationsPlugin (fresh instance for background isolate)
+    final FlutterLocalNotificationsPlugin localNotif =
+        FlutterLocalNotificationsPlugin();
+
+    const androidSettings = AndroidInitializationSettings(
+      '@mipmap/ic_launcher',
+    );
+    const iosSettings = DarwinInitializationSettings();
+    const initSettings = InitializationSettings(
+      android: androidSettings,
+      iOS: iosSettings,
+    );
+
+    await localNotif.initialize(initSettings);
+
+    // 2. Extract content using shared helper
+    try {
+      final content = _getNotificationContent(message.data, message);
+
+      if (content.body.isEmpty) return;
+
+      // 3. Show notification
+      debugPrint(
+        '🌙 Showing background notification: ${content.title} - ${content.body}',
+      );
+
+      const androidDetails = AndroidNotificationDetails(
+        'high_importance_channel',
+        'High Importance Notifications',
+        importance: Importance.max,
+        priority: Priority.high,
+        showWhen: true,
+        icon: '@mipmap/ic_launcher',
+        enableVibration: true,
+        enableLights: true,
+        ledColor: Color(0xFFE91E63),
+        ledOnMs: 1000,
+        ledOffMs: 500,
+        autoCancel: true,
+      );
+
+      const iosDetails = DarwinNotificationDetails();
+      const details = NotificationDetails(
+        android: androidDetails,
+        iOS: iosDetails,
+      );
+
+      final id = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+
+      await localNotif.show(
+        id,
+        content.title,
+        content.body,
+        details,
+        payload: jsonEncode(message.data),
+      );
+    } catch (e) {
+      debugPrint('❌ Error showing background notification: $e');
+    }
   }
 
   Future<void> _initializeLocalNotifications() async {
-    debugPrint('📲 Initializing local notifications...');
-
     const androidSettings = AndroidInitializationSettings(
       '@mipmap/ic_launcher',
     );
@@ -121,24 +285,17 @@ class NotificationService {
             AndroidFlutterLocalNotificationsPlugin
           >()
           ?.createNotificationChannel(channel);
-
-      debugPrint('✅ Android notification channel created');
     }
   }
 
   Future<void> _initializeFCM() async {
     try {
-      debugPrint('🚀 Initializing FCM...');
-
       NotificationSettings settings = await _fcm.requestPermission(
         alert: true,
         badge: true,
         sound: true,
         provisional: false,
       );
-
-      debugPrint('📱 FCM Permission: ${settings.authorizationStatus}');
-
       if (settings.authorizationStatus != AuthorizationStatus.authorized &&
           settings.authorizationStatus != AuthorizationStatus.provisional) {
         debugPrint('❌ FCM: User declined permission');
@@ -194,16 +351,6 @@ class NotificationService {
       debugPrint('===============================================');
       _handleMessageTap(message);
     });
-
-    // ✅ TERMINATED tap (app killed) - CRITICAL for navigation
-    _pendingInitialMessage = await _fcm.getInitialMessage();
-    if (_pendingInitialMessage != null) {
-      debugPrint('🚀 ===== APP OPENED FROM NOTIFICATION (TERMINATED) =====');
-      debugPrint('Title: ${_pendingInitialMessage!.notification?.title}');
-      debugPrint('Data: ${_pendingInitialMessage!.data}');
-      debugPrint('========================================================');
-      // Don't handle here - let main.dart handle it after app initializes
-    }
   }
 
   void _handleForegroundMessage(RemoteMessage message) {
@@ -232,90 +379,22 @@ class NotificationService {
     }
   }
 
-  // ✅ FIXED: Extract and customize notification data based on type
+  // ✅ FIXED: Extract and customize notification data based on type using helper
   Future<void> _showNativeNotification(RemoteMessage message) async {
     try {
-      // ✅ Try to extract data from nested 'notification' key or root data
-      final notificationData = message.data['notification'] ?? message.data;
-
-      // ✅ Get notification type
-      final String type =
-          notificationData['type']?.toString().toUpperCase() ??
-          message.data['type']?.toString().toUpperCase() ??
-          'GENERAL';
-
-      // ✅ Customize title and body based on notification type
-      String title;
-      String body;
-
-      switch (type) {
-        case 'FOLLOW':
-          // Show: "New Chase" + "sender started chasing you"
-          final sender =
-              notificationData['sender'] ?? message.data['sender'] ?? 'Someone';
-          title = 'New Chase';
-          body = '$sender started chasing you';
-          break;
-
-        case 'VOTE':
-          // Show: default title + message_preview
-          title =
-              notificationData['title'] ?? message.data['title'] ?? 'New Vote';
-          body =
-              notificationData['message_preview'] ??
-              notificationData['body'] ??
-              message.data['message_preview'] ??
-              message.data['body'] ??
-              'Someone voted on your poll';
-          break;
-
-        case 'LIKE':
-          // Show: default title + body from notification
-          title =
-              notificationData['title'] ?? message.data['title'] ?? 'New Like';
-          body =
-              notificationData['body'] ??
-              message.data['body'] ??
-              'Someone liked your post';
-          break;
-
-        case 'COMMENT':
-          // Show: "New Comment" + body from notification
-          title = 'New Comment';
-          body =
-              notificationData['body'] ??
-              message.data['body'] ??
-              'Someone commented on your post';
-          break;
-
-        default:
-          // Fallback for other notification types
-          title =
-              message.notification?.title ??
-              notificationData['title'] ??
-              message.data['title'] ??
-              'Polzet';
-          body =
-              message.notification?.body ??
-              notificationData['body'] ??
-              notificationData['message'] ??
-              message.data['body'] ??
-              message.data['message'] ??
-              '';
-      }
+      final content = _getNotificationContent(message.data, message);
 
       // ✅ Skip if no meaningful content
-      if (body.isEmpty) {
+      if (content.body.isEmpty) {
         debugPrint('⚠️ Skipping notification - no body content');
         return;
       }
 
       debugPrint('📢 ===== SHOWING LOCAL NOTIFICATION POPUP =====');
-      debugPrint('Type: $type');
-      debugPrint('Title: $title');
-      debugPrint('Body: $body');
+      debugPrint('Type: ${content.type}');
+      debugPrint('Title: ${content.title}');
+      debugPrint('Body: ${content.body}');
       debugPrint('Full data: ${message.data}');
-      debugPrint('Notification data extracted: $notificationData');
       debugPrint('==============================================');
 
       const androidDetails = AndroidNotificationDetails(
@@ -359,8 +438,8 @@ class NotificationService {
 
       await _localNotifications.show(
         notificationId,
-        title,
-        body,
+        content.title,
+        content.body,
         details,
         payload: jsonEncode(message.data),
       );
@@ -521,101 +600,18 @@ class NotificationService {
   // ✅ FIXED: Extract and customize WebSocket notification data based on type
   Future<void> _showWebSocketNotification(Map<String, dynamic> data) async {
     try {
-      // ✅ Try nested 'data' key or use root data
-      final notificationData = data['data'] ?? data;
-      final notification = notificationData['notification'] ?? notificationData;
-
-      // ✅ Get notification type
-      final String type =
-          notification['type']?.toString().toUpperCase() ??
-          notificationData['type']?.toString().toUpperCase() ??
-          data['type']?.toString().toUpperCase() ??
-          'GENERAL';
-
-      // ✅ Customize title and body based on notification type
-      String title;
-      String body;
-
-      switch (type) {
-        case 'FOLLOW':
-          // Show: "New Chase" + "sender started chasing you"
-          final sender =
-              notification['sender'] ??
-              notificationData['sender'] ??
-              data['sender'] ??
-              'Someone';
-          title = 'New Chase';
-          body = '$sender started chasing you';
-          break;
-
-        case 'VOTE':
-          // Show: default title + message_preview
-          title =
-              notification['title'] ??
-              notificationData['title'] ??
-              data['title'] ??
-              'New Vote';
-          body =
-              notification['message_preview'] ??
-              notificationData['message_preview'] ??
-              data['message_preview'] ??
-              notification['body'] ??
-              notificationData['body'] ??
-              data['body'] ??
-              'Someone voted on your poll';
-          break;
-
-        case 'LIKE':
-          // Show: default title + body from notification
-          title =
-              notification['title'] ??
-              notificationData['title'] ??
-              data['title'] ??
-              'New Like';
-          body =
-              notification['body'] ??
-              notificationData['body'] ??
-              data['body'] ??
-              'Someone liked your post';
-          break;
-
-        case 'COMMENT':
-          // Show: "New Comment" + body from notification
-          title = 'New Comment';
-          body =
-              notification['body'] ??
-              notificationData['body'] ??
-              data['body'] ??
-              'Someone commented on your post';
-          break;
-
-        default:
-          // Fallback for other notification types
-          title =
-              notification['title'] ??
-              notificationData['title'] ??
-              data['title'] ??
-              'Polzet';
-          body =
-              notification['body'] ??
-              notification['message'] ??
-              notificationData['body'] ??
-              notificationData['message'] ??
-              data['body'] ??
-              data['message'] ??
-              '';
-      }
+      final content = _getNotificationContent(data, null);
 
       // ✅ Skip if no meaningful content
-      if (body.isEmpty) {
+      if (content.body.isEmpty) {
         debugPrint('⚠️ Skipping WebSocket notification - no body content');
         return;
       }
 
       debugPrint('📢 Showing WebSocket notification:');
-      debugPrint('Type: $type');
-      debugPrint('Title: $title');
-      debugPrint('Body: $body');
+      debugPrint('Type: ${content.type}');
+      debugPrint('Title: ${content.title}');
+      debugPrint('Body: ${content.body}');
       debugPrint('Full data: $data');
 
       const androidDetails = AndroidNotificationDetails(
@@ -650,8 +646,8 @@ class NotificationService {
 
       await _localNotifications.show(
         notificationId,
-        title,
-        body,
+        content.title,
+        content.body,
         details,
         payload: jsonEncode(data),
       );
@@ -666,34 +662,27 @@ class NotificationService {
     _cleanupWebSocket();
 
     if (_shouldStayConnected && _reconnectAttempts < _maxReconnectAttempts) {
-      _scheduleWebSocketReconnect();
-    } else if (_reconnectAttempts >= _maxReconnectAttempts) {
-      debugPrint('❌ WebSocket: Max reconnection attempts reached');
-    }
-  }
+      _reconnectAttempts++;
+      final delay = _initialReconnectDelay * _reconnectAttempts;
+      debugPrint(
+        '⏳ WebSocket disconnected. Reconnecting in ${delay.inSeconds}s '
+        '(Attempt $_reconnectAttempts/$_maxReconnectAttempts)...',
+      );
 
-  void _scheduleWebSocketReconnect() {
-    _reconnectTimer?.cancel();
-    final delay = _initialReconnectDelay * (1 << _reconnectAttempts);
-    _reconnectAttempts++;
-
-    debugPrint(
-      '🔄 WebSocket: Reconnecting in ${delay.inSeconds}s (attempt $_reconnectAttempts)',
-    );
-
-    _reconnectTimer = Timer(delay, () async {
-      if (_shouldStayConnected) {
-        final token = await SharedPrefService.getAccessToken();
-        if (token != null) {
-          connectToWebSocket(token);
+      _reconnectTimer?.cancel();
+      _reconnectTimer = Timer(delay, () async {
+        final accessToken = await SharedPrefService.getAccessToken();
+        if (accessToken != null) {
+          connectToWebSocket(accessToken);
         }
-      }
-    });
+      });
+    }
   }
 
   void _cleanupWebSocket() {
     _streamSubscription?.cancel();
     _streamSubscription = null;
+    _channel?.sink.close(status.goingAway);
     _channel = null;
     _isConnecting = false;
   }
@@ -715,15 +704,20 @@ class NotificationService {
 
   // ========== HELPERS ==========
   String _generateNotificationId(Map<String, dynamic> data) {
-    return data['id']?.toString() ??
-        data['notification_id']?.toString() ??
+    final notification = data['notification'] ?? data;
+    final type = notification['type'] ?? 'general';
+    final id =
+        notification['post_id'] ??
+        notification['sender_id'] ??
         DateTime.now().millisecondsSinceEpoch.toString();
+    return '${type}_$id';
   }
 
   void _startCleanupTimer() {
-    _cleanupTimer = Timer.periodic(const Duration(minutes: 5), (_) {
+    _cleanupTimer?.cancel();
+    _cleanupTimer = Timer.periodic(const Duration(minutes: 10), (timer) {
       _processedNotificationIds.clear();
-      debugPrint('🧹 Cleared notification IDs cache');
+      debugPrint('🧹 Cleared processed notification IDs cache');
     });
   }
 
@@ -777,66 +771,91 @@ class NotificationPayload {
   }) : timestamp = timestamp ?? DateTime.now();
 
   // ✅ FIXED: Extract data properly from FCM message with type-based customization
-  factory NotificationPayload.fromFCM(RemoteMessage message) {
-    final notificationData = message.data['notification'] ?? message.data;
-    final String type =
-        notificationData['type']?.toString().toUpperCase() ??
-        message.data['type']?.toString().toUpperCase() ??
-        'GENERAL';
+ factory NotificationPayload.fromFCM(RemoteMessage message) {
+    // Handle notification data with dynamic type
+    dynamic notificationData;
+    
+    if (message.data.containsKey('notification')) {
+      final notifValue = message.data['notification'];
+      if (notifValue is Map) {
+        notificationData = Map<String, dynamic>.from(notifValue);
+      } else if (notifValue is String) {
+        try {
+          notificationData = jsonDecode(notifValue) as Map<String, dynamic>;
+        } catch (e) {
+          notificationData = message.data;
+        }
+      } else {
+        notificationData = message.data;
+      }
+    } else {
+      notificationData = message.data;
+    }
+
+    // Extract type dynamically
+    final dynamic typeValue = notificationData['type'] ?? message.data['type'];
+    final String type = (typeValue?.toString() ?? 'GENERAL').toUpperCase();
 
     String title;
     String body;
 
-    // Customize based on type
-    switch (type) {
-      case 'FOLLOW':
-        final sender =
-            notificationData['sender'] ?? message.data['sender'] ?? 'Someone';
-        title = 'New Chase';
-        body = '$sender started chasing you';
-        break;
+    // If backend sent notification block, use it
+    if (message.notification != null) {
+      title = message.notification!.title ?? 'Polzet';
+      body = message.notification!.body ?? 'New notification';
+    } else {
+      // Customize for data-only messages
+      switch (type) {
+        case 'FOLLOW':
+          final dynamic senderValue = notificationData['sender'] ?? message.data['sender'];
+          final String sender = senderValue?.toString() ?? 'Someone';
+          title = 'New Chase';
+          body = '$sender started chasing you';
+          break;
 
-      case 'VOTE':
-        title =
-            notificationData['title'] ?? message.data['title'] ?? 'New Vote';
-        body =
-            notificationData['message_preview'] ??
-            notificationData['body'] ??
-            message.data['message_preview'] ??
-            message.data['body'] ??
-            'Someone voted on your poll';
-        break;
+        case 'VOTE':
+          final dynamic titleValue = notificationData['title'] ?? message.data['title'];
+          title = titleValue?.toString() ?? 'New Vote';
+          
+          final dynamic bodyValue = notificationData['message_preview'] ??
+              notificationData['body'] ??
+              message.data['message_preview'] ??
+              message.data['body'];
+          body = bodyValue?.toString() ?? 'Someone voted on your poll';
+          break;
 
-      case 'LIKE':
-        title =
-            notificationData['title'] ?? message.data['title'] ?? 'New Like';
-        body =
-            notificationData['body'] ??
-            message.data['body'] ??
-            'Someone liked your post';
-        break;
+        case 'LIKE':
+          final dynamic titleValue = notificationData['title'] ?? message.data['title'];
+          title = titleValue?.toString() ?? 'New Like';
+          
+          final dynamic bodyValue = notificationData['body'] ?? message.data['body'];
+          body = bodyValue?.toString() ?? 'Someone liked your post';
+          break;
 
-      case 'COMMENT':
-        title = 'New Comment';
-        body =
-            notificationData['body'] ??
-            message.data['body'] ??
-            'Someone commented on your post';
-        break;
+        case 'COMMENT':
+          title = 'New Comment';
+          final dynamic bodyValue = notificationData['body'] ?? message.data['body'];
+          body = bodyValue?.toString() ?? 'Someone commented on your post';
+          break;
 
-      default:
-        title =
-            message.notification?.title ??
-            notificationData['title'] ??
-            message.data['title'] ??
-            'Polzet';
-        body =
-            message.notification?.body ??
-            notificationData['body'] ??
-            notificationData['message'] ??
-            message.data['body'] ??
-            message.data['message'] ??
-            '';
+        case 'NEW_MESSAGE':
+          final dynamic titleValue = notificationData['title'] ?? message.data['title'];
+          title = titleValue?.toString() ?? 'New Message';
+          
+          final dynamic bodyValue = notificationData['body'] ?? message.data['body'];
+          body = bodyValue?.toString() ?? 'You have a new message';
+          break;
+
+        default:
+          final dynamic titleValue = notificationData['title'] ?? message.data['title'];
+          title = titleValue?.toString() ?? 'Polzet';
+          
+          final dynamic bodyValue = notificationData['body'] ??
+              notificationData['message'] ??
+              message.data['body'] ??
+              message.data['message'];
+          body = bodyValue?.toString() ?? '';
+      }
     }
 
     return NotificationPayload(
@@ -844,7 +863,7 @@ class NotificationPayload {
       title: title,
       body: body,
       type: type,
-      data: message.data,
+      data: Map<String, dynamic>.from(message.data),
       source: NotificationSource.fcm,
     );
   }
@@ -946,4 +965,13 @@ class NotificationPayload {
     'source': source.toString(),
     'timestamp': timestamp.toIso8601String(),
   };
+}
+
+// ✅ Helper class for consistent content
+class NotificationContent {
+  final String title;
+  final String body;
+  final String type;
+
+  NotificationContent(this.title, this.body, this.type);
 }

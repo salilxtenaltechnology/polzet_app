@@ -3,7 +3,14 @@ part of 'home_imports.dart';
 
 class HomeScreen extends StatefulWidget {
   final int initialIndex;
-  const HomeScreen({super.key, this.initialIndex = 0});
+  /// ✅ Widget to navigate to after home loads (for cold start notifications)
+  final Widget? pendingDestination;
+  
+  const HomeScreen({
+    super.key, 
+    this.initialIndex = 0,
+    this.pendingDestination,
+  });
 
   @override
   State<StatefulWidget> createState() {
@@ -21,6 +28,49 @@ class HomeScreenState extends State<HomeScreen> with UtilityMixin {
   void initState() {
     super.initState();
     pageIndex = widget.initialIndex;
+    
+    // ✅ Load cached user data immediately for UI
+    _loadCachedUserData();
+    
+    // Initialize notifications and request permissions after login/splash
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      NotificationService().initialize();
+
+      // ✅ Handle pending navigation (safely after build)
+      if (widget.pendingDestination != null) {
+        debugPrint('🚀 HomeScreen: Navigating to pending destination: ${widget.pendingDestination.runtimeType}');
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => widget.pendingDestination!,
+          ),
+        );
+        // ✅ Cleared pending notification after handling
+        NotificationRouter().clear();
+      }
+      // ✅ NEW: Safety check for pending notifications (intermittent fix)
+      // Handles cases where main.dart didn't pass it (e.g., warm start)
+      else if (NotificationRouter().hasPendingNotification()) {
+         debugPrint('🚀 HomeScreen: Found pending notification in Router (intermittent fix)');
+         NotificationRouter().handlePendingNotification(context);
+      }
+    });
+  }
+
+  // ✅ Load cached user data for immediate display
+  Future<void> _loadCachedUserData() async {
+    try {
+      final fName = await SharedPrefService.getFirstName();
+      final lName = await SharedPrefService.getLastName();
+      
+      if (mounted) {
+        setState(() {
+          firstname = fName;
+          lastname = lName;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error loading cached user data: $e');
+    }
   }
 
   final List screens = [

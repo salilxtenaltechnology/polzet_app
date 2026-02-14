@@ -31,14 +31,14 @@ class CustomBottomNavigationBar extends StatelessWidget {
           weight: 1,
           color: index == 0
               ? Colors.white
-              : Theme.of(context).colorScheme.onPrimary,
+              : Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
         ),
         Icon(
           Icons.insights,
           size: 22.sp,
           color: index == 1
               ? Colors.white
-              : Theme.of(context).colorScheme.onPrimary,
+              : Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
         ),
         IconButton(
           onPressed: () {},
@@ -50,14 +50,14 @@ class CustomBottomNavigationBar extends StatelessWidget {
           size: 22.sp,
           color: index == 3
               ? Colors.white
-              : Theme.of(context).colorScheme.onPrimary,
+              : Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
         ),
         Icon(
           FeatherIcons.user,
           size: 22.sp,
           color: index == 4
               ? Colors.white
-              : Theme.of(context).colorScheme.onPrimary,
+              : Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
         ),
       ],
       backgroundColor: Theme.of(context).colorScheme.background,

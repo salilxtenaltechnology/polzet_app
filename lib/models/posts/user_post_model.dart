@@ -63,6 +63,21 @@ class UserPostModel {
   });
 
   factory UserPostModel.fromJson(Map<String, dynamic> json) {
+    // ROBUST PARSING FOR is_liked
+    bool parsedIsLiked = false;
+    final isLikedValue = json['is_liked'];
+    
+    if (isLikedValue is bool) {
+      parsedIsLiked = isLikedValue;
+    } else if (isLikedValue is String) {
+      parsedIsLiked = isLikedValue.toLowerCase() == 'true';
+    } else if (isLikedValue is int) {
+      parsedIsLiked = isLikedValue == 1;
+    }
+    
+    // Debug print to verify parsing
+    print('🔍 Parsing post ${json['id']}: is_liked raw value = $isLikedValue (${isLikedValue.runtimeType}), parsed = $parsedIsLiked');
+
     return UserPostModel(
       id: json['id'] as int,
       user: json['user'] as String,
@@ -84,7 +99,7 @@ class UserPostModel {
               .toList() ??
           [],
       likesCount: json['likes_count'] as int? ?? 0,
-      isLiked: json['is_liked'] as bool? ?? false,
+      isLiked: parsedIsLiked, // Use robustly parsed value
     );
   }
 

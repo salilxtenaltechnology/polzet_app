@@ -308,7 +308,7 @@ class SettingsState extends State<Settings>
       margin: EdgeInsets.only(top: 7.h, bottom: 12.h),
       padding: const EdgeInsets.all(12).w,
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.tertiaryContainer,
+        color: Theme.of(context).colorScheme.primaryContainer,
         borderRadius: BorderRadius.circular(10.r),
       ),
       child: column,

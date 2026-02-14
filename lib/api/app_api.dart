@@ -31,5 +31,6 @@ class ApiConstants {
   static String pollOnThings = "$baseUrl/posts";
   static String notifications = "$baseUrl/notifications";
   static String likePost = "$baseUrl/posts";
+  static String topVoters = "$baseUrl/polls";
   static String logout = "$baseUrl/logout";
 }

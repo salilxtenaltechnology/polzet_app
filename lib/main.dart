@@ -10,6 +10,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'api/services/link/deeplink_generator_service.dart';
 import 'api/services/notification/notification_services.dart';
 import 'core/constants/app_strings.dart';
+import 'core/navigation/notification_router.dart';
 import 'core/themes/app_themes.dart';
 import 'core/themes/theme_provider.dart';
 import 'data/token/shared_preferences.dart';
@@ -21,25 +22,19 @@ import 'screens/home/home feed/post/post_details_screen.dart';
 import 'screens/home/home_imports.dart';
 import 'screens/home/notifications/notification_details.dart';
 import 'screens/home/profile/public/public_profile.dart';
-import 'screens/home/settings/security/biometric/biometric_screen.dart';
-import 'screens/home/settings/security/biometric/biometric_service.dart';
-import 'screens/home/settings/security/pin/pin_gate_screen.dart';
-import 'screens/home/settings/security/pin/pin_status.dart';
+
 import 'screens/splash/splash_screen.dart';
 
-// ✅ Background message handler - CRITICAL for tap handling when app is killed/background
+// ✅ Background message handler
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  debugPrint("🔔 Background message received: ${message.data}");
 
-  debugPrint("🔔 ===== BACKGROUND MESSAGE HANDLER =====");
-  debugPrint("Title: ${message.notification?.title}");
-  debugPrint("Body: ${message.notification?.body}");
-  debugPrint("Data: ${message.data}");
-  debugPrint("========================================");
-
-  // ✅ The notification is automatically shown by FCM in background
-  // We just need to log here - tap handling is done in onMessageOpenedApp
+  // ✅ MANUALLY SHOW NOTIFICATION (Fix for data messages not showing in bg)
+  // Since we use data-only messages, OS doesn't show them automatically.
+  // We must show a local notification manually.
+  await NotificationService.showBackgroundNotification(message);
 }
 
 void main() async {
@@ -50,10 +45,32 @@ void main() async {
       options: DefaultFirebaseOptions.currentPlatform,
     );
 
-    // ✅ CRITICAL: Register background handler
     FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 
-    await NotificationService().initialize();
+    // ✅ CRITICAL: Check for notification BEFORE app builds
+    final initialMessage = await FirebaseMessaging.instance.getInitialMessage();
+    if (initialMessage != null) {
+      debugPrint('🚀 COLD START: Notification tap detected');
+      debugPrint('   Title: ${initialMessage.notification?.title}');
+      debugPrint('   Body: ${initialMessage.notification?.body}');
+      debugPrint('═══════════════════════════════════════════════════');
+      debugPrint('📋 NOTIFICATION DATA STRUCTURE:');
+      debugPrint('   Keys: ${initialMessage.data.keys.toList()}');
+      initialMessage.data.forEach((key, value) {
+        debugPrint('   $key: $value (${value.runtimeType})');
+      });
+
+      // ✅ Check for nested notification object (often sent by backend)
+      if (initialMessage.data.containsKey('notification')) {
+        debugPrint('   ⚠️ DETECTED NESTED "notification" OBJECT!');
+        debugPrint('   Content: ${initialMessage.data['notification']}');
+      }
+      debugPrint('═══════════════════════════════════════════════════');
+
+      // Store in NotificationRouter for later handling
+      NotificationRouter().setPendingNotification(initialMessage);
+    }
+
     debugPrint('✅ Firebase initialized');
   } catch (e) {
     debugPrint('❌ Firebase initialization error: $e');
@@ -87,9 +104,6 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       GlobalKey<ScaffoldMessengerState>();
 
   Locale? _locale;
-  String? _pendingUsername;
-  String? _pendingPostId;
-  bool _isAppInitialized = false;
 
   @override
   void initState() {
@@ -97,9 +111,9 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     WidgetsBinding.instance.addObserver(this);
     _loadSavedLanguage();
     _initializeDeepLinking();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _setupNotificationCallbacks();
-    });
+    // ✅ Initialize Notification Service (and sync token) on startup
+    NotificationService().initialize();
+    _setupNotificationCallbacks();
   }
 
   @override
@@ -113,26 +127,17 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     super.didChangeAppLifecycleState(state);
-
-    // ✅ CRITICAL: Update NotificationService with app state
     NotificationService().updateAppLifecycleState(state);
 
     switch (state) {
       case AppLifecycleState.resumed:
-        debugPrint('📱 App resumed - ONLINE');
+        debugPrint('📱 App resumed');
         _reconnectWebSocketIfNeeded();
         break;
       case AppLifecycleState.paused:
-        debugPrint('📱 App paused - OFFLINE');
+        debugPrint('📱 App paused');
         break;
-      case AppLifecycleState.inactive:
-        debugPrint('📱 App inactive');
-        break;
-      case AppLifecycleState.detached:
-        debugPrint('📱 App detached - TERMINATED');
-        break;
-      case AppLifecycleState.hidden:
-        debugPrint('📱 App hidden');
+      default:
         break;
     }
   }
@@ -158,21 +163,155 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     });
   }
 
-  // ✅ Only setup notification tap callbacks here - permission handled in HomeScreen
-  Future<void> _setupNotificationCallbacks() async {
-    debugPrint('🔧 Setting up notification tap callbacks...');
+  void _setupNotificationCallbacks() {
+    // ✅ Handle notification tap when app is in BACKGROUND
+    FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
+      debugPrint('👆 Notification tapped (background): ${message.data}');
+      _handleBackgroundNotificationTap(message);
+    });
 
-    // ✅ CRITICAL: Callback for notification TAPS
+    // ✅ Local notification callback (for foreground notifications)
     NotificationService().onFCMMessageTap = (payload) {
-      debugPrint('👆 ===== NOTIFICATION TAPPED =====');
-      debugPrint('Type: ${payload.type}');
-      debugPrint('Data: ${payload.data}');
-      debugPrint('==================================');
-
-      _handleNotificationTap(payload);
+      debugPrint('👆 Local notification tapped: ${payload.data}');
+      _handleForegroundNotificationTap(payload);
     };
+  }
 
-    debugPrint('✅ Notification tap callback registered');
+  /// ✅ NEW: Handle background notification tap
+  /// App was in background, user tapped notification
+  void _handleBackgroundNotificationTap(RemoteMessage message) async {
+    final context = navigatorKey.currentContext;
+    if (context == null || !mounted) {
+      debugPrint('⚠️ Context not ready, storing notification for later');
+      NotificationRouter().setPendingNotification(message);
+      return;
+    }
+
+    // ✅ Ensure UserProvider is ready
+    final userProvider = Provider.of<UserProvider>(context, listen: false);
+    if (!userProvider.isUserDataValid()) {
+      debugPrint('⏳ UserProvider not ready, waiting...');
+      final ready = await userProvider.waitForUserData(
+        timeout: const Duration(seconds: 5),
+      );
+      if (!ready) {
+        debugPrint('❌ Timeout waiting for UserProvider');
+        _navigateToNotificationsTab(context);
+        return;
+      }
+    }
+
+    // ✅ Navigate with HomeScreen as base
+    _navigateToNotificationDestination(context, message.data);
+  }
+
+  /// ✅ NEW: Handle foreground notification tap
+  void _handleForegroundNotificationTap(NotificationPayload payload) async {
+    final context = navigatorKey.currentContext;
+    if (context == null || !mounted) {
+      debugPrint('⚠️ Context not ready for foreground navigation');
+      return;
+    }
+
+    // ✅ Ensure UserProvider is ready
+    final userProvider = Provider.of<UserProvider>(context, listen: false);
+    if (!userProvider.isUserDataValid()) {
+      debugPrint('⏳ UserProvider not ready, waiting...');
+      final ready = await userProvider.waitForUserData(
+        timeout: const Duration(seconds: 5),
+      );
+      if (!ready) {
+        debugPrint('❌ Timeout waiting for UserProvider');
+        _navigateToNotificationsTab(context);
+        return;
+      }
+    }
+
+    _navigateToNotificationDestination(context, payload.data);
+  }
+
+  /// ✅ Navigate to notification destination with HomeScreen as base
+  void _navigateToNotificationDestination(
+    BuildContext context,
+    Map<String, dynamic> rawData,
+  ) {
+    // ✅ Extract data handling nested 'notification' object
+    final notificationData = rawData['notification'] is Map
+        ? rawData['notification'] as Map<String, dynamic>
+        : rawData;
+
+    // Merge them
+    final Map<String, dynamic> data = {...rawData, ...notificationData};
+
+    final type = (data['type'] ?? '').toString().toLowerCase().trim();
+    debugPrint('🎯 Navigating to notification type: "$type"');
+    debugPrint('📋 Full notification data: $data');
+
+    Widget? destination;
+
+    // ✅ Check if this is a post-related notification (like, comment, vote)
+    if (type == 'like' ||
+        type == 'comment' ||
+        type == 'commetnt' || // backend typo
+        type == 'vote' ||
+        type == 'reply') {
+      // in case you have replies too
+
+      final postId = _parseToInt(data['post_id']);
+      debugPrint('   📝 Post notification detected - postId: $postId');
+
+      if (postId > 0) {
+        debugPrint('✅ Creating NotificationDetails (postId: $postId)');
+        destination = NotificationDetails(postId: postId);
+      } else {
+        debugPrint('❌ Invalid or missing post_id for type: $type');
+        debugPrint('   Available keys: ${data.keys.toList()}');
+      }
+    }
+    // ✅ Check if this is a follow notification
+    else if (type == 'follow') {
+      final userId = _parseToInt(data['sender_id']);
+      debugPrint('   👤 Follow notification detected - userId: $userId');
+
+      if (userId > 0) {
+        debugPrint('✅ Creating PublicProfile (userId: $userId)');
+        destination = PublicProfile(userId: userId);
+      } else {
+        debugPrint('❌ Invalid or missing sender_id for type: $type');
+        debugPrint('   Available keys: ${data.keys.toList()}');
+      }
+    } else {
+      debugPrint('⚠️ Unknown notification type: "$type"');
+      debugPrint('   Available keys: ${data.keys.toList()}');
+    }
+
+    if (destination != null) {
+      // ✅ Push destination on top of current navigation stack
+      Navigator.of(
+        context,
+      ).push(MaterialPageRoute(builder: (_) => destination!));
+    } else {
+      // ✅ Fallback to notifications tab
+      debugPrint('↩️ No valid destination, going to notifications tab');
+      _navigateToNotificationsTab(context);
+    }
+  }
+
+  /// Navigate to notifications tab (index 3) as fallback
+  void _navigateToNotificationsTab(BuildContext context) {
+    debugPrint('🔔 Navigating to notifications tab');
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(builder: (_) => const HomeScreen(initialIndex: 3)),
+      (route) => false,
+    );
+  }
+
+  /// ✅ Safe integer parsing
+  int _parseToInt(dynamic value) {
+    if (value == null) return 0;
+    if (value is int) return value;
+    if (value is String) return int.tryParse(value) ?? 0;
+    return 0;
   }
 
   Future<void> _reconnectWebSocketIfNeeded() async {
@@ -186,123 +325,11 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     }
   }
 
-  void _handleNotificationTap(NotificationPayload payload) {
-    debugPrint('🎯 _handleNotificationTap called');
-    debugPrint('Context available: ${navigatorKey.currentContext != null}');
-    debugPrint('Mounted: $mounted');
-
-    final context = navigatorKey.currentContext;
-    if (context == null || !mounted) {
-      debugPrint('⚠️ Cannot handle tap - context not available or not mounted');
-      // Retry after a short delay
-      Future.delayed(const Duration(milliseconds: 500), () {
-        if (mounted && navigatorKey.currentContext != null) {
-          debugPrint('🔄 Retrying notification tap handling...');
-          _handleNotificationTap(payload);
-        }
-      });
-      return;
-    }
-
-    final type = payload.type.toLowerCase();
-    debugPrint('📱 Handling notification tap - Type: $type');
-
-    switch (type) {
-      case 'like':
-      case 'comment':
-      case 'vote':
-        final postId = payload.data['post_id'];
-        debugPrint('Post ID: $postId');
-
-        if (postId != null) {
-          // Convert to int if it's a string
-          final postIdInt = postId is int
-              ? postId
-              : int.tryParse(postId.toString());
-
-          if (postIdInt != null) {
-            debugPrint(
-              '📝 Navigating to NotificationDetails with postId: $postIdInt',
-            );
-            Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (_) => NotificationDetails(postId: postIdInt),
-              ),
-            );
-          } else {
-            debugPrint('⚠️ Invalid post_id, going to notifications tab');
-            _navigateToNotificationScreen(context);
-          }
-        } else {
-          debugPrint('⚠️ Missing post_id, going to notifications tab');
-          _navigateToNotificationScreen(context);
-        }
-        break;
-
-      case 'follow':
-        final userId = payload.data['sender_id'];
-        debugPrint('👤 Follow notification - User ID: $userId');
-
-        if (userId != null) {
-          // Convert to int if it's a string
-          final userIdInt = userId is int
-              ? userId
-              : int.tryParse(userId.toString());
-
-          if (userIdInt != null) {
-            debugPrint(
-              '👤 Navigating to PublicProfile with userId: $userIdInt',
-            );
-            Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (_) => PublicProfile(userId: userIdInt),
-              ),
-            );
-          } else {
-            debugPrint('⚠️ Invalid user_id, going to notifications tab');
-            _navigateToNotificationScreen(context);
-          }
-        } else {
-          debugPrint('⚠️ Missing user_id, going to notifications tab');
-          _navigateToNotificationScreen(context);
-        }
-        break;
-
-      case 'post':
-      case 'new_message':
-      case 'chat':
-      case 'notification':
-      default:
-        debugPrint('🔔 Redirecting to notifications tab for type: $type');
-        _navigateToNotificationScreen(context);
-        break;
-    }
-  }
-
-  void _navigateToNotificationScreen(BuildContext context) {
-    debugPrint('📲 Navigating to notification screen (tab index 3)');
-    Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute(
-        builder: (_) => const HomeScreen(initialIndex: 3),
-        settings: const RouteSettings(name: '/notifications'),
-      ),
-      (route) => false,
-    );
-  }
-
   void _initializeDeepLinking() {
     DeepLinkService().initialize(
       onPostLinkReceived: (username, postId) {
         debugPrint('🔗 Deep link - Username: $username, PostId: $postId');
-
-        if (_isAppInitialized) {
-          _navigateToPostDetail(username, postId);
-        } else {
-          setState(() {
-            _pendingUsername = username;
-            _pendingPostId = postId;
-          });
-        }
+        _navigateToPostDetail(username, postId);
       },
     );
   }
@@ -319,77 +346,6 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
         );
       }
     });
-  }
-
-  void _handlePendingDeepLink() {
-    if (_pendingUsername != null && _pendingPostId != null) {
-      final username = _pendingUsername!;
-      final postId = _pendingPostId!;
-
-      setState(() {
-        _pendingUsername = null;
-        _pendingPostId = null;
-      });
-
-      _navigateToPostDetail(username, postId);
-    }
-  }
-
-  void _handlePendingNotification() {
-    final message = NotificationService().pendingInitialMessage;
-    if (message != null) {
-      debugPrint('🚀 ===== HANDLING PENDING NOTIFICATION =====');
-      debugPrint('Title: ${message.notification?.title}');
-      debugPrint('Data: ${message.data}');
-      debugPrint('==========================================');
-
-      final payload = NotificationPayload.fromFCM(message);
-
-      // When app opens from terminated state, handle the notification
-      Future.delayed(const Duration(milliseconds: 800), () {
-        if (mounted) {
-          debugPrint('🎯 Processing pending notification tap...');
-          _handleNotificationTap(payload);
-        }
-      });
-    } else {
-      debugPrint('ℹ️ No pending notification from terminated state');
-    }
-  }
-
-  Future<Widget> _getInitialScreen() async {
-    final bool isUserLoggedIn = await isLoggedIn();
-
-    if (!isUserLoggedIn) {
-      return SplashScreen(isLogged: false);
-    }
-
-    final bool isBiometricEnabled = await BiometricService.isBiometricEnabled();
-
-    if (!isBiometricEnabled) {
-      return SplashScreen(isLogged: true);
-    }
-
-    final bool isPinSecurityEnabled = await PinService.isPinSecurityEnabled();
-    final bool isFingerprintEnabled =
-        await BiometricService.isFingerprintEnabled();
-
-    if (isPinSecurityEnabled) {
-      final bool isPinSet = await PinService.isPinSet();
-      if (isPinSet) {
-        return const PinGateScreen();
-      }
-    }
-
-    if (isFingerprintEnabled) {
-      final bool isBiometricAvailable =
-          await BiometricService.isBiometricAvailable();
-      if (isBiometricAvailable) {
-        return const BiometricGateScreen();
-      }
-    }
-
-    return SplashScreen(isLogged: true);
   }
 
   @override
@@ -423,28 +379,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
         darkTheme: AppThemes.darkMode,
         themeMode: themeProvider.isDarkMode ? ThemeMode.dark : ThemeMode.light,
         title: AppStrings.appName,
-        home: FutureBuilder<Widget>(
-          future: _getInitialScreen(),
-          builder: (context, asyncSnapshot) {
-            if (asyncSnapshot.connectionState == ConnectionState.waiting) {
-              return Scaffold(
-                backgroundColor: Theme.of(context).colorScheme.background,
-                body: const Center(child: CircularProgressIndicator()),
-              );
-            } else if (asyncSnapshot.hasError) {
-              return SplashScreen(isLogged: false);
-            } else {
-              if (!_isAppInitialized) {
-                _isAppInitialized = true;
-                WidgetsBinding.instance.addPostFrameCallback((_) {
-                  _handlePendingDeepLink();
-                  _handlePendingNotification();
-                });
-              }
-              return asyncSnapshot.data ?? SplashScreen(isLogged: false);
-            }
-          },
-        ),
+        home: const SplashScreen(),
       ),
     );
   }

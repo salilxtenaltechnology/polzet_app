@@ -13,15 +13,18 @@ import 'package:http/http.dart' as http;
 
 import '../../data/token/shared_preferences.dart';
 import '../../mixin/utility_mixins.dart';
+import '../../models/like/like_uers_model.dart';
 import '../../models/posts/homefeed_posts_model.dart';
 import '../../models/posts/user_post_model.dart';
 import '../../models/public/public_profile_model.dart';
 import '../../models/search/search_user_model.dart';
+import '../../models/voters/top_voters_model.dart';
 import '../../provider/user_provider.dart';
 import '../../screens/home/home_imports.dart';
 import '../../widgets/show_toast.dart';
 import '../api_config.dart';
 import '../app_api.dart';
+import 'fcm/fcm_service.dart';
 import 'notification/notification_services.dart';
 
 class ApiService with UtilityMixin {
@@ -111,6 +114,13 @@ class ApiService with UtilityMixin {
         await _prefService.saveRefreshToken(refreshToken);
         await _notificationService.initialize();
         await _notificationService.connectToWebSocket(accessToken);
+
+        // Register FCM Token immediately
+        final fcmToken = await _notificationService.getFCMToken();
+        if (fcmToken != null) {
+          final platform = Platform.isAndroid ? 'android' : 'ios';
+          await FcmApiService.registerFcmToken(fcmToken, platform);
+        }
 
         if (context.mounted) {
           Provider.of<UserProvider>(context, listen: false);
@@ -408,26 +418,10 @@ class ApiService with UtilityMixin {
     return allPosts.where((post) => post.polls.isNotEmpty).toList();
   }
 
-  /// Fetch user posts with images
+  // Fetch user posts with images
   Future<List<UserPostModel>> fetchPostsImages(String username) async {
     try {
       final response = await _dio.get('${ApiConstants.userPosts}/$username');
-
-      // DEBUG: Print raw response to verify is_liked values
-      // debugPrint('====== RAW API RESPONSE ======');
-      // debugPrint('Full Response: ${response.data}');
-
-      final results = response.data['results'] as List<dynamic>;
-      // debugPrint('Number of posts: ${results.length}');
-
-      // Print is_liked for each post
-      // for (var post in results) {
-      //   debugPrint(
-      //     'Post ID: ${post['id']}, is_liked in API: ${post['is_liked']}',
-      //   );
-      // }
-      debugPrint('====== END RAW RESPONSE ======');
-
       final data = response.data['results'] as List<dynamic>;
       return data.map((e) => UserPostModel.fromJson(e)).toList();
     } on DioException catch (e) {
@@ -436,6 +430,115 @@ class ApiService with UtilityMixin {
     }
   }
 
+  //   Future<List<UserPostModel>> fetchPostsImages(String username) async {
+  //   try {
+  //     print('🚀 ========================================');
+  //     print('🚀 FETCHING POSTS FOR USER: $username');
+  //     print('🚀 ========================================');
+
+  //     // Log the request details
+  //     print('📍 Endpoint: ${ApiConstants.userPosts}/$username');
+
+  //     // Make the API request
+  //     final response = await _dio.get('${ApiConstants.userPosts}/$username');
+
+  //     // 🔍 DEBUG: Log response status
+  //     print('📊 Response Status: ${response.statusCode}');
+
+  //     // 🔍 DEBUG: Log request headers (to verify authentication)
+  //     print('📤 REQUEST HEADERS:');
+  //     response.requestOptions.headers.forEach((key, value) {
+  //       if (key.toLowerCase() == 'authorization') {
+  //         // Only show first 30 characters of token for security
+  //         final tokenPreview = value.toString().length > 30
+  //             ? '${value.toString().substring(0, 30)}...'
+  //             : value.toString();
+  //         print('  $key: $tokenPreview');
+  //       } else {
+  //         print('  $key: $value');
+  //       }
+  //     });
+
+  //     // 🔍 DEBUG: Log raw response data
+  //     print('📡 ========================================');
+  //     print('📡 RAW API RESPONSE:');
+  //     print('📡 ========================================');
+  //     print(response.data);
+  //     print('📡 ========================================');
+
+  //     // Extract results
+  //     final data = response.data['results'] as List<dynamic>;
+  //     print('📦 Total posts received: ${data.length}');
+
+  //     // 🔍 DEBUG: Log each post's like status FROM RAW JSON
+  //     print('🔍 ========================================');
+  //     print('🔍 CHECKING is_liked VALUES IN RAW JSON:');
+  //     print('🔍 ========================================');
+  //     for (var postJson in data) {
+  //       final postId = postJson['id'];
+  //       final isLikedRaw = postJson['is_liked'];
+  //       final likesCount = postJson['likes_count'];
+
+  //       print('Post $postId:');
+  //       print('  - is_liked: $isLikedRaw (Type: ${isLikedRaw.runtimeType})');
+  //       print('  - likes_count: $likesCount');
+  //     }
+
+  //     // Parse to model
+  //     print('🔄 Parsing JSON to UserPostModel...');
+  //     final posts = data.map((e) => UserPostModel.fromJson(e)).toList();
+
+  //     // 🔍 DEBUG: Log parsed models
+  //     print('🔍 ========================================');
+  //     print('🔍 AFTER PARSING TO MODEL:');
+  //     print('🔍 ========================================');
+  //     for (var post in posts) {
+  //       print('Post ${post.id}:');
+  //       print('  - isLiked: ${post.isLiked}');
+  //       print('  - likesCount: ${post.likesCount}');
+  //     }
+
+  //     print('✅ Successfully fetched ${posts.length} posts');
+  //     print('🏁 ========================================\n');
+
+  //     return posts;
+
+  //   } on DioException catch (e) {
+  //     print('❌ ========================================');
+  //     print('❌ DIO EXCEPTION OCCURRED');
+  //     print('❌ ========================================');
+  //     print('Error Type: ${e.type}');
+  //     print('Status Code: ${e.response?.statusCode}');
+  //     print('Error Message: ${e.message}');
+
+  //     if (e.response != null) {
+  //       print('Response Data: ${e.response?.data}');
+  //       print('Response Headers: ${e.response?.headers}');
+  //     }
+
+  //     if (e.type == DioExceptionType.badResponse) {
+  //       print('🔴 Bad Response - Check API endpoint and authentication');
+  //     } else if (e.type == DioExceptionType.connectionTimeout) {
+  //       print('🔴 Connection Timeout - Check network connection');
+  //     } else if (e.type == DioExceptionType.unknown) {
+  //       print('🔴 Unknown Error - Check error details above');
+  //     }
+
+  //     print('❌ ========================================\n');
+
+  //     debugPrint('Error fetching image posts: $e');
+  //     rethrow;
+  //   } catch (e, stackTrace) {
+  //     print('❌ ========================================');
+  //     print('❌ UNEXPECTED ERROR');
+  //     print('❌ ========================================');
+  //     print('Error: $e');
+  //     print('Stack Trace: $stackTrace');
+  //     print('❌ ========================================\n');
+  //     rethrow;
+  //   }
+  // }
+
   /// Fetch only posts that have images in polls
   Future<List<UserPostModel>> fetchImagePosts(String username) async {
     final allPosts = await fetchPostsImages(username);
@@ -443,11 +546,65 @@ class ApiService with UtilityMixin {
     // Filter by posts that have images in POLLS (matching your UI logic)
     final filteredPosts = allPosts.where((post) => post.hasPollImages).toList();
 
-    // debugPrint(
-    //   'Filtered ${filteredPosts.length} posts with poll images from ${allPosts.length} total posts',
-    // );
-
     return filteredPosts;
+  }
+
+  /// Fetch a SINGLE post by ID
+  Future<UserPostModel?> fetchSinglePost(int postId) async {
+    try {
+      final accessToken = await SharedPrefService.getAccessToken();
+      final url = '${ApiConstants.userPosts}/$postId';
+      debugPrint('🔍 Fetching single post from: $url');
+
+      final response = await _dio.get(
+        url,
+        options: Options(
+          headers: {
+            'Authorization': 'Bearer $accessToken',
+            'Accept': 'application/json',
+          },
+        ),
+      );
+
+      debugPrint('✅ FetchSinglePost Response Status: ${response.statusCode}');
+      // debugPrint('📄 FetchSinglePost Response Data: ${response.data}');
+
+      if (response.statusCode == 200) {
+        final data = response.data;
+
+        // Handle "success" wrapper unique to this API if present
+        if (data is Map &&
+            data.containsKey('status') &&
+            data['status'] == 'success') {
+          final postData = data['data'] ?? data;
+          return UserPostModel.fromJson(postData);
+        }
+
+        // Check if data is wrapped or direct
+        final postData = data['data'] ?? data;
+
+        // If results list is returned (sometimes single resource endpoints return a list of 1)
+        if (postData is List && postData.isNotEmpty) {
+          return UserPostModel.fromJson(postData.first);
+        } else if (postData is Map<String, dynamic>) {
+          return UserPostModel.fromJson(postData);
+        }
+
+        debugPrint('⚠️ Unexpected JSON structure for single post: $data');
+        return null;
+      }
+      return null;
+    } on DioException catch (e) {
+      debugPrint('❌ Error fetching single post $postId: ${e.message}');
+      debugPrint('❌ Response Status: ${e.response?.statusCode}');
+      debugPrint('❌ Response Data: ${e.response?.data}');
+
+      if (e.response?.statusCode == 404) {
+        // Return null instead of throwing, let UI handle it
+        return null;
+      }
+      rethrow;
+    }
   }
 
   /// Upload image poll
@@ -546,6 +703,77 @@ class ApiService with UtilityMixin {
         throw Exception('Upload timeout. Please try again');
       }
       throw Exception('Network error: ${e.message}');
+    }
+  }
+
+  Future<List<LikeUser>> fetchLikedUsers(int postId) async {
+    try {
+      final response = await _dio.get(
+        '${ApiConstants.likePost}/$postId/likes',
+        options: Options(headers: await _getAuthHeaders()),
+      );
+
+      if (response.statusCode == 200) {
+        // Dio automatically parses JSON, no need for json.decode
+        final data = response.data;
+        final List<dynamic> results = data['results'] ?? [];
+
+        return results.map((user) => LikeUser.fromJson(user)).toList();
+      } else if (response.statusCode == 401) {
+        throw Exception('Unauthorized. Please login again.');
+      } else {
+        throw Exception('Failed to load likes. Status: ${response.statusCode}');
+      }
+    } on DioException catch (e) {
+      // Handle Dio-specific errors
+      if (e.response?.statusCode == 401) {
+        throw Exception('Unauthorized. Please login again.');
+      } else if (e.type == DioExceptionType.connectionTimeout) {
+        throw Exception('Connection timeout. Please check your internet.');
+      } else if (e.type == DioExceptionType.receiveTimeout) {
+        throw Exception('Server timeout. Please try again.');
+      } else if (e.type == DioExceptionType.badResponse) {
+        throw Exception(
+          'Failed to load likes. Status: ${e.response?.statusCode}',
+        );
+      } else {
+        throw Exception('Network error: ${e.message}');
+      }
+    } catch (e) {
+      throw Exception('Error loading likes: $e');
+    }
+  }
+
+  // Fetch post top-voters users
+  static Future<TopVotersModel> getTopVoters({
+    required int pollId,
+    required int optionId,
+  }) async {
+    try {
+      final accessToken = await SharedPrefService.getAccessToken();
+
+      final response = await _dio.get(
+        '${ApiConstants.topVoters}/$pollId/options/$optionId/top_voters',
+        options: Options(
+          headers: {
+            'Authorization': 'Bearer $accessToken',
+            'Content-Type': 'application/json',
+          },
+        ),
+      );
+
+      if (response.statusCode == 200) {
+        return TopVotersModel.fromJson(response.data as Map<String, dynamic>);
+      } else {
+        throw Exception('Failed to fetch top voters: ${response.statusCode}');
+      }
+    } on DioException catch (e) {
+      debugPrint('DioException getTopVoters: ${e.message}');
+      debugPrint('Response: ${e.response?.data}');
+      rethrow;
+    } catch (e) {
+      debugPrint('Error getTopVoters: $e');
+      rethrow;
     }
   }
 

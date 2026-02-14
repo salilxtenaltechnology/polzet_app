@@ -29,15 +29,16 @@ class LikeUtils {
       return const TextSpan(text: '');
     }
 
+    // Theme-aware colors
     final baseStyle = TextStyle(
-      fontSize: 10.5.sp,
-      color: Colors.black.withOpacity(0.6),
+      fontSize: 10.sp,
+      color: Theme.of(context).colorScheme.onSurface.withOpacity(0.8),
       fontWeight: FontWeight.w400,
     );
 
     final boldStyle = TextStyle(
-      fontSize: 10.5.sp,
-      color: Colors.black.withOpacity(0.8),
+      fontSize: 10.sp,
+      color: Theme.of(context).colorScheme.onBackground,
       fontWeight: FontWeight.w600,
     );
 
@@ -83,6 +84,8 @@ class LikeUtils {
     int maxDisplay = 2,
     double avatarSize = 16,
   }) {
+    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    
     return SizedBox(
       height: avatarSize.h,
       width: (viewLikes.take(maxDisplay).length * (avatarSize * 0.65) + 7).w,
@@ -95,7 +98,12 @@ class LikeUtils {
               child: Container(
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  border: Border.all(color: Colors.white, width: 2),
+                  border: Border.all(
+                    color: isDarkMode 
+                        ? Theme.of(context).colorScheme.primaryContainer
+                        : Colors.white,
+                    width: 2,
+                  ),
                 ),
                 child: CircleAvatar(
                   radius: (avatarSize / 2).r,

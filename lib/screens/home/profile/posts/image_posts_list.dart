@@ -9,6 +9,7 @@ import '../../../../api/services/api_service.dart';
 import '../../../../api/services/like/like_service.dart';
 import '../../../../core/constants/app_images.dart';
 import '../../../../l10n/generated/app_localizations.dart';
+import '../../../../models/like/like_uers_model.dart';
 import '../../../../models/posts/user_post_model.dart';
 import '../../../../widgets/base64/image_convert.dart';
 import '../../../../widgets/button/back_button.dart';
@@ -17,6 +18,7 @@ import '../../../../widgets/diolog/custom_diolog.dart';
 import '../../../../widgets/loader.dart';
 import '../../../../widgets/show_toast.dart';
 import '../../../../widgets/utils/bottomsheet_util.dart';
+import '../../../../widgets/utils/like_util.dart';
 import 'image_grid.dart';
 
 class ImagePostsList extends StatefulWidget {
@@ -39,6 +41,10 @@ class _ImagePostsListState extends State<ImagePostsList> {
   // Track comments count for each post
   Map<int, int> postCommentsCounts = {};
 
+  // Track liked users for each post (fetched on-demand)
+  Map<int, List<LikeUser>> postLikedUsers = {};
+  Map<int, bool> likedUsersLoading = {};
+
   // Cache the posts data
   List<UserPostModel>? cachedPosts;
   bool isLoading = true;
@@ -58,9 +64,10 @@ class _ImagePostsListState extends State<ImagePostsList> {
     try {
       final postsImage = await apiService.fetchImagePosts(widget.username!);
 
-      // DEBUG: Print raw response data
-      debugPrint('====== API RESPONSE DEBUG ======');
-      debugPrint('Total posts received: ${postsImage.length}');
+      // Debug: Print the like states from API
+      for (var post in postsImage) {
+        debugPrint('Post ${post.id}: isLiked=${post.isLiked}, likesCount=${post.likesCount}');
+      }
 
       setState(() {
         cachedPosts = postsImage;
@@ -72,16 +79,18 @@ class _ImagePostsListState extends State<ImagePostsList> {
         postCommentsCounts.clear();
 
         for (var post in postsImage) {
+          // Explicitly set the values from the post model
           postLikeStates[post.id] = post.isLiked;
           postLikeCounts[post.id] = post.likesCount;
           postCommentsCounts[post.id] = post.commentsCount;
 
-          // DEBUG: Print the like state
-          debugPrint(
-            'Post ID: ${post.id}, isLiked: ${post.isLiked}, likesCount: ${post.likesCount}',
-          );
+          debugPrint('Initialized Post ${post.id}: isLiked=${postLikeStates[post.id]}, likesCount=${postLikeCounts[post.id]}');
+
+          // Fetch liked users for posts with likes
+          if (post.likesCount > 0) {
+            _fetchLikedUsers(post.id);
+          }
         }
-        debugPrint('====== END API RESPONSE DEBUG ======');
       });
     } catch (e) {
       debugPrint('Error loading posts: $e');
@@ -92,6 +101,45 @@ class _ImagePostsListState extends State<ImagePostsList> {
     }
   }
 
+  // Fetch liked users for a specific post
+  Future<void> _fetchLikedUsers(int postId) async {
+    // Don't fetch if already loading or already loaded
+    if (likedUsersLoading[postId] == true || postLikedUsers.containsKey(postId)) {
+      return;
+    }
+
+    setState(() {
+      likedUsersLoading[postId] = true;
+    });
+
+    try {
+      final users = await ApiService().fetchLikedUsers(postId);
+      
+      setState(() {
+        postLikedUsers[postId] = users.take(3).toList(); // Only keep first 3 for display
+        likedUsersLoading[postId] = false;
+      });
+    } catch (e) {
+      debugPrint('Error fetching liked users for post $postId: $e');
+      setState(() {
+        likedUsersLoading[postId] = false;
+      });
+    }
+  }
+
+  // Silently fetch liked users without clearing existing data (prevents flickering)
+  Future<void> _fetchLikedUsersSilently(int postId) async {
+    try {
+      final users = await ApiService().fetchLikedUsers(postId);
+      
+      setState(() {
+        postLikedUsers[postId] = users.take(3).toList(); // Only keep first 3 for display
+      });
+    } catch (e) {
+      debugPrint('Error silently fetching liked users for post $postId: $e');
+    }
+  }
+
   void _showAllImagesGrid(int postId, UserPollQuestion poll) {
     Navigator.of(context)
         .push(
@@ -99,6 +147,7 @@ class _ImagePostsListState extends State<ImagePostsList> {
             builder: (context) => ShowImagesPopup(
               images: poll.options ?? [],
               postId: postId,
+              pollId: poll.id,
               onImageTap: (index) {},
               isPolledByCurrentUser: true,
             ),
@@ -168,6 +217,16 @@ class _ImagePostsListState extends State<ImagePostsList> {
         }
       });
 
+      // Silently refresh liked users in background without clearing current data
+      if (result.likesCount > 0) {
+        _fetchLikedUsersSilently(postId);
+      } else {
+        // Remove liked users if no likes left
+        setState(() {
+          postLikedUsers.remove(postId);
+        });
+      }
+
       // Show error message if operation failed
       if (!result.success) {
         showToast(message: result.message);
@@ -207,6 +266,14 @@ class _ImagePostsListState extends State<ImagePostsList> {
     );
   }
 
+  // Show Liked Users Bottom Sheet
+  void _showLikedUsersBottomSheet(int postId) {
+    BottomSheetUtils.showLikedUsersBottomSheet(
+      context: context,
+      postId: postId,
+    );
+  }
+
   Future<void> deletePost(int postId, int index) async {
     try {
       // Call the API to delete
@@ -219,6 +286,8 @@ class _ImagePostsListState extends State<ImagePostsList> {
           postLikeStates.remove(postId);
           postLikeCounts.remove(postId);
           postCommentsCounts.remove(postId);
+          postLikedUsers.remove(postId);
+          likedUsersLoading.remove(postId);
         });
 
         showToast(message: 'Post deleted successfully');
@@ -252,6 +321,7 @@ class _ImagePostsListState extends State<ImagePostsList> {
         ),
         backgroundColor: Theme.of(context).colorScheme.background,
         surfaceTintColor: Theme.of(context).colorScheme.background,
+        toolbarHeight: 25.h,
       ),
       body: isLoading
           ? Center(child: Loader(color: Theme.of(context).colorScheme.primary))
@@ -283,22 +353,29 @@ class _ImagePostsListState extends State<ImagePostsList> {
           return const SizedBox.shrink();
         }
 
-        // Read directly from tracking maps (they are always initialized in _loadPosts)
-        final isLiked = postLikeStates[imagePost.id] ?? imagePost.isLiked;
-        final likesCount = postLikeCounts[imagePost.id] ?? imagePost.likesCount;
-        final commentsCount =
-            postCommentsCounts[imagePost.id] ?? imagePost.commentsCount;
+        // FIXED: Directly read from tracking maps with fallback
+        // Use postLikeStates first, if not found, use cached post value
+        final isLiked = postLikeStates.containsKey(imagePost.id) 
+            ? postLikeStates[imagePost.id]! 
+            : imagePost.isLiked;
+        final likesCount = postLikeCounts.containsKey(imagePost.id)
+            ? postLikeCounts[imagePost.id]!
+            : imagePost.likesCount;
+        final commentsCount = postCommentsCounts.containsKey(imagePost.id)
+            ? postCommentsCounts[imagePost.id]!
+            : imagePost.commentsCount;
+        
+        // Get liked users for this post
+        final viewLikes = postLikedUsers[imagePost.id] ?? [];
 
-        // DEBUG: Print what we're rendering
-        debugPrint(
-          'Rendering Post ID: ${imagePost.id}, isLiked from map: ${postLikeStates[imagePost.id]}, isLiked from model: ${imagePost.isLiked}, final isLiked: $isLiked',
-        );
+        // Debug print for verification
+        debugPrint('Rendering Post ${imagePost.id}: isLiked=$isLiked, likesCount=$likesCount');
 
         return Container(
           padding: EdgeInsets.all(8.w),
           margin: EdgeInsets.all(10.w),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: Theme.of(context).colorScheme.primaryContainer,
             borderRadius: BorderRadius.circular(8.r),
             boxShadow: const [
               BoxShadow(
@@ -315,7 +392,7 @@ class _ImagePostsListState extends State<ImagePostsList> {
               Row(
                 children: [
                   CircleAvatar(
-                    radius: 20,
+                    radius: 17,
                     backgroundColor: Theme.of(
                       context,
                     ).colorScheme.primary.withOpacity(0.15),
@@ -332,7 +409,7 @@ class _ImagePostsListState extends State<ImagePostsList> {
                                 ? widget.username![0].toUpperCase()
                                 : '',
                             style: TextStyle(
-                              fontSize: 18.sp,
+                              fontSize: 15.sp,
                               fontWeight: FontWeight.w600,
                               color: Theme.of(context).colorScheme.primary,
                             ),
@@ -346,15 +423,18 @@ class _ImagePostsListState extends State<ImagePostsList> {
                       Text(
                         widget.username!,
                         style: TextStyle(
-                          fontSize: 12.8.sp,
+                          fontSize: 11.5.sp,
                           fontWeight: FontWeight.w600,
+                          color: Theme.of(context).colorScheme.onBackground,
                         ),
                       ),
                       Text(
                         'Placed a post',
                         style: TextStyle(
-                          fontSize: 10.sp,
-                          color: Colors.black.withOpacity(0.5),
+                          fontSize: 8.8.sp,
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onSurface.withOpacity(0.7),
                           fontWeight: FontWeight.w500,
                         ),
                       ),
@@ -376,12 +456,16 @@ class _ImagePostsListState extends State<ImagePostsList> {
                 padding: EdgeInsets.only(top: 8.h),
                 child: Text(
                   imagePost.description,
-                  style: Theme.of(context).textTheme.titleSmall,
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onBackground,
+                    fontSize: 11.sp,
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
               ),
               const SizedBox(height: 8),
               _buildImagesStack(imagePost.id, imagePost.polls),
-              SizedBox(height: 3.h),
+              SizedBox(height: 5.h),
               Row(
                 children: [
                   // Like button
@@ -401,15 +485,17 @@ class _ImagePostsListState extends State<ImagePostsList> {
                               ? Image.asset(
                                   Assets.assetsImagesIcHeartFilled,
                                   key: ValueKey('filled_${imagePost.id}'),
-                                  height: 23.h,
-                                  width: 23.w,
+                                  height: 21.h,
+                                  width: 21.w,
                                 )
                               : Image.asset(
                                   Assets.assetsImagesIcHeart,
                                   key: ValueKey('outline_${imagePost.id}'),
-                                  height: 23.h,
-                                  width: 23.w,
-                                  color: const Color(0xFFC6C5C5),
+                                  height: 21.h,
+                                  width: 21.w,
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onSurface.withOpacity(0.6),
                                 ),
                         ),
                         SizedBox(width: 3.w),
@@ -418,15 +504,17 @@ class _ImagePostsListState extends State<ImagePostsList> {
                               ? LikeService.getLikesCountText(likesCount)
                               : '',
                           style: TextStyle(
-                            fontSize: 12.sp,
+                            fontSize: 10.8.sp,
                             fontWeight: FontWeight.w500,
-                            color: Colors.black.withOpacity(0.7),
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurface.withOpacity(0.8),
                           ),
                         ),
                       ],
                     ),
                   ),
-                  SizedBox(width: 12.w),
+                  SizedBox(width: 8.w),
                   // Comments button
                   GestureDetector(
                     onTap: () => _showCommentsBottomSheet(imagePost.id),
@@ -434,8 +522,10 @@ class _ImagePostsListState extends State<ImagePostsList> {
                       children: [
                         Icon(
                           FeatherIcons.messageSquare,
-                          size: 21.sp,
-                          color: const Color(0xFFC6C5C5),
+                          size: 20.sp,
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onSurface.withOpacity(0.6),
                         ),
                         SizedBox(width: 3.w),
                         Text(
@@ -443,16 +533,67 @@ class _ImagePostsListState extends State<ImagePostsList> {
                               ? _getCommentsCountText(commentsCount)
                               : '',
                           style: TextStyle(
-                            fontSize: 12.sp,
+                            fontSize: 10.8.sp,
                             fontWeight: FontWeight.w500,
-                            color: Colors.black.withOpacity(0.7),
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurface.withOpacity(0.8),
                           ),
                         ),
                       ],
                     ),
                   ),
+                  SizedBox(width: 8.w),
+                  GestureDetector(
+                    onTap: () {
+                      // ShareService.sharePost(widget.post, context: context);
+                    },
+                    child: Icon(
+                      FeatherIcons.send,
+                      size: 18.3.sp,
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.onSurface.withOpacity(0.6),
+                    ),
+                  ),
                 ],
               ),
+              // Liked Users Display - Shows immediately, updates silently
+              if (likesCount > 0) ...[
+                SizedBox(height: 5.h),
+                if (viewLikes.isNotEmpty)
+                  // Show liked users with avatars and text (updates silently in background)
+                  GestureDetector(
+                    onTap: () => _showLikedUsersBottomSheet(imagePost.id),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      mainAxisAlignment: MainAxisAlignment.start,
+                      children: [
+                        LikeUtils.buildLikeAvatarsStack(
+                          context,
+                          viewLikes,
+                          avatarSize: 15,
+                        ),
+                        SizedBox(width: 5.w),
+                        Expanded(
+                          child: SizedBox(
+                            height: 20.h,
+                            child: Align(
+                              alignment: Alignment.centerLeft,
+                              child: RichText(
+                                overflow: TextOverflow.ellipsis,
+                                text: LikeUtils.buildLikedByRichText(
+                                  context,
+                                  viewLikes,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+              ],
             ],
           ),
         );
@@ -535,11 +676,10 @@ class _ImagePostsListState extends State<ImagePostsList> {
                         height: imageHeight,
                         child: Container(
                           decoration: BoxDecoration(
-                            border: Border.all(color: Colors.white, width: 1),
-                            borderRadius: BorderRadius.circular(20.r),
+                            borderRadius: BorderRadius.circular(12.r),
                           ),
                           child: ClipRRect(
-                            borderRadius: BorderRadius.circular(19.r),
+                            borderRadius: BorderRadius.circular(12.r),
                             child: Image.network(
                               '${ApiConfig.baseUrlImage}${imageData.url}',
                               fit: BoxFit.cover,

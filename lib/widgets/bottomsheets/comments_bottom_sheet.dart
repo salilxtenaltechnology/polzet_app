@@ -151,7 +151,7 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
     return Container(
       height: MediaQuery.of(context).size.height * 0.75,
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.only(
           topLeft: Radius.circular(20.r),
           topRight: Radius.circular(20.r),
@@ -176,13 +176,16 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
       margin: EdgeInsets.symmetric(horizontal: 10.w),
       decoration: BoxDecoration(
         border: Border(
-          bottom: BorderSide(color: Colors.grey.withOpacity(0.2), width: 1),
+          bottom: BorderSide(
+            color: Theme.of(context).colorScheme.outline.withOpacity(0.2),
+            width: 1,
+          ),
         ),
       ),
       child: Center(
         child: Text(
           'Comments',
-          style: TextStyle(fontSize: 13.5.sp, fontWeight: FontWeight.w600),
+          style: TextStyle(fontSize: 13.sp, fontWeight: FontWeight.w600),
         ),
       ),
     );
@@ -201,14 +204,14 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
             Icon(
               Icons.chat_bubble_outline,
               size: 50.sp,
-              color: Colors.grey.withOpacity(0.4),
+              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.4),
             ),
             SizedBox(height: 10.h),
             Text(
               'No comments yet',
               style: TextStyle(
                 fontSize: 14.sp,
-                color: Colors.grey.withOpacity(0.6),
+                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -217,7 +220,7 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
               'Be the first to comment',
               style: TextStyle(
                 fontSize: 12.sp,
-                color: Colors.grey.withOpacity(0.5),
+                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5),
               ),
             ),
           ],
@@ -247,7 +250,7 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           CircleAvatar(
-            radius: 13.r,
+            radius: 13.5.r,
             backgroundColor: Theme.of(
               context,
             ).colorScheme.primary.withOpacity(0.15),
@@ -276,6 +279,9 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
                             comment.user,
                             style: TextStyle(
                               fontSize: 11.sp,
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.onBackground.withOpacity(0.8),
                               fontWeight: FontWeight.w600,
                             ),
                           ),
@@ -286,7 +292,9 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
                               style: TextStyle(
                                 fontSize: 11.sp,
                                 fontWeight: FontWeight.w600,
-                                color: Colors.grey.withOpacity(0.7),
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onSurface.withOpacity(0.7),
                               ),
                             ),
                           ),
@@ -294,7 +302,9 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
                             _formatTime(comment.createdAt),
                             style: TextStyle(
                               fontSize: 10.sp,
-                              color: Colors.grey.withOpacity(0.7),
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.onSurface.withOpacity(0.7),
                             ),
                           ),
                           const Spacer(),
@@ -312,7 +322,9 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
                                   child: Icon(
                                     Icons.edit,
                                     size: 16.sp,
-                                    color: Colors.grey.withOpacity(0.7),
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onSurface.withOpacity(0.7),
                                   ),
                                 ),
                                 SizedBox(width: 12.w),
@@ -334,8 +346,10 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
                           : Text(
                               comment.text,
                               style: TextStyle(
-                                fontSize: 12.sp,
-                                color: Colors.black.withOpacity(0.8),
+                                fontSize: 11.sp,
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onBackground,
                               ),
                             ),
                     ],
@@ -362,7 +376,7 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
             hintText: 'Edit comment...',
             hintStyle: TextStyle(
               fontSize: 12.sp,
-              color: Colors.grey.withOpacity(0.6),
+              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
             ),
           ),
         ),
@@ -379,7 +393,12 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
               },
               child: Text(
                 'Cancel',
-                style: TextStyle(fontSize: 11.sp, color: Colors.grey),
+                style: TextStyle(
+                  fontSize: 11.sp,
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.onSurface.withOpacity(0.6),
+                ),
               ),
             ),
             TextButton(
@@ -409,7 +428,7 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
             child: Container(
               padding: EdgeInsets.symmetric(horizontal: 15.w),
               decoration: BoxDecoration(
-                color: Colors.grey.withOpacity(0.1),
+                color: Theme.of(context).colorScheme.secondaryContainer,
                 borderRadius: BorderRadius.circular(25.r),
               ),
               child: TextField(
@@ -418,7 +437,9 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
                   hintText: 'Add a comment...',
                   hintStyle: TextStyle(
                     fontSize: 13.sp,
-                    color: Colors.grey.withOpacity(0.6),
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.onSurface.withOpacity(0.6),
                   ),
                   border: InputBorder.none,
                 ),

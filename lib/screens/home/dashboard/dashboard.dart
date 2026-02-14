@@ -105,7 +105,6 @@ class DashboardState extends State<Dashboard> with UtilityMixin {
           // Emit to stream
           _postsStreamController.add(posts);
         }
-        debugPrint('Loaded ${cachedPosts.length} posts from cache');
       }
     } catch (e) {
       debugPrint('Error loading cached posts: $e');
@@ -243,7 +242,7 @@ class DashboardState extends State<Dashboard> with UtilityMixin {
               children: [
                 Text(
                   'Error: $errorMessage',
-                  style: const TextStyle(color: Colors.red),
+                  style: TextStyle(color: Theme.of(context).colorScheme.error),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 16),

@@ -61,14 +61,35 @@
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
-
+ 
             <!-- ✅ CRITICAL: This makes FCM notification taps open the app -->
             <intent-filter>
                 <action android:name="FLUTTER_NOTIFICATION_CLICK" />
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
-            
-        </activity>
+
+            <!-- ✅ ADD THIS: HTTPS Deep Links -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+        
+                <data android:scheme="https" />
+                <data android:host="www.polzet.com" />
+                <data android:pathPrefix="/post" />
+            </intent-filter>
+    
+            <!-- ✅ ADD THIS: Custom Scheme Deep Links -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+        
+                <data android:scheme="polzet" />
+                <data android:host="post" />
+            </intent-filter>
+              
+         </activity>
         
         <!-- ============================================= -->
         <!-- IMAGE CROPPER ACTIVITY - REQUIRED FOR UCROP -->

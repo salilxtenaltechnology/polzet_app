@@ -38,7 +38,7 @@ android {
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion  // Changed from flutter.minSdkVersion to 21 (required for notifications)
         targetSdk = 35
-        versionCode = 4
+        versionCode = 5
         versionName = "1.0.2"
         multiDexEnabled = true  // Added for larger apps with many dependencies
     }
@@ -55,8 +55,8 @@ android {
     buildTypes {
         release {
             signingConfig = signingConfigs.getByName("release")
-            isMinifyEnabled = false
-            isShrinkResources = false
+            isMinifyEnabled = true
+            isShrinkResources = true
         }
     }
 }

@@ -7,9 +7,9 @@ class HomeFeedPost {
   final String createdAt;
   final List<HomeFeedPoll> polls;
   final int likesCount;
-  final List<LikeUser> viewLikes;
   final bool isLikedByCurrentUser;
   final int commentsCount;
+  final List<HomeFeedLikeUser> viewLikes;
 
   HomeFeedPost({
     required this.id,
@@ -18,9 +18,9 @@ class HomeFeedPost {
     required this.createdAt,
     required this.polls,
     required this.likesCount,
-    required this.viewLikes,
     required this.isLikedByCurrentUser,
     required this.commentsCount,
+    required this.viewLikes,
   });
 
   factory HomeFeedPost.fromJson(Map<String, dynamic> json) {
@@ -35,12 +35,12 @@ class HomeFeedPost {
           (item) => HomeFeedPoll.fromJson(item),
         ),
         likesCount: _parseToInt(json['likes_count']),
-        viewLikes: _parseList<LikeUser>(
-          json['view_likes'],
-          (item) => LikeUser.fromJson(item),
-        ),
         isLikedByCurrentUser: json['is_liked_by_current_user'] == true,
         commentsCount: _parseToInt(json['comments_count']),
+        viewLikes: _parseList<HomeFeedLikeUser>(
+          json['view_likes'] ?? json['likes'],
+          (item) => HomeFeedLikeUser.fromJson(item),
+        ),
       );
     } catch (e) {
       debugPrint('Error parsing HomeFeedPost: $e');
@@ -57,9 +57,9 @@ class HomeFeedPost {
       'created_at': createdAt,
       'polls': polls.map((poll) => poll.toJson()).toList(),
       'likes_count': likesCount,
-      'view_likes': viewLikes.map((like) => like.toJson()).toList(),
       'is_liked_by_current_user': isLikedByCurrentUser,
       'comments_count': commentsCount,
+      'view_likes': viewLikes.map((like) => like.toJson()).toList(),
     };
   }
 
@@ -97,28 +97,36 @@ class HomeFeedPost {
   }
 }
 
-class LikeUser {
+class HomeFeedLikeUser {
   final int id;
   final String username;
   final String? profileImage;
 
-  LikeUser({required this.id, required this.username, this.profileImage});
+  HomeFeedLikeUser({
+    required this.id,
+    required this.username,
+    this.profileImage,
+  });
 
   String get firstLetter {
-    if (username.isEmpty) return 'U';
-    return username[0].toUpperCase();
+    return username.isNotEmpty ? username[0].toUpperCase() : '?';
   }
 
-  factory LikeUser.fromJson(Map<String, dynamic> json) {
-    return LikeUser(
-      id: _parseToInt(json['id']),
-      username: _parseToString(json['username']),
-      profileImage: json['profile_image']?.toString(),
+  factory HomeFeedLikeUser.fromJson(Map<String, dynamic> json) {
+    return HomeFeedLikeUser(
+      id: _parseToInt(json['id'] ?? json['user_id']),
+      username: _parseToString(json['username'] ?? json['name']),
+      profileImage: json['profile_image']?.toString() ?? 
+                    json['avatar_url']?.toString(),
     );
   }
 
   Map<String, dynamic> toJson() {
-    return {'id': id, 'username': username, 'profile_image': profileImage};
+    return {
+      'id': id,
+      'username': username,
+      'profile_image': profileImage,
+    };
   }
 
   static int _parseToInt(dynamic value) {
@@ -270,18 +278,18 @@ class HomeFeedPollOption {
   final String? text;
   final PollOptionImage? image;
   final int voteCount;
-  final List<LikeUser> votersPreview;
   final int score;
   double percentage;
+  final List<HomeFeedLikeUser> userList;
 
   HomeFeedPollOption({
     required this.id,
     this.text,
     this.image,
     required this.voteCount,
-    required this.votersPreview,
     required this.score,
     required this.percentage,
+    required this.userList,
   });
 
   factory HomeFeedPollOption.fromJson(Map<String, dynamic> json) {
@@ -292,12 +300,12 @@ class HomeFeedPollOption {
           ? PollOptionImage.fromJson(json['image'] as Map<String, dynamic>)
           : null,
       voteCount: _parseToInt(json['vote_count']),
-      votersPreview: _parseList<LikeUser>(
-        json['voters_preview'],
-        (item) => LikeUser.fromJson(item),
-      ),
       score: _parseToInt(json['score']),
       percentage: _parseToDouble(json['percentage']),
+      userList: _parseList<HomeFeedLikeUser>(
+        json['user_list'],
+        (item) => HomeFeedLikeUser.fromJson(item),
+      ),
     );
   }
 
@@ -307,9 +315,9 @@ class HomeFeedPollOption {
       'text': text,
       'image': image?.toJson(),
       'vote_count': voteCount,
-      'voters_preview': votersPreview.map((user) => user.toJson()).toList(),
       'score': score,
       'percentage': percentage,
+      'user_list': userList.map((user) => user.toJson()).toList(),
     };
   }
 
@@ -356,7 +364,7 @@ class PollOptionImage {
   final String thumbnailUrl;
   final int order;
   final int voteCount;
-  final List<LikeUser> userList;
+  final List<HomeFeedLikeUser> userList;
 
   PollOptionImage({
     required this.id,
@@ -374,9 +382,9 @@ class PollOptionImage {
       thumbnailUrl: _parseToString(json['thumbnail_url']),
       order: _parseToInt(json['order']),
       voteCount: _parseToInt(json['vote_count']),
-      userList: _parseList<LikeUser>(
+      userList: _parseList<HomeFeedLikeUser>(
         json['user_list'],
-        (item) => LikeUser.fromJson(item),
+        (item) => HomeFeedLikeUser.fromJson(item),
       ),
     );
   }

@@ -99,7 +99,7 @@ class _BiometricGateScreenState extends State<BiometricGateScreen>
         if (mounted) {
           Navigator.of(context).pushReplacement(
             MaterialPageRoute(
-              builder: (context) => SplashScreen(isLogged: true),
+              builder: (context) => const SplashScreen(),
             ),
           );
         }

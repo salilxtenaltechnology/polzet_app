@@ -114,59 +114,6 @@ class _UserChaseState extends State<UserChase>
     }
   }
 
-  // Remove follower (unfriend) - only removes from followers list
-  Future<void> _removeFollower(int userId) async {
-    try {
-      // Find the username before removing
-      String? removedUsername;
-      final removedUser = _allFollowers.firstWhere(
-        (user) => user['id'] == userId,
-        orElse: () => {},
-      );
-      if (removedUser.isNotEmpty) {
-        removedUsername = removedUser['username'] as String?;
-      }
-
-      // Optimistically remove ONLY from followers list
-      setState(() {
-        _allFollowers.removeWhere((user) => user['id'] == userId);
-        _filteredFollowers.removeWhere((user) => user['id'] == userId);
-
-        // Update ONLY follower count
-        _followerCount = _allFollowers.length;
-      });
-
-      // Call API to remove follower
-      final response = await apiService.unfriend(userId);
-
-      if (response['status'] == 'success') {
-        // Show success message
-        if (mounted) {
-          showToast(
-            message: response['data'] ?? 'Follower removed successfully',
-          );
-        }
-      } else {
-        // If failed, reload data to restore the user
-        _loadData();
-
-        if (mounted) {
-          showToast(
-            message: response['message'] ?? 'Failed to remove follower',
-          );
-        }
-      }
-    } catch (e) {
-      // If error, reload data to restore the user
-      _loadData();
-
-      if (mounted) {
-        showToast(message: 'Error: ${e.toString()}');
-      }
-      debugPrint('Error removing follower: $e');
-    }
-  }
-
   // Toggle follow/unfollow in Following tab
   Future<void> _toggleFollow(String username, int userId) async {
     try {
@@ -205,10 +152,6 @@ class _UserChaseState extends State<UserChase>
         final success = await apiService.sendFriendRequest(username);
 
         if (success) {
-          // Successfully followed
-          // if (mounted) {
-          //   showToast(message: 'Friend request sent successfully');
-          // }
         } else {
           // If failed, revert the change
           setState(() {
@@ -453,6 +396,7 @@ class _UserChaseState extends State<UserChase>
         ),
         centerTitle: true,
         backgroundColor: Theme.of(context).colorScheme.background,
+        surfaceTintColor: Theme.of(context).colorScheme.background,
         toolbarHeight: 25.h,
       ),
       body: Column(
@@ -465,7 +409,7 @@ class _UserChaseState extends State<UserChase>
             indicatorSize: TabBarIndicatorSize.tab,
             indicator: FadeUnderlineTabIndicator(),
             labelColor: Theme.of(context).colorScheme.primary,
-            labelStyle: const TextStyle(fontWeight: FontWeight.w500),
+            labelStyle:  TextStyle(fontWeight: FontWeight.w500, fontSize: 11.sp),
             dividerColor: Colors.transparent,
             unselectedLabelColor: Theme.of(context).colorScheme.onBackground,
             tabs: [

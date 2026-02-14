@@ -7,10 +7,13 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../../api/services/api_service.dart';
 import '../../../api/services/like/like_service.dart';
 import '../../../core/constants/app_images.dart';
+import '../../../models/like/like_uers_model.dart';
 import '../../../models/posts/user_post_model.dart';
 import '../../show_toast.dart';
 import '../../base64/image_convert.dart';
 import '../../diolog/custom_diolog.dart';
+import '../../utils/bottomsheet_util.dart';
+import '../../utils/like_util.dart';
 
 class ThingsQustionsCard extends StatefulWidget {
   ThingsQustionsCard({
@@ -25,10 +28,11 @@ class ThingsQustionsCard extends StatefulWidget {
     this.currentLikeState,
     this.currentLikesCount,
     this.currentCommentsCount,
+    this.currentLikedUsers,
+    this.onLikedUsersUpdated,
   });
 
-  final UserPostModel
-  post; // FIXED: Changed from PostImagesResponse to PostImagesModel
+  final UserPostModel post;
   final Function(int postId) onDelete;
   final Function(int postId, bool isLiked, int likesCount) onLikeChanged;
   final Function(int postId, int commentsCount) onCommentsChanged;
@@ -36,6 +40,8 @@ class ThingsQustionsCard extends StatefulWidget {
   final bool? currentLikeState;
   final int? currentLikesCount;
   final int? currentCommentsCount;
+  final List<LikeUser>? currentLikedUsers;
+  final Function(int postId, List<LikeUser> users)? onLikedUsersUpdated;
   String? username;
   String? profileImage;
 
@@ -50,6 +56,7 @@ class _ThingsQustionsCardState extends State<ThingsQustionsCard> {
   late bool isLiked;
   late int likesCount;
   late int commentsCount;
+  late List<LikeUser> likedUsers;
 
   @override
   void initState() {
@@ -58,6 +65,7 @@ class _ThingsQustionsCardState extends State<ThingsQustionsCard> {
     isLiked = widget.currentLikeState ?? widget.post.isLiked;
     likesCount = widget.currentLikesCount ?? widget.post.likesCount;
     commentsCount = widget.currentCommentsCount ?? widget.post.commentsCount;
+    likedUsers = widget.currentLikedUsers ?? [];
   }
 
   @override
@@ -73,6 +81,27 @@ class _ThingsQustionsCardState extends State<ThingsQustionsCard> {
     if (widget.currentCommentsCount != null) {
       commentsCount = widget.currentCommentsCount!;
     }
+    if (widget.currentLikedUsers != null) {
+      likedUsers = widget.currentLikedUsers!;
+    }
+  }
+
+  // Silently fetch liked users without clearing existing data (prevents flickering)
+  Future<void> _fetchLikedUsersSilently() async {
+    try {
+      final users = await ApiService().fetchLikedUsers(widget.post.id);
+      
+      if (mounted) {
+        setState(() {
+          likedUsers = users.take(3).toList(); // Only keep first 3 for display
+        });
+        
+        // Notify parent of the update
+        widget.onLikedUsersUpdated?.call(widget.post.id, users.take(3).toList());
+      }
+    } catch (e) {
+      debugPrint('Error silently fetching liked users for post ${widget.post.id}: $e');
+    }
   }
 
   Future<void> _toggleLike() async {
@@ -87,27 +116,55 @@ class _ThingsQustionsCardState extends State<ThingsQustionsCard> {
           : currentLikeCount + 1;
     });
 
-    // Call the LikeService
-    final result = await likeService.togglePostLike(
+    try {
+      // Call the LikeService
+      final result = await likeService.togglePostLike(
+        context: context,
+        postId: widget.post.id,
+        currentLikeState: currentLikeState,
+        currentLikesCount: currentLikeCount,
+      );
+
+      // Update UI with server response
+      setState(() {
+        isLiked = result.isLiked;
+        likesCount = result.likesCount;
+      });
+
+      // Notify parent to update its tracking
+      widget.onLikeChanged(widget.post.id, result.isLiked, result.likesCount);
+
+      // Silently refresh liked users in background without clearing current data
+      if (result.likesCount > 0) {
+        _fetchLikedUsersSilently();
+      } else {
+        // Remove liked users if no likes left
+        setState(() {
+          likedUsers = [];
+        });
+        widget.onLikedUsersUpdated?.call(widget.post.id, []);
+      }
+
+      // Show error message if operation failed
+      if (!result.success) {
+        showToast(message: result.message);
+      }
+    } catch (e) {
+      // Revert optimistic update on error
+      setState(() {
+        isLiked = currentLikeState;
+        likesCount = currentLikeCount;
+      });
+      showToast(message: 'Failed to update like');
+    }
+  }
+
+  // Show Liked Users Bottom Sheet
+  void _showLikedUsersBottomSheet() {
+    BottomSheetUtils.showLikedUsersBottomSheet(
       context: context,
       postId: widget.post.id,
-      currentLikeState: currentLikeState,
-      currentLikesCount: currentLikeCount,
     );
-
-    // Update UI with server response
-    setState(() {
-      isLiked = result.isLiked;
-      likesCount = result.likesCount;
-    });
-
-    // Notify parent to update its tracking
-    widget.onLikeChanged(widget.post.id, result.isLiked, result.likesCount);
-
-    // Show error message if operation failed
-    if (!result.success) {
-      showToast(message: result.message);
-    }
   }
 
   String _getCommentsCountText(int count) {
@@ -125,7 +182,7 @@ class _ThingsQustionsCardState extends State<ThingsQustionsCard> {
         width: double.infinity,
         padding: const EdgeInsets.all(10).w,
         decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.secondaryContainer,
+          color: Theme.of(context).colorScheme.primaryContainer,
           borderRadius: BorderRadius.circular(10.r),
           boxShadow: const [
             BoxShadow(color: Colors.black12, blurRadius: 5, spreadRadius: 2),
@@ -138,9 +195,41 @@ class _ThingsQustionsCardState extends State<ThingsQustionsCard> {
               (p) => _thingsQuestionsBlock(
                 p,
                 context,
-              ), // FIXED: Renamed method and changed params
+              ),
             ),
             _buildInteractionSection(),
+            if (likesCount > 0 && likedUsers.isNotEmpty) ...[
+              GestureDetector(
+                onTap: _showLikedUsersBottomSheet,
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  mainAxisAlignment: MainAxisAlignment.start,
+                  children: [
+                    LikeUtils.buildLikeAvatarsStack(
+                      context,
+                      likedUsers,
+                      avatarSize: 15,
+                    ),
+                    SizedBox(width: 5.w),
+                    Expanded(
+                      child: SizedBox(
+                        height: 20.h,
+                        child: Align(
+                          alignment: Alignment.centerLeft,
+                          child: RichText(
+                            overflow: TextOverflow.ellipsis,
+                            text: LikeUtils.buildLikedByRichText(
+                              context,
+                              likedUsers,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ],
         ),
       ),
@@ -164,50 +253,66 @@ class _ThingsQustionsCardState extends State<ThingsQustionsCard> {
                     ? Image.asset(
                         Assets.assetsImagesIcHeartFilled,
                         key: ValueKey('filled_${widget.post.id}'),
-                        height: 23.h,
-                        width: 23.w,
+                        height: 21.h,
+                        width: 21.w,
                       )
                     : Image.asset(
                         Assets.assetsImagesIcHeart,
                         key: ValueKey('outline_${widget.post.id}'),
-                        height: 23.h,
-                        width: 23.w,
-                        color: const Color(0xFFC6C5C5),
+                        height: 21.h,
+                        width: 21.w,
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.onSurface.withOpacity(0.6),
                       ),
               ),
               SizedBox(width: 3.w),
               Text(
                 likesCount > 0 ? LikeService.getLikesCountText(likesCount) : '',
                 style: TextStyle(
-                  fontSize: 12.sp,
+                  fontSize: 10.8.sp,
                   fontWeight: FontWeight.w500,
-                  color: Colors.black.withOpacity(0.7),
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.onSurface.withOpacity(0.8),
                 ),
               ),
             ],
           ),
         ),
-        SizedBox(width: 5.w),
-        // Comments button
+        SizedBox(width: 8.w),
         GestureDetector(
           onTap: widget.onCommentsIconTap,
           child: Row(
             children: [
               Icon(
                 FeatherIcons.messageSquare,
-                size: 21.sp,
-                color: const Color(0xFFC6C5C5),
+                size: 20.sp,
+                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
               ),
               SizedBox(width: 3.w),
               Text(
                 commentsCount > 0 ? _getCommentsCountText(commentsCount) : '',
                 style: TextStyle(
-                  fontSize: 12.sp,
+                  fontSize: 10.8.sp,
                   fontWeight: FontWeight.w500,
-                  color: Colors.black.withOpacity(0.7),
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.onSurface.withOpacity(0.8),
                 ),
               ),
             ],
+          ),
+        ),
+        SizedBox(width: 8.w),
+        GestureDetector(
+          onTap: () {
+            // ShareService.sharePost(widget.post, context: context);
+          },
+          child: Icon(
+            FeatherIcons.send,
+            size: 18.3.sp,
+            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
           ),
         ),
       ],
@@ -215,8 +320,7 @@ class _ThingsQustionsCardState extends State<ThingsQustionsCard> {
   }
 
   Widget _thingsQuestionsBlock(
-    UserPollQuestion
-    pollQuestion, // FIXED: Changed from PollQuestion to UserPollQuestion
+    UserPollQuestion pollQuestion,
     BuildContext context,
   ) {
     final ApiService apiService = ApiService();
@@ -244,9 +348,9 @@ class _ThingsQustionsCardState extends State<ThingsQustionsCard> {
                           ? widget.username![0].toUpperCase()
                           : '',
                       style: TextStyle(
-                        fontSize: 18.sp,
+                        fontSize: 11.5.sp,
                         fontWeight: FontWeight.w600,
-                        color: Theme.of(context).colorScheme.primary,
+                        color: Theme.of(context).colorScheme.onBackground,
                       ),
                     )
                   : null,
@@ -265,8 +369,10 @@ class _ThingsQustionsCardState extends State<ThingsQustionsCard> {
                 Text(
                   'Placed a post',
                   style: TextStyle(
-                    fontSize: 10.sp,
-                    color: Colors.black.withOpacity(0.5),
+                    fontSize: 8.8.sp,
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.onSurface.withOpacity(0.7),
                     fontWeight: FontWeight.w500,
                   ),
                 ),
@@ -289,9 +395,9 @@ class _ThingsQustionsCardState extends State<ThingsQustionsCard> {
         Text(
           pollQuestion.question,
           style: TextStyle(
-            color: Colors.black,
-            fontSize: 12.5.sp,
-            fontWeight: FontWeight.w400,
+            color: Theme.of(context).colorScheme.onBackground,
+            fontSize: 11.sp,
+            fontWeight: FontWeight.w500,
           ),
         ),
         SizedBox(height: 8.h),
@@ -315,20 +421,24 @@ class _ThingsQustionsCardState extends State<ThingsQustionsCard> {
     BuildContext context,
     int optionIndex,
   ) {
-    //final voteCount = int.tryParse(option.voteCount) ?? 0;
     final percentage = option.percentage;
-    // Calculate percentage
-    // final percentage = totalVotes > 0 ? (voteCount / totalVotes * 100) : 0.0;
+
+    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
     return Padding(
       padding: EdgeInsets.only(bottom: 10.h),
       child: Container(
-        height: 25.h,
+        height: 23.h,
         width: double.infinity,
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: isDarkMode ? const Color(0xFF242831) : const Color(0xFFF5F6F7),
           borderRadius: BorderRadius.circular(10.r),
-          border: Border.all(color: Colors.grey.withOpacity(0.3), width: 1.w),
+          border: Border.all(
+            color: isDarkMode
+                ? const Color(0xFF30353D)
+                : const Color(0xFFE8E8E8),
+            width: 1,
+          ),
         ),
         child: Stack(
           children: [
@@ -345,7 +455,9 @@ class _ThingsQustionsCardState extends State<ThingsQustionsCard> {
                       widthFactor: value,
                       child: Container(
                         decoration: BoxDecoration(
-                          color: const Color(0xFFF0F0F0),
+                          color: isDarkMode
+                              ? const Color(0xFF30353D)
+                              : const Color(0xFFE8E8E8),
                           borderRadius: BorderRadius.circular(10.r),
                         ),
                       ),
@@ -364,9 +476,9 @@ class _ThingsQustionsCardState extends State<ThingsQustionsCard> {
                     child: Text(
                       option.text ?? '',
                       style: TextStyle(
-                        color: Colors.grey[700],
-                        fontSize: 11.2.sp,
-                        fontWeight: FontWeight.w400,
+                        color: Theme.of(context).colorScheme.onBackground,
+                        fontSize: 10.5.sp,
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
                   ),
@@ -374,9 +486,11 @@ class _ThingsQustionsCardState extends State<ThingsQustionsCard> {
                   Text(
                     '${percentage.toStringAsFixed(0)}%',
                     style: TextStyle(
-                      color: Colors.grey[800],
-                      fontSize: 11.sp,
-                      fontWeight: FontWeight.w500,
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.onBackground.withOpacity(0.6),
+                      fontSize: 10.5.sp,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                 ],

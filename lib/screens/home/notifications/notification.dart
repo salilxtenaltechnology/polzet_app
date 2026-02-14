@@ -127,9 +127,6 @@ class NotificationState extends State<Notifications>
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(_notificationsCacheKey, json.encode(responseData));
 
-      if (kDebugMode) {
-        print('Notifications saved to cache');
-      }
     } catch (e) {
       if (kDebugMode) {
         print('Error saving notifications to cache: $e');
@@ -219,12 +216,7 @@ class NotificationState extends State<Notifications>
             _notificationStreamController.add(_lastNotifications);
           }
 
-          if (kDebugMode) {
-            print(
-              '✅ Successfully parsed ${notificationsResponse.notifications.length} notifications',
-            );
-            print('Next page URL: $_nextPageUrl');
-          }
+
         } catch (parseError) {
           if (kDebugMode) {
             print('❌ Error parsing notifications: $parseError');
@@ -310,14 +302,6 @@ class NotificationState extends State<Notifications>
 
         if (!_notificationStreamController.isClosed) {
           _notificationStreamController.add(_lastNotifications);
-        }
-
-        if (kDebugMode) {
-          print(
-            '✅ Loaded ${notificationsResponse.notifications.length} more notifications',
-          );
-          print('Total notifications: ${_lastNotifications.length}');
-          print('Next page URL: $_nextPageUrl');
         }
       }
     } catch (e) {
@@ -712,9 +696,9 @@ class NotificationState extends State<Notifications>
                                                     text:
                                                         notification.actor.name,
                                                     style: TextStyle(
-                                                      color: const Color(
-                                                        0XFF1A1F36,
-                                                      ),
+                                                      color: Theme.of(context)
+                                                          .colorScheme
+                                                          .onBackground,
                                                       fontSize: 12.2.sp,
                                                       fontWeight:
                                                           FontWeight.w600,
@@ -727,9 +711,9 @@ class NotificationState extends State<Notifications>
                                                       fontSize: 12.sp,
                                                       fontWeight:
                                                           FontWeight.w400,
-                                                      color: const Color(
-                                                        0XFF1A1F36,
-                                                      ),
+                                                      color: Theme.of(context)
+                                                          .colorScheme
+                                                          .onBackground,
                                                     ),
                                                   ),
                                                 ],
@@ -743,7 +727,10 @@ class NotificationState extends State<Notifications>
                                               ),
                                               style: TextStyle(
                                                 fontSize: 9.sp,
-                                                color: const Color(0XFF999999),
+                                                color: Theme.of(context)
+                                                    .colorScheme
+                                                    .onSurface
+                                                    .withOpacity(0.6),
                                               ),
                                             ),
                                           ],
@@ -971,9 +958,9 @@ class NotificationState extends State<Notifications>
                                                     text:
                                                         notification.actor.name,
                                                     style: TextStyle(
-                                                      color: const Color(
-                                                        0XFF1A1F36,
-                                                      ),
+                                                      color: Theme.of(context)
+                                                          .colorScheme
+                                                          .onBackground,
                                                       fontSize: 12.2.sp,
                                                       fontWeight:
                                                           FontWeight.w600,
@@ -986,9 +973,9 @@ class NotificationState extends State<Notifications>
                                                       fontSize: 12.sp,
                                                       fontWeight:
                                                           FontWeight.w400,
-                                                      color: const Color(
-                                                        0XFF1A1F36,
-                                                      ),
+                                                      color: Theme.of(context)
+                                                          .colorScheme
+                                                          .onBackground,
                                                     ),
                                                   ),
                                                 ],
@@ -1002,7 +989,10 @@ class NotificationState extends State<Notifications>
                                               ),
                                               style: TextStyle(
                                                 fontSize: 9.sp,
-                                                color: const Color(0XFF999999),
+                                                color: Theme.of(context)
+                                                    .colorScheme
+                                                    .onSurface
+                                                    .withOpacity(0.6),
                                               ),
                                             ),
                                           ],

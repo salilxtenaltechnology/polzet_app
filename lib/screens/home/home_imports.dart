@@ -1,15 +1,13 @@
-import 'dart:io';
 
 import 'package:curved_navigation_bar/curved_navigation_bar.dart';
 import 'package:feather_icons/feather_icons.dart';
-import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 
-import '../../api/services/fcm/fcm_service.dart';
 import '../../api/services/notification/notification_services.dart';
+import '../../core/navigation/notification_router.dart';
 import '../../data/token/shared_preferences.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../../mixin/utility_mixins.dart';

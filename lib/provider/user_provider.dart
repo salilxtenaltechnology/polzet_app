@@ -8,7 +8,7 @@ import '../models/user/user_model.dart';
 
 class UserProvider with ChangeNotifier {
   final ApiService apiService = ApiService();
-  int? userId; // Add this field
+  int? userId;
   String? username;
   String? firstName;
   String? lastName;
@@ -26,10 +26,16 @@ class UserProvider with ChangeNotifier {
   int? text_post_count;
   bool isLoading = true;
 
+  // ✅ NEW: Track if initial load is complete
+  bool _isInitialLoadComplete = false;
+  bool get isInitialLoadComplete => _isInitialLoadComplete;
+
   UserProvider() {
-    loadUserData();
+    // Don't call loadUserData here - we'll call it explicitly from main.dart
+    // This prevents automatic loading before we're ready
   }
 
+  /// ✅ ENHANCED: Load user data from API with completion tracking
   Future<void> loadUserData() async {
     isLoading = true;
     notifyListeners();
@@ -37,7 +43,8 @@ class UserProvider with ChangeNotifier {
     try {
       var data = await apiService.fetchUserData();
       await apiService.getFollowersList();
-      userId = data?['id']; // Add this line
+      
+      userId = data?['id'];
       username = data?['username'];
       firstName = data?['first_name'];
       lastName = data?['last_name'];
@@ -53,23 +60,70 @@ class UserProvider with ChangeNotifier {
       following_count = data?['following_count'];
       image_post_count = data?['image_post_count'];
       text_post_count = data?['text_post_count'];
+      
+      _isInitialLoadComplete = true;
       isLoading = false;
+      
       notifyListeners();
     } catch (e) {
+      debugPrint('❌ UserProvider: Error loading user data: $e');
       _clearUserFields();
+      _isInitialLoadComplete = false;
       isLoading = false;
       notifyListeners();
+      rethrow; // ✅ Rethrow so main.dart knows there was an error
     }
+  }
+
+  /// ✅ NEW: Check if user data is valid and ready
+  bool isUserDataValid() {
+    final isValid = _isInitialLoadComplete && 
+                    userId != null && 
+                    username != null && 
+                    username!.isNotEmpty;
+    
+    if (!isValid) {
+      debugPrint('⚠️ UserProvider: Data not valid');
+      debugPrint('   isInitialLoadComplete: $_isInitialLoadComplete');
+      debugPrint('   userId: $userId');
+      debugPrint('   username: $username');
+    }
+    
+    return isValid;
+  }
+
+  /// ✅ NEW: Wait for user data to be ready (with timeout)
+  Future<bool> waitForUserData({Duration timeout = const Duration(seconds: 10)}) async {
+    if (isUserDataValid()) {
+      debugPrint('✅ UserProvider: Data already valid');
+      return true;
+    }
+
+    debugPrint('⏳ UserProvider: Waiting for user data...');
+    
+    final startTime = DateTime.now();
+    while (!isUserDataValid()) {
+      if (DateTime.now().difference(startTime) > timeout) {
+        debugPrint('❌ UserProvider: Timeout waiting for user data');
+        return false;
+      }
+      await Future.delayed(const Duration(milliseconds: 100));
+    }
+
+    debugPrint('✅ UserProvider: User data ready');
+    return true;
   }
 
   // Method to load user data silently without showing loading state
   Future<void> loadUserDataSilently() async {
     // Don't change isLoading state to avoid showing loading indicators
     try {
+     // debugPrint('🔄 UserProvider: Silently refreshing user data...');
+      
       var data = await apiService.fetchUserData();
 
       // Update all fields with fresh data
-      userId = data?['id']; // Add this line
+      userId = data?['id'];
       username = data?['username'];
       firstName = data?['first_name'];
       lastName = data?['last_name'];
@@ -84,12 +138,21 @@ class UserProvider with ChangeNotifier {
       image_post_count = data?['image_post_count'];
       text_post_count = data?['text_post_count'];
 
+      _isInitialLoadComplete = true;
+
+      // ✅ Ensure isLoading is false so UI switches to using provider data
+      if (isLoading) {
+        isLoading = false;
+      }
+
+      //debugPrint('✅ UserProvider: Data refreshed silently');
+      
       // Only notify listeners to update UI with fresh data
       notifyListeners();
     } catch (e) {
       // On error, don't clear fields or change loading state
       // Just log the error and keep current data
-      debugPrint("Error loading user data silently: $e");
+      debugPrint("❌ UserProvider: Error loading user data silently: $e");
     }
   }
 
@@ -98,8 +161,7 @@ class UserProvider with ChangeNotifier {
     try {
       var data = await apiService.fetchUserData();
 
-      // Update all fields with fresh data
-
+      // Update image fields with fresh data
       profile_picture = data?['profile_picture_url'];
       cover_photo = data?['cover_photo_url'];
 
@@ -107,13 +169,22 @@ class UserProvider with ChangeNotifier {
     } catch (e) {
       // On error, don't clear fields or change loading state
       // Just log the error and keep current data
-      debugPrint("Error loading user data silently: $e");
+      debugPrint("Error loading user images: $e");
     }
+  }
+
+  /// ✅ NEW: Clear all user data (for logout)
+  void clearUserData() {
+    debugPrint('🗑️ UserProvider: Clearing all user data');
+    _clearUserFields();
+    _isInitialLoadComplete = false;
+    isLoading = false;
+    notifyListeners();
   }
 
   // Helper method to clear user fields
   void _clearUserFields() {
-    userId = null; // Add this line
+    userId = null;
     username = null;
     firstName = null;
     lastName = null;
@@ -134,7 +205,7 @@ class UserProvider with ChangeNotifier {
   // Method to update specific fields and notify listeners immediately
   void updateUserField(String field, dynamic value) {
     switch (field) {
-      case 'userId': // Add this case
+      case 'userId':
         userId = value;
         break;
       case 'username':

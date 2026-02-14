@@ -1,22 +1,29 @@
-// ignore_for_file: deprecated_member_use, must_be_immutable, unused_local_variable, unused_element, unused_field
+// ignore_for_file: deprecated_member_use, must_be_immutable, unused_local_variable, unused_element, unused_field, use_build_context_synchronously
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
 
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_images.dart';
 import '../../../core/constants/app_strings.dart';
+import '../../../core/navigation/notification_router.dart';
+import '../../../data/token/shared_preferences.dart';
+import '../../../provider/user_provider.dart';
 import '../../mixin/utility_mixins.dart';
 import '../auth/login/login_import.dart';
 import '../home/home_imports.dart';
+import '../home/settings/security/biometric/biometric_screen.dart';
+import '../home/settings/security/biometric/biometric_service.dart';
+import '../home/settings/security/pin/pin_gate_screen.dart';
+import '../home/settings/security/pin/pin_status.dart';
 
 class SplashScreen extends StatefulWidget {
-  bool? isLogged;
-
-  SplashScreen({super.key, required this.isLogged});
+  const SplashScreen({super.key});
 
   @override
-  // ignore: library_private_types_in_public_api
   _SplashScreenState createState() => _SplashScreenState();
 }
 
@@ -25,10 +32,16 @@ class _SplashScreenState extends State<SplashScreen>
   late AnimationController _controller;
   late Animation<double> _logoAnimation;
   late Animation<Offset> _textAnimation;
+  
+  // Future that resolves to the next screen widget
+  late Future<Widget> _initializationFuture;
 
   @override
   void initState() {
     super.initState();
+
+    // Start initialization logic immediately
+    _initializationFuture = _initializeApp();
 
     // Initialize animation controller
     _controller = AnimationController(
@@ -53,23 +66,97 @@ class _SplashScreenState extends State<SplashScreen>
           ),
         );
 
-    // Start animation
+    // Start animation and listen for completion
     _controller.forward();
     _controller.addStatusListener((status) {
       if (status == AnimationStatus.completed) {
-        _navigateToNextScreen();
+        _handleAnimationComplete();
       }
     });
   }
 
-  void _navigateToNextScreen() {
-    Future.delayed(const Duration(milliseconds: 400), () {
-      if (widget.isLogged == true) {
-        redirectToHomeScreen();
-      } else {
-        redirectToLoginScreen();
+  /// ✅ Core initialization logic moved from main.dart
+  Future<Widget> _initializeApp() async {
+    // 1. Check Login
+    final bool isUserLoggedIn = await _isLoggedIn();
+
+    if (!isUserLoggedIn) {
+      return const LoginScreen();
+    }
+
+    // 2. Load User Data
+    try {
+      // Note: We use listen: false because we are in initState context
+      if (mounted) {
+        final userProvider = Provider.of<UserProvider>(context, listen: false);
+        await userProvider.loadUserData();
       }
-    });
+    } catch (e) {
+      // If user data fails, force re-login
+      return const LoginScreen();
+    }
+
+    // 3. Check Pending Notifications
+    final notificationRouter = NotificationRouter();
+    Widget? notificationDestination;
+
+    if (notificationRouter.hasPendingNotification()) {
+      notificationDestination = await notificationRouter.resolveDestination();
+    }
+
+    // 4. Check Biometrics/PIN
+    final bool isBiometricEnabled = await BiometricService.isBiometricEnabled();
+
+    if (!isBiometricEnabled) {
+      // Return HomeScreen with potential notification destination
+      return HomeScreen(
+        initialIndex: 0,
+        pendingDestination: notificationDestination,
+      );
+    }
+
+    final bool isPinSecurityEnabled = await PinService.isPinSecurityEnabled();
+    final bool isFingerprintEnabled = await BiometricService.isFingerprintEnabled();
+
+    if (isPinSecurityEnabled) {
+      final bool isPinSet = await PinService.isPinSet();
+      if (isPinSet) {
+        return const PinGateScreen();
+      }
+    }
+
+    if (isFingerprintEnabled) {
+      final bool isBiometricAvailable = await BiometricService.isBiometricAvailable();
+      if (isBiometricAvailable) {
+        return const BiometricGateScreen();
+      }
+    }
+
+    return HomeScreen(
+      initialIndex: 0,
+      pendingDestination: notificationDestination,
+    );
+  }
+
+  Future<bool> _isLoggedIn() async {
+    final accessToken = await SharedPrefService.getAccessToken();
+    return accessToken != null;
+  }
+
+  Future<void> _handleAnimationComplete() async {
+    // Wait for minimum time AND initialization
+    await Future.delayed(const Duration(milliseconds: 400));
+    
+    if (!mounted) return;
+    final nextScreen = await _initializationFuture;
+    
+    if (!mounted) return;
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(
+        builder: (_) => nextScreen,
+      ),
+      (route) => false,
+    );
   }
 
   @override
@@ -121,13 +208,5 @@ class _SplashScreenState extends State<SplashScreen>
         ),
       ),
     );
-  }
-
-  void redirectToLoginScreen() {
-    clearStackAndAddScreen(context, const LoginScreen());
-  }
-
-  void redirectToHomeScreen() {
-    clearStackAndAddScreen(context, const HomeScreen());
   }
 }

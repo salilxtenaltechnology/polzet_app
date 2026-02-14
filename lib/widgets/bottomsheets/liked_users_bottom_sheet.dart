@@ -1,19 +1,15 @@
 // ignore_for_file: deprecated_member_use
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:polzet_app/api/services/api_service.dart';
 
-import '../../models/posts/homefeed_posts_model.dart';
+import '../../models/like/like_uers_model.dart';
 import '../../widgets/base64/image_convert.dart';
 
 class LikedUsersBottomSheet extends StatefulWidget {
-  final List<LikeUser> likedUsers;
   final int postId;
 
-  const LikedUsersBottomSheet({
-    super.key,
-    required this.likedUsers,
-    required this.postId,
-  });
+  const LikedUsersBottomSheet({super.key, required this.postId});
 
   @override
   State<LikedUsersBottomSheet> createState() => _LikedUsersBottomSheetState();
@@ -21,12 +17,43 @@ class LikedUsersBottomSheet extends StatefulWidget {
 
 class _LikedUsersBottomSheetState extends State<LikedUsersBottomSheet> {
   late List<LikeUser> _likedUsers;
-  final bool _isLoading = false;
+  bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    _likedUsers = widget.likedUsers;
+    _likedUsers = [];
+    _fetchLikedUsers();
+  }
+
+  // Fetch liked users from API
+  Future<void> _fetchLikedUsers() async {
+    try {
+      final users = await ApiService().fetchLikedUsers(widget.postId);
+
+      if (mounted) {
+        setState(() {
+          _likedUsers = users;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _likedUsers = [];
+          _isLoading = false;
+        });
+        // Show error message
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Failed to load likes: ${e.toString().replaceAll('Exception: ', '')}',
+            ),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   @override
@@ -34,7 +61,7 @@ class _LikedUsersBottomSheetState extends State<LikedUsersBottomSheet> {
     return Container(
       height: MediaQuery.of(context).size.height * 0.8,
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.only(
           topLeft: Radius.circular(20.r),
           topRight: Radius.circular(20.r),
@@ -42,7 +69,6 @@ class _LikedUsersBottomSheetState extends State<LikedUsersBottomSheet> {
       ),
       child: Column(
         children: [
-          // Header
           Container(
             padding: EdgeInsets.symmetric(vertical: 10.h),
             margin: EdgeInsets.symmetric(horizontal: 10.w),
@@ -50,7 +76,7 @@ class _LikedUsersBottomSheetState extends State<LikedUsersBottomSheet> {
             decoration: BoxDecoration(
               border: Border(
                 bottom: BorderSide(
-                  color: Colors.grey.withOpacity(0.2),
+                  color: Theme.of(context).colorScheme.outline.withOpacity(0.5),
                   width: 1,
                 ),
               ),
@@ -58,7 +84,7 @@ class _LikedUsersBottomSheetState extends State<LikedUsersBottomSheet> {
             child: Center(
               child: Text(
                 'Likes',
-                style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.w600),
+                style: TextStyle(fontSize: 13.sp, fontWeight: FontWeight.w600),
               ),
             ),
           ),
@@ -70,7 +96,12 @@ class _LikedUsersBottomSheetState extends State<LikedUsersBottomSheet> {
                 ? Center(
                     child: Text(
                       'No likes yet',
-                      style: TextStyle(fontSize: 14.sp, color: Colors.grey),
+                      style: TextStyle(
+                        fontSize: 14.sp,
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.onSurface.withOpacity(0.6),
+                      ),
                     ),
                   )
                 : ListView.builder(
@@ -81,8 +112,6 @@ class _LikedUsersBottomSheetState extends State<LikedUsersBottomSheet> {
                       return ListTile(
                         onTap: () {
                           Navigator.pop(context);
-                          // Navigate to user profile
-                          // context.pushNamed('user_profile', extra: user.id);
                         },
                         leading: CircleAvatar(
                           radius: 15.r,
@@ -112,7 +141,7 @@ class _LikedUsersBottomSheetState extends State<LikedUsersBottomSheet> {
                         title: Text(
                           user.username,
                           style: TextStyle(
-                            fontSize: 12.sp,
+                            fontSize: 11.5.sp,
                             fontWeight: FontWeight.w600,
                           ),
                         ),

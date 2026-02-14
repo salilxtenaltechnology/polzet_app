@@ -5,22 +5,24 @@ class ApiConfig {
   // testbackend.polzet.in : For Test
   // www.polzet.com : Official Domain
 
+  static String domainUrl =
+      'prodbackend.polzet.in'; // Change this to your backend domain
+
   static String get baseUrl {
     const protocol = useHttps ? 'https' : 'http';
-    const domain = 'testbackend.polzet.in';
+    final domain = domainUrl;
     return '$protocol://$domain/api';
   }
 
-  // https://testbackend.polzet.in
 
   static String get baseUrlImage {
     const protocol = useHttps ? 'https' : 'http';
-    const domain = 'testbackend.polzet.in';
+    final domain = domainUrl;
     return '$protocol://$domain';
   }
 
   static String get sharePostBaseUrl {
-    const domain = 'www.testbackend.polzet.in';
+    final domain = domainUrl;
     return 'https://$domain';
   }
 }

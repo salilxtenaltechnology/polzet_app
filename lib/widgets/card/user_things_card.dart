@@ -17,7 +17,7 @@ class UserThingsCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(10).w,
+      padding: EdgeInsets.symmetric(horizontal: 10.w,vertical: 7.h),
       decoration: BoxDecoration(
         gradient: gradientColors != null
             ? LinearGradient(
@@ -36,7 +36,11 @@ class UserThingsCard extends StatelessWidget {
       ),
       child: Text(
         post.description,
-        style: Theme.of(context).textTheme.titleMedium,
+       style: TextStyle(
+                color: Colors.white,
+                fontSize: 11.sp,
+                fontWeight: FontWeight.w400,
+              ),
       ),
     );
   }

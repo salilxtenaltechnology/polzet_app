@@ -437,6 +437,7 @@ class _PublicProfileState extends State<PublicProfile>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Theme.of(context).colorScheme.background,
       body: CustomScrollView(
         controller: _scrollController,
         physics: const AlwaysScrollableScrollPhysics(),
@@ -799,7 +800,7 @@ class _PublicProfileState extends State<PublicProfile>
                                       width: 80.w,
                                       height: 80.h,
                                       decoration: BoxDecoration(
-                                        color: const Color(0xFF9A2C3E),
+                                        color: Theme.of(context).primaryColor,
                                         borderRadius: BorderRadius.circular(
                                           20.r,
                                         ),
@@ -829,7 +830,7 @@ class _PublicProfileState extends State<PublicProfile>
                                       width: 80.w,
                                       height: 80.h,
                                       decoration: BoxDecoration(
-                                        color: const Color(0xFF9A2C3E),
+                                        color: Theme.of(context).primaryColor,
                                         borderRadius: BorderRadius.circular(
                                           20.r,
                                         ),
@@ -1393,7 +1394,7 @@ class _PublicProfileState extends State<PublicProfile>
                             width: double.infinity,
                             height: 38.h,
                             decoration: BoxDecoration(
-                              color: const Color(0xFF9A2C3E),
+                              color: Theme.of(context).primaryColor,
                               borderRadius: BorderRadius.circular(10.r),
                             ),
                             margin: EdgeInsets.only(
@@ -1673,7 +1674,20 @@ class _PublicProfileState extends State<PublicProfile>
                                         .map((option) => option.image!)
                                         .toList();
 
-                                    return PollImagesStack(pollImages);
+                                    return GestureDetector(
+                                      onTap: () {
+                                        navigationPush(
+                                          context,
+                                          PublicImagePostsList(
+                                            userId: profile.id,
+                                            username: profile.username,
+                                            profileImage:
+                                                profile.profilePictureUrl,
+                                          ),
+                                        );
+                                      },
+                                      child: PollImagesStack(pollImages),
+                                    );
                                   },
                                 );
                               },
@@ -1764,7 +1778,6 @@ class _PublicProfileState extends State<PublicProfile>
                                   ),
                                 );
                               }
-
                               if (snapshot.hasError) {
                                 return Center(
                                   child: Column(

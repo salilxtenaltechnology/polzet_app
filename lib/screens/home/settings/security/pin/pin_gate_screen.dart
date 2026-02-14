@@ -290,7 +290,7 @@ class _PinGateScreenState extends State<PinGateScreen> {
       if (authResult.success) {
         // PIN verified successfully - navigate to main app
         Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (context) => SplashScreen(isLogged: true)),
+          MaterialPageRoute(builder: (context) => const SplashScreen()),
         );
       } else {
         // PIN verification failed
