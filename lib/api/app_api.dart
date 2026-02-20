@@ -20,6 +20,16 @@ class ApiConstants {
   static String friendRequest = "$baseUrl/friend_requests";
   static String acceptRequest = "$baseUrl/friend_requests";
   static String deleteRequest = "$baseUrl/friend_requests";
+  static String createGroup = "$baseUrl/chats/group/create";
+  static String chatList = "$baseUrl/chats";
+  static String renameGroup = "$baseUrl/chats/group";
+  static String removeMember = "$baseUrl/chats/group";
+  static String deleteGroup = "$baseUrl/chats/group";
+  static String leaveGroup = "$baseUrl/chats/group";
+  static String makeAdmin = "$baseUrl/chats/group";
+  static String messageList = "$baseUrl/chats";
+  static String sendMessage = "$baseUrl/chats"; 
+  static String markAsRead = "$baseUrl/chats";
   static String searchUsers = "$baseUrl/users";
   static String blockUser = "$baseUrl/block_user";
   static String userPosts = "$baseUrl/posts";

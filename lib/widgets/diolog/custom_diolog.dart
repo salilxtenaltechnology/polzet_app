@@ -7,9 +7,10 @@ import 'package:lottie/lottie.dart';
 import '../../../core/constants/app_images.dart';
 import 'block_user_diolog.dart';
 import 'delete_account.dart';
+import 'delete_group.dart';
 import 'delete_post_diolog.dart';
 import 'diolog_animation.dart';
-import 'exit_group.dart';
+import 'leave_group.dart';
 import 'logout_dialog.dart';
 import 'notifications_diolog.dart';
 
@@ -53,7 +54,12 @@ showBlockUserDiolog(BuildContext context, VoidCallback onTap) {
   diologanimation(context, BlockUserDiolog(onPressed: onTap));
 }
 
-// exit group diolog
-showExitGroupDiolog(BuildContext context, VoidCallback onTap) {
-  diologanimation(context, ExitGroupDiolog(onPressed: onTap));
+// leave group diolog
+showLeaveGroupDiolog(BuildContext context, VoidCallback onTap) {
+  diologanimation(context, LeaveGroupDialog(onPressed: onTap));
+}
+
+// delete group diolog
+showDeleteGroupDiolog(BuildContext context, VoidCallback onTap) {
+  diologanimation(context, DeleteGroupDiolog(onPressed: onTap));
 }

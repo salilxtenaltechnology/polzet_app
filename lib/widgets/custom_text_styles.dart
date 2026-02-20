@@ -18,7 +18,7 @@ class CustomTextStyles {
 
   static TextStyle appBarTitleText(BuildContext context) => TextStyle(
     color: Theme.of(context).colorScheme.onBackground,
-    fontSize: 13.5.sp,
+    fontSize: 13.sp,
     fontWeight: FontWeight.w500,
   );
 
@@ -79,7 +79,7 @@ class CustomTextStyles {
   );
 
   static TextStyle btnPrimaryText = TextStyle(
-    fontSize: 12.5.sp,
+    fontSize: 11.sp,
     color: Colors.white,
     fontWeight: FontWeight.w600,
   );

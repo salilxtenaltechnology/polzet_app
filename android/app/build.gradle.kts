@@ -22,7 +22,7 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
-        isCoreLibraryDesugaringEnabled = true  // Correct syntax for Kotlin DSL
+        isCoreLibraryDesugaringEnabled = true
     }
 
     kotlin {
@@ -32,15 +32,12 @@ android {
     }
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
         applicationId = "com.polzet_app"
-        // You can update the following values to match your application needs.
-        // For more information, see: https://flutter.dev/to/review-gradle-config.
-        minSdk = flutter.minSdkVersion  // Changed from flutter.minSdkVersion to 21 (required for notifications)
+        minSdk = flutter.minSdkVersion
         targetSdk = 35
         versionCode = 5
         versionName = "1.0.2"
-        multiDexEnabled = true  // Added for larger apps with many dependencies
+        multiDexEnabled = true
     }
 
     signingConfigs {
@@ -57,6 +54,11 @@ android {
             signingConfig = signingConfigs.getByName("release")
             isMinifyEnabled = true
             isShrinkResources = true
+            // Add ProGuard configuration
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
         }
     }
 }
@@ -77,4 +79,7 @@ dependencies {
     
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
     implementation("androidx.core:core-ktx:1.13.1")
+    
+    // Add Play Core dependency
+    implementation("com.google.android.play:core:1.10.3")
 }

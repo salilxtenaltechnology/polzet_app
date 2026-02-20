@@ -3,7 +3,6 @@ part of 'home_imports.dart';
 
 class HomeScreen extends StatefulWidget {
   final int initialIndex;
-  /// ✅ Widget to navigate to after home loads (for cold start notifications)
   final Widget? pendingDestination;
   
   const HomeScreen({
@@ -28,8 +27,6 @@ class HomeScreenState extends State<HomeScreen> with UtilityMixin {
   void initState() {
     super.initState();
     pageIndex = widget.initialIndex;
-    
-    // ✅ Load cached user data immediately for UI
     _loadCachedUserData();
     
     // Initialize notifications and request permissions after login/splash
@@ -78,7 +75,6 @@ class HomeScreenState extends State<HomeScreen> with UtilityMixin {
     const InsightsScreen(),
     const PollPop(),
     const Notifications(),
-    //const TestNotificationsScreen(),
     const UserProfile(),
   ];
 
@@ -248,3 +244,4 @@ class HomeScreenState extends State<HomeScreen> with UtilityMixin {
     );
   }
 }
+// R@856713957787aq

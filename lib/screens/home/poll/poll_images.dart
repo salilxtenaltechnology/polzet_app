@@ -8,6 +8,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../../api/services/api_service.dart';
+import '../../../api/services/image/image_picker_service.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../data/token/shared_preferences.dart';
 import '../../../l10n/generated/app_localizations.dart';
@@ -36,23 +37,23 @@ class _PollImagesState extends State<PollImages> {
   bool isUploading = false;
   double uploadProgress = 0.0;
 
-  // List to store images dynamically
-  List<File?> _images = [null, null]; // Start with two null images
+  List<File?> _images = [null, null];
   static const int maxImages = 4;
 
   Future<void> _pickImage(int index) async {
     try {
-      final XFile? pickedFile = await _picker.pickImage(
-        source: ImageSource.gallery,
-        maxWidth: 1800,
-        maxHeight: 1800,
-        imageQuality: 85,
+      final File? pickedFile = await ImagePickerService.pickImage(
+        context: context,
+        allowCamera: true,
       );
 
       if (pickedFile != null) {
+        final File? croppedFile = await ImagePickerService.cropImage(
+          pickedFile,
+        );
+
         setState(() {
-          _images[index] = File(pickedFile.path);
-          // Clear image error when user selects an image
+          _images[index] = croppedFile ?? pickedFile;
           if (imageErrorText.isNotEmpty) {
             imageErrorText = '';
           }
@@ -231,7 +232,6 @@ class _PollImagesState extends State<PollImages> {
             controller: descriptionController,
             hintText: AppLocalizations.of(context)!.enteryouranswerhere,
             onChanged: (value) {
-              // Clear error when user starts typing
               if (descriptionErrorText.isNotEmpty && value.trim().isNotEmpty) {
                 setState(() {
                   descriptionErrorText = '';
@@ -248,7 +248,6 @@ class _PollImagesState extends State<PollImages> {
               ),
             ),
           SizedBox(height: 20.h),
-          // Dynamic image grid
           GridView.builder(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
@@ -263,7 +262,6 @@ class _PollImagesState extends State<PollImages> {
               return Stack(
                 children: [
                   _buildImageOption(context, index),
-                  // Remove button - only show if there's more than 2 image slots
                   if (_images.length > 2)
                     Positioned(
                       top: 5.h,
@@ -368,11 +366,9 @@ class _PollImagesState extends State<PollImages> {
                 borderRadius: BorderRadius.circular(12.r),
                 child: Stack(
                   children: [
-                    // Image
                     Positioned.fill(
                       child: Image.file(_images[index]!, fit: BoxFit.cover),
                     ),
-                    // Option label overlay
                     Positioned(
                       bottom: 0,
                       left: 0,

@@ -14,6 +14,7 @@ import 'package:http/http.dart' as http;
 import '../../data/token/shared_preferences.dart';
 import '../../mixin/utility_mixins.dart';
 import '../../models/like/like_uers_model.dart';
+import '../../models/message/message_model.dart';
 import '../../models/posts/homefeed_posts_model.dart';
 import '../../models/posts/user_post_model.dart';
 import '../../models/public/public_profile_model.dart';
@@ -1011,6 +1012,220 @@ class ApiService with UtilityMixin {
                 message.toLowerCase().contains('already sent'));
       }
       return false;
+    }
+  }
+
+  // ==================== MESSAGES & GROUP ====================
+
+  Future<Map<String, dynamic>> createGroup({
+    required String title,
+    required List<int> members,
+  }) async {
+    try {
+      final response = await _dio.post(
+        ApiConstants.createGroup,
+        data: {'title': title, 'members': members},
+        options: Options(headers: await _getAuthHeaders()),
+      );
+
+      if (response.statusCode == 200) {
+        final data = response.data as Map<String, dynamic>;
+        return {'success': true, 'chat_id': data['chat_id']};
+      }
+      return {'success': false, 'message': 'Failed to create group'};
+    } on DioException catch (e) {
+      return {
+        'success': false,
+        'message': _handleDioError(e, defaultMessage: 'Failed to create group'),
+      };
+    }
+  }
+
+  // Note: Implemented GET Method Chat List
+  Future<List<Map<String, dynamic>>> getChatList() async {
+    try {
+      final response = await _dio.get(
+        ApiConstants.chatList,
+        options: Options(headers: await _getAuthHeaders()),
+      );
+
+      if (response.statusCode == 200) {
+        final data = response.data;
+        if (data is Map<String, dynamic>) {
+          final list = data['results'];
+          if (list is List) {
+            return List<Map<String, dynamic>>.from(list);
+          }
+        }
+      }
+      return [];
+    } on DioException catch (e) {
+      debugPrint('Error fetching chat list: $e');
+      return [];
+    } catch (e) {
+      debugPrint('Unexpected error fetching chat list: $e');
+      return [];
+    }
+  }
+
+  Future<bool> markChatAsRead({required int chatId}) async {
+    try {
+      final response = await _dio.post(
+        '${ApiConstants.markAsRead}/$chatId/read',
+        options: Options(headers: await _getAuthHeaders()),
+      );
+
+      if (response.statusCode == 200) {
+        return true;
+      }
+      return false;
+    } on DioException {
+      return false;
+    }
+  }
+
+  Future<Map<String, dynamic>> renameGroup({
+    required int chatId,
+    required String newTitle,
+  }) async {
+    try {
+      final response = await _dio.post(
+        '${ApiConstants.renameGroup}/$chatId/rename',
+        data: {'title': newTitle},
+        options: Options(headers: await _getAuthHeaders()),
+      );
+
+      if (response.statusCode == 200) {
+        final data = response.data as Map<String, dynamic>;
+        return {'success': true, 'new_title': data['new_title']};
+      }
+      return {'success': false, 'message': 'Failed to rename group'};
+    } on DioException catch (e) {
+      return {
+        'success': false,
+        'message': _handleDioError(e, defaultMessage: 'Failed to rename group'),
+      };
+    }
+  }
+
+  // remove group member
+  Future<Map<String, dynamic>> removeMember({
+    required int chatId,
+    required int userId,
+  }) async {
+    try {
+      final response = await _dio.post(
+        '${ApiConstants.removeMember}/$chatId/remove_member',
+        data: {'user_id': userId},
+        options: Options(headers: await _getAuthHeaders()),
+      );
+      return {'success': true, 'message': response.data['message']};
+    } catch (e) {
+      return {'success': false, 'message': 'Failed to remove member'};
+    }
+  }
+
+  // delete group
+  Future<Map<String, dynamic>> deleteGroup({required int chatId}) async {
+    try {
+      final response = await _dio.delete(
+        '${ApiConstants.deleteGroup}/$chatId/delete',
+        options: Options(headers: await _getAuthHeaders()),
+      );
+      if (response.statusCode == 200) {
+        return {'message': response.data['message']};
+      }
+      return {'message': response.data['message'] ?? 'Failed to delete group'};
+    } catch (e) {
+      return {'message': 'Failed to delete group'};
+    }
+  }
+
+  // leave group
+  Future<Map<String, dynamic>> leaveGroup({required int chatId}) async {
+    try {
+      final response = await _dio.post(
+        '${ApiConstants.leaveGroup}/$chatId/leave',
+        options: Options(headers: await _getAuthHeaders()),
+      );
+      if (response.statusCode == 200) {
+        return {'message': response.data['message']};
+      }
+      return {'message': response.data['message'] ?? 'Failed to leave group'};
+    } catch (e) {
+      return {'message': 'Failed to leave group'};
+    }
+  }
+
+  // Make admin group member
+  Future<Map<String, dynamic>> makeAdmin({
+    required int chatId,
+    required int userId,
+  }) async {
+    try {
+      final response = await _dio.post(
+        '${ApiConstants.makeAdmin}/$chatId/make_admin',
+        data: {'user_id': userId},
+        options: Options(headers: await _getAuthHeaders()),
+      );
+      if (response.statusCode == 200) {
+        return {'message': response.data['message']};
+      }
+      return {'message': response.data['message'] ?? 'Failed to make admin'};
+    } catch (e) {
+      return {'message': 'Failed to make admin'};
+    }
+  }
+
+  // get messages list of private chat
+  Future<MessageListModel> getMessageList({
+    required int chatId,
+    String? nextPageUrl,
+  }) async {
+    try {
+      final response = await _dio.get(
+        nextPageUrl ?? '${ApiConstants.messageList}/$chatId/messages/list',
+        options: Options(headers: await _getAuthHeaders()),
+      );
+
+      return MessageListModel.fromJson(response.data as Map<String, dynamic>);
+    } on DioException catch (e) {
+      debugPrint(
+        '❌ getMessageList error: ${e.response?.statusCode} ${e.response?.data}',
+      );
+      throw Exception(
+        'Failed to load messages (${e.response?.statusCode}): ${e.response?.data}',
+      );
+    } catch (e) {
+      debugPrint('❌ getMessageList unexpected error: $e');
+      throw Exception('Unexpected error while loading messages: $e');
+    }
+  }
+
+  Future<void> sendMessage({required int chatId, required String text}) async {
+    try {
+      debugPrint('📤 Sending message to server — chatId: $chatId, text: $text');
+
+      final response = await _dio.post(
+        '${ApiConstants.sendMessage}/$chatId/messages',
+        data: {'text': text},
+        options: Options(headers: await _getAuthHeaders()),
+      );
+
+      debugPrint(
+        '✅ sendMessage response [${response.statusCode}]: ${response.data}',
+      );
+    } on DioException catch (e) {
+      debugPrint(
+        '❌ sendMessage DioException: '
+        'status=${e.response?.statusCode} '
+        'body=${e.response?.data} '
+        'msg=${e.message}',
+      );
+      rethrow; // Let provider handle / log the failure
+    } catch (e) {
+      debugPrint('❌ sendMessage unexpected error: $e');
+      rethrow;
     }
   }
 
