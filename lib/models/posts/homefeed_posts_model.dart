@@ -1,5 +1,42 @@
 import 'package:flutter/material.dart';
 
+class HomeFeedResponse {
+  final int count;
+  final String? next;
+  final String? previous;
+  final List<HomeFeedPost> results;
+
+  HomeFeedResponse({
+    required this.count,
+    this.next,
+    this.previous,
+    required this.results,
+  });
+
+  factory HomeFeedResponse.fromJson(Map<String, dynamic> json) {
+    return HomeFeedResponse(
+      count: json['count'] ?? 0,
+      next: json['next']?.toString(),
+      previous: json['previous']?.toString(),
+      results:
+          (json['results'] as List<dynamic>?)
+              ?.map(
+                (item) => HomeFeedPost.fromJson(item as Map<String, dynamic>),
+              )
+              .toList() ??
+          [],
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'count': count,
+      'next': next,
+      'previous': previous,
+      'results': results.map((post) => post.toJson()).toList(),
+    };
+  }
+}
 class HomeFeedPost {
   final int id;
   final HomeFeedUser user;
@@ -431,43 +468,5 @@ class PollOptionImage {
       }
     }
     return result;
-  }
-}
-
-class HomeFeedResponse {
-  final int count;
-  final String? next;
-  final String? previous;
-  final List<HomeFeedPost> results;
-
-  HomeFeedResponse({
-    required this.count,
-    this.next,
-    this.previous,
-    required this.results,
-  });
-
-  factory HomeFeedResponse.fromJson(Map<String, dynamic> json) {
-    return HomeFeedResponse(
-      count: json['count'] ?? 0,
-      next: json['next']?.toString(),
-      previous: json['previous']?.toString(),
-      results:
-          (json['results'] as List<dynamic>?)
-              ?.map(
-                (item) => HomeFeedPost.fromJson(item as Map<String, dynamic>),
-              )
-              .toList() ??
-          [],
-    );
-  }
-
-  Map<String, dynamic> toJson() {
-    return {
-      'count': count,
-      'next': next,
-      'previous': previous,
-      'results': results.map((post) => post.toJson()).toList(),
-    };
   }
 }

@@ -16,12 +16,12 @@ import 'core/themes/theme_provider.dart';
 import 'data/token/shared_preferences.dart';
 import 'firebase_options.dart';
 import 'l10n/generated/app_localizations.dart';
-import 'provider/group_chat_provider.dart';
 import 'provider/private_chat_provider.dart';
 import 'provider/public_profile_provider.dart';
 import 'provider/user_provider.dart';
 import 'screens/home/home feed/post/post_details_screen.dart';
 import 'screens/home/home_imports.dart';
+import 'screens/home/message/chat/private/private_chat_screen.dart';
 import 'screens/home/notifications/notification_details.dart';
 import 'screens/home/profile/public/public_profile.dart';
 import 'screens/splash/splash_screen.dart';
@@ -76,8 +76,6 @@ void main() async {
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
         ChangeNotifierProvider(create: (_) => UserProvider()),
         ChangeNotifierProvider(create: (_) => PublicProfileProvider()),
-        // ✅ Register PrivateChatProvider at app level so its WS lifecycle
-        // is managed globally and survives screen navigation
         ChangeNotifierProvider(create: (_) => PrivateChatProvider()),
       ],
       child: const MyApp(),
@@ -148,7 +146,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     final loggedIn = await _isLoggedIn();
     if (loggedIn && !NotificationService().isWebSocketConnected) {
       debugPrint('🔄 Reconnecting Notification WebSocket...');
-      final accessToken = await SharedPrefService.getAccessToken();
+      final accessToken = await SharedPrefService.getToken();
       if (accessToken != null) {
         await NotificationService().connectToWebSocket(accessToken);
       }
@@ -171,7 +169,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   }
 
   Future<bool> _isLoggedIn() async {
-    final accessToken = await SharedPrefService.getAccessToken();
+    final accessToken = await SharedPrefService.getToken();
     return accessToken != null;
   }
 
@@ -282,21 +280,42 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       }
     } else if (type == 'follow') {
       final userId = _parseToInt(data['sender_id']);
-      debugPrint('   👤 Follow notification detected - userId: $userId');
-
       if (userId > 0) {
-        debugPrint('✅ Creating PublicProfile (userId: $userId)');
         destination = PublicProfile(userId: userId);
       } else {
         debugPrint('❌ Invalid or missing sender_id for type: $type');
+      }
+    } else if (type == 'new_message') {
+      final senderId = _parseToInt(data['sender_id']);
+      final memberName =
+          data['sender']?.toString() ?? data['sender']?.toString() ?? 'Chat';
+      final profileUrl =
+          data['sender_profile_image']?.toString() ??
+          data['profile_image']?.toString();
+      final chatId = _parseToInt(data['chat_id']);
+
+      debugPrint(
+        '   💬 Message notification - name: $memberName, chatId: $chatId',
+      );
+
+      if (chatId > 0) {
+        destination = PrivateChatScreen(
+          userId: senderId,
+          memberName: memberName,
+          profileUrl: profileUrl,
+          chatId: chatId,
+        );
+      } else {
+        debugPrint('❌ Invalid or missing chat_id for type: $type');
       }
     } else {
       debugPrint('⚠️ Unknown notification type: "$type"');
     }
 
     if (destination != null) {
-      Navigator.of(context)
-          .push(MaterialPageRoute(builder: (_) => destination!));
+      Navigator.of(
+        context,
+      ).push(MaterialPageRoute(builder: (_) => destination!));
     } else {
       debugPrint('↩️ No valid destination, going to notifications tab');
       _navigateToNotificationsTab(context);

@@ -12,7 +12,7 @@ import '../../../../mixin/utility_mixins.dart';
 import '../../../../widgets/base64/image_convert.dart';
 import '../../../../widgets/button/back_button.dart';
 import '../../../../widgets/custom_text_styles.dart';
-import '../../../../widgets/simmer/chase/chase_simmer.dart';
+import '../../../../widgets/loader.dart';
 import '../../../../widgets/tabbar/indicatore_animation.dart';
 import '../public/public_profile.dart';
 
@@ -275,12 +275,12 @@ class _UserChaseState extends State<UserChase>
     final isFollowing = followingStatus[username] ?? false;
 
     return Container(
-      height: 38.h,
+      height: 35.h,
       width: double.infinity,
-      padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 5.h),
+      padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
       margin: EdgeInsets.only(bottom: 7.h, right: 10.w, left: 10.w, top: 5.h),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.background,
+        color: Theme.of(context).colorScheme.primaryContainer,
         borderRadius: BorderRadius.circular(12.r),
         boxShadow: const [
           BoxShadow(color: Color(0x1C000000), blurRadius: 5, spreadRadius: 1),
@@ -292,10 +292,9 @@ class _UserChaseState extends State<UserChase>
         },
         child: Row(
           children: [
-            // Profile Picture
             Container(
-              height: 32.h,
-              width: 32.w,
+              height: 28.h,
+              width: 28.w,
               margin: EdgeInsets.only(right: 5.w),
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
@@ -317,7 +316,7 @@ class _UserChaseState extends State<UserChase>
                       child: Text(
                         firstLetter,
                         style: TextStyle(
-                          fontSize: 18.sp,
+                          fontSize: 13.sp,
                           fontWeight: FontWeight.w500,
                           color: Theme.of(context).primaryColor,
                         ),
@@ -325,12 +324,15 @@ class _UserChaseState extends State<UserChase>
                     )
                   : null,
             ),
-            SizedBox(width: 8.w),
-            // Username
+            SizedBox(width: 5.w),
             Expanded(
               child: Text(
                 username,
-                style: CustomTextStyles.lblSecondryText(context),
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onBackground,
+                  fontSize: 11.sp,
+                  fontWeight: FontWeight.w400,
+                ),
                 overflow: TextOverflow.ellipsis,
               ),
             ),
@@ -351,7 +353,7 @@ class _UserChaseState extends State<UserChase>
                   decoration: BoxDecoration(
                     // If following: white background, else: primary color
                     color: isFollowing
-                        ? Theme.of(context).colorScheme.background
+                        ? Theme.of(context).colorScheme.primaryContainer
                         : AppColors.primaryColor,
                     borderRadius: BorderRadius.circular(8.r),
                     border: Border.all(
@@ -371,7 +373,7 @@ class _UserChaseState extends State<UserChase>
                         color: isFollowing
                             ? Theme.of(context).colorScheme.onBackground
                             : Colors.white,
-                        fontSize: 10.5.sp,
+                        fontSize: 10.sp,
                         fontWeight: FontWeight.w400,
                       ),
                     ),
@@ -387,6 +389,7 @@ class _UserChaseState extends State<UserChase>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Theme.of(context).colorScheme.background,
       appBar: AppBar(
         automaticallyImplyLeading: false,
         leading: const PrimaryBackButton(),
@@ -401,33 +404,44 @@ class _UserChaseState extends State<UserChase>
       ),
       body: Column(
         children: [
-          TabBar(
-            padding: EdgeInsets.symmetric(horizontal: 10.w),
-            controller: _tabController,
-            overlayColor: const WidgetStatePropertyAll(Colors.transparent),
-            indicatorColor: Theme.of(context).colorScheme.primary,
-            indicatorSize: TabBarIndicatorSize.tab,
-            indicator: FadeUnderlineTabIndicator(),
-            labelColor: Theme.of(context).colorScheme.primary,
-            labelStyle:  TextStyle(fontWeight: FontWeight.w500, fontSize: 11.sp),
-            dividerColor: Colors.transparent,
-            unselectedLabelColor: Theme.of(context).colorScheme.onBackground,
-            tabs: [
-              Tab(
-                text: '$_followerCount  ${AppLocalizations.of(context)!.vibe}',
+          SizedBox(
+            height: 33.h,
+            child: TabBar(
+              padding: EdgeInsets.symmetric(horizontal: 10.w),
+              controller: _tabController,
+              overlayColor: const WidgetStatePropertyAll(Colors.transparent),
+              indicatorColor: Theme.of(context).colorScheme.primary,
+              indicatorSize: TabBarIndicatorSize.tab,
+              indicator: FadeUnderlineTabIndicator(),
+              labelColor: Theme.of(context).colorScheme.primary,
+              labelStyle: TextStyle(
+                fontWeight: FontWeight.w500,
+                fontSize: 11.sp,
               ),
-              Tab(
-                text:
-                    '$_followingCount ${AppLocalizations.of(context)!.revibe}',
+              unselectedLabelStyle: TextStyle(
+                fontWeight: FontWeight.w400,
+                fontSize: 11.sp,
               ),
-            ],
+              dividerColor: Colors.transparent,
+              unselectedLabelColor: Theme.of(context).colorScheme.onBackground,
+              tabs: [
+                Tab(
+                  text:
+                      '$_followerCount  ${AppLocalizations.of(context)!.vibe}',
+                ),
+                Tab(
+                  text:
+                      '$_followingCount ${AppLocalizations.of(context)!.revibe}',
+                ),
+              ],
+            ),
           ),
           Container(
             height: 33.h,
             width: double.infinity,
             margin: EdgeInsets.symmetric(vertical: 7.h, horizontal: 10.w),
             decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.background,
+              color: Theme.of(context).colorScheme.primaryContainer,
               borderRadius: BorderRadius.circular(12.r),
               boxShadow: const [
                 BoxShadow(
@@ -487,7 +501,11 @@ class _UserChaseState extends State<UserChase>
                 Padding(
                   padding: EdgeInsets.only(top: 5.h, left: 2.5.w, right: 2.5.w),
                   child: _isLoadingFollowers
-                      ? const ChaseSimmer()
+                      ? Center(
+                          child: Loader(
+                            color: Theme.of(context).colorScheme.primary,
+                          ),
+                        )
                       : _filteredFollowers.isEmpty
                       ? _buildEmptyState(
                           icon: FeatherIcons.users,
@@ -512,7 +530,11 @@ class _UserChaseState extends State<UserChase>
                 Padding(
                   padding: EdgeInsets.only(top: 5.h, left: 2.5.w, right: 2.5.w),
                   child: _isLoadingFollowing
-                      ? const ChaseSimmer()
+                      ? Center(
+                          child: Loader(
+                            color: Theme.of(context).colorScheme.primary,
+                          ),
+                        )
                       : _filteredFollowing.isEmpty
                       ? _buildEmptyState(
                           icon: FeatherIcons.userPlus,

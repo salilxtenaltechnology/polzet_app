@@ -27,7 +27,7 @@ class CustomTextStyles {
 
   static TextStyle lblPrimaryHintText(BuildContext context) => TextStyle(
     color: Theme.of(context).colorScheme.onBackground.withOpacity(0.25),
-    fontSize: 12.2.sp,
+    fontSize: 12.sp,
   );
 
   static TextStyle lblSecondryHintText(BuildContext context) => TextStyle(
@@ -38,7 +38,7 @@ class CustomTextStyles {
 
   static TextStyle lblPrimaryText(BuildContext context) => TextStyle(
     color: Theme.of(context).colorScheme.onBackground,
-    fontSize: 12.8.sp,
+    fontSize: 12.sp,
     fontWeight: FontWeight.w400,
   );
 
@@ -98,7 +98,7 @@ class CustomTextStyles {
 
   static TextStyle msgErrorText = TextStyle(
     color: AppColors.redColor,
-    fontSize: 11.3.sp,
+    fontSize: 10.sp,
     fontWeight: FontWeight.w500,
   );
 

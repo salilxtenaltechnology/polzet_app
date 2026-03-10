@@ -1,5 +1,7 @@
 // post_images_model.dart
 
+// ignore_for_file: non_constant_identifier_names
+
 class UserPostResponse {
   final int count;
   final String? next;
@@ -49,6 +51,7 @@ class UserPostModel {
   final List<Comment> comments;
   final int likesCount;
   final bool isLiked;
+  final bool is_polled_by_current_user;
 
   UserPostModel({
     required this.id,
@@ -60,24 +63,10 @@ class UserPostModel {
     required this.comments,
     required this.likesCount,
     required this.isLiked,
+    required this.is_polled_by_current_user,
   });
 
   factory UserPostModel.fromJson(Map<String, dynamic> json) {
-    // ROBUST PARSING FOR is_liked
-    bool parsedIsLiked = false;
-    final isLikedValue = json['is_liked'];
-    
-    if (isLikedValue is bool) {
-      parsedIsLiked = isLikedValue;
-    } else if (isLikedValue is String) {
-      parsedIsLiked = isLikedValue.toLowerCase() == 'true';
-    } else if (isLikedValue is int) {
-      parsedIsLiked = isLikedValue == 1;
-    }
-    
-    // Debug print to verify parsing
-    print('🔍 Parsing post ${json['id']}: is_liked raw value = $isLikedValue (${isLikedValue.runtimeType}), parsed = $parsedIsLiked');
-
     return UserPostModel(
       id: json['id'] as int,
       user: json['user'] as String,
@@ -99,9 +88,18 @@ class UserPostModel {
               .toList() ??
           [],
       likesCount: json['likes_count'] as int? ?? 0,
-      isLiked: parsedIsLiked, // Use robustly parsed value
+       isLiked: _parseBool(json['is_liked']),
+    is_polled_by_current_user: _parseBool(json['is_polled_by_current_user']),
     );
   }
+
+  static bool _parseBool(dynamic value) {
+  if (value == null) return false;
+  if (value is bool) return value;
+  if (value is int) return value == 1;
+  if (value is String) return value.toLowerCase() == 'true' || value == '1';
+  return false;
+}
 
   // Helper to get comments count
   int get commentsCount => comments.length;
@@ -138,6 +136,7 @@ class UserPostModel {
     List<Comment>? comments,
     int? likesCount,
     bool? isLiked,
+    bool? is_polled_by_current_user,
   }) {
     return UserPostModel(
       id: id ?? this.id,
@@ -149,6 +148,8 @@ class UserPostModel {
       comments: comments ?? this.comments,
       likesCount: likesCount ?? this.likesCount,
       isLiked: isLiked ?? this.isLiked,
+      is_polled_by_current_user:
+          is_polled_by_current_user ?? this.is_polled_by_current_user,
     );
   }
 }

@@ -19,8 +19,8 @@ import '../chat_details.dart';
 class GroupChatScreen extends StatefulWidget {
   final String? groupName;
   final int? chatId;
-  final Map<String, dynamic>? chat;
 
+  final Map<String, dynamic>? chat;
   const GroupChatScreen({
     super.key,
     required this.groupName,
@@ -64,12 +64,11 @@ class GroupChatScreenState extends State<GroupChatScreen> with UtilityMixin {
   }
 
   String? get _avatarUrl {
-    final members = widget.chat?['members'] as List?;
-    if (members == null || members.isEmpty) return null;
-    final user =
-        (members.first as Map<String, dynamic>)['user']
-            as Map<String, dynamic>?;
-    return user?['profile_image']?.toString();
+    final profileUrl = widget.chat?['profile_url']?.toString();
+    if (profileUrl != null && profileUrl.trim().isNotEmpty) {
+      return profileUrl;
+    }
+    return null;
   }
 
   void _sendMessage() {
@@ -108,7 +107,9 @@ class GroupChatScreenState extends State<GroupChatScreen> with UtilityMixin {
               child: CircleAvatar(
                 radius: 12.r,
                 backgroundColor: const Color(0xFFEEEEEE),
-                backgroundImage: avatarBytes != null
+                backgroundImage:
+                    avatarBytes !=
+                        null // ← already computed above
                     ? MemoryImage(avatarBytes)
                     : null,
                 child: avatarBytes == null

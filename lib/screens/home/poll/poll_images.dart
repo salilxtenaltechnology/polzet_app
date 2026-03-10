@@ -97,7 +97,7 @@ class _PollImagesState extends State<PollImages> {
   }
 
   void postImage() async {
-    final accessToken = await SharedPrefService.getAccessToken();
+    final accessToken = await SharedPrefService.getToken();
 
     // Validate inputs
     if (descriptionController.text.trim().isEmpty) {
@@ -296,7 +296,6 @@ class _PollImagesState extends State<PollImages> {
             },
           ),
           SizedBox(height: 15.h),
-          // Add image button
           if (_images.length < maxImages)
             Center(
               child: TextButton.icon(
@@ -310,13 +309,13 @@ class _PollImagesState extends State<PollImages> {
                 icon: Icon(
                   Icons.add_circle_outline,
                   color: Theme.of(context).colorScheme.primary,
-                  size: 20.sp,
+                  size: 17.sp,
                 ),
                 label: Text(
                   AppLocalizations.of(context)!.addimage,
                   style: TextStyle(
                     color: Theme.of(context).colorScheme.primary,
-                    fontSize: 14.sp,
+                    fontSize: 11.8.sp,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -350,15 +349,13 @@ class _PollImagesState extends State<PollImages> {
 
   Widget _buildImageOption(BuildContext context, int index) {
     final bool hasImage = _images[index] != null;
-    // Add border only to the first image (index 0)
-
     return GestureDetector(
       onTap: () => _pickImage(index),
       child: Container(
         decoration: BoxDecoration(
           color: hasImage
               ? Colors.transparent
-              : Theme.of(context).colorScheme.surface,
+              : Theme.of(context).colorScheme.background,
           borderRadius: BorderRadius.circular(12.r),
         ),
         child: hasImage
@@ -392,7 +389,7 @@ class _PollImagesState extends State<PollImages> {
                           _getOptionText(context, index),
                           style: TextStyle(
                             color: Colors.white,
-                            fontSize: 14.sp,
+                            fontSize: 12.sp,
                             fontWeight: FontWeight.w600,
                           ),
                           textAlign: TextAlign.center,
@@ -414,10 +411,10 @@ class _PollImagesState extends State<PollImages> {
                     children: [
                       Icon(
                         Icons.add_photo_alternate_outlined,
-                        size: 40.sp,
+                        size: 35.sp,
                         color: Theme.of(
                           context,
-                        ).colorScheme.primary.withOpacity(0.6),
+                        ).colorScheme.onSurface.withOpacity(0.6),
                       ),
                       SizedBox(height: 8.h),
                       Text(
@@ -426,7 +423,7 @@ class _PollImagesState extends State<PollImages> {
                           color: Theme.of(
                             context,
                           ).colorScheme.onSurface.withOpacity(0.6),
-                          fontSize: 14.sp,
+                          fontSize: 11.5.sp,
                           fontWeight: FontWeight.w500,
                         ),
                       ),

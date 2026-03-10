@@ -96,7 +96,6 @@ class HomeScreenState extends State<HomeScreen> with UtilityMixin {
   void didChangeDependencies() {
     super.didChangeDependencies();
     final userProvider = Provider.of<UserProvider>(context, listen: false);
-    // Load user data silently in background without showing loading state
     userProvider.loadUserDataSilently();
   }
 
@@ -123,7 +122,7 @@ class HomeScreenState extends State<HomeScreen> with UtilityMixin {
                           AppLocalizations.of(context)!.hello,
                           style: GoogleFonts.poppins(
                             color: Theme.of(context).colorScheme.primary,
-                            fontSize: 16.sp,
+                            fontSize: 15.sp,
                             fontWeight: FontWeight.w600,
                             letterSpacing: 0.5,
                           ),
@@ -139,7 +138,7 @@ class HomeScreenState extends State<HomeScreen> with UtilityMixin {
                                 color: Theme.of(
                                   context,
                                 ).colorScheme.onBackground,
-                                fontSize: 13.sp,
+                                fontSize: 12.sp,
                                 fontWeight: FontWeight.w500,
                                 letterSpacing: 0.2,
                               ),
@@ -155,7 +154,7 @@ class HomeScreenState extends State<HomeScreen> with UtilityMixin {
                                 color: Theme.of(
                                   context,
                                 ).colorScheme.onBackground,
-                                fontSize: 13.sp,
+                                fontSize: 12.sp,
                                 fontWeight: FontWeight.w500,
                                 letterSpacing: 0.2,
                               ),
@@ -244,4 +243,3 @@ class HomeScreenState extends State<HomeScreen> with UtilityMixin {
     );
   }
 }
-// R@856713957787aq

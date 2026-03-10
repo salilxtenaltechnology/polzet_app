@@ -66,7 +66,9 @@ class _ImagePostsListState extends State<ImagePostsList> {
 
       // Debug: Print the like states from API
       for (var post in postsImage) {
-        debugPrint('Post ${post.id}: isLiked=${post.isLiked}, likesCount=${post.likesCount}');
+        debugPrint(
+          'Post ${post.id}: isLiked=${post.isLiked}, likesCount=${post.likesCount}',
+        );
       }
 
       setState(() {
@@ -83,8 +85,6 @@ class _ImagePostsListState extends State<ImagePostsList> {
           postLikeStates[post.id] = post.isLiked;
           postLikeCounts[post.id] = post.likesCount;
           postCommentsCounts[post.id] = post.commentsCount;
-
-          debugPrint('Initialized Post ${post.id}: isLiked=${postLikeStates[post.id]}, likesCount=${postLikeCounts[post.id]}');
 
           // Fetch liked users for posts with likes
           if (post.likesCount > 0) {
@@ -104,7 +104,8 @@ class _ImagePostsListState extends State<ImagePostsList> {
   // Fetch liked users for a specific post
   Future<void> _fetchLikedUsers(int postId) async {
     // Don't fetch if already loading or already loaded
-    if (likedUsersLoading[postId] == true || postLikedUsers.containsKey(postId)) {
+    if (likedUsersLoading[postId] == true ||
+        postLikedUsers.containsKey(postId)) {
       return;
     }
 
@@ -114,13 +115,14 @@ class _ImagePostsListState extends State<ImagePostsList> {
 
     try {
       final users = await ApiService().fetchLikedUsers(postId);
-      
+
       setState(() {
-        postLikedUsers[postId] = users.take(3).toList(); // Only keep first 3 for display
+        postLikedUsers[postId] = users
+            .take(3)
+            .toList(); // Only keep first 3 for display
         likedUsersLoading[postId] = false;
       });
     } catch (e) {
-      debugPrint('Error fetching liked users for post $postId: $e');
       setState(() {
         likedUsersLoading[postId] = false;
       });
@@ -131,16 +133,22 @@ class _ImagePostsListState extends State<ImagePostsList> {
   Future<void> _fetchLikedUsersSilently(int postId) async {
     try {
       final users = await ApiService().fetchLikedUsers(postId);
-      
+
       setState(() {
-        postLikedUsers[postId] = users.take(3).toList(); // Only keep first 3 for display
+        postLikedUsers[postId] = users
+            .take(3)
+            .toList(); // Only keep first 3 for display
       });
     } catch (e) {
-      debugPrint('Error silently fetching liked users for post $postId: $e');
+      // debugPrint('Error silently fetching liked users for post $postId: $e');
     }
   }
 
-  void _showAllImagesGrid(int postId, UserPollQuestion poll) {
+  void _showAllImagesGrid(
+    int postId,
+    UserPollQuestion poll,
+    bool isPolledByCurrentUser,
+  ) {
     Navigator.of(context)
         .push(
           MaterialPageRoute(
@@ -149,14 +157,13 @@ class _ImagePostsListState extends State<ImagePostsList> {
               postId: postId,
               pollId: poll.id,
               onImageTap: (index) {},
-              isPolledByCurrentUser: true,
+              isPolledByCurrentUser: isPolledByCurrentUser,
             ),
           ),
         )
         .then((result) {
           if (result == true) {
             setState(() {
-              // Refresh poll data here if needed
               _loadPosts();
             });
           }
@@ -329,7 +336,7 @@ class _ImagePostsListState extends State<ImagePostsList> {
           ? Center(
               child: Text(
                 AppLocalizations.of(context)!.nopostsfound,
-                style: TextStyle(color: Colors.grey[600], fontSize: 12.sp),
+                style: TextStyle(color: Colors.grey[600], fontSize: 11.sp),
               ),
             )
           : _buildPostsList(cachedPosts!),
@@ -355,8 +362,8 @@ class _ImagePostsListState extends State<ImagePostsList> {
 
         // FIXED: Directly read from tracking maps with fallback
         // Use postLikeStates first, if not found, use cached post value
-        final isLiked = postLikeStates.containsKey(imagePost.id) 
-            ? postLikeStates[imagePost.id]! 
+        final isLiked = postLikeStates.containsKey(imagePost.id)
+            ? postLikeStates[imagePost.id]!
             : imagePost.isLiked;
         final likesCount = postLikeCounts.containsKey(imagePost.id)
             ? postLikeCounts[imagePost.id]!
@@ -364,12 +371,14 @@ class _ImagePostsListState extends State<ImagePostsList> {
         final commentsCount = postCommentsCounts.containsKey(imagePost.id)
             ? postCommentsCounts[imagePost.id]!
             : imagePost.commentsCount;
-        
+
         // Get liked users for this post
         final viewLikes = postLikedUsers[imagePost.id] ?? [];
 
         // Debug print for verification
-        debugPrint('Rendering Post ${imagePost.id}: isLiked=$isLiked, likesCount=$likesCount');
+        debugPrint(
+          'Rendering Post ${imagePost.id}: isLiked=$isLiked, likesCount=$likesCount',
+        );
 
         return Container(
           padding: EdgeInsets.all(8.w),
@@ -423,7 +432,7 @@ class _ImagePostsListState extends State<ImagePostsList> {
                       Text(
                         widget.username!,
                         style: TextStyle(
-                          fontSize: 11.5.sp,
+                          fontSize: 11.sp,
                           fontWeight: FontWeight.w600,
                           color: Theme.of(context).colorScheme.onBackground,
                         ),
@@ -464,7 +473,11 @@ class _ImagePostsListState extends State<ImagePostsList> {
                 ),
               ),
               const SizedBox(height: 8),
-              _buildImagesStack(imagePost.id, imagePost.polls),
+              _buildImagesStack(
+                imagePost.id,
+                imagePost.polls,
+                imagePost.is_polled_by_current_user,
+              ),
               SizedBox(height: 5.h),
               Row(
                 children: [
@@ -601,7 +614,11 @@ class _ImagePostsListState extends State<ImagePostsList> {
     );
   }
 
-  Widget _buildImagesStack(int postId, List<UserPollQuestion> polls) {
+  Widget _buildImagesStack(
+    int postId,
+    List<UserPollQuestion> polls,
+    bool isPolledByCurrentUser,
+  ) {
     // Extract images from poll options
     List<PollOptionImage> validImages = [];
     UserPollQuestion? firstPollWithImages;
@@ -653,7 +670,11 @@ class _ImagePostsListState extends State<ImagePostsList> {
         double imageHeight = 150.h;
 
         return GestureDetector(
-          onTap: () => _showAllImagesGrid(postId, firstPollWithImages!),
+          onTap: () => _showAllImagesGrid(
+            postId,
+            firstPollWithImages!,
+            isPolledByCurrentUser,
+          ),
           child: SizedBox(
             height: imageHeight,
             width: availableWidth,

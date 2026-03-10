@@ -95,7 +95,8 @@ class _PublicPostsListState extends State<PublicImagePostsList> {
     }
 
     final int pollId = polls.first.id;
-    final bool hasUserVoted = polls.any((poll) => poll.userVote != null);
+    final post = cachedPosts?.firstWhere((p) => p.id == postId);
+    final bool isPolledByCurrentUser = post?.is_polled_by_current_user ?? false;
 
     Navigator.of(context)
         .push(
@@ -105,7 +106,7 @@ class _PublicPostsListState extends State<PublicImagePostsList> {
               postId: postId,
               pollId: pollId,
               onImageTap: (index) {},
-              isPolledByCurrentUser: hasUserVoted,
+              isPolledByCurrentUser: isPolledByCurrentUser,
             ),
           ),
         )
@@ -170,6 +171,8 @@ class _PublicPostsListState extends State<PublicImagePostsList> {
             likesCount: currentLikeState
                 ? currentLikeCount - 1
                 : currentLikeCount + 1,
+            is_polled_by_current_user:
+                cachedPosts![i].is_polled_by_current_user,
           );
         }
       }
@@ -200,6 +203,8 @@ class _PublicPostsListState extends State<PublicImagePostsList> {
               comments: cachedPosts![i].comments,
               isLiked: result.isLiked,
               likesCount: result.likesCount,
+              is_polled_by_current_user:
+                  cachedPosts![i].is_polled_by_current_user,
             );
           }
         }
@@ -230,6 +235,8 @@ class _PublicPostsListState extends State<PublicImagePostsList> {
               comments: cachedPosts![i].comments,
               isLiked: currentLikeState,
               likesCount: currentLikeCount,
+              is_polled_by_current_user:
+                  cachedPosts![i].is_polled_by_current_user,
             );
           }
         }
@@ -260,6 +267,8 @@ class _PublicPostsListState extends State<PublicImagePostsList> {
                 comments: List.generate(newCount, (_) => {}),
                 isLiked: cachedPosts![i].isLiked,
                 likesCount: cachedPosts![i].likesCount,
+                is_polled_by_current_user:
+                    cachedPosts![i].is_polled_by_current_user,
               );
             }
           }
@@ -396,7 +405,7 @@ class _PublicPostsListState extends State<PublicImagePostsList> {
                       Text(
                         widget.username!,
                         style: TextStyle(
-                          fontSize: 11.5.sp,
+                          fontSize: 11.sp,
                           fontWeight: FontWeight.w600,
                           color: Theme.of(context).colorScheme.onBackground,
                         ),
@@ -420,7 +429,7 @@ class _PublicPostsListState extends State<PublicImagePostsList> {
                 post.description,
                 style: TextStyle(
                   color: Theme.of(context).colorScheme.onBackground,
-                  fontSize: 11.sp,
+                  fontSize: 10.7.sp,
                   fontWeight: FontWeight.w500,
                 ),
               ),

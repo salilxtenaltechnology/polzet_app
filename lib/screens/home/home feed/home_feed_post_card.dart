@@ -452,7 +452,7 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
                         Text(
                           widget.post.user.username,
                           style: TextStyle(
-                            fontSize: 11.5.sp,
+                            fontSize: 11.sp,
                             fontWeight: FontWeight.w600,
                             color: Theme.of(context).colorScheme.onBackground,
                           ),
@@ -624,7 +624,7 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
                     poll.question,
                     style: TextStyle(
                       color: Theme.of(context).colorScheme.onBackground,
-                      fontSize: 11.sp,
+                      fontSize: 10.7.sp,
                       fontWeight: FontWeight.w500,
                     ),
                   ),
@@ -799,7 +799,7 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
           poll.question,
           style: TextStyle(
             color: Theme.of(context).colorScheme.onBackground,
-            fontSize: 11.sp,
+            fontSize: 10.7.sp,
             fontWeight: FontWeight.w500,
           ),
         ),
@@ -996,7 +996,7 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
                       option.text ?? '',
                       style: TextStyle(
                         color: Theme.of(context).colorScheme.onBackground,
-                        fontSize: 10.5.sp,
+                        fontSize: 10.2.sp,
                         fontWeight: isSelected && !hasUserPolled
                             ? FontWeight.w600
                             : FontWeight.w500,
@@ -1004,9 +1004,7 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
                       ),
                     ),
                   ),
-
                   SizedBox(width: 12.w),
-
                   // Right side indicator
                   if (showPercentage)
                     // Show percentage when voted
@@ -1021,7 +1019,7 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
                             color: Theme.of(
                               context,
                             ).colorScheme.onBackground.withOpacity(0.6),
-                            fontSize: 10.5.sp,
+                            fontSize: 10.2.sp,
                             fontWeight: FontWeight.w600,
                           ),
                         );

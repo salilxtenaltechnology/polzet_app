@@ -199,7 +199,7 @@ class _AllImagesPopupState extends State<PublicImagesPopup> {
                         Container(
                           padding: EdgeInsets.symmetric(
                             horizontal: 8.w,
-                            vertical: 4.h,
+                            vertical: 2.h,
                           ),
                           decoration: BoxDecoration(
                             color: AppColors.primaryColor,
@@ -209,7 +209,7 @@ class _AllImagesPopupState extends State<PublicImagesPopup> {
                             '${selectedImages.length}/${widget.images.length} selected',
                             style: TextStyle(
                               color: Colors.white,
-                              fontSize: 11.sp,
+                              fontSize: 10.2.sp,
                               fontWeight: FontWeight.w500,
                             ),
                           ),
@@ -353,8 +353,8 @@ class _AllImagesPopupState extends State<PublicImagesPopup> {
                                       ),
                                       builder: (context, value, _) {
                                         return SizedBox(
-                                          width: 60,
-                                          height: 60,
+                                          width: 58,
+                                          height: 58,
                                           child: Stack(
                                             alignment: Alignment.center,
                                             children: [
@@ -390,8 +390,8 @@ class _AllImagesPopupState extends State<PublicImagesPopup> {
                                                 ),
                                               ),
                                               Container(
-                                                width: 48,
-                                                height: 48,
+                                                width: 45,
+                                                height: 45,
                                                 decoration: BoxDecoration(
                                                   color: Colors.white,
                                                   shape: BoxShape.circle,
@@ -421,7 +421,7 @@ class _AllImagesPopupState extends State<PublicImagesPopup> {
                                                             style: TextStyle(
                                                               color: AppColors
                                                                   .primaryColor,
-                                                              fontSize: 14.sp,
+                                                              fontSize: 12.2.sp,
                                                               fontWeight:
                                                                   FontWeight
                                                                       .bold,
@@ -442,8 +442,8 @@ class _AllImagesPopupState extends State<PublicImagesPopup> {
                                     top: 15.h,
                                     right: 17.w,
                                     child: Container(
-                                      width: 35,
-                                      height: 35,
+                                      width: 32,
+                                      height: 32,
                                       decoration: BoxDecoration(
                                         color: AppColors.primaryColor,
                                         shape: BoxShape.circle,
@@ -464,9 +464,9 @@ class _AllImagesPopupState extends State<PublicImagesPopup> {
                                       child: Center(
                                         child: Text(
                                           '$selectionNumber',
-                                          style: const TextStyle(
+                                          style:  TextStyle(
                                             color: Colors.white,
-                                            fontSize: 16,
+                                            fontSize: 12.2.sp,
                                             fontWeight: FontWeight.bold,
                                           ),
                                         ),
@@ -560,10 +560,10 @@ class _AllImagesPopupState extends State<PublicImagesPopup> {
             if (selectedImages.length == widget.images.length &&
                 !widget.isPolledByCurrentUser)
               Container(
-                width: 150.w,
+                width: 120.w,
                 padding: EdgeInsets.all(15.w),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: Theme.of(context).colorScheme.background,
                   border: Border(
                     top: BorderSide(
                       color: Colors.white.withOpacity(0.1),
@@ -603,7 +603,7 @@ class _AllImagesPopupState extends State<PublicImagesPopup> {
                               Text(
                                 'Poll',
                                 style: TextStyle(
-                                  fontSize: 15.sp,
+                                  fontSize: 12.sp,
                                   fontWeight: FontWeight.w600,
                                 ),
                               ),

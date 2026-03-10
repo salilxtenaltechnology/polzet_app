@@ -64,7 +64,7 @@ class ProfileState extends State<UserProfile>
   // PROFILE IMAGE & COVER - Load silently with cache
   Future<void> _loadProfileSilently() async {
     try {
-      final accessToken = await SharedPrefService.getAccessToken();
+      final accessToken = await SharedPrefService.getToken();
       if (accessToken == null) return;
 
       var dio = Dio();
@@ -423,7 +423,7 @@ class ProfileState extends State<UserProfile>
                                 FeatherIcons.arrowUp,
                                 userProvider.isLoading
                                     ? '-'
-                                    : (userProvider.following_count ?? '-'),
+                                    : (userProvider.followers_count ?? '-'),
                                 () {
                                   navigationPush(
                                     context,
@@ -457,7 +457,7 @@ class ProfileState extends State<UserProfile>
                                 FeatherIcons.arrowDown,
                                 userProvider.isLoading
                                     ? '-'
-                                    : (userProvider.followers_count ?? '-'),
+                                    : (userProvider.following_count ?? '-'),
                                 () {
                                   navigationPush(
                                     context,
@@ -488,12 +488,12 @@ class ProfileState extends State<UserProfile>
                         Row(
                           children: [
                             Text(
-                              AppLocalizations.of(context)!.revibe,
+                              AppLocalizations.of(context)!.vibe,
                               style: TextStyle(
                                 color: Theme.of(
                                   context,
                                 ).colorScheme.onBackground,
-                                fontSize: 11.5.sp,
+                                fontSize: 11.sp,
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
@@ -517,21 +517,22 @@ class ProfileState extends State<UserProfile>
                                 child: Row(
                                   children: [
                                     Text(
-                                      AppLocalizations.of(context)!.seeall,
+                                      '${AppLocalizations.of(context)!.seeall} >',
                                       style: TextStyle(
-                                        fontSize: 11.sp,
-                                        fontWeight: FontWeight.w600,
-                                        color: AppColors.primaryColor
-                                            .withOpacity(0.8),
+                                        color: Theme.of(
+                                          context,
+                                        ).colorScheme.primary,
+                                        fontWeight: FontWeight.w700,
+                                        fontSize: 10.5.sp,
                                       ),
                                     ),
-                                    Icon(
-                                      Icons.arrow_forward_ios,
-                                      size: 14.spMax,
-                                      color: AppColors.primaryColor.withOpacity(
-                                        0.8,
-                                      ),
-                                    ),
+                                    // Icon(
+                                    //   Icons.arrow_forward_ios,
+                                    //   size: 12.spMax,
+                                    //   color: AppColors.primaryColor.withOpacity(
+                                    //     0.8,
+                                    //   ),
+                                    // ),
                                   ],
                                 ),
                               ),
@@ -539,168 +540,7 @@ class ProfileState extends State<UserProfile>
                           ],
                         ),
                         SizedBox(height: 5.h),
-                        FutureBuilder<List<Map<String, dynamic>>>(
-                          future: getFollowing,
-                          builder: (context, snapshot) {
-                            // Show cached data immediately while loading
-                            final usersVibe = snapshot.data ?? _cachedFollowing;
 
-                            if (isInitialLoad &&
-                                snapshot.connectionState ==
-                                    ConnectionState.waiting &&
-                                _cachedFollowing.isEmpty) {
-                              return const UserChaseSimmer();
-                            }
-
-                            if (usersVibe.isEmpty) {
-                              return Center(
-                                child: Padding(
-                                  padding: EdgeInsets.only(
-                                    top: 15.h,
-                                    bottom: 30.h,
-                                  ),
-                                  child: const Text(
-                                    'No re-chase yet 👀',
-                                    style: TextStyle(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                  ),
-                                ),
-                              );
-                            }
-
-                            final recentUsers = usersVibe.length > 4
-                                ? usersVibe.take(4).toList()
-                                : usersVibe;
-
-                            return Container(
-                              height: 55.h,
-                              padding: EdgeInsets.symmetric(horizontal: 5.w),
-                              child: Row(
-                                mainAxisAlignment: usersVibe.length < 4
-                                    ? MainAxisAlignment.start
-                                    : MainAxisAlignment.spaceBetween,
-                                children: recentUsers.map((user) {
-                                  final profilePic =
-                                      user['profile_picture_url'] as String?;
-                                  final firstName =
-                                      user['first_name'] as String? ??
-                                      user['name'] as String? ??
-                                      '';
-                                  final firstLetter = firstName.isNotEmpty
-                                      ? firstName[0].toUpperCase()
-                                      : '?';
-
-                                  return GestureDetector(
-                                    onTap: () {
-                                      navigationPush(
-                                        context,
-                                        PublicProfile(userId: user['id']),
-                                      );
-                                    },
-                                    child: Container(
-                                      height: 55.h,
-                                      width: 55.w,
-                                      margin: EdgeInsets.only(right: 5.w),
-                                      decoration: BoxDecoration(
-                                        shape: BoxShape.circle,
-                                        border: Border.all(
-                                          color: Theme.of(context)
-                                              .colorScheme
-                                              .outline
-                                              .withOpacity(0.7),
-                                        ),
-                                        image: profilePic != null
-                                            ? DecorationImage(
-                                                image: MemoryImage(
-                                                  getProfileImage(profilePic)!,
-                                                ),
-                                                fit: BoxFit.cover,
-                                              )
-                                            : null,
-                                        color: profilePic == null
-                                            ? Theme.of(
-                                                context,
-                                              ).primaryColor.withOpacity(0.08)
-                                            : null,
-                                      ),
-                                      child: profilePic == null
-                                          ? Center(
-                                              child: Text(
-                                                firstLetter,
-                                                style: TextStyle(
-                                                  fontSize: 20.sp,
-                                                  fontWeight: FontWeight.bold,
-                                                  color: Theme.of(
-                                                    context,
-                                                  ).primaryColor,
-                                                ),
-                                              ),
-                                            )
-                                          : null,
-                                    ),
-                                  );
-                                }).toList(),
-                              ),
-                            );
-                          },
-                        ),
-                        SizedBox(height: 8.h),
-                        Row(
-                          children: [
-                            Text(
-                              AppLocalizations.of(context)!.vibe,
-                              style: TextStyle(
-                                color: Theme.of(
-                                  context,
-                                ).colorScheme.onBackground,
-                                fontSize: 11.5.sp,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                            const Spacer(),
-                            GestureDetector(
-                              onTap: () {
-                                navigationPush(
-                                  context,
-                                  UserChase(
-                                    username: userProvider.username ?? '-',
-                                    followingCount:
-                                        userProvider.following_count ?? '0',
-                                    followerCount:
-                                        userProvider.followers_count ?? '0',
-                                    initialIndex: 0,
-                                  ),
-                                );
-                              },
-                              child: Padding(
-                                padding: EdgeInsets.only(right: 10.w),
-                                child: Row(
-                                  children: [
-                                    Text(
-                                      AppLocalizations.of(context)!.seeall,
-                                      style: TextStyle(
-                                        fontSize: 11.sp,
-                                        fontWeight: FontWeight.w600,
-                                        color: AppColors.primaryColor
-                                            .withOpacity(0.8),
-                                      ),
-                                    ),
-                                    Icon(
-                                      Icons.arrow_forward_ios,
-                                      size: 14.spMax,
-                                      color: AppColors.primaryColor.withOpacity(
-                                        0.8,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        SizedBox(height: 5.h),
                         FutureBuilder<List<Map<String, dynamic>>>(
                           future: getFollowers,
                           builder: (context, snapshot) {
@@ -718,10 +558,11 @@ class ProfileState extends State<UserProfile>
                               return Center(
                                 child: Padding(
                                   padding: EdgeInsets.symmetric(vertical: 10.h),
-                                  child: const Text(
+                                  child: Text(
                                     'No chase yet 👀',
                                     style: TextStyle(
-                                      fontSize: 14,
+                                      color: Colors.grey,
+                                      fontSize: 10.8.sp,
                                       fontWeight: FontWeight.w500,
                                     ),
                                   ),
@@ -805,6 +646,172 @@ class ProfileState extends State<UserProfile>
                             );
                           },
                         ),
+
+                        SizedBox(height: 8.h),
+                        Row(
+                          children: [
+                            Text(
+                              AppLocalizations.of(context)!.revibe,
+                              style: TextStyle(
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onBackground,
+                                fontSize: 11.5.sp,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            const Spacer(),
+                            GestureDetector(
+                              onTap: () {
+                                navigationPush(
+                                  context,
+                                  UserChase(
+                                    username: userProvider.username ?? '-',
+                                    followingCount:
+                                        userProvider.following_count ?? '0',
+                                    followerCount:
+                                        userProvider.followers_count ?? '0',
+                                    initialIndex: 0,
+                                  ),
+                                );
+                              },
+                              child: Padding(
+                                padding: EdgeInsets.only(right: 10.w),
+                                child: Row(
+                                  children: [
+                                    Text(
+                                      '${AppLocalizations.of(context)!.seeall} >',
+                                      style: TextStyle(
+                                        color: Theme.of(
+                                          context,
+                                        ).colorScheme.primary,
+                                        fontWeight: FontWeight.w700,
+                                        fontSize: 10.5.sp,
+                                      ),
+                                    ),
+                                    // Icon(
+                                    //   Icons.arrow_forward_ios,
+                                    //   size: 14.spMax,
+                                    //   color: AppColors.primaryColor.withOpacity(
+                                    //     0.8,
+                                    //   ),
+                                    // ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        SizedBox(height: 5.h),
+                        FutureBuilder<List<Map<String, dynamic>>>(
+                          future: getFollowing,
+                          builder: (context, snapshot) {
+                            // Show cached data immediately while loading
+                            final usersVibe = snapshot.data ?? _cachedFollowing;
+
+                            if (isInitialLoad &&
+                                snapshot.connectionState ==
+                                    ConnectionState.waiting &&
+                                _cachedFollowing.isEmpty) {
+                              return const UserChaseSimmer();
+                            }
+
+                            if (usersVibe.isEmpty) {
+                              return Center(
+                                child: Padding(
+                                  padding: EdgeInsets.only(
+                                    top: 17.h,
+                                    bottom: 30.h,
+                                  ),
+                                  child: Text(
+                                    'No re-chase yet 👀',
+                                    style: TextStyle(
+                                      color: Colors.grey,
+                                      fontSize: 10.8.sp,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ),
+                              );
+                            }
+
+                            final recentUsers = usersVibe.length > 4
+                                ? usersVibe.take(4).toList()
+                                : usersVibe;
+
+                            return Container(
+                              height: 55.h,
+                              padding: EdgeInsets.symmetric(horizontal: 5.w),
+                              child: Row(
+                                mainAxisAlignment: usersVibe.length < 4
+                                    ? MainAxisAlignment.start
+                                    : MainAxisAlignment.spaceBetween,
+                                children: recentUsers.map((user) {
+                                  final profilePic =
+                                      user['profile_picture_url'] as String?;
+                                  final firstName =
+                                      user['first_name'] as String? ??
+                                      user['name'] as String? ??
+                                      '';
+                                  final firstLetter = firstName.isNotEmpty
+                                      ? firstName[0].toUpperCase()
+                                      : '?';
+
+                                  return GestureDetector(
+                                    onTap: () {
+                                      navigationPush(
+                                        context,
+                                        PublicProfile(userId: user['id']),
+                                      );
+                                    },
+                                    child: Container(
+                                      height: 55.h,
+                                      width: 55.w,
+                                      margin: EdgeInsets.only(right: 5.w),
+                                      decoration: BoxDecoration(
+                                        shape: BoxShape.circle,
+                                        border: Border.all(
+                                          color: Theme.of(context)
+                                              .colorScheme
+                                              .outline
+                                              .withOpacity(0.7),
+                                        ),
+                                        image: profilePic != null
+                                            ? DecorationImage(
+                                                image: MemoryImage(
+                                                  getProfileImage(profilePic)!,
+                                                ),
+                                                fit: BoxFit.cover,
+                                              )
+                                            : null,
+                                        color: profilePic == null
+                                            ? Theme.of(
+                                                context,
+                                              ).primaryColor.withOpacity(0.08)
+                                            : null,
+                                      ),
+                                      child: profilePic == null
+                                          ? Center(
+                                              child: Text(
+                                                firstLetter,
+                                                style: TextStyle(
+                                                  fontSize: 20.sp,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: Theme.of(
+                                                    context,
+                                                  ).primaryColor,
+                                                ),
+                                              ),
+                                            )
+                                          : null,
+                                    ),
+                                  );
+                                }).toList(),
+                              ),
+                            );
+                          },
+                        ),
+
                         SizedBox(height: 5.h),
                       ],
                     ),
@@ -879,7 +886,7 @@ class ProfileState extends State<UserProfile>
                       AppLocalizations.of(context)!.poll,
                       style: TextStyle(
                         color: Theme.of(context).colorScheme.onBackground,
-                        fontSize: 11.5.sp,
+                        fontSize: 11.sp,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -897,18 +904,18 @@ class ProfileState extends State<UserProfile>
                       child: Row(
                         children: [
                           Text(
-                            AppLocalizations.of(context)!.seeall,
+                            '${AppLocalizations.of(context)!.seeall} >',
                             style: TextStyle(
-                              fontSize: 11.sp,
-                              fontWeight: FontWeight.w600,
-                              color: AppColors.primaryColor.withOpacity(0.8),
+                              color: Theme.of(context).colorScheme.primary,
+                              fontWeight: FontWeight.w700,
+                              fontSize: 10.5.sp,
                             ),
                           ),
-                          Icon(
-                            Icons.arrow_forward_ios,
-                            size: 14.spMax,
-                            color: AppColors.primaryColor.withOpacity(0.8),
-                          ),
+                          // Icon(
+                          //   Icons.arrow_forward_ios,
+                          //   size: 14.spMax,
+                          //   color: AppColors.primaryColor.withOpacity(0.8),
+                          // ),
                         ],
                       ),
                     ),
@@ -964,8 +971,10 @@ class ProfileState extends State<UserProfile>
                       return Center(
                         child: CustomPaint(
                           painter: DottedBorderPainter(
-                            color: Theme.of(context).colorScheme.primary,
-                            strokeWidth: 2,
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.primary.withOpacity(0.7),
+                            strokeWidth: 1.5,
                             gap: 5,
                           ),
                           child: GestureDetector(
@@ -979,7 +988,17 @@ class ProfileState extends State<UserProfile>
                                 child: Column(
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
-                                    const Text('Create Something Cool'),
+                                    Text(
+                                      'Create Something Cool',
+                                      style: TextStyle(
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .onBackground
+                                            .withOpacity(0.6),
+                                        fontSize: 11.sp,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
                                     Container(
                                       height: 27.h,
                                       width: 200.w,
@@ -1009,7 +1028,7 @@ class ProfileState extends State<UserProfile>
                                           'Create your first poll',
                                           style: TextStyle(
                                             color: Colors.white,
-                                            fontSize: 11.5.sp,
+                                            fontSize: 11.sp,
                                             fontWeight: FontWeight.bold,
                                           ),
                                         ),
@@ -1064,7 +1083,7 @@ class ProfileState extends State<UserProfile>
                       'Things',
                       style: TextStyle(
                         color: Theme.of(context).colorScheme.onBackground,
-                        fontSize: 11.5.sp,
+                        fontSize: 11.sp,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -1082,18 +1101,18 @@ class ProfileState extends State<UserProfile>
                       child: Row(
                         children: [
                           Text(
-                            AppLocalizations.of(context)!.seeall,
+                            '${AppLocalizations.of(context)!.seeall} >',
                             style: TextStyle(
-                              fontSize: 11.sp,
-                              fontWeight: FontWeight.w600,
-                              color: AppColors.primaryColor.withOpacity(0.8),
+                              color: Theme.of(context).colorScheme.primary,
+                              fontWeight: FontWeight.w700,
+                              fontSize: 10.5.sp,
                             ),
                           ),
-                          Icon(
-                            Icons.arrow_forward_ios,
-                            size: 14.spMax,
-                            color: AppColors.primaryColor.withOpacity(0.8),
-                          ),
+                          // Icon(
+                          //   Icons.arrow_forward_ios,
+                          //   size: 14.spMax,
+                          //   color: AppColors.primaryColor.withOpacity(0.8),
+                          // ),
                         ],
                       ),
                     ),
@@ -1152,9 +1171,10 @@ class ProfileState extends State<UserProfile>
                       ),
                       child: CustomPaint(
                         painter: DottedBorderPainter(
-                          color: Theme.of(context).colorScheme.primary,
-                          strokeWidth: 2,
-                          gap: 5,
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.primary.withOpacity(0.7),
+                          strokeWidth: 1.5,
                         ),
                         child: SizedBox(
                           height: 100.h,
@@ -1167,7 +1187,17 @@ class ProfileState extends State<UserProfile>
                               child: Column(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  const Text('Create Something Cool'),
+                                  Text(
+                                    'Create Something Cool',
+                                    style: TextStyle(
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onBackground
+                                          .withOpacity(0.6),
+                                      fontSize: 11.sp,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
                                   Container(
                                     height: 27.h,
                                     width: 200.w,
@@ -1192,10 +1222,10 @@ class ProfileState extends State<UserProfile>
                                     ),
                                     child: Center(
                                       child: Text(
-                                        'Create your first poll',
+                                        'Create your first things',
                                         style: TextStyle(
                                           color: Colors.white,
-                                          fontSize: 11.5.sp,
+                                          fontSize: 11.sp,
                                           fontWeight: FontWeight.bold,
                                         ),
                                       ),
@@ -1219,10 +1249,13 @@ class ProfileState extends State<UserProfile>
                         : postsWithTextPolls.length,
                     itemBuilder: (context, index) {
                       const List<List<Color>> gradientOptions = [
-                        [Color(0xFFFC3E7E), Color.fromARGB(255, 147, 89, 148)],
-                        [Color(0xFF4FC3F7), Color.fromARGB(255, 124, 156, 172)],
-                        [Colors.red, Color.fromARGB(255, 159, 108, 123)],
+                        [Color(0xFFFC3E7E), Color(0xFF935994)],
+                        [Color(0xFF4FC3F7), Color(0xFF7C9CAC)],
+                        [Colors.red, Color(0xFF9F6C7B)],
                       ];
+                      final post = postsWithTextPolls[index];
+                      final pollQuestion =
+                          post.polls.first; // Get the first poll question
 
                       return Padding(
                         padding: EdgeInsets.only(
@@ -1241,7 +1274,7 @@ class ProfileState extends State<UserProfile>
                             );
                           },
                           child: UserThingsCard(
-                            post: postsWithTextPolls[index],
+                            post: pollQuestion,
                             gradientColors:
                                 gradientOptions[index % gradientOptions.length],
                           ),

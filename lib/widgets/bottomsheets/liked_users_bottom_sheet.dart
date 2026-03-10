@@ -84,7 +84,11 @@ class _LikedUsersBottomSheetState extends State<LikedUsersBottomSheet> {
             child: Center(
               child: Text(
                 'Likes',
-                style: TextStyle(fontSize: 13.sp, fontWeight: FontWeight.w600),
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onBackground,
+                  fontSize: 12.5.sp,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ),
           ),
@@ -97,7 +101,7 @@ class _LikedUsersBottomSheetState extends State<LikedUsersBottomSheet> {
                     child: Text(
                       'No likes yet',
                       style: TextStyle(
-                        fontSize: 14.sp,
+                        fontSize: 12.sp,
                         color: Theme.of(
                           context,
                         ).colorScheme.onSurface.withOpacity(0.6),
@@ -109,41 +113,49 @@ class _LikedUsersBottomSheetState extends State<LikedUsersBottomSheet> {
                     itemCount: _likedUsers.length,
                     itemBuilder: (context, index) {
                       final user = _likedUsers[index];
-                      return ListTile(
-                        onTap: () {
-                          Navigator.pop(context);
-                        },
-                        leading: CircleAvatar(
-                          radius: 15.r,
-                          backgroundColor: Theme.of(
-                            context,
-                          ).colorScheme.primary.withOpacity(0.15),
-                          backgroundImage:
-                              user.profileImage != null &&
-                                  user.profileImage!.isNotEmpty
-                              ? MemoryImage(getProfileImage(user.profileImage)!)
-                              : null,
-                          child:
-                              user.profileImage == null ||
-                                  user.profileImage!.isEmpty
-                              ? Text(
-                                  user.firstLetter,
-                                  style: TextStyle(
-                                    fontSize: 16.sp,
-                                    fontWeight: FontWeight.w600,
-                                    color: Theme.of(
-                                      context,
-                                    ).colorScheme.primary,
-                                  ),
-                                )
-                              : null,
+                      return Padding(
+                        padding: EdgeInsetsGeometry.symmetric(
+                          horizontal: 10.w,
+                          vertical: 3.h,
                         ),
-                        title: Text(
-                          user.username,
-                          style: TextStyle(
-                            fontSize: 11.5.sp,
-                            fontWeight: FontWeight.w600,
-                          ),
+                        child: Row(
+                          children: [
+                            CircleAvatar(
+                              radius: 13.r,
+                              backgroundImage:
+                                  user.profileImage != null &&
+                                      user.profileImage!.isNotEmpty
+                                  ? MemoryImage(
+                                      getProfileImage(user.profileImage)!,
+                                    )
+                                  : null,
+                              child:
+                                  user.profileImage == null ||
+                                      user.profileImage!.isEmpty
+                                  ? Text(
+                                      user.firstLetter,
+                                      style: TextStyle(
+                                        fontSize: 16.sp,
+                                        fontWeight: FontWeight.w600,
+                                        color: Theme.of(
+                                          context,
+                                        ).colorScheme.primary,
+                                      ),
+                                    )
+                                  : null,
+                            ),
+                            SizedBox(width: 7.w),
+                            Text(
+                              user.username,
+                              style: TextStyle(
+                                fontSize: 11.sp,
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onBackground,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
                         ),
                       );
                     },

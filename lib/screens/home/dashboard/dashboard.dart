@@ -17,10 +17,17 @@ class DashboardState extends State<Dashboard> with UtilityMixin {
   bool isInitialLoad = true;
   String? errorMessage;
 
+  final Set<int> _chasedUserIds = {};
+
+  // ── Pagination ─────────────────────────────────────────────────────────────
+  bool _isLoadingMore = false;
+  bool _hasMoreData = true;
+  String? _nextPageUrl;
+  final ScrollController _scrollController = ScrollController();
+
   final StreamController<List<HomeFeedPost>> _postsStreamController =
       StreamController<List<HomeFeedPost>>.broadcast();
 
-  // Sample categories list (you can replace this with your actual data)
   final List<Category> categories = [
     Category(name: 'Sports', icon: Icons.sports_soccer),
     Category(name: 'Movie', icon: Icons.movie),
@@ -35,28 +42,66 @@ class DashboardState extends State<Dashboard> with UtilityMixin {
   static const String _cacheTimeKey = 'home_feed_cache_time';
   static const Duration _cacheValidDuration = Duration(minutes: 10);
 
+  late Future<UserSuggestionsModel> _suggestionsFuture;
+
   @override
   void initState() {
     super.initState();
+    _scrollController.addListener(_onScroll);
+    _suggestionsFuture = apiService.fetchUserSuggestions();
     _loadInitialData();
   }
 
   @override
   void dispose() {
+    _scrollController.dispose();
     _postsStreamController.close();
     super.dispose();
   }
 
-  /// Load cached data first, then fetch fresh data
-  Future<void> _loadInitialData() async {
-    // Load cached data immediately
-    await _loadCachedPosts();
+  // ── Scroll listener ────────────────────────────────────────────────────────
 
-    // Then fetch fresh data in background
+  void _onScroll() {
+    if (_scrollController.position.pixels >=
+            _scrollController.position.maxScrollExtent * 0.8 &&
+        !_isLoadingMore &&
+        _hasMoreData) {
+      _loadMorePosts();
+    }
+  }
+
+  // ── Load more ──────────────────────────────────────────────────────────────
+
+  Future<void> _loadMorePosts() async {
+    if (_isLoadingMore || !_hasMoreData || _nextPageUrl == null) return;
+
+    setState(() => _isLoadingMore = true);
+
+    try {
+      final response = await ApiService.fetchHomeFeedPosts(url: _nextPageUrl);
+
+      if (mounted) {
+        setState(() {
+          posts.addAll(response.results);
+          _nextPageUrl = response.next;
+          _hasMoreData = response.next != null;
+          _isLoadingMore = false;
+        });
+        _postsStreamController.add(List.from(posts));
+      }
+    } catch (e) {
+      debugPrint('Error loading more posts: $e');
+      if (mounted) setState(() => _isLoadingMore = false);
+    }
+  }
+
+  // ── Initial load ───────────────────────────────────────────────────────────
+
+  Future<void> _loadInitialData() async {
+    await _loadCachedPosts();
     fetchHomeFeed(showLoader: posts.isEmpty);
   }
 
-  /// Save posts to cache
   Future<void> _savePostsToCache(List<HomeFeedPost> postsToCache) async {
     try {
       final jsonString = jsonEncode(
@@ -72,26 +117,22 @@ class DashboardState extends State<Dashboard> with UtilityMixin {
     }
   }
 
-  /// Load posts from cache
   Future<void> _loadCachedPosts() async {
     try {
       final cachedJsonString = await SharedPrefService.getString(_cacheKey);
       final cacheTimeString = await SharedPrefService.getString(_cacheTimeKey);
 
       if (cachedJsonString != null && cachedJsonString.isNotEmpty) {
-        // Check if cache is still valid
         if (cacheTimeString != null) {
           final cacheTime = DateTime.parse(cacheTimeString);
-          final now = DateTime.now();
-          final isValid = now.difference(cacheTime) < _cacheValidDuration;
-
+          final isValid =
+              DateTime.now().difference(cacheTime) < _cacheValidDuration;
           if (!isValid) {
             debugPrint('Cache expired, will fetch fresh data');
             return;
           }
         }
 
-        // Parse cached posts
         final List<dynamic> jsonList = jsonDecode(cachedJsonString);
         final cachedPosts = jsonList
             .map((json) => HomeFeedPost.fromJson(json as Map<String, dynamic>))
@@ -102,7 +143,6 @@ class DashboardState extends State<Dashboard> with UtilityMixin {
             posts = cachedPosts;
             isInitialLoad = false;
           });
-          // Emit to stream
           _postsStreamController.add(posts);
         }
       }
@@ -110,6 +150,8 @@ class DashboardState extends State<Dashboard> with UtilityMixin {
       debugPrint('Error loading cached posts: $e');
     }
   }
+
+  // ── Fetch (first page) ─────────────────────────────────────────────────────
 
   Future<void> fetchHomeFeed({bool showLoader = false}) async {
     try {
@@ -120,37 +162,37 @@ class DashboardState extends State<Dashboard> with UtilityMixin {
         });
       }
 
-      final fetchedPosts = await ApiService.fetchHomeFeedPosts();
+      // Reset pagination on fresh fetch
+      _nextPageUrl = null;
+      _hasMoreData = true;
 
-      // Save to cache
-      await _savePostsToCache(fetchedPosts);
+      final response = await ApiService.fetchHomeFeedPosts();
+
+      _nextPageUrl = response.next;
+      _hasMoreData = response.next != null;
+
+      await _savePostsToCache(response.results);
 
       if (mounted) {
         setState(() {
-          // Smart merge: update existing posts instead of replacing
           if (!showLoader && posts.isNotEmpty) {
-            _mergePostsData(fetchedPosts);
+            _mergePostsData(response.results);
           } else {
-            posts = fetchedPosts;
+            posts = response.results;
           }
-
           isLoading = false;
           isInitialLoad = false;
           errorMessage = null;
         });
-
-        // Emit updated posts to stream for instant UI update
-        _postsStreamController.add(posts);
+        _postsStreamController.add(List.from(posts));
       }
     } catch (e) {
       debugPrint('Error fetching home feed: $e');
-
       if (posts.isNotEmpty) {
         if (mounted) {
           setState(() {
             isLoading = false;
             isInitialLoad = false;
-            errorMessage = null;
           });
         }
       } else {
@@ -180,11 +222,9 @@ class DashboardState extends State<Dashboard> with UtilityMixin {
             if (j < fetchedPost.polls.length) {
               final currentPoll = currentPost.polls[j];
               final fetchedPoll = fetchedPost.polls[j];
-
               currentPoll.isPolledByCurrentUser =
                   fetchedPoll.isPolledByCurrentUser;
               currentPoll.totalVotes = fetchedPoll.totalVotes;
-
               for (int k = 0; k < currentPoll.options.length; k++) {
                 if (k < fetchedPoll.options.length) {
                   currentPoll.options[k].percentage =
@@ -194,7 +234,6 @@ class DashboardState extends State<Dashboard> with UtilityMixin {
             }
           }
         }
-
         fetchedPostsMap.remove(currentPost.id);
       }
     }
@@ -202,21 +241,19 @@ class DashboardState extends State<Dashboard> with UtilityMixin {
     posts.addAll(fetchedPostsMap.values);
   }
 
-  /// Method to update a specific post in the stream
-  /// Call this from HomeFeedPostCard after voting
   void updatePostInStream(HomeFeedPost updatedPost) {
     final index = posts.indexWhere((post) => post.id == updatedPost.id);
     if (index != -1) {
       posts[index] = updatedPost;
-      // Emit updated list to stream
       _postsStreamController.add(List.from(posts));
     }
   }
 
-  /// Method to notify stream of any changes without full refresh
   void notifyPostsChanged() {
     _postsStreamController.add(List.from(posts));
   }
+
+  // ── Build ──────────────────────────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
@@ -227,7 +264,6 @@ class DashboardState extends State<Dashboard> with UtilityMixin {
   }
 
   Widget _buildBody() {
-    // Show loader during initial load
     if (isLoading && isInitialLoad) {
       return const HomeFeedSimmer();
     }
@@ -248,9 +284,7 @@ class DashboardState extends State<Dashboard> with UtilityMixin {
                 const SizedBox(height: 16),
                 ElevatedButton(
                   onPressed: () {
-                    setState(() {
-                      isInitialLoad = true;
-                    });
+                    setState(() => isInitialLoad = true);
                     fetchHomeFeed();
                   },
                   child: const Text('Retry'),
@@ -277,7 +311,6 @@ class DashboardState extends State<Dashboard> with UtilityMixin {
         stream: _postsStreamController.stream,
         initialData: posts,
         builder: (context, snapshot) {
-          // Handle different stream states
           if (snapshot.connectionState == ConnectionState.waiting &&
               posts.isEmpty) {
             return const HomeFeedSimmer();
@@ -294,23 +327,176 @@ class DashboardState extends State<Dashboard> with UtilityMixin {
             );
           }
 
-          return ListView(
-            children: [
-              ListView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                padding: EdgeInsets.all(10.w),
-                itemCount: currentPosts.length,
-                itemBuilder: (context, index) {
-                  final post = currentPosts[index];
-                  return HomeFeedPostCard(
-                    key: ValueKey(post.id), // Important for proper rebuilding
-                    post: post,
-                    onPressed: () {},
-                  );
-                },
-              ),
-            ],
+          return ListView.builder(
+            controller: _scrollController,
+            padding: EdgeInsets.all(10.w),
+            itemCount: currentPosts.length + (_hasMoreData ? 1 : 0),
+            itemBuilder: (context, index) {
+              if (index == currentPosts.length) {
+                return Center(
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(vertical: 16.h),
+                    child: _isLoadingMore
+                        ? Loader(color: Theme.of(context).colorScheme.primary)
+                        : const SizedBox.shrink(),
+                  ),
+                );
+              }
+
+              final userProvider = Provider.of<UserProvider>(
+                context,
+                listen: false,
+              );
+              final int completion = userProvider.profile_completion ?? 0;
+              final bool showProfileCard = completion < 100;
+
+              // Profile completion
+              if (index == 3 && showProfileCard) {
+                final bool isDarkMode =
+                    Theme.of(context).brightness == Brightness.dark;
+                return Column(
+                  children: [
+                    HomeFeedPostCard(
+                      key: ValueKey(currentPosts[index].id),
+                      post: currentPosts[index],
+                      onPressed: () {},
+                    ),
+                    Container(
+                      margin: EdgeInsets.only(bottom: 10.h),
+                      padding: const EdgeInsets.all(12).w,
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.primaryContainer,
+                        borderRadius: BorderRadius.circular(8.r),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(
+                              isDarkMode ? 0.3 : 0.05,
+                            ),
+                            blurRadius: 8,
+                            spreadRadius: 2,
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Improve Your Profile',
+                            style: TextStyle(
+                              color: Theme.of(context).colorScheme.onBackground,
+                              fontWeight: FontWeight.w600,
+                              fontSize: 11.sp,
+                            ),
+                          ),
+                          SizedBox(height: 6.h),
+                          Text(
+                            '$completion%',
+                            style: TextStyle(
+                              color: AppColors.primaryColor,
+                              fontWeight: FontWeight.w700,
+                              fontSize: 18.sp,
+                            ),
+                          ),
+                          SizedBox(height: 8.h),
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(10.r),
+                            child: LinearProgressIndicator(
+                              value: completion / 100,
+                              minHeight: 4.h,
+                              backgroundColor: Colors.grey.shade300,
+                              valueColor: const AlwaysStoppedAnimation<Color>(
+                                AppColors.primaryColor,
+                              ),
+                            ),
+                          ),
+                          SizedBox(height: 14.h),
+                          GestureDetector(
+                            onTap: () =>
+                                navigationPush(context, const EditProfile()),
+                            child: Container(
+                              width: double.infinity,
+                              height: 28.h,
+                              decoration: BoxDecoration(
+                                color: AppColors.primaryColor,
+                                borderRadius: BorderRadius.circular(25.r),
+                              ),
+                              child: Center(
+                                child: Text(
+                                  'Complete profile setup',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 11.sp,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                  ],
+                );
+              }
+
+              // Suggested Users list
+              if (index == 6) {
+                final bool isDarkMode =
+                    Theme.of(context).brightness == Brightness.dark;
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    HomeFeedPostCard(
+                      key: ValueKey(currentPosts[index].id),
+                      post: currentPosts[index],
+                      onPressed: () {},
+                    ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'People You May Know',
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.onBackground,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 11.2.sp,
+                          ),
+                        ),
+                        GestureDetector(
+                          onTap: () =>
+                              navigationPush(context, const SuggestionUsers()),
+                          child: Text(
+                            'See all >',
+                            style: TextStyle(
+                              color: Theme.of(context).colorScheme.primary,
+                              fontWeight: FontWeight.w700,
+                              fontSize: 10.5.sp,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 5),
+                    PeopleYouMayKnowSection(
+                      key: const ValueKey('suggestions'),
+                      suggestionsFuture: _suggestionsFuture,
+                      chasedUserIds: _chasedUserIds,
+                      apiService: apiService,
+                    ),
+                    const SizedBox(height: 12),
+                  ],
+                );
+              }
+
+              final post = currentPosts[index];
+              return HomeFeedPostCard(
+                key: ValueKey(post.id),
+                post: post,
+                onPressed: () {},
+              );
+            },
           );
         },
       ),

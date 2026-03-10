@@ -17,13 +17,17 @@ import '../chat_details.dart';
 class PrivateChatScreen extends StatefulWidget {
   final String? memberName;
   final String? profileUrl;
+  final int? userId;
   final int? chatId;
+  final bool isUserBlock;
 
   const PrivateChatScreen({
     super.key,
     required this.memberName,
     required this.profileUrl,
+    required this.userId,
     this.chatId,
+    this.isUserBlock = false,
   });
 
   @override
@@ -35,15 +39,19 @@ class _PrivateChatScreenState extends State<PrivateChatScreen>
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   late Stream<List<ChatMessage>> _messagesStream;
+  late bool _isUserBlock;
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final provider = context.read<PrivateChatProvider>();
-      final userProvider = context.read<UserProvider>();
-      _messagesStream = provider.messagesStream;
+     _isUserBlock = widget.isUserBlock;
+    final provider = context.read<PrivateChatProvider>();
+    final userProvider = context.read<UserProvider>();
+    _messagesStream = provider.messagesStream;
 
+    debugPrint('User id : ${widget.userId}');
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
       provider.init(
         memberName: widget.memberName,
         profileUrl: widget.profileUrl,
@@ -204,19 +212,26 @@ class _PrivateChatScreenState extends State<PrivateChatScreen>
             ),
             SizedBox(width: 7.w),
             GestureDetector(
-              onTap: () => Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => ChangeNotifierProvider.value(
-                    value: context.read<PrivateChatProvider>(),
-                    child: ChatDetails(
-                      chatName: widget.memberName,
-                      profileUrl: widget.profileUrl,
-                      isGroupChat: false,
+              onTap: () async {
+                final updatedBlock = await Navigator.push<bool>(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => ChangeNotifierProvider.value(
+                      value: context.read<PrivateChatProvider>(),
+                      child: ChatDetails(
+                        userId: widget.userId,
+                        chatName: widget.memberName,
+                        profileUrl: widget.profileUrl,
+                        isGroupChat: false,
+                        isUserBlock: _isUserBlock,
+                      ),
                     ),
                   ),
-                ),
-              ),
+                );
+                if (mounted && updatedBlock != null) {
+                  setState(() => _isUserBlock = updatedBlock);
+                }
+              },
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisAlignment: MainAxisAlignment.center,

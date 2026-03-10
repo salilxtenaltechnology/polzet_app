@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:http/http.dart' as http;
+import 'package:polzet_app/api/services/api_service.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -15,6 +16,7 @@ import '../../../core/themes/theme_provider.dart';
 import '../../../data/token/shared_preferences.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../../mixin/utility_mixins.dart';
+import '../../../provider/user_provider.dart';
 import '../../../widgets/app_icons.dart';
 import '../../../widgets/button/back_button.dart';
 import '../../../widgets/custom_text_styles.dart';
@@ -24,6 +26,7 @@ import '../../auth/login/login_import.dart';
 
 import '../profile/edit_profile/edit_profile.dart';
 import 'account/private_account.dart';
+import 'block/block_account.dart';
 import 'help and support/help_support.dart';
 import 'language/language_import.dart';
 import 'notifications/notifications.dart';

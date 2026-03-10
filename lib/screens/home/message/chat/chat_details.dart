@@ -1,25 +1,32 @@
 // ignore_for_file: deprecated_member_use
+import 'dart:io';
+
 import 'package:feather_icons/feather_icons.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:polzet_app/screens/home/message/message_list.dart';
 import 'package:provider/provider.dart';
 
 import '../../../../../core/constants/app_colors.dart';
+import '../../../../api/services/api_service.dart';
+import '../../../../api/services/image/image_picker_service.dart';
 import '../../../../mixin/utility_mixins.dart';
 import '../../../../provider/group_chat_provider.dart';
 import '../../../../provider/private_chat_provider.dart';
 import '../../../../provider/user_provider.dart';
 import '../../../../widgets/base64/image_convert.dart';
 import '../../../../widgets/diolog/custom_diolog.dart';
+import '../../../../widgets/show_toast.dart';
 import '../media/media_screen.dart';
+import '../message_list.dart';
 import 'group/group_members.dart';
 
 class ChatDetails extends StatefulWidget {
   final String? chatName;
   final String? profileUrl;
   final bool isGroupChat;
+  final bool isUserBlock;
+  final int? userId;
   final int? chatId;
   final Map<String, dynamic>? chat;
 
@@ -29,6 +36,8 @@ class ChatDetails extends StatefulWidget {
     required this.profileUrl,
     this.chat,
     required this.isGroupChat,
+    this.isUserBlock = false,
+    this.userId,
     this.chatId,
   });
 
@@ -37,12 +46,21 @@ class ChatDetails extends StatefulWidget {
 }
 
 class _ChatDetailsState extends State<ChatDetails> with UtilityMixin {
+  ApiService apiService = ApiService();
   bool _isEditingName = false;
+  bool _isUploadingImage = false;
   late TextEditingController _nameController;
+  late bool _isUserBlock;
 
   @override
   void initState() {
     super.initState();
+    _nameController = TextEditingController(
+      text: widget.isGroupChat
+          ? context.read<GroupChatProvider>().chatName ?? ''
+          : widget.chatName ?? '',
+    );
+    _isUserBlock = widget.isUserBlock;
     _nameController = TextEditingController(
       text: widget.isGroupChat
           ? context.read<GroupChatProvider>().chatName ?? ''
@@ -80,6 +98,38 @@ class _ChatDetailsState extends State<ChatDetails> with UtilityMixin {
           context,
         ).showSnackBar(const SnackBar(content: Text('Failed to rename group')));
       }
+    }
+  }
+
+  Future<void> _pickAndUploadGroupImage(GroupChatProvider provider) async {
+    try {
+      final File? pickedFile = await ImagePickerService.pickImage(
+        context: context,
+        allowCamera: true,
+      );
+      if (pickedFile == null) return;
+
+      final File? croppedFile = await ImagePickerService.cropImage(pickedFile);
+      final File imageFile = croppedFile ?? pickedFile;
+
+      setState(() => _isUploadingImage = true);
+
+      final result = await apiService.uploadGroupProfile(
+        chatId: provider.chatId!,
+        imageFile: imageFile,
+      );
+
+      if (mounted) {
+        if (result['picture_url'] != null) {
+          provider.updateGroupPicture(result['picture_url'] as String);
+        } else {
+          showToast(message: result['error'] ?? 'Failed to upload image');
+        }
+      }
+    } catch (e) {
+      showToast(message: 'Error uploading image: ${e.toString()}');
+    } finally {
+      if (mounted) setState(() => _isUploadingImage = false);
     }
   }
 
@@ -250,9 +300,12 @@ class _ChatDetailsState extends State<ChatDetails> with UtilityMixin {
         ? false
         : privateProvider!.isHideChatHistory;
 
-    final imageBytes = widget.profileUrl != null
-        ? getProfileImage(widget.profileUrl!)
-        : null;
+    // Use provider's live picture_url for group, else widget.profileUrl
+    final profileUrl = widget.isGroupChat
+        ? (groupProvider!.chat?['profile_url']?.toString() ?? widget.profileUrl)
+        : widget.profileUrl;
+
+    final imageBytes = profileUrl != null ? getProfileImage(profileUrl) : null;
     final initial = (chatName?.trim().isNotEmpty ?? false)
         ? chatName![0].toUpperCase()
         : '?';
@@ -263,7 +316,7 @@ class _ChatDetailsState extends State<ChatDetails> with UtilityMixin {
       appBar: AppBar(
         automaticallyImplyLeading: false,
         leading: GestureDetector(
-          onTap: () => Navigator.pop(context),
+        onTap: () => Navigator.pop(context, _isUserBlock), 
           child: const Icon(Icons.arrow_back_ios),
         ),
         centerTitle: true,
@@ -280,43 +333,89 @@ class _ChatDetailsState extends State<ChatDetails> with UtilityMixin {
         padding: EdgeInsets.symmetric(horizontal: 12.w),
         child: Column(
           children: [
-            SizedBox(
-              height: 90.h,
-              width: 90.w,
-              child: Container(
-                margin: EdgeInsets.only(bottom: 10.h),
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: imageBytes == null
-                      ? Theme.of(context).colorScheme.primary.withOpacity(0.15)
-                      : null,
-                  border: Border.all(
-                    color: Theme.of(
-                      context,
-                    ).colorScheme.onBackground.withOpacity(0.1),
-                    width: 1.w,
+            // ── Avatar with optional camera button ────────────────────────
+            Stack(
+              children: [
+                SizedBox(
+                  height: 90.h,
+                  width: 90.w,
+                  child: Container(
+                    margin: EdgeInsets.only(bottom: 10.h),
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: imageBytes == null
+                          ? Theme.of(
+                              context,
+                            ).colorScheme.primary.withOpacity(0.15)
+                          : null,
+                      border: Border.all(
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.onBackground.withOpacity(0.1),
+                        width: 1.w,
+                      ),
+                      image: imageBytes != null
+                          ? DecorationImage(
+                              image: MemoryImage(imageBytes),
+                              fit: BoxFit.cover,
+                            )
+                          : null,
+                    ),
+                    child: imageBytes == null
+                        ? Center(
+                            child: Text(
+                              initial,
+                              style: TextStyle(
+                                fontSize: 30.sp,
+                                fontWeight: FontWeight.w600,
+                                color: Theme.of(context).colorScheme.primary,
+                              ),
+                            ),
+                          )
+                        : null,
                   ),
-                  image: imageBytes != null
-                      ? DecorationImage(
-                          image: MemoryImage(imageBytes),
-                          fit: BoxFit.cover,
-                        )
-                      : null,
                 ),
-                child: imageBytes == null
-                    ? Center(
-                        child: Text(
-                          initial,
-                          style: TextStyle(
-                            fontSize: 28.sp,
-                            fontWeight: FontWeight.w600,
-                            color: Theme.of(context).colorScheme.primary,
+
+                // Camera icon — only for group chat + admin
+                if (widget.isGroupChat && isAdmin)
+                  Positioned(
+                    bottom: 12.h,
+                    right: 0,
+                    child: GestureDetector(
+                      onTap: _isUploadingImage
+                          ? null
+                          : () => _pickAndUploadGroupImage(groupProvider!),
+                      child: Container(
+                        padding: const EdgeInsets.all(5),
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).colorScheme.primary,
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: Theme.of(context).colorScheme.background,
+                            width: 1.5.w,
                           ),
                         ),
-                      )
-                    : null,
-              ),
+                        child: _isUploadingImage
+                            ? SizedBox(
+                                width: 12.sp,
+                                height: 12.sp,
+                                child: const CircularProgressIndicator(
+                                  strokeWidth: 1.5,
+                                  color: Colors.white,
+                                ),
+                              )
+                            : Icon(
+                                FeatherIcons.camera,
+                                size: 11.sp,
+                                color: Colors.white,
+                              ),
+                      ),
+                    ),
+                  ),
+              ],
             ),
+
+            // ── Group name / edit row ──────────────────────────────────────
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               mainAxisSize: MainAxisSize.min,
@@ -403,12 +502,14 @@ class _ChatDetailsState extends State<ChatDetails> with UtilityMixin {
                 ],
               ],
             ),
+
             if (widget.isGroupChat)
               _buildSeeAllMembers(
                 members,
                 groupProvider!.chatId,
                 groupProvider,
               ),
+
             SizedBox(height: 8.h),
             Divider(
               thickness: 1,
@@ -416,6 +517,7 @@ class _ChatDetailsState extends State<ChatDetails> with UtilityMixin {
                 context,
               ).colorScheme.onBackground.withOpacity(0.1),
             ),
+
             Padding(
               padding: EdgeInsets.only(top: 10.h),
               child: GestureDetector(
@@ -499,6 +601,7 @@ class _ChatDetailsState extends State<ChatDetails> with UtilityMixin {
               FeatherIcons.image,
               const Color(0XFFF0F0F3),
             ),
+
             if (widget.isGroupChat)
               Padding(
                 padding: EdgeInsets.only(top: 15.h),
@@ -564,11 +667,22 @@ class _ChatDetailsState extends State<ChatDetails> with UtilityMixin {
               Padding(
                 padding: EdgeInsets.only(top: 15.h),
                 child: GestureDetector(
-                  onTap: () => showBlockUserDiolog(
-                    context,
-                    () => Navigator.pop(context),
-                  ),
+                  onTap: () {
+                    showBlockUserDiolog(context, () async {
+                      final wasBlocked = _isUserBlock;
+                      Navigator.pop(context);
+                      if (mounted) setState(() => _isUserBlock = !wasBlocked);
+                      final result = wasBlocked
+                          ? await privateProvider!.unblockUser(widget.userId!)
+                          : await privateProvider!.blockUser(widget.userId!);
+                      if (mounted && result['success'] != true) {
+                        setState(() => _isUserBlock = wasBlocked);
+                       // showToast(message: result['error'] ?? 'Action failed');
+                      }
+                    }, _isUserBlock);
+                  },
                   child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
                       Icon(
                         Icons.block,
@@ -577,7 +691,7 @@ class _ChatDetailsState extends State<ChatDetails> with UtilityMixin {
                       ),
                       SizedBox(width: 8.w),
                       Text(
-                        'Block',
+                        _isUserBlock ? 'Unblock' : 'Block',
                         style: TextStyle(
                           color: const Color(0XFFF44336),
                           fontSize: 11.sp,

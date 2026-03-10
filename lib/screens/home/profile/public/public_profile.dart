@@ -18,9 +18,12 @@ import '../../../../l10n/generated/app_localizations.dart';
 import '../../../../mixin/utility_mixins.dart';
 import '../../../../models/public/public_profile_model.dart';
 import '../../../../models/public/things/public_things_card.dart';
+import '../../../../provider/private_chat_provider.dart';
 import '../../../../provider/public_profile_provider.dart';
+import '../../../../provider/user_provider.dart';
 import '../../../../widgets/base64/image_convert.dart';
 import '../../../../widgets/simmer/public_profile_simmer.dart';
+import '../../message/chat/private/private_chat_screen.dart';
 import '../posts/public_image_posts_list.dart';
 import 'public_things_questions_list.dart';
 import 'widgets/bio_widget.dart';
@@ -650,7 +653,6 @@ class _PublicProfileState extends State<PublicProfile>
                                                   Row(
                                                     children: [
                                                       // Chase/Chased Button
-                                                      // Chase/Chased Button - Updated dimensions
                                                       GestureDetector(
                                                         onTap:
                                                             buttonState['canTap']
@@ -722,28 +724,77 @@ class _PublicProfileState extends State<PublicProfile>
                                                           ),
                                                         ),
                                                       ),
-                                                      // Message Button
-                                                      Container(
-                                                        height: 25.h,
-                                                        width: 100.w,
-                                                        margin: EdgeInsets.only(
-                                                          left: 8.w,
-                                                          top: 4.h,
-                                                        ),
-                                                        decoration: BoxDecoration(
-                                                          color: AppColors
-                                                              .whiteColor
-                                                              .withOpacity(0.3),
-                                                          borderRadius:
-                                                              BorderRadius.circular(
-                                                                8.r,
+                                                      GestureDetector(
+                                                        onTap: () {
+                                                          final currentUsername =
+                                                              Provider.of<
+                                                                    UserProvider
+                                                                  >(
+                                                                    context,
+                                                                    listen:
+                                                                        false,
+                                                                  )
+                                                                  .username;
+
+                                                          Navigator.push(
+                                                            context,
+                                                            MaterialPageRoute(
+                                                              builder: (_) => ChangeNotifierProvider(
+                                                                create: (_) => PrivateChatProvider()
+                                                                  ..init(
+                                                                    memberName:
+                                                                        profile
+                                                                            .username,
+                                                                    profileUrl:
+                                                                        profile
+                                                                            .profilePictureUrl,
+                                                                    chatId: profile
+                                                                        .chatId,
+                                                                    currentUsername:
+                                                                        currentUsername,
+                                                                  ),
+                                                                child: PrivateChatScreen(
+                                                                  userId:
+                                                                      profile
+                                                                          .id,
+                                                                  memberName:
+                                                                      profile
+                                                                          .username,
+                                                                  profileUrl:
+                                                                      profile
+                                                                          .profilePictureUrl,
+                                                                  chatId: profile
+                                                                      .chatId,
+                                                                ),
                                                               ),
-                                                        ),
-                                                        child: Icon(
-                                                          FeatherIcons
-                                                              .messageSquare,
-                                                          size: 17.sp,
-                                                          color: Colors.white,
+                                                            ),
+                                                          );
+                                                        },
+                                                        child: Container(
+                                                          height: 25.h,
+                                                          width: 100.w,
+                                                          margin:
+                                                              EdgeInsets.only(
+                                                                left: 8.w,
+                                                                top: 4.h,
+                                                              ),
+                                                          decoration: BoxDecoration(
+                                                            color: AppColors
+                                                                .whiteColor
+                                                                .withOpacity(
+                                                                  0.3,
+                                                                ),
+                                                            borderRadius:
+                                                                BorderRadius.circular(
+                                                                  8.r,
+                                                                ),
+                                                          ),
+                                                          child: Icon(
+                                                            FeatherIcons
+                                                                .messageSquare,
+                                                            size: 17.sp,
+                                                            color: Colors.white,
+                                                          ),
                                                         ),
                                                       ),
                                                     ],
@@ -865,7 +916,7 @@ class _PublicProfileState extends State<PublicProfile>
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     SizedBox(height: 10.h),
-                                    // Vibe (Chase) Section
+                                    // Revibe (Rechase) Section
                                     Row(
                                       children: [
                                         Text(
@@ -874,7 +925,7 @@ class _PublicProfileState extends State<PublicProfile>
                                             color: Theme.of(
                                               context,
                                             ).colorScheme.onBackground,
-                                            fontSize: 11.5.sp,
+                                            fontSize: 11.sp,
                                             fontWeight: FontWeight.w600,
                                           ),
                                         ),
@@ -895,24 +946,23 @@ class _PublicProfileState extends State<PublicProfile>
                                             ),
                                             child: Row(
                                               children: [
+                                                if(profile.chaseList!.isNotEmpty)
                                                 Text(
-                                                  AppLocalizations.of(
-                                                    context,
-                                                  )!.seeall,
+                                                  '${AppLocalizations.of(context)!.seeall} >',
                                                   style: TextStyle(
-                                                    fontSize: 11.sp,
-                                                    fontWeight: FontWeight.w600,
-                                                    color: AppColors
-                                                        .primaryColor
-                                                        .withOpacity(0.8),
+                                                    color: Theme.of(
+                                                      context,
+                                                    ).colorScheme.primary,
+                                                    fontWeight: FontWeight.w700,
+                                                    fontSize: 10.5.sp,
                                                   ),
                                                 ),
-                                                Icon(
-                                                  Icons.arrow_forward_ios,
-                                                  size: 14.spMax,
-                                                  color: AppColors.primaryColor
-                                                      .withOpacity(0.8),
-                                                ),
+                                                // Icon(
+                                                //   Icons.arrow_forward_ios,
+                                                //   size: 14.spMax,
+                                                //   color: AppColors.primaryColor
+                                                //       .withOpacity(0.8),
+                                                // ),
                                               ],
                                             ),
                                           ),
@@ -929,7 +979,8 @@ class _PublicProfileState extends State<PublicProfile>
                                                 'No chase users',
                                                 style: TextStyle(
                                                   color: Colors.grey,
-                                                  fontSize: 10.sp,
+                                                  fontSize: 10.4.sp,
+                                                  fontWeight: FontWeight.w500,
                                                 ),
                                               ),
                                             )
@@ -1009,8 +1060,9 @@ class _PublicProfileState extends State<PublicProfile>
                                               },
                                             ),
                                     ),
-                                    SizedBox(height: 8.h),
-                                    // Revibe (Rechase) Section
+
+                                    SizedBox(height: 10.h),
+                                    // Vibe (Chase) Section
                                     Row(
                                       children: [
                                         Text(
@@ -1019,7 +1071,7 @@ class _PublicProfileState extends State<PublicProfile>
                                             color: Theme.of(
                                               context,
                                             ).colorScheme.onBackground,
-                                            fontSize: 11.5.sp,
+                                            fontSize: 11.sp,
                                             fontWeight: FontWeight.w600,
                                           ),
                                         ),
@@ -1040,24 +1092,23 @@ class _PublicProfileState extends State<PublicProfile>
                                             ),
                                             child: Row(
                                               children: [
+                                                 if(profile.rechaseList!.isNotEmpty)
                                                 Text(
-                                                  AppLocalizations.of(
-                                                    context,
-                                                  )!.seeall,
+                                                  '${AppLocalizations.of(context)!.seeall} >',
                                                   style: TextStyle(
-                                                    fontSize: 11.sp,
-                                                    fontWeight: FontWeight.w600,
-                                                    color: AppColors
-                                                        .primaryColor
-                                                        .withOpacity(0.8),
+                                                    color: Theme.of(
+                                                      context,
+                                                    ).colorScheme.primary,
+                                                    fontWeight: FontWeight.w700,
+                                                    fontSize: 10.5.sp,
                                                   ),
                                                 ),
-                                                Icon(
-                                                  Icons.arrow_forward_ios,
-                                                  size: 14.spMax,
-                                                  color: AppColors.primaryColor
-                                                      .withOpacity(0.8),
-                                                ),
+                                                // Icon(
+                                                //   Icons.arrow_forward_ios,
+                                                //   size: 14.spMax,
+                                                //   color: AppColors.primaryColor
+                                                //       .withOpacity(0.8),
+                                                // ),
                                               ],
                                             ),
                                           ),
@@ -1074,7 +1125,8 @@ class _PublicProfileState extends State<PublicProfile>
                                                 'No rechase users',
                                                 style: TextStyle(
                                                   color: Colors.grey,
-                                                  fontSize: 10.sp,
+                                                  fontSize: 10.4.sp,
+                                                  fontWeight: FontWeight.w500,
                                                 ),
                                               ),
                                             )
@@ -1164,7 +1216,7 @@ class _PublicProfileState extends State<PublicProfile>
                                               },
                                             ),
                                     ),
-                                    SizedBox(height: 5.h),
+                                    SizedBox(height: 12.h),
                                   ],
                                 ),
                               ),
@@ -1489,7 +1541,7 @@ class _PublicProfileState extends State<PublicProfile>
                                     color: Theme.of(
                                       context,
                                     ).colorScheme.onBackground,
-                                    fontSize: 11.5.sp,
+                                    fontSize: 11.sp,
                                     fontWeight: FontWeight.w600,
                                   ),
                                 ),
@@ -1508,20 +1560,21 @@ class _PublicProfileState extends State<PublicProfile>
                                   child: Row(
                                     children: [
                                       Text(
-                                        AppLocalizations.of(context)!.seeall,
+                                        '${AppLocalizations.of(context)!.seeall} >',
                                         style: TextStyle(
-                                          fontSize: 11.sp,
-                                          fontWeight: FontWeight.w600,
-                                          color: AppColors.primaryColor
-                                              .withOpacity(0.8),
+                                          color: Theme.of(
+                                            context,
+                                          ).colorScheme.primary,
+                                          fontWeight: FontWeight.w700,
+                                          fontSize: 10.5.sp,
                                         ),
                                       ),
-                                      Icon(
-                                        Icons.arrow_forward_ios,
-                                        size: 14.spMax,
-                                        color: AppColors.primaryColor
-                                            .withOpacity(0.8),
-                                      ),
+                                      // Icon(
+                                      //   Icons.arrow_forward_ios,
+                                      //   size: 14.spMax,
+                                      //   color: AppColors.primaryColor
+                                      //       .withOpacity(0.8),
+                                      // ),
                                     ],
                                   ),
                                 ),
@@ -1634,15 +1687,16 @@ class _PublicProfileState extends State<PublicProfile>
                                         SizedBox(height: 30.h),
                                         Icon(
                                           Icons.photo_library_outlined,
-                                          size: 35.spMax,
+                                          size: 32.spMax,
                                           color: Colors.grey.withOpacity(0.5),
                                         ),
                                         SizedBox(height: 10.h),
                                         Text(
                                           'No posts with image',
                                           style: TextStyle(
-                                            fontSize: 11.sp,
                                             color: Colors.grey,
+                                            fontSize: 10.4.sp,
+                                            fontWeight: FontWeight.w500,
                                           ),
                                         ),
                                         SizedBox(height: 10.h),
@@ -1707,7 +1761,7 @@ class _PublicProfileState extends State<PublicProfile>
                                     color: Theme.of(
                                       context,
                                     ).colorScheme.onBackground,
-                                    fontSize: 11.5.sp,
+                                    fontSize: 11.sp,
                                     fontWeight: FontWeight.w600,
                                   ),
                                 ),
@@ -1726,20 +1780,21 @@ class _PublicProfileState extends State<PublicProfile>
                                   child: Row(
                                     children: [
                                       Text(
-                                        AppLocalizations.of(context)!.seeall,
+                                        '${AppLocalizations.of(context)!.seeall} >',
                                         style: TextStyle(
-                                          fontSize: 11.sp,
-                                          fontWeight: FontWeight.w600,
-                                          color: AppColors.primaryColor
-                                              .withOpacity(0.8),
+                                          color: Theme.of(
+                                            context,
+                                          ).colorScheme.primary,
+                                          fontWeight: FontWeight.w700,
+                                          fontSize: 10.5.sp,
                                         ),
                                       ),
-                                      Icon(
-                                        Icons.arrow_forward_ios,
-                                        size: 14.spMax,
-                                        color: AppColors.primaryColor
-                                            .withOpacity(0.8),
-                                      ),
+                                      // Icon(
+                                      //   Icons.arrow_forward_ios,
+                                      //   size: 14.spMax,
+                                      //   color: AppColors.primaryColor
+                                      //       .withOpacity(0.8),
+                                      // ),
                                     ],
                                   ),
                                 ),
@@ -1835,8 +1890,9 @@ class _PublicProfileState extends State<PublicProfile>
                                       Text(
                                         'No posts with things',
                                         style: TextStyle(
-                                          fontSize: 11.5.sp,
                                           color: Colors.grey,
+                                          fontSize: 10.4.sp,
+                                          fontWeight: FontWeight.w500,
                                         ),
                                       ),
                                     ],

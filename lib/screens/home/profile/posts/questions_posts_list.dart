@@ -251,20 +251,9 @@ class QuestionsPostsListState extends State<QuestionsPostsList> {
             )
           : postsPolls.isEmpty
           ? Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.poll_outlined, color: Colors.grey[400], size: 60),
-                  SizedBox(height: 16.h),
-                  Text(
-                    'No active polls found',
-                    style: TextStyle(
-                      color: Colors.grey[600],
-                      fontSize: 16.sp,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ],
+              child: Text(
+                'No active polls found',
+                style: TextStyle(color: Colors.grey[600], fontSize: 11.sp),
               ),
             )
           : RefreshIndicator(
@@ -283,7 +272,6 @@ class QuestionsPostsListState extends State<QuestionsPostsList> {
                     onCommentsIconTap: () => _showCommentsBottomSheet(post.id),
                     username: widget.username,
                     profileImage: widget.profileImage,
-                    // Pass current tracked states
                     currentLikeState: postLikeStates[post.id],
                     currentLikesCount: postLikeCounts[post.id],
                     currentCommentsCount: postCommentsCounts[post.id],

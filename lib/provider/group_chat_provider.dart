@@ -129,7 +129,7 @@ class GroupChatProvider extends ChangeNotifier {
       return;
     }
 
-    final token = await SharedPrefService.getAccessToken();
+    final token = await SharedPrefService.getToken();
     if (token != null && token.isNotEmpty) {
       _shouldReconnect = true;
       await _connectWebSocket(token);
@@ -280,7 +280,7 @@ class GroupChatProvider extends ChangeNotifier {
   Future<void> reconnect() async {
     if (_isConnected || _isConnecting) return;
     debugPrint('🔄 Group: manual reconnect triggered');
-    final token = await SharedPrefService.getAccessToken();
+    final token = await SharedPrefService.getToken();
     if (token != null && token.isNotEmpty) {
       _shouldReconnect = true;
       await _connectWebSocket(token);
@@ -362,7 +362,7 @@ class GroupChatProvider extends ChangeNotifier {
       );
       _reconnectTimer?.cancel();
       _reconnectTimer = Timer(delay, () async {
-        final token = await SharedPrefService.getAccessToken();
+        final token = await SharedPrefService.getToken();
         if (token != null) _connectWebSocket(token);
       });
     } else {
@@ -431,7 +431,15 @@ class GroupChatProvider extends ChangeNotifier {
     return false;
   }
 
-  // ── Remove member ─────────────────────────────────────────────────────────
+  // -- Upload Profile Image -───────────────────────────
+  void updateGroupPicture(String url) {
+  if (chat != null) {
+    chat = {...chat!, 'profile_url': url};
+  }
+  notifyListeners();
+}
+
+  // ── Remove member ────────────────────────────────────
   Future<bool> removeMember(int userId) async {
     members = members.where((m) => _userFromMember(m)['id'] != userId).toList();
     _syncMembersIntoChat();
@@ -444,7 +452,7 @@ class GroupChatProvider extends ChangeNotifier {
     return true;
   }
 
-  // ── Make admin ────────────────────────────────────────────────────────────
+  // ── Make admin ────────────────────────────────────────
   Future<bool> makeAdmin(int userId) async {
     members = members.map((m) {
       final user = _userFromMember(m);

@@ -185,7 +185,11 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
       child: Center(
         child: Text(
           'Comments',
-          style: TextStyle(fontSize: 13.sp, fontWeight: FontWeight.w600),
+          style: TextStyle(
+            color: Theme.of(context).colorScheme.onBackground,
+            fontSize: 12.5.sp,
+            fontWeight: FontWeight.w600,
+          ),
         ),
       ),
     );

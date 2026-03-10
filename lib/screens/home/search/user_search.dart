@@ -59,6 +59,8 @@ class UserSearchState extends State<UserSearch>
   List<SearchUserModel> _users = [];
   List<SearchHistoryItem> _searchHistory = []; // Changed to SearchHistoryItem
 
+  final Set<int> _chasedUserIds = {};
+
   Timer? _debounce;
 
   @override
@@ -437,6 +439,8 @@ class UserSearchState extends State<UserSearch>
         firstName: '',
         lastName: '',
         profilePicture: null,
+        isFriend: false,
+        followStatus: '',
       ),
     );
 
@@ -717,7 +721,6 @@ class UserSearchState extends State<UserSearch>
                                           Expanded(
                                             child: GestureDetector(
                                               onTap: () {
-                                                // Add to profile history when visiting - Fixed: Convert id to String
                                                 _addProfileToHistory(
                                                   user.username,
                                                   user.id.toString(),
@@ -743,7 +746,7 @@ class UserSearchState extends State<UserSearch>
                                                       color: Theme.of(context)
                                                           .colorScheme
                                                           .onBackground,
-                                                      fontSize: 11.7.sp,
+                                                      fontSize: 11.sp,
                                                       fontWeight:
                                                           FontWeight.w400,
                                                     ),
@@ -755,30 +758,141 @@ class UserSearchState extends State<UserSearch>
                                                           .colorScheme
                                                           .onBackground
                                                           .withOpacity(0.4),
-                                                      fontSize: 11.sp,
+                                                      fontSize: 10.5.sp,
                                                     ),
                                                   ),
                                                 ],
                                               ),
                                             ),
                                           ),
-                                          SizedBox(width: 5.w),
-                                          _buttonEvent(
-                                            const Color(0XFFC8FEC5),
-                                            Assets.assetsImagesIcFollow,
-                                            onTap: () {
-                                              userProvider.sendFriendRequest(
-                                                user.username,
-                                              );
-                                            },
-                                          ),
+                                          //   SizedBox(width: 5.w),
+                                          // _buttonEvent(
+                                          //   const Color(0XFFC8FEC5),
+                                          //   Assets.assetsImagesIcFollow,
+                                          //   onTap: () {
+                                          //     userProvider.sendFriendRequest(
+                                          //       user.username,
+                                          //     );
+                                          //   },
+                                          // ),
 
-                                          SizedBox(width: 5.w),
-                                          _buttonEvent(
-                                            const Color(0XFFFFEAEA),
-                                            Assets.assetsImagesIcBlock,
-                                            onTap: () {
-                                              _showBlockSheet(context);
+                                          // SizedBox(width: 5.w),
+                                          // _buttonEvent(
+                                          //   const Color(0XFFFFEAEA),
+                                          //   Assets.assetsImagesIcBlock,
+                                          //   onTap: () {
+                                          //     _showBlockSheet(context);
+                                          //   },
+                                          // ),
+                                          StatefulBuilder(
+                                            builder: (context, setLocalState) {
+                                              // Determine button label based on follow_status and is_friend
+                                              String getButtonLabel() {
+                                                if (_chasedUserIds.contains(
+                                                  user.id,
+                                                )) {
+                                                  return 'Chased';
+                                                }
+                                                if (user.isFriend &&
+                                                    user.followStatus ==
+                                                        'following') {
+                                                  return 'Chased';
+                                                }
+                                                if (user.followStatus ==
+                                                    'follower') {
+                                                  return 'Chase Back';
+                                                }
+                                                return 'Chase';
+                                              }
+
+                                              final label = getButtonLabel();
+                                              final isChased =
+                                                  label == 'Chased';
+
+                                              return GestureDetector(
+                                                onTap: () async {
+                                                  if (isChased) {
+                                                    setLocalState(
+                                                      () => _chasedUserIds
+                                                          .remove(user.id),
+                                                    );
+                                                    try {
+                                                      await _apiService
+                                                          .unfriend(user.id);
+                                                    } catch (e) {
+                                                      setLocalState(
+                                                        () => _chasedUserIds
+                                                            .add(user.id),
+                                                      );
+                                                    }
+                                                  } else {
+                                                    setLocalState(
+                                                      () => _chasedUserIds.add(
+                                                        user.id,
+                                                      ),
+                                                    );
+                                                    try {
+                                                      await _apiService
+                                                          .sendFriendRequest(
+                                                            user.username,
+                                                          );
+                                                    } catch (e) {
+                                                      setLocalState(
+                                                        () => _chasedUserIds
+                                                            .remove(user.id),
+                                                      );
+                                                    }
+                                                  }
+                                                },
+                                                child: AnimatedContainer(
+                                                  duration: const Duration(
+                                                    milliseconds: 250,
+                                                  ),
+                                                  height: 22.h,
+                                                  padding: EdgeInsets.symmetric(
+                                                    horizontal: 7.w,
+                                                  ),
+                                                  margin: EdgeInsets.only(
+                                                    left: 8.w,
+                                                  ),
+                                                  decoration: BoxDecoration(
+                                                    color: isChased
+                                                        ? Colors.grey.shade400
+                                                        : Theme.of(
+                                                            context,
+                                                          ).colorScheme.primary,
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                          25.r,
+                                                        ),
+                                                  ),
+                                                  child: Center(
+                                                    child: Row(
+                                                      mainAxisAlignment:
+                                                          MainAxisAlignment
+                                                              .center,
+                                                      children: [
+                                                        if (label ==
+                                                            'Chase') ...[
+                                                          Icon(
+                                                            Icons.add,
+                                                            color: Colors.white,
+                                                            size: 15.sp,
+                                                          ),
+                                                          SizedBox(width: 3.w),
+                                                        ],
+                                                        Text(
+                                                          label,
+                                                          style: TextStyle(
+                                                            color: Colors.white,
+                                                            fontSize: 10.2.sp,
+                                                          ),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  ),
+                                                ),
+                                              );
                                             },
                                           ),
                                         ],

@@ -125,6 +125,17 @@ class _MessageListState extends State<MessageList> with UtilityMixin {
   }
 
   String? _avatarUrl(Map<String, dynamic> chat) {
+    final chatType = chat['chat_type']?.toString();
+
+    // For group chats, use profile_url field
+    if (chatType == 'group') {
+      final profileUrl = chat['profile_url']?.toString();
+      return (profileUrl != null && profileUrl.trim().isNotEmpty)
+          ? profileUrl
+          : null;
+    }
+
+    // For private chats, find the other member's profile image
     final currentUserId = Provider.of<UserProvider>(
       context,
       listen: false,
@@ -146,12 +157,49 @@ class _MessageListState extends State<MessageList> with UtilityMixin {
   int _unreadCount(Map<String, dynamic> chat) =>
       (chat['unread_count'] as int?) ?? 0;
 
+  // Add this helper method in _MessageListState
+  bool _isOtherMemberBlocked(Map<String, dynamic> chat) {
+    final currentUserId = Provider.of<UserProvider>(
+      context,
+      listen: false,
+    ).userId;
+    final members = chat['members'] as List?;
+    if (members == null) return false;
+    for (final m in members) {
+      final member = m as Map<String, dynamic>;
+      final user = member['user'] as Map<String, dynamic>?;
+      if (user?['id'] != currentUserId) {
+        return (member['is_block'] as bool?) ?? false;
+      }
+    }
+    return false;
+  }
+
+  // Add this helper in _MessageListState
+  int? _getOtherUserId(Map<String, dynamic> chat) {
+    final currentUserId = Provider.of<UserProvider>(
+      context,
+      listen: false,
+    ).userId;
+    final members = chat['members'] as List?;
+    if (members == null) return null;
+    for (final m in members) {
+      final member = m as Map<String, dynamic>;
+      final user = member['user'] as Map<String, dynamic>?;
+      if (user?['id'] != currentUserId) {
+        return user?['id'] as int?;
+      }
+    }
+    return null;
+  }
+
   Future<void> _openChat(
     Map<String, dynamic> chat,
     String title,
     String? avatarUrl,
   ) async {
     final chatId = chat['id'] as int?;
+    final isBlocked = _isOtherMemberBlocked(chat);
 
     // Optimistically reset unread count locally
     if (chatId != null && _unreadCount(chat) > 0) {
@@ -210,9 +258,11 @@ class _MessageListState extends State<MessageList> with UtilityMixin {
                 currentUsername: currentUsername,
               ),
             child: PrivateChatScreen(
+              userId: _getOtherUserId(chat),
               memberName: title,
               profileUrl: avatarUrl,
               chatId: chatId,
+              isUserBlock: isBlocked,
             ),
           ),
         ),
@@ -303,7 +353,10 @@ class _MessageListState extends State<MessageList> with UtilityMixin {
                         contentPadding: EdgeInsets.zero,
                         leading: CircleAvatar(
                           radius: 24,
-                          backgroundColor: Colors.grey[700],
+                          backgroundColor: chat['chat_type'] == 'group'
+                              ? Colors
+                                    .blueGrey[600] // distinct color for groups
+                              : Colors.grey[700],
                           backgroundImage: imageBytes != null
                               ? MemoryImage(imageBytes)
                               : null,

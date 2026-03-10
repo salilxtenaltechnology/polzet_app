@@ -15,6 +15,10 @@ class UserProvider with ChangeNotifier {
   String? email;
   String? bio;
   String? dob;
+  bool? has_google_auth;
+  bool? has_local_password;
+  int? profile_completion;
+  bool? onboarding_completed;
   String? gender;
   String? country_code;
   String? mobile_number;
@@ -43,7 +47,7 @@ class UserProvider with ChangeNotifier {
     try {
       var data = await apiService.fetchUserData();
       await apiService.getFollowersList();
-      
+
       userId = data?['id'];
       username = data?['username'];
       firstName = data?['first_name'];
@@ -51,6 +55,10 @@ class UserProvider with ChangeNotifier {
       email = data?['email'];
       bio = data?['bio'];
       dob = data?['dob'];
+      has_google_auth = data?['has_google_auth'];
+      has_local_password = data?['has_local_password'];
+      profile_completion = data?['profile_completion'];
+      onboarding_completed = data?['onboarding_completed'];
       gender = data?['gender'];
       country_code = data?['country_code'];
       mobile_number = data?['mobile_number'];
@@ -60,10 +68,9 @@ class UserProvider with ChangeNotifier {
       following_count = data?['following_count'];
       image_post_count = data?['image_post_count'];
       text_post_count = data?['text_post_count'];
-      
       _isInitialLoadComplete = true;
       isLoading = false;
-      
+
       notifyListeners();
     } catch (e) {
       debugPrint('❌ UserProvider: Error loading user data: $e');
@@ -77,30 +84,33 @@ class UserProvider with ChangeNotifier {
 
   /// ✅ NEW: Check if user data is valid and ready
   bool isUserDataValid() {
-    final isValid = _isInitialLoadComplete && 
-                    userId != null && 
-                    username != null && 
-                    username!.isNotEmpty;
-    
+    final isValid =
+        _isInitialLoadComplete &&
+        userId != null &&
+        username != null &&
+        username!.isNotEmpty;
+
     if (!isValid) {
       debugPrint('⚠️ UserProvider: Data not valid');
       debugPrint('   isInitialLoadComplete: $_isInitialLoadComplete');
       debugPrint('   userId: $userId');
       debugPrint('   username: $username');
     }
-    
+
     return isValid;
   }
 
   /// ✅ NEW: Wait for user data to be ready (with timeout)
-  Future<bool> waitForUserData({Duration timeout = const Duration(seconds: 10)}) async {
+  Future<bool> waitForUserData({
+    Duration timeout = const Duration(seconds: 10),
+  }) async {
     if (isUserDataValid()) {
       debugPrint('✅ UserProvider: Data already valid');
       return true;
     }
 
     debugPrint('⏳ UserProvider: Waiting for user data...');
-    
+
     final startTime = DateTime.now();
     while (!isUserDataValid()) {
       if (DateTime.now().difference(startTime) > timeout) {
@@ -118,8 +128,8 @@ class UserProvider with ChangeNotifier {
   Future<void> loadUserDataSilently() async {
     // Don't change isLoading state to avoid showing loading indicators
     try {
-     // debugPrint('🔄 UserProvider: Silently refreshing user data...');
-      
+      // debugPrint('🔄 UserProvider: Silently refreshing user data...');
+
       var data = await apiService.fetchUserData();
 
       // Update all fields with fresh data
@@ -130,6 +140,8 @@ class UserProvider with ChangeNotifier {
       email = data?['email'];
       bio = data?['bio'];
       dob = data?['dob'];
+      profile_completion = data?['profile_completion'];    
+      onboarding_completed = data?['onboarding_completed'];
       gender = data?['gender'];
       country_code = data?['country_code'];
       mobile_number = data?['mobile_number'];
@@ -146,7 +158,7 @@ class UserProvider with ChangeNotifier {
       }
 
       //debugPrint('✅ UserProvider: Data refreshed silently');
-      
+
       // Only notify listeners to update UI with fresh data
       notifyListeners();
     } catch (e) {
@@ -191,6 +203,10 @@ class UserProvider with ChangeNotifier {
     email = null;
     bio = null;
     dob = null;
+    has_google_auth = null;
+    has_local_password = null;
+    profile_completion = null;
+    onboarding_completed = null;
     gender = null;
     country_code = null;
     mobile_number = null;
@@ -228,6 +244,18 @@ class UserProvider with ChangeNotifier {
         break;
       case 'cover_photo':
         cover_photo = value;
+        break;
+      case 'has_google_auth':
+        has_google_auth = value;
+        break;
+      case 'has_local_password':
+        has_local_password = value;
+        break;
+      case 'profile_completion':
+        profile_completion = value;
+        break;
+      case 'onboarding_completed':
+        onboarding_completed = value;
         break;
       case 'followers_count':
         followers_count = value;

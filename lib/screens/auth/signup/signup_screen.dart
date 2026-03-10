@@ -179,7 +179,7 @@ class _SignupScreenState extends State<SignupScreen> with UtilityMixin {
 
     try {
       // Get access token from shared preferences
-      final accessToken = await SharedPrefService.getAccessToken();
+      final accessToken = await SharedPrefService.getToken();
 
       // Prepare request body matching your Postman structure
       final body = {

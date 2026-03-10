@@ -69,7 +69,7 @@ class NotificationState extends State<Notifications>
 
   // Get auth headers
   Future<Map<String, String>> _getAuthHeaders() async {
-    final accessToken = await SharedPrefService.getAccessToken();
+    final accessToken = await SharedPrefService.getToken();
     return {
       'Authorization': 'Bearer ${accessToken ?? ''}',
       'Content-Type': 'application/json',
@@ -126,7 +126,6 @@ class NotificationState extends State<Notifications>
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(_notificationsCacheKey, json.encode(responseData));
-
     } catch (e) {
       if (kDebugMode) {
         print('Error saving notifications to cache: $e');
@@ -215,8 +214,6 @@ class NotificationState extends State<Notifications>
           if (!_notificationStreamController.isClosed) {
             _notificationStreamController.add(_lastNotifications);
           }
-
-
         } catch (parseError) {
           if (kDebugMode) {
             print('❌ Error parsing notifications: $parseError');
@@ -338,7 +335,7 @@ class NotificationState extends State<Notifications>
   }
 
   Future<List<IncomingData>> getFriendRequests() async {
-    final accessToken = await SharedPrefService.getAccessToken();
+    final accessToken = await SharedPrefService.getToken();
     try {
       final response = await _dio.get(
         ApiConstants.friendRequest,
@@ -363,7 +360,7 @@ class NotificationState extends State<Notifications>
   }
 
   Future<void> acceptRequest(int requestId) async {
-    final accessToken = await SharedPrefService.getAccessToken();
+    final accessToken = await SharedPrefService.getToken();
 
     var body = {'action': 'accept'};
     try {
@@ -588,12 +585,12 @@ class NotificationState extends State<Notifications>
 
                         if (snapshot.hasData && snapshot.data!.isNotEmpty) {
                           final notifications = snapshot.data!;
+                         
                           return ListView.builder(
                             controller: _allNotificationsScrollController,
                             itemCount:
                                 notifications.length + (_hasMoreData ? 1 : 0),
                             itemBuilder: (context, index) {
-                              // Show loading indicator at the bottom
                               if (index == notifications.length) {
                                 return Center(
                                   child: Padding(

@@ -19,6 +19,7 @@ import '../home/settings/security/biometric/biometric_screen.dart';
 import '../home/settings/security/biometric/biometric_service.dart';
 import '../home/settings/security/pin/pin_gate_screen.dart';
 import '../home/settings/security/pin/pin_status.dart';
+import '../terms_acceptance/terms_acceptance.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -77,69 +78,57 @@ class _SplashScreenState extends State<SplashScreen>
 
   /// ✅ Core initialization logic moved from main.dart
   Future<Widget> _initializeApp() async {
-    // 1. Check Login
-    final bool isUserLoggedIn = await _isLoggedIn();
+  final bool isUserLoggedIn = await _isLoggedIn();
 
-    if (!isUserLoggedIn) {
-      return const LoginScreen();
-    }
-
-    // 2. Load User Data
-    try {
-      // Note: We use listen: false because we are in initState context
-      if (mounted) {
-        final userProvider = Provider.of<UserProvider>(context, listen: false);
-        await userProvider.loadUserData();
-      }
-    } catch (e) {
-      // If user data fails, force re-login
-      return const LoginScreen();
-    }
-
-    // 3. Check Pending Notifications
-    final notificationRouter = NotificationRouter();
-    Widget? notificationDestination;
-
-    if (notificationRouter.hasPendingNotification()) {
-      notificationDestination = await notificationRouter.resolveDestination();
-    }
-
-    // 4. Check Biometrics/PIN
-    final bool isBiometricEnabled = await BiometricService.isBiometricEnabled();
-
-    if (!isBiometricEnabled) {
-      // Return HomeScreen with potential notification destination
-      return HomeScreen(
-        initialIndex: 0,
-        pendingDestination: notificationDestination,
-      );
-    }
-
-    final bool isPinSecurityEnabled = await PinService.isPinSecurityEnabled();
-    final bool isFingerprintEnabled = await BiometricService.isFingerprintEnabled();
-
-    if (isPinSecurityEnabled) {
-      final bool isPinSet = await PinService.isPinSet();
-      if (isPinSet) {
-        return const PinGateScreen();
-      }
-    }
-
-    if (isFingerprintEnabled) {
-      final bool isBiometricAvailable = await BiometricService.isBiometricAvailable();
-      if (isBiometricAvailable) {
-        return const BiometricGateScreen();
-      }
-    }
-
-    return HomeScreen(
-      initialIndex: 0,
-      pendingDestination: notificationDestination,
-    );
+  if (!isUserLoggedIn) {
+    return const LoginScreen();
   }
 
+  try {
+    if (mounted) {
+      final userProvider = Provider.of<UserProvider>(context, listen: false);
+      await userProvider.loadUserData();
+    }
+  } catch (e) {
+    return const LoginScreen();
+  }
+
+  // ✅ Check if user has accepted terms (new user check)
+  final bool hasAcceptedTerms = await SharedPrefService.hasAcceptedTerms();
+  if (!hasAcceptedTerms) {
+    return const TermsAcceptanceScreen(); // ✅ Show only for new users
+  }
+
+  // existing notification + biometric logic...
+  final notificationRouter = NotificationRouter();
+  Widget? notificationDestination;
+  if (notificationRouter.hasPendingNotification()) {
+    notificationDestination = await notificationRouter.resolveDestination();
+  }
+
+  final bool isBiometricEnabled = await BiometricService.isBiometricEnabled();
+  if (!isBiometricEnabled) {
+    return HomeScreen(initialIndex: 0, pendingDestination: notificationDestination);
+  }
+
+  final bool isPinSecurityEnabled = await PinService.isPinSecurityEnabled();
+  final bool isFingerprintEnabled = await BiometricService.isFingerprintEnabled();
+
+  if (isPinSecurityEnabled) {
+    final bool isPinSet = await PinService.isPinSet();
+    if (isPinSet) return const PinGateScreen();
+  }
+
+  if (isFingerprintEnabled) {
+    final bool isBiometricAvailable = await BiometricService.isBiometricAvailable();
+    if (isBiometricAvailable) return const BiometricGateScreen();
+  }
+
+  return HomeScreen(initialIndex: 0, pendingDestination: notificationDestination);
+}
+
   Future<bool> _isLoggedIn() async {
-    final accessToken = await SharedPrefService.getAccessToken();
+    final accessToken = await SharedPrefService.getToken();
     return accessToken != null;
   }
 

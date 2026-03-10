@@ -10,7 +10,7 @@ class UserThingsCard extends StatelessWidget {
     required this.gradientColors,
   });
 
-  final UserPostModel post;
+  final UserPollQuestion post;
   final List<Color>? gradientColors;
 
   @override
@@ -35,7 +35,7 @@ class UserThingsCard extends StatelessWidget {
         ],
       ),
       child: Text(
-        post.description,
+        post.question,
        style: TextStyle(
                 color: Colors.white,
                 fontSize: 11.sp,

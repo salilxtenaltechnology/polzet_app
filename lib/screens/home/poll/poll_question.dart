@@ -1,4 +1,4 @@
-// ignore_for_file: deprecated_member_use, use_build_context_synchronously
+// ignore_for_file: unused_element, deprecated_member_use, use_build_context_synchronously
 
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
@@ -175,7 +175,7 @@ class _PollQuestionState extends State<PollQuestion> with UtilityMixin {
     setState(() => _isLoading = true);
 
     try {
-      final accessToken = await SharedPrefService.getAccessToken();
+      final accessToken = await SharedPrefService.getToken();
       final validOptions = _getValidOptions();
 
       // Prepare request body - Use FormData to send poll_options as separate fields
@@ -319,6 +319,7 @@ class _PollQuestionState extends State<PollQuestion> with UtilityMixin {
         ),
         backgroundColor: Theme.of(context).colorScheme.background,
         surfaceTintColor: Theme.of(context).colorScheme.background,
+        toolbarHeight: 25.h,
       ),
       body: SingleChildScrollView(
         padding: EdgeInsets.symmetric(horizontal: 12.w),
@@ -333,9 +334,9 @@ class _PollQuestionState extends State<PollQuestion> with UtilityMixin {
             SizedBox(height: 15.h),
 
             // Description Field
-            _buildDescriptionField(),
+            //_buildDescriptionField(),
 
-            SizedBox(height: 15.h),
+            //SizedBox(height: 15.h),
 
             // Poll Options
             _buildPollOptionsSection(),

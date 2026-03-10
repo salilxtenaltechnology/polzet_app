@@ -16,7 +16,6 @@ class NotificationService {
   static final NotificationService _instance = NotificationService._internal();
 
   // Firebase & Local Notifications
-  // Firebase & Local Notifications
   // ✅ FIXED: Use getter to lazy load instance. Prevents crash in background isolates
   // where Firebase is not initialized yet.
   FirebaseMessaging get _fcm => FirebaseMessaging.instance;
@@ -90,7 +89,7 @@ class NotificationService {
   /// ✅ NEW: Sync FCM token with backend if user is logged in
   Future<void> _checkAndSyncToken() async {
     try {
-      final accessToken = await SharedPrefService.getAccessToken();
+      final accessToken = await SharedPrefService.getToken();
       if (accessToken != null && accessToken.isNotEmpty) {
         String? token = await _fcm.getToken();
         if (token != null) {
@@ -121,50 +120,47 @@ class NotificationService {
         data['type']?.toString().toUpperCase() ??
         'GENERAL';
 
-    String title = 'Polzet';
-    String body = 'New notification';
+    // Get the title and body from either the custom data or the notification block
+    String title =
+        message?.notification?.title ??
+        notificationData['title']?.toString() ??
+        data['title']?.toString() ??
+        'Polzet';
+
+    String body =
+        message?.notification?.body ??
+        notificationData['message_preview']?.toString() ??
+        notificationData['body']?.toString() ??
+        data['message_preview']?.toString() ??
+        data['body']?.toString() ??
+        '';
 
     // Customize based on type
     switch (type) {
       case 'FOLLOW':
-        final sender =
+        String sender =
             notificationData['sender'] ?? data['sender'] ?? 'Someone';
+
+        // Override sender if contained in the body text
+        if (body.contains('started following you')) {
+          sender = body.replaceAll(' started following you', '').trim();
+        }
+
         title = 'New Chase';
         body = '$sender started chasing you';
         break;
       case 'VOTE':
         title = notificationData['title'] ?? data['title'] ?? 'New Vote';
-        body =
-            notificationData['message_preview'] ??
-            notificationData['body'] ??
-            data['message_preview'] ??
-            'Someone voted on your poll';
         break;
       case 'LIKE':
         title = notificationData['title'] ?? data['title'] ?? 'New Like';
-        body =
-            notificationData['body'] ??
-            data['body'] ??
-            'Someone liked your post';
         break;
       case 'COMMENT':
         title = 'New Comment';
-        body =
-            notificationData['body'] ??
-            data['body'] ??
-            'Someone commented on your post';
         break;
-      default:
-        title =
-            message?.notification?.title ??
-            notificationData['title'] ??
-            data['title'] ??
-            'Polzet';
-        body =
-            message?.notification?.body ??
-            notificationData['body'] ??
-            data['body'] ??
-            'You have a new notification';
+      case 'NEW_MESSAGE':
+        title = notificationData['title'] ?? data['title'] ?? 'New Message';
+        break;
     }
 
     return NotificationContent(title, body, type);
@@ -185,7 +181,7 @@ class NotificationService {
       );
       return;
     }
- 
+
     // 1. Initialize FlutterLocalNotificationsPlugin (fresh instance for background isolate)
     final FlutterLocalNotificationsPlugin localNotif =
         FlutterLocalNotificationsPlugin();
@@ -671,7 +667,7 @@ class NotificationService {
 
       _reconnectTimer?.cancel();
       _reconnectTimer = Timer(delay, () async {
-        final accessToken = await SharedPrefService.getAccessToken();
+        final accessToken = await SharedPrefService.getToken();
         if (accessToken != null) {
           connectToWebSocket(accessToken);
         }
@@ -771,10 +767,10 @@ class NotificationPayload {
   }) : timestamp = timestamp ?? DateTime.now();
 
   // ✅ FIXED: Extract data properly from FCM message with type-based customization
- factory NotificationPayload.fromFCM(RemoteMessage message) {
+  factory NotificationPayload.fromFCM(RemoteMessage message) {
     // Handle notification data with dynamic type
     dynamic notificationData;
-    
+
     if (message.data.containsKey('notification')) {
       final notifValue = message.data['notification'];
       if (notifValue is Map) {
@@ -796,66 +792,56 @@ class NotificationPayload {
     final dynamic typeValue = notificationData['type'] ?? message.data['type'];
     final String type = (typeValue?.toString() ?? 'GENERAL').toUpperCase();
 
-    String title;
-    String body;
+    // Get the title and body from either the custom data or the notification block
+    String title =
+        message.notification?.title ??
+        notificationData['title']?.toString() ??
+        message.data['title']?.toString() ??
+        'Polzet';
 
-    // If backend sent notification block, use it
-    if (message.notification != null) {
-      title = message.notification!.title ?? 'Polzet';
-      body = message.notification!.body ?? 'New notification';
-    } else {
-      // Customize for data-only messages
-      switch (type) {
-        case 'FOLLOW':
-          final dynamic senderValue = notificationData['sender'] ?? message.data['sender'];
-          final String sender = senderValue?.toString() ?? 'Someone';
-          title = 'New Chase';
-          body = '$sender started chasing you';
-          break;
+    String body =
+        message.notification?.body ??
+        notificationData['message_preview']?.toString() ??
+        notificationData['body']?.toString() ??
+        notificationData['message']?.toString() ??
+        message.data['message_preview']?.toString() ??
+        message.data['body']?.toString() ??
+        message.data['message']?.toString() ??
+        '';
 
-        case 'VOTE':
-          final dynamic titleValue = notificationData['title'] ?? message.data['title'];
-          title = titleValue?.toString() ?? 'New Vote';
-          
-          final dynamic bodyValue = notificationData['message_preview'] ??
-              notificationData['body'] ??
-              message.data['message_preview'] ??
-              message.data['body'];
-          body = bodyValue?.toString() ?? 'Someone voted on your poll';
-          break;
+    // Customize based on type
+    switch (type) {
+      case 'FOLLOW':
+        final dynamic senderValue =
+            notificationData['sender'] ?? message.data['sender'];
+        String sender = senderValue?.toString() ?? 'Someone';
 
-        case 'LIKE':
-          final dynamic titleValue = notificationData['title'] ?? message.data['title'];
-          title = titleValue?.toString() ?? 'New Like';
-          
-          final dynamic bodyValue = notificationData['body'] ?? message.data['body'];
-          body = bodyValue?.toString() ?? 'Someone liked your post';
-          break;
+        if (body.contains('started following you')) {
+          sender = body.replaceAll(' started following you', '').trim();
+        }
 
-        case 'COMMENT':
-          title = 'New Comment';
-          final dynamic bodyValue = notificationData['body'] ?? message.data['body'];
-          body = bodyValue?.toString() ?? 'Someone commented on your post';
-          break;
+        title = 'New Chase';
+        body = '$sender started chasing you';
+        break;
 
-        case 'NEW_MESSAGE':
-          final dynamic titleValue = notificationData['title'] ?? message.data['title'];
-          title = titleValue?.toString() ?? 'New Message';
-          
-          final dynamic bodyValue = notificationData['body'] ?? message.data['body'];
-          body = bodyValue?.toString() ?? 'You have a new message';
-          break;
+      case 'VOTE':
+        title =
+            notificationData['title'] ?? message.data['title'] ?? 'New Vote';
+        break;
 
-        default:
-          final dynamic titleValue = notificationData['title'] ?? message.data['title'];
-          title = titleValue?.toString() ?? 'Polzet';
-          
-          final dynamic bodyValue = notificationData['body'] ??
-              notificationData['message'] ??
-              message.data['body'] ??
-              message.data['message'];
-          body = bodyValue?.toString() ?? '';
-      }
+      case 'LIKE':
+        title =
+            notificationData['title'] ?? message.data['title'] ?? 'New Like';
+        break;
+
+      case 'COMMENT':
+        title = 'New Comment';
+        break;
+
+      case 'NEW_MESSAGE':
+        title =
+            notificationData['title'] ?? message.data['title'] ?? 'New Message';
+        break;
     }
 
     return NotificationPayload(
@@ -878,70 +864,54 @@ class NotificationPayload {
         notificationData['type']?.toString().toUpperCase() ??
         'GENERAL';
 
-    String title;
-    String body;
+    // Get the title and body
+    String title =
+        notification['title']?.toString() ??
+        notificationData['title']?.toString() ??
+        data['title']?.toString() ??
+        'Polzet';
+
+    String body =
+        notification['message_preview']?.toString() ??
+        notification['body']?.toString() ??
+        notification['message']?.toString() ??
+        notificationData['message_preview']?.toString() ??
+        notificationData['body']?.toString() ??
+        notificationData['message']?.toString() ??
+        data['message_preview']?.toString() ??
+        data['body']?.toString() ??
+        data['message']?.toString() ??
+        '';
 
     // Customize based on type
     switch (type) {
       case 'FOLLOW':
-        final sender =
-            notification['sender'] ??
-            notificationData['sender'] ??
-            data['sender'] ??
-            'Someone';
+        String sender =
+            notificationData['sender'] ?? data['sender'] ?? 'Someone';
+
+        if (body.contains('started following you')) {
+          sender = body.replaceAll(' started following you', '').trim();
+        }
+
         title = 'New Chase';
         body = '$sender started chasing you';
         break;
 
       case 'VOTE':
-        title =
-            notification['title'] ??
-            notificationData['title'] ??
-            data['title'] ??
-            'New Vote';
-        body =
-            notification['message_preview'] ??
-            notificationData['message_preview'] ??
-            data['message_preview'] ??
-            'Someone voted on your poll';
+        title = notificationData['title'] ?? data['title'] ?? 'New Vote';
         break;
 
       case 'LIKE':
-        title =
-            notification['title'] ??
-            notificationData['title'] ??
-            data['title'] ??
-            'New Like';
-        body =
-            notification['body'] ??
-            notificationData['body'] ??
-            data['body'] ??
-            'Someone liked your post';
+        title = notificationData['title'] ?? data['title'] ?? 'New Like';
         break;
 
       case 'COMMENT':
         title = 'New Comment';
-        body =
-            notification['body'] ??
-            notificationData['body'] ??
-            data['body'] ??
-            'Someone commented on your post';
         break;
 
-      default:
-        title =
-            notification['title'] ??
-            notificationData['title'] ??
-            data['title'] ??
-            'Polzet';
-        body =
-            notification['body'] ??
-            notification['message'] ??
-            notificationData['body'] ??
-            notificationData['message'] ??
-            data['body'] ??
-            data['message'] ??
-            '';
+      case 'NEW_MESSAGE':
+        title = notificationData['title'] ?? data['title'] ?? 'New Message';
+        break;
     }
 
     return NotificationPayload(

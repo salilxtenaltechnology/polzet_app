@@ -4,12 +4,14 @@ class ApiConstants {
   static String baseUrl = ApiConfig.baseUrl;
 
   static String login = "$baseUrl/login";
+  static String socialAuth = "$baseUrl/social_login";
   static String registration = "$baseUrl/registration";
   static String changePassword = "$baseUrl/update_password";
   static String emailVerify = "$baseUrl/email_verification";
   static String validateOtp = "$baseUrl/validate_otp";
   static String forgotPasswordEmail = "$baseUrl/forgot_password_email";
   static String forgotPasswordVerify = "$baseUrl/forgot_password_verify";
+  static String setPassword = "$baseUrl/set_password";
   static String userProfile = "$baseUrl/profile";
   static String updateProfile = "$baseUrl/profile";
   static String updatePassword = "$baseUrl/profile/change_password";
@@ -23,24 +25,30 @@ class ApiConstants {
   static String createGroup = "$baseUrl/chats/group/create";
   static String chatList = "$baseUrl/chats";
   static String renameGroup = "$baseUrl/chats/group";
+  static String uploadGroupProfile = "$baseUrl/chats/group";
   static String removeMember = "$baseUrl/chats/group";
   static String deleteGroup = "$baseUrl/chats/group";
   static String leaveGroup = "$baseUrl/chats/group";
   static String makeAdmin = "$baseUrl/chats/group";
   static String messageList = "$baseUrl/chats";
-  static String sendMessage = "$baseUrl/chats"; 
+  static String sendMessage = "$baseUrl/chats";
   static String markAsRead = "$baseUrl/chats";
   static String searchUsers = "$baseUrl/users";
-  static String blockUser = "$baseUrl/block_user";
+  static String blockUser = "$baseUrl/users/block";
+  static String unBlockUser = "$baseUrl/users/unblock";
+  static String blockedUsrsList = "$baseUrl/users/blocked";
   static String userPosts = "$baseUrl/posts";
   static String deletePost = "$baseUrl/posts";
   static String chaseList = "$baseUrl/friends/followers";
   static String reChaseList = "$baseUrl/friends/following";
   static String publicProfile = "$baseUrl/users";
   static String homeFeed = "$baseUrl/home_feed";
+  static String insights = "$baseUrl/insights";
+  static String suggestionUsers = "$baseUrl/users/suggestions";
   static String pollOnThings = "$baseUrl/posts";
   static String notifications = "$baseUrl/notifications";
   static String likePost = "$baseUrl/posts";
   static String topVoters = "$baseUrl/polls";
   static String logout = "$baseUrl/logout";
+  static String deleteAccount = "$baseUrl/users/delete_account";
 }

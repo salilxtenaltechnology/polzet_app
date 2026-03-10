@@ -12,6 +12,7 @@ class Settings extends StatefulWidget {
 
 class SettingsState extends State<Settings>
     with UtilityMixin, WidgetsBindingObserver {
+  final ApiService apiService = ApiService();
   String _errorText = '';
 
   Future<void> _clearAllCaches() async {
@@ -49,7 +50,7 @@ class SettingsState extends State<Settings>
   }
 
   Future<void> _logout() async {
-    final accessToken = await SharedPrefService.getAccessToken(); // ac_token
+    final accessToken = await SharedPrefService.getToken(); // ac_token
     final refreshToken = await SharedPrefService.getRefreshToken(); // re_token
 
     showLoadingDialog(context);
@@ -62,7 +63,7 @@ class SettingsState extends State<Settings>
 
       if (response.statusCode == 205) {
         await _clearAllCaches();
-        await SharedPrefService.deleteAccessToken();
+        await SharedPrefService.clearTokens();
         await SharedPrefService.clearFirstname();
         await SharedPrefService.clearLastname();
         await SharedPrefService.clearUsername();
@@ -82,11 +83,50 @@ class SettingsState extends State<Settings>
     } finally {}
   }
 
+  Future<void> _deleteAccount(String password) async {
+    showLoadingDialog(context);
+    try {
+      final userProvider = context.read<UserProvider>();
+      final apiService = ApiService();
+      final result = await apiService.deleteAccount(password);
+
+      Navigator.pop(context); // close loading dialog
+
+      if (result['success'] == true) {
+        // Clear all session data (same as logout)
+        await _clearAllCaches();
+        await SharedPrefService.clearTokens();
+        await SharedPrefService.clearFirstname();
+        await SharedPrefService.clearLastname();
+        await SharedPrefService.clearUsername();
+        await SharedPrefService.clearUserBio();
+        await SharedPrefService.removeFcmToken();
+
+        // Clear provider state
+        if (mounted) {
+          context.read<UserProvider>().clearUserData();
+        }
+
+        Navigator.pop(context); // close confirm dialog
+        showToast(
+          message: 'Account ${userProvider.username} deleted permanently',
+        );
+        clearStackAndAddScreen(context, const LoginScreen());
+      } else {
+        showToast(message: result['message'] ?? 'Failed to delete account');
+      }
+    } catch (e) {
+      Navigator.pop(context); // close loading dialog
+      showToast(message: 'An error occurred. Please try again.');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context, listen: false);
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.background,
+      resizeToAvoidBottomInset: false,
       appBar: AppBar(
         automaticallyImplyLeading: false,
         toolbarHeight: 25.h,
@@ -224,6 +264,21 @@ class SettingsState extends State<Settings>
                       navigationPush(context, const PrivateAccount());
                     },
                   ),
+                  SizedBox(height: 5.h),
+                  Divider(
+                    thickness: 1,
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.onBackground.withOpacity(0.1),
+                  ),
+                  SizedBox(height: 5.h),
+                  _lalbelModel(
+                    Icons.block,
+                    'Blocked Accounts',
+                    onTap: () {
+                      navigationPush(context, const BlockAccounts());
+                    },
+                  ),
                 ],
               ),
             ),
@@ -271,7 +326,12 @@ class SettingsState extends State<Settings>
                     'Delete Account',
                     onTap: () {
                       showDeleteAccountDiolog(context, () {
-                        Navigator.pop(context);
+                        Navigator.pop(context); // close info dialog
+                        showConfirmDeletionAccountDiolog(context, (
+                          password,
+                        ) async {
+                          await _deleteAccount(password);
+                        });
                       });
                     },
                   ),

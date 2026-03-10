@@ -33,7 +33,7 @@ class AuthButton extends StatelessWidget {
         ),
         child: Center(
           child: isLoading
-              ? Loader(color: Theme.of(context).colorScheme.onPrimary)
+              ? Loader(color: Theme.of(context).colorScheme.primary)
               : Text(title, style: CustomTextStyles.btnSecondryText(context)),
         ),
       ),

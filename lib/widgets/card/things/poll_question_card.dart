@@ -58,23 +58,32 @@ class _ThingsQustionsCardState extends State<ThingsQustionsCard> {
   late int commentsCount;
   late List<LikeUser> likedUsers;
 
+  // Poll selection state - mirrors HomeFeedPostCard logic
+  // Key: pollId.toString(), Value: ordered list of selected option indices
+  Map<String, List<int>> selectedOptions = {};
+  Map<String, bool> pollVotingStates = {};
+  // Track is_polled_by_current_user per poll (mutable for optimistic update)
+  late Map<String, bool> pollPolledStates;
+
   @override
   void initState() {
     super.initState();
-    // Initialize with current state or default from post
     isLiked = widget.currentLikeState ?? widget.post.isLiked;
     likesCount = widget.currentLikesCount ?? widget.post.likesCount;
     commentsCount = widget.currentCommentsCount ?? widget.post.commentsCount;
     likedUsers = widget.currentLikedUsers ?? [];
+
+    // Initialize polled states from model
+    pollPolledStates = {
+      for (var poll in widget.post.polls)
+        poll.id.toString(): widget.post.is_polled_by_current_user,
+    };
   }
 
   @override
   void didUpdateWidget(ThingsQustionsCard oldWidget) {
     super.didUpdateWidget(oldWidget);
-    // Update local state when parent updates
-    if (widget.currentLikeState != null) {
-      isLiked = widget.currentLikeState!;
-    }
+    if (widget.currentLikeState != null) isLiked = widget.currentLikeState!;
     if (widget.currentLikesCount != null) {
       likesCount = widget.currentLikesCount!;
     }
@@ -86,80 +95,166 @@ class _ThingsQustionsCardState extends State<ThingsQustionsCard> {
     }
   }
 
-  // Silently fetch liked users without clearing existing data (prevents flickering)
-  Future<void> _fetchLikedUsersSilently() async {
-    try {
-      final users = await ApiService().fetchLikedUsers(widget.post.id);
-      
-      if (mounted) {
-        setState(() {
-          likedUsers = users.take(3).toList(); // Only keep first 3 for display
-        });
-        
-        // Notify parent of the update
-        widget.onLikedUsersUpdated?.call(widget.post.id, users.take(3).toList());
-      }
-    } catch (e) {
-      debugPrint('Error silently fetching liked users for post ${widget.post.id}: $e');
-    }
+  // ─── Poll helpers (mirrors HomeFeedPostCard) ───────────────────────────────
+
+  bool _areAllPollOptionsSelected(UserPollQuestion poll) {
+    final pollKey = poll.id.toString();
+    if (!selectedOptions.containsKey(pollKey)) return false;
+    final validCount =
+        poll.options
+            ?.where((o) => o.text != null && o.text!.isNotEmpty)
+            .length ??
+        0;
+    return selectedOptions[pollKey]!.length == validCount;
   }
 
-  Future<void> _toggleLike() async {
-    final currentLikeState = isLiked;
-    final currentLikeCount = likesCount;
+  int? _getSelectionNumber(String pollKey, int optionIndex) {
+    final selected = selectedOptions[pollKey];
+    if (selected == null || !selected.contains(optionIndex)) return null;
+    return selected.indexOf(optionIndex) + 1;
+  }
 
-    // Optimistically update UI
+  void _toggleOption(String pollKey, int optionIndex) {
     setState(() {
-      isLiked = !currentLikeState;
-      likesCount = currentLikeState
-          ? currentLikeCount - 1
-          : currentLikeCount + 1;
+      selectedOptions.putIfAbsent(pollKey, () => []);
+      if (selectedOptions[pollKey]!.contains(optionIndex)) {
+        selectedOptions[pollKey]!.remove(optionIndex);
+      } else {
+        selectedOptions[pollKey]!.add(optionIndex);
+      }
+    });
+  }
+
+  Future<void> _submitPollVotes(UserPollQuestion poll) async {
+    final pollKey = poll.id.toString();
+    if (pollVotingStates[pollKey] == true) return;
+
+    final previousSelected = List<int>.from(selectedOptions[pollKey] ?? []);
+    final previousPolled = pollPolledStates[pollKey] ?? false;
+    final previousPercentages =
+        poll.options?.map((o) => o.percentage).toList() ?? [];
+
+    // Optimistic update
+    setState(() {
+      pollPolledStates[pollKey] = true;
+      pollVotingStates[pollKey] = true;
+      selectedOptions[pollKey] = [];
     });
 
     try {
-      // Call the LikeService
+      List<Map<String, int>> votes = [];
+      for (int i = 0; i < previousSelected.length; i++) {
+        final optionIndex = previousSelected[i];
+        final option = poll.options![optionIndex];
+        votes.add({'option_id': option.id, 'rank': i + 1});
+      }
+
+      final result = await ApiService.voteOnPollMultiple(
+        postId: widget.post.id,
+        votes: votes,
+      );
+
+      if (result['success'] == true) {
+        setState(() {
+          pollVotingStates[pollKey] = false;
+
+          // Update percentages from server response
+          if (result['data']?['options'] != null) {
+            for (var optionData in result['data']['options']) {
+              final optionId = optionData['option_id'] as int;
+              final pct = (optionData['percentage'] as num?)?.toDouble() ?? 0.0;
+              final opt = poll.options?.firstWhere(
+                (o) => o.id == optionId,
+                orElse: () => poll.options!.first,
+              );
+              opt?.percentage = pct;
+            }
+          }
+        });
+        showToast(message: 'Vote submitted successfully!');
+      } else {
+        // Revert on failure
+        setState(() {
+          pollPolledStates[pollKey] = previousPolled;
+          pollVotingStates[pollKey] = false;
+          selectedOptions[pollKey] = previousSelected;
+          for (int i = 0; i < (poll.options?.length ?? 0); i++) {
+            if (i < previousPercentages.length) {
+              poll.options![i].percentage = previousPercentages[i];
+            }
+          }
+        });
+        showToast(message: result['message'] ?? 'Failed to submit votes.');
+      }
+    } catch (e) {
+      // Revert on error
+      setState(() {
+        pollPolledStates[pollKey] = previousPolled;
+        pollVotingStates[pollKey] = false;
+        selectedOptions[pollKey] = previousSelected;
+        for (int i = 0; i < (poll.options?.length ?? 0); i++) {
+          if (i < previousPercentages.length) {
+            poll.options![i].percentage = previousPercentages[i];
+          }
+        }
+      });
+      showToast(message: 'An error occurred. Please try again.');
+    }
+  }
+
+  // ─── Like helpers ──────────────────────────────────────────────────────────
+
+  Future<void> _fetchLikedUsersSilently() async {
+    try {
+      final users = await ApiService().fetchLikedUsers(widget.post.id);
+      if (mounted) {
+        setState(() => likedUsers = users.take(3).toList());
+        widget.onLikedUsersUpdated?.call(
+          widget.post.id,
+          users.take(3).toList(),
+        );
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _toggleLike() async {
+    final prevLike = isLiked;
+    final prevCount = likesCount;
+
+    setState(() {
+      isLiked = !prevLike;
+      likesCount = prevLike ? prevCount - 1 : prevCount + 1;
+    });
+
+    try {
       final result = await likeService.togglePostLike(
         context: context,
         postId: widget.post.id,
-        currentLikeState: currentLikeState,
-        currentLikesCount: currentLikeCount,
+        currentLikeState: prevLike,
+        currentLikesCount: prevCount,
       );
-
-      // Update UI with server response
       setState(() {
         isLiked = result.isLiked;
         likesCount = result.likesCount;
       });
-
-      // Notify parent to update its tracking
       widget.onLikeChanged(widget.post.id, result.isLiked, result.likesCount);
 
-      // Silently refresh liked users in background without clearing current data
       if (result.likesCount > 0) {
         _fetchLikedUsersSilently();
       } else {
-        // Remove liked users if no likes left
-        setState(() {
-          likedUsers = [];
-        });
+        setState(() => likedUsers = []);
         widget.onLikedUsersUpdated?.call(widget.post.id, []);
       }
-
-      // Show error message if operation failed
-      if (!result.success) {
-        showToast(message: result.message);
-      }
-    } catch (e) {
-      // Revert optimistic update on error
+      if (!result.success) showToast(message: result.message);
+    } catch (_) {
       setState(() {
-        isLiked = currentLikeState;
-        likesCount = currentLikeCount;
+        isLiked = prevLike;
+        likesCount = prevCount;
       });
       showToast(message: 'Failed to update like');
     }
   }
 
-  // Show Liked Users Bottom Sheet
   void _showLikedUsersBottomSheet() {
     BottomSheetUtils.showLikedUsersBottomSheet(
       context: context,
@@ -173,6 +268,8 @@ class _ThingsQustionsCardState extends State<ThingsQustionsCard> {
     if (count < 1000000) return '${(count / 1000).toStringAsFixed(1)}K';
     return '${(count / 1000000).toStringAsFixed(1)}M';
   }
+
+  // ─── Build ─────────────────────────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
@@ -191,19 +288,13 @@ class _ThingsQustionsCardState extends State<ThingsQustionsCard> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            ...widget.post.polls.map(
-              (p) => _thingsQuestionsBlock(
-                p,
-                context,
-              ),
-            ),
+            ...widget.post.polls.map((p) => _thingsQuestionsBlock(p, context)),
             _buildInteractionSection(),
-            if (likesCount > 0 && likedUsers.isNotEmpty) ...[
+            if (likesCount > 0 && likedUsers.isNotEmpty)
               GestureDetector(
                 onTap: _showLikedUsersBottomSheet,
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.center,
-                  mainAxisAlignment: MainAxisAlignment.start,
                   children: [
                     LikeUtils.buildLikeAvatarsStack(
                       context,
@@ -229,7 +320,6 @@ class _ThingsQustionsCardState extends State<ThingsQustionsCard> {
                   ],
                 ),
               ),
-            ],
           ],
         ),
       ),
@@ -239,16 +329,14 @@ class _ThingsQustionsCardState extends State<ThingsQustionsCard> {
   Widget _buildInteractionSection() {
     return Row(
       children: [
-        // Like button
         GestureDetector(
           onTap: _toggleLike,
           child: Row(
             children: [
               AnimatedSwitcher(
                 duration: const Duration(milliseconds: 200),
-                transitionBuilder: (child, animation) {
-                  return ScaleTransition(scale: animation, child: child);
-                },
+                transitionBuilder: (child, animation) =>
+                    ScaleTransition(scale: animation, child: child),
                 child: isLiked
                     ? Image.asset(
                         Assets.assetsImagesIcHeartFilled,
@@ -306,9 +394,7 @@ class _ThingsQustionsCardState extends State<ThingsQustionsCard> {
         ),
         SizedBox(width: 8.w),
         GestureDetector(
-          onTap: () {
-            // ShareService.sharePost(widget.post, context: context);
-          },
+          onTap: () {},
           child: Icon(
             FeatherIcons.send,
             size: 18.3.sp,
@@ -324,13 +410,16 @@ class _ThingsQustionsCardState extends State<ThingsQustionsCard> {
     BuildContext context,
   ) {
     final ApiService apiService = ApiService();
-
-    // Parse total votes from String to int
     final totalVotes = int.tryParse(pollQuestion.totalVotes) ?? 0;
+    final pollKey = pollQuestion.id.toString();
+    final hasUserPolled = pollPolledStates[pollKey] ?? false;
+    final areAllSelected = _areAllPollOptionsSelected(pollQuestion);
+    final isVoting = pollVotingStates[pollKey] ?? false;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        // ── Header ────────────────────────────────────────────────────────
         Row(
           children: [
             CircleAvatar(
@@ -348,9 +437,9 @@ class _ThingsQustionsCardState extends State<ThingsQustionsCard> {
                           ? widget.username![0].toUpperCase()
                           : '',
                       style: TextStyle(
-                        fontSize: 11.5.sp,
+                        fontSize: 15.sp,
                         fontWeight: FontWeight.w600,
-                        color: Theme.of(context).colorScheme.onBackground,
+                        color: Theme.of(context).colorScheme.primary,
                       ),
                     )
                   : null,
@@ -362,8 +451,9 @@ class _ThingsQustionsCardState extends State<ThingsQustionsCard> {
                 Text(
                   widget.username ?? '',
                   style: TextStyle(
-                    fontSize: 12.sp,
+                    fontSize: 11.sp,
                     fontWeight: FontWeight.w600,
+                    color: Theme.of(context).colorScheme.onBackground,
                   ),
                 ),
                 Text(
@@ -392,6 +482,8 @@ class _ThingsQustionsCardState extends State<ThingsQustionsCard> {
           ],
         ),
         SizedBox(height: 5.h),
+
+        // ── Question ──────────────────────────────────────────────────────
         Text(
           pollQuestion.question,
           style: TextStyle(
@@ -401,7 +493,8 @@ class _ThingsQustionsCardState extends State<ThingsQustionsCard> {
           ),
         ),
         SizedBox(height: 8.h),
-        // FIXED: Added null check for options
+
+        // ── Options ───────────────────────────────────────────────────────
         if (pollQuestion.options != null)
           ...pollQuestion.options!.asMap().entries.map(
             (entry) => _buildPollOption(
@@ -409,8 +502,64 @@ class _ThingsQustionsCardState extends State<ThingsQustionsCard> {
               totalVotes,
               context,
               entry.key,
+              pollQuestion,
+              showPercentage: hasUserPolled,
             ),
           ),
+
+        // ── Submit button (shown when all options selected & not yet polled) ─
+        AnimatedSwitcher(
+          duration: const Duration(milliseconds: 300),
+          transitionBuilder: (child, animation) => ScaleTransition(
+            scale: animation,
+            child: FadeTransition(opacity: animation, child: child),
+          ),
+          child: !hasUserPolled && areAllSelected
+              ? GestureDetector(
+                  key: ValueKey('poll_btn_${pollQuestion.id}'),
+                  onTap: isVoting ? null : () => _submitPollVotes(pollQuestion),
+                  child: Center(
+                    child: Container(
+                      margin: EdgeInsets.only(top: 10.h),
+                      height: 45.h,
+                      width: 45.w,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        gradient: const LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [Color(0xFFCF4B73), Color(0xFFC76294)],
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onBackground.withOpacity(0.3),
+                            blurRadius: 5,
+                          ),
+                        ],
+                      ),
+                      child: isVoting
+                          ? Padding(
+                              padding: EdgeInsets.all(12.w),
+                              child: const CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                  Colors.white,
+                                ),
+                              ),
+                            )
+                          : Icon(
+                              Icons.stacked_bar_chart,
+                              color: Colors.white,
+                              size: 20.spMax,
+                            ),
+                    ),
+                  ),
+                )
+              : const SizedBox.shrink(),
+        ),
+        SizedBox(height: 5.h),
       ],
     );
   }
@@ -420,79 +569,108 @@ class _ThingsQustionsCardState extends State<ThingsQustionsCard> {
     int totalVotes,
     BuildContext context,
     int optionIndex,
-  ) {
-    final percentage = option.percentage;
-
+    UserPollQuestion poll, {
+    bool showPercentage = false,
+  }) {
     final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final pollKey = poll.id.toString();
+    final percentage = option.percentage;
+    final hasUserPolled = pollPolledStates[pollKey] ?? false;
 
-    return Padding(
-      padding: EdgeInsets.only(bottom: 10.h),
-      child: Container(
+    final bool isSelected =
+        selectedOptions[pollKey]?.contains(optionIndex) ?? false;
+    final int? selectionNumber = _getSelectionNumber(pollKey, optionIndex);
+
+    return GestureDetector(
+      onTap: hasUserPolled
+          ? null // Already voted — no interaction
+          : () => _toggleOption(pollKey, optionIndex),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 250),
+        curve: Curves.easeInOut,
+        margin: EdgeInsets.only(bottom: 10.h),
         height: 23.h,
         width: double.infinity,
         decoration: BoxDecoration(
           color: isDarkMode ? const Color(0xFF242831) : const Color(0xFFF5F6F7),
           borderRadius: BorderRadius.circular(10.r),
           border: Border.all(
-            color: isDarkMode
+            color: isSelected && !hasUserPolled
+                ? Theme.of(context).colorScheme.primary.withOpacity(0.5)
+                : isDarkMode
                 ? const Color(0xFF30353D)
                 : const Color(0xFFE8E8E8),
-            width: 1,
+            width: isSelected && !hasUserPolled ? 1.2 : 1,
           ),
         ),
         child: Stack(
           children: [
-            // Progress bar background
-            if (percentage > 0)
+            // ── Progress bar (after voting) ────────────────────────────
+            if (showPercentage && percentage > 0)
               Positioned.fill(
                 child: TweenAnimationBuilder<double>(
-                  duration: const Duration(milliseconds: 300),
+                  duration: const Duration(milliseconds: 800),
                   curve: Curves.easeOutCubic,
                   tween: Tween<double>(begin: 0, end: percentage / 100),
-                  builder: (context, value, child) {
-                    return FractionallySizedBox(
-                      alignment: Alignment.centerLeft,
-                      widthFactor: value,
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: isDarkMode
-                              ? const Color(0xFF30353D)
-                              : const Color(0xFFE8E8E8),
-                          borderRadius: BorderRadius.circular(10.r),
-                        ),
+                  builder: (context, value, _) => FractionallySizedBox(
+                    alignment: Alignment.centerLeft,
+                    widthFactor: value,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: isDarkMode
+                            ? const Color(0xFF30353D)
+                            : const Color(0xFFE8E8E8),
+                        borderRadius: BorderRadius.circular(10.r),
                       ),
-                    );
-                  },
+                    ),
+                  ),
                 ),
               ),
-            // Content overlay
+
+            // ── Content ───────────────────────────────────────────────
             Padding(
               padding: EdgeInsets.fromLTRB(8.w, 4.h, 8.w, 0),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  // Option text
                   Expanded(
                     child: Text(
                       option.text ?? '',
                       style: TextStyle(
                         color: Theme.of(context).colorScheme.onBackground,
                         fontSize: 10.5.sp,
-                        fontWeight: FontWeight.w500,
+                        fontWeight: isSelected && !hasUserPolled
+                            ? FontWeight.w600
+                            : FontWeight.w500,
                       ),
                     ),
                   ),
-                  // Percentage
-                  Text(
-                    '${percentage.toStringAsFixed(0)}%',
-                    style: TextStyle(
-                      color: Theme.of(
-                        context,
-                      ).colorScheme.onBackground.withOpacity(0.6),
-                      fontSize: 10.5.sp,
-                      fontWeight: FontWeight.w600,
+                  // Right indicator: percentage after voted, number while selecting
+                  if (showPercentage)
+                    TweenAnimationBuilder<int>(
+                      duration: const Duration(milliseconds: 600),
+                      curve: Curves.easeOut,
+                      tween: IntTween(begin: 0, end: percentage.round()),
+                      builder: (context, value, _) => Text(
+                        '$value%',
+                        style: TextStyle(
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onBackground.withOpacity(0.6),
+                          fontSize: 10.5.sp,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    )
+                  else if (isSelected)
+                    Text(
+                      '$selectionNumber',
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.primary,
+                        fontSize: 11.5.sp,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
-                  ),
                 ],
               ),
             ),

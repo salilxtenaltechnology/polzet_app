@@ -10,6 +10,7 @@ import '../../../../api/app_api.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../data/token/shared_preferences.dart';
 import '../../../../widgets/custom_text_styles.dart';
+import '../../../../widgets/loader.dart';
 
 class PrivateAccount extends StatefulWidget {
   const PrivateAccount({super.key});
@@ -31,7 +32,7 @@ class _PrivateAccountState extends State<PrivateAccount> {
   }
 
   Future<void> _loadUserData() async {
-    final accessToken = await SharedPrefService.getAccessToken();
+    final accessToken = await SharedPrefService.getToken();
 
     try {
       var response = await _dio.get(
@@ -68,7 +69,7 @@ class _PrivateAccountState extends State<PrivateAccount> {
       isUpdating = true;
     });
 
-    final accessToken = await SharedPrefService.getAccessToken();
+    final accessToken = await SharedPrefService.getToken();
 
     try {
       String isPrivateValue = value.toString();
@@ -135,6 +136,7 @@ class _PrivateAccountState extends State<PrivateAccount> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Theme.of(context).colorScheme.background,
       appBar: AppBar(
         automaticallyImplyLeading: false,
         toolbarHeight: 25.h,
@@ -148,9 +150,10 @@ class _PrivateAccountState extends State<PrivateAccount> {
         ),
         centerTitle: true,
         backgroundColor: Theme.of(context).colorScheme.background,
+        surfaceTintColor: Theme.of(context).colorScheme.background,
       ),
       body: isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? Center(child: Loader(color: Theme.of(context).colorScheme.primary))
           : Stack(
               children: [
                 Padding(
@@ -161,7 +164,7 @@ class _PrivateAccountState extends State<PrivateAccount> {
                         'Private Polzet',
                         isPrivate,
                         isUpdating
-                            ? null // Disable switch when updating
+                            ? null
                             : (value) {
                                 _updatePrivacySetting(value);
                               },
@@ -173,7 +176,7 @@ class _PrivateAccountState extends State<PrivateAccount> {
                           color: Theme.of(
                             context,
                           ).colorScheme.onBackground.withOpacity(0.5),
-                          fontSize: 12.sp,
+                          fontSize: 11.sp,
                           fontWeight: FontWeight.w400,
                         ),
                       ),
@@ -184,7 +187,7 @@ class _PrivateAccountState extends State<PrivateAccount> {
                           color: Theme.of(
                             context,
                           ).colorScheme.onBackground.withOpacity(0.5),
-                          fontSize: 12.sp,
+                          fontSize: 11.sp,
                           fontWeight: FontWeight.w400,
                         ),
                       ),
@@ -192,7 +195,9 @@ class _PrivateAccountState extends State<PrivateAccount> {
                   ),
                 ),
                 if (isUpdating)
-                  const Center(child: CircularProgressIndicator()),
+                  Center(
+                    child: Loader(color: Theme.of(context).colorScheme.primary),
+                  ),
               ],
             ),
     );

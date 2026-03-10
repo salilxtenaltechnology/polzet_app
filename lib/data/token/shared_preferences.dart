@@ -4,29 +4,85 @@ class SharedPrefService {
   static const String _accessKey = 'access_token';
   static const String _refreshKey = 'refresh_token';
   static const String _fcmToken = 'fcm_token';
+  static const String _jwtGoogleToken = 'jwt_google_token';
+  static const String _termsAcceptedKey = 'terms_accepted';
   static const String _firstName = 'first_name';
   static const String _lastName = 'last_name';
   static const String _username = 'username';
   static const String _bio = 'bio';
 
+  // ─── TokenStorage (in-memory cache) ────────────────────────────────────────
+  // Mirrors TokenStorage class — fast access without async for already-loaded tokens
+  static String? _cachedAccessToken;
+  static String? _cachedRefreshToken;
 
-  // Save tokens and userdetails
-  Future<void> saveAccessToken(String token) async {
+  /// Set access token in both memory cache and SharedPreferences
+  static Future<void> setToken(String token) async {
+    _cachedAccessToken = token;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_accessKey, token);
   }
 
-  Future<void> saveRefreshToken(String token) async {
-    final pref = await SharedPreferences.getInstance();
-    await pref.setString(_refreshKey, token);
+  /// Set refresh token in both memory cache and SharedPreferences
+  static Future<void> setRefreshToken(String token) async {
+    _cachedRefreshToken = token;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_refreshKey, token);
   }
 
+  /// Get access token — returns memory cache instantly, falls back to SharedPreferences
+  static Future<String?> getToken() async {
+    if (_cachedAccessToken != null) return _cachedAccessToken;
+    final prefs = await SharedPreferences.getInstance();
+    _cachedAccessToken = prefs.getString(_accessKey);
+    return _cachedAccessToken;
+  }
+
+  /// Get refresh token — returns memory cache instantly, falls back to SharedPreferences
+  static Future<String?> getRefreshToken() async {
+    if (_cachedRefreshToken != null) return _cachedRefreshToken;
+    final prefs = await SharedPreferences.getInstance();
+    _cachedRefreshToken = prefs.getString(_refreshKey);
+    return _cachedRefreshToken;
+  }
+
+  /// Clear both tokens from memory and SharedPreferences (use on logout)
+  static Future<void> clearTokens() async {
+    _cachedAccessToken = null;
+    _cachedRefreshToken = null;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_accessKey);
+    await prefs.remove(_refreshKey);
+  }
+
+  // ─── FCM Token ──────────────────────────────────────────────────────────────
   static Future<void> saveFcmToken(String token) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_fcmToken, token);
   }
 
-  // Save User firstname and lastname
+  static Future<String?> getFcmToken() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_fcmToken);
+  }
+
+  static Future<void> removeFcmToken() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_fcmToken);
+  }
+
+  // ─── Terms ──────────────────────────────────────────────────────────────────
+  static Future<void> setTermsAccepted() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_termsAcceptedKey, true);
+  }
+
+  static Future<bool> hasAcceptedTerms() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_termsAcceptedKey) ?? false;
+  }
+
+  // ─── User Details ───────────────────────────────────────────────────────────
   Future<void> saveUserFirstName(String name) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_firstName, name);
@@ -47,31 +103,14 @@ class SharedPrefService {
     await prefs.setString(_bio, bio);
   }
 
-  // Get tokens
-  static Future<String?> getAccessToken() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getString(_accessKey);
-  }
-
-  static Future<String?> getRefreshToken() async {
-    final pref = await SharedPreferences.getInstance();
-    return pref.getString(_refreshKey);
-  }
-
-  static Future<String?> getFcmToken() async {
-    final pref = await SharedPreferences.getInstance();
-    return pref.getString(_fcmToken);
-  }
-
-  // Get User firstname, lastname, username, bio
   static Future<String?> getFirstName() async {
-    final pref = await SharedPreferences.getInstance();
-    return pref.getString(_firstName);
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_firstName);
   }
 
   static Future<String?> getLastName() async {
-    final pref = await SharedPreferences.getInstance();
-    return pref.getString(_lastName);
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_lastName);
   }
 
   static Future<String?> getUsername() async {
@@ -84,34 +123,18 @@ class SharedPrefService {
     return prefs.getString(_bio);
   }
 
-  // Update user details (same as save)
-  Future<void> updateUserFirstname(String firstname) async {
-    await saveUserFirstName(firstname);
-  }
+  // ─── Update User Details ────────────────────────────────────────────────────
+  Future<void> updateUserFirstname(String firstname) async =>
+      saveUserFirstName(firstname);
 
-  Future<void> updateUserLastname(String lastname) async {
-    await saveUserLastName(lastname);
-  }
+  Future<void> updateUserLastname(String lastname) async =>
+      saveUserLastName(lastname);
 
-  Future<void> updateUsername(String username) async {
-    await saveUsername(username);
-  }
+  Future<void> updateUsername(String username) async => saveUsername(username);
 
-  Future<void> updateUserBio(String firstname) async {
-    await saveUserBio(firstname);
-  }
+  Future<void> updateUserBio(String bio) async => saveUserBio(bio);
 
-  // Delete token and user details
-  static Future<void> deleteAccessToken() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove(_accessKey);
-  }
-
-  static Future<void> removeFcmToken() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove(_fcmToken);
-  }
-
+  // ─── Clear User Details ─────────────────────────────────────────────────────
   static Future<void> clearFirstname() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_firstName);
@@ -132,7 +155,15 @@ class SharedPrefService {
     await prefs.remove(_bio);
   }
 
-  // Generic string methods for flexible caching
+  // ─── Full Logout (clear everything) ─────────────────────────────────────────
+  static Future<void> clearAll() async {
+    _cachedAccessToken = null;
+    _cachedRefreshToken = null;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.clear();
+  }
+
+  // ─── Generic Helpers ────────────────────────────────────────────────────────
   static Future<void> setString(String key, String value) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(key, value);
@@ -148,3 +179,11 @@ class SharedPrefService {
     await prefs.remove(key);
   }
 }
+
+/* Valid from: Wed Dec 24 21:26:21 IST 2025 until: Sun May 11 21:26:21 IST 2053
+Certificate fingerprints:
+         SHA1: 12:9B:DC:4E:F9:D5:93:C7:24:5F:EB:33:56:D6:F0:50:3D:8A:1B:76
+         SHA256: 74:4F:D3:83:31:A9:72:EB:7A:57:55:52:52:73:DC:D0:87:8A:0A:0B:0E:C7:5D:F4:E0:D5:2F:C9:0A:7E:0D:89
+Signature algorithm name: SHA384withRSA
+Subject Public Key Algorithm: 2048-bit RSA key
+Version: 3 */

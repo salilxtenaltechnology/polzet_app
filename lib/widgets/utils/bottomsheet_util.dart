@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../bottomsheets/add_member_bottom_sheet.dart';
 import '../bottomsheets/comments_bottom_sheet.dart';
 import '../bottomsheets/liked_users_bottom_sheet.dart';
 import '../bottomsheets/post_voters_bottom_sheet.dart';
@@ -46,4 +47,20 @@ class BottomSheetUtils {
       builder: (_) => PostVotersBottomSheet(pollId: pollId, optionId: optionId),
     );
   }
+
+
+  static Future<Map<String, dynamic>?> showAddMembersBottomSheet({
+  required BuildContext context,
+  Set<int> alreadySelected = const {},
+}) async {
+  return await showModalBottomSheet<Map<String, dynamic>>(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: Colors.transparent,
+    builder: (_) => AddMemberBottomSheet(
+      alreadySelected: alreadySelected,
+    ),
+  );
+}
+
 }

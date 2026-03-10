@@ -6,6 +6,7 @@ import 'package:lottie/lottie.dart';
 
 import '../../../core/constants/app_images.dart';
 import 'block_user_diolog.dart';
+import 'confirm_deletion_account_diolog.dart';
 import 'delete_account.dart';
 import 'delete_group.dart';
 import 'delete_post_diolog.dart';
@@ -49,9 +50,20 @@ void showDeleteAccountDiolog(BuildContext context, VoidCallback onTap) {
   diologanimation(context, DeleteAccountDioloig(onPressed: onTap));
 }
 
+// confirm delete account diolog
+void showConfirmDeletionAccountDiolog(
+  BuildContext context,
+  Function(String password) onTap,
+) {
+  diologanimation(context, ConfirmDeletionAccountDioloig(onPressed: onTap));
+}
+
 // block user diolog
-showBlockUserDiolog(BuildContext context, VoidCallback onTap) {
-  diologanimation(context, BlockUserDiolog(onPressed: onTap));
+showBlockUserDiolog(BuildContext context, VoidCallback onTap, bool isBlock) {
+  diologanimation(
+    context,
+    BlockUserDiolog(onPressed: onTap, isUserBlock: isBlock),
+  );
 }
 
 // leave group diolog

@@ -1,6 +1,6 @@
 // lib/features/profile/edit_profile.dart
 
-// ignore_for_file: deprecated_member_use
+// ignore_for_file: prefer_final_fields, unused_field, deprecated_member_use
 
 import 'dart:io';
 import 'package:dio/dio.dart';
@@ -25,6 +25,7 @@ import '../../../../widgets/profile/profile_form_section.dart';
 import '../../../../widgets/profile/profile_header_section.dart';
 import '../../../../widgets/show_toast.dart';
 import '../../../../widgets/simmer/profile_simmer.dart';
+import 'set_password.dart';
 
 class EditProfile extends StatefulWidget {
   const EditProfile({super.key});
@@ -68,6 +69,10 @@ class _EditProfileState extends State<EditProfile> with UtilityMixin {
   bool _showUpdateProfileButton = false;
   bool _showUpdateUsernameButton = false;
 
+  // Set Password
+  bool _hasGoogleAuth = false;
+  bool _hasLocalPassword = false;
+
   // =====================
   // Lifecycle Methods
   // =====================
@@ -91,7 +96,7 @@ class _EditProfileState extends State<EditProfile> with UtilityMixin {
     setState(() => _isLoading = true);
 
     try {
-      final accessToken = await SharedPrefService.getAccessToken();
+      final accessToken = await SharedPrefService.getToken();
       final response = await Dio().get(
         ApiConstants.userProfile,
         options: Options(
@@ -111,6 +116,9 @@ class _EditProfileState extends State<EditProfile> with UtilityMixin {
           _selectedGender = _getDisplayGender(profile.gender);
           _countryCode = profile.countryCode;
           _formControllers.populateFromProfile(profile);
+
+          _hasGoogleAuth = response.data['has_google_auth'] ?? false;
+          _hasLocalPassword = response.data['has_local_password'] ?? false;
 
           // Cache images
           _cachedProfileImage = userProvider.getProfileImage(
@@ -511,6 +519,81 @@ class _EditProfileState extends State<EditProfile> with UtilityMixin {
                                   AppLocalizations.of(context)!.savechanges,
                                   style: CustomTextStyles.btnPrimaryText,
                                 ),
+                        ),
+                      ),
+                    ),
+                  ),
+                SizedBox(height: 12.h),
+                if (_hasGoogleAuth && !_hasLocalPassword)
+                  Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 12.w),
+                    child: GestureDetector(
+                      onTap: () {
+                        navigationPush(context, const SetPasswordScreen());
+                      },
+                      child: Container(
+                        width: double.infinity,
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 16.w,
+                          vertical: 14.h,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).colorScheme.primaryContainer,
+                          borderRadius: BorderRadius.circular(12.r),
+                          border: Border.all(
+                            color: AppColors.primaryColor.withOpacity(0.3),
+                            width: 1,
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: AppColors.primaryColor.withOpacity(0.1),
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(
+                                Icons.lock_outline,
+                                color: AppColors.primaryColor,
+                                size: 20,
+                              ),
+                            ),
+                            SizedBox(width: 12.w),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Set Account Password',
+                                    style: TextStyle(
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.onBackground,
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 12.sp,
+                                    ),
+                                  ),
+                                  SizedBox(height: 2.h),
+                                  Text(
+                                    'Add a password to sign in without Google',
+                                    style: TextStyle(
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onBackground
+                                          .withOpacity(0.5),
+                                      fontSize: 10.sp,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Icon(
+                              Icons.arrow_forward_ios,
+                              color: AppColors.primaryColor,
+                              size: 14.sp,
+                            ),
+                          ],
                         ),
                       ),
                     ),

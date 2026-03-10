@@ -10,7 +10,7 @@ class FcmApiService {
   static Future<bool> registerFcmToken(String fcmToken, String platform) async {
     try {
       // Get access token for authorization
-      final accessToken = await SharedPrefService.getAccessToken();
+      final accessToken = await SharedPrefService.getToken();
 
       if (accessToken == null || accessToken.isEmpty) {
         debugPrint('❌ FCM API: No access token available');
@@ -52,7 +52,7 @@ class FcmApiService {
   /// Unregister FCM token from backend (call on logout)
   static Future<bool> unregisterFcmToken() async {
     try {
-      final accessToken = await SharedPrefService.getAccessToken();
+      final accessToken = await SharedPrefService.getToken();
       final fcmToken = await SharedPrefService.getFcmToken();
 
       if (accessToken == null || fcmToken == null) {
@@ -95,7 +95,7 @@ class FcmApiService {
     String platform,
   ) async {
     try {
-      final accessToken = await SharedPrefService.getAccessToken();
+      final accessToken = await SharedPrefService.getToken();
 
       if (accessToken == null) {
         debugPrint('❌ FCM API: No access token available');

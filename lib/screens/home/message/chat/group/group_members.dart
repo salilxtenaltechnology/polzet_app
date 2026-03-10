@@ -12,6 +12,7 @@ import 'package:provider/provider.dart';
 import '../../../../../provider/group_chat_provider.dart';
 import '../../../../../provider/user_provider.dart';
 import '../../../../../widgets/custom_text_styles.dart';
+import '../../../../../widgets/utils/bottomsheet_util.dart';
 
 class GroupMembers extends StatefulWidget {
   final List<Map<String, dynamic>> members;
@@ -25,6 +26,8 @@ class GroupMembers extends StatefulWidget {
 class _GroupMembersState extends State<GroupMembers> {
   final TextEditingController _searchController = TextEditingController();
   List<Map<String, dynamic>> _filtered = [];
+  Set<int> _selectedIds = {};
+List<Map<String, dynamic>> _selectedUsers = [];
 
   @override
   void initState() {
@@ -41,7 +44,8 @@ class _GroupMembersState extends State<GroupMembers> {
   }
 
   void _onSearch() => _applyFilter(
-      context.read<GroupChatProvider>().members); // always filter from provider
+    context.read<GroupChatProvider>().members,
+  ); // always filter from provider
 
   void _applyFilter(List<Map<String, dynamic>> source) {
     final q = _searchController.text.trim().toLowerCase();
@@ -49,8 +53,9 @@ class _GroupMembersState extends State<GroupMembers> {
       _filtered = q.isEmpty
           ? List.from(source)
           : source.where((m) {
-              final name =
-                  (_user(m)['username'] ?? '').toString().toLowerCase();
+              final name = (_user(m)['username'] ?? '')
+                  .toString()
+                  .toLowerCase();
               return name.contains(q);
             }).toList();
     });
@@ -70,17 +75,17 @@ class _GroupMembersState extends State<GroupMembers> {
   Future<void> _removeMember(int userId) async {
     final provider = context.read<GroupChatProvider>();
     final success = await provider.removeMember(userId); // ← updates provider
-    _applyFilter(provider.members);                      // ← sync filter list
+    _applyFilter(provider.members); // ← sync filter list
     if (mounted && !success) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Failed to remove member')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Failed to remove member')));
     }
   }
 
   Future<void> _makeAdmin(int userId, String username) async {
     final provider = context.read<GroupChatProvider>();
-    final success = await provider.makeAdmin(userId);   // ← updates provider
+    final success = await provider.makeAdmin(userId); // ← updates provider
     _applyFilter(provider.members);
     if (mounted) {
       showToast(
@@ -96,7 +101,8 @@ class _GroupMembersState extends State<GroupMembers> {
       context: context,
       backgroundColor: Theme.of(context).colorScheme.background,
       shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20.r))),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20.r)),
+      ),
       builder: (_) => Padding(
         padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 20.h),
         child: Column(
@@ -108,16 +114,20 @@ class _GroupMembersState extends State<GroupMembers> {
                 height: 4.h,
                 width: 40.w,
                 decoration: BoxDecoration(
-                    color: Colors.grey.withOpacity(0.3),
-                    borderRadius: BorderRadius.circular(10.r)),
+                  color: Colors.grey.withOpacity(0.3),
+                  borderRadius: BorderRadius.circular(10.r),
+                ),
               ),
             ),
             SizedBox(height: 10.h),
-            Text(username,
-                style: TextStyle(
-                    color: Theme.of(context).colorScheme.onBackground,
-                    fontSize: 13.sp,
-                    fontWeight: FontWeight.w600)),
+            Text(
+              username,
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onBackground,
+                fontSize: 13.sp,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
             SizedBox(height: 5.h),
             GestureDetector(
               onTap: () {
@@ -126,16 +136,24 @@ class _GroupMembersState extends State<GroupMembers> {
               },
               child: Padding(
                 padding: EdgeInsets.symmetric(vertical: 10.h),
-                child: Row(children: [
-                  Icon(Icons.admin_panel_settings_outlined,
-                      size: 20.spMax, color: AppColors.primaryColor),
-                  SizedBox(width: 12.w),
-                  Text('Make Admin',
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.admin_panel_settings_outlined,
+                      size: 20.spMax,
+                      color: AppColors.primaryColor,
+                    ),
+                    SizedBox(width: 12.w),
+                    Text(
+                      'Make Admin',
                       style: TextStyle(
-                          color: AppColors.primaryColor,
-                          fontSize: 12.sp,
-                          fontWeight: FontWeight.w500)),
-                ]),
+                        color: AppColors.primaryColor,
+                        fontSize: 12.sp,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
             Divider(color: Colors.grey.withOpacity(0.2)),
@@ -146,16 +164,24 @@ class _GroupMembersState extends State<GroupMembers> {
               },
               child: Padding(
                 padding: EdgeInsets.symmetric(vertical: 10.h),
-                child: Row(children: [
-                  Icon(Icons.person_remove_outlined,
-                      size: 20.spMax, color: const Color(0XFFF44336)),
-                  SizedBox(width: 12.w),
-                  Text('Remove from Group',
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.person_remove_outlined,
+                      size: 20.spMax,
+                      color: const Color(0XFFF44336),
+                    ),
+                    SizedBox(width: 12.w),
+                    Text(
+                      'Remove from Group',
                       style: TextStyle(
-                          color: const Color(0XFFF44336),
-                          fontSize: 12.sp,
-                          fontWeight: FontWeight.w500)),
-                ]),
+                        color: const Color(0XFFF44336),
+                        fontSize: 12.sp,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
             SizedBox(height: 8.h),
@@ -167,11 +193,9 @@ class _GroupMembersState extends State<GroupMembers> {
 
   @override
   Widget build(BuildContext context) {
-    // ← Watch provider so list rebuilds when a member is removed/made admin
     final providerMembers = context.watch<GroupChatProvider>().members;
     final isCurrentUserAdmin = _isCurrentUserAdmin(providerMembers);
 
-    // Keep _filtered in sync with live provider data
     final q = _searchController.text.trim().toLowerCase();
     final displayList = q.isEmpty
         ? providerMembers
@@ -185,75 +209,124 @@ class _GroupMembersState extends State<GroupMembers> {
       appBar: AppBar(
         automaticallyImplyLeading: false,
         leading: GestureDetector(
-            onTap: () => Navigator.pop(context),
-            child: const Icon(Icons.arrow_back_ios)),
-        title: Text('Members',
-            style: CustomTextStyles.appBarTitleText(context)),
+          onTap: () => Navigator.pop(context),
+          child: const Icon(Icons.arrow_back_ios),
+        ),
+        title: Text(
+          'Members',
+          style: CustomTextStyles.appBarTitleText(context),
+        ),
         centerTitle: true,
         backgroundColor: Theme.of(context).colorScheme.background,
         surfaceTintColor: Theme.of(context).colorScheme.background,
         toolbarHeight: 25.h,
         actions: [
-          Padding(
-            padding: EdgeInsets.only(right: 12.w),
-            child: const Icon(Icons.add, size: 28),
-          ),
+         Padding(
+  padding: EdgeInsets.only(right: 12.w),
+  child: GestureDetector(
+  onTap: isCurrentUserAdmin
+    ? () async {
+        // Extract existing member IDs from provider
+        final providerMembers = context.read<GroupChatProvider>().members;
+        final existingIds = providerMembers
+            .map((m) => _user(m)['id'] as int?)
+            .whereType<int>()
+            .toSet();
+
+        final result = await BottomSheetUtils.showAddMembersBottomSheet(
+          context: context,
+          alreadySelected: existingIds, // ← pass current members' IDs
+        );
+        if (result != null) {
+          setState(() {
+            _selectedIds = result['ids'] as Set<int>;
+            _selectedUsers = result['users'] as List<Map<String, dynamic>>;
+          });
+        }
+      }
+    : null,
+    child: Icon(
+      FeatherIcons.userPlus,
+      size: 20.spMax,
+      color: isCurrentUserAdmin
+          ? Theme.of(context).colorScheme.onBackground
+          : Theme.of(context).colorScheme.onBackground.withOpacity(0.4),
+    ),
+  ),
+),
         ],
       ),
       body: Padding(
         padding: EdgeInsets.symmetric(horizontal: 12.w),
         child: Column(
           children: [
-            // Search bar
             Container(
               margin: EdgeInsets.only(top: 10.h),
               height: 34.h,
               decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.background,
-                  borderRadius: BorderRadius.circular(15.r),
-                  boxShadow: const [
-                    BoxShadow(color: Colors.black12, blurRadius: 10, spreadRadius: 3)
-                  ]),
+                color: Theme.of(context).colorScheme.background,
+                borderRadius: BorderRadius.circular(15.r),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Colors.black12,
+                    blurRadius: 10,
+                    spreadRadius: 3,
+                  ),
+                ],
+              ),
               child: TextField(
                 controller: _searchController,
                 decoration: InputDecoration(
-                  contentPadding:
-                      EdgeInsets.only(right: 12.w, left: 12.w, top: 10.h),
+                  contentPadding: EdgeInsets.only(
+                    right: 12.w,
+                    left: 12.w,
+                    top: 10.h,
+                  ),
                   hintText: 'Search',
                   hintStyle: CustomTextStyles.lblPrimaryHintText(context),
                   border: InputBorder.none,
-                  suffixIcon: Icon(FeatherIcons.search,
-                      size: 17.spMax,
-                      color: Theme.of(context).colorScheme.onBackground),
+                  suffixIcon: Icon(
+                    FeatherIcons.search,
+                    size: 17.spMax,
+                    color: Theme.of(context).colorScheme.onBackground,
+                  ),
                   enabledBorder: OutlineInputBorder(
-                      borderSide: BorderSide(
-                          color: Theme.of(context)
-                              .colorScheme
-                              .onBackground
-                              .withOpacity(0.1)),
-                      borderRadius: BorderRadius.circular(15.r)),
+                    borderSide: BorderSide(
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.onBackground.withOpacity(0.1),
+                    ),
+                    borderRadius: BorderRadius.circular(15.r),
+                  ),
                   focusedBorder: OutlineInputBorder(
-                      borderSide: const BorderSide(
-                          color: AppColors.primaryColor, width: 0.7),
-                      borderRadius: BorderRadius.circular(15.r)),
+                    borderSide: const BorderSide(
+                      color: AppColors.primaryColor,
+                      width: 0.7,
+                    ),
+                    borderRadius: BorderRadius.circular(15.r),
+                  ),
                 ),
                 style: TextStyle(
-                    color: Theme.of(context).colorScheme.onBackground,
-                    fontSize: 13.sp,
-                    fontWeight: FontWeight.w400),
+                  color: Theme.of(context).colorScheme.onBackground,
+                  fontSize: 13.sp,
+                  fontWeight: FontWeight.w400,
+                ),
               ),
             ),
             SizedBox(height: 12.h),
             Expanded(
               child: displayList.isEmpty
                   ? Center(
-                      child: Text('No members found',
-                          style: TextStyle(
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .onBackground
-                                  .withOpacity(0.4),
-                              fontSize: 11.sp)))
+                      child: Text(
+                        'No members found',
+                        style: TextStyle(
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onBackground.withOpacity(0.4),
+                          fontSize: 11.sp,
+                        ),
+                      ),
+                    )
                   : ListView.builder(
                       itemCount: displayList.length,
                       itemBuilder: (context, i) {
@@ -263,8 +336,9 @@ class _GroupMembersState extends State<GroupMembers> {
                         final String username = user['username'] ?? '';
                         final String? profileImage = user['profile_image'];
                         final int? memberId = user['id'];
-                        final int? currentUserId =
-                            context.read<UserProvider>().userId;
+                        final int? currentUserId = context
+                            .read<UserProvider>()
+                            .userId;
                         final bool isSelf = memberId == currentUserId;
 
                         return Padding(
@@ -279,50 +353,66 @@ class _GroupMembersState extends State<GroupMembers> {
                                   CircleAvatar(
                                     radius: 18,
                                     backgroundImage: profileImage != null
-                                        ? MemoryImage(base64Decode(
-                                            profileImage.split(',').last))
+                                        ? MemoryImage(
+                                            base64Decode(
+                                              profileImage.split(',').last,
+                                            ),
+                                          )
                                         : null,
-                                    backgroundColor:
-                                        const Color.fromARGB(255, 249, 187, 187)
-                                            .withOpacity(0.3),
+                                    backgroundColor: const Color.fromARGB(
+                                      255,
+                                      249,
+                                      187,
+                                      187,
+                                    ).withOpacity(0.3),
                                     child: profileImage == null
                                         ? Text(
                                             username.isNotEmpty
                                                 ? username[0].toUpperCase()
                                                 : '?',
                                             style: TextStyle(
-                                                color: Theme.of(context)
-                                                    .colorScheme
-                                                    .primary,
-                                                fontSize: 14.5.sp,
-                                                fontWeight: FontWeight.w500))
+                                              color: Theme.of(
+                                                context,
+                                              ).colorScheme.primary,
+                                              fontSize: 14.5.sp,
+                                              fontWeight: FontWeight.w500,
+                                            ),
+                                          )
                                         : null,
                                   ),
                                   SizedBox(width: 10.w),
-                                  Text(username,
-                                      style: TextStyle(
-                                          color: Theme.of(context)
-                                              .colorScheme
-                                              .onBackground,
-                                          fontSize: 11.2.sp,
-                                          fontWeight: FontWeight.w400)),
+                                  Text(
+                                    username,
+                                    style: TextStyle(
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.onBackground,
+                                      fontSize: 11.2.sp,
+                                      fontWeight: FontWeight.w400,
+                                    ),
+                                  ),
                                   const Spacer(),
                                   if (isAdmin)
-                                    Text('Admin',
-                                        style: TextStyle(
-                                            color: AppColors.primaryColor,
-                                            fontSize: 10.2.sp,
-                                            fontWeight: FontWeight.w500))
+                                    Text(
+                                      'Admin',
+                                      style: TextStyle(
+                                        color: AppColors.primaryColor,
+                                        fontSize: 10.2.sp,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    )
                                   else if (isCurrentUserAdmin && !isSelf)
                                     GestureDetector(
                                       onTap: () =>
                                           _showOptions(memberId!, username),
-                                      child: Icon(Icons.more_vert,
-                                          size: 18.spMax,
-                                          color: Theme.of(context)
-                                              .colorScheme
-                                              .onBackground
-                                              .withOpacity(0.4)),
+                                      child: Icon(
+                                        Icons.more_vert,
+                                        size: 18.spMax,
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .onBackground
+                                            .withOpacity(0.4),
+                                      ),
                                     ),
                                 ],
                               ),

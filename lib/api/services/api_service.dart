@@ -13,12 +13,14 @@ import 'package:http/http.dart' as http;
 
 import '../../data/token/shared_preferences.dart';
 import '../../mixin/utility_mixins.dart';
+import '../../models/insights/insights_model.dart';
 import '../../models/like/like_uers_model.dart';
 import '../../models/message/message_model.dart';
 import '../../models/posts/homefeed_posts_model.dart';
 import '../../models/posts/user_post_model.dart';
 import '../../models/public/public_profile_model.dart';
 import '../../models/search/search_user_model.dart';
+import '../../models/user/suggestionsb users/suggestions_users_model.dart';
 import '../../models/voters/top_voters_model.dart';
 import '../../provider/user_provider.dart';
 import '../../screens/home/home_imports.dart';
@@ -51,7 +53,7 @@ class ApiService with UtilityMixin {
 
   /// Get authorization headers with access token
   Future<Map<String, String>> _getAuthHeaders() async {
-    final accessToken = await SharedPrefService.getAccessToken();
+    final accessToken = await SharedPrefService.getToken();
     return {
       'Authorization': 'Bearer ${accessToken ?? ''}',
       'Content-Type': 'application/json',
@@ -111,8 +113,8 @@ class ApiService with UtilityMixin {
         final accessToken = response.data['access_token'] ?? '';
         final refreshToken = response.data['refresh_token'] ?? '';
 
-        await _prefService.saveAccessToken(accessToken);
-        await _prefService.saveRefreshToken(refreshToken);
+        await SharedPrefService.setToken(accessToken);
+        await SharedPrefService.setRefreshToken(refreshToken);
         await _notificationService.initialize();
         await _notificationService.connectToWebSocket(accessToken);
 
@@ -144,11 +146,32 @@ class ApiService with UtilityMixin {
     }
   }
 
+  Future socialLogin(String googleToken) async {
+    try {
+      debugPrint('📤 socialLogin token: $googleToken');
+
+      final response = await _dio.post(
+        ApiConstants.socialAuth,
+        data: {'provider': 'google', 'id_token': googleToken},
+      );
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return response.data;
+      }
+
+      throw Exception('Unexpected status code: ${response.statusCode}');
+    } on DioException catch (e) {
+      throw Exception(e.response?.data?['message'] ?? 'Social login failed');
+    } catch (e) {
+      debugPrint('❌ Unexpected error: $e');
+      rethrow;
+    }
+  }
   // ==================== USER PROFILE ====================
 
   Future<Map<String, dynamic>?> fetchUserData() async {
     try {
-      final accessToken = await SharedPrefService.getAccessToken();
+      final accessToken = await SharedPrefService.getToken();
       if (accessToken == null || accessToken.isEmpty) return null;
 
       final response = await _dio.get(
@@ -263,6 +286,43 @@ class ApiService with UtilityMixin {
     }
   }
 
+  Future<String> setPassword(String password) async {
+    // final String? googleToken = await SharedPrefService.getString(
+    //   'jwt_google_token',
+    // );
+
+    try {
+      final response = await _dio.post(
+        ApiConstants.setPassword,
+        // options: Options(headers: {'Authorization': 'Bearer $googleToken'}),
+        options: Options(headers: await _getAuthHeaders()),
+        data: {'password': password},
+      );
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return ''; // ✅ empty = success
+      }
+
+      return response.data['message'] ?? 'Failed to set password';
+    } on DioException catch (e) {
+      debugPrint('❌ DioException status: ${e.response?.statusCode}');
+      debugPrint('❌ DioException data: ${e.response?.data}');
+
+      final data = e.response?.data;
+      if (data is Map<String, dynamic>) {
+        return data['message'] ??
+            data['detail'] ??
+            data['error'] ??
+            'Failed to set password';
+      }
+
+      return 'Failed to set password';
+    } catch (e) {
+      debugPrint('❌ Unexpected error: $e');
+      return 'Unexpected error occurred';
+    }
+  }
+
   // NOTE : Implemented PATCH Method User Update Private Account
   Future<String> updateAccountPrivacy({required bool isPrivate}) async {
     try {
@@ -293,6 +353,31 @@ class ApiService with UtilityMixin {
     }
   }
 
+  Future<Map<String, dynamic>> deleteAccount(String password) async {
+    try {
+      final response = await _dio.delete(
+        ApiConstants.deleteAccount,
+        data: {'password': password},
+        options: Options(headers: await _getAuthHeaders()),
+      );
+
+      if (response.statusCode == 200) {
+        return {'success': true, 'message': response.data['message']};
+      } else {
+        return {
+          'success': false,
+          'message': response.data['message'] ?? 'Failed to delete account',
+        };
+      }
+    } on DioException catch (e) {
+      // ✅ Dio throws DioException for non-2xx responses
+      final message = e.response?.data['message'] ?? 'Failed to delete account';
+      return {'success': false, 'message': message};
+    } catch (e) {
+      return {'success': false, 'message': 'An error occurred: $e'};
+    }
+  }
+
   // ==================== IMAGE UPLOADS ====================
 
   // Upload profile picture
@@ -314,8 +399,7 @@ class ApiService with UtilityMixin {
         data: formData,
         options: Options(
           headers: {
-            'Authorization':
-                'Bearer ${await SharedPrefService.getAccessToken()}',
+            'Authorization': 'Bearer ${await SharedPrefService.getToken()}',
             'Content-Type': 'multipart/form-data',
           },
         ),
@@ -353,8 +437,7 @@ class ApiService with UtilityMixin {
         data: formData,
         options: Options(
           headers: {
-            'Authorization':
-                'Bearer ${await SharedPrefService.getAccessToken()}',
+            'Authorization': 'Bearer ${await SharedPrefService.getToken()}',
             'Content-Type': 'multipart/form-data',
           },
         ),
@@ -375,12 +458,32 @@ class ApiService with UtilityMixin {
 
   // ==================== POSTS ====================
 
-  /// Fetch home feed posts
-  static Future<List<HomeFeedPost>> fetchHomeFeedPosts() async {
+  // Suggestion users
+  Future<UserSuggestionsModel> fetchUserSuggestions() async {
     try {
-      final accessToken = await SharedPrefService.getAccessToken();
       final response = await _dio.get(
-        ApiConstants.homeFeed,
+        ApiConstants.suggestionUsers,
+        options: Options(headers: await _getAuthHeaders()),
+      );
+
+      if (response.statusCode == 200) {
+        final jsonData = response.data as Map<String, dynamic>;
+
+        return UserSuggestionsModel.fromJson(jsonData);
+      }
+      throw Exception('Failed to load suggestions: ${response.statusCode}');
+    } on DioException catch (e) {
+      debugPrint('Error fetching user suggestions: $e');
+      throw Exception('Error fetching user suggestions: $e');
+    }
+  }
+
+  /// Fetch home feed posts
+  static Future<HomeFeedResponse> fetchHomeFeedPosts({String? url}) async {
+    try {
+      final accessToken = await SharedPrefService.getToken();
+      final response = await _dio.get(
+        url ?? ApiConstants.homeFeed,
         options: Options(
           headers: {
             'Authorization': 'Bearer $accessToken',
@@ -391,8 +494,7 @@ class ApiService with UtilityMixin {
 
       if (response.statusCode == 200) {
         final jsonData = response.data as Map<String, dynamic>;
-        final homeFeedResponse = HomeFeedResponse.fromJson(jsonData);
-        return homeFeedResponse.results;
+        return HomeFeedResponse.fromJson(jsonData);
       }
       throw Exception('Failed to load posts: ${response.statusCode}');
     } on DioException catch (e) {
@@ -404,7 +506,10 @@ class ApiService with UtilityMixin {
   /// Fetch user posts with polls things
   Future<List<UserPostModel>> fetchPostsPolls(String username) async {
     try {
-      final response = await _dio.get('${ApiConstants.userPosts}/$username');
+      final response = await _dio.get(
+        '${ApiConstants.userPosts}/$username',
+        options: Options(headers: await _getAuthHeaders()),
+      );
       final data = response.data['results'] as List<dynamic>;
       return data.map((e) => UserPostModel.fromJson(e)).toList();
     } on DioException catch (e) {
@@ -422,7 +527,10 @@ class ApiService with UtilityMixin {
   // Fetch user posts with images
   Future<List<UserPostModel>> fetchPostsImages(String username) async {
     try {
-      final response = await _dio.get('${ApiConstants.userPosts}/$username');
+      final response = await _dio.get(
+        '${ApiConstants.userPosts}/$username',
+        options: Options(headers: await _getAuthHeaders()),
+      );
       final data = response.data['results'] as List<dynamic>;
       return data.map((e) => UserPostModel.fromJson(e)).toList();
     } on DioException catch (e) {
@@ -431,129 +539,18 @@ class ApiService with UtilityMixin {
     }
   }
 
-  //   Future<List<UserPostModel>> fetchPostsImages(String username) async {
-  //   try {
-  //     print('🚀 ========================================');
-  //     print('🚀 FETCHING POSTS FOR USER: $username');
-  //     print('🚀 ========================================');
-
-  //     // Log the request details
-  //     print('📍 Endpoint: ${ApiConstants.userPosts}/$username');
-
-  //     // Make the API request
-  //     final response = await _dio.get('${ApiConstants.userPosts}/$username');
-
-  //     // 🔍 DEBUG: Log response status
-  //     print('📊 Response Status: ${response.statusCode}');
-
-  //     // 🔍 DEBUG: Log request headers (to verify authentication)
-  //     print('📤 REQUEST HEADERS:');
-  //     response.requestOptions.headers.forEach((key, value) {
-  //       if (key.toLowerCase() == 'authorization') {
-  //         // Only show first 30 characters of token for security
-  //         final tokenPreview = value.toString().length > 30
-  //             ? '${value.toString().substring(0, 30)}...'
-  //             : value.toString();
-  //         print('  $key: $tokenPreview');
-  //       } else {
-  //         print('  $key: $value');
-  //       }
-  //     });
-
-  //     // 🔍 DEBUG: Log raw response data
-  //     print('📡 ========================================');
-  //     print('📡 RAW API RESPONSE:');
-  //     print('📡 ========================================');
-  //     print(response.data);
-  //     print('📡 ========================================');
-
-  //     // Extract results
-  //     final data = response.data['results'] as List<dynamic>;
-  //     print('📦 Total posts received: ${data.length}');
-
-  //     // 🔍 DEBUG: Log each post's like status FROM RAW JSON
-  //     print('🔍 ========================================');
-  //     print('🔍 CHECKING is_liked VALUES IN RAW JSON:');
-  //     print('🔍 ========================================');
-  //     for (var postJson in data) {
-  //       final postId = postJson['id'];
-  //       final isLikedRaw = postJson['is_liked'];
-  //       final likesCount = postJson['likes_count'];
-
-  //       print('Post $postId:');
-  //       print('  - is_liked: $isLikedRaw (Type: ${isLikedRaw.runtimeType})');
-  //       print('  - likes_count: $likesCount');
-  //     }
-
-  //     // Parse to model
-  //     print('🔄 Parsing JSON to UserPostModel...');
-  //     final posts = data.map((e) => UserPostModel.fromJson(e)).toList();
-
-  //     // 🔍 DEBUG: Log parsed models
-  //     print('🔍 ========================================');
-  //     print('🔍 AFTER PARSING TO MODEL:');
-  //     print('🔍 ========================================');
-  //     for (var post in posts) {
-  //       print('Post ${post.id}:');
-  //       print('  - isLiked: ${post.isLiked}');
-  //       print('  - likesCount: ${post.likesCount}');
-  //     }
-
-  //     print('✅ Successfully fetched ${posts.length} posts');
-  //     print('🏁 ========================================\n');
-
-  //     return posts;
-
-  //   } on DioException catch (e) {
-  //     print('❌ ========================================');
-  //     print('❌ DIO EXCEPTION OCCURRED');
-  //     print('❌ ========================================');
-  //     print('Error Type: ${e.type}');
-  //     print('Status Code: ${e.response?.statusCode}');
-  //     print('Error Message: ${e.message}');
-
-  //     if (e.response != null) {
-  //       print('Response Data: ${e.response?.data}');
-  //       print('Response Headers: ${e.response?.headers}');
-  //     }
-
-  //     if (e.type == DioExceptionType.badResponse) {
-  //       print('🔴 Bad Response - Check API endpoint and authentication');
-  //     } else if (e.type == DioExceptionType.connectionTimeout) {
-  //       print('🔴 Connection Timeout - Check network connection');
-  //     } else if (e.type == DioExceptionType.unknown) {
-  //       print('🔴 Unknown Error - Check error details above');
-  //     }
-
-  //     print('❌ ========================================\n');
-
-  //     debugPrint('Error fetching image posts: $e');
-  //     rethrow;
-  //   } catch (e, stackTrace) {
-  //     print('❌ ========================================');
-  //     print('❌ UNEXPECTED ERROR');
-  //     print('❌ ========================================');
-  //     print('Error: $e');
-  //     print('Stack Trace: $stackTrace');
-  //     print('❌ ========================================\n');
-  //     rethrow;
-  //   }
-  // }
-
   /// Fetch only posts that have images in polls
   Future<List<UserPostModel>> fetchImagePosts(String username) async {
     final allPosts = await fetchPostsImages(username);
 
-    // Filter by posts that have images in POLLS (matching your UI logic)
     final filteredPosts = allPosts.where((post) => post.hasPollImages).toList();
 
     return filteredPosts;
   }
 
-  /// Fetch a SINGLE post by ID
   Future<UserPostModel?> fetchSinglePost(int postId) async {
     try {
-      final accessToken = await SharedPrefService.getAccessToken();
+      final accessToken = await SharedPrefService.getToken();
       final url = '${ApiConstants.userPosts}/$postId';
       debugPrint('🔍 Fetching single post from: $url');
 
@@ -751,7 +748,7 @@ class ApiService with UtilityMixin {
     required int optionId,
   }) async {
     try {
-      final accessToken = await SharedPrefService.getAccessToken();
+      final accessToken = await SharedPrefService.getToken();
 
       final response = await _dio.get(
         '${ApiConstants.topVoters}/$pollId/options/$optionId/top_voters',
@@ -1015,6 +1012,59 @@ class ApiService with UtilityMixin {
     }
   }
 
+  // Block users
+  Future<Map<String, dynamic>> blockUser(int userId) async {
+    try {
+      final response = await _dio.post(
+        ApiConstants.blockUser,
+        data: {'user_id': userId},
+        options: Options(headers: await _getAuthHeaders()),
+      );
+      return response.data;
+    } on DioException catch (e) {
+      return {
+        'success': false,
+        'message': _handleDioError(e, defaultMessage: 'Failed to block user'),
+      };
+    }
+  }
+
+  // Unblock users
+  Future<Map<String, dynamic>> unblockUser(int userId) async {
+    try {
+      final response = await _dio.post(
+        ApiConstants.unBlockUser,
+        data: {'user_id': userId},
+        options: Options(headers: await _getAuthHeaders()),
+      );
+      return response.data;
+    } on DioException catch (e) {
+      return {
+        'success': false,
+        'message': _handleDioError(e, defaultMessage: 'Failed to unblock user'),
+      };
+    }
+  }
+
+  // Get blocked users list
+  Future<Map<String, dynamic>> getBlockedUsers() async {
+    try {
+      final response = await _dio.get(
+        ApiConstants.blockedUsrsList,
+        options: Options(headers: await _getAuthHeaders()),
+      );
+      return {'success': true, 'data': response.data['data'] as List<dynamic>};
+    } on DioException catch (e) {
+      return {
+        'success': false,
+        'message': _handleDioError(
+          e,
+          defaultMessage: 'Failed to get blocked users',
+        ),
+      };
+    }
+  }
+
   // ==================== MESSAGES & GROUP ====================
 
   Future<Map<String, dynamic>> createGroup({
@@ -1105,6 +1155,36 @@ class ApiService with UtilityMixin {
         'success': false,
         'message': _handleDioError(e, defaultMessage: 'Failed to rename group'),
       };
+    }
+  }
+
+  // upload group profile image
+  Future<Map<String, dynamic>> uploadGroupProfile({
+    required int chatId,
+    required File imageFile,
+  }) async {
+    final accessToken = await SharedPrefService.getToken();
+    try {
+      final formData = FormData.fromMap({
+        'group_picture': await MultipartFile.fromFile(
+          imageFile.path,
+          filename: imageFile.path.split('/').last,
+        ),
+      });
+
+      final response = await _dio.post(
+        '${ApiConstants.uploadGroupProfile}/$chatId/update_picture',
+        data: formData,
+        options: Options(
+          headers: {
+            'Authorization': 'Bearer $accessToken',
+            'Content-Type': 'multipart/form-data',
+          },
+        ),
+      );
+      return response.data as Map<String, dynamic>;
+    } catch (e) {
+      return {'error': e.toString()};
     }
   }
 
@@ -1234,7 +1314,7 @@ class ApiService with UtilityMixin {
   /// Get user public profile
   static Future<PublicProfileModel> getUserPublicProfile(int userId) async {
     try {
-      final accessToken = await SharedPrefService.getAccessToken();
+      final accessToken = await SharedPrefService.getToken();
       final response = await _dio.get(
         '${ApiConstants.publicProfile}/$userId/profile',
         options: Options(
@@ -1340,7 +1420,7 @@ class ApiService with UtilityMixin {
   /// Toggle post like
   static Future<Map<String, dynamic>> togglePostLike(int postId) async {
     try {
-      final accessToken = await SharedPrefService.getAccessToken();
+      final accessToken = await SharedPrefService.getToken();
       if (accessToken == null || accessToken.isEmpty) {
         return {'success': false, 'message': 'Authentication token not found'};
       }
@@ -1379,7 +1459,7 @@ class ApiService with UtilityMixin {
   /// Get post likes
   static Future<Map<String, dynamic>> getPostLikes(int postId) async {
     try {
-      final accessToken = await SharedPrefService.getAccessToken();
+      final accessToken = await SharedPrefService.getToken();
       if (accessToken == null || accessToken.isEmpty) {
         return {'success': false, 'message': 'Authentication token not found'};
       }
@@ -1409,7 +1489,7 @@ class ApiService with UtilityMixin {
   // Note: Implemented GET Method - Get Post Comments
   static Future<Map<String, dynamic>> getPostComments(int postId) async {
     try {
-      final accessToken = await SharedPrefService.getAccessToken();
+      final accessToken = await SharedPrefService.getToken();
 
       if (accessToken == null || accessToken.isEmpty) {
         return {'success': false, 'message': 'Authentication token not found'};
@@ -1483,7 +1563,7 @@ class ApiService with UtilityMixin {
     required String text,
   }) async {
     try {
-      final accessToken = await SharedPrefService.getAccessToken();
+      final accessToken = await SharedPrefService.getToken();
 
       if (accessToken == null || accessToken.isEmpty) {
         return {'success': false, 'message': 'Authentication token not found'};
@@ -1559,7 +1639,7 @@ class ApiService with UtilityMixin {
     required String text,
   }) async {
     try {
-      final accessToken = await SharedPrefService.getAccessToken();
+      final accessToken = await SharedPrefService.getToken();
 
       if (accessToken == null || accessToken.isEmpty) {
         return {'success': false, 'message': 'Authentication token not found'};
@@ -1626,7 +1706,7 @@ class ApiService with UtilityMixin {
   // Delete Comment API
   static Future<Map<String, dynamic>> deleteComment(int commentId) async {
     try {
-      final accessToken = await SharedPrefService.getAccessToken();
+      final accessToken = await SharedPrefService.getToken();
 
       if (accessToken == null || accessToken.isEmpty) {
         return {'success': false, 'message': 'Authentication token not found'};
@@ -1693,7 +1773,7 @@ class ApiService with UtilityMixin {
     required List<Map<String, int>> votes,
   }) async {
     try {
-      final accessToken = await SharedPrefService.getAccessToken();
+      final accessToken = await SharedPrefService.getToken();
 
       if (accessToken == null || accessToken.isEmpty) {
         return {'success': false, 'message': 'Authentication token not found'};
@@ -1762,7 +1842,7 @@ class ApiService with UtilityMixin {
 
   Future<Map<String, dynamic>> getPollResults(int postId) async {
     try {
-      final accessToken = await SharedPrefService.getAccessToken();
+      final accessToken = await SharedPrefService.getToken();
 
       final response = await http.get(
         Uri.parse('${ApiConstants.baseUrl}/api/posts/$postId/poll_results'),
@@ -1780,6 +1860,20 @@ class ApiService with UtilityMixin {
       }
     } catch (e) {
       throw Exception('Error fetching poll results: $e');
+    }
+  }
+
+  // ==================== INSIGHTS ====================
+
+  Future<InsightsModel> getInsightsData() async {
+    try {
+      final response = await _dio.get(
+        ApiConstants.insights,
+        options: Options(headers: await _getAuthHeaders()),
+      );
+      return InsightsModel.fromJson(response.data);
+    } on DioException catch (e) {
+      throw Exception('Failed to load insights data: ${e.message}');
     }
   }
 }

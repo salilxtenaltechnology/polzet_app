@@ -25,12 +25,12 @@ class DeleteAccountDioloig extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Text(
-            AppLocalizations.of(context)!.logout,
+            'Delete account',
             style: CustomTextStyles.appBarTitleText(context),
           ),
           SizedBox(height: 8.h),
           Text(
-            'Are you sure you want to delete your account? This action cannot be undone.We will delete all your data including posts, comments, and profile information from our servers.',
+            'Are you sure you want to delete your account? Permanently remove your account and all associated data. You can restore it within 30 days.',
             style: CustomTextStyles.lblPrimaryText(context),
           ),
           SizedBox(height: 10.h),
@@ -52,7 +52,7 @@ class DeleteAccountDioloig extends StatelessWidget {
               GestureDetector(
                 onTap: onPressed,
                 child: Text(
-                  'DELETE',
+                  'YES, DELETE',
                   style: TextStyle(
                     fontSize: 12.sp,
                     color: AppColors.redColor,

@@ -7,9 +7,10 @@ import '../../../l10n/generated/app_localizations.dart';
 import '../custom_text_styles.dart';
 
 class BlockUserDiolog extends StatelessWidget {
-  const BlockUserDiolog({super.key, required this.onPressed});
+  const BlockUserDiolog({super.key, required this.onPressed,required this.isUserBlock});
 
   final VoidCallback? onPressed;
+  final bool? isUserBlock;
 
   @override
   Widget build(BuildContext context) {
@@ -24,9 +25,11 @@ class BlockUserDiolog extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text('Block User', style: CustomTextStyles.appBarTitleText(context)),
+          Text(isUserBlock == true ? 'Unblock User' : 'Block User', style: CustomTextStyles.appBarTitleText(context)),
           SizedBox(height: 8.h),
           Text(
+            isUserBlock == true ?
+            'Are you sure you want to unblock this user?' : 
             'Are you sure you want to block this user?',
             style: CustomTextStyles.lblPrimaryText(context),
           ),
@@ -49,7 +52,8 @@ class BlockUserDiolog extends StatelessWidget {
               GestureDetector(
                 onTap: onPressed,
                 child: Text(
-                  'BLOCK',
+                  isUserBlock == true ?
+                  'UNBLOCK' : 'BLOCK',
                   style: TextStyle(
                     fontSize: 12.sp,
                     color: AppColors.redColor,

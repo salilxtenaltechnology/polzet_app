@@ -1,3 +1,5 @@
+// ignore_for_file: non_constant_identifier_names
+
 class PublicProfileModel {
   final String status;
   final String message;
@@ -47,6 +49,7 @@ class ProfileData {
   final bool isFriend;
   final PostsData posts;
   final String followStatus;
+  final int chatId;
 
   ProfileData({
     required this.id,
@@ -73,6 +76,7 @@ class ProfileData {
     required this.isFriend,
     required this.posts,
     required this.followStatus,
+    required this.chatId,
   });
 
   factory ProfileData.fromJson(Map<String, dynamic> json) {
@@ -105,6 +109,7 @@ class ProfileData {
       isFriend: json['is_friend'] ?? false,
       posts: PostsData.fromJson(json['posts'] ?? {}),
       followStatus: json['follow_status'] ?? '',
+      chatId: json['chat_id'] ?? 0,
     );
   }
 
@@ -134,6 +139,7 @@ class ProfileData {
       'is_friend': isFriend,
       'posts': posts.toJson(),
       'follow_status': followStatus,
+      'chat_id': chatId,
     };
   }
 
@@ -162,6 +168,7 @@ class ProfileData {
     bool? isFriend,
     PostsData? posts,
     String? followStatus,
+    int? chatId,
   }) {
     return ProfileData(
       id: id ?? this.id,
@@ -188,6 +195,7 @@ class ProfileData {
       isFriend: isFriend ?? this.isFriend,
       posts: posts ?? this.posts,
       followStatus: followStatus ?? this.followStatus,
+      chatId: chatId ?? this.chatId,
     );
   }
 }
@@ -302,6 +310,7 @@ class PublicPost {
   final List<dynamic> comments;
   final int likesCount;
   final bool isLiked;
+  final bool is_polled_by_current_user;
 
   PublicPost({
     required this.id,
@@ -313,6 +322,7 @@ class PublicPost {
     required this.comments,
     required this.likesCount,
     required this.isLiked,
+    required this.is_polled_by_current_user,
   });
 
   factory PublicPost.fromJson(Map<String, dynamic> json) {
@@ -334,6 +344,7 @@ class PublicPost {
       comments: json['comments'] ?? [],
       likesCount: json['likes_count'] ?? 0,
       isLiked: json['is_liked'] ?? false,
+      is_polled_by_current_user: json['is_polled_by_current_user'] ?? false,
     );
   }
 
@@ -348,6 +359,7 @@ class PublicPost {
       'comments': comments,
       'likes_count': likesCount,
       'is_liked': isLiked,
+      'is_polled_by_current_user' : is_polled_by_current_user
     };
   }
 }

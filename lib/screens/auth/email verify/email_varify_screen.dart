@@ -1,4 +1,4 @@
-// ignore_for_file: deprecated_member_use, unused_element, curly_braces_in_flow_control_structures, library_private_types_in_public_api
+// ignore_for_file: deprecated_member_use, unused_element, curly_braces_in_flow_control_statements, library_private_types_in_public_api
 part of 'email_verify_import.dart';
 
 class RegisterEmailVerification extends StatefulWidget {
@@ -13,6 +13,7 @@ class RegisterEmailVerification extends StatefulWidget {
 
 class _EmailVerificationScreenState extends State<RegisterEmailVerification>
     with UtilityMixin {
+  final ApiService apiService = ApiService();
   final TextEditingController _emailController = TextEditingController();
   final List<TextEditingController> _otpControllers = List.generate(
     6,
@@ -22,23 +23,183 @@ class _EmailVerificationScreenState extends State<RegisterEmailVerification>
     6,
     (index) => FocusNode(),
   );
+
+  // ─── Google Sign-In ──────────────────────────────────────────────────────
+  final GoogleSignIn _googleSignIn = GoogleSignIn.instance;
+  StreamSubscription<GoogleSignInAuthenticationEvent>? _authSub;
+  bool _isGoogleLoading = false;
+
   bool _isLoading = false;
   bool _isSendingOtp = false;
-  bool _isShowButton = false; // To OTP text box and Verify Button
+  bool _isShowButton = false;
   String _errorMessage = '';
   String _successMessage = '';
+
   bool _isValidEmail(String email) {
-    String pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$';
-    RegExp regex = RegExp(pattern);
-    return regex.hasMatch(email);
+    return RegExp(
+      r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$',
+    ).hasMatch(email);
   }
+
+  final String googleAndroidClientId =
+      '53424915324-sft947h1dvjlo5se6h2i2vqprbakils6.apps.googleusercontent.com';
+  final String googleWebClientId =
+      '53424915324-6jgqsatmm1o2uslhl1hd326ss483fb8n.apps.googleusercontent.com';
 
   @override
   void initState() {
     super.initState();
     _emailController.text = widget.email;
+    _initGoogleSignIn();
   }
 
+  // ─── Google Auth Init ──────────────────────────────────────────────────────
+  void _initGoogleSignIn() {
+    unawaited(
+      _googleSignIn
+          .initialize(
+            serverClientId: googleWebClientId, // ✅ only this is needed
+            // No clientId needed — android client comes from google-services.json
+          )
+          .then((_) {
+            _authSub = _googleSignIn.authenticationEvents.listen(
+              _onAuthEvent,
+              onError: (e) => debugPrint('❌ Auth stream error: $e'),
+            );
+            //  _googleSignIn.attemptLightweightAuthentication();
+          }),
+    );
+  }
+
+  void _onAuthEvent(GoogleSignInAuthenticationEvent event) {
+    if (event is GoogleSignInAuthenticationEventSignIn) {
+      debugPrint('📌 Signed in as ${event.user.email}');
+      _fetchTokenAndLogin(event.user);
+    } else if (event is GoogleSignInAuthenticationEventSignOut) {
+      debugPrint('📌 Signed out');
+    }
+  }
+
+  Future<void> _handleGoogleSignIn() async {
+    setState(() => _isGoogleLoading = true);
+    try {
+      await _googleSignIn.authenticate();
+    } catch (e) {
+      // _showError(e.toString());
+    } finally {
+      if (mounted) setState(() => _isGoogleLoading = false);
+    }
+  }
+
+  Future<void> _fetchTokenAndLogin(GoogleSignInAccount user) async {
+    try {
+      final GoogleSignInAuthentication auth = user.authentication;
+      final String? idToken = auth.idToken;
+
+      // debugPrint('🔑 Google idToken: $idToken');
+
+      if (idToken == null) {
+        _showError('Google login failed (no token received)');
+        return;
+      }
+
+      await SharedPrefService.setString('jwt_google_token', idToken);
+      debugPrint('✅ Google idToken saved');
+
+      await _socialLoginAPI(idToken);
+    } catch (e) {
+      _showError(e.toString());
+    }
+  }
+
+  Future<void> _socialLoginAPI(String idToken) async {
+    if (mounted) setState(() => _isGoogleLoading = true);
+
+    try {
+      final response = await apiService.socialLogin(idToken);
+
+      debugPrint('📥 Response: $response');
+
+      if (response == null) {
+        if (mounted) setState(() => _errorMessage = 'Server not responding');
+        return;
+      }
+      final String? status = response['status'];
+
+      if (status != 'success') {
+        if (mounted) {
+          setState(() => _errorMessage = response['message'] ?? 'Login failed');
+        }
+        return;
+      }
+
+      final data = response['data'] as Map<String, dynamic>;
+      final String accessToken = data['access_token'];
+      final String refreshToken = data['refresh_token'];
+      final Map<String, dynamic> user = data['user'];
+
+      debugPrint('✅ accessToken: $accessToken');
+      debugPrint('✅ user: $user');
+
+      // ✅ Save tokens
+      await SharedPrefService.setToken(accessToken);
+      await SharedPrefService.setRefreshToken(refreshToken);
+
+      // ✅ Save user details
+      await SharedPrefService.setString('username', user['username'] ?? '');
+      await SharedPrefService.setString('email', user['email'] ?? '');
+
+      // ✅ Initialize notifications — same as loginUser()
+      await NotificationService().initialize();
+      await NotificationService().connectToWebSocket(accessToken);
+
+      // ✅ Register FCM token — same as loginUser()
+      final fcmToken = await NotificationService().getFCMToken();
+      if (fcmToken != null) {
+        final platform = Platform.isAndroid ? 'android' : 'ios';
+        await FcmApiService.registerFcmToken(fcmToken, platform);
+      }
+
+      showToast(message: 'Login Successful!');
+
+      if (mounted) {
+        Navigator.pushReplacement(
+          context,
+          PageTransition(
+            type: PageTransitionType.fade,
+            duration: const Duration(milliseconds: 200),
+            child: const HomeScreen(initialIndex: 0),
+          ),
+        );
+      }
+    } catch (e) {
+      debugPrint('❌ socialLoginAPI exception: $e');
+      if (mounted) setState(() => _errorMessage = 'Login error: $e');
+    } finally {
+      if (mounted) setState(() => _isGoogleLoading = false);
+    }
+  }
+
+  Map<String, dynamic>? _parseJwt(String token) {
+    try {
+      final parts = token.split('.');
+      if (parts.length != 3) return null;
+      String payload = parts[1];
+      payload += '=' * ((4 - payload.length % 4) % 4);
+      final normalized = payload.replaceAll('-', '+').replaceAll('_', '/');
+      return jsonDecode(utf8.decode(base64Decode(normalized)))
+          as Map<String, dynamic>;
+    } catch (e) {
+      debugPrint('❌ Failed to parse JWT: $e');
+      return null;
+    }
+  }
+
+  void _showError(String msg) {
+    if (mounted) setState(() => _errorMessage = msg);
+  }
+
+  // ─── OTP Methods ──────────────────────────────────────────────────────────
   Future<void> _sendOtp() async {
     setState(() {
       _isSendingOtp = true;
@@ -84,6 +245,7 @@ class _EmailVerificationScreenState extends State<RegisterEmailVerification>
       _errorMessage = '';
       _successMessage = '';
     });
+
     var body = {'email': _emailController.text, 'otp': otp};
 
     try {
@@ -109,12 +271,7 @@ class _EmailVerificationScreenState extends State<RegisterEmailVerification>
     }
   }
 
-  bool _validateEmail(String email) {
-    return RegExp(
-      r"^[a-zA-Z0-9.a-zA-Z0-9.!#$%&'*+-/=?^_`{|}~]+@[a-zA-Z0-9]+\.[a-zA-Z]+",
-    ).hasMatch(email);
-  }
-
+  // ─── Build ────────────────────────────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -195,7 +352,7 @@ class _EmailVerificationScreenState extends State<RegisterEmailVerification>
               String email = _emailController.text.trim();
               if (email.isEmpty) {
                 setState(() => _errorMessage = 'Please enter email');
-              } else if (!_isValidEmail(_emailController.text)) {
+              } else if (!_isValidEmail(email)) {
                 setState(
                   () => _errorMessage = 'Please enter a valid email address.',
                 );
@@ -321,20 +478,21 @@ class _EmailVerificationScreenState extends State<RegisterEmailVerification>
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
+              // ✅ Google button wired to _handleGoogleSignIn
               _authSocialMedia(
-                () {},
-                Image.asset(Assets.assetsImagesIcGoogle),
+                _handleGoogleSignIn,
+                _isGoogleLoading
+                    ? SizedBox(
+                        width: 18.w,
+                        height: 18.h,
+                        child: const CircularProgressIndicator(
+                          strokeWidth: 1.5,
+                          color: AppColors.primaryColor,
+                        ),
+                      )
+                    : Image.asset(Assets.assetsImagesIcGoogle),
                 const EdgeInsets.all(4).w,
               ),
-              // SizedBox(width: 7.w),
-              // _authSocialMedia(
-              //     () {},
-              //     Image.asset(Assets.assetsImagesIcX,
-              //         color: Theme.of(context).colorScheme.onBackground),
-              //     const EdgeInsets.all(5).w),
-              // SizedBox(width: 7.w),
-              // _authSocialMedia(() {}, Image.asset(Assets.assetsImagesIcFacebook),
-              //     const EdgeInsets.all(3).w),
             ],
           ),
         ],
@@ -344,8 +502,14 @@ class _EmailVerificationScreenState extends State<RegisterEmailVerification>
 
   @override
   void dispose() {
-    for (var controller in _otpControllers) controller.dispose();
-    for (var node in _otpFocusNodes) node.dispose();
+    _authSub?.cancel();
+    for (var controller in _otpControllers) {
+      controller.dispose();
+    }
+    for (var node in _otpFocusNodes) {
+      node.dispose();
+    }
+    _emailController.dispose();
     super.dispose();
   }
 

@@ -83,7 +83,11 @@ class _PostVotersBottomSheetState extends State<PostVotersBottomSheet> {
             child: Center(
               child: Text(
                 'Voters',
-                style: TextStyle(fontSize: 13.sp, fontWeight: FontWeight.w600),
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onBackground,
+                  fontSize: 12.5.sp,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ),
           ),
@@ -195,9 +199,9 @@ class _PostVotersBottomSheetState extends State<PostVotersBottomSheet> {
               Text(
                 user.username,
                 style: TextStyle(
-                  fontSize: 11.sp,
+                  fontSize: 10.8.sp,
                   fontWeight: FontWeight.w700,
-                  color: Theme.of(context).colorScheme.onSurface,
+                  color: Theme.of(context).colorScheme.onBackground,
                 ),
               ),
               SizedBox(height: 2.h),
@@ -207,7 +211,7 @@ class _PostVotersBottomSheetState extends State<PostVotersBottomSheet> {
                     TextSpan(
                       text: '${_data?.label ?? 'picked this as top choice'} ',
                       style: TextStyle(
-                        fontSize: 12.2.sp,
+                        fontSize: 12.sp,
                         color: Colors.grey[500],
                         fontWeight: FontWeight.w400,
                       ),
@@ -215,7 +219,7 @@ class _PostVotersBottomSheetState extends State<PostVotersBottomSheet> {
                     TextSpan(
                       text: 'people like you chose this',
                       style: TextStyle(
-                        fontSize: 12.2.sp,
+                        fontSize: 12.sp,
                         color: Colors.green,
                         fontWeight: FontWeight.w400,
                       ),

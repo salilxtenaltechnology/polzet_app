@@ -1,3 +1,5 @@
+// ignore_for_file: prefer_final_fields
+
 import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
@@ -41,8 +43,18 @@ class PrivateChatProvider extends ChangeNotifier {
       return '$h:$m';
     } else if (dt.year == now.year) {
       const months = [
-        'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-        'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+        'Jan',
+        'Feb',
+        'Mar',
+        'Apr',
+        'May',
+        'Jun',
+        'Jul',
+        'Aug',
+        'Sep',
+        'Oct',
+        'Nov',
+        'Dec',
       ];
       return '${months[dt.month - 1]} ${dt.day}';
     } else {
@@ -60,6 +72,9 @@ class PrivateChatProvider extends ChangeNotifier {
 
   String? _nextPageUrl;
   bool get hasMoreHistory => _nextPageUrl != null;
+
+  late bool _isUserBlock;
+
 
   // ── WebSocket state ────────────────────────────────────────────────────────
   static const String _wsBaseUrl = 'wss://testbackend.polzet.in';
@@ -89,6 +104,11 @@ class PrivateChatProvider extends ChangeNotifier {
   bool isProtectedChat = false;
   bool isHideChat = false;
   bool isHideChatHistory = false;
+
+  // Block user settings can be added here when that feature is implemented
+  bool _isBlocking = false;
+  bool get isBlocking => _isBlocking;
+
 
   // ── Emit helpers ───────────────────────────────────────────────────────────
 
@@ -128,7 +148,7 @@ class PrivateChatProvider extends ChangeNotifier {
 
     await fetchMessageHistory();
 
-    final token = await SharedPrefService.getAccessToken();
+    final token = await SharedPrefService.getToken();
     if (token != null && token.isNotEmpty) {
       _shouldReconnect = true;
       await _connectWebSocket(token);
@@ -275,7 +295,7 @@ class PrivateChatProvider extends ChangeNotifier {
   Future<void> reconnect() async {
     if (_isConnected || _isConnecting) return;
     debugPrint('🔄 Manual reconnect triggered');
-    final token = await SharedPrefService.getAccessToken();
+    final token = await SharedPrefService.getToken();
     if (token != null && token.isNotEmpty) {
       _shouldReconnect = true;
       await _connectWebSocket(token);
@@ -354,7 +374,7 @@ class PrivateChatProvider extends ChangeNotifier {
       );
       _reconnectTimer?.cancel();
       _reconnectTimer = Timer(delay, () async {
-        final token = await SharedPrefService.getAccessToken();
+        final token = await SharedPrefService.getToken();
         if (token != null) _connectWebSocket(token);
       });
     } else {
@@ -372,7 +392,7 @@ class PrivateChatProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  // ── Send message ───────────────────────────────────────────────────────────
+  // ── Send message ──────
   // Strategy:
   // 1. Optimistic insert → user sees it immediately (via stream, silently)
   // 2. REST API call → guaranteed server delivery
@@ -409,14 +429,13 @@ class PrivateChatProvider extends ChangeNotifier {
             text: trimmed,
             created_at: _messages[pendingIndex].created_at,
             isSentByMe: true,
-            isPending: false, // ✅ confirmed
+            isPending: false,
           );
           _emitMessages();
         }
       });
     } catch (e) {
       debugPrint('❌ sendMessage API failed: $e');
-      // ── Mark as failed so UI can show retry indicator ─────────────────────
       final pendingIndex = _messages.lastIndexWhere(
         (m) => m.isSentByMe && m.isPending && m.text == trimmed,
       );
@@ -426,10 +445,40 @@ class PrivateChatProvider extends ChangeNotifier {
           created_at: _messages[pendingIndex].created_at,
           isSentByMe: true,
           isPending: false,
-          isFailed: true, 
+          isFailed: true,
         );
         _emitMessages();
       }
+    }
+  }
+
+  Future<Map<String, dynamic>> blockUser(int userId) async {
+    _isBlocking = true;
+    notifyListeners();
+
+    try {
+      final result = await ApiService().blockUser(userId);
+      return result;
+    } catch (e) {
+      return {'success': false, 'message': e.toString()};
+    } finally {
+      _isBlocking = false;
+      notifyListeners();
+    }
+  }
+
+  Future<Map<String, dynamic>> unblockUser(int userId) async {
+    _isBlocking = true;
+    notifyListeners();
+
+    try {
+      final result = await ApiService().unblockUser(userId);
+      return result;
+    } catch (e) {
+      return {'success': false, 'message': e.toString()};
+    } finally {
+      _isBlocking = false;
+      notifyListeners();
     }
   }
 
