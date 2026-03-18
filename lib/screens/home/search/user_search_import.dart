@@ -12,6 +12,7 @@ import '../../../../l10n/generated/app_localizations.dart';
 import '../../../../provider/user_provider.dart';
 import '../../../api/services/api_service.dart';
 import '../../../mixin/utility_mixins.dart';
+import '../../../models/hashtags/enhanced_trending_hashtags_model.dart';
 import '../../../models/search/search_user_model.dart';
 import '../../../widgets/button/back_button.dart';
 import '../../../widgets/button/primary_button.dart';

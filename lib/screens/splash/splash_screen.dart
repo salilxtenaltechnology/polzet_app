@@ -33,7 +33,7 @@ class _SplashScreenState extends State<SplashScreen>
   late AnimationController _controller;
   late Animation<double> _logoAnimation;
   late Animation<Offset> _textAnimation;
-  
+
   // Future that resolves to the next screen widget
   late Future<Widget> _initializationFuture;
 
@@ -78,54 +78,76 @@ class _SplashScreenState extends State<SplashScreen>
 
   /// ✅ Core initialization logic moved from main.dart
   Future<Widget> _initializeApp() async {
-  final bool isUserLoggedIn = await _isLoggedIn();
+    final bool isUserLoggedIn = await _isLoggedIn();
 
-  if (!isUserLoggedIn) {
-    return const LoginScreen();
-  }
-
-  try {
-    if (mounted) {
-      final userProvider = Provider.of<UserProvider>(context, listen: false);
-      await userProvider.loadUserData();
+    if (!isUserLoggedIn) {
+      return const LoginScreen();
     }
-  } catch (e) {
-    return const LoginScreen();
+
+    try {
+      if (mounted) {
+        final userProvider = Provider.of<UserProvider>(context, listen: false);
+        await userProvider.loadUserData();
+      }
+    } catch (e) {
+      return const LoginScreen();
+    }
+
+    // ✅ Check if user has accepted terms (new user check)
+    final bool hasAcceptedTerms = await SharedPrefService.hasAcceptedTerms();
+    if (!hasAcceptedTerms) {
+      return const TermsAcceptanceScreen(); // ✅ Show only for new users
+    }
+
+    // existing notification + biometric logic...
+    final notificationRouter = NotificationRouter();
+    Widget? notificationDestination;
+    if (notificationRouter.hasPendingNotification()) {
+      notificationDestination = await notificationRouter.resolveDestination();
+    }
+
+    final bool isBiometricEnabled = await BiometricService.isBiometricEnabled();
+    if (!isBiometricEnabled) {
+      return HomeScreen(
+        initialIndex: 0,
+        pendingDestination: notificationDestination,
+      );
+    }
+
+    final bool isPinSecurityEnabled = await PinService.isPinSecurityEnabled();
+    final bool isFingerprintEnabled =
+        await BiometricService.isFingerprintEnabled();
+
+    if (isPinSecurityEnabled) {
+      final bool isPinSet = await PinService.isPinSet();
+      if (isPinSet) {
+        return PinGateScreen(
+          destination: HomeScreen(
+            initialIndex: 0,
+            pendingDestination: notificationDestination,
+          ),
+        );
+      }
+    }
+
+    if (isFingerprintEnabled) {
+      final bool isBiometricAvailable =
+          await BiometricService.isBiometricAvailable();
+      if (isBiometricAvailable) {
+        return BiometricGateScreen(
+          destination: HomeScreen(
+            initialIndex: 0,
+            pendingDestination: notificationDestination,
+          ),
+        );
+      }
+    }
+
+    return HomeScreen(
+      initialIndex: 0,
+      pendingDestination: notificationDestination,
+    );
   }
-
-  // ✅ Check if user has accepted terms (new user check)
-  final bool hasAcceptedTerms = await SharedPrefService.hasAcceptedTerms();
-  if (!hasAcceptedTerms) {
-    return const TermsAcceptanceScreen(); // ✅ Show only for new users
-  }
-
-  // existing notification + biometric logic...
-  final notificationRouter = NotificationRouter();
-  Widget? notificationDestination;
-  if (notificationRouter.hasPendingNotification()) {
-    notificationDestination = await notificationRouter.resolveDestination();
-  }
-
-  final bool isBiometricEnabled = await BiometricService.isBiometricEnabled();
-  if (!isBiometricEnabled) {
-    return HomeScreen(initialIndex: 0, pendingDestination: notificationDestination);
-  }
-
-  final bool isPinSecurityEnabled = await PinService.isPinSecurityEnabled();
-  final bool isFingerprintEnabled = await BiometricService.isFingerprintEnabled();
-
-  if (isPinSecurityEnabled) {
-    final bool isPinSet = await PinService.isPinSet();
-    if (isPinSet) return const PinGateScreen();
-  }
-
-  if (isFingerprintEnabled) {
-    final bool isBiometricAvailable = await BiometricService.isBiometricAvailable();
-    if (isBiometricAvailable) return const BiometricGateScreen();
-  }
-
-  return HomeScreen(initialIndex: 0, pendingDestination: notificationDestination);
-}
 
   Future<bool> _isLoggedIn() async {
     final accessToken = await SharedPrefService.getToken();
@@ -135,15 +157,13 @@ class _SplashScreenState extends State<SplashScreen>
   Future<void> _handleAnimationComplete() async {
     // Wait for minimum time AND initialization
     await Future.delayed(const Duration(milliseconds: 400));
-    
+
     if (!mounted) return;
     final nextScreen = await _initializationFuture;
-    
+
     if (!mounted) return;
     Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute(
-        builder: (_) => nextScreen,
-      ),
+      MaterialPageRoute(builder: (_) => nextScreen),
       (route) => false,
     );
   }

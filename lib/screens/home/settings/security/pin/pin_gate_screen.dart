@@ -3,22 +3,23 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import '../../../../../l10n/generated/app_localizations.dart';
-import '../../../../splash/splash_screen.dart';
+import 'package:polzet_app/core/constants/app_colors.dart';
+import 'package:polzet_app/screens/home/settings/security/pin/forget_pin/email_verify_pin.dart';
+import '../../../../../mixin/utility_mixins.dart';
 import 'pin_status.dart';
 
 class PinGateScreen extends StatefulWidget {
-  const PinGateScreen({super.key});
+  final Widget destination;
+  const PinGateScreen({super.key, required this.destination});
 
   @override
   _PinGateScreenState createState() => _PinGateScreenState();
 }
 
-class _PinGateScreenState extends State<PinGateScreen> {
+class _PinGateScreenState extends State<PinGateScreen> with UtilityMixin {
   String _enteredPin = '';
   bool _isLoading = false;
   String _errorMessage = '';
-  int _remainingAttempts = 3;
   bool _isLocked = false;
 
   @override
@@ -30,7 +31,6 @@ class _PinGateScreenState extends State<PinGateScreen> {
   Future<void> _loadPinStatus() async {
     final status = await PinService.getPinStatus();
     setState(() {
-      _remainingAttempts = status.remainingAttempts;
       _isLocked = status.isLocked;
 
       if (status.isLocked && status.lockoutEndTime != null) {
@@ -56,7 +56,7 @@ class _PinGateScreenState extends State<PinGateScreen> {
                 padding: EdgeInsets.all(20.w),
                 child: Column(
                   children: [
-                    SizedBox(height: 50.h),
+                    SizedBox(height: 35.h),
 
                     Icon(
                       Icons.lock_outline,
@@ -68,7 +68,7 @@ class _PinGateScreenState extends State<PinGateScreen> {
                     Text(
                       'Enter PIN',
                       style: TextStyle(
-                        fontSize: 20.sp,
+                        fontSize: 17.sp,
                         fontWeight: FontWeight.w600,
                         color: Theme.of(context).colorScheme.onBackground,
                       ),
@@ -78,7 +78,7 @@ class _PinGateScreenState extends State<PinGateScreen> {
                     Text(
                       'Enter your 4-digit PIN to continue',
                       style: TextStyle(
-                        fontSize: 13.sp,
+                        fontSize: 12.sp,
                         color: Theme.of(
                           context,
                         ).colorScheme.onBackground.withOpacity(0.6),
@@ -105,13 +105,14 @@ class _PinGateScreenState extends State<PinGateScreen> {
                         );
                       }),
                     ),
-                    SizedBox(height: 10.h),
+                    SizedBox(height: 15.h),
                     // Error message
                     if (_errorMessage.isNotEmpty) ...[
                       Container(
+                        margin: EdgeInsets.only(top: 5.h),
                         padding: EdgeInsets.symmetric(
-                          horizontal: 16.w,
-                          vertical: 8.h,
+                          horizontal: 12.w,
+                          vertical: 5.h,
                         ),
                         decoration: BoxDecoration(
                           color: Colors.red.withOpacity(0.1),
@@ -119,23 +120,30 @@ class _PinGateScreenState extends State<PinGateScreen> {
                         ),
                         child: Text(
                           _errorMessage,
-                          style: TextStyle(color: Colors.red, fontSize: 12.sp),
+                          style: TextStyle(color: Colors.red, fontSize: 10.3.sp),
                           textAlign: TextAlign.center,
                         ),
                       ),
                       SizedBox(height: 10.h),
                     ],
-                    // Remaining attempts indicator
-                    if (!_isLocked && _remainingAttempts < 3) ...[
-                      Text(
-                        '${AppLocalizations.of(context)!.remainingattempts}$_remainingAttempts',
-                        style: TextStyle(fontSize: 12.sp, color: Colors.orange),
-                      ),
-                      SizedBox(height: 20.h),
-                    ],
-                    SizedBox(height: 30.h),
+
+                    SizedBox(height: 20.h),
                     // Number pad
                     _buildNumberPad(),
+                    const Spacer(),
+                    GestureDetector(
+                      onTap: () {
+                        navigationPush(context, const EmailVerifyPin());
+                      },
+                      child: Text(
+                        'Forgot PIN?',
+                        style: TextStyle(
+                          color: AppColors.primaryColor,
+                          fontWeight: FontWeight.w500,
+                          fontSize: 11.4.sp,
+                        ),
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -288,15 +296,14 @@ class _PinGateScreenState extends State<PinGateScreen> {
       if (!mounted) return;
 
       if (authResult.success) {
-        // PIN verified successfully - navigate to main app
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (context) => const SplashScreen()),
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (_) => widget.destination),
+          (route) => false,
         );
       } else {
         // PIN verification failed
         setState(() {
           _errorMessage = authResult.message;
-          _remainingAttempts = authResult.remainingAttempts;
           _isLocked = authResult.isLocked;
           _enteredPin = '';
           _isLoading = false;

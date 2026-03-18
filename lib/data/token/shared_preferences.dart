@@ -4,7 +4,6 @@ class SharedPrefService {
   static const String _accessKey = 'access_token';
   static const String _refreshKey = 'refresh_token';
   static const String _fcmToken = 'fcm_token';
-  static const String _jwtGoogleToken = 'jwt_google_token';
   static const String _termsAcceptedKey = 'terms_accepted';
   static const String _firstName = 'first_name';
   static const String _lastName = 'last_name';

@@ -7,6 +7,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:polzet_app/screens/home/settings/settings_import.dart';
 import 'package:provider/provider.dart';
 
 import '../../../../api/app_api.dart';
@@ -523,6 +524,81 @@ class _EditProfileState extends State<EditProfile> with UtilityMixin {
                       ),
                     ),
                   ),
+                  SizedBox(height: 12.h),
+                   Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 12.w),
+                    child: GestureDetector(
+                      onTap: () {
+                        navigationPush(context, const Settings());
+                      },
+                      child: Container(
+                        width: double.infinity,
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 12.w,
+                          vertical: 7.h,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).colorScheme.primaryContainer,
+                          borderRadius: BorderRadius.circular(12.r),
+                          border: Border.all(
+                            color: AppColors.primaryColor.withOpacity(0.3),
+                            width: 1,
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: AppColors.primaryColor.withOpacity(0.1),
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(
+                                Icons.settings,
+                                color: AppColors.primaryColor,
+                                size: 20,
+                              ),
+                            ),
+                            SizedBox(width: 12.w),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'More Settings',
+                                    style: TextStyle(
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.onBackground,
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 12.sp,
+                                    ),
+                                  ),
+                                  SizedBox(height: 2.h),
+                                  Text(
+                                    'Dark Mode,Security,Privacy Policy,Terms..',
+                                    style: TextStyle(
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onBackground
+                                          .withOpacity(0.5),
+                                      fontSize: 10.sp,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Icon(
+                              Icons.arrow_forward_ios,
+                              color: AppColors.primaryColor,
+                              size: 14.sp,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+
                 SizedBox(height: 12.h),
                 if (_hasGoogleAuth && !_hasLocalPassword)
                   Padding(

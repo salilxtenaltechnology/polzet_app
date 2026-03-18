@@ -23,14 +23,20 @@ class TermsState extends State<TermsAndConditions> {
   // Define the text styles for the title
   static TextStyle titleStyle = TextStyle(
     color: AppColors.primaryColor,
-    fontSize: 12.5.sp,
+    fontSize: 11.7.sp,
     fontWeight: FontWeight.w600,
+  );
+
+  static TextStyle lblSecondryText(BuildContext context) => TextStyle(
+    color: Theme.of(context).colorScheme.onBackground,
+    fontSize: 11.5.sp,
+    fontWeight: FontWeight.w400,
   );
 
   // Define the text styles for the labletext
   static TextStyle labelStyle = TextStyle(
     color: const Color(0XFF545454),
-    fontSize: 11.4.sp,
+    fontSize: 11.2.sp,
     fontWeight: FontWeight.w600,
   );
 
@@ -56,7 +62,7 @@ class TermsState extends State<TermsAndConditions> {
           SizedBox(height: 15.h),
           Text(
             AppLocalizations.of(context)!.termsconditionsdescriptions,
-            style: CustomTextStyles.lblSecondryText(context),
+            style: lblSecondryText(context),
           ),
           SizedBox(height: 20.h),
           Text(
@@ -66,7 +72,7 @@ class TermsState extends State<TermsAndConditions> {
           SizedBox(height: 10.h),
           Text(
             AppLocalizations.of(context)!.bycreatinganaccountorusing,
-            style: CustomTextStyles.lblSecondryText(context),
+            style: lblSecondryText(context),
           ),
           SizedBox(height: 20.h),
           Text(AppLocalizations.of(context)!.eligibility, style: titleStyle),
@@ -78,17 +84,17 @@ class TermsState extends State<TermsAndConditions> {
           SizedBox(height: 5.h),
           Text(
             AppLocalizations.of(context)!.beatleast13yearsofage,
-            style: CustomTextStyles.lblSecondryText(context),
+            style: lblSecondryText(context),
           ),
           SizedBox(height: 5.h),
           Text(
             AppLocalizations.of(context)!.notbeaconvictedsexoffender,
-            style: CustomTextStyles.lblSecondryText(context),
+            style: lblSecondryText(context),
           ),
           SizedBox(height: 5.h),
           Text(
             AppLocalizations.of(context)!.provideaccurateandcomplete,
-            style: CustomTextStyles.lblSecondryText(context),
+            style: lblSecondryText(context),
           ),
           SizedBox(height: 20.h),
           Text(AppLocalizations.of(context)!.useraccounts, style: titleStyle),
@@ -100,14 +106,14 @@ class TermsState extends State<TermsAndConditions> {
           SizedBox(height: 5.h),
           Text(
             AppLocalizations.of(context)!.youareresponsiblefor,
-            style: CustomTextStyles.lblSecondryText(context),
+            style: lblSecondryText(context),
           ),
           SizedBox(height: 15.h),
           Text(AppLocalizations.of(context)!.termination, style: labelStyle),
           SizedBox(height: 5.h),
           Text(
             AppLocalizations.of(context)!.wereservetherightto,
-            style: CustomTextStyles.lblSecondryText(context),
+            style: lblSecondryText(context),
           ),
           SizedBox(height: 20.h),
           Text(AppLocalizations.of(context)!.usercontent, style: titleStyle),
@@ -116,43 +122,43 @@ class TermsState extends State<TermsAndConditions> {
           SizedBox(height: 5.h),
           Text(
             AppLocalizations.of(context)!.usercontentincludes,
-            style: CustomTextStyles.lblSecondryText(context),
+            style: lblSecondryText(context),
           ),
           SizedBox(height: 15.h),
           Text(AppLocalizations.of(context)!.ownership, style: labelStyle),
           SizedBox(height: 5.h),
           Text(
             AppLocalizations.of(context)!.youretainownershipof,
-            style: CustomTextStyles.lblSecondryText(context),
+            style: lblSecondryText(context),
           ),
           SizedBox(height: 15.h),
           Text(AppLocalizations.of(context)!.responsibility, style: labelStyle),
           SizedBox(height: 5.h),
           Text(
             AppLocalizations.of(context)!.tyouaresolelyresponsible,
-            style: CustomTextStyles.lblSecondryText(context),
+            style: lblSecondryText(context),
           ),
           SizedBox(height: 10.h),
           Text(
             AppLocalizations.of(context)!.youownorhavethenecessary,
-            style: CustomTextStyles.lblSecondryText(context),
+            style: lblSecondryText(context),
           ),
           SizedBox(height: 10.h),
           Text(
             AppLocalizations.of(context)!.yourusercontentdoesnot,
-            style: CustomTextStyles.lblSecondryText(context),
+            style: lblSecondryText(context),
           ),
           SizedBox(height: 10.h),
           Text(
             AppLocalizations.of(context)!.yourusercontentcomplies,
-            style: CustomTextStyles.lblSecondryText(context),
+            style: lblSecondryText(context),
           ),
           SizedBox(height: 15.h),
           Text(AppLocalizations.of(context)!.contentremoval, style: labelStyle),
           SizedBox(height: 5.h),
           Text(
             AppLocalizations.of(context)!.wemaybutarenotobligated,
-            style: CustomTextStyles.lblSecondryText(context),
+            style: lblSecondryText(context),
           ),
           SizedBox(height: 20.h),
           Text(
@@ -164,37 +170,37 @@ class TermsState extends State<TermsAndConditions> {
           SizedBox(height: 5.h),
           Text(
             AppLocalizations.of(context)!.postoruploadusercontent,
-            style: CustomTextStyles.lblSecondryText(context),
+            style: lblSecondryText(context),
           ),
           SizedBox(height: 5.h),
           Text(
             AppLocalizations.of(context)!.engageinhatespeech,
-            style: CustomTextStyles.lblSecondryText(context),
+            style: lblSecondryText(context),
           ),
           SizedBox(height: 5.h),
           Text(
             AppLocalizations.of(context)!.uploadcontentthatcontains,
-            style: CustomTextStyles.lblSecondryText(context),
+            style: lblSecondryText(context),
           ),
           SizedBox(height: 5.h),
           Text(
             AppLocalizations.of(context)!.usetheplatformfor,
-            style: CustomTextStyles.lblSecondryText(context),
+            style: lblSecondryText(context),
           ),
           SizedBox(height: 5.h),
           Text(
             AppLocalizations.of(context)!.impersonateothersor,
-            style: CustomTextStyles.lblSecondryText(context),
+            style: lblSecondryText(context),
           ),
           SizedBox(height: 5.h),
           Text(
             AppLocalizations.of(context)!.attempttoaccesscollect,
-            style: CustomTextStyles.lblSecondryText(context),
+            style: lblSecondryText(context),
           ),
           SizedBox(height: 5.h),
           Text(
             AppLocalizations.of(context)!.violateanyapplicable,
-            style: CustomTextStyles.lblSecondryText(context),
+            style: lblSecondryText(context),
           ),
           SizedBox(height: 20.h),
           Text(
@@ -206,14 +212,14 @@ class TermsState extends State<TermsAndConditions> {
           SizedBox(height: 5.h),
           Text(
             AppLocalizations.of(context)!.allcontenttrademarks,
-            style: CustomTextStyles.lblSecondryText(context),
+            style: lblSecondryText(context),
           ),
           SizedBox(height: 15.h),
           Text(AppLocalizations.of(context)!.dmcacompliance, style: labelStyle),
           SizedBox(height: 5.h),
           Text(
             AppLocalizations.of(context)!.polzetcomplieswith,
-            style: CustomTextStyles.lblSecondryText(context),
+            style: lblSecondryText(context),
           ),
           SizedBox(height: 15.h),
           Text(
@@ -223,14 +229,14 @@ class TermsState extends State<TermsAndConditions> {
           SizedBox(height: 5.h),
           Text(
             AppLocalizations.of(context)!.ifyouuploadcontent,
-            style: CustomTextStyles.lblSecondryText(context),
+            style: lblSecondryText(context),
           ),
           SizedBox(height: 20.h),
           Text(AppLocalizations.of(context)!.privacy, style: titleStyle),
           SizedBox(height: 10.h),
           Text(
             AppLocalizations.of(context)!.youruseoftheplatform,
-            style: CustomTextStyles.lblSecondryText(context),
+            style: lblSecondryText(context),
           ),
           SizedBox(height: 20.h),
           Text(
@@ -240,7 +246,7 @@ class TermsState extends State<TermsAndConditions> {
           SizedBox(height: 10.h),
           Text(
             AppLocalizations.of(context)!.theplatformmaycontainlinks,
-            style: CustomTextStyles.lblSecondryText(context),
+            style: lblSecondryText(context),
           ),
           SizedBox(height: 20.h),
           Text(
@@ -252,14 +258,14 @@ class TermsState extends State<TermsAndConditions> {
           SizedBox(height: 5.h),
           Text(
             AppLocalizations.of(context)!.theplatformisprovidedas,
-            style: CustomTextStyles.lblSecondryText(context),
+            style: lblSecondryText(context),
           ),
           SizedBox(height: 15.h),
           Text(AppLocalizations.of(context)!.noliabilityfor, style: labelStyle),
           SizedBox(height: 5.h),
           Text(
             AppLocalizations.of(context)!.polzetisnotresponsible,
-            style: CustomTextStyles.lblSecondryText(context),
+            style: lblSecondryText(context),
           ),
           SizedBox(height: 15.h),
           Text(
@@ -269,7 +275,7 @@ class TermsState extends State<TermsAndConditions> {
           SizedBox(height: 5.h),
           Text(
             AppLocalizations.of(context)!.tothefullestextent,
-            style: CustomTextStyles.lblSecondryText(context),
+            style: lblSecondryText(context),
           ),
           SizedBox(height: 20.h),
           Text(
@@ -279,7 +285,7 @@ class TermsState extends State<TermsAndConditions> {
           SizedBox(height: 10.h),
           Text(
             AppLocalizations.of(context)!.youagreetoindemnify,
-            style: CustomTextStyles.lblSecondryText(context),
+            style: lblSecondryText(context),
           ),
           SizedBox(height: 20.h),
           Text(
@@ -291,21 +297,21 @@ class TermsState extends State<TermsAndConditions> {
           SizedBox(height: 5.h),
           Text(
             AppLocalizations.of(context)!.youmayterminateyour,
-            style: CustomTextStyles.lblSecondryText(context),
+            style: lblSecondryText(context),
           ),
           SizedBox(height: 15.h),
           Text(AppLocalizations.of(context)!.bypolzet, style: labelStyle),
           SizedBox(height: 5.h),
           Text(
             AppLocalizations.of(context)!.wemaysuspendor,
-            style: CustomTextStyles.lblSecondryText(context),
+            style: lblSecondryText(context),
           ),
           SizedBox(height: 15.h),
           Text(AppLocalizations.of(context)!.survival, style: labelStyle),
           SizedBox(height: 5.h),
           Text(
             AppLocalizations.of(context)!.provisionsofthese,
-            style: CustomTextStyles.lblSecondryText(context),
+            style: lblSecondryText(context),
           ),
           SizedBox(height: 20.h),
           Text(AppLocalizations.of(context)!.miscellaneous, style: titleStyle),
@@ -317,42 +323,42 @@ class TermsState extends State<TermsAndConditions> {
           SizedBox(height: 5.h),
           Text(
             AppLocalizations.of(context)!.thesetermstogether,
-            style: CustomTextStyles.lblSecondryText(context),
+            style: lblSecondryText(context),
           ),
           SizedBox(height: 10.h),
           Text(AppLocalizations.of(context)!.nowaiver, style: labelStyle),
           SizedBox(height: 5.h),
           Text(
             AppLocalizations.of(context)!.ourfailureto,
-            style: CustomTextStyles.lblSecondryText(context),
+            style: lblSecondryText(context),
           ),
           SizedBox(height: 15.h),
           Text(AppLocalizations.of(context)!.severability, style: labelStyle),
           SizedBox(height: 5.h),
           Text(
             AppLocalizations.of(context)!.ifanyprovisionofthese,
-            style: CustomTextStyles.lblSecondryText(context),
+            style: lblSecondryText(context),
           ),
           SizedBox(height: 15.h),
           Text(AppLocalizations.of(context)!.assignment, style: labelStyle),
           SizedBox(height: 5.h),
           Text(
             AppLocalizations.of(context)!.youmaynotassign,
-            style: CustomTextStyles.lblSecondryText(context),
+            style: lblSecondryText(context),
           ),
           SizedBox(height: 15.h),
           Text(AppLocalizations.of(context)!.forcemajeure, style: labelStyle),
           SizedBox(height: 5.h),
           Text(
             AppLocalizations.of(context)!.polzetwillnotbeliable,
-            style: CustomTextStyles.lblSecondryText(context),
+            style: lblSecondryText(context),
           ),
           SizedBox(height: 20.h),
           Text(AppLocalizations.of(context)!.contactus, style: titleStyle),
           SizedBox(height: 10.h),
           Text(
             AppLocalizations.of(context)!.ifyouhavequestionsabout,
-            style: CustomTextStyles.lblSecondryText(context),
+            style: lblSecondryText(context),
           ),
           SizedBox(height: 15.h),
           Row(
@@ -374,7 +380,7 @@ class TermsState extends State<TermsAndConditions> {
           SizedBox(height: 15.h),
           Text(
             AppLocalizations.of(context)!.byusingpolzetyouacknowledge,
-            style: CustomTextStyles.lblSecondryText(context),
+            style: lblSecondryText(context),
           ),
         ],
       ),

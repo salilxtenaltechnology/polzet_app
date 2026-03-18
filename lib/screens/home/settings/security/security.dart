@@ -85,11 +85,11 @@ class SecurityState extends State<Security> with UtilityMixin {
       // final pinSecurity = await PinService.isPinSecurityEnabled();
       final fingerprint = await BiometricService.isFingerprintEnabled();
       final biometricEnabled = await BiometricService.isBiometricEnabled();
+      final pinSecurity = await PinService.isPinSecurityEnabled(); // ✅ Add this
 
       setState(() {
         _isSecurity = biometricEnabled;
-        // _isPinSecurity = biometricEnabled ? pinSecurity : false;
-
+        _isPinSecurity = biometricEnabled ? pinSecurity : false;
         _isFingerprint = biometricEnabled ? fingerprint : false;
       });
     } catch (e) {
@@ -138,23 +138,25 @@ class SecurityState extends State<Security> with UtilityMixin {
   }
 
   Future<void> _handlePinSecurityToggle(bool value) async {
-    // Only allow if main security is enabled
     if (!_isSecurity) {
       _showErrorSnackBar('Please enable Security first');
       return;
     }
 
     if (value) {
-      // Check if PIN is already set
-      final isPinSet = await PinService.isPinSet();
+      // ✅ Disable fingerprint when enabling PIN
+      if (_isFingerprint) {
+        setState(() => _isFingerprint = false);
+        await BiometricService.saveFingerprintEnabled(false);
+      }
 
+      final isPinSet = await PinService.isPinSet();
       if (isPinSet) {
-        // PIN already exists, just enable it
         setState(() => _isPinSecurity = true);
         await PinService.setPinSecurityEnabled(true);
-        _showSuccessSnackBar('PIN security enabled');
+
+        showToast(message: 'PIN security enabled');
       } else {
-        // Navigate to Set PIN screen to create new PIN
         final result = await Navigator.push(
           context,
           MaterialPageRoute(
@@ -162,19 +164,15 @@ class SecurityState extends State<Security> with UtilityMixin {
           ),
         );
 
-        // Check if PIN was successfully set
         if (result == true) {
           setState(() => _isPinSecurity = true);
           await PinService.setPinSecurityEnabled(true);
           _saveSettings();
-          _showSuccessSnackBar('PIN security enabled successfully');
         } else {
-          // User cancelled or PIN setting failed
           setState(() => _isPinSecurity = false);
         }
       }
     } else {
-      // Disable PIN security
       final shouldDisable = await showDisablePINDiolog(
         context,
         AppLocalizations.of(context)!.disablepinsecurity,
@@ -185,7 +183,7 @@ class SecurityState extends State<Security> with UtilityMixin {
         setState(() => _isPinSecurity = false);
         await PinService.setPinSecurityEnabled(false);
         _saveSettings();
-        _showSuccessSnackBar('PIN security disabled');
+        showToast(message: 'PIN security disabled');
       }
     }
   }
@@ -193,7 +191,6 @@ class SecurityState extends State<Security> with UtilityMixin {
   Future<void> _handleFaceLockToggle(bool value) async {}
 
   Future<void> _handleFingerprintToggle(bool value) async {
-    // Only allow if main security is enabled
     if (!_isSecurity) {
       _showErrorSnackBar('Please enable Security first');
       return;
@@ -207,18 +204,25 @@ class SecurityState extends State<Security> with UtilityMixin {
     }
 
     if (value) {
+      // ✅ Disable PIN when enabling Fingerprint
+      if (_isPinSecurity) {
+        setState(() => _isPinSecurity = false);
+        await PinService.setPinSecurityEnabled(false);
+        await PinService.clearSavedPin();
+      }
+
       final isAuthenticated = await _authenticateUser(
         'Enable Fingerprint Security',
       );
-      _saveSettings();
       if (!isAuthenticated) return;
-    }
 
-    setState(() => _isFingerprint = value);
-    await BiometricService.saveFingerprintEnabled(value);
-
-    if (value) {
-      _showSuccessSnackBar('Fingerprint Security enabled successfully');
+      setState(() => _isFingerprint = true);
+      await BiometricService.saveFingerprintEnabled(true);
+      _saveSettings();
+      showToast(message: 'Fingerprint Security enabled successfully');
+    } else {
+      setState(() => _isFingerprint = false);
+      await BiometricService.saveFingerprintEnabled(false);
       _saveSettings();
     }
   }
@@ -252,16 +256,6 @@ class SecurityState extends State<Security> with UtilityMixin {
     );
   }
 
-  void _showSuccessSnackBar(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.green,
-        duration: const Duration(seconds: 2),
-      ),
-    );
-  }
-
   /// Show option to change existing PIN
   void _showChangePinOption() async {
     final shouldChange = await showDisablePINDiolog(
@@ -281,7 +275,7 @@ class SecurityState extends State<Security> with UtilityMixin {
       );
 
       if (result == true) {
-        _showSuccessSnackBar('PIN changed successfully');
+        showToast(message: 'PIN changed successfully');
       }
     }
   }
@@ -300,7 +294,7 @@ class SecurityState extends State<Security> with UtilityMixin {
       // await PinService.setPinSecurityEnabled(_isPinSecurity);
       await BiometricService.saveFingerprintEnabled(_isFingerprint);
 
-      showToast(message: 'Security settings saved successfully');
+      //showToast(message: 'Security settings saved successfully');
       // Navigate back or to next screen
     } catch (e) {
       _showErrorSnackBar('Error saving settings: $e');
@@ -476,7 +470,7 @@ class SecurityState extends State<Security> with UtilityMixin {
                   AppLocalizations.of(context)!.pinsecurity,
                   _isPinSecurity,
                   _handlePinSecurityToggle,
-                  isEnabled: _isSecurity,
+                  isEnabled: _isSecurity && !_isFingerprint,
                 ),
                 SizedBox(height: 7.h),
                 if (_isSecurity && _isPinSecurity) ...[
@@ -538,7 +532,8 @@ class SecurityState extends State<Security> with UtilityMixin {
                   AppLocalizations.of(context)!.fingerprintsecurity,
                   _isFingerprint,
                   _handleFingerprintToggle,
-                  isEnabled: _isSecurity && _isBiometricAvailable,
+                  isEnabled:
+                      _isSecurity && _isBiometricAvailable && !_isPinSecurity,
                 ),
 
                 // Security disabled info

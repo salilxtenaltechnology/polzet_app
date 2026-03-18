@@ -321,6 +321,21 @@ class SettingsState extends State<Settings>
             _contentModel(
               Column(
                 children: [
+                   _lalbelModel(
+                    Icons.reviews_rounded,
+                    'Feedback',
+                    onTap: () {
+                      navigationPush(context, const FeedbackScreen());
+                    }
+                  ),
+                  SizedBox(height: 5.h),
+                  Divider(
+                    thickness: 1,
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.onBackground.withOpacity(0.1),
+                  ),
+                  SizedBox(height: 5.h),
                   _lalbelModel(
                     FeatherIcons.delete,
                     'Delete Account',

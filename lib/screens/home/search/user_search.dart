@@ -1,4 +1,4 @@
-// ignore_for_file: deprecated_member_use, unused_element, unused_field
+// ignore_for_file: prefer_final_fields, deprecated_member_use, unused_element, unused_field
 part of 'user_search_import.dart';
 
 class UserSearch extends StatefulWidget {
@@ -57,7 +57,9 @@ class UserSearchState extends State<UserSearch>
   bool _showSearchHistory = false;
 
   List<SearchUserModel> _users = [];
-  List<SearchHistoryItem> _searchHistory = []; // Changed to SearchHistoryItem
+  List<SearchHistoryItem> _searchHistory = [];
+  EnhancedTrendingHashtagsModel? _hashtagsData;
+  bool _isHashtagsLoading = false;
 
   final Set<int> _chasedUserIds = {};
 
@@ -69,6 +71,21 @@ class UserSearchState extends State<UserSearch>
     _tabController = TabController(length: 5, vsync: this);
     _searchController.addListener(_onSearchChanged);
     _loadSearchHistory();
+    _fetchHashtags();
+  }
+
+  Future<void> _fetchHashtags() async {
+    setState(() => _isHashtagsLoading = true);
+    try {
+      final data = await _apiService.fetchEnhancedTrendingHashtags();
+      if (mounted) setState(() => _hashtagsData = data);
+    } catch (e) {
+      if (mounted) {
+        showToast(message: e.toString().replaceFirst('Exception: ', ''));
+      }
+    } finally {
+      if (mounted) setState(() => _isHashtagsLoading = false);
+    }
   }
 
   void _loadSearchHistory() async {
@@ -907,12 +924,152 @@ class UserSearchState extends State<UserSearch>
                 ),
                 const Center(child: Text('Accounts')),
                 const Center(child: Text('Photos')),
-                const Center(child: Text('Tags')),
+                _isHashtagsLoading
+                    ? const Center(child: CircularProgressIndicator())
+                    : _hashtagsData == null
+                    ? Center(
+                        child: Text(
+                          'Failed to load tags',
+                          style: TextStyle(
+                            fontSize: 12.sp,
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onBackground.withOpacity(0.5),
+                          ),
+                        ),
+                      )
+                    : SingleChildScrollView(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 10.w,
+                          vertical: 8.h,
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Trending last 24h
+                            if (_hashtagsData!.trendingLast24h.isNotEmpty) ...[
+                              Text(
+                                'Trending Today',
+                                style: TextStyle(
+                                  fontSize: 12.5.sp,
+                                  fontWeight: FontWeight.w600,
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onBackground,
+                                ),
+                              ),
+                              SizedBox(height: 8.h),
+                              ..._hashtagsData!.trendingLast24h.map(
+                                (tag) => _buildHashtagItem(tag),
+                              ),
+                              SizedBox(height: 12.h),
+                            ],
+
+                            // All time popular
+                            if (_hashtagsData!.allTimePopular.isNotEmpty) ...[
+                              Text(
+                                'All Time Popular',
+                                style: TextStyle(
+                                  fontSize: 11.sp,
+                                  fontWeight: FontWeight.w600,
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onBackground,
+                                ),
+                              ),
+                              SizedBox(height: 8.h),
+                              ..._hashtagsData!.allTimePopular.map(
+                                (tag) => _buildHashtagItem(tag),
+                              ),
+                            ],
+
+                            // Both empty
+                            if (_hashtagsData!.trendingLast24h.isEmpty &&
+                                _hashtagsData!.allTimePopular.isEmpty)
+                              Center(
+                                child: Padding(
+                                  padding: EdgeInsets.only(top: 50.h),
+                                  child: Text(
+                                    'No tags available',
+                                    style: TextStyle(
+                                      fontSize: 12.sp,
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onBackground
+                                          .withOpacity(0.5),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
                 const Center(child: Text('Places')),
               ],
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildHashtagItem(HashtagModel tag) {
+    return Padding(
+      padding: EdgeInsets.only(bottom: 8.h),
+      child: CustomCard(
+        widget: Row(
+          children: [
+            Container(
+              height: 32.h,
+              width: 32.w,
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.primaryContainer,
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: Colors.grey.withOpacity(0.5),
+                  width: 1.w,
+                ),
+              ),
+              child: Center(
+                child: Text(
+                  '#',
+                  style: TextStyle(
+                    fontSize: 15.sp,
+                    fontWeight: FontWeight.w700,
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.primary.withOpacity(0.7),
+                  ),
+                ),
+              ),
+            ),
+            SizedBox(width: 8.w),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    tag.name,
+                    style: TextStyle(
+                      fontSize: 11.sp,
+                      fontWeight: FontWeight.w500,
+                      color: Theme.of(context).colorScheme.onBackground,
+                    ),
+                  ),
+                  Text(
+                    '${tag.count} ${tag.count == 1 ? 'post' : 'posts'}',
+                    style: TextStyle(
+                      fontSize: 10.sp,
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.onBackground.withOpacity(0.45),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -24,6 +24,5 @@ import 'notifications/notification.dart';
 import 'poll/poll_pop.dart';
 import 'profile/posts/user_profile_import.dart';
 import 'search/user_search_import.dart';
-import 'settings/settings_import.dart';
 
 part 'home_screen.dart';

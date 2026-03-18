@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:feather_icons/feather_icons.dart';
+import 'package:polzet_app/widgets/base64/image_convert.dart';
 import '../../../models/comment/comment.dart';
 import '../../api/services/comment/comment_service.dart';
 
@@ -207,14 +208,14 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
           children: [
             Icon(
               Icons.chat_bubble_outline,
-              size: 50.sp,
+              size: 40.sp,
               color: Theme.of(context).colorScheme.onSurface.withOpacity(0.4),
             ),
             SizedBox(height: 10.h),
             Text(
               'No comments yet',
               style: TextStyle(
-                fontSize: 14.sp,
+                fontSize: 12.sp,
                 color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
                 fontWeight: FontWeight.w500,
               ),
@@ -223,7 +224,7 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
             Text(
               'Be the first to comment',
               style: TextStyle(
-                fontSize: 12.sp,
+                fontSize: 11.sp,
                 color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5),
               ),
             ),
@@ -248,6 +249,8 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
         widget.currentUsername != null &&
         comment.user == widget.currentUsername;
 
+    final profileBytes = getProfileImage(comment.profileImage);
+
     return Container(
       margin: EdgeInsets.only(bottom: 10.h),
       child: Row(
@@ -257,15 +260,26 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
             radius: 13.5.r,
             backgroundColor: Theme.of(
               context,
-            ).colorScheme.primary.withOpacity(0.15),
-            child: Text(
-              comment.user.isNotEmpty ? comment.user[0].toUpperCase() : 'U',
-              style: TextStyle(
-                fontSize: 13.sp,
-                fontWeight: FontWeight.w600,
-                color: Theme.of(context).colorScheme.primary,
-              ),
-            ),
+            ).colorScheme.primary.withOpacity(0.1),
+            backgroundImage:
+                comment.profileImage.isNotEmpty && profileBytes != null
+                ? MemoryImage(profileBytes)
+                : null,
+            onBackgroundImageError: comment.profileImage.isNotEmpty
+                ? (_, __) {}
+                : null,
+            child: comment.profileImage.isEmpty
+                ? Text(
+                    comment.user.isNotEmpty
+                        ? comment.user[0].toUpperCase()
+                        : 'U',
+                    style: TextStyle(
+                      fontSize: 13.sp,
+                      fontWeight: FontWeight.w600,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                  )
+                : null,
           ),
           SizedBox(width: 5.w),
           Expanded(
@@ -282,10 +296,8 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
                           Text(
                             comment.user,
                             style: TextStyle(
-                              fontSize: 11.sp,
-                              color: Theme.of(
-                                context,
-                              ).colorScheme.onBackground.withOpacity(0.8),
+                              fontSize: 10.2.sp,
+                              color: Theme.of(context).colorScheme.onBackground,
                               fontWeight: FontWeight.w600,
                             ),
                           ),
@@ -305,7 +317,7 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
                           Text(
                             _formatTime(comment.createdAt),
                             style: TextStyle(
-                              fontSize: 10.sp,
+                              fontSize: 9.7.sp,
                               color: Theme.of(
                                 context,
                               ).colorScheme.onSurface.withOpacity(0.7),
@@ -350,7 +362,7 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
                           : Text(
                               comment.text,
                               style: TextStyle(
-                                fontSize: 11.sp,
+                                fontSize: 9.9.sp,
                                 color: Theme.of(
                                   context,
                                 ).colorScheme.onBackground,
@@ -440,7 +452,7 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
                 decoration: InputDecoration(
                   hintText: 'Add a comment...',
                   hintStyle: TextStyle(
-                    fontSize: 13.sp,
+                    fontSize: 11.5.sp,
                     color: Theme.of(
                       context,
                     ).colorScheme.onSurface.withOpacity(0.6),

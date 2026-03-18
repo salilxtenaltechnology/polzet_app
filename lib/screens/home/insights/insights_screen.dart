@@ -10,6 +10,7 @@ import '../../../../core/constants/app_images.dart';
 import '../../../../l10n/generated/app_localizations.dart';
 import '../../../api/services/api_service.dart';
 import '../../../widgets/custom_card.dart';
+import '../../../widgets/diolog/custom_diolog.dart';
 
 class InsightsScreen extends StatefulWidget {
   const InsightsScreen({super.key});
@@ -313,7 +314,11 @@ class _InsightsScreenState extends State<InsightsScreen> {
                         ),
                       ),
                       GestureDetector(
-                        onTap: () => setState(() {}),
+                        onTap: () {
+                          showSwitchToBusinessDiolog(context,(){
+                            Navigator.pop(context);
+                          });
+                        },
                         child: Container(
                           width: double.infinity,
                           padding: EdgeInsets.symmetric(vertical: 8.h),

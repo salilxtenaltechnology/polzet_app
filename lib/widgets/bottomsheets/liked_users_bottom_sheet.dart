@@ -1,10 +1,14 @@
 // ignore_for_file: deprecated_member_use
+import 'package:feather_icons/feather_icons.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:polzet_app/api/services/api_service.dart';
 
+import '../../core/constants/app_colors.dart';
+import '../../l10n/generated/app_localizations.dart';
 import '../../models/like/like_uers_model.dart';
 import '../../widgets/base64/image_convert.dart';
+import '../custom_text_styles.dart';
 
 class LikedUsersBottomSheet extends StatefulWidget {
   final int postId;
@@ -17,13 +21,22 @@ class LikedUsersBottomSheet extends StatefulWidget {
 
 class _LikedUsersBottomSheetState extends State<LikedUsersBottomSheet> {
   late List<LikeUser> _likedUsers;
+  late List<LikeUser> _filteredUsers;
   bool _isLoading = true;
+  final TextEditingController _searchController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
     _likedUsers = [];
+    _filteredUsers = [];
     _fetchLikedUsers();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
   // Fetch liked users from API
@@ -34,6 +47,7 @@ class _LikedUsersBottomSheetState extends State<LikedUsersBottomSheet> {
       if (mounted) {
         setState(() {
           _likedUsers = users;
+          _filteredUsers = users;
           _isLoading = false;
         });
       }
@@ -41,9 +55,9 @@ class _LikedUsersBottomSheetState extends State<LikedUsersBottomSheet> {
       if (mounted) {
         setState(() {
           _likedUsers = [];
+          _filteredUsers = [];
           _isLoading = false;
         });
-        // Show error message
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
@@ -54,6 +68,22 @@ class _LikedUsersBottomSheetState extends State<LikedUsersBottomSheet> {
         );
       }
     }
+  }
+
+  // Filter users based on search query
+  void _filterUsers(String query) {
+    setState(() {
+      if (query.trim().isEmpty) {
+        _filteredUsers = _likedUsers;
+      } else {
+        _filteredUsers = _likedUsers
+            .where(
+              (user) =>
+                  user.username.toLowerCase().contains(query.toLowerCase()),
+            )
+            .toList();
+      }
+    });
   }
 
   @override
@@ -69,6 +99,7 @@ class _LikedUsersBottomSheetState extends State<LikedUsersBottomSheet> {
       ),
       child: Column(
         children: [
+          // Header
           Container(
             padding: EdgeInsets.symmetric(vertical: 10.h),
             margin: EdgeInsets.symmetric(horizontal: 10.w),
@@ -92,14 +123,76 @@ class _LikedUsersBottomSheetState extends State<LikedUsersBottomSheet> {
               ),
             ),
           ),
+
+          // Search bar
+          Container(
+            height: 33.h,
+            width: double.infinity,
+            margin: EdgeInsets.symmetric(vertical: 7.h, horizontal: 10.w),
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.primaryContainer,
+              borderRadius: BorderRadius.circular(12.r),
+              boxShadow: const [
+                BoxShadow(
+                  color: Color(0x1C000000),
+                  blurRadius: 8,
+                  spreadRadius: 1,
+                ),
+              ],
+            ),
+            child: TextField(
+              controller: _searchController,
+              decoration: InputDecoration(
+                contentPadding: EdgeInsets.only(
+                  right: 12.w,
+                  left: 12.w,
+                  top: 10.h,
+                ),
+                hintText: AppLocalizations.of(context)!.searchusers,
+                hintStyle: CustomTextStyles.lblPrimaryHintText(context),
+                border: InputBorder.none,
+                suffixIcon: Icon(
+                  FeatherIcons.search,
+                  size: 17.spMax,
+                  color: Theme.of(context).colorScheme.onBackground,
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderSide: BorderSide(
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.onBackground.withOpacity(0.1),
+                  ),
+                  borderRadius: BorderRadius.circular(13.r),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderSide: const BorderSide(
+                    color: AppColors.primaryColor,
+                    width: 0.7,
+                  ),
+                  borderRadius: BorderRadius.circular(13.r),
+                ),
+              ),
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onBackground,
+                fontSize: 13.sp,
+                fontWeight: FontWeight.w400,
+              ),
+              onChanged: (value) {
+                _filterUsers(value);
+              },
+            ),
+          ),
+
           // List of users who liked
           Expanded(
             child: _isLoading
                 ? const Center(child: CircularProgressIndicator())
-                : _likedUsers.isEmpty
+                : _filteredUsers.isEmpty
                 ? Center(
                     child: Text(
-                      'No likes yet',
+                      _searchController.text.trim().isEmpty
+                          ? 'No likes yet'
+                          : 'No users found',
                       style: TextStyle(
                         fontSize: 12.sp,
                         color: Theme.of(
@@ -110,13 +203,13 @@ class _LikedUsersBottomSheetState extends State<LikedUsersBottomSheet> {
                   )
                 : ListView.builder(
                     padding: EdgeInsets.symmetric(vertical: 4.h),
-                    itemCount: _likedUsers.length,
+                    itemCount: _filteredUsers.length,
                     itemBuilder: (context, index) {
-                      final user = _likedUsers[index];
+                      final user = _filteredUsers[index];
                       return Padding(
                         padding: EdgeInsetsGeometry.symmetric(
                           horizontal: 10.w,
-                          vertical: 3.h,
+                          vertical: 5.h,
                         ),
                         child: Row(
                           children: [
@@ -129,13 +222,16 @@ class _LikedUsersBottomSheetState extends State<LikedUsersBottomSheet> {
                                       getProfileImage(user.profileImage)!,
                                     )
                                   : null,
+                              backgroundColor: Theme.of(
+                                context,
+                              ).colorScheme.primary.withOpacity(0.1),
                               child:
                                   user.profileImage == null ||
                                       user.profileImage!.isEmpty
                                   ? Text(
                                       user.firstLetter,
                                       style: TextStyle(
-                                        fontSize: 16.sp,
+                                        fontSize: 13.sp,
                                         fontWeight: FontWeight.w600,
                                         color: Theme.of(
                                           context,

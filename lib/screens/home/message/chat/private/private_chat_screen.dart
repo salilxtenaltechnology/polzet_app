@@ -44,7 +44,7 @@ class _PrivateChatScreenState extends State<PrivateChatScreen>
   @override
   void initState() {
     super.initState();
-     _isUserBlock = widget.isUserBlock;
+    _isUserBlock = widget.isUserBlock;
     final provider = context.read<PrivateChatProvider>();
     final userProvider = context.read<UserProvider>();
     _messagesStream = provider.messagesStream;
@@ -66,6 +66,10 @@ class _PrivateChatScreenState extends State<PrivateChatScreen>
           provider.fetchMoreHistory();
         }
       });
+
+      if (widget.userId != null) {
+        provider.setMemberUserId(widget.userId!);
+      }
     });
   }
 
@@ -79,6 +83,7 @@ class _PrivateChatScreenState extends State<PrivateChatScreen>
   void _sendMessage() {
     final text = _messageController.text;
     if (text.trim().isEmpty) return;
+    context.read<PrivateChatProvider>().stopTyping();
     context.read<PrivateChatProvider>().sendMessage(text);
     _messageController.clear();
   }
@@ -244,30 +249,61 @@ class _PrivateChatScreenState extends State<PrivateChatScreen>
                       fontWeight: FontWeight.w600,
                     ),
                   ),
-                  Row(
-                    children: [
-                      Container(
-                        width: 6.w,
-                        height: 6.w,
-                        decoration: BoxDecoration(
-                          color: provider.isConnected
-                              ? Colors.green
-                              : Colors.grey,
-                          shape: BoxShape.circle,
-                        ),
-                      ),
-                      SizedBox(width: 4.w),
-                      Text(
-                        provider.isConnected ? 'Online' : 'Offline',
-                        style: TextStyle(
-                          color: provider.isConnected
-                              ? Colors.green
-                              : Colors.grey,
-                          fontSize: 9.5.sp,
-                          fontWeight: FontWeight.w300,
-                        ),
-                      ),
-                    ],
+                  Consumer<PrivateChatProvider>(
+                    builder: (_, provider, __) {
+                      return AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 250),
+                        child: provider.isMemberTyping
+                            ? Row(
+                                key: const ValueKey('typing'),
+                                children: [
+                                  Text(
+                                    'typing...',
+                                    style: TextStyle(
+                                      fontSize: 9.5.sp,
+                                      color: const Color(0xFF8593A8),
+                                      fontStyle: FontStyle.italic,
+                                    ),
+                                  ),
+                                  SizedBox(width: 4.w),
+                                  const SizedBox(
+                                    width: 16,
+                                    child: LinearProgressIndicator(
+                                      minHeight: 2,
+                                      backgroundColor: Colors.transparent,
+                                      color: Color(0xFF8593A8),
+                                    ),
+                                  ),
+                                ],
+                              )
+                            : Row(
+                                key: const ValueKey('status'),
+                                children: [
+                                  Container(
+                                    width: 6.w,
+                                    height: 6.w,
+                                    decoration: BoxDecoration(
+                                      color: provider.isConnected
+                                          ? Colors.green
+                                          : Colors.grey,
+                                      shape: BoxShape.circle,
+                                    ),
+                                  ),
+                                  SizedBox(width: 4.w),
+                                  Text(
+                                    provider.isConnected ? 'Online' : 'Offline',
+                                    style: TextStyle(
+                                      color: provider.isConnected
+                                          ? Colors.green
+                                          : Colors.grey,
+                                      fontSize: 9.5.sp,
+                                      fontWeight: FontWeight.w300,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                      );
+                    },
                   ),
                 ],
               ),
@@ -358,6 +394,8 @@ class _PrivateChatScreenState extends State<PrivateChatScreen>
                 Expanded(
                   child: TextField(
                     controller: _messageController,
+                    onChanged: (_) =>
+                        context.read<PrivateChatProvider>().onUserTyping(),
                     decoration: InputDecoration(
                       border: InputBorder.none,
                       hintText: 'Type here...',

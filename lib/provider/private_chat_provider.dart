@@ -18,6 +18,13 @@ class PrivateChatProvider extends ChangeNotifier {
   String? get profileUrl => _profileUrl;
   int? get chatId => _chatId;
 
+  bool isMemberTyping = false;
+  int? _memberUserId;
+  Timer? _typingTimer;
+
+  Timer? _pollingTimer;
+
+
   // ── Stream for SILENT real-time message updates ────────────────────────────
   // Only this stream triggers StreamBuilder rebuilds — notifyListeners() is
   // reserved ONLY for non-message state: connection status, loading flags, errors.
@@ -73,8 +80,6 @@ class PrivateChatProvider extends ChangeNotifier {
   String? _nextPageUrl;
   bool get hasMoreHistory => _nextPageUrl != null;
 
-  late bool _isUserBlock;
-
 
   // ── WebSocket state ────────────────────────────────────────────────────────
   static const String _wsBaseUrl = 'wss://testbackend.polzet.in';
@@ -108,7 +113,6 @@ class PrivateChatProvider extends ChangeNotifier {
   // Block user settings can be added here when that feature is implemented
   bool _isBlocking = false;
   bool get isBlocking => _isBlocking;
-
 
   // ── Emit helpers ───────────────────────────────────────────────────────────
 
@@ -155,9 +159,56 @@ class PrivateChatProvider extends ChangeNotifier {
     } else {
       debugPrint('❌ PrivateChatProvider: No access token for WS');
     }
+    _startPolling();
   }
 
   // ── REST: fetch initial message history ────────────────────────────────────
+
+  void _startPolling() {
+  _pollingTimer?.cancel();
+  _pollingTimer = Timer.periodic(const Duration(seconds: 10), (_) async {
+    debugPrint('🔄 Polling: fetching latest messages...');
+    await _fetchLatestMessages();
+  });
+}
+
+
+Future<void> _fetchLatestMessages() async {
+  if (_chatId == null) return;
+
+  try {
+    final response = await ApiService().getMessageList(chatId: _chatId!);
+
+    final fetched = response.results
+        .map(
+          (item) => ChatMessage(
+            text: item.message,
+            created_at: item.created_at,
+            isSentByMe: _currentUsername != null
+                ? item.isSentBy(_currentUsername)
+                : false,
+          ),
+        )
+        .toList()
+        .reversed
+        .toList();
+
+    // Only update if there are new messages
+    if (fetched.length > _messages.where((m) => !m.isPending).length) {
+      // Preserve pending (optimistic) messages
+      final pendingMessages = _messages.where((m) => m.isPending).toList();
+
+      _messages.clear();
+      _messages.addAll(fetched);
+      _messages.addAll(pendingMessages);
+
+      debugPrint('🔄 Polling: ${fetched.length} messages synced');
+      _emitMessages();
+    }
+  } catch (e) {
+    debugPrint('❌ Polling fetch failed: $e');
+  }
+}
   Future<void> fetchMessageHistory() async {
     if (_chatId == null) return;
     if (_isLoadingHistory) return;
@@ -303,10 +354,41 @@ class PrivateChatProvider extends ChangeNotifier {
   }
 
   // ── Incoming WS message ────────────────────────────────────────────────────
+
+  void setMemberUserId(int userId) {
+    _memberUserId = userId;
+  }
+
   void _onMessageReceived(dynamic raw) {
+    debugPrint('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    debugPrint('📨 RAW WS RESPONSE: $raw');
     try {
       final data = jsonDecode(raw as String) as Map<String, dynamic>;
-      debugPrint('📨 WS message received: $data');
+
+      // ── Presence: online/offline ──────────────────────────────────────────
+      if (data['action'] == 'status_change') {
+        final userId = data['user_id'];
+        if (userId == _memberUserId) {
+          _isConnected = data['status'] == 'online';
+          notifyListeners();
+        }
+        return;
+      }
+
+      // ── Presence: typing indicator ────────────────────────────────────────
+      if (data['action'] == 'typing') {
+        final userId = data['user_id'];
+        if (userId == _memberUserId) {
+          isMemberTyping = data['is_typing'] == true;
+          notifyListeners();
+        }
+        return;
+      }
+
+      // ── existing message handling below (unchanged) ───────────────────────
+      const encoder = JsonEncoder.withIndent('  ');
+      debugPrint('📦 PARSED WS DATA:\n${encoder.convert(data)}');
+      debugPrint('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
 
       final String text =
           data['message']?.toString() ?? data['text']?.toString() ?? '';
@@ -359,6 +441,26 @@ class PrivateChatProvider extends ChangeNotifier {
     } catch (e) {
       debugPrint('❌ Error parsing WS message: $e');
     }
+  }
+
+  void sendTyping(bool isTyping) {
+    if (_channel == null || !_isConnected) return;
+    _channel!.sink.add(jsonEncode({'typing': isTyping}));
+  }
+
+  /// Call on each keystroke — auto-sends false after 2s of no typing
+  void onUserTyping() {
+    sendTyping(true);
+    _typingTimer?.cancel();
+    _typingTimer = Timer(const Duration(seconds: 2), () {
+      sendTyping(false);
+    });
+  }
+
+  /// Call when message is sent
+  void stopTyping() {
+    _typingTimer?.cancel();
+    sendTyping(false);
   }
 
   void _handleDisconnection() {
@@ -522,6 +624,8 @@ class PrivateChatProvider extends ChangeNotifier {
     isProtectedChat = false;
     isHideChat = false;
     isHideChatHistory = false;
+    _typingTimer?.cancel();
+     _pollingTimer?.cancel();
 
     notifyListeners();
   }
@@ -532,6 +636,8 @@ class PrivateChatProvider extends ChangeNotifier {
     _reconnectTimer?.cancel();
     _cleanupConnection();
     _messagesStreamController.close();
+    _typingTimer?.cancel();
+     _pollingTimer?.cancel(); 
     super.dispose();
   }
 }

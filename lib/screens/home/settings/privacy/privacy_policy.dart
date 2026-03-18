@@ -23,14 +23,20 @@ class PrivacyState extends State<PrivacyPolicy> {
   // Define the text styles for the title
   static TextStyle titleStyle = TextStyle(
     color: AppColors.primaryColor,
-    fontSize: 12.5.sp,
+    fontSize: 11.7.sp,
     fontWeight: FontWeight.w600,
+  );
+
+   static TextStyle lblSecondryText(BuildContext context) => TextStyle(
+    color: Theme.of(context).colorScheme.onBackground,
+    fontSize: 11.5.sp,
+    fontWeight: FontWeight.w400,
   );
 
   // Define the text styles for the labletext
   static TextStyle labelStyle = TextStyle(
     color: const Color(0XFF545454),
-    fontSize: 11.4.sp,
+    fontSize: 11.2.sp,
     fontWeight: FontWeight.w600,
   );
 
@@ -63,7 +69,7 @@ class PrivacyState extends State<PrivacyPolicy> {
           SizedBox(height: 15.h),
           Text(
             AppLocalizations.of(context)!.privacypolicydescriptions,
-            style: CustomTextStyles.lblSecondryText(context),
+            style: lblSecondryText(context),
           ),
           SizedBox(height: 20.h),
           Text(
@@ -73,7 +79,7 @@ class PrivacyState extends State<PrivacyPolicy> {
           SizedBox(height: 5.h),
           Text(
             AppLocalizations.of(context)!.wecollectiinformation,
-            style: CustomTextStyles.lblSecondryText(context),
+            style: lblSecondryText(context),
           ),
           SizedBox(height: 15.h),
           Text(
@@ -88,21 +94,21 @@ class PrivacyState extends State<PrivacyPolicy> {
           SizedBox(height: 5.h),
           Text(
             AppLocalizations.of(context)!.whenyoucreateanaccount,
-            style: CustomTextStyles.lblSecondryText(context),
+            style: lblSecondryText(context),
           ),
           SizedBox(height: 15.h),
           Text(AppLocalizations.of(context)!.usecontent, style: labelStyle),
           SizedBox(height: 5.h),
           Text(
             AppLocalizations.of(context)!.wecollectimages,
-            style: CustomTextStyles.lblSecondryText(context),
+            style: lblSecondryText(context),
           ),
           SizedBox(height: 15.h),
           Text(AppLocalizations.of(context)!.communications, style: labelStyle),
           SizedBox(height: 5.h),
           Text(
             AppLocalizations.of(context)!.wecollectyourcontactdetails,
-            style: CustomTextStyles.lblSecondryText(context),
+            style: lblSecondryText(context),
           ),
           SizedBox(height: 15.h),
           Text(
@@ -112,7 +118,7 @@ class PrivacyState extends State<PrivacyPolicy> {
           SizedBox(height: 5.h),
           Text(
             AppLocalizations.of(context)!.wemaycollectinformationyourovide,
-            style: CustomTextStyles.lblSecondryText(context),
+            style: lblSecondryText(context),
           ),
           SizedBox(height: 20.h),
           Text(
@@ -126,7 +132,7 @@ class PrivacyState extends State<PrivacyPolicy> {
             AppLocalizations.of(
               context,
             )!.wecollectinformationaboutyourinteractions,
-            style: CustomTextStyles.lblSecondryText(context),
+            style: lblSecondryText(context),
           ),
           SizedBox(height: 15.h),
           Text(
@@ -136,14 +142,14 @@ class PrivacyState extends State<PrivacyPolicy> {
           SizedBox(height: 5.h),
           Text(
             AppLocalizations.of(context)!.wecollectdetailsaboutyourdevice,
-            style: CustomTextStyles.lblSecondryText(context),
+            style: lblSecondryText(context),
           ),
           SizedBox(height: 15.h),
           Text(AppLocalizations.of(context)!.locationdata, style: labelStyle),
           SizedBox(height: 5.h),
           Text(
             AppLocalizations.of(context)!.withyourconsentwemay,
-            style: CustomTextStyles.lblSecondryText(context),
+            style: lblSecondryText(context),
           ),
           SizedBox(height: 15.h),
           Text(
@@ -153,7 +159,7 @@ class PrivacyState extends State<PrivacyPolicy> {
           SizedBox(height: 5.h),
           Text(
             AppLocalizations.of(context)!.weusecookieswebbeacons,
-            style: CustomTextStyles.lblSecondryText(context),
+            style: lblSecondryText(context),
           ),
           SizedBox(height: 20.h),
           Text(
@@ -168,7 +174,7 @@ class PrivacyState extends State<PrivacyPolicy> {
           SizedBox(height: 5.h),
           Text(
             AppLocalizations.of(context)!.ifyouconnectyourpolzetaccount,
-            style: CustomTextStyles.lblSecondryText(context),
+            style: lblSecondryText(context),
           ),
           SizedBox(height: 15.h),
           Text(
@@ -178,7 +184,7 @@ class PrivacyState extends State<PrivacyPolicy> {
           SizedBox(height: 5.h),
           Text(
             AppLocalizations.of(context)!.wemayreceiveaggregatedoranonymized,
-            style: CustomTextStyles.lblSecondryText(context),
+            style: lblSecondryText(context),
           ),
           SizedBox(height: 20.h),
           Text(
@@ -188,7 +194,7 @@ class PrivacyState extends State<PrivacyPolicy> {
           SizedBox(height: 5.h),
           Text(
             AppLocalizations.of(context)!.weuseyourinformationto,
-            style: CustomTextStyles.lblSecondryText(context),
+            style: lblSecondryText(context),
           ),
           SizedBox(height: 20.h),
           Text(
@@ -198,7 +204,7 @@ class PrivacyState extends State<PrivacyPolicy> {
           SizedBox(height: 5.h),
           Text(
             AppLocalizations.of(context)!.operatemaintainandenhanc,
-            style: CustomTextStyles.lblSecondryText(context),
+            style: lblSecondryText(context),
           ),
           SizedBox(height: 15.h),
           Text(
@@ -208,7 +214,7 @@ class PrivacyState extends State<PrivacyPolicy> {
           SizedBox(height: 5.h),
           Text(
             AppLocalizations.of(context)!.createandmanageyouraccount,
-            style: CustomTextStyles.lblSecondryText(context),
+            style: lblSecondryText(context),
           ),
           SizedBox(height: 15.h),
           Text(
@@ -218,7 +224,7 @@ class PrivacyState extends State<PrivacyPolicy> {
           SizedBox(height: 5.h),
           Text(
             AppLocalizations.of(context)!.respondtoyourinquiriessend,
-            style: CustomTextStyles.lblSecondryText(context),
+            style: lblSecondryText(context),
           ),
           SizedBox(height: 15.h),
           Text(
@@ -228,14 +234,14 @@ class PrivacyState extends State<PrivacyPolicy> {
           SizedBox(height: 5.h),
           Text(
             AppLocalizations.of(context)!.analysesusagetrends,
-            style: CustomTextStyles.lblSecondryText(context),
+            style: lblSecondryText(context),
           ),
           SizedBox(height: 15.h),
           Text(AppLocalizations.of(context)!.advertising, style: labelStyle),
           SizedBox(height: 5.h),
           Text(
             AppLocalizations.of(context)!.delivertargetedadvertisements,
-            style: CustomTextStyles.lblSecondryText(context),
+            style: lblSecondryText(context),
           ),
           SizedBox(height: 15.h),
           Text(
@@ -245,7 +251,7 @@ class PrivacyState extends State<PrivacyPolicy> {
           SizedBox(height: 5.h),
           Text(
             AppLocalizations.of(context)!.detectandpreventfraud,
-            style: CustomTextStyles.lblSecondryText(context),
+            style: lblSecondryText(context),
           ),
           SizedBox(height: 15.h),
           Text(
@@ -255,7 +261,7 @@ class PrivacyState extends State<PrivacyPolicy> {
           SizedBox(height: 5.h),
           Text(
             AppLocalizations.of(context)!.complywithapplicablelaws,
-            style: CustomTextStyles.lblSecondryText(context),
+            style: lblSecondryText(context),
           ),
           SizedBox(height: 20.h),
           Text(
@@ -265,7 +271,7 @@ class PrivacyState extends State<PrivacyPolicy> {
           SizedBox(height: 5.h),
           Text(
             AppLocalizations.of(context)!.wemayshareyourinformationasfollows,
-            style: CustomTextStyles.lblSecondryText(context),
+            style: lblSecondryText(context),
           ),
           SizedBox(height: 15.h),
           Text(
@@ -277,7 +283,7 @@ class PrivacyState extends State<PrivacyPolicy> {
           SizedBox(height: 5.h),
           Text(
             AppLocalizations.of(context)!.usercontentyoupostpublicly,
-            style: CustomTextStyles.lblSecondryText(context),
+            style: lblSecondryText(context),
           ),
           SizedBox(height: 15.h),
           Text(
@@ -287,7 +293,7 @@ class PrivacyState extends State<PrivacyPolicy> {
           SizedBox(height: 5.h),
           Text(
             AppLocalizations.of(context)!.yourusernameprofilepicture,
-            style: CustomTextStyles.lblSecondryText(context),
+            style: lblSecondryText(context),
           ),
           SizedBox(height: 15.h),
           Text(
@@ -297,7 +303,7 @@ class PrivacyState extends State<PrivacyPolicy> {
           SizedBox(height: 5.h),
           Text(
             AppLocalizations.of(context)!.weshareinformationwiththirdparty,
-            style: CustomTextStyles.lblSecondryText(context),
+            style: lblSecondryText(context),
           ),
           SizedBox(height: 15.h),
           Text(
@@ -307,7 +313,7 @@ class PrivacyState extends State<PrivacyPolicy> {
           SizedBox(height: 5.h),
           Text(
             AppLocalizations.of(context)!.wemayshareanonymizedoraggregated,
-            style: CustomTextStyles.lblSecondryText(context),
+            style: lblSecondryText(context),
           ),
           SizedBox(height: 15.h),
           Text(
@@ -317,12 +323,12 @@ class PrivacyState extends State<PrivacyPolicy> {
           SizedBox(height: 5.h),
           Text(
             AppLocalizations.of(context)!.wemaydiscloseyourinformationtocomply,
-            style: CustomTextStyles.lblSecondryText(context),
+            style: lblSecondryText(context),
           ),
           SizedBox(height: 10.h),
           Text(
             AppLocalizations.of(context)!.intheeventofamerger,
-            style: CustomTextStyles.lblSecondryText(context),
+            style: lblSecondryText(context),
           ),
           SizedBox(height: 15.h),
           Text(
@@ -332,7 +338,7 @@ class PrivacyState extends State<PrivacyPolicy> {
           SizedBox(height: 5.h),
           Text(
             AppLocalizations.of(context)!.wemayshareyourinformationfor,
-            style: CustomTextStyles.lblSecondryText(context),
+            style: lblSecondryText(context),
           ),
           SizedBox(height: 20.h),
           Text(
@@ -347,12 +353,12 @@ class PrivacyState extends State<PrivacyPolicy> {
           SizedBox(height: 5.h),
           Text(
             AppLocalizations.of(context)!.youcanmanageyourprivacysettings,
-            style: CustomTextStyles.lblSecondryText(context),
+            style: lblSecondryText(context),
           ),
           SizedBox(height: 10.h),
           Text(
             AppLocalizations.of(context)!.youmayupdateordelete,
-            style: CustomTextStyles.lblSecondryText(context),
+            style: lblSecondryText(context),
           ),
           SizedBox(height: 15.h),
           Text(
@@ -362,14 +368,14 @@ class PrivacyState extends State<PrivacyPolicy> {
           SizedBox(height: 5.h),
           Text(
             AppLocalizations.of(context)!.youcanoptoutofreceiving,
-            style: CustomTextStyles.lblSecondryText(context),
+            style: lblSecondryText(context),
           ),
           SizedBox(height: 15.h),
           Text(AppLocalizations.of(context)!.cookies, style: subtitleStyle),
           SizedBox(height: 5.h),
           Text(
             AppLocalizations.of(context)!.youcandisablecookiesthrough,
-            style: CustomTextStyles.lblSecondryText(context),
+            style: lblSecondryText(context),
           ),
 
           SizedBox(height: 15.h),
@@ -377,54 +383,54 @@ class PrivacyState extends State<PrivacyPolicy> {
           SizedBox(height: 5.h),
           Text(
             AppLocalizations.of(context)!.dependingonyourjurisdiction,
-            style: CustomTextStyles.lblSecondryText(context),
+            style: lblSecondryText(context),
           ),
           SizedBox(height: 20.h),
           Text(AppLocalizations.of(context)!.access, style: labelStyle),
           SizedBox(height: 5.h),
           Text(
             AppLocalizations.of(context)!.requestacopyof,
-            style: CustomTextStyles.lblSecondryText(context),
+            style: lblSecondryText(context),
           ),
           SizedBox(height: 15.h),
           Text(AppLocalizations.of(context)!.correction, style: labelStyle),
           SizedBox(height: 5.h),
           Text(
             AppLocalizations.of(context)!.requestcorrectionsto,
-            style: CustomTextStyles.lblSecondryText(context),
+            style: lblSecondryText(context),
           ),
           SizedBox(height: 15.h),
           Text(AppLocalizations.of(context)!.deletion, style: labelStyle),
           SizedBox(height: 5.h),
           Text(
             AppLocalizations.of(context)!.requestdeletionof,
-            style: CustomTextStyles.lblSecondryText(context),
+            style: lblSecondryText(context),
           ),
           SizedBox(height: 15.h),
           Text(AppLocalizations.of(context)!.restriction, style: labelStyle),
           SizedBox(height: 5.h),
           Text(
             AppLocalizations.of(context)!.requestrestrictionson,
-            style: CustomTextStyles.lblSecondryText(context),
+            style: lblSecondryText(context),
           ),
           SizedBox(height: 15.h),
           Text(AppLocalizations.of(context)!.portability, style: labelStyle),
           SizedBox(height: 5.h),
           Text(
             AppLocalizations.of(context)!.requestacopyofyour,
-            style: CustomTextStyles.lblSecondryText(context),
+            style: lblSecondryText(context),
           ),
           SizedBox(height: 15.h),
           Text(AppLocalizations.of(context)!.objection, style: labelStyle),
           SizedBox(height: 5.h),
           Text(
             AppLocalizations.of(context)!.objecttocertainprocessing,
-            style: CustomTextStyles.lblSecondryText(context),
+            style: lblSecondryText(context),
           ),
           SizedBox(height: 15.h),
           Text(
             AppLocalizations.of(context)!.toexercisetheserights,
-            style: CustomTextStyles.lblSecondryText(context),
+            style: lblSecondryText(context),
           ),
           SizedBox(height: 20.h),
           Text(
@@ -434,27 +440,27 @@ class PrivacyState extends State<PrivacyPolicy> {
           SizedBox(height: 5.h),
           Text(
             AppLocalizations.of(context)!.weretainyourpersonalinformationfor,
-            style: CustomTextStyles.lblSecondryText(context),
+            style: lblSecondryText(context),
           ),
           SizedBox(height: 15.h),
           Text(
             AppLocalizations.of(context)!.accountinformationisretained,
-            style: CustomTextStyles.lblSecondryText(context),
+            style: lblSecondryText(context),
           ),
           SizedBox(height: 10.h),
           Text(
             AppLocalizations.of(context)!.usercontentmayremain,
-            style: CustomTextStyles.lblSecondryText(context),
+            style: lblSecondryText(context),
           ),
           SizedBox(height: 10.h),
           Text(
             AppLocalizations.of(context)!.usagedatamayberetained,
-            style: CustomTextStyles.lblSecondryText(context),
+            style: lblSecondryText(context),
           ),
           SizedBox(height: 10.h),
           Text(
             AppLocalizations.of(context)!.whenwenolongerneed,
-            style: CustomTextStyles.lblSecondryText(context),
+            style: lblSecondryText(context),
           ),
           SizedBox(height: 20.h),
           Text(
@@ -464,7 +470,7 @@ class PrivacyState extends State<PrivacyPolicy> {
           SizedBox(height: 5.h),
           Text(
             AppLocalizations.of(context)!.weimplementreasonabletechnical,
-            style: CustomTextStyles.lblSecondryText(context),
+            style: lblSecondryText(context),
           ),
           SizedBox(height: 20.h),
           Text(
@@ -474,7 +480,7 @@ class PrivacyState extends State<PrivacyPolicy> {
           SizedBox(height: 5.h),
           Text(
             AppLocalizations.of(context)!.polzetoperatesglobally,
-            style: CustomTextStyles.lblSecondryText(context),
+            style: lblSecondryText(context),
           ),
           SizedBox(height: 20.h),
           Text(
@@ -512,7 +518,7 @@ class PrivacyState extends State<PrivacyPolicy> {
           SizedBox(height: 10.h),
           Text(
             AppLocalizations.of(context)!.theplatformmaycontainlinks,
-            style: CustomTextStyles.lblSecondryText(context),
+            style: lblSecondryText(context),
           ),
           SizedBox(height: 20.h),
           Text(
@@ -522,7 +528,7 @@ class PrivacyState extends State<PrivacyPolicy> {
           SizedBox(height: 10.h),
           Text(
             AppLocalizations.of(context)!.wemayupdatethisprivacypolicy,
-            style: CustomTextStyles.lblSecondryText(context),
+            style: lblSecondryText(context),
           ),
           SizedBox(height: 20.h),
           Text(
@@ -532,7 +538,7 @@ class PrivacyState extends State<PrivacyPolicy> {
           SizedBox(height: 10.h),
           Text(
             AppLocalizations.of(context)!.ifyouhavequestions,
-            style: CustomTextStyles.lblSecondryText(context),
+            style: lblSecondryText(context),
           ),
           SizedBox(height: 5.h),
           Row(
@@ -550,7 +556,7 @@ class PrivacyState extends State<PrivacyPolicy> {
           SizedBox(height: 10.h),
           Text(
             AppLocalizations.of(context)!.thankyoufortrusting,
-            style: CustomTextStyles.lblSecondryText(context),
+            style: lblSecondryText(context),
           ),
           SizedBox(height: 10.h),
         ],

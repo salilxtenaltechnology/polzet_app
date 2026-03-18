@@ -7,11 +7,12 @@ import 'package:local_auth/local_auth.dart';
 
 import '../../../../../widgets/button/primary_button.dart';
 import '../../../../../widgets/loader.dart';
-import '../../../../splash/splash_screen.dart';
 import 'biometric_service.dart';
 
 class BiometricGateScreen extends StatefulWidget {
-  const BiometricGateScreen({super.key});
+  final Widget destination;
+
+  const BiometricGateScreen({super.key, required this.destination});
 
   @override
   State<BiometricGateScreen> createState() => _BiometricGateScreenState();
@@ -97,10 +98,9 @@ class _BiometricGateScreenState extends State<BiometricGateScreen>
         // Navigate to main app after successful authentication
         await Future.delayed(const Duration(milliseconds: 800));
         if (mounted) {
-          Navigator.of(context).pushReplacement(
-            MaterialPageRoute(
-              builder: (context) => const SplashScreen(),
-            ),
+          Navigator.of(context).pushAndRemoveUntil(
+            MaterialPageRoute(builder: (_) => widget.destination),
+            (route) => false,
           );
         }
       } else {
@@ -133,19 +133,19 @@ class _BiometricGateScreenState extends State<BiometricGateScreen>
     if (_availableBiometrics.contains(BiometricType.face)) {
       return Icon(
         Icons.face,
-        size: 80.sp,
+        size: 60.sp,
         color: Theme.of(context).primaryColor,
       );
     } else if (_availableBiometrics.contains(BiometricType.fingerprint)) {
       return Icon(
         Icons.fingerprint,
-        size: 80.sp,
+        size: 60.sp,
         color: Theme.of(context).primaryColor,
       );
     } else {
       return Icon(
         Icons.security,
-        size: 80.sp,
+        size: 60.sp,
         color: Theme.of(context).primaryColor,
       );
     }
@@ -185,7 +185,7 @@ class _BiometricGateScreenState extends State<BiometricGateScreen>
           'Polzet Secure Access',
           style: TextStyle(
             color: Theme.of(context).colorScheme.onBackground,
-            fontSize: 18.sp,
+            fontSize: 13.sp,
             fontWeight: FontWeight.w600,
           ),
         ),
@@ -197,7 +197,7 @@ class _BiometricGateScreenState extends State<BiometricGateScreen>
       body: SafeArea(
         child: Center(
           child: Padding(
-            padding: EdgeInsets.symmetric(horizontal: 24.w),
+            padding: EdgeInsets.symmetric(horizontal: 20.w),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.center,
@@ -209,7 +209,7 @@ class _BiometricGateScreenState extends State<BiometricGateScreen>
                     return Transform.scale(
                       scale: _isAuthenticating ? _pulseAnimation.value : 1.0,
                       child: Container(
-                        padding: EdgeInsets.all(50.w),
+                        padding: EdgeInsets.all(30.w),
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
                           color: Theme.of(
@@ -234,7 +234,7 @@ class _BiometricGateScreenState extends State<BiometricGateScreen>
                 Text(
                   _getBiometricTitle(),
                   style: TextStyle(
-                    fontSize: 20.sp,
+                    fontSize: 14.sp,
                     fontWeight: FontWeight.w600,
                     color: Theme.of(context).colorScheme.onBackground,
                   ),
@@ -247,7 +247,7 @@ class _BiometricGateScreenState extends State<BiometricGateScreen>
                 Text(
                   _getBiometricSubtitle(),
                   style: TextStyle(
-                    fontSize: 14.sp,
+                    fontSize: 11.5.sp,
                     color: _authenticationFailed
                         ? Colors.red
                         : Theme.of(

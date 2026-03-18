@@ -13,6 +13,7 @@ import 'package:http/http.dart' as http;
 
 import '../../data/token/shared_preferences.dart';
 import '../../mixin/utility_mixins.dart';
+import '../../models/hashtags/enhanced_trending_hashtags_model.dart';
 import '../../models/insights/insights_model.dart';
 import '../../models/like/like_uers_model.dart';
 import '../../models/message/message_model.dart';
@@ -961,6 +962,27 @@ class ApiService with UtilityMixin {
     }
   }
 
+  Future<EnhancedTrendingHashtagsModel> fetchEnhancedTrendingHashtags() async {
+    try {
+      final response = await _dio.get(
+        ApiConstants.enhancedTrendingHashtags,
+        options: Options(headers: await _getAuthHeaders()),
+      );
+
+      if (response.statusCode == 200) {
+        final jsonData = response.data as Map<String, dynamic>;
+
+        return EnhancedTrendingHashtagsModel.fromJson(jsonData);
+      }
+      throw Exception(
+        'Failed to load enhanced trending hashtags: ${response.statusCode}',
+      );
+    } on DioException catch (e) {
+      debugPrint('Error fetching enhanced trending hashtags: $e');
+      throw Exception('Error fetching enhanced trending hashtags: $e');
+    }
+  }
+
   /// Send friend request
   Future<bool> sendFriendRequest(String username) async {
     try {
@@ -1874,6 +1896,56 @@ class ApiService with UtilityMixin {
       return InsightsModel.fromJson(response.data);
     } on DioException catch (e) {
       throw Exception('Failed to load insights data: ${e.message}');
+    }
+  }
+
+  // ==================== PRIVACY POLICY ====================
+
+  Future<Map<String, dynamic>> updatePrivacyStatus({
+    required String status,
+  }) async {
+    try {
+      final FormData formData = FormData.fromMap({'status': status});
+
+      final Response response = await _dio.post(
+        ApiConstants.privacyPolicy,
+        data: formData,
+        options: Options(headers: await _getAuthHeaders()),
+      );
+
+      return response.data as Map<String, dynamic>;
+    } on DioException catch (e) {
+      throw _handleDioError(e);
+    }
+  }
+
+  // ==================== FEEDBACK ====================
+
+  Future<Map<String, dynamic>> submitFeedback({
+    required String email,
+    required String subject,
+    required String category,
+    required String message,
+    required int rating,
+  }) async {
+    try {
+      final FormData formData = FormData.fromMap({
+        'email': email,
+        'subject': subject,
+        'category': category,
+        'message': message,
+        'rating': rating.toString(),
+      });
+
+      final Response response = await _dio.post(
+        ApiConstants.feedback,
+        data: formData,
+        options: Options(headers: await _getAuthHeaders()),
+      );
+
+      return response.data as Map<String, dynamic>;
+    } on DioException catch (e) {
+      throw _handleDioError(e);
     }
   }
 }

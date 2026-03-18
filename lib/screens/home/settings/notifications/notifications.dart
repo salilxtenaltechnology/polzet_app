@@ -28,6 +28,7 @@ class _NotificationsSettingsState extends State<NotificationsSettings> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor:  Theme.of(context).colorScheme.background,
       appBar: AppBar(
         automaticallyImplyLeading: false,
         toolbarHeight: 25.h,

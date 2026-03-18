@@ -34,6 +34,8 @@ class ApiConstants {
   static String sendMessage = "$baseUrl/chats";
   static String markAsRead = "$baseUrl/chats";
   static String searchUsers = "$baseUrl/users";
+  static String enhancedTrendingHashtags =
+      "$baseUrl/trending/hashtags/enhanced";
   static String blockUser = "$baseUrl/users/block";
   static String unBlockUser = "$baseUrl/users/unblock";
   static String blockedUsrsList = "$baseUrl/users/blocked";
@@ -49,6 +51,8 @@ class ApiConstants {
   static String notifications = "$baseUrl/notifications";
   static String likePost = "$baseUrl/posts";
   static String topVoters = "$baseUrl/polls";
+  static String privacyPolicy = "$baseUrl/privacy_status";
+  static String feedback = "$baseUrl/feedback/submit";
   static String logout = "$baseUrl/logout";
   static String deleteAccount = "$baseUrl/users/delete_account";
 }

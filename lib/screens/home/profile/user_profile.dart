@@ -316,9 +316,9 @@ class ProfileState extends State<UserProfile>
                           ),
                           child: Center(
                             child: Icon(
-                              FeatherIcons.settings,
+                              FeatherIcons.edit2,
                               color: Colors.white,
-                              size: 16.spMax,
+                              size: 13.spMax,
                             ),
                           ),
                         ),

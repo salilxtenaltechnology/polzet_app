@@ -6,6 +6,7 @@ import 'package:lottie/lottie.dart';
 
 import '../../../core/constants/app_images.dart';
 import 'block_user_diolog.dart';
+import 'business/switch_business_acc_diolog.dart';
 import 'confirm_deletion_account_diolog.dart';
 import 'delete_account.dart';
 import 'delete_group.dart';
@@ -38,6 +39,11 @@ void showNotificationTimerDiolog(BuildContext context, VoidCallback onTap) {
 // user delete post diolog
 void showUserDeletePostDiolog(BuildContext context, VoidCallback onTap) {
   diologanimation(context, DeletePostDiolog(onPressed: onTap));
+}
+
+// switch to business diolog
+void showSwitchToBusinessDiolog(BuildContext context, VoidCallback onTap) {
+  diologanimation(context, SwithBusinessAccDiolog(onPressed: onTap));
 }
 
 // logout diolog

@@ -196,14 +196,14 @@ class HomeScreenState extends State<HomeScreen> with UtilityMixin {
                     },
                     icon: FeatherIcons.messageSquare,
                   ),
-                SizedBox(width: 7.w),
-                if (pageIndex == 0)
-                  AppIcons(
-                    onTap: () {
-                      navigationPush(context, const Settings());
-                    },
-                    icon: FeatherIcons.settings,
-                  ),
+                // SizedBox(width: 7.w),
+                // if (pageIndex == 0)
+                //   AppIcons(
+                //     onTap: () {
+                //       navigationPush(context, const Settings());
+                //     },
+                //     icon: FeatherIcons.settings,
+                //   ),
                 SizedBox(width: 8.w),
               ],
             ),

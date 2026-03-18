@@ -67,7 +67,7 @@ class PinService {
   static const String _pinStatusKey = 'pin_status';
   static const String _pinSecurityEnabledKey = 'pin_security_enabled';
   static const int _maxAttempts = 3;
-  static const int _lockoutDurationMinutes = 15;
+  static const int _lockoutDurationMinutes = 30;
 
   // Hash the PIN for secure storage
   static String _hashPin(String pin) {

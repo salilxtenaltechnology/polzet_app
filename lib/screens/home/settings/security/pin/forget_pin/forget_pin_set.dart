@@ -3,21 +3,24 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:polzet_app/widgets/show_toast.dart';
 
-import '../../../../../l10n/generated/app_localizations.dart';
-import '../../../../../widgets/custom_text_styles.dart';
-import 'pin_status.dart';
+import '../../../../../../l10n/generated/app_localizations.dart';
+import '../../../../../../widgets/custom_text_styles.dart';
+import '../../../../home_imports.dart';
+import '../pin_gate_screen.dart';
+import '../pin_status.dart';
 
-class SetPinScreen extends StatefulWidget {
+class ForgetPinSet extends StatefulWidget {
   final bool isSettingNewPin;
 
-  const SetPinScreen({super.key, required this.isSettingNewPin});
+  const ForgetPinSet({super.key, required this.isSettingNewPin});
 
   @override
   _SetPinScreenState createState() => _SetPinScreenState();
 }
 
-class _SetPinScreenState extends State<SetPinScreen> {
+class _SetPinScreenState extends State<ForgetPinSet> {
   String _enteredPin = '';
   String _confirmPin = '';
   String _oldPin = '';
@@ -29,7 +32,6 @@ class _SetPinScreenState extends State<SetPinScreen> {
   @override
   void initState() {
     super.initState();
-    // If changing existing PIN, start with old PIN verification
     if (!widget.isSettingNewPin) {
       _isEnteringOldPin = true;
     }
@@ -95,6 +97,24 @@ class _SetPinScreenState extends State<SetPinScreen> {
                   // Number pad
                   _buildNumberPad(),
                   SizedBox(height: 30.h),
+                  // Show attempts info if available
+                  // FutureBuilder<PinStatus>(
+                  //   future: PinService.getPinStatus(),
+                  //   builder: (context, snapshot) {
+                  //     if (snapshot.hasData &&
+                  //         snapshot.data!.attemptsCount > 0) {
+                  //       final status = snapshot.data!;
+                  //       return Text(
+                  //         '${AppLocalizations.of(context)!.remainingattempts}${status.remainingAttempts}',
+                  //         style: TextStyle(
+                  //           fontSize: 12.sp,
+                  //           color: Colors.orange,
+                  //         ),
+                  //       );
+                  //     }
+                  //     return const SizedBox.shrink();
+                  //   },
+                  // ),
                 ],
               ),
             ),
@@ -107,7 +127,7 @@ class _SetPinScreenState extends State<SetPinScreen> {
     }
     if (_isConfirmingPin) return AppLocalizations.of(context)!.confirmnewpin;
     return widget.isSettingNewPin
-        ? AppLocalizations.of(context)!.setpin
+        ? 'Set New PIN'
         : AppLocalizations.of(context)!.enternewpin;
   }
 
@@ -116,7 +136,7 @@ class _SetPinScreenState extends State<SetPinScreen> {
     if (_isConfirmingPin) {
       return AppLocalizations.of(context)!.reenteryournewpin;
     }
-    return AppLocalizations.of(context)!.enterfourdigitpin;
+    return 'Enter a New 4-digit PIN';
   }
 
   String _getCurrentPin() {
@@ -339,7 +359,7 @@ class _SetPinScreenState extends State<SetPinScreen> {
           _isLoading = false;
         });
       } else {
-        _showErrorSnackBar(authResult.message);
+        showToast(message: authResult.message);
         setState(() {
           _oldPin = '';
           _isLoading = false;
@@ -351,7 +371,7 @@ class _SetPinScreenState extends State<SetPinScreen> {
         }
       }
     } catch (e) {
-      _showErrorSnackBar('Error verifying PIN: $e');
+      showToast(message: 'Error verifying PIN: $e');
       setState(() {
         _oldPin = '';
         _isLoading = false;
@@ -384,17 +404,24 @@ class _SetPinScreenState extends State<SetPinScreen> {
 
         if (success) {
           // Return success
-          Navigator.pop(context, true);
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (_) =>
+                  const PinGateScreen(destination: HomeScreen(initialIndex: 0)),
+            ),
+          );
         } else {
-          _showErrorSnackBar('Failed to save PIN. Please try again.');
+          showToast(message: 'Failed to save PIN. Please try again.');
           setState(() => _isLoading = false);
         }
       } catch (e) {
-        _showErrorSnackBar('Error saving PIN: $e');
+        showToast(message: 'Error saving PIN: $e');
+
         setState(() => _isLoading = false);
       }
     } else {
-      _showErrorSnackBar('PINs do not match. Please try again.');
+      showToast(message: 'PINs do not match. Please try again.');
       setState(() {
         _enteredPin = '';
         _confirmPin = '';
@@ -402,15 +429,5 @@ class _SetPinScreenState extends State<SetPinScreen> {
         _pinStrengthMessage = '';
       });
     }
-  }
-
-  void _showErrorSnackBar(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.red,
-        duration: const Duration(seconds: 3),
-      ),
-    );
   }
 }
