@@ -3,6 +3,7 @@ import 'dart:typed_data';
 // ignore_for_file: deprecated_member_use
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:polzet_app/languages/l10n/generated/app_localizations.dart';
 import 'package:polzet_app/widgets/base64/image_convert.dart';
 
 import '../../core/constants/app_colors.dart';
@@ -51,7 +52,7 @@ class VotersListWidget extends StatelessWidget {
         SizedBox(width: 5.w),
         Flexible(
           child: Text(
-            _buildVotersText(displayUsers, remainingCount),
+            _buildVotersText(displayUsers, remainingCount, context),
             style: TextStyle(
               color: Colors.grey[500],
               fontSize: 9.sp,
@@ -105,9 +106,13 @@ class VotersListWidget extends StatelessWidget {
     );
   }
 
-  String _buildVotersText(List<TopVoterUser> displayUsers, int remainingCount) {
+  String _buildVotersText(
+    List<TopVoterUser> displayUsers,
+    int remainingCount,
+    BuildContext context,
+  ) {
     if (displayUsers.isEmpty) return '';
-    return 'picked this as\ntop choice';
+    return AppLocalizations.of(context)!.pickedthisastopchoice;
   }
 
   double _calculateWidth(int userCount) {

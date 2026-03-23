@@ -80,38 +80,40 @@ class ProfileData {
   });
 
   factory ProfileData.fromJson(Map<String, dynamic> json) {
-    return ProfileData(
-      id: json['id'] ?? 0,
-      username: json['username'] ?? '',
-      email: json['email'],
-      mobileNumber: json['mobile_number'],
-      firstName: json['first_name'] ?? '',
-      lastName: json['last_name'] ?? '',
-      dob: json['dob'] ?? '',
-      gender: json['gender'] ?? '',
-      countryCode: json['country_code'] ?? '',
-      bio: json['bio'],
-      nextUsernameChange: json['next_username_change'] ?? '',
-      followersCount: json['followers_count'] ?? 0,
-      followingCount: json['following_count'] ?? 0,
-      imagePostCount: json['image_post_count'] ?? 0,
-      textPostCount: json['text_post_count'] ?? 0,
-      profilePictureUrl: json['profile_picture_url'],
-      profileThumbnailUrl: json['profile_thumbnail_url'],
-      coverThumbnailUrl: json['cover_thumbnail_url'],
-      chaseList: (json['chase_list'] as List<dynamic>?)
-          ?.map((e) => ChaseUser.fromJson(e as Map<String, dynamic>))
-          .toList(),
-      rechaseList: (json['rechase_list'] as List<dynamic>?)
-          ?.map((e) => RechaseUser.fromJson(e as Map<String, dynamic>))
-          .toList(),
-      isPrivate: json['is_private'] ?? false,
-      isFriend: json['is_friend'] ?? false,
-      posts: PostsData.fromJson(json['posts'] ?? {}),
-      followStatus: json['follow_status'] ?? '',
-      chatId: json['chat_id'] ?? 0,
-    );
-  }
+  return ProfileData(
+    id: json['id'] ?? 0,
+    username: json['username'] ?? '',
+    email: json['email'],
+    mobileNumber: json['mobile_number'],
+    firstName: json['first_name'] ?? '',
+    lastName: json['last_name'] ?? '',
+    dob: json['dob'] ?? '',
+    gender: json['gender'] ?? '',
+    countryCode: json['country_code'] ?? '',
+    bio: json['bio'],
+    nextUsernameChange: json['next_username_change'] ?? '',
+    // ✅ Fix 1: Parse string counts to int
+    followersCount: int.tryParse(json['followers_count']?.toString() ?? '0') ?? 0,
+    followingCount: int.tryParse(json['following_count']?.toString() ?? '0') ?? 0,
+    imagePostCount: json['image_post_count'] ?? 0,
+    textPostCount: json['text_post_count'] ?? 0,
+    profilePictureUrl: json['profile_picture_url'],
+    profileThumbnailUrl: json['profile_thumbnail_url'],
+    coverThumbnailUrl: json['cover_thumbnail_url'],
+    chaseList: (json['chase_list'] as List<dynamic>?)
+        ?.map((e) => ChaseUser.fromJson(e as Map<String, dynamic>))
+        .toList(),
+    rechaseList: (json['rechase_list'] as List<dynamic>?)
+        ?.map((e) => RechaseUser.fromJson(e as Map<String, dynamic>))
+        .toList(),
+    isPrivate: json['is_private'] ?? false,
+    isFriend: json['is_friend'] ?? false,
+    posts: PostsData.fromJson(json['posts'] ?? {}),
+    followStatus: json['follow_status'] ?? '',
+    // ✅ Fix 2: Handle null chat_id
+    chatId: json['chat_id'] ?? 0,
+  );
+}
 
   Map<String, dynamic> toJson() {
     return {

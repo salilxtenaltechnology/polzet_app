@@ -4,11 +4,11 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:lottie/lottie.dart';
-import 'package:polzet_app/models/insights/insights_model.dart';
 
 import '../../../../core/constants/app_images.dart';
-import '../../../../l10n/generated/app_localizations.dart';
 import '../../../api/services/api_service.dart';
+import '../../../languages/l10n/generated/app_localizations.dart';
+import '../../../models/insights/insights_model.dart';
 import '../../../widgets/custom_card.dart';
 import '../../../widgets/diolog/custom_diolog.dart';
 
@@ -121,7 +121,7 @@ class _InsightsScreenState extends State<InsightsScreen> {
                       const Icon(Icons.trending_up, color: Colors.green),
                       SizedBox(width: 7.w),
                       Text(
-                        'Polls Created',
+                        AppLocalizations.of(context)!.pollcreated,
                         style: TextStyle(
                           color: Theme.of(context).colorScheme.onBackground,
                           fontSize: 11.sp,
@@ -149,7 +149,7 @@ class _InsightsScreenState extends State<InsightsScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Weekly Views',
+                         AppLocalizations.of(context)!.weeklyviews,
                           style: TextStyle(
                             color: Theme.of(context).colorScheme.onBackground,
                             fontSize: 11.sp,
@@ -315,7 +315,7 @@ class _InsightsScreenState extends State<InsightsScreen> {
                       ),
                       GestureDetector(
                         onTap: () {
-                          showSwitchToBusinessDiolog(context,(){
+                          showSwitchToBusinessDiolog(context, () {
                             Navigator.pop(context);
                           });
                         },

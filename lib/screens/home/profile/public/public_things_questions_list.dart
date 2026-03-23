@@ -8,7 +8,7 @@ import 'package:shimmer/shimmer.dart';
 import '../../../../api/services/api_service.dart';
 import '../../../../api/services/like/like_service.dart';
 import '../../../../core/constants/app_images.dart';
-import '../../../../l10n/generated/app_localizations.dart';
+import '../../../../languages/l10n/generated/app_localizations.dart';
 import '../../../../models/like/like_uers_model.dart';
 import '../../../../models/public/public_profile_model.dart';
 import '../../../../widgets/base64/image_convert.dart';
@@ -36,8 +36,7 @@ class PublicThingsQuestionsList extends StatefulWidget {
       _PublicThingsQuestionsListState();
 }
 
-class _PublicThingsQuestionsListState
-    extends State<PublicThingsQuestionsList> {
+class _PublicThingsQuestionsListState extends State<PublicThingsQuestionsList> {
   late final ApiService apiService = ApiService();
   late final LikeService likeService = LikeService();
 
@@ -91,8 +90,7 @@ class _PublicThingsQuestionsListState
 
     final previousSelected = List<int>.from(selectedOptions[pollKey] ?? []);
     final previousPolled = pollPolledStates[pollKey] ?? false;
-    final previousPercentages =
-        poll.options.map((o) => o.percentage).toList();
+    final previousPercentages = poll.options.map((o) => o.percentage).toList();
 
     // Optimistic update
     setState(() {
@@ -134,13 +132,23 @@ class _PublicThingsQuestionsListState
         showToast(message: 'Vote submitted successfully!');
       } else {
         _revertPollState(
-          pollKey, previousPolled, previousSelected, poll, previousPercentages, postId,
+          pollKey,
+          previousPolled,
+          previousSelected,
+          poll,
+          previousPercentages,
+          postId,
         );
         showToast(message: result['message'] ?? 'Failed to submit votes.');
       }
     } catch (_) {
       _revertPollState(
-        pollKey, previousPolled, previousSelected, poll, previousPercentages, postId,
+        pollKey,
+        previousPolled,
+        previousSelected,
+        poll,
+        previousPercentages,
+        postId,
       );
       showToast(message: 'An error occurred. Please try again.');
     }
@@ -149,7 +157,11 @@ class _PublicThingsQuestionsListState
   /// Since PublicPollOption fields are final, update percentage by rebuilding
   /// the cachedPosts entry.
   void _updateOptionPercentage(
-      int postId, int pollId, int optionId, double pct) {
+    int postId,
+    int pollId,
+    int optionId,
+    double pct,
+  ) {
     if (cachedPosts == null) return;
     final postIdx = cachedPosts!.indexWhere((p) => p.id == postId);
     if (postIdx == -1) return;
@@ -208,7 +220,10 @@ class _PublicThingsQuestionsListState
       for (int i = 0; i < poll.options.length; i++) {
         if (i < previousPercentages.length) {
           _updateOptionPercentage(
-            postId, poll.id, poll.options[i].id, previousPercentages[i],
+            postId,
+            poll.id,
+            poll.options[i].id,
+            previousPercentages[i],
           );
         }
       }
@@ -251,8 +266,9 @@ class _PublicThingsQuestionsListState
 
     setState(() {
       postLikeStates[postId] = !currentLikeState;
-      postLikeCounts[postId] =
-          currentLikeState ? currentLikeCount - 1 : currentLikeCount + 1;
+      postLikeCounts[postId] = currentLikeState
+          ? currentLikeCount - 1
+          : currentLikeCount + 1;
     });
 
     try {
@@ -386,8 +402,9 @@ class _PublicThingsQuestionsListState
       return _buildEmptyState('No active polls found');
     }
 
-    final displayCount =
-        postsWithTextPolls.length > 3 ? 3 : postsWithTextPolls.length;
+    final displayCount = postsWithTextPolls.length > 3
+        ? 3
+        : postsWithTextPolls.length;
 
     return ListView.builder(
       padding: const EdgeInsets.all(12),
@@ -448,12 +465,13 @@ class _PublicThingsQuestionsListState
       children: [
         CircleAvatar(
           radius: 17,
-          backgroundColor:
-              Theme.of(context).colorScheme.primary.withOpacity(0.15),
+          backgroundColor: Theme.of(
+            context,
+          ).colorScheme.primary.withOpacity(0.15),
           backgroundImage:
               widget.profileImage != null && widget.profileImage!.isNotEmpty
-                  ? MemoryImage(getProfileImage(widget.profileImage)!)
-                  : null,
+              ? MemoryImage(getProfileImage(widget.profileImage)!)
+              : null,
           child: widget.profileImage == null || widget.profileImage!.isEmpty
               ? Text(
                   widget.username?.isNotEmpty == true
@@ -483,10 +501,7 @@ class _PublicThingsQuestionsListState
               'Placed a post',
               style: TextStyle(
                 fontSize: 8.8.sp,
-                color: Theme.of(context)
-                    .colorScheme
-                    .onSurface
-                    .withOpacity(0.7),
+                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -566,10 +581,9 @@ class _PublicThingsQuestionsListState
                         ),
                         boxShadow: [
                           BoxShadow(
-                            color: Theme.of(context)
-                                .colorScheme
-                                .onBackground
-                                .withOpacity(0.3),
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onBackground.withOpacity(0.3),
                             blurRadius: 5,
                           ),
                         ],
@@ -580,7 +594,8 @@ class _PublicThingsQuestionsListState
                               child: const CircularProgressIndicator(
                                 strokeWidth: 2,
                                 valueColor: AlwaysStoppedAnimation<Color>(
-                                    Colors.white),
+                                  Colors.white,
+                                ),
                               ),
                             )
                           : Icon(
@@ -608,8 +623,7 @@ class _PublicThingsQuestionsListState
     bool hasUserPolled,
   ) {
     final percentage = option.percentage;
-    final isSelected =
-        selectedOptions[pollKey]?.contains(optionIndex) ?? false;
+    final isSelected = selectedOptions[pollKey]?.contains(optionIndex) ?? false;
     final int? selectionNumber = _getSelectionNumber(pollKey, optionIndex);
 
     return GestureDetector(
@@ -621,16 +635,14 @@ class _PublicThingsQuestionsListState
         height: 23.h,
         width: double.infinity,
         decoration: BoxDecoration(
-          color: isDarkMode
-              ? const Color(0xFF242831)
-              : const Color(0xFFF5F6F7),
+          color: isDarkMode ? const Color(0xFF242831) : const Color(0xFFF5F6F7),
           borderRadius: BorderRadius.circular(10.r),
           border: Border.all(
             color: isSelected && !hasUserPolled
                 ? Theme.of(context).colorScheme.primary.withOpacity(0.5)
                 : isDarkMode
-                    ? const Color(0xFF30353D)
-                    : const Color(0xFFE8E8E8),
+                ? const Color(0xFF30353D)
+                : const Color(0xFFE8E8E8),
             width: isSelected && !hasUserPolled ? 1.2 : 1,
           ),
         ),
@@ -668,11 +680,8 @@ class _PublicThingsQuestionsListState
                     child: Text(
                       option.text ?? '',
                       style: TextStyle(
-                        color: Theme.of(context)
-                            .colorScheme
-                            .onBackground
-                            .withOpacity(
-                                hasUserPolled ? 0.7 : 1.0),
+                        color: Theme.of(context).colorScheme.onBackground
+                            .withOpacity(hasUserPolled ? 0.7 : 1.0),
                         fontSize: 10.5.sp,
                         fontWeight: isSelected && !hasUserPolled
                             ? FontWeight.w600
@@ -690,10 +699,9 @@ class _PublicThingsQuestionsListState
                       builder: (context, value, _) => Text(
                         '$value%',
                         style: TextStyle(
-                          color: Theme.of(context)
-                              .colorScheme
-                              .onBackground
-                              .withOpacity(0.6),
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onBackground.withOpacity(0.6),
                           fontSize: 10.5.sp,
                           fontWeight: FontWeight.w600,
                         ),
@@ -720,8 +728,7 @@ class _PublicThingsQuestionsListState
   Widget _buildPostActions(PublicPost post) {
     final isLiked = postLikeStates[post.id] ?? post.isLiked;
     final likesCount = postLikeCounts[post.id] ?? post.likesCount;
-    final commentsCount =
-        postCommentsCounts[post.id] ?? post.comments.length;
+    final commentsCount = postCommentsCounts[post.id] ?? post.comments.length;
     final viewLikes = postLikedUsers[post.id] ?? [];
 
     return Column(
@@ -749,10 +756,9 @@ class _PublicThingsQuestionsListState
                             key: ValueKey('outline_${post.id}'),
                             height: 21.h,
                             width: 21.w,
-                            color: Theme.of(context)
-                                .colorScheme
-                                .onSurface
-                                .withOpacity(0.6),
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurface.withOpacity(0.6),
                           ),
                   ),
                   SizedBox(width: 3.w),
@@ -763,10 +769,9 @@ class _PublicThingsQuestionsListState
                     style: TextStyle(
                       fontSize: 10.8.sp,
                       fontWeight: FontWeight.w500,
-                      color: Theme.of(context)
-                          .colorScheme
-                          .onSurface
-                          .withOpacity(0.8),
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.onSurface.withOpacity(0.8),
                     ),
                   ),
                 ],
@@ -774,17 +779,15 @@ class _PublicThingsQuestionsListState
             ),
             SizedBox(width: 8.w),
             GestureDetector(
-              onTap: () =>
-                  _showCommentsBottomSheet(post.id, commentsCount),
+              onTap: () => _showCommentsBottomSheet(post.id, commentsCount),
               child: Row(
                 children: [
                   Icon(
                     FeatherIcons.messageSquare,
                     size: 20.sp,
-                    color: Theme.of(context)
-                        .colorScheme
-                        .onSurface
-                        .withOpacity(0.6),
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.onSurface.withOpacity(0.6),
                   ),
                   SizedBox(width: 3.w),
                   Text(
@@ -794,10 +797,9 @@ class _PublicThingsQuestionsListState
                     style: TextStyle(
                       fontSize: 10.8.sp,
                       fontWeight: FontWeight.w500,
-                      color: Theme.of(context)
-                          .colorScheme
-                          .onSurface
-                          .withOpacity(0.8),
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.onSurface.withOpacity(0.8),
                     ),
                   ),
                 ],
@@ -807,10 +809,7 @@ class _PublicThingsQuestionsListState
             Icon(
               FeatherIcons.send,
               size: 18.3.sp,
-              color: Theme.of(context)
-                  .colorScheme
-                  .onSurface
-                  .withOpacity(0.6),
+              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
             ),
           ],
         ),
@@ -821,8 +820,11 @@ class _PublicThingsQuestionsListState
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                LikeUtils.buildLikeAvatarsStack(context, viewLikes,
-                    avatarSize: 15),
+                LikeUtils.buildLikeAvatarsStack(
+                  context,
+                  viewLikes,
+                  avatarSize: 15,
+                ),
                 SizedBox(width: 5.w),
                 Expanded(
                   child: SizedBox(
@@ -832,7 +834,9 @@ class _PublicThingsQuestionsListState
                       child: RichText(
                         overflow: TextOverflow.ellipsis,
                         text: LikeUtils.buildLikedByRichText(
-                            context, viewLikes),
+                          context,
+                          viewLikes,
+                        ),
                       ),
                     ),
                   ),

@@ -14,7 +14,7 @@ import '../../../../api/api_config.dart';
 import '../../../../api/services/api_service.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_images.dart';
-import '../../../../l10n/generated/app_localizations.dart';
+import '../../../../languages/l10n/generated/app_localizations.dart';
 import '../../../../mixin/utility_mixins.dart';
 import '../../../../models/public/public_profile_model.dart';
 import '../../../../models/public/things/public_things_card.dart';
@@ -64,8 +64,10 @@ class _PublicProfileState extends State<PublicProfile>
 
   // Silent data loading futures
   Future<List<PublicPost>>? _pollsFuture;
-
   late PublicPoll publicPollsQuestion;
+
+  List<PublicPost> cachedPollPosts = [];
+  List<PublicPost> cachedThingsPosts = [];
 
   final ApiService apiService = ApiService();
 
@@ -365,13 +367,30 @@ class _PublicProfileState extends State<PublicProfile>
         .fetchPublicPostsPolls(widget.userId)
         .then((freshPolls) {
           if (mounted) {
-            _pollsFuture = Future.value(freshPolls);
-            setState(() {});
+            // Cache image posts
+            final imagePosts = freshPolls.where((post) {
+              if (post.polls.isEmpty) return false;
+              return post.polls.any(
+                (poll) => poll.options.any((option) => option.image != null),
+              );
+            }).toList();
+
+            // Cache text posts
+            final textPosts = freshPolls.where((post) {
+              if (post.polls.isEmpty) return false;
+              return post.polls.any(
+                (poll) => poll.options.any((option) => option.text != null),
+              );
+            }).toList();
+
+            setState(() {
+              _pollsFuture = Future.value(freshPolls);
+              cachedPollPosts = imagePosts;
+              cachedThingsPosts = textPosts;
+            });
           }
         })
-        .catchError((error) {
-          // ("Error loading fresh polls: $error");
-        });
+        .catchError((error) {});
   }
 
   void _refreshPostsData() {
@@ -872,7 +891,16 @@ class _PublicProfileState extends State<PublicProfile>
                                           statTile(
                                             FeatherIcons.arrowUp,
                                             profile.followersCount.toString(),
-                                            () {},
+                                            () {
+                                              navigationPush(
+                                                context,
+                                                PublicChaseList(
+                                                  userId: profile.id,
+                                                  username: profile.username,
+                                                  initialIndex: 0,
+                                                ),
+                                              );
+                                            },
                                           ),
                                         ],
                                       ),
@@ -902,7 +930,16 @@ class _PublicProfileState extends State<PublicProfile>
                                           statTile(
                                             FeatherIcons.arrowDown,
                                             profile.followingCount.toString(),
-                                            () {},
+                                            () {
+                                              navigationPush(
+                                                context,
+                                                PublicChaseList(
+                                                  userId: profile.id,
+                                                  username: profile.username,
+                                                  initialIndex: 1,
+                                                ),
+                                              );
+                                            },
                                           ),
                                         ],
                                       ),
@@ -937,6 +974,7 @@ class _PublicProfileState extends State<PublicProfile>
                                               PublicChaseList(
                                                 userId: profile.id,
                                                 username: profile.username,
+                                                initialIndex: 0,
                                               ),
                                             );
                                           },
@@ -946,23 +984,20 @@ class _PublicProfileState extends State<PublicProfile>
                                             ),
                                             child: Row(
                                               children: [
-                                                if(profile.chaseList!.isNotEmpty)
-                                                Text(
-                                                  '${AppLocalizations.of(context)!.seeall} >',
-                                                  style: TextStyle(
-                                                    color: Theme.of(
-                                                      context,
-                                                    ).colorScheme.primary,
-                                                    fontWeight: FontWeight.w700,
-                                                    fontSize: 10.5.sp,
+                                                if (profile
+                                                    .chaseList!
+                                                    .isNotEmpty)
+                                                  Text(
+                                                    '${AppLocalizations.of(context)!.seeall} >',
+                                                    style: TextStyle(
+                                                      color: Theme.of(
+                                                        context,
+                                                      ).colorScheme.primary,
+                                                      fontWeight:
+                                                          FontWeight.w700,
+                                                      fontSize: 10.5.sp,
+                                                    ),
                                                   ),
-                                                ),
-                                                // Icon(
-                                                //   Icons.arrow_forward_ios,
-                                                //   size: 14.spMax,
-                                                //   color: AppColors.primaryColor
-                                                //       .withOpacity(0.8),
-                                                // ),
                                               ],
                                             ),
                                           ),
@@ -995,67 +1030,78 @@ class _PublicProfileState extends State<PublicProfile>
                                               itemBuilder: (context, index) {
                                                 final chaseUser =
                                                     profile.chaseList![index];
-                                                return Container(
-                                                  height: 55.h,
-                                                  width: 55.w,
-                                                  margin: EdgeInsets.only(
-                                                    right: 8.w,
-                                                  ),
-                                                  decoration: BoxDecoration(
-                                                    shape: BoxShape.circle,
-                                                    border: Border.all(
-                                                      width: 1.w,
-                                                      color: const Color(
-                                                        0xFFD1D1D1,
-                                                      ).withOpacity(0.7),
+                                                return GestureDetector(
+                                                  onTap: () {
+                                                    navigationPush(
+                                                      context,
+                                                      PublicProfile(
+                                                        userId:
+                                                            chaseUser.userId,
+                                                      ),
+                                                    );
+                                                  },
+                                                  child: Container(
+                                                    height: 55.h,
+                                                    width: 55.w,
+                                                    margin: EdgeInsets.only(
+                                                      right: 8.w,
                                                     ),
-                                                    color: Theme.of(context)
-                                                        .primaryColor
-                                                        .withOpacity(0.08),
-                                                    image:
-                                                        chaseUser.avatarUrl !=
-                                                                null &&
+                                                    decoration: BoxDecoration(
+                                                      shape: BoxShape.circle,
+                                                      border: Border.all(
+                                                        width: 1.w,
+                                                        color: const Color(
+                                                          0xFFD1D1D1,
+                                                        ).withOpacity(0.7),
+                                                      ),
+                                                      color: Theme.of(context)
+                                                          .primaryColor
+                                                          .withOpacity(0.08),
+                                                      image:
+                                                          chaseUser.avatarUrl !=
+                                                                  null &&
+                                                              chaseUser
+                                                                  .avatarUrl!
+                                                                  .isNotEmpty
+                                                          ? DecorationImage(
+                                                              image: MemoryImage(
+                                                                getConvertImage(
+                                                                  chaseUser
+                                                                      .avatarUrl,
+                                                                )!,
+                                                              ),
+                                                              fit: BoxFit.cover,
+                                                            )
+                                                          : null,
+                                                    ),
+                                                    child:
+                                                        chaseUser.avatarUrl ==
+                                                                null ||
                                                             chaseUser
                                                                 .avatarUrl!
-                                                                .isNotEmpty
-                                                        ? DecorationImage(
-                                                            image: MemoryImage(
-                                                              getConvertImage(
-                                                                chaseUser
-                                                                    .avatarUrl,
-                                                              )!,
+                                                                .isEmpty
+                                                        ? Center(
+                                                            child: Text(
+                                                              chaseUser
+                                                                      .username
+                                                                      .isNotEmpty
+                                                                  ? chaseUser
+                                                                        .username[0]
+                                                                        .toUpperCase()
+                                                                  : '?',
+                                                              style: TextStyle(
+                                                                color: Theme.of(
+                                                                  context,
+                                                                ).primaryColor,
+                                                                fontSize: 20.sp,
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .bold,
+                                                              ),
                                                             ),
-                                                            fit: BoxFit.cover,
                                                           )
                                                         : null,
                                                   ),
-                                                  child:
-                                                      chaseUser.avatarUrl ==
-                                                              null ||
-                                                          chaseUser
-                                                              .avatarUrl!
-                                                              .isEmpty
-                                                      ? Center(
-                                                          child: Text(
-                                                            chaseUser
-                                                                    .username
-                                                                    .isNotEmpty
-                                                                ? chaseUser
-                                                                      .username[0]
-                                                                      .toUpperCase()
-                                                                : '?',
-                                                            style: TextStyle(
-                                                              color: Theme.of(
-                                                                context,
-                                                              ).primaryColor,
-                                                              fontSize: 20.sp,
-                                                              fontWeight:
-                                                                  FontWeight
-                                                                      .bold,
-                                                            ),
-                                                          ),
-                                                        )
-                                                      : null,
                                                 );
                                               },
                                             ),
@@ -1083,6 +1129,7 @@ class _PublicProfileState extends State<PublicProfile>
                                               PublicChaseList(
                                                 userId: profile.id,
                                                 username: profile.username,
+                                                initialIndex: 1,
                                               ),
                                             );
                                           },
@@ -1092,23 +1139,20 @@ class _PublicProfileState extends State<PublicProfile>
                                             ),
                                             child: Row(
                                               children: [
-                                                 if(profile.rechaseList!.isNotEmpty)
-                                                Text(
-                                                  '${AppLocalizations.of(context)!.seeall} >',
-                                                  style: TextStyle(
-                                                    color: Theme.of(
-                                                      context,
-                                                    ).colorScheme.primary,
-                                                    fontWeight: FontWeight.w700,
-                                                    fontSize: 10.5.sp,
+                                                if (profile
+                                                    .rechaseList!
+                                                    .isNotEmpty)
+                                                  Text(
+                                                    '${AppLocalizations.of(context)!.seeall} >',
+                                                    style: TextStyle(
+                                                      color: Theme.of(
+                                                        context,
+                                                      ).colorScheme.primary,
+                                                      fontWeight:
+                                                          FontWeight.w700,
+                                                      fontSize: 10.5.sp,
+                                                    ),
                                                   ),
-                                                ),
-                                                // Icon(
-                                                //   Icons.arrow_forward_ios,
-                                                //   size: 14.spMax,
-                                                //   color: AppColors.primaryColor
-                                                //       .withOpacity(0.8),
-                                                // ),
                                               ],
                                             ),
                                           ),
@@ -1546,38 +1590,34 @@ class _PublicProfileState extends State<PublicProfile>
                                   ),
                                 ),
                                 const Spacer(),
-                                GestureDetector(
-                                  onTap: () {
-                                    navigationPush(
-                                      context,
-                                      PublicImagePostsList(
-                                        userId: profile.id,
-                                        username: profile.username,
-                                        profileImage: profile.profilePictureUrl,
-                                      ),
-                                    );
-                                  },
-                                  child: Row(
-                                    children: [
-                                      Text(
-                                        '${AppLocalizations.of(context)!.seeall} >',
-                                        style: TextStyle(
-                                          color: Theme.of(
-                                            context,
-                                          ).colorScheme.primary,
-                                          fontWeight: FontWeight.w700,
-                                          fontSize: 10.5.sp,
+                                if (cachedPollPosts.isNotEmpty)
+                                  GestureDetector(
+                                    onTap: () {
+                                      navigationPush(
+                                        context,
+                                        PublicImagePostsList(
+                                          userId: profile.id,
+                                          username: profile.username,
+                                          profileImage:
+                                              profile.profilePictureUrl,
                                         ),
-                                      ),
-                                      // Icon(
-                                      //   Icons.arrow_forward_ios,
-                                      //   size: 14.spMax,
-                                      //   color: AppColors.primaryColor
-                                      //       .withOpacity(0.8),
-                                      // ),
-                                    ],
+                                      );
+                                    },
+                                    child: Row(
+                                      children: [
+                                        Text(
+                                          '${AppLocalizations.of(context)!.seeall} >',
+                                          style: TextStyle(
+                                            color: Theme.of(
+                                              context,
+                                            ).colorScheme.primary,
+                                            fontWeight: FontWeight.w700,
+                                            fontSize: 10.5.sp,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
                                   ),
-                                ),
                               ],
                             ),
                           ),
@@ -1692,7 +1732,9 @@ class _PublicProfileState extends State<PublicProfile>
                                         ),
                                         SizedBox(height: 10.h),
                                         Text(
-                                          'No posts with image',
+                                          AppLocalizations.of(
+                                            context,
+                                          )!.nopostwithimage,
                                           style: TextStyle(
                                             color: Colors.grey,
                                             fontSize: 10.4.sp,
@@ -1766,38 +1808,34 @@ class _PublicProfileState extends State<PublicProfile>
                                   ),
                                 ),
                                 const Spacer(),
-                                GestureDetector(
-                                  onTap: () {
-                                    navigationPush(
-                                      context,
-                                      PublicThingsQuestionsList(
-                                        username: profile.username,
-                                        profileImage: profile.profilePictureUrl,
-                                        userId: profile.id,
-                                      ),
-                                    );
-                                  },
-                                  child: Row(
-                                    children: [
-                                      Text(
-                                        '${AppLocalizations.of(context)!.seeall} >',
-                                        style: TextStyle(
-                                          color: Theme.of(
-                                            context,
-                                          ).colorScheme.primary,
-                                          fontWeight: FontWeight.w700,
-                                          fontSize: 10.5.sp,
+                                if (cachedThingsPosts.isNotEmpty)
+                                  GestureDetector(
+                                    onTap: () {
+                                      navigationPush(
+                                        context,
+                                        PublicThingsQuestionsList(
+                                          username: profile.username,
+                                          profileImage:
+                                              profile.profilePictureUrl,
+                                          userId: profile.id,
                                         ),
-                                      ),
-                                      // Icon(
-                                      //   Icons.arrow_forward_ios,
-                                      //   size: 14.spMax,
-                                      //   color: AppColors.primaryColor
-                                      //       .withOpacity(0.8),
-                                      // ),
-                                    ],
+                                      );
+                                    },
+                                    child: Row(
+                                      children: [
+                                        Text(
+                                          '${AppLocalizations.of(context)!.seeall} >',
+                                          style: TextStyle(
+                                            color: Theme.of(
+                                              context,
+                                            ).colorScheme.primary,
+                                            fontWeight: FontWeight.w700,
+                                            fontSize: 10.5.sp,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
                                   ),
-                                ),
                               ],
                             ),
                           ),
@@ -1888,7 +1926,9 @@ class _PublicProfileState extends State<PublicProfile>
                                     children: [
                                       SizedBox(height: 30.h),
                                       Text(
-                                        'No posts with things',
+                                        AppLocalizations.of(
+                                          context,
+                                        )!.nopostswiththings,
                                         style: TextStyle(
                                           color: Colors.grey,
                                           fontSize: 10.4.sp,

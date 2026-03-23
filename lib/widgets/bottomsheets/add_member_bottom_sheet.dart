@@ -10,6 +10,7 @@ import '../../../mixin/utility_mixins.dart';
 import '../../../widgets/base64/image_convert.dart';
 import '../../../widgets/custom_card.dart';
 import '../../../widgets/custom_text_styles.dart';
+import '../../languages/l10n/generated/app_localizations.dart';
 
 class AddMemberBottomSheet extends StatefulWidget {
   /// Pre-selected IDs passed from parent (so selections survive re-opens)
@@ -153,7 +154,7 @@ class _AddMemberBottomSheetState extends State<AddMemberBottomSheet>
             ),
             child: Center(
               child: Text(
-                'Add Members',
+                AppLocalizations.of(context)!.addmember,
                 style: TextStyle(
                   fontSize: 13.sp,
                   fontWeight: FontWeight.w600,
@@ -187,7 +188,7 @@ class _AddMemberBottomSheetState extends State<AddMemberBottomSheet>
                     left: 12.w,
                     top: 10.h,
                   ),
-                  hintText: 'Search',
+                  hintText:   AppLocalizations.of(context)!.searchusers,
                   hintStyle: CustomTextStyles.lblPrimaryHintText(context),
                   border: InputBorder.none,
                   suffixIcon: Icon(
@@ -246,8 +247,8 @@ class _AddMemberBottomSheetState extends State<AddMemberBottomSheet>
                 child: Center(
                   child: Text(
                     _selectedIds.isEmpty
-                        ? 'Add'
-                        : 'Add (${_selectedIds.length})',
+                        ?   AppLocalizations.of(context)!.add
+                        : '${AppLocalizations.of(context)!.add} (${_selectedIds.length})',
                     style: CustomTextStyles.btnPrimaryText,
                   ),
                 ),
@@ -278,7 +279,7 @@ class _AddMemberBottomSheetState extends State<AddMemberBottomSheet>
             ),
             SizedBox(height: 10.h),
             Text(
-              'No users found',
+            AppLocalizations.of(context)!.nousersfound,
               style: CustomTextStyles.lblSecondryText(context),
             ),
           ],

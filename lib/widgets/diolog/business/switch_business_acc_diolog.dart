@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../../core/constants/app_colors.dart';
-import '../../../l10n/generated/app_localizations.dart';
+import '../../../languages/l10n/generated/app_localizations.dart';
 
 class SwithBusinessAccDiolog extends StatelessWidget {
   const SwithBusinessAccDiolog({super.key, required this.onPressed});
@@ -15,7 +15,7 @@ class SwithBusinessAccDiolog extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: 325,
-      height: 166.h,
+      height: 192.h,
       padding: EdgeInsets.fromLTRB(15.w, 12.h, 15.w, 12.h),
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.secondaryContainer,
@@ -26,7 +26,7 @@ class SwithBusinessAccDiolog extends StatelessWidget {
           Icon(Icons.auto_graph, color: AppColors.primaryColor, size: 32.sp),
           SizedBox(height: 10.h),
           Text(
-            'Upgrade to Business Account?',
+            AppLocalizations.of(context)!.upgradetobusinessaccount,
             style: TextStyle(
               color: Theme.of(context).colorScheme.onBackground,
               fontSize: 12.sp,
@@ -35,13 +35,27 @@ class SwithBusinessAccDiolog extends StatelessWidget {
           ),
           SizedBox(height: 10.h),
           Text(
-            'You are about to unlock powerful analytics and features. Confirm to proceed.',
+           AppLocalizations.of(context)!.youareabouttounlockpowerfull,
             style: TextStyle(
               color: Theme.of(context).colorScheme.onBackground,
               fontSize: 11.2.sp,
               fontWeight: FontWeight.w400,
             ),
           ),
+           SizedBox(height: 7.h),
+           Row(
+            mainAxisAlignment: MainAxisAlignment.start,
+             children: [
+               Text(
+               AppLocalizations.of(context)!.morefunctionalitywillbesoon,
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onBackground,
+                  fontSize: 11.2.sp,
+                  fontWeight: FontWeight.w400,
+                ),
+                         ),
+             ],
+           ),
           SizedBox(height: 12.h),
           Row(
             mainAxisAlignment: MainAxisAlignment.end,
@@ -61,7 +75,7 @@ class SwithBusinessAccDiolog extends StatelessWidget {
               GestureDetector(
                 onTap: onPressed,
                 child: Text(
-                  'UPGRADE',
+                 AppLocalizations.of(context)!.upgrade,
                   style: TextStyle(
                     fontSize: 12.sp,
                     color: AppColors.primaryColor,

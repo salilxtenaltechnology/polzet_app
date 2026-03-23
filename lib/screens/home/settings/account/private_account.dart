@@ -9,6 +9,7 @@ import 'package:polzet_app/widgets/show_toast.dart';
 import '../../../../api/app_api.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../data/token/shared_preferences.dart';
+import '../../../../languages/l10n/generated/app_localizations.dart';
 import '../../../../widgets/custom_text_styles.dart';
 import '../../../../widgets/loader.dart';
 
@@ -145,7 +146,7 @@ class _PrivateAccountState extends State<PrivateAccount> {
           child: const Icon(Icons.arrow_back_ios),
         ),
         title: Text(
-          'Account Privacy',
+        AppLocalizations.of(context)!.accountprivacy,
           style: CustomTextStyles.appBarTitleText(context),
         ),
         centerTitle: true,
@@ -161,7 +162,7 @@ class _PrivateAccountState extends State<PrivateAccount> {
                   child: Column(
                     children: [
                       _labelModel(
-                        'Private Polzet',
+                        AppLocalizations.of(context)!.privatepolzet,
                         isPrivate,
                         isUpdating
                             ? null
@@ -171,7 +172,7 @@ class _PrivateAccountState extends State<PrivateAccount> {
                       ),
                       SizedBox(height: 5.h),
                       Text(
-                        '• When your Polzet account is public, anyone can see your posts, polls, followers and following lists.',
+                         AppLocalizations.of(context)!.whenyourpolzetaccountispublic,
                         style: TextStyle(
                           color: Theme.of(
                             context,
@@ -182,7 +183,7 @@ class _PrivateAccountState extends State<PrivateAccount> {
                       ),
                       SizedBox(height: 5.h),
                       Text(
-                        '• When your account is private, only the people you approve can see what you share on Polzet.',
+                          AppLocalizations.of(context)!.whenyourpolzetaccountisprivate,
                         style: TextStyle(
                           color: Theme.of(
                             context,

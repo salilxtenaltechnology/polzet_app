@@ -8,7 +8,7 @@ import '../../../../api/api_config.dart';
 import '../../../../api/services/api_service.dart';
 import '../../../../api/services/like/like_service.dart';
 import '../../../../core/constants/app_images.dart';
-import '../../../../l10n/generated/app_localizations.dart';
+import '../../../../languages/l10n/generated/app_localizations.dart';
 import '../../../../models/like/like_uers_model.dart';
 import '../../../../models/posts/user_post_model.dart';
 import '../../../../widgets/base64/image_convert.dart';

@@ -13,9 +13,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../../api/app_api.dart';
 import '../../../../data/token/shared_preferences.dart';
-import '../../../../l10n/generated/app_localizations.dart';
 import '../../../../provider/user_provider.dart';
 import '../../../api/api_config.dart';
+import '../../../languages/l10n/generated/app_localizations.dart';
 import '../../../mixin/utility_mixins.dart';
 import '../../../models/notifications/notification_model.dart';
 import '../../../models/request/incoming_request.dart';
@@ -585,7 +585,7 @@ class NotificationState extends State<Notifications>
 
                         if (snapshot.hasData && snapshot.data!.isNotEmpty) {
                           final notifications = snapshot.data!;
-                         
+
                           return ListView.builder(
                             controller: _allNotificationsScrollController,
                             itemCount:

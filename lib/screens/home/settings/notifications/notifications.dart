@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../../../core/constants/app_colors.dart';
-import '../../../../l10n/generated/app_localizations.dart';
+import '../../../../languages/l10n/generated/app_localizations.dart';
 import '../../../../widgets/custom_text_styles.dart';
 import '../../../../widgets/diolog/custom_diolog.dart';
 

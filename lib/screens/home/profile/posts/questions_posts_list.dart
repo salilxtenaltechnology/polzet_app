@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../../../api/services/api_service.dart';
-import '../../../../l10n/generated/app_localizations.dart';
+import '../../../../languages/l10n/generated/app_localizations.dart';
 import '../../../../models/like/like_uers_model.dart';
 import '../../../../models/posts/user_post_model.dart';
 import '../../../../widgets/button/back_button.dart';
@@ -252,7 +252,7 @@ class QuestionsPostsListState extends State<QuestionsPostsList> {
           : postsPolls.isEmpty
           ? Center(
               child: Text(
-                'No active polls found',
+                 AppLocalizations.of(context)!.noactivepollfound,
                 style: TextStyle(color: Colors.grey[600], fontSize: 11.sp),
               ),
             )

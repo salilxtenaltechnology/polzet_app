@@ -241,42 +241,22 @@ class UserSearchState extends State<UserSearch>
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  'Recent Searches',
+                  AppLocalizations.of(context)!.recentsearches,
                   style: TextStyle(
                     fontSize: 12.5.sp,
                     fontWeight: FontWeight.w600,
                     color: Theme.of(context).colorScheme.onBackground,
                   ),
                 ),
-                TextButton(
-                  onPressed: () {
-                    showDialog(
-                      context: context,
-                      builder: (BuildContext context) {
-                        return AlertDialog(
-                          title: const Text('Clear Search History'),
-                          content: const Text(
-                            'Are you sure you want to clear all search history?',
-                          ),
-                          actions: [
-                            TextButton(
-                              onPressed: () => Navigator.of(context).pop(),
-                              child: const Text('Cancel'),
-                            ),
-                            TextButton(
-                              onPressed: () {
-                                _clearSearchHistory();
-                                Navigator.of(context).pop();
-                              },
-                              child: const Text('Clear All'),
-                            ),
-                          ],
-                        );
-                      },
-                    );
+                GestureDetector(
+                  onTap: () {
+                    searchHistoryDiolog(context, () {
+                      _clearSearchHistory();
+                      Navigator.pop(context);
+                    });
                   },
                   child: Text(
-                    'Clear All',
+                    AppLocalizations.of(context)!.clearall,
                     style: TextStyle(fontSize: 12.sp, color: Colors.red),
                   ),
                 ),
@@ -301,7 +281,7 @@ class UserSearchState extends State<UserSearch>
                   ),
                   SizedBox(height: 16.h),
                   Text(
-                    'No History',
+                    AppLocalizations.of(context)!.nohistory,
                     style: TextStyle(
                       fontSize: 16.sp,
                       fontWeight: FontWeight.w500,
@@ -312,7 +292,7 @@ class UserSearchState extends State<UserSearch>
                   ),
                   SizedBox(height: 8.h),
                   Text(
-                    'Your search history will appear here',
+                    AppLocalizations.of(context)!.yoursearchhistory,
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 12.sp,
@@ -949,7 +929,7 @@ class UserSearchState extends State<UserSearch>
                             // Trending last 24h
                             if (_hashtagsData!.trendingLast24h.isNotEmpty) ...[
                               Text(
-                                'Trending Today',
+                                 AppLocalizations.of(context)!.trendingtoday,
                                 style: TextStyle(
                                   fontSize: 12.5.sp,
                                   fontWeight: FontWeight.w600,
@@ -968,7 +948,7 @@ class UserSearchState extends State<UserSearch>
                             // All time popular
                             if (_hashtagsData!.allTimePopular.isNotEmpty) ...[
                               Text(
-                                'All Time Popular',
+                                AppLocalizations.of(context)!.alltimepopular,
                                 style: TextStyle(
                                   fontSize: 11.sp,
                                   fontWeight: FontWeight.w600,
@@ -990,7 +970,7 @@ class UserSearchState extends State<UserSearch>
                                 child: Padding(
                                   padding: EdgeInsets.only(top: 50.h),
                                   child: Text(
-                                    'No tags available',
+                                    AppLocalizations.of(context)!.notagsavailable,
                                     style: TextStyle(
                                       fontSize: 12.sp,
                                       color: Theme.of(context)

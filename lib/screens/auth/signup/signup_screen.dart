@@ -29,8 +29,6 @@ class _SignupScreenState extends State<SignupScreen> with UtilityMixin {
   String? _countryCode = '91'; // Initialize with default value
   String? _selectedGender;
 
-  List<String> genderOptions = ['Male', 'Female', 'Other'];
-
   @override
   void initState() {
     super.initState();
@@ -569,10 +567,6 @@ class _SignupScreenState extends State<SignupScreen> with UtilityMixin {
                       buildDateOfBirthField(),
                       SizedBox(height: 12.h),
 
-                      // Gender
-                      buildGenderField(),
-                      SizedBox(height: 12.h),
-
                       // Phone Number with Country Code
                       _buildPhoneNumber(_phoneController, _countryCode ?? '91'),
                       SizedBox(height: 12.h),
@@ -770,63 +764,6 @@ class _SignupScreenState extends State<SignupScreen> with UtilityMixin {
     );
   }
 
-  Widget buildGenderField() {
-    return Container(
-      height: 37.h,
-      width: double.infinity,
-      padding: EdgeInsets.only(right: 12.w),
-      decoration: BoxDecoration(
-        color: Colors.transparent,
-        borderRadius: BorderRadius.circular(50.r),
-        border: Border.all(
-          color: Theme.of(context).colorScheme.onBackground.withOpacity(0.1),
-          width: 1,
-        ),
-      ),
-      child: Row(
-        children: [
-          SizedBox(width: 8.w),
-          Icon(
-            Icons.female,
-            size: 28,
-            color: Theme.of(context).colorScheme.onBackground.withOpacity(0.13),
-          ),
-          SizedBox(width: 12.w),
-          Expanded(
-            child: DropdownButtonFormField<String>(
-              value: _selectedGender,
-              decoration: InputDecoration(
-                hintText: "Gender",
-                hintStyle: TextStyle(
-                  color: Theme.of(context).colorScheme.onBackground,
-                  fontSize: 12.8.sp,
-                  fontWeight: FontWeight.w600,
-                ),
-                border: InputBorder.none,
-                contentPadding: EdgeInsets.zero,
-              ),
-              items: genderOptions.map((gender) {
-                return DropdownMenuItem<String>(
-                  value: gender,
-                  child: Text(
-                    gender,
-                    style: CustomTextStyles.lblPrimaryText(context),
-                  ),
-                );
-              }).toList(),
-              onChanged: (String? newValue) {
-                setState(() => _selectedGender = newValue);
-              },
-              iconEnabledColor: Theme.of(
-                context,
-              ).colorScheme.onBackground.withOpacity(0.7),
-              dropdownColor: Theme.of(context).scaffoldBackgroundColor,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 
   Widget _buildPhoneNumber(
     TextEditingController controller,

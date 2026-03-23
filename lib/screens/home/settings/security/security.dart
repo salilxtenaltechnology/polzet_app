@@ -9,7 +9,7 @@ import 'package:feather_icons/feather_icons.dart';
 import 'package:local_auth/local_auth.dart';
 import '../../../../api/services/api_service.dart';
 import '../../../../core/constants/app_colors.dart';
-import '../../../../l10n/generated/app_localizations.dart';
+import '../../../../languages/l10n/generated/app_localizations.dart';
 import '../../../../mixin/utility_mixins.dart';
 import '../../../../widgets/custom_text_styles.dart';
 import '../../../../widgets/diolog/pin_security_diolog.dart';

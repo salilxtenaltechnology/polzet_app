@@ -7,14 +7,18 @@ import 'package:lottie/lottie.dart';
 import '../../../core/constants/app_images.dart';
 import 'block_user_diolog.dart';
 import 'business/switch_business_acc_diolog.dart';
+import 'clear_search_history_diolog.dart';
 import 'confirm_deletion_account_diolog.dart';
+import 'crop_image_diolog.dart';
 import 'delete_account.dart';
+import 'delete_comment_diolog.dart';
 import 'delete_group.dart';
 import 'delete_post_diolog.dart';
 import 'diolog_animation.dart';
 import 'leave_group.dart';
 import 'logout_dialog.dart';
 import 'notifications_diolog.dart';
+import 'report_chat_diolog.dart';
 
 // loading diolog
 void showLoadingDialog(BuildContext context) {
@@ -39,6 +43,21 @@ void showNotificationTimerDiolog(BuildContext context, VoidCallback onTap) {
 // user delete post diolog
 void showUserDeletePostDiolog(BuildContext context, VoidCallback onTap) {
   diologanimation(context, DeletePostDiolog(onPressed: onTap));
+}
+
+// crop image diolog
+Future<bool?> cropImageDiolog(BuildContext context) {
+  return diologanimation<bool>(context, const CropImageDiolog());
+}
+
+// crop image diolog
+void searchHistoryDiolog(BuildContext context,VoidCallback onTap) {
+  diologanimation(context,  ClearSearchHistoryDiolog(onPressed: onTap));
+}
+
+// delete comment diolog
+void showDeleteCommentDiolog(BuildContext context, VoidCallback onTap){
+   diologanimation(context,  DeleteCommentDiolog(onPressed: onTap));
 }
 
 // switch to business diolog
@@ -80,4 +99,9 @@ showLeaveGroupDiolog(BuildContext context, VoidCallback onTap) {
 // delete group diolog
 showDeleteGroupDiolog(BuildContext context, VoidCallback onTap) {
   diologanimation(context, DeleteGroupDiolog(onPressed: onTap));
+}
+
+// delete group diolog
+showReportChatDiolog(BuildContext context, VoidCallback onTap) {
+  diologanimation(context, ReportChatDiolog(onPressed: onTap));
 }

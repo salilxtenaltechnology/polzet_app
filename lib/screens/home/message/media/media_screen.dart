@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
+import '../../../../languages/l10n/generated/app_localizations.dart';
 import '../../../../widgets/custom_text_styles.dart';
 import '../../../../widgets/tabbar/indicatore_animation.dart';
 
@@ -55,19 +56,37 @@ class _MediaScreenState extends State<MediaScreen>
               indicator: FadeUnderlineTabIndicator(),
               overlayColor: const WidgetStatePropertyAll(Colors.transparent),
               unselectedLabelColor: Theme.of(context).colorScheme.onBackground,
-              tabs: const [
-                Tab(text: 'Media'),
-                Tab(text: 'Link'),
-                Tab(text: 'Document'),
+              tabs: [
+                Tab(text: AppLocalizations.of(context)!.media),
+                Tab(text: AppLocalizations.of(context)!.link),
+                Tab(text: AppLocalizations.of(context)!.document),
               ],
             ),
             Expanded(
               child: TabBarView(
                 controller: _tabController,
-                children: const [
-                  Center(child: Text('Photos & Videos')),
-                  Center(child: Text('Links')),
-                  Center(child: Text('Documents')),
+                children: [
+                  Center(child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(AppLocalizations.of(context)!.nomedia),
+                      Text(AppLocalizations.of(context)!.mediasharedinthischatwillappearhere),
+                    ],
+                  )),
+                  Center(child: Column(
+                     mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(AppLocalizations.of(context)!.nolinks),
+                        Text(AppLocalizations.of(context)!.linkssharedinthischatwillappearhere),
+                    ],
+                  )),
+                  Center(child: Column(
+                     mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(AppLocalizations.of(context)!.nodocuments),
+                      Text(AppLocalizations.of(context)!.docssharedinthischatwillappearhere), 
+                    ],
+                  )),
                 ],
               ),
             ),

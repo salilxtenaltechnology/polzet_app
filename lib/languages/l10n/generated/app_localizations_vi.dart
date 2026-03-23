@@ -15,7 +15,22 @@ class AppLocalizationsVi extends AppLocalizations {
   String get hindi => 'Tiếng Hindi';
 
   @override
+  String get arabic => 'Tiếng Ả Rập';
+
+  @override
   String get hello => 'Xin chào';
+
+  @override
+  String get improveyourprofile => 'Cải thiện hồ sơ của bạn';
+
+  @override
+  String get completeprofilesetup => 'Hoàn tất thiết lập hồ sơ';
+
+  @override
+  String get peopleyoumayknow => 'Những người bạn có thể biết';
+
+  @override
+  String get discoverdusers => 'Người dùng được khám phá';
 
   @override
   String get searchgroup => 'Tìm kiếm nhóm';
@@ -39,7 +54,20 @@ class AppLocalizationsVi extends AppLocalizations {
   String get yoursearchhistory => 'Lịch sử tìm kiếm của bạn sẽ xuất hiện ở đây';
 
   @override
+  String get clearsearchhistory => 'Xóa lịch sử tìm kiếm?';
+
+  @override
+  String get areyousurewanttoclearallsaerchhistory =>
+      'Bạn có chắc chắn muốn xóa toàn bộ lịch sử tìm kiếm không?';
+
+  @override
   String get insights => 'Thông tin chi tiết';
+
+  @override
+  String get pollcreated => 'Đã tạo bình chọn';
+
+  @override
+  String get weeklyviews => 'Lượt xem hàng tuần';
 
   @override
   String get insightsareavailable =>
@@ -51,6 +79,20 @@ class AppLocalizationsVi extends AppLocalizations {
 
   @override
   String get switchtobusinessaccount => 'CHUYỂN SANG TÀI KHOẢN DOANH NGHIỆP';
+
+  @override
+  String get upgradetobusinessaccount => 'Nâng cấp lên tài khoản doanh nghiệp?';
+
+  @override
+  String get morefunctionalitywillbesoon =>
+      'Thêm nhiều tính năng sẽ sớm ra mắt!';
+
+  @override
+  String get youareabouttounlockpowerfull =>
+      'Bạn sắp mở khóa các tính năng phân tích và tính năng mạnh mẽ. Xác nhận để tiếp tục.';
+
+  @override
+  String get upgrade => 'NÂNG CẤP';
 
   @override
   String get totalviews => 'Tổng số lượt xem';
@@ -76,19 +118,56 @@ class AppLocalizationsVi extends AppLocalizations {
   String get block => 'Khối';
 
   @override
+  String get unblock => 'Bỏ chặn';
+
+  @override
   String get messages => 'Tin nhắn';
 
   @override
   String get pollgroup => 'Nhóm khảo sát';
 
   @override
-  String get groupcreate => 'Tạo nhóm';
+  String get newgroup => 'Nhóm mới';
 
   @override
-  String get seeallmembers => 'Xem tất cả thành viên';
+  String get creategroup => 'Tạo nhóm';
+
+  @override
+  String get namegroup => 'Tên nhóm';
+
+  @override
+  String get entergroupame => 'Nhập tên nhóm';
+
+  @override
+  String get addmemberstothegroup => 'Thêm thành viên vào nhóm';
 
   @override
   String get members => 'Thành viên';
+
+  @override
+  String get admin => 'Quản trị viên';
+
+  @override
+  String get addmemberstogroup => 'Thêm thành viên vào nhóm';
+
+  @override
+  String get nousersfound => 'Không tìm thấy người dùng';
+
+  @override
+  String get nousersavailable => 'Không có người dùng nào';
+
+  @override
+  String get startchasepeopletoseethemhere =>
+      'Bắt đầu theo dõi mọi người để xem họ ở đây!';
+
+  @override
+  String get add => 'Thêm';
+
+  @override
+  String get makeadmin => 'Đặt làm quản trị viên';
+
+  @override
+  String get removefromgroup => 'Xóa khỏi nhóm';
 
   @override
   String get addmember => 'Thêm thành viên';
@@ -128,6 +207,81 @@ class AppLocalizationsVi extends AppLocalizations {
 
   @override
   String get message => 'Tin nhắn';
+
+  @override
+  String get membersinchat => 'thành viên';
+
+  @override
+  String get nomessagesyetstarttheconversation =>
+      'Chưa có tin nhắn nào.\nHãy bắt đầu cuộc trò chuyện!';
+
+  @override
+  String get seeallmembers => 'Xem tất cả thành viên';
+
+  @override
+  String get medialinksdocs => 'Phương tiện, Liên kết & Tài liệu';
+
+  @override
+  String get media => 'Phương tiện';
+
+  @override
+  String get nomedia => 'Không có phương tiện';
+
+  @override
+  String get mediasharedinthischatwillappearhere =>
+      'Phương tiện được chia sẻ trong cuộc trò chuyện này sẽ xuất hiện ở đây!';
+
+  @override
+  String get link => 'Liên kết';
+
+  @override
+  String get nolinks => 'Không có liên kết';
+
+  @override
+  String get linkssharedinthischatwillappearhere =>
+      'Liên kết được chia sẻ trong cuộc trò chuyện này sẽ xuất hiện ở đây!';
+
+  @override
+  String get document => 'Tài liệu';
+
+  @override
+  String get nodocuments => 'Không có tài liệu';
+
+  @override
+  String get docssharedinthischatwillappearhere =>
+      'Tài liệu được chia sẻ trong cuộc trò chuyện này sẽ xuất hiện ở đây!';
+
+  @override
+  String get mutenotification => 'Tắt thông báo';
+
+  @override
+  String get customnotification => 'Thông báo tùy chỉnh';
+
+  @override
+  String get protectedchat => 'Trò chuyện được bảo vệ';
+
+  @override
+  String get hidechat => 'Ẩn trò chuyện';
+
+  @override
+  String get hidechathistory => 'Ẩn lịch sử trò chuyện';
+
+  @override
+  String get customcolorchat => 'Màu trò chuyện tùy chỉnh';
+
+  @override
+  String get custombackgroundchat => 'Nền trò chuyện tùy chỉnh';
+
+  @override
+  String get deletegroup => 'Xóa nhóm';
+
+  @override
+  String get areyousureyouwanttodeletedeletethisgroup =>
+      'Bạn có chắc chắn muốn xóa nhóm này không?';
+
+  @override
+  String get areyousureyouwanttoreportchatthisuser =>
+      'Bạn có chắc chắn muốn báo cáo cuộc trò chuyện với người dùng này không?';
 
   @override
   String get newvibe => 'Cảm giác mới';
@@ -204,6 +358,10 @@ class AppLocalizationsVi extends AppLocalizations {
   String get allpolls => 'Tất cả khảo sát';
 
   @override
+  String get noactivepollfound =>
+      'Không tìm thấy bình chọn nào đang hoạt động!';
+
+  @override
   String get rememberme => 'Ghi nhớ tôi';
 
   @override
@@ -231,10 +389,16 @@ class AppLocalizationsVi extends AppLocalizations {
   String get cancel => 'Hủy bỏ';
 
   @override
+  String get confirm => 'XÁC NHẬN';
+
+  @override
   String get delete => 'Xóa bỏ';
 
   @override
   String get settings => 'Cài đặt';
+
+  @override
+  String get moresettings => 'Cài đặt thêm';
 
   @override
   String get account => 'Tài khoản';
@@ -246,6 +410,18 @@ class AppLocalizationsVi extends AppLocalizations {
   String get editprofile => 'Chỉnh sửa hồ sơ';
 
   @override
+  String get cropimage => 'Cắt ảnh?';
+
+  @override
+  String get wouldyouliketocroptheimage => 'Bạn có muốn cắt ảnh không?';
+
+  @override
+  String get skip => 'Bỏ qua';
+
+  @override
+  String get crop => 'Cắt';
+
+  @override
   String get usersettings => 'Cài đặt người dùng';
 
   @override
@@ -255,10 +431,36 @@ class AppLocalizationsVi extends AppLocalizations {
   String get vibe => 'Rung cảm';
 
   @override
+  String get nochaseyet => 'Chưa có người theo dõi';
+
+  @override
+  String get whenpeoplechasechaseyoutheywillappearhere =>
+      'Khi mọi người theo dõi bạn, họ sẽ xuất hiện ở đây!';
+
+  @override
+  String get startrechasepeopletoseethemhere =>
+      'Bắt đầu theo dõi lại mọi người để xem họ ở đây!';
+
+  @override
   String get revibe => 'Hồi sinh';
 
   @override
+  String get norechaseyet => 'Chưa có người theo dõi lẫn nhau';
+
+  @override
+  String get notusersfound => 'Không tìm thấy người dùng';
+
+  @override
+  String get trysearchingwithadifferent => 'Hãy thử tìm kiếm với từ khóa khác';
+
+  @override
   String get posts => 'Bài viết';
+
+  @override
+  String get nopostwithimage => 'Không có bài đăng nào có hình ảnh';
+
+  @override
+  String get nopostswiththings => 'Không có bài đăng nào có nội dung';
 
   @override
   String get nopostsfound => 'Không tìm thấy bài viết nào';
@@ -277,6 +479,38 @@ class AppLocalizationsVi extends AppLocalizations {
 
   @override
   String get createyourfirstthings => 'Tạo ra những thứ đầu tiên của bạn';
+
+  @override
+  String get likes => 'Thích';
+
+  @override
+  String get comments => 'Bình luận';
+
+  @override
+  String get nocommentsyet => 'Chưa có bình luận nào!';
+
+  @override
+  String get bethefirsttocomment => 'Hãy là người đầu tiên bình luận';
+
+  @override
+  String get addacomment => 'Thêm bình luận..';
+
+  @override
+  String get deletecomment => 'Xóa bình luận';
+
+  @override
+  String get areyousurewanttodeletethiscomments =>
+      'Bạn có chắc chắn muốn xóa bình luận này không?';
+
+  @override
+  String get voters => 'Người bình chọn';
+
+  @override
+  String get pickedthisastopchoice => 'đã chọn đây là\nlựa chọn hàng đầu';
+
+  @override
+  String get novotersthisimageyet =>
+      'Chưa có người bình chọn cho hình ảnh này!';
 
   @override
   String get votes => 'Phiếu bầu';
@@ -419,6 +653,26 @@ class AppLocalizationsVi extends AppLocalizations {
   String get photos => 'Hình ảnh';
 
   @override
+  String get accountprivacy => 'Quyền riêng tư tài khoản';
+
+  @override
+  String get privatepolzet => 'Polzet riêng tư';
+
+  @override
+  String get whenyourpolzetaccountispublic =>
+      '• Khi tài khoản Polzet của bạn ở chế độ công khai, bất kỳ ai cũng có thể xem bài đăng, bình chọn, người theo dõi và danh sách đang theo dõi của bạn.';
+
+  @override
+  String get whenyourpolzetaccountisprivate =>
+      '• Khi tài khoản của bạn ở chế độ riêng tư, chỉ những người bạn chấp thuận mới có thể xem những gì bạn chia sẻ trên Polzet.';
+
+  @override
+  String get blockedaccounts => 'Tài khoản bị chặn';
+
+  @override
+  String get noblockedaccount => 'Không có tài khoản bị chặn';
+
+  @override
   String get supportandabout => 'Hỗ trợ và giới thiệu';
 
   @override
@@ -429,6 +683,92 @@ class AppLocalizationsVi extends AppLocalizations {
 
   @override
   String get addaccount => 'Thêm tài khoản';
+
+  @override
+  String get feedbackttl => 'Phản hồi';
+
+  @override
+  String get sharefeedback => 'Chia sẻ phản hồi';
+
+  @override
+  String get howwouldyourateyourexperince =>
+      'Bạn đánh giá trải nghiệm của mình như thế nào?';
+
+  @override
+  String get broken => 'Bị lỗi';
+
+  @override
+  String get confusing => 'Khó hiểu';
+
+  @override
+  String get okay => 'Tạm được';
+
+  @override
+  String get good => 'Tốt';
+
+  @override
+  String get loveit => 'Tôi thích';
+
+  @override
+  String get tapastartorate => 'Nhấn vào ngôi sao để đánh giá';
+
+  @override
+  String get subject => 'Chủ đề';
+
+  @override
+  String get egAppissueloginproblem =>
+      'vd. Sự cố ứng dụng, Vấn đề đăng nhập...';
+
+  @override
+  String get category => 'Danh mục';
+
+  @override
+  String get bugreport => 'Báo cáo lỗi';
+
+  @override
+  String get featurerequest => 'Yêu cầu tính năng';
+
+  @override
+  String get uiissue => 'Vấn đề giao diện';
+
+  @override
+  String get perfomance => 'Hiệu suất';
+
+  @override
+  String get general => 'Chung';
+
+  @override
+  String get complaint => 'Khiếu nại';
+
+  @override
+  String get describeyourissueorsuggestionindetails =>
+      'Mô tả chi tiết vấn đề hoặc đề xuất của bạn...';
+
+  @override
+  String get characters => 'Ký tự';
+
+  @override
+  String get submitfeedback => 'Gửi phản hồi';
+
+  @override
+  String get deleteaccount => 'Xóa tài khoản';
+
+  @override
+  String get areyousureyouwanttodeleteyouraccount =>
+      'Bạn có chắc chắn muốn xóa tài khoản của mình không? Tài khoản và tất cả dữ liệu liên quan sẽ bị xóa vĩnh viễn. Bạn có thể khôi phục trong vòng 30 ngày.';
+
+  @override
+  String get confirmdelete => 'XÁC NHẬN, XÓA';
+
+  @override
+  String get yesdelete => 'CÓ, XÓA';
+
+  @override
+  String get confirmaccountdeletion => 'Xác nhận xóa tài khoản';
+
+  @override
+  String get enteryourpasswordtopermentlydeleteyouraccount =>
+      'Nhập mật khẩu của bạn để xóa vĩnh viễn tài khoản.';
 
   @override
   String get logout => 'Đăng xuất';
@@ -1280,4 +1620,112 @@ class AppLocalizationsVi extends AppLocalizations {
   @override
   String get byusingpolzetyouacknowledge =>
       'Bằng cách sử dụng Polzet, bạn thừa nhận rằng bạn đã đọc và hiểu các điều khoản này và đồng ý bị ràng buộc bởi chúng. Cảm ơn bạn đã trở thành một phần của cộng đồng chúng tôi!';
+
+  @override
+  String get polloptions => 'Tùy chọn bình chọn';
+
+  @override
+  String get takephoto => 'Chụp ảnh';
+
+  @override
+  String get choosefromgallery => 'Chọn từ thư viện';
+
+  @override
+  String get leavegroup => 'Rời nhóm';
+
+  @override
+  String get areyousureyouwanttoleavethisgroup =>
+      'Bạn có chắc chắn muốn rời khỏi nhóm này không?';
+
+  @override
+  String get yesleave => 'CÓ, RỜI NHÓM';
+
+  @override
+  String get member => 'Thành viên';
+
+  @override
+  String get subjectisrequired => 'Tiêu đề là bắt buộc';
+
+  @override
+  String get messagemustbeatleasttencharacters =>
+      'Tin nhắn phải có ít nhất 10 ký tự';
+
+  @override
+  String get setaccountpassword => 'Đặt mật khẩu tài khoản';
+
+  @override
+  String get addapasswordtosigninwithoutgoogle =>
+      'Thêm mật khẩu để đăng nhập không cần Google';
+
+  @override
+  String get setapasswordsoyoucansigninwithoutgoogle =>
+      'Đặt mật khẩu để bạn có thể đăng nhập không cần Google';
+
+  @override
+  String get setpassword => 'Đặt mật khẩu';
+
+  @override
+  String get reenternewpassword => 'Nhập lại mật khẩu mới';
+
+  @override
+  String get savepassword => 'Lưu mật khẩu';
+
+  @override
+  String get trendingtoday => 'Thịnh hành hôm nay';
+
+  @override
+  String get alltimepopular => 'Phổ biến mọi thời đại';
+
+  @override
+  String get nochatsyet => 'Chưa có cuộc trò chuyện nào';
+
+  @override
+  String get editmembers => 'Chỉnh sửa thành viên';
+
+  @override
+  String get nolikesthispost => 'Chưa ai thích bài đăng này';
+
+  @override
+  String get editcomments => 'Chỉnh sửa bình luận..';
+
+  @override
+  String get save => 'Lưu';
+
+  @override
+  String get whatdoyouthinkforthis => 'Bạn nghĩ gì về điều này?';
+
+  @override
+  String get reportchat => 'Báo cáo cuộc trò chuyện';
+
+  @override
+  String get yesreport => 'CÓ, BÁO CÁO';
+
+  @override
+  String get allimages => 'Tất cả hình ảnh';
+
+  @override
+  String get polled => 'Đã bình chọn';
+
+  @override
+  String get voterspickedthisastopchoicesheet =>
+      'người chọn đây là lựa chọn hàng đầu ';
+
+  @override
+  String get peoplelikeyouchosetop => 'người giống bạn đã chọn hàng đầu';
+
+  @override
+  String get notagsavailable => 'Không có thẻ nào';
+
+  @override
+  String get messageisrequired => 'Tin nhắn là bắt buộc';
+
+  @override
+  String get pleasefillinallfields => 'Vui lòng điền vào tất cả các trường';
+
+  @override
+  String get passwordmustbeatleasteightcharacters =>
+      'Mật khẩu phải có ít nhất 8 ký tự';
+
+  @override
+  String get passworddonotmatch => 'Mật khẩu không khớp';
 }

@@ -120,11 +120,41 @@ abstract class AppLocalizations {
   /// **'Hindi'**
   String get hindi;
 
+  /// No description provided for @arabic.
+  ///
+  /// In en, this message translates to:
+  /// **'Árabe'**
+  String get arabic;
+
   /// No description provided for @hello.
   ///
   /// In en, this message translates to:
   /// **'Hello'**
   String get hello;
+
+  /// No description provided for @improveyourprofile.
+  ///
+  /// In en, this message translates to:
+  /// **'Improve your profile'**
+  String get improveyourprofile;
+
+  /// No description provided for @completeprofilesetup.
+  ///
+  /// In en, this message translates to:
+  /// **'Complete profile setup'**
+  String get completeprofilesetup;
+
+  /// No description provided for @peopleyoumayknow.
+  ///
+  /// In en, this message translates to:
+  /// **'People you may know'**
+  String get peopleyoumayknow;
+
+  /// No description provided for @discoverdusers.
+  ///
+  /// In en, this message translates to:
+  /// **'Discoverd users'**
+  String get discoverdusers;
 
   /// No description provided for @searchgroup.
   ///
@@ -168,11 +198,35 @@ abstract class AppLocalizations {
   /// **'Your search history will appear here'**
   String get yoursearchhistory;
 
+  /// No description provided for @clearsearchhistory.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear search history?'**
+  String get clearsearchhistory;
+
+  /// No description provided for @areyousurewanttoclearallsaerchhistory.
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure want to clear all saerch history?'**
+  String get areyousurewanttoclearallsaerchhistory;
+
   /// No description provided for @insights.
   ///
   /// In en, this message translates to:
   /// **'Insights'**
   String get insights;
+
+  /// No description provided for @pollcreated.
+  ///
+  /// In en, this message translates to:
+  /// **'Poll Created'**
+  String get pollcreated;
+
+  /// No description provided for @weeklyviews.
+  ///
+  /// In en, this message translates to:
+  /// **'Weekly Views'**
+  String get weeklyviews;
 
   /// No description provided for @insightsareavailable.
   ///
@@ -191,6 +245,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'SWITCH TO BUSINESS ACCOUNT'**
   String get switchtobusinessaccount;
+
+  /// No description provided for @upgradetobusinessaccount.
+  ///
+  /// In en, this message translates to:
+  /// **'Upgrade to business account?'**
+  String get upgradetobusinessaccount;
+
+  /// No description provided for @morefunctionalitywillbesoon.
+  ///
+  /// In en, this message translates to:
+  /// **'More Functionality will be soon!'**
+  String get morefunctionalitywillbesoon;
+
+  /// No description provided for @youareabouttounlockpowerfull.
+  ///
+  /// In en, this message translates to:
+  /// **'You are about to unlock powerful analytics and features. Confirm to proceed.'**
+  String get youareabouttounlockpowerfull;
+
+  /// No description provided for @upgrade.
+  ///
+  /// In en, this message translates to:
+  /// **'UPGRADE'**
+  String get upgrade;
 
   /// No description provided for @totalviews.
   ///
@@ -234,6 +312,12 @@ abstract class AppLocalizations {
   /// **'Block'**
   String get block;
 
+  /// No description provided for @unblock.
+  ///
+  /// In en, this message translates to:
+  /// **'Unblock'**
+  String get unblock;
+
   /// No description provided for @messages.
   ///
   /// In en, this message translates to:
@@ -246,23 +330,89 @@ abstract class AppLocalizations {
   /// **'Poll group'**
   String get pollgroup;
 
-  /// No description provided for @groupcreate.
+  /// No description provided for @newgroup.
   ///
   /// In en, this message translates to:
-  /// **'Group Create'**
-  String get groupcreate;
+  /// **'New Group'**
+  String get newgroup;
 
-  /// No description provided for @seeallmembers.
+  /// No description provided for @creategroup.
   ///
   /// In en, this message translates to:
-  /// **'See all members'**
-  String get seeallmembers;
+  /// **'Create Group'**
+  String get creategroup;
+
+  /// No description provided for @namegroup.
+  ///
+  /// In en, this message translates to:
+  /// **'Name Group'**
+  String get namegroup;
+
+  /// No description provided for @entergroupame.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter group name'**
+  String get entergroupame;
+
+  /// No description provided for @addmemberstothegroup.
+  ///
+  /// In en, this message translates to:
+  /// **'Add members to the group'**
+  String get addmemberstothegroup;
 
   /// No description provided for @members.
   ///
   /// In en, this message translates to:
   /// **'Members'**
   String get members;
+
+  /// No description provided for @admin.
+  ///
+  /// In en, this message translates to:
+  /// **'Admin'**
+  String get admin;
+
+  /// No description provided for @addmemberstogroup.
+  ///
+  /// In en, this message translates to:
+  /// **'Add members to group'**
+  String get addmemberstogroup;
+
+  /// No description provided for @nousersfound.
+  ///
+  /// In en, this message translates to:
+  /// **'No users found'**
+  String get nousersfound;
+
+  /// No description provided for @nousersavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'No users available'**
+  String get nousersavailable;
+
+  /// No description provided for @startchasepeopletoseethemhere.
+  ///
+  /// In en, this message translates to:
+  /// **'Start chase people to see them here!'**
+  String get startchasepeopletoseethemhere;
+
+  /// No description provided for @add.
+  ///
+  /// In en, this message translates to:
+  /// **'Add'**
+  String get add;
+
+  /// No description provided for @makeadmin.
+  ///
+  /// In en, this message translates to:
+  /// **'Make Admin'**
+  String get makeadmin;
+
+  /// No description provided for @removefromgroup.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove from group'**
+  String get removefromgroup;
 
   /// No description provided for @addmember.
   ///
@@ -341,6 +491,144 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Message'**
   String get message;
+
+  /// No description provided for @membersinchat.
+  ///
+  /// In en, this message translates to:
+  /// **'members'**
+  String get membersinchat;
+
+  /// No description provided for @nomessagesyetstarttheconversation.
+  ///
+  /// In en, this message translates to:
+  /// **'No messages yet.\nStart the conversation!'**
+  String get nomessagesyetstarttheconversation;
+
+  /// No description provided for @seeallmembers.
+  ///
+  /// In en, this message translates to:
+  /// **'See all members'**
+  String get seeallmembers;
+
+  /// No description provided for @medialinksdocs.
+  ///
+  /// In en, this message translates to:
+  /// **'Media, Links & Documents'**
+  String get medialinksdocs;
+
+  /// No description provided for @media.
+  ///
+  /// In en, this message translates to:
+  /// **'Media'**
+  String get media;
+
+  /// No description provided for @nomedia.
+  ///
+  /// In en, this message translates to:
+  /// **'No media'**
+  String get nomedia;
+
+  /// No description provided for @mediasharedinthischatwillappearhere.
+  ///
+  /// In en, this message translates to:
+  /// **'Media shared in this chat will appear here!'**
+  String get mediasharedinthischatwillappearhere;
+
+  /// No description provided for @link.
+  ///
+  /// In en, this message translates to:
+  /// **'Link'**
+  String get link;
+
+  /// No description provided for @nolinks.
+  ///
+  /// In en, this message translates to:
+  /// **'No links'**
+  String get nolinks;
+
+  /// No description provided for @linkssharedinthischatwillappearhere.
+  ///
+  /// In en, this message translates to:
+  /// **'Links shared in this chat will appear here!'**
+  String get linkssharedinthischatwillappearhere;
+
+  /// No description provided for @document.
+  ///
+  /// In en, this message translates to:
+  /// **'Document'**
+  String get document;
+
+  /// No description provided for @nodocuments.
+  ///
+  /// In en, this message translates to:
+  /// **'No documents'**
+  String get nodocuments;
+
+  /// No description provided for @docssharedinthischatwillappearhere.
+  ///
+  /// In en, this message translates to:
+  /// **'Docs shared in this chat will appear here!'**
+  String get docssharedinthischatwillappearhere;
+
+  /// No description provided for @mutenotification.
+  ///
+  /// In en, this message translates to:
+  /// **'Mute Notification'**
+  String get mutenotification;
+
+  /// No description provided for @customnotification.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom Notification'**
+  String get customnotification;
+
+  /// No description provided for @protectedchat.
+  ///
+  /// In en, this message translates to:
+  /// **'Protected Chat'**
+  String get protectedchat;
+
+  /// No description provided for @hidechat.
+  ///
+  /// In en, this message translates to:
+  /// **'Hide Chat'**
+  String get hidechat;
+
+  /// No description provided for @hidechathistory.
+  ///
+  /// In en, this message translates to:
+  /// **'Hide Chat History'**
+  String get hidechathistory;
+
+  /// No description provided for @customcolorchat.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom Color Chat'**
+  String get customcolorchat;
+
+  /// No description provided for @custombackgroundchat.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom Background Chat'**
+  String get custombackgroundchat;
+
+  /// No description provided for @deletegroup.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete group'**
+  String get deletegroup;
+
+  /// No description provided for @areyousureyouwanttodeletedeletethisgroup.
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to delete this group?'**
+  String get areyousureyouwanttodeletedeletethisgroup;
+
+  /// No description provided for @areyousureyouwanttoreportchatthisuser.
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to report chat this user?'**
+  String get areyousureyouwanttoreportchatthisuser;
 
   /// No description provided for @newvibe.
   ///
@@ -486,6 +774,12 @@ abstract class AppLocalizations {
   /// **'All Polls'**
   String get allpolls;
 
+  /// No description provided for @noactivepollfound.
+  ///
+  /// In en, this message translates to:
+  /// **'No active poll found!'**
+  String get noactivepollfound;
+
   /// No description provided for @rememberme.
   ///
   /// In en, this message translates to:
@@ -540,6 +834,12 @@ abstract class AppLocalizations {
   /// **'Cancel'**
   String get cancel;
 
+  /// No description provided for @confirm.
+  ///
+  /// In en, this message translates to:
+  /// **'CONFIRM'**
+  String get confirm;
+
   /// No description provided for @delete.
   ///
   /// In en, this message translates to:
@@ -551,6 +851,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Settings'**
   String get settings;
+
+  /// No description provided for @moresettings.
+  ///
+  /// In en, this message translates to:
+  /// **'More Settings'**
+  String get moresettings;
 
   /// No description provided for @account.
   ///
@@ -570,6 +876,30 @@ abstract class AppLocalizations {
   /// **'Edit Profile'**
   String get editprofile;
 
+  /// No description provided for @cropimage.
+  ///
+  /// In en, this message translates to:
+  /// **'Crop Image?'**
+  String get cropimage;
+
+  /// No description provided for @wouldyouliketocroptheimage.
+  ///
+  /// In en, this message translates to:
+  /// **'Would you like to crop the image?'**
+  String get wouldyouliketocroptheimage;
+
+  /// No description provided for @skip.
+  ///
+  /// In en, this message translates to:
+  /// **'Skip'**
+  String get skip;
+
+  /// No description provided for @crop.
+  ///
+  /// In en, this message translates to:
+  /// **'Crop'**
+  String get crop;
+
   /// No description provided for @usersettings.
   ///
   /// In en, this message translates to:
@@ -588,17 +918,65 @@ abstract class AppLocalizations {
   /// **'Chase'**
   String get vibe;
 
+  /// No description provided for @nochaseyet.
+  ///
+  /// In en, this message translates to:
+  /// **'No chase yet'**
+  String get nochaseyet;
+
+  /// No description provided for @whenpeoplechasechaseyoutheywillappearhere.
+  ///
+  /// In en, this message translates to:
+  /// **'When people chase you, they will appear here!'**
+  String get whenpeoplechasechaseyoutheywillappearhere;
+
+  /// No description provided for @startrechasepeopletoseethemhere.
+  ///
+  /// In en, this message translates to:
+  /// **'Start re-chase people to see them here!'**
+  String get startrechasepeopletoseethemhere;
+
   /// No description provided for @revibe.
   ///
   /// In en, this message translates to:
   /// **'Re-chase'**
   String get revibe;
 
+  /// No description provided for @norechaseyet.
+  ///
+  /// In en, this message translates to:
+  /// **'No re-chase yet'**
+  String get norechaseyet;
+
+  /// No description provided for @notusersfound.
+  ///
+  /// In en, this message translates to:
+  /// **'No users found'**
+  String get notusersfound;
+
+  /// No description provided for @trysearchingwithadifferent.
+  ///
+  /// In en, this message translates to:
+  /// **'Try searching with a different keyword'**
+  String get trysearchingwithadifferent;
+
   /// No description provided for @posts.
   ///
   /// In en, this message translates to:
   /// **'Posts'**
   String get posts;
+
+  /// No description provided for @nopostwithimage.
+  ///
+  /// In en, this message translates to:
+  /// **'No post with image'**
+  String get nopostwithimage;
+
+  /// No description provided for @nopostswiththings.
+  ///
+  /// In en, this message translates to:
+  /// **'No post with things'**
+  String get nopostswiththings;
 
   /// No description provided for @nopostsfound.
   ///
@@ -635,6 +1013,66 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Create your first things'**
   String get createyourfirstthings;
+
+  /// No description provided for @likes.
+  ///
+  /// In en, this message translates to:
+  /// **'Likes'**
+  String get likes;
+
+  /// No description provided for @comments.
+  ///
+  /// In en, this message translates to:
+  /// **'Comments'**
+  String get comments;
+
+  /// No description provided for @nocommentsyet.
+  ///
+  /// In en, this message translates to:
+  /// **'No comments yet!'**
+  String get nocommentsyet;
+
+  /// No description provided for @bethefirsttocomment.
+  ///
+  /// In en, this message translates to:
+  /// **'Be the first to comment'**
+  String get bethefirsttocomment;
+
+  /// No description provided for @addacomment.
+  ///
+  /// In en, this message translates to:
+  /// **'Add a comment..'**
+  String get addacomment;
+
+  /// No description provided for @deletecomment.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete Comment'**
+  String get deletecomment;
+
+  /// No description provided for @areyousurewanttodeletethiscomments.
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure want to delete this comments?'**
+  String get areyousurewanttodeletethiscomments;
+
+  /// No description provided for @voters.
+  ///
+  /// In en, this message translates to:
+  /// **'Voters'**
+  String get voters;
+
+  /// No description provided for @pickedthisastopchoice.
+  ///
+  /// In en, this message translates to:
+  /// **'picked this as\ntop choice'**
+  String get pickedthisastopchoice;
+
+  /// No description provided for @novotersthisimageyet.
+  ///
+  /// In en, this message translates to:
+  /// **'No voters this images yet!'**
+  String get novotersthisimageyet;
 
   /// No description provided for @votes.
   ///
@@ -912,6 +1350,42 @@ abstract class AppLocalizations {
   /// **'Photos'**
   String get photos;
 
+  /// No description provided for @accountprivacy.
+  ///
+  /// In en, this message translates to:
+  /// **'Account Privacy'**
+  String get accountprivacy;
+
+  /// No description provided for @privatepolzet.
+  ///
+  /// In en, this message translates to:
+  /// **'Private Polzet'**
+  String get privatepolzet;
+
+  /// No description provided for @whenyourpolzetaccountispublic.
+  ///
+  /// In en, this message translates to:
+  /// **'• When your Polzet account is public, anyone can see your posts, polls, followers and following lists.'**
+  String get whenyourpolzetaccountispublic;
+
+  /// No description provided for @whenyourpolzetaccountisprivate.
+  ///
+  /// In en, this message translates to:
+  /// **'• When your account is private, only the people you approve can see what you share on Polzet.'**
+  String get whenyourpolzetaccountisprivate;
+
+  /// No description provided for @blockedaccounts.
+  ///
+  /// In en, this message translates to:
+  /// **'Blocked Accounts'**
+  String get blockedaccounts;
+
+  /// No description provided for @noblockedaccount.
+  ///
+  /// In en, this message translates to:
+  /// **'No blocked account'**
+  String get noblockedaccount;
+
   /// No description provided for @supportandabout.
   ///
   /// In en, this message translates to:
@@ -935,6 +1409,168 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Add account'**
   String get addaccount;
+
+  /// No description provided for @feedbackttl.
+  ///
+  /// In en, this message translates to:
+  /// **'Feedback'**
+  String get feedbackttl;
+
+  /// No description provided for @sharefeedback.
+  ///
+  /// In en, this message translates to:
+  /// **'Share Feedback'**
+  String get sharefeedback;
+
+  /// No description provided for @howwouldyourateyourexperince.
+  ///
+  /// In en, this message translates to:
+  /// **'How would you rate your experince?'**
+  String get howwouldyourateyourexperince;
+
+  /// No description provided for @broken.
+  ///
+  /// In en, this message translates to:
+  /// **'Broken'**
+  String get broken;
+
+  /// No description provided for @confusing.
+  ///
+  /// In en, this message translates to:
+  /// **'Confusing'**
+  String get confusing;
+
+  /// No description provided for @okay.
+  ///
+  /// In en, this message translates to:
+  /// **'Okay'**
+  String get okay;
+
+  /// No description provided for @good.
+  ///
+  /// In en, this message translates to:
+  /// **'Good'**
+  String get good;
+
+  /// No description provided for @loveit.
+  ///
+  /// In en, this message translates to:
+  /// **'Love it'**
+  String get loveit;
+
+  /// No description provided for @tapastartorate.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap a star to rate'**
+  String get tapastartorate;
+
+  /// No description provided for @subject.
+  ///
+  /// In en, this message translates to:
+  /// **'Subject'**
+  String get subject;
+
+  /// No description provided for @egAppissueloginproblem.
+  ///
+  /// In en, this message translates to:
+  /// **'e.g. App Issue, Login Problem...'**
+  String get egAppissueloginproblem;
+
+  /// No description provided for @category.
+  ///
+  /// In en, this message translates to:
+  /// **'Category'**
+  String get category;
+
+  /// No description provided for @bugreport.
+  ///
+  /// In en, this message translates to:
+  /// **'Bug Report'**
+  String get bugreport;
+
+  /// No description provided for @featurerequest.
+  ///
+  /// In en, this message translates to:
+  /// **'Feature Request'**
+  String get featurerequest;
+
+  /// No description provided for @uiissue.
+  ///
+  /// In en, this message translates to:
+  /// **'UI Issue'**
+  String get uiissue;
+
+  /// No description provided for @perfomance.
+  ///
+  /// In en, this message translates to:
+  /// **'Perfomance'**
+  String get perfomance;
+
+  /// No description provided for @general.
+  ///
+  /// In en, this message translates to:
+  /// **'General'**
+  String get general;
+
+  /// No description provided for @complaint.
+  ///
+  /// In en, this message translates to:
+  /// **'Complaint'**
+  String get complaint;
+
+  /// No description provided for @describeyourissueorsuggestionindetails.
+  ///
+  /// In en, this message translates to:
+  /// **'Describe your issue or suggestion in details...'**
+  String get describeyourissueorsuggestionindetails;
+
+  /// No description provided for @characters.
+  ///
+  /// In en, this message translates to:
+  /// **'Characters'**
+  String get characters;
+
+  /// No description provided for @submitfeedback.
+  ///
+  /// In en, this message translates to:
+  /// **'Submit Feedback'**
+  String get submitfeedback;
+
+  /// No description provided for @deleteaccount.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete Account'**
+  String get deleteaccount;
+
+  /// No description provided for @areyousureyouwanttodeleteyouraccount.
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to delete your account? Permanently remove your account and all associated data. You can restore it within 30 days.'**
+  String get areyousureyouwanttodeleteyouraccount;
+
+  /// No description provided for @confirmdelete.
+  ///
+  /// In en, this message translates to:
+  /// **'CONFIRM, DELETE'**
+  String get confirmdelete;
+
+  /// No description provided for @yesdelete.
+  ///
+  /// In en, this message translates to:
+  /// **'YES, DELETE'**
+  String get yesdelete;
+
+  /// No description provided for @confirmaccountdeletion.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm Account Deletion'**
+  String get confirmaccountdeletion;
+
+  /// No description provided for @enteryourpasswordtopermentlydeleteyouraccount.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter your password to permently delete your account.'**
+  String get enteryourpasswordtopermentlydeleteyouraccount;
 
   /// No description provided for @logout.
   ///
@@ -2375,6 +3011,210 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'By using Polzet, you acknowledge that you have read and understood these Terms and agree to be bound by them. Thank you for being part of our community!'**
   String get byusingpolzetyouacknowledge;
+
+  /// No description provided for @polloptions.
+  ///
+  /// In en, this message translates to:
+  /// **'Poll Options'**
+  String get polloptions;
+
+  /// No description provided for @takephoto.
+  ///
+  /// In en, this message translates to:
+  /// **'Take Photo'**
+  String get takephoto;
+
+  /// No description provided for @choosefromgallery.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose from gallery'**
+  String get choosefromgallery;
+
+  /// No description provided for @leavegroup.
+  ///
+  /// In en, this message translates to:
+  /// **'Leave Group'**
+  String get leavegroup;
+
+  /// No description provided for @areyousureyouwanttoleavethisgroup.
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to leave this group?'**
+  String get areyousureyouwanttoleavethisgroup;
+
+  /// No description provided for @yesleave.
+  ///
+  /// In en, this message translates to:
+  /// **'YES, LEAVE'**
+  String get yesleave;
+
+  /// No description provided for @member.
+  ///
+  /// In en, this message translates to:
+  /// **'member'**
+  String get member;
+
+  /// No description provided for @subjectisrequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Subject is required'**
+  String get subjectisrequired;
+
+  /// No description provided for @messagemustbeatleasttencharacters.
+  ///
+  /// In en, this message translates to:
+  /// **'Message must be at least 10 characters'**
+  String get messagemustbeatleasttencharacters;
+
+  /// No description provided for @setaccountpassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Set Account Password'**
+  String get setaccountpassword;
+
+  /// No description provided for @addapasswordtosigninwithoutgoogle.
+  ///
+  /// In en, this message translates to:
+  /// **'Add a password to sign in without Google'**
+  String get addapasswordtosigninwithoutgoogle;
+
+  /// No description provided for @setapasswordsoyoucansigninwithoutgoogle.
+  ///
+  /// In en, this message translates to:
+  /// **'Set a password so you can sign in without Google'**
+  String get setapasswordsoyoucansigninwithoutgoogle;
+
+  /// No description provided for @setpassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Set Password'**
+  String get setpassword;
+
+  /// No description provided for @reenternewpassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Re-enter new password'**
+  String get reenternewpassword;
+
+  /// No description provided for @savepassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Save Password'**
+  String get savepassword;
+
+  /// No description provided for @trendingtoday.
+  ///
+  /// In en, this message translates to:
+  /// **'Trending today'**
+  String get trendingtoday;
+
+  /// No description provided for @alltimepopular.
+  ///
+  /// In en, this message translates to:
+  /// **'All time popular'**
+  String get alltimepopular;
+
+  /// No description provided for @nochatsyet.
+  ///
+  /// In en, this message translates to:
+  /// **'No chats yet'**
+  String get nochatsyet;
+
+  /// No description provided for @editmembers.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit members'**
+  String get editmembers;
+
+  /// No description provided for @nolikesthispost.
+  ///
+  /// In en, this message translates to:
+  /// **'No likes this post'**
+  String get nolikesthispost;
+
+  /// No description provided for @editcomments.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit comment..'**
+  String get editcomments;
+
+  /// No description provided for @save.
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get save;
+
+  /// No description provided for @whatdoyouthinkforthis.
+  ///
+  /// In en, this message translates to:
+  /// **'What do you think for this?'**
+  String get whatdoyouthinkforthis;
+
+  /// No description provided for @reportchat.
+  ///
+  /// In en, this message translates to:
+  /// **'Report chat'**
+  String get reportchat;
+
+  /// No description provided for @yesreport.
+  ///
+  /// In en, this message translates to:
+  /// **'YES, REPORT'**
+  String get yesreport;
+
+  /// No description provided for @allimages.
+  ///
+  /// In en, this message translates to:
+  /// **'All images'**
+  String get allimages;
+
+  /// No description provided for @polled.
+  ///
+  /// In en, this message translates to:
+  /// **'Polled'**
+  String get polled;
+
+  /// No description provided for @voterspickedthisastopchoicesheet.
+  ///
+  /// In en, this message translates to:
+  /// **'picked this as top choice '**
+  String get voterspickedthisastopchoicesheet;
+
+  /// No description provided for @peoplelikeyouchosetop.
+  ///
+  /// In en, this message translates to:
+  /// **'people like you chose top'**
+  String get peoplelikeyouchosetop;
+
+  /// No description provided for @notagsavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'No tags available'**
+  String get notagsavailable;
+
+  /// No description provided for @messageisrequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Message is required'**
+  String get messageisrequired;
+
+  /// No description provided for @pleasefillinallfields.
+  ///
+  /// In en, this message translates to:
+  /// **'Please fill in all fields'**
+  String get pleasefillinallfields;
+
+  /// No description provided for @passwordmustbeatleasteightcharacters.
+  ///
+  /// In en, this message translates to:
+  /// **'Password must be at least 8 characters'**
+  String get passwordmustbeatleasteightcharacters;
+
+  /// No description provided for @passworddonotmatch.
+  ///
+  /// In en, this message translates to:
+  /// **'Password do not match'**
+  String get passworddonotmatch;
 }
 
 class _AppLocalizationsDelegate

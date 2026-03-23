@@ -69,6 +69,12 @@ class SettingsState extends State<Settings>
         await SharedPrefService.clearUsername();
         await SharedPrefService.clearUserBio();
         await SharedPrefService.removeFcmToken();
+        await SharedPrefService.clearLanguage();
+        MyApp.of(context)?.resetLocale();
+
+        if (mounted) {
+          context.read<UserProvider>().clearUserData();
+        }
 
         clearStackAndAddScreen(context, const LoginScreen());
         showToast(message: 'Logged out successfully');
@@ -101,6 +107,7 @@ class SettingsState extends State<Settings>
         await SharedPrefService.clearUsername();
         await SharedPrefService.clearUserBio();
         await SharedPrefService.removeFcmToken();
+        await SharedPrefService.clearLanguage();
 
         // Clear provider state
         if (mounted) {
@@ -132,13 +139,13 @@ class SettingsState extends State<Settings>
         toolbarHeight: 25.h,
         leading: const PrimaryBackButton(),
         title: Text(
-          'Settings',
+          AppLocalizations.of(context)!.settings,
           style: CustomTextStyles.appBarTitleText(context),
         ),
         centerTitle: true,
         backgroundColor: Theme.of(context).colorScheme.background,
       ),
-      body: Padding(
+      body: SingleChildScrollView(
         padding: EdgeInsets.symmetric(horizontal: 12.w),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -259,7 +266,7 @@ class SettingsState extends State<Settings>
                   SizedBox(height: 5.h),
                   _lalbelModel(
                     Icons.privacy_tip_outlined,
-                    'Account Privacy',
+                    AppLocalizations.of(context)!.accountprivacy,
                     onTap: () {
                       navigationPush(context, const PrivateAccount());
                     },
@@ -274,7 +281,7 @@ class SettingsState extends State<Settings>
                   SizedBox(height: 5.h),
                   _lalbelModel(
                     Icons.block,
-                    'Blocked Accounts',
+                    AppLocalizations.of(context)!.blockedaccounts,
                     onTap: () {
                       navigationPush(context, const BlockAccounts());
                     },
@@ -321,12 +328,12 @@ class SettingsState extends State<Settings>
             _contentModel(
               Column(
                 children: [
-                   _lalbelModel(
+                  _lalbelModel(
                     Icons.reviews_rounded,
-                    'Feedback',
+                    AppLocalizations.of(context)!.feedbackttl,
                     onTap: () {
                       navigationPush(context, const FeedbackScreen());
-                    }
+                    },
                   ),
                   SizedBox(height: 5.h),
                   Divider(
@@ -338,7 +345,7 @@ class SettingsState extends State<Settings>
                   SizedBox(height: 5.h),
                   _lalbelModel(
                     FeatherIcons.delete,
-                    'Delete Account',
+                    AppLocalizations.of(context)!.deleteaccount,
                     onTap: () {
                       showDeleteAccountDiolog(context, () {
                         Navigator.pop(context); // close info dialog

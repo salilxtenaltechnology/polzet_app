@@ -3,6 +3,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:polzet_app/core/constants/app_colors.dart';
+import 'package:polzet_app/languages/l10n/generated/app_localizations.dart';
+import 'package:polzet_app/widgets/show_toast.dart';
 
 import '../../../api/services/api_service.dart';
 import '../../../mixin/utility_mixins.dart';
@@ -64,11 +66,11 @@ class _CreateGroupState extends State<CreateGroup> with UtilityMixin {
     final groupName = _groupNameController.text.trim();
 
     if (groupName.isEmpty) {
-      _showSnackBar('Please enter a group name.');
+      showToast(message: 'Please enter a group name');
       return;
     }
     if (_selectedIds.isEmpty) {
-      _showSnackBar('Please select at least one member.');
+      showToast(message: 'Please select at least one member');
       return;
     }
 
@@ -83,7 +85,7 @@ class _CreateGroupState extends State<CreateGroup> with UtilityMixin {
       if (result['success'] == true) {
         if (mounted) Navigator.pop(context, result['chat_id']);
       } else {
-        _showSnackBar(result['message'] ?? 'Failed to create group.');
+        showToast(message: 'Failed to create group');
       }
     } finally {
       if (mounted) setState(() => _isCreating = false);
@@ -97,13 +99,6 @@ class _CreateGroupState extends State<CreateGroup> with UtilityMixin {
       _selectedIds.remove(id);
       _selectedUsers.removeWhere((u) => u['id'] == id);
     });
-  }
-
-  void _showSnackBar(String message) {
-    if (!mounted) return;
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   String _userName(Map<String, dynamic> user) =>
@@ -124,7 +119,7 @@ class _CreateGroupState extends State<CreateGroup> with UtilityMixin {
         automaticallyImplyLeading: false,
         leading: const PrimaryBackButton(),
         title: Text(
-          'Create Group',
+        AppLocalizations.of(context)!.creategroup,
           style: CustomTextStyles.appBarTitleText(context),
         ),
         centerTitle: true,
@@ -136,7 +131,7 @@ class _CreateGroupState extends State<CreateGroup> with UtilityMixin {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Name Group',
+             AppLocalizations.of(context)!.namegroup,
               style: TextStyle(
                 color: Theme.of(context).colorScheme.onBackground,
                 fontSize: 11.sp,
@@ -146,13 +141,13 @@ class _CreateGroupState extends State<CreateGroup> with UtilityMixin {
             SizedBox(height: 5.h),
             SecondryTextfield(
               controller: _groupNameController,
-              hintText: 'Enter group name',
+              hintText: AppLocalizations.of(context)!.entergroupame,
             ),
             SizedBox(height: 15.h),
             Row(
               children: [
                 Text(
-                  'Members',
+                 AppLocalizations.of(context)!.members,
                    style: TextStyle(
                 color: Theme.of(context).colorScheme.onBackground,
                 fontSize: 11.sp,
@@ -182,8 +177,8 @@ class _CreateGroupState extends State<CreateGroup> with UtilityMixin {
                 child: Center(
                   child: Text(
                     _selectedIds.isEmpty
-                        ? 'Add members to the group'
-                        : 'Edit members',
+                        ? AppLocalizations.of(context)!.addmemberstogroup
+                        : AppLocalizations.of(context)!.editmembers,
                     style: TextStyle(
                       color: AppColors.primaryColor,
                       fontSize: 10.3.sp,
@@ -265,7 +260,7 @@ class _CreateGroupState extends State<CreateGroup> with UtilityMixin {
         padding: EdgeInsets.zero,
         height: 50.h,
         child: PrimaryButton(
-          title: 'Create Group',
+          title:  AppLocalizations.of(context)!.creategroup,
           onPressed: _createGroup,
           isLoading: _isCreating,
         ),

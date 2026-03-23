@@ -3,7 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
-import '../../../l10n/generated/app_localizations.dart';
+import '../../languages/l10n/generated/app_localizations.dart';
 import '../custom_text_styles.dart';
 
 class DeletePostDiolog extends StatelessWidget {

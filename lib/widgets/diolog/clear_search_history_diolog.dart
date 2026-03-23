@@ -4,10 +4,9 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../../core/constants/app_colors.dart';
 import '../../languages/l10n/generated/app_localizations.dart';
-import '../custom_text_styles.dart';
 
-class DeleteAccountDioloig extends StatelessWidget {
-  const DeleteAccountDioloig({super.key, required this.onPressed});
+class ClearSearchHistoryDiolog extends StatelessWidget {
+  const ClearSearchHistoryDiolog({super.key, required this.onPressed});
 
   final VoidCallback? onPressed;
 
@@ -25,13 +24,21 @@ class DeleteAccountDioloig extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Text(
-           AppLocalizations.of(context)!.deleteaccount,
-            style: CustomTextStyles.appBarTitleText(context),
+            AppLocalizations.of(context)!.clearsearchhistory,
+            style: TextStyle(
+              color: Theme.of(context).colorScheme.onBackground,
+              fontSize: 11.3.sp,
+              fontWeight: FontWeight.w600,
+            ),
           ),
           SizedBox(height: 8.h),
           Text(
-           AppLocalizations.of(context)!.areyousureyouwanttodeleteyouraccount,
-            style: CustomTextStyles.lblPrimaryText(context),
+            AppLocalizations.of(context)!.areyousurewanttoclearallsaerchhistory,
+            style: TextStyle(
+              color: Theme.of(context).colorScheme.onBackground,
+              fontSize: 11.sp,
+              fontWeight: FontWeight.w400,
+            ),
           ),
           SizedBox(height: 10.h),
           Row(
@@ -40,9 +47,9 @@ class DeleteAccountDioloig extends StatelessWidget {
               GestureDetector(
                 onTap: () => Navigator.of(context).pop(),
                 child: Text(
-                  AppLocalizations.of(context)!.close.toUpperCase(),
+                  AppLocalizations.of(context)!.cancel.toUpperCase(),
                   style: TextStyle(
-                    fontSize: 12.sp,
+                    fontSize: 11.5.sp,
                     color: Theme.of(context).colorScheme.onBackground,
                     fontWeight: FontWeight.w500,
                   ),
@@ -52,10 +59,10 @@ class DeleteAccountDioloig extends StatelessWidget {
               GestureDetector(
                 onTap: onPressed,
                 child: Text(
-                 AppLocalizations.of(context)!.yesdelete,
+                  AppLocalizations.of(context)!.clearall,
                   style: TextStyle(
-                    fontSize: 12.sp,
-                    color: AppColors.redColor,
+                    fontSize: 11.5.sp,
+                    color: AppColors.primaryColor,
                     fontWeight: FontWeight.w500,
                   ),
                 ),

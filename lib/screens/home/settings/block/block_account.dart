@@ -6,6 +6,7 @@ import 'package:polzet_app/widgets/loader.dart';
 
 import '../../../../api/services/api_service.dart';
 import '../../../../core/constants/app_colors.dart';
+import '../../../../languages/l10n/generated/app_localizations.dart';
 import '../../../../widgets/base64/image_convert.dart';
 import '../../../../widgets/custom_text_styles.dart';
 
@@ -54,7 +55,7 @@ class _BlockUsersState extends State<BlockAccounts> {
           child: const Icon(Icons.arrow_back_ios),
         ),
         title: Text(
-          'Blocked Accounts',
+          AppLocalizations.of(context)!.blockedaccounts,
           style: CustomTextStyles.appBarTitleText(context),
         ),
         centerTitle: true,
@@ -86,7 +87,7 @@ class _BlockUsersState extends State<BlockAccounts> {
           if (users.isEmpty) {
             return Center(
               child: Text(
-                'No blocked accounts',
+                AppLocalizations.of(context)!.noblockedaccount,
                 style: TextStyle(
                   fontSize: 11.sp,
                   color: const Color(0XFF999999),

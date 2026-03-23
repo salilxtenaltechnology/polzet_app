@@ -7,6 +7,7 @@ import 'package:intl/intl.dart';
 import 'package:polzet_app/widgets/base64/image_convert.dart';
 import 'package:provider/provider.dart';
 
+import '../../../../../languages/l10n/generated/app_localizations.dart';
 import '../../../../../mixin/utility_mixins.dart';
 import '../../../../../models/message/message_model.dart';
 import '../../../../../provider/private_chat_provider.dart';
@@ -357,7 +358,8 @@ class _PrivateChatScreenState extends State<PrivateChatScreen>
                 if (messages.isEmpty && !isLoading) {
                   return Center(
                     child: Text(
-                      'No messages yet.\nStart the conversation!',
+                      AppLocalizations.of(context)!.nomessagesyetstarttheconversation,
+                    
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         color: const Color(0XFF8593A8),
@@ -398,7 +400,7 @@ class _PrivateChatScreenState extends State<PrivateChatScreen>
                         context.read<PrivateChatProvider>().onUserTyping(),
                     decoration: InputDecoration(
                       border: InputBorder.none,
-                      hintText: 'Type here...',
+                      hintText: AppLocalizations.of(context)!.message,
                       hintStyle: TextStyle(
                         color: const Color(0XFF8593A8),
                         fontSize: 11.5.sp,

@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../../core/constants/app_colors.dart';
-import '../../../l10n/generated/app_localizations.dart';
+import '../../languages/l10n/generated/app_localizations.dart';
 
 class DeleteGroupDiolog extends StatelessWidget {
   const DeleteGroupDiolog({super.key, required this.onPressed});
@@ -24,7 +24,7 @@ class DeleteGroupDiolog extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Text(
-            'Delete Group',
+            AppLocalizations.of(context)!.deletegroup,
             style: TextStyle(
               color: Theme.of(context).colorScheme.onBackground,
               fontSize: 11.3.sp,
@@ -33,7 +33,7 @@ class DeleteGroupDiolog extends StatelessWidget {
           ),
           SizedBox(height: 8.h),
           Text(
-            'Are you sure you want to delete this group?',
+            AppLocalizations.of(context)!.areyousureyouwanttodeletedeletethisgroup,
             style: TextStyle(
               color: Theme.of(context).colorScheme.onBackground,
               fontSize: 11.sp,
@@ -59,7 +59,7 @@ class DeleteGroupDiolog extends StatelessWidget {
               GestureDetector(
                 onTap: onPressed,
                 child: Text(
-                  'DELETE',
+                 AppLocalizations.of(context)!.delete,
                   style: TextStyle(
                     fontSize: 11.5.sp,
                     color: AppColors.redColor,

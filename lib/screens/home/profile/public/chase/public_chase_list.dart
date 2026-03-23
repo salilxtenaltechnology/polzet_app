@@ -6,7 +6,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../../../../api/services/api_service.dart';
 import '../../../../../core/constants/app_colors.dart';
-import '../../../../../l10n/generated/app_localizations.dart';
+import '../../../../../languages/l10n/generated/app_localizations.dart';
 import '../../../../../mixin/utility_mixins.dart';
 import '../../../../../widgets/base64/image_convert.dart';
 import '../../../../../widgets/button/back_button.dart';
@@ -18,11 +18,13 @@ import '../public_profile.dart';
 class PublicChaseList extends StatefulWidget {
   final int userId;
   final String? username;
+  final int initialIndex;
 
   const PublicChaseList({
     super.key,
     required this.userId,
     required this.username,
+    required this.initialIndex
   });
 
   @override
@@ -48,7 +50,7 @@ class _PublicChaseListState extends State<PublicChaseList>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this, initialIndex: 0);
+    _tabController = TabController(length: 2, vsync: this, initialIndex: widget.initialIndex,);
     _loadData();
   }
 
@@ -271,9 +273,10 @@ class _PublicChaseListState extends State<PublicChaseList>
     );
   }
 
-  Widget _buildUserTile(Map<String, dynamic> user) {
+ Widget _buildUserTile(Map<String, dynamic> user) {
     final userName = user['name'] ?? 'Unknown User';
     final avatarUrl = user['avatar_url'];
+    final isOnline = user['is_online'] as bool? ?? false;
 
     return GestureDetector(
       onTap: () {
@@ -293,7 +296,7 @@ class _PublicChaseListState extends State<PublicChaseList>
         ),
         child: Row(
           children: [
-            _buildAvatar(userName, avatarUrl),
+            _buildAvatar(userName, avatarUrl, isOnline),
             SizedBox(width: 5.w),
             Expanded(
               child: Text(
@@ -311,29 +314,51 @@ class _PublicChaseListState extends State<PublicChaseList>
     );
   }
 
-  Widget _buildAvatar(String userName, String? avatarUrl) {
+  Widget _buildAvatar(String userName, String? avatarUrl, bool isOnline) {
     final imageBytes = getConvertImage(avatarUrl);
-    return Container(
-      height: 28.h,
-      width: 28.w,
-      margin: EdgeInsets.only(right: 5.w),
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        border: Border.all(color: const Color(0xFFD1D1D1).withOpacity(0.7)),
-        image: avatarUrl != null && avatarUrl.isNotEmpty
-            ? DecorationImage(
-                image: MemoryImage(imageBytes!),
-                fit: BoxFit.cover,
-              )
-            : null,
-        color: avatarUrl == null
-            ? Theme.of(context).primaryColor.withOpacity(0.08)
-            : null,
-      ),
-
-      child: avatarUrl == null || avatarUrl.isEmpty
-          ? _buildInitialsAvatar(userName)
-          : null,
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        Container(
+          height: 28.h,
+          width: 28.w,
+          margin: EdgeInsets.only(right: 5.w),
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            border: Border.all(color: const Color(0xFFD1D1D1).withOpacity(0.7)),
+            image: avatarUrl != null && avatarUrl.isNotEmpty
+                ? DecorationImage(
+                    image: MemoryImage(imageBytes!),
+                    fit: BoxFit.cover,
+                  )
+                : null,
+            color: avatarUrl == null
+                ? Theme.of(context).primaryColor.withOpacity(0.08)
+                : null,
+          ),
+          child: avatarUrl == null || avatarUrl.isEmpty
+              ? _buildInitialsAvatar(userName)
+              : null,
+        ),
+        // Green dot indicator
+        if (isOnline)
+          Positioned(
+            bottom: 0,
+            right: 3.w,
+            child: Container(
+              height: 10.h,
+              width: 10.w,
+              decoration: BoxDecoration(
+                color: Colors.green,
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: Theme.of(context).colorScheme.primaryContainer,
+                  width: 1.5,
+                ),
+              ),
+            ),
+          ),
+      ],
     );
   }
 

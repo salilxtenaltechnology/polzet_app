@@ -19,13 +19,21 @@ class ProfileState extends State<UserProfile>
   List<UserPostModel> _cachedPosts = [];
   List<Map<String, dynamic>> _cachedFollowers = [];
   List<Map<String, dynamic>> _cachedFollowing = [];
+  final Map<String, Uint8List?> _decodedImageCache = {};
+
   String? _cachedCoverImage;
   String? _cachedProfileImage;
+  List<UserPostModel> _cachedTextPolls = [];
+
+  // Add these cached decoded bytes
+  Uint8List? _cachedProfileImageBytes;
+  Uint8List? _cachedCoverImageBytes;
 
   // Futures for UI
   late Future<List<Map<String, dynamic>>> getFollowers;
   late Future<List<Map<String, dynamic>>> getFollowing;
   late Future<List<UserPostModel>> _postsFuture;
+  late Future<List<UserPostModel>> _pollPostsFuture;
 
   bool isInitialLoad = true;
   bool autoRefreshEnabled = true;
@@ -41,6 +49,7 @@ class ProfileState extends State<UserProfile>
     getFollowers = _loadFollowersWithCache();
     getFollowing = _loadFollowingWithCache();
     _postsFuture = _loadPostsWithCache(userProvider.username);
+    _pollPostsFuture = _loadPollPostsWithCache(userProvider.username);
 
     // Load profile data silently
     _loadProfileSilently();
@@ -48,8 +57,21 @@ class ProfileState extends State<UserProfile>
 
   @override
   void dispose() {
+    clearAllCache();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
+  }
+
+  void clearAllCache() {
+    _cachedPosts = [];
+    _cachedFollowers = [];
+    _cachedFollowing = [];
+    _cachedCoverImage = null;
+    _cachedProfileImage = null;
+    _cachedTextPolls = [];
+    _cachedProfileImageBytes = null;
+    _cachedCoverImageBytes = null;
+    _decodedImageCache.clear();
   }
 
   @override
@@ -58,11 +80,29 @@ class ProfileState extends State<UserProfile>
 
     if (state == AppLifecycleState.resumed && autoRefreshEnabled) {
       _refreshAllDataSilently();
+      _loadProfileSilently();
     }
   }
 
   // PROFILE IMAGE & COVER - Load silently with cache
   Future<void> _loadProfileSilently() async {
+    await Provider.of<UserProvider>(context, listen: false).loadUserImages();
+    if (mounted) {
+      final userProvider = Provider.of<UserProvider>(context, listen: false);
+
+      final profilePic = userProvider.profile_picture;
+      final coverPic = userProvider.cover_photo;
+      setState(() {
+        if (profilePic != null && profilePic.isNotEmpty) {
+          _cachedProfileImage = profilePic;
+          _cachedProfileImageBytes = decodeBase64Image(profilePic);
+        }
+        if (coverPic != null && coverPic.isNotEmpty) {
+          _cachedCoverImage = coverPic;
+          _cachedCoverImageBytes = decodeBase64Image(coverPic);
+        }
+      });
+    }
     try {
       final accessToken = await SharedPrefService.getToken();
       if (accessToken == null) return;
@@ -80,10 +120,21 @@ class ProfileState extends State<UserProfile>
 
       if (response.statusCode == 200 && mounted) {
         Map<String, dynamic> data = response.data;
-        setState(() {
-          _cachedCoverImage = data['cover_photo_url'] ?? '';
-          _cachedProfileImage = data['profile_picture_url'] ?? '';
-        });
+        final newProfile = data['profile_picture_url'] as String?;
+        final newCover = data['cover_photo_url'] as String?;
+
+        if (mounted) {
+          setState(() {
+            if (newProfile != null && newProfile.isNotEmpty) {
+              _cachedProfileImage = newProfile;
+              _cachedProfileImageBytes = decodeBase64Image(newProfile);
+            }
+            if (newCover != null && newCover.isNotEmpty) {
+              _cachedCoverImage = newCover;
+              _cachedCoverImageBytes = decodeBase64Image(newCover);
+            }
+          });
+        }
       }
     } catch (e) {
       if (kDebugMode) {
@@ -160,6 +211,35 @@ class ProfileState extends State<UserProfile>
     }
   }
 
+  Future<List<UserPostModel>> _loadPollPostsWithCache(String? username) async {
+    if (username == null || username.isEmpty) return _cachedTextPolls;
+
+    try {
+      final postsPolls = await apiService.fetchOnlyPollPosts(username);
+      final postsWithTextPolls = postsPolls.where((post) {
+        if (post.polls.isEmpty) return false;
+        return post.polls.every(
+          (poll) => poll.options!.every(
+            (option) =>
+                option.text != null &&
+                option.text!.isNotEmpty &&
+                option.image == null,
+          ),
+        );
+      }).toList();
+
+      if (mounted) {
+        setState(() {
+          _cachedTextPolls = postsWithTextPolls;
+        });
+      }
+      return postsWithTextPolls;
+    } catch (e) {
+      if (kDebugMode) print('Error loading poll posts: $e');
+      return _cachedTextPolls;
+    }
+  }
+
   // SILENT REFRESH - Updates data in background without showing loading
   void _refreshAllDataSilently() {
     final userProvider = Provider.of<UserProvider>(context, listen: false);
@@ -210,6 +290,14 @@ class ProfileState extends State<UserProfile>
             .catchError((e) {
               if (kDebugMode) print('Silent refresh posts error: $e');
             });
+
+        _loadPollPostsWithCache(userProvider.username).then((data) {
+          if (mounted) {
+            setState(() {
+              _pollPostsFuture = Future.value(data);
+            });
+          }
+        });
       }
     }
   }
@@ -242,13 +330,20 @@ class ProfileState extends State<UserProfile>
             });
           }
         }),
+      _loadPollPostsWithCache(userProvider.username).then((data) {
+        if (mounted) {
+          setState(() {
+            _pollPostsFuture = Future.value(data);
+          });
+        }
+      }),
     ]);
   }
 
-  Uint8List? getProfileImage(profilePicture) {
-    if (profilePicture == null || profilePicture.isEmpty) return null;
+  Uint8List? decodeBase64Image(String? value) {
+    if (value == null || value.isEmpty) return null;
     try {
-      String base64Data = profilePicture.replaceFirst(
+      String base64Data = value.replaceFirst(
         RegExp(r'data:image/[^;]+;base64,'),
         '',
       );
@@ -258,17 +353,14 @@ class ProfileState extends State<UserProfile>
     }
   }
 
-  Uint8List? getCoverImage(coverPhoto) {
-    if (coverPhoto == null || coverPhoto.isEmpty) return null;
-    try {
-      String base64Data = coverPhoto.replaceFirst(
-        RegExp(r'data:image/[^;]+;base64,'),
-        '',
-      );
-      return base64Decode(base64Data);
-    } catch (e) {
-      return null;
+  Uint8List? getCachedProfileImage(String? base64Str) {
+    if (base64Str == null || base64Str.isEmpty) return null;
+    if (_decodedImageCache.containsKey(base64Str)) {
+      return _decodedImageCache[base64Str];
     }
+    final bytes = decodeBase64Image(base64Str);
+    _decodedImageCache[base64Str] = bytes;
+    return bytes;
   }
 
   @override
@@ -288,13 +380,13 @@ class ProfileState extends State<UserProfile>
                 width: double.infinity,
                 padding: EdgeInsets.all(8.w),
                 decoration: BoxDecoration(
-                  image: getCoverImage(_cachedCoverImage) == null
+                  image: _cachedCoverImageBytes == null
                       ? const DecorationImage(
                           image: AssetImage(Assets.assetsImagesDefaultCover),
                           fit: BoxFit.fill,
                         )
                       : DecorationImage(
-                          image: MemoryImage(getCoverImage(_cachedCoverImage)!),
+                          image: MemoryImage(_cachedCoverImageBytes!),
                           fit: BoxFit.fill,
                         ),
                 ),
@@ -305,6 +397,7 @@ class ProfileState extends State<UserProfile>
                       child: GestureDetector(
                         onTap: () {
                           navigationPush(context, const EditProfile());
+                          _loadProfileSilently();
                         },
                         child: Container(
                           margin: EdgeInsets.only(top: 17.h, right: 5.w),
@@ -342,9 +435,7 @@ class ProfileState extends State<UserProfile>
                                       color: Colors.white,
                                       width: 1.5.w,
                                     ),
-                                    image:
-                                        getProfileImage(_cachedProfileImage) ==
-                                            null
+                                    image: _cachedProfileImageBytes == null
                                         ? const DecorationImage(
                                             image: AssetImage(
                                               Assets.assetsImagesIcUser,
@@ -353,9 +444,7 @@ class ProfileState extends State<UserProfile>
                                           )
                                         : DecorationImage(
                                             image: MemoryImage(
-                                              getProfileImage(
-                                                _cachedProfileImage,
-                                              )!,
+                                              _cachedProfileImageBytes!,
                                             ),
                                             fit: BoxFit.cover,
                                           ),
@@ -429,11 +518,12 @@ class ProfileState extends State<UserProfile>
                                     context,
                                     UserChase(
                                       username: userProvider.username ?? '-',
+
                                       followingCount:
                                           userProvider.following_count ?? '0',
                                       followerCount:
                                           userProvider.followers_count ?? '0',
-                                      initialIndex: 1,
+                                      initialIndex: 0,
                                     ),
                                   );
                                 },
@@ -463,11 +553,12 @@ class ProfileState extends State<UserProfile>
                                     context,
                                     UserChase(
                                       username: userProvider.username ?? '-',
+
                                       followingCount:
                                           userProvider.following_count ?? '0',
                                       followerCount:
                                           userProvider.followers_count ?? '0',
-                                      initialIndex: 0,
+                                      initialIndex: 1,
                                     ),
                                   );
                                 },
@@ -498,19 +589,28 @@ class ProfileState extends State<UserProfile>
                               ),
                             ),
                             const Spacer(),
+                            if (_cachedFollowers.isNotEmpty) 
                             GestureDetector(
                               onTap: () {
                                 navigationPush(
                                   context,
                                   UserChase(
                                     username: userProvider.username ?? '-',
+
                                     followingCount:
                                         userProvider.following_count ?? '0',
                                     followerCount:
                                         userProvider.followers_count ?? '0',
-                                    initialIndex: 1,
+                                    initialIndex: 0,
                                   ),
                                 );
+
+                                if (mounted) {
+                                  setState(() {
+                                    getFollowers = _loadFollowersWithCache();
+                                    getFollowing = _loadFollowingWithCache();
+                                  });
+                                }
                               },
                               child: Padding(
                                 padding: EdgeInsets.only(right: 10.w),
@@ -526,13 +626,6 @@ class ProfileState extends State<UserProfile>
                                         fontSize: 10.5.sp,
                                       ),
                                     ),
-                                    // Icon(
-                                    //   Icons.arrow_forward_ios,
-                                    //   size: 12.spMax,
-                                    //   color: AppColors.primaryColor.withOpacity(
-                                    //     0.8,
-                                    //   ),
-                                    // ),
                                   ],
                                 ),
                               ),
@@ -544,7 +637,6 @@ class ProfileState extends State<UserProfile>
                         FutureBuilder<List<Map<String, dynamic>>>(
                           future: getFollowers,
                           builder: (context, snapshot) {
-                            // Show cached data immediately while loading
                             final usersVibe = snapshot.data ?? _cachedFollowers;
 
                             if (isInitialLoad &&
@@ -557,9 +649,12 @@ class ProfileState extends State<UserProfile>
                             if (usersVibe.isEmpty) {
                               return Center(
                                 child: Padding(
-                                  padding: EdgeInsets.symmetric(vertical: 10.h),
+                                  padding: EdgeInsets.only(
+                                    top: 15.h,
+                                    bottom: 25.h,
+                                  ),
                                   child: Text(
-                                    'No chase yet 👀',
+                                    AppLocalizations.of(context)!.nochaseyet,
                                     style: TextStyle(
                                       color: Colors.grey,
                                       fontSize: 10.8.sp,
@@ -611,10 +706,14 @@ class ProfileState extends State<UserProfile>
                                               .outline
                                               .withOpacity(0.7),
                                         ),
-                                        image: profilePic != null
+                                        image:
+                                            getCachedProfileImage(profilePic) !=
+                                                null
                                             ? DecorationImage(
                                                 image: MemoryImage(
-                                                  getProfileImage(profilePic)!,
+                                                  getCachedProfileImage(
+                                                    profilePic,
+                                                  )!,
                                                 ),
                                                 fit: BoxFit.cover,
                                               )
@@ -661,17 +760,19 @@ class ProfileState extends State<UserProfile>
                               ),
                             ),
                             const Spacer(),
+                            if (_cachedFollowing.isNotEmpty) 
                             GestureDetector(
                               onTap: () {
                                 navigationPush(
                                   context,
                                   UserChase(
                                     username: userProvider.username ?? '-',
+
                                     followingCount:
                                         userProvider.following_count ?? '0',
                                     followerCount:
                                         userProvider.followers_count ?? '0',
-                                    initialIndex: 0,
+                                    initialIndex: 1,
                                   ),
                                 );
                               },
@@ -689,13 +790,6 @@ class ProfileState extends State<UserProfile>
                                         fontSize: 10.5.sp,
                                       ),
                                     ),
-                                    // Icon(
-                                    //   Icons.arrow_forward_ios,
-                                    //   size: 14.spMax,
-                                    //   color: AppColors.primaryColor.withOpacity(
-                                    //     0.8,
-                                    //   ),
-                                    // ),
                                   ],
                                 ),
                               ),
@@ -720,11 +814,11 @@ class ProfileState extends State<UserProfile>
                               return Center(
                                 child: Padding(
                                   padding: EdgeInsets.only(
-                                    top: 17.h,
-                                    bottom: 30.h,
+                                    top: 15.h,
+                                    bottom: 20.h,
                                   ),
                                   child: Text(
-                                    'No re-chase yet 👀',
+                                    AppLocalizations.of(context)!.norechaseyet,
                                     style: TextStyle(
                                       color: Colors.grey,
                                       fontSize: 10.8.sp,
@@ -776,10 +870,14 @@ class ProfileState extends State<UserProfile>
                                               .outline
                                               .withOpacity(0.7),
                                         ),
-                                        image: profilePic != null
+                                        image:
+                                            getCachedProfileImage(profilePic) !=
+                                                null
                                             ? DecorationImage(
                                                 image: MemoryImage(
-                                                  getProfileImage(profilePic)!,
+                                                  getCachedProfileImage(
+                                                    profilePic,
+                                                  )!,
                                                 ),
                                                 fit: BoxFit.cover,
                                               )
@@ -891,34 +989,35 @@ class ProfileState extends State<UserProfile>
                       ),
                     ),
                     const Spacer(),
-                    GestureDetector(
-                      onTap: () {
-                        navigationPush(
-                          context,
-                          ImagePostsList(
-                            username: userProvider.username!,
-                            profileImage: _cachedProfileImage,
-                          ),
-                        );
-                      },
-                      child: Row(
-                        children: [
-                          Text(
-                            '${AppLocalizations.of(context)!.seeall} >',
-                            style: TextStyle(
-                              color: Theme.of(context).colorScheme.primary,
-                              fontWeight: FontWeight.w700,
-                              fontSize: 10.5.sp,
+                    if (_cachedPosts.isNotEmpty)
+                      GestureDetector(
+                        onTap: () {
+                          navigationPush(
+                            context,
+                            ImagePostsList(
+                              username: userProvider.username!,
+                              profileImage: _cachedProfileImage,
                             ),
-                          ),
-                          // Icon(
-                          //   Icons.arrow_forward_ios,
-                          //   size: 14.spMax,
-                          //   color: AppColors.primaryColor.withOpacity(0.8),
-                          // ),
-                        ],
+                          );
+                        },
+                        child: Row(
+                          children: [
+                            Text(
+                              '${AppLocalizations.of(context)!.seeall} >',
+                              style: TextStyle(
+                                color: Theme.of(context).colorScheme.primary,
+                                fontWeight: FontWeight.w700,
+                                fontSize: 10.5.sp,
+                              ),
+                            ),
+                            // Icon(
+                            //   Icons.arrow_forward_ios,
+                            //   size: 14.spMax,
+                            //   color: AppColors.primaryColor.withOpacity(0.8),
+                            // ),
+                          ],
+                        ),
                       ),
-                    ),
                   ],
                 ),
               ),
@@ -989,7 +1088,9 @@ class ProfileState extends State<UserProfile>
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
                                     Text(
-                                      'Create Something Cool',
+                                      AppLocalizations.of(
+                                        context,
+                                      )!.createsomethingcool,
                                       style: TextStyle(
                                         color: Theme.of(context)
                                             .colorScheme
@@ -1025,7 +1126,9 @@ class ProfileState extends State<UserProfile>
                                       ),
                                       child: Center(
                                         child: Text(
-                                          'Create your first poll',
+                                          AppLocalizations.of(
+                                            context,
+                                          )!.createyourfirstpoll,
                                           style: TextStyle(
                                             color: Colors.white,
                                             fontSize: 11.sp,
@@ -1080,7 +1183,7 @@ class ProfileState extends State<UserProfile>
                 child: Row(
                   children: [
                     Text(
-                      'Things',
+                      AppLocalizations.of(context)!.things,
                       style: TextStyle(
                         color: Theme.of(context).colorScheme.onBackground,
                         fontSize: 11.sp,
@@ -1088,41 +1191,37 @@ class ProfileState extends State<UserProfile>
                       ),
                     ),
                     const Spacer(),
-                    GestureDetector(
-                      onTap: () {
-                        navigationPush(
-                          context,
-                          QuestionsPostsList(
-                            username: userProvider.username!,
-                            profileImage: _cachedProfileImage,
-                          ),
-                        );
-                      },
-                      child: Row(
-                        children: [
-                          Text(
-                            '${AppLocalizations.of(context)!.seeall} >',
-                            style: TextStyle(
-                              color: Theme.of(context).colorScheme.primary,
-                              fontWeight: FontWeight.w700,
-                              fontSize: 10.5.sp,
+                    if (_cachedTextPolls.isNotEmpty)
+                      GestureDetector(
+                        onTap: () {
+                          navigationPush(
+                            context,
+                            QuestionsPostsList(
+                              username: userProvider.username!,
+                              profileImage: _cachedProfileImage,
                             ),
-                          ),
-                          // Icon(
-                          //   Icons.arrow_forward_ios,
-                          //   size: 14.spMax,
-                          //   color: AppColors.primaryColor.withOpacity(0.8),
-                          // ),
-                        ],
+                          );
+                        },
+                        child: Row(
+                          children: [
+                            Text(
+                              '${AppLocalizations.of(context)!.seeall} >',
+                              style: TextStyle(
+                                color: Theme.of(context).colorScheme.primary,
+                                fontWeight: FontWeight.w700,
+                                fontSize: 10.5.sp,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
                   ],
                 ),
               ),
 
               // Things Polls Section
               FutureBuilder<List<UserPostModel>>(
-                future: apiService.fetchOnlyPollPosts(userProvider.username!),
+                future: _pollPostsFuture,
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
                     return Center(
@@ -1163,6 +1262,15 @@ class ProfileState extends State<UserProfile>
                     );
                   }).toList();
 
+                  if (snapshot.hasData &&
+                      _cachedTextPolls != postsWithTextPolls) {
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      if (mounted) {
+                        setState(() => _cachedTextPolls = postsWithTextPolls);
+                      }
+                    });
+                  }
+
                   if (postsWithTextPolls.isEmpty) {
                     return Padding(
                       padding: EdgeInsets.symmetric(
@@ -1188,7 +1296,9 @@ class ProfileState extends State<UserProfile>
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
                                   Text(
-                                    'Create Something Cool',
+                                    AppLocalizations.of(
+                                      context,
+                                    )!.createsomethingcool,
                                     style: TextStyle(
                                       color: Theme.of(context)
                                           .colorScheme
@@ -1222,7 +1332,9 @@ class ProfileState extends State<UserProfile>
                                     ),
                                     child: Center(
                                       child: Text(
-                                        'Create your first things',
+                                        AppLocalizations.of(
+                                          context,
+                                        )!.createyourfirstthings,
                                         style: TextStyle(
                                           color: Colors.white,
                                           fontSize: 11.sp,

@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import 'api/services/link/deeplink_generator_service.dart';
 import 'api/services/notification/notification_services.dart';
@@ -15,7 +14,7 @@ import 'core/themes/app_themes.dart';
 import 'core/themes/theme_provider.dart';
 import 'data/token/shared_preferences.dart';
 import 'firebase_options.dart';
-import 'l10n/generated/app_localizations.dart';
+import 'languages/l10n/generated/app_localizations.dart';
 import 'provider/private_chat_provider.dart';
 import 'provider/public_profile_provider.dart';
 import 'provider/user_provider.dart';
@@ -36,6 +35,8 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  await SharedPrefService.clearOnFirstLaunch(); // Clear all token when uninstall app
 
   try {
     await Firebase.initializeApp(
@@ -174,18 +175,23 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   }
 
   Future<void> _loadSavedLanguage() async {
-    final prefs = await SharedPreferences.getInstance();
-    final languageCode = prefs.getString('languageCode');
-    if (languageCode != null) {
-      setState(() {
-        _locale = Locale(languageCode);
-      });
-    }
+    final languageCode = await SharedPrefService.getLanguage();
+    setState(() {
+      _locale = languageCode != null
+          ? Locale(languageCode)
+          : const Locale('en');
+    });
   }
 
   void changeLanguage(Locale locale) {
     setState(() {
       _locale = locale;
+    });
+  }
+
+  void resetLocale() {
+    setState(() {
+      _locale = const Locale('en');
     });
   }
 

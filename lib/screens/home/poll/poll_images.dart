@@ -11,7 +11,7 @@ import '../../../api/services/api_service.dart';
 import '../../../api/services/image/image_picker_service.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../data/token/shared_preferences.dart';
-import '../../../l10n/generated/app_localizations.dart';
+import '../../../languages/l10n/generated/app_localizations.dart';
 import '../../../widgets/button/back_button.dart';
 import '../../../widgets/button/primary_button.dart';
 import '../../../widgets/custom_text_styles.dart';

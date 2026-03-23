@@ -17,7 +17,6 @@ import '../../../../../../widgets/button/auth_button.dart';
 import '../../../../../../widgets/custom_card.dart';
 import '../../../../../../widgets/custom_text_styles.dart';
 import '../../../../../../widgets/text_field/primary_textfield.dart';
-import '../set_pin_screen.dart';
 import 'forget_pin_set.dart';
 
 class EmailVerifyPin extends StatefulWidget {

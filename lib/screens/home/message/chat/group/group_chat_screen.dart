@@ -8,6 +8,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
+import '../../../../../languages/l10n/generated/app_localizations.dart';
 import '../../../../../mixin/utility_mixins.dart';
 import '../../../../../models/message/message_model.dart';
 import '../../../../../provider/group_chat_provider.dart';
@@ -322,7 +323,7 @@ class GroupChatScreenState extends State<GroupChatScreen> with UtilityMixin {
                       ),
                       SizedBox(width: 4.w),
                       Text(
-                        '$memberCount ${memberCount == 1 ? 'member' : 'members'}',
+                        '$memberCount ${memberCount == 1 ? AppLocalizations.of(context)!.member : AppLocalizations.of(context)!.members}',
                         style: TextStyle(
                           color: const Color(0XFF8593A8),
                           fontSize: 9.5.sp,
@@ -365,7 +366,7 @@ class GroupChatScreenState extends State<GroupChatScreen> with UtilityMixin {
                 if (messages.isEmpty && !prov.isLoadingHistory) {
                   return Center(
                     child: Text(
-                      'No messages yet.\nStart the conversation!',
+                     AppLocalizations.of(context)!.nomessagesyetstarttheconversation,
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         color: const Color(0XFF8593A8),
@@ -407,10 +408,10 @@ class GroupChatScreenState extends State<GroupChatScreen> with UtilityMixin {
                 Expanded(
                   child: TextField(
                     controller: _messageController,
-                    decoration: const InputDecoration(
+                    decoration:  InputDecoration(
                       border: InputBorder.none,
-                      hintText: 'Type here...',
-                      hintStyle: TextStyle(color: Color(0XFF8593A8)),
+                      hintText: AppLocalizations.of(context)!.message,
+                      hintStyle: const TextStyle(color: Color(0XFF8593A8)),
                     ),
                     onSubmitted: (_) => _sendMessage(),
                     textInputAction: TextInputAction.send,

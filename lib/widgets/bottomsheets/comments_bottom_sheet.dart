@@ -3,9 +3,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:feather_icons/feather_icons.dart';
+import 'package:polzet_app/languages/l10n/generated/app_localizations.dart';
 import 'package:polzet_app/widgets/base64/image_convert.dart';
 import '../../../models/comment/comment.dart';
 import '../../api/services/comment/comment_service.dart';
+import '../diolog/custom_diolog.dart';
 
 class CommentsBottomSheet extends StatefulWidget {
   final int postId;
@@ -102,50 +104,23 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
   }
 
   Future<void> _deleteComment(int commentId) async {
-    final confirmed = await _showDeleteDialog();
-    if (!confirmed) return;
+  bool confirmed = false;
 
-    final success = await _commentsService.deleteComment(commentId);
-    if (success) {
-      setState(() {
-        comments.removeWhere((c) => c.id == commentId);
-      });
-      widget.onCommentsCountChanged?.call(comments.length);
-    }
-  }
+  showDeleteCommentDiolog(context, () {
+    confirmed = true;
+    Navigator.pop(context); // 👈 close dialog
+  });
 
-  Future<bool> _showDeleteDialog() async {
-    return await showDialog(
-          context: context,
-          builder: (context) => AlertDialog(
-            title: Text(
-              'Delete Comment',
-              style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.w600),
-            ),
-            content: Text(
-              'Are you sure you want to delete this comment?',
-              style: TextStyle(fontSize: 13.sp),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(false),
-                child: const Text('Cancel'),
-              ),
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(true),
-                child: const Text(
-                  'Delete',
-                  style: TextStyle(
-                    color: Colors.red,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ) ??
-        false;
+  if (!confirmed) return;
+
+  final success = await _commentsService.deleteComment(commentId);
+  if (success) {
+    setState(() {
+      comments.removeWhere((c) => c.id == commentId);
+    });
+    widget.onCommentsCountChanged?.call(comments.length);
   }
+}
 
   @override
   Widget build(BuildContext context) {
@@ -185,7 +160,7 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
       ),
       child: Center(
         child: Text(
-          'Comments',
+          AppLocalizations.of(context)!.comments,
           style: TextStyle(
             color: Theme.of(context).colorScheme.onBackground,
             fontSize: 12.5.sp,
@@ -213,7 +188,7 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
             ),
             SizedBox(height: 10.h),
             Text(
-              'No comments yet',
+                AppLocalizations.of(context)!.nocommentsyet, 
               style: TextStyle(
                 fontSize: 12.sp,
                 color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
@@ -222,7 +197,7 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
             ),
             SizedBox(height: 5.h),
             Text(
-              'Be the first to comment',
+             AppLocalizations.of(context)!.bethefirsttocomment, 
               style: TextStyle(
                 fontSize: 11.sp,
                 color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5),
@@ -389,7 +364,7 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
           style: TextStyle(fontSize: 13.sp),
           decoration: InputDecoration(
             border: InputBorder.none,
-            hintText: 'Edit comment...',
+            hintText: AppLocalizations.of(context)!.editcomments,
             hintStyle: TextStyle(
               fontSize: 12.sp,
               color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
@@ -408,7 +383,7 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
                 });
               },
               child: Text(
-                'Cancel',
+                AppLocalizations.of(context)!.cancel,
                 style: TextStyle(
                   fontSize: 11.sp,
                   color: Theme.of(
@@ -420,7 +395,7 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
             TextButton(
               onPressed: () => _editComment(comment.id),
               child: Text(
-                'Save',
+               AppLocalizations.of(context)!.save,
                 style: TextStyle(fontSize: 11.sp, fontWeight: FontWeight.w600),
               ),
             ),
@@ -450,7 +425,7 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
               child: TextField(
                 controller: _commentController,
                 decoration: InputDecoration(
-                  hintText: 'Add a comment...',
+                  hintText: AppLocalizations.of(context)!.whatdoyouthinkforthis,
                   hintStyle: TextStyle(
                     fontSize: 11.5.sp,
                     color: Theme.of(

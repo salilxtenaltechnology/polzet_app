@@ -7,7 +7,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_strings.dart';
-import '../../l10n/generated/app_localizations.dart';
+import '../../languages/l10n/generated/app_localizations.dart';
 import '../../models/country/country_model.dart';
 import '../../models/user/user_profile_model.dart';
 import '../country code/custom_country_code.dart';

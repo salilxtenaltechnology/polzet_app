@@ -8,8 +8,8 @@ import 'package:polzet_app/screens/home/group/create_group.dart';
 import 'package:provider/provider.dart';
 
 import '../../../../core/constants/app_colors.dart';
-import '../../../../l10n/generated/app_localizations.dart';
 import '../../../api/services/api_service.dart';
+import '../../../languages/l10n/generated/app_localizations.dart';
 import '../../../mixin/utility_mixins.dart';
 import '../../../provider/group_chat_provider.dart';
 import '../../../provider/private_chat_provider.dart';
@@ -308,7 +308,7 @@ class _MessageListState extends State<MessageList> with UtilityMixin {
                   Icon(Icons.add, size: 17.sp, color: Colors.white),
                   SizedBox(width: 3.w),
                   Text(
-                    'New Group',
+                  AppLocalizations.of(context)!.newgroup,
                     style: TextStyle(fontSize: 10.sp, color: Colors.white),
                   ),
                 ],
@@ -328,7 +328,7 @@ class _MessageListState extends State<MessageList> with UtilityMixin {
                 if (chats.isEmpty) {
                   return Center(
                     child: Text(
-                      'No chats yet',
+                      AppLocalizations.of(context)!.nochaseyet,
                       style: CustomTextStyles.lblSecondryText(context),
                     ),
                   );

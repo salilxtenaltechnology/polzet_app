@@ -7,7 +7,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../../api/app_api.dart';
 import '../../../data/token/shared_preferences.dart';
-import '../../../l10n/generated/app_localizations.dart';
+import '../../../languages/l10n/generated/app_localizations.dart';
 import '../../../mixin/utility_mixins.dart';
 import '../../../widgets/button/back_button.dart';
 import '../../../widgets/button/primary_button.dart';
@@ -406,7 +406,7 @@ class _PollQuestionState extends State<PollQuestion> with UtilityMixin {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Poll Options', style: CustomTextStyles.lblPrimaryText(context)),
+        Text(AppLocalizations.of(context)!.polloptions, style: CustomTextStyles.lblPrimaryText(context)),
         SizedBox(height: 10.h),
 
         // Option fields

@@ -1,4 +1,4 @@
-// ignore_for_file: deprecated_member_use
+// ignore_for_file: unused_field, deprecated_member_use
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -8,6 +8,7 @@ import 'package:provider/provider.dart';
 
 import '../../../../api/services/api_service.dart';
 import '../../../../core/constants/app_colors.dart';
+import '../../../../languages/l10n/generated/app_localizations.dart';
 import '../../../../provider/user_provider.dart';
 import '../../../../widgets/button/back_button.dart';
 import '../../../../widgets/custom_text_styles.dart';
@@ -21,11 +22,9 @@ class FeedbackScreen extends StatefulWidget {
 
 class _FeedbackScreenState extends State<FeedbackScreen>
     with TickerProviderStateMixin {
-  // ── Controllers ──────────────────────────────────────────
   final TextEditingController subjectController = TextEditingController();
   final TextEditingController messageController = TextEditingController();
 
-  // ── State ─────────────────────────────────────────────────
   String? selectedCategory;
   int starRating = 0;
   int hoverRating = 0;
@@ -38,7 +37,6 @@ class _FeedbackScreenState extends State<FeedbackScreen>
   late Animation<double> _fadeAnimation;
   late Animation<double> _submitAnimation;
 
-  // ── Category Options ──────────────────────────────────────
   final List<Map<String, dynamic>> categories = [
     {'value': 'bug', 'label': 'Bug Report', 'icon': Icons.bug_report_rounded},
     {
@@ -83,7 +81,6 @@ class _FeedbackScreenState extends State<FeedbackScreen>
     super.dispose();
   }
 
-  // ── Submit ────────────────────────────────────────────────
   Future<void> _submitFeedback() async {
     if (!_formKey.currentState!.validate()) return;
     if (selectedCategory == null) {
@@ -99,7 +96,6 @@ class _FeedbackScreenState extends State<FeedbackScreen>
     HapticFeedback.mediumImpact();
 
     try {
-      // Get email from UserProvider
       final userProvider = Provider.of<UserProvider>(context, listen: false);
       final String email = userProvider.user?.email ?? '';
 
@@ -135,17 +131,18 @@ class _FeedbackScreenState extends State<FeedbackScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF7F8FC),
+      backgroundColor: Theme.of(context).colorScheme.background,
       appBar: AppBar(
         automaticallyImplyLeading: false,
         toolbarHeight: 25.h,
         leading: const PrimaryBackButton(),
         title: Text(
-          'Share Feedback',
+          AppLocalizations.of(context)!.sharefeedback,
           style: CustomTextStyles.appBarTitleText(context),
         ),
         centerTitle: true,
         backgroundColor: Theme.of(context).colorScheme.background,
+        surfaceTintColor: Theme.of(context).colorScheme.background,
       ),
       body: FadeTransition(
         opacity: _fadeAnimation,
@@ -163,36 +160,40 @@ class _FeedbackScreenState extends State<FeedbackScreen>
                       _buildRatingCard(),
                       SizedBox(height: 12.h),
                       // ── Subject Field ──
-                      _buildLabel('Subject'),
+                      _buildLabel(AppLocalizations.of(context)!.subject),
                       const SizedBox(height: 8),
                       _buildTextField(
                         controller: subjectController,
-                        hint: 'e.g. App Issue, Login Problem...',
+                        hint: AppLocalizations.of(
+                          context,
+                        )!.egAppissueloginproblem,
                         maxLines: 1,
                         validator: (v) => v == null || v.isEmpty
-                            ? 'Subject is required'
+                            ? AppLocalizations.of(context)!.subjectisrequired
                             : null,
                       ),
                       const SizedBox(height: 20),
                       // ── Category ──
-                      _buildLabel('Category'),
+                      _buildLabel(AppLocalizations.of(context)!.category),
                       const SizedBox(height: 8),
                       _buildCategorySelector(),
                       const SizedBox(height: 20),
 
                       // ── Message ──
-                      _buildLabel('Message'),
+                      _buildLabel(AppLocalizations.of(context)!.message),
                       const SizedBox(height: 8),
                       _buildTextField(
                         controller: messageController,
-                        hint: 'Describe your issue or suggestion in detail...',
+                        hint: AppLocalizations.of(
+                          context,
+                        )!.describeyourissueorsuggestionindetails,
                         maxLines: 5,
                         validator: (v) {
                           if (v == null || v.isEmpty) {
-                            return 'Message is required';
+                            return AppLocalizations.of(context)!.messageisrequired;
                           }
                           if (v.length < 10) {
-                            return 'Message must be at least 10 characters';
+                            return AppLocalizations.of(context)!.messagemustbeatleasttencharacters;
                           }
                           return null;
                         },
@@ -205,7 +206,7 @@ class _FeedbackScreenState extends State<FeedbackScreen>
                         child: ValueListenableBuilder(
                           valueListenable: messageController,
                           builder: (_, __, ___) => Text(
-                            '${messageController.text.length} characters',
+                            '${messageController.text.length} ${AppLocalizations.of(context)!.characters}',
                             style: TextStyle(
                               color: Colors.grey.shade500,
                               fontSize: 12,
@@ -248,7 +249,7 @@ class _FeedbackScreenState extends State<FeedbackScreen>
       child: Column(
         children: [
           Text(
-            'How would you rate your experience?',
+           AppLocalizations.of(context)!.howwouldyourateyourexperince,
             style: TextStyle(
               fontSize: 11.2.sp,
               fontWeight: FontWeight.w500,
@@ -313,17 +314,17 @@ class _FeedbackScreenState extends State<FeedbackScreen>
   String _getRatingLabel() {
     switch (starRating) {
       case 1:
-        return '😞 Very Poor';
+        return '😞 ${AppLocalizations.of(context)!.broken}';
       case 2:
-        return '😕 Poor';
+        return '😕 ${AppLocalizations.of(context)!.confusing}';
       case 3:
-        return '😐 Average';
+        return '😐 ${AppLocalizations.of(context)!.okay}';
       case 4:
-        return '😊 Good';
+        return '😊 ${AppLocalizations.of(context)!.good}';
       case 5:
-        return '🤩 Excellent!';
+        return '🤩 ${AppLocalizations.of(context)!.loveit}';
       default:
-        return 'Tap a star to rate';
+        return AppLocalizations.of(context)!.tapastartorate;
     }
   }
 
@@ -407,73 +408,60 @@ class _FeedbackScreenState extends State<FeedbackScreen>
     );
   }
 
-  Widget _buildCategorySelector() {
-    return GridView.count(
-      crossAxisCount: 2,
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      crossAxisSpacing: 10,
-      mainAxisSpacing: 10,
-      childAspectRatio: 2.8,
-      children: categories.map((cat) {
-        final isSelected = selectedCategory == cat['value'];
-        return GestureDetector(
-          onTap: () {
-            HapticFeedback.selectionClick();
-            setState(() => selectedCategory = cat['value']);
-          },
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
-            curve: Curves.easeOut,
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-            decoration: BoxDecoration(
-              color: isSelected ? AppColors.primaryColor : Colors.white,
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(
-                color: isSelected
-                    ? AppColors.primaryColor
-                    : Colors.grey.shade200,
-                width: isSelected ? 2 : 1,
-              ),
-              boxShadow: isSelected
-                  ? [
-                      BoxShadow(
-                        color: AppColors.primaryColor.withOpacity(0.3),
-                        blurRadius: 12,
-                        offset: const Offset(0, 4),
-                      ),
-                    ]
-                  : [],
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  cat['icon'] as IconData,
-                  size: 18.sp,
-                  color: isSelected ? Colors.white : Colors.grey.shade500,
-                ),
-                const SizedBox(width: 6),
-                Flexible(
-                  child: Text(
-                    cat['label'] as String,
-                    style: TextStyle(
-                      fontSize: 11.2.sp,
-                      fontWeight: FontWeight.w500,
-                      color: isSelected
-                          ? Colors.white
-                          : const Color(0xFF1A1A2E),
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-              ],
-            ),
+ Widget _buildCategorySelector() {
+  final List<String> feedbackOptions = [
+    AppLocalizations.of(context)!.bugreport,
+    AppLocalizations.of(context)!.featurerequest,
+    AppLocalizations.of(context)!.uiissue,
+    AppLocalizations.of(context)!.perfomance,
+    AppLocalizations.of(context)!.general,
+    AppLocalizations.of(context)!.complaint,
+  ];
+
+  return Container(
+    width: double.infinity,
+    padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 4.h),
+    decoration: BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(16),
+      border: Border.all(color: Colors.grey.shade200),
+    ),
+    child: DropdownButtonHideUnderline(
+      child: DropdownButton<String>(
+        value: selectedCategory,
+        hint: Text(
+          AppLocalizations.of(context)!.complaint,
+          style: TextStyle(
+            color: Colors.grey.shade400,
+            fontSize: 14,
+            fontWeight: FontWeight.w400,
           ),
-        );
-      }).toList(),
-    );
-  }
+        ),
+        dropdownColor: Colors.white,
+        isExpanded: true,
+        items: feedbackOptions.map((option) {
+          return DropdownMenuItem<String>(
+            value: option,
+            child: Text(
+              option,
+              style: const TextStyle(
+                fontSize: 15,
+                color: Color(0xFF1A1A2E),
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          );
+        }).toList(),
+        onChanged: (String? newValue) {
+          if (newValue != null) {
+            setState(() => selectedCategory = newValue);
+          }
+        },
+        iconEnabledColor: Colors.grey.shade400,
+      ),
+    ),
+  );
+}
 
   // ── Submit Button ─────────────────────────────────────────
   Widget _buildSubmitButton() {
@@ -516,7 +504,7 @@ class _FeedbackScreenState extends State<FeedbackScreen>
                     const Icon(Icons.send_rounded, size: 20),
                     const SizedBox(width: 10),
                     Text(
-                      'Submit Feedback',
+                      AppLocalizations.of(context)!.submitfeedback,
                       style: TextStyle(
                         fontSize: 11.sp,
                         fontWeight: FontWeight.w700,

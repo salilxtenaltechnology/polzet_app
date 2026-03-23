@@ -6,6 +6,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../../api/services/api_service.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../languages/l10n/generated/app_localizations.dart';
 import '../../../mixin/utility_mixins.dart';
 import '../../../widgets/base64/image_convert.dart';
 import '../../../widgets/custom_card.dart';
@@ -121,7 +122,7 @@ class AddMemberState extends State<AddMember> with UtilityMixin {
           child: const Icon(Icons.arrow_back_ios),
         ),
         title: Text(
-          'Add members to group',
+           AppLocalizations.of(context)!.addmemberstogroup,
           style: CustomTextStyles.appBarTitleText(context),
         ),
         centerTitle: true,
@@ -156,7 +157,7 @@ class AddMemberState extends State<AddMember> with UtilityMixin {
                     left: 12.w,
                     top: 10.h,
                   ),
-                  hintText: 'Search',
+                  hintText: AppLocalizations.of(context)!.searchusers,
                   hintStyle: CustomTextStyles.lblPrimaryHintText(context),
                   border: InputBorder.none,
                   suffixIcon: Icon(
@@ -210,7 +211,7 @@ class AddMemberState extends State<AddMember> with UtilityMixin {
             ),
             child: Center(
               child: Text(
-                _selectedIds.isEmpty ? 'Add' : 'Add (${_selectedIds.length})',
+                _selectedIds.isEmpty ? AppLocalizations.of(context)!.add : '${AppLocalizations.of(context)!.addmemberstogroup} (${_selectedIds.length})',
                 style: CustomTextStyles.btnPrimaryText,
               ),
             ),
@@ -237,7 +238,7 @@ class AddMemberState extends State<AddMember> with UtilityMixin {
             ),
             SizedBox(height: 10.h),
             Text(
-              'No users found',
+             AppLocalizations.of(context)!.nousersfound,
               style: CustomTextStyles.lblSecondryText(context),
             ),
           ],

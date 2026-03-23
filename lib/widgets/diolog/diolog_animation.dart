@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
 // open diolog animation
-void diologanimation(BuildContext context, Widget widget) {
-  showGeneralDialog(
+Future<T?> diologanimation<T>(BuildContext context, Widget widget) {
+  return showGeneralDialog<T>(
     context: context,
     barrierDismissible: false,
     barrierLabel: 'Dialog',

@@ -27,7 +27,6 @@ class _EmailVerificationScreenState extends State<RegisterEmailVerification>
   // ─── Google Sign-In ──────────────────────────────────────────────────────
   final GoogleSignIn _googleSignIn = GoogleSignIn.instance;
   StreamSubscription<GoogleSignInAuthenticationEvent>? _authSub;
-  bool _isGoogleLoading = false;
 
   bool _isLoading = false;
   bool _isSendingOtp = false;
@@ -53,20 +52,18 @@ class _EmailVerificationScreenState extends State<RegisterEmailVerification>
     _initGoogleSignIn();
   }
 
-  // ─── Google Auth Init ──────────────────────────────────────────────────────
+  /* ─── Google Auth Init ───── */
   void _initGoogleSignIn() {
     unawaited(
       _googleSignIn
           .initialize(
-            serverClientId: googleWebClientId, // ✅ only this is needed
-            // No clientId needed — android client comes from google-services.json
+            serverClientId: googleWebClientId, // only this is needed
           )
           .then((_) {
             _authSub = _googleSignIn.authenticationEvents.listen(
               _onAuthEvent,
               onError: (e) => debugPrint('❌ Auth stream error: $e'),
             );
-            //  _googleSignIn.attemptLightweightAuthentication();
           }),
     );
   }
@@ -81,13 +78,10 @@ class _EmailVerificationScreenState extends State<RegisterEmailVerification>
   }
 
   Future<void> _handleGoogleSignIn() async {
-    setState(() => _isGoogleLoading = true);
     try {
       await _googleSignIn.authenticate();
     } catch (e) {
-      // _showError(e.toString());
-    } finally {
-      if (mounted) setState(() => _isGoogleLoading = false);
+      if (kDebugMode) print('Google sign in error: $e');
     }
   }
 
@@ -113,19 +107,15 @@ class _EmailVerificationScreenState extends State<RegisterEmailVerification>
   }
 
   Future<void> _socialLoginAPI(String idToken) async {
-    if (mounted) setState(() => _isGoogleLoading = true);
-
     try {
       final response = await apiService.socialLogin(idToken);
-
-      debugPrint('📥 Response: $response');
 
       if (response == null) {
         if (mounted) setState(() => _errorMessage = 'Server not responding');
         return;
       }
-      final String? status = response['status'];
 
+      final String? status = response['status'];
       if (status != 'success') {
         if (mounted) {
           setState(() => _errorMessage = response['message'] ?? 'Login failed');
@@ -138,22 +128,14 @@ class _EmailVerificationScreenState extends State<RegisterEmailVerification>
       final String refreshToken = data['refresh_token'];
       final Map<String, dynamic> user = data['user'];
 
-      debugPrint('✅ accessToken: $accessToken');
-      debugPrint('✅ user: $user');
-
-      // ✅ Save tokens
       await SharedPrefService.setToken(accessToken);
       await SharedPrefService.setRefreshToken(refreshToken);
-
-      // ✅ Save user details
       await SharedPrefService.setString('username', user['username'] ?? '');
       await SharedPrefService.setString('email', user['email'] ?? '');
 
-      // ✅ Initialize notifications — same as loginUser()
       await NotificationService().initialize();
       await NotificationService().connectToWebSocket(accessToken);
 
-      // ✅ Register FCM token — same as loginUser()
       final fcmToken = await NotificationService().getFCMToken();
       if (fcmToken != null) {
         final platform = Platform.isAndroid ? 'android' : 'ios';
@@ -173,10 +155,8 @@ class _EmailVerificationScreenState extends State<RegisterEmailVerification>
         );
       }
     } catch (e) {
-      debugPrint('❌ socialLoginAPI exception: $e');
+      if (kDebugMode) print('socialLoginAPI exception: $e');
       if (mounted) setState(() => _errorMessage = 'Login error: $e');
-    } finally {
-      if (mounted) setState(() => _isGoogleLoading = false);
     }
   }
 
@@ -199,7 +179,7 @@ class _EmailVerificationScreenState extends State<RegisterEmailVerification>
     if (mounted) setState(() => _errorMessage = msg);
   }
 
-  // ─── OTP Methods ──────────────────────────────────────────────────────────
+  /* ─── OTP Methods ──────── */
   Future<void> _sendOtp() async {
     setState(() {
       _isSendingOtp = true;
@@ -256,7 +236,6 @@ class _EmailVerificationScreenState extends State<RegisterEmailVerification>
 
       if (response.statusCode == 200) {
         navigationPushReplacement(
-          // ignore: use_build_context_synchronously
           context,
           SignupScreen(email: _emailController.text),
         );
@@ -271,7 +250,7 @@ class _EmailVerificationScreenState extends State<RegisterEmailVerification>
     }
   }
 
-  // ─── Build ────────────────────────────────────────────────────────────────
+  /* ─── Build ─── */
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -478,20 +457,10 @@ class _EmailVerificationScreenState extends State<RegisterEmailVerification>
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              // ✅ Google button wired to _handleGoogleSignIn
               _authSocialMedia(
                 _handleGoogleSignIn,
-                _isGoogleLoading
-                    ? SizedBox(
-                        width: 18.w,
-                        height: 18.h,
-                        child: const CircularProgressIndicator(
-                          strokeWidth: 1.5,
-                          color: AppColors.primaryColor,
-                        ),
-                      )
-                    : Image.asset(Assets.assetsImagesIcGoogle),
-                const EdgeInsets.all(4).w,
+                Image.asset(Assets.assetsImagesIcGoogle),
+                const EdgeInsets.all(8).w,
               ),
             ],
           ),

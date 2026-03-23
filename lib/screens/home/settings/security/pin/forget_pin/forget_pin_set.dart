@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:polzet_app/widgets/show_toast.dart';
 
-import '../../../../../../l10n/generated/app_localizations.dart';
+import '../../../../../../languages/l10n/generated/app_localizations.dart';
 import '../../../../../../widgets/custom_text_styles.dart';
 import '../../../../home_imports.dart';
 import '../pin_gate_screen.dart';

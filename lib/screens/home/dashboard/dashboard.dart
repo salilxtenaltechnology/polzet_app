@@ -381,7 +381,7 @@ class DashboardState extends State<Dashboard> with UtilityMixin {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Improve Your Profile',
+                            AppLocalizations.of(context)!.improveyourprofile,
                             style: TextStyle(
                               color: Theme.of(context).colorScheme.onBackground,
                               fontWeight: FontWeight.w600,
@@ -422,7 +422,9 @@ class DashboardState extends State<Dashboard> with UtilityMixin {
                               ),
                               child: Center(
                                 child: Text(
-                                  'Complete profile setup',
+                                  AppLocalizations.of(
+                                    context,
+                                  )!.completeprofilesetup,
                                   style: TextStyle(
                                     color: Colors.white,
                                     fontWeight: FontWeight.w600,
@@ -457,7 +459,7 @@ class DashboardState extends State<Dashboard> with UtilityMixin {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          'People You May Know',
+                          AppLocalizations.of(context)!.peopleyoumayknow,
                           style: TextStyle(
                             color: Theme.of(context).colorScheme.onBackground,
                             fontWeight: FontWeight.w700,
@@ -468,7 +470,7 @@ class DashboardState extends State<Dashboard> with UtilityMixin {
                           onTap: () =>
                               navigationPush(context, const SuggestionUsers()),
                           child: Text(
-                            'See all >',
+                            '${AppLocalizations.of(context)!.seeall} >',
                             style: TextStyle(
                               color: Theme.of(context).colorScheme.primary,
                               fontWeight: FontWeight.w700,

@@ -15,7 +15,22 @@ class AppLocalizationsAr extends AppLocalizations {
   String get hindi => 'الهندية';
 
   @override
+  String get arabic => 'العربية';
+
+  @override
   String get hello => 'مرحبا';
+
+  @override
+  String get improveyourprofile => 'حسّن ملفك الشخصي';
+
+  @override
+  String get completeprofilesetup => 'أكمل إعداد الملف الشخصي';
+
+  @override
+  String get peopleyoumayknow => 'أشخاص قد تعرفهم';
+
+  @override
+  String get discoverdusers => 'المستخدمون المكتشفون';
 
   @override
   String get searchgroup => 'البحث في المجموعة';
@@ -39,7 +54,20 @@ class AppLocalizationsAr extends AppLocalizations {
   String get yoursearchhistory => 'سيظهر سجل بحثك هنا';
 
   @override
+  String get clearsearchhistory => 'مسح سجل البحث؟';
+
+  @override
+  String get areyousurewanttoclearallsaerchhistory =>
+      'هل أنت متأكد أنك تريد مسح كل سجل البحث؟';
+
+  @override
   String get insights => 'رؤى';
+
+  @override
+  String get pollcreated => 'تم إنشاء الاستطلاع';
+
+  @override
+  String get weeklyviews => 'المشاهدات الأسبوعية';
 
   @override
   String get insightsareavailable => 'الرؤى فقط لحسابات الأعمال';
@@ -50,6 +78,19 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get switchtobusinessaccount => 'التبديل إلى حساب الأعمال';
+
+  @override
+  String get upgradetobusinessaccount => 'الترقية إلى حساب تجاري؟';
+
+  @override
+  String get morefunctionalitywillbesoon => 'المزيد من الميزات قادمة قريباً!';
+
+  @override
+  String get youareabouttounlockpowerfull =>
+      'أنت على وشك فتح تحليلات وميزات قوية. قم بالتأكيد للمتابعة.';
+
+  @override
+  String get upgrade => 'ترقية';
 
   @override
   String get totalviews => 'إجمالي المشاهدات';
@@ -75,19 +116,56 @@ class AppLocalizationsAr extends AppLocalizations {
   String get block => 'حظر';
 
   @override
+  String get unblock => 'إلغاء الحظر';
+
+  @override
   String get messages => 'الرسائل';
 
   @override
   String get pollgroup => 'مجموعة الاستطلاع';
 
   @override
-  String get groupcreate => 'إنشاء مجموعة';
+  String get newgroup => 'مجموعة جديدة';
 
   @override
-  String get seeallmembers => 'رؤية جميع الأعضاء';
+  String get creategroup => 'إنشاء مجموعة';
+
+  @override
+  String get namegroup => 'مجموعة الأسماء';
+
+  @override
+  String get entergroupame => 'أدخل اسم المجموعة';
+
+  @override
+  String get addmemberstothegroup => 'إضافة أعضاء إلى المجموعة';
 
   @override
   String get members => 'أعضاء';
+
+  @override
+  String get admin => 'مشرف';
+
+  @override
+  String get addmemberstogroup => 'إضافة أعضاء إلى المجموعة';
+
+  @override
+  String get nousersfound => 'لم يتم العثور على مستخدمين';
+
+  @override
+  String get nousersavailable => 'لا يوجد مستخدمون متاحون';
+
+  @override
+  String get startchasepeopletoseethemhere =>
+      'ابدأ بمتابعة الأشخاص لرؤيتهم هنا!';
+
+  @override
+  String get add => 'إضافة';
+
+  @override
+  String get makeadmin => 'تعيين كمشرف';
+
+  @override
+  String get removefromgroup => 'إزالة من المجموعة';
 
   @override
   String get addmember => 'إضافة عضو';
@@ -127,6 +205,81 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get message => 'رسالة';
+
+  @override
+  String get membersinchat => 'أعضاء';
+
+  @override
+  String get nomessagesyetstarttheconversation =>
+      'لا توجد رسائل بعد.\nابدأ المحادثة!';
+
+  @override
+  String get seeallmembers => 'رؤية جميع الأعضاء';
+
+  @override
+  String get medialinksdocs => 'الوسائط والروابط والمستندات';
+
+  @override
+  String get media => 'الوسائط';
+
+  @override
+  String get nomedia => 'لا توجد وسائط';
+
+  @override
+  String get mediasharedinthischatwillappearhere =>
+      'ستظهر الوسائط المشتركة في هذه المحادثة هنا!';
+
+  @override
+  String get link => 'رابط';
+
+  @override
+  String get nolinks => 'لا توجد روابط';
+
+  @override
+  String get linkssharedinthischatwillappearhere =>
+      'ستظهر الروابط المشتركة في هذه المحادثة هنا!';
+
+  @override
+  String get document => 'مستند';
+
+  @override
+  String get nodocuments => 'لا توجد مستندات';
+
+  @override
+  String get docssharedinthischatwillappearhere =>
+      'ستظهر المستندات المشتركة في هذه المحادثة هنا!';
+
+  @override
+  String get mutenotification => 'كتم الإشعارات';
+
+  @override
+  String get customnotification => 'إشعار مخصص';
+
+  @override
+  String get protectedchat => 'محادثة محمية';
+
+  @override
+  String get hidechat => 'إخفاء الدردشة';
+
+  @override
+  String get hidechathistory => 'إخفاء سجل المحادثة';
+
+  @override
+  String get customcolorchat => 'لون مخصص للمحادثة';
+
+  @override
+  String get custombackgroundchat => 'خلفية مخصصة للمحادثة';
+
+  @override
+  String get deletegroup => 'حذف المجموعة';
+
+  @override
+  String get areyousureyouwanttodeletedeletethisgroup =>
+      'هل أنت متأكد أنك تريد حذف هذه المجموعة؟';
+
+  @override
+  String get areyousureyouwanttoreportchatthisuser =>
+      'هل أنت متأكد أنك تريد الإبلاغ عن محادثة هذا المستخدم؟';
 
   @override
   String get newvibe => 'أجواء جديدة';
@@ -201,6 +354,9 @@ class AppLocalizationsAr extends AppLocalizations {
   String get allpolls => 'جميع الاستطلاعات';
 
   @override
+  String get noactivepollfound => 'لم يتم العثور على استطلاع نشط!';
+
+  @override
   String get rememberme => 'تذكرني';
 
   @override
@@ -228,10 +384,16 @@ class AppLocalizationsAr extends AppLocalizations {
   String get cancel => 'يلغي';
 
   @override
+  String get confirm => 'تأكيد';
+
+  @override
   String get delete => 'يمسح';
 
   @override
   String get settings => 'الإعدادات';
+
+  @override
+  String get moresettings => 'مزيد من الإعدادات';
 
   @override
   String get account => 'الحساب';
@@ -243,6 +405,18 @@ class AppLocalizationsAr extends AppLocalizations {
   String get editprofile => 'تعديل الملف الشخصي';
 
   @override
+  String get cropimage => 'قص الصورة؟';
+
+  @override
+  String get wouldyouliketocroptheimage => 'هل تريد قص الصورة؟';
+
+  @override
+  String get skip => 'تخطي';
+
+  @override
+  String get crop => 'قص';
+
+  @override
   String get usersettings => 'إعدادات المستخدم';
 
   @override
@@ -252,10 +426,36 @@ class AppLocalizationsAr extends AppLocalizations {
   String get vibe => 'الاهتزاز';
 
   @override
+  String get nochaseyet => 'لا يوجد متابعون بعد';
+
+  @override
+  String get whenpeoplechasechaseyoutheywillappearhere =>
+      'عندما يتابعك الأشخاص، سيظهرون هنا!';
+
+  @override
+  String get startrechasepeopletoseethemhere =>
+      'ابدأ بمتابعة الأشخاص مجدداً لرؤيتهم هنا!';
+
+  @override
   String get revibe => 'ريفايب';
 
   @override
+  String get norechaseyet => 'لا يوجد متابعون متبادلون بعد';
+
+  @override
+  String get notusersfound => 'لم يتم العثور على مستخدمين';
+
+  @override
+  String get trysearchingwithadifferent => 'حاول البحث بكلمة مفتاحية مختلفة';
+
+  @override
   String get posts => 'المنشورات';
+
+  @override
+  String get nopostwithimage => 'لا توجد منشورات تحتوي على صور';
+
+  @override
+  String get nopostswiththings => 'لا توجد منشورات تحتوي على محتوى';
 
   @override
   String get nopostsfound => 'لم يتم العثور على أي مشاركات';
@@ -274,6 +474,37 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get createyourfirstthings => 'اصنع أشياءك الأولى';
+
+  @override
+  String get likes => 'الإعجابات';
+
+  @override
+  String get comments => 'التعليقات';
+
+  @override
+  String get nocommentsyet => 'لا توجد تعليقات بعد!';
+
+  @override
+  String get bethefirsttocomment => 'كن أول من يعلق';
+
+  @override
+  String get addacomment => 'أضف تعليقاً..';
+
+  @override
+  String get deletecomment => 'حذف التعليق';
+
+  @override
+  String get areyousurewanttodeletethiscomments =>
+      'هل أنت متأكد أنك تريد حذف هذا التعليق؟';
+
+  @override
+  String get voters => 'المصوتون';
+
+  @override
+  String get pickedthisastopchoice => 'اختار هذا كـ\nالخيار الأول';
+
+  @override
+  String get novotersthisimageyet => 'لا يوجد مصوتون لهذه الصورة بعد!';
 
   @override
   String get votes => 'الأصوات';
@@ -418,6 +649,26 @@ class AppLocalizationsAr extends AppLocalizations {
   String get photos => 'الصور';
 
   @override
+  String get accountprivacy => 'خصوصية الحساب';
+
+  @override
+  String get privatepolzet => 'بولزيت خاص';
+
+  @override
+  String get whenyourpolzetaccountispublic =>
+      '• عندما يكون حساب Polzet الخاص بك عاماً، يمكن لأي شخص رؤية منشوراتك واستطلاعاتك ومتابعيك وقوائم المتابَعين.';
+
+  @override
+  String get whenyourpolzetaccountisprivate =>
+      '• عندما يكون حسابك خاصاً، فقط الأشخاص الذين توافق عليهم يمكنهم رؤية ما تشاركه على Polzet.';
+
+  @override
+  String get blockedaccounts => 'الحسابات المحظورة';
+
+  @override
+  String get noblockedaccount => 'لا توجد حسابات محظورة';
+
+  @override
   String get supportandabout => 'الدعم ومعلومات عنا';
 
   @override
@@ -428,6 +679,91 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get addaccount => 'إضافة حساب';
+
+  @override
+  String get feedbackttl => 'التغذية الراجعة';
+
+  @override
+  String get sharefeedback => 'مشاركة التغذية الراجعة';
+
+  @override
+  String get howwouldyourateyourexperince => 'كيف تقيّم تجربتك؟';
+
+  @override
+  String get broken => 'معطل';
+
+  @override
+  String get confusing => 'مربك';
+
+  @override
+  String get okay => 'مقبول';
+
+  @override
+  String get good => 'جيد';
+
+  @override
+  String get loveit => 'أحببته';
+
+  @override
+  String get tapastartorate => 'اضغط على نجمة للتقييم';
+
+  @override
+  String get subject => 'الموضوع';
+
+  @override
+  String get egAppissueloginproblem =>
+      'مثال: مشكلة في التطبيق، مشكلة تسجيل الدخول...';
+
+  @override
+  String get category => 'الفئة';
+
+  @override
+  String get bugreport => 'تقرير خطأ';
+
+  @override
+  String get featurerequest => 'طلب ميزة';
+
+  @override
+  String get uiissue => 'مشكلة في الواجهة';
+
+  @override
+  String get perfomance => 'الأداء';
+
+  @override
+  String get general => 'عام';
+
+  @override
+  String get complaint => 'شكوى';
+
+  @override
+  String get describeyourissueorsuggestionindetails =>
+      'صف مشكلتك أو اقتراحك بالتفصيل...';
+
+  @override
+  String get characters => 'الأحرف';
+
+  @override
+  String get submitfeedback => 'إرسال التغذية الراجعة';
+
+  @override
+  String get deleteaccount => 'حذف الحساب';
+
+  @override
+  String get areyousureyouwanttodeleteyouraccount =>
+      'هل أنت متأكد أنك تريد حذف حسابك؟ سيتم إزالة حسابك وجميع البيانات المرتبطة به بشكل دائم. يمكنك استعادته خلال 30 يوماً.';
+
+  @override
+  String get confirmdelete => 'تأكيد الحذف';
+
+  @override
+  String get yesdelete => 'نعم، احذف';
+
+  @override
+  String get confirmaccountdeletion => 'تأكيد حذف الحساب';
+
+  @override
+  String get enteryourpasswordtopermentlydeleteyouraccount =>
+      'أدخل كلمة المرور لحذف حسابك نهائياً.';
 
   @override
   String get logout => 'تسجيل الخروج';
@@ -1264,4 +1600,111 @@ class AppLocalizationsAr extends AppLocalizations {
   @override
   String get byusingpolzetyouacknowledge =>
       'باستخدام بولزيت، تقر بأنك قد قرأت وفهمت هذه الشروط وتوافق على الالتزام بها. شكرًا لانضمامك إلى مجتمعنا!';
+
+  @override
+  String get polloptions => 'خيارات الاستطلاع';
+
+  @override
+  String get takephoto => 'التقاط صورة';
+
+  @override
+  String get choosefromgallery => 'اختر من المعرض';
+
+  @override
+  String get leavegroup => 'مغادرة المجموعة';
+
+  @override
+  String get areyousureyouwanttoleavethisgroup =>
+      'هل أنت متأكد أنك تريد مغادرة هذه المجموعة؟';
+
+  @override
+  String get yesleave => 'نعم، مغادرة';
+
+  @override
+  String get member => 'عضو';
+
+  @override
+  String get subjectisrequired => 'الموضوع مطلوب';
+
+  @override
+  String get messagemustbeatleasttencharacters =>
+      'يجب أن تتكون الرسالة من 10 أحرف على الأقل';
+
+  @override
+  String get setaccountpassword => 'تعيين كلمة مرور الحساب';
+
+  @override
+  String get addapasswordtosigninwithoutgoogle =>
+      'أضف كلمة مرور لتسجيل الدخول بدون Google';
+
+  @override
+  String get setapasswordsoyoucansigninwithoutgoogle =>
+      'قم بتعيين كلمة مرور حتى تتمكن من تسجيل الدخول بدون Google';
+
+  @override
+  String get setpassword => 'تعيين كلمة المرور';
+
+  @override
+  String get reenternewpassword => 'أعد إدخال كلمة المرور الجديدة';
+
+  @override
+  String get savepassword => 'حفظ كلمة المرور';
+
+  @override
+  String get trendingtoday => 'الأكثر رواجاً اليوم';
+
+  @override
+  String get alltimepopular => 'الأكثر شعبية على الإطلاق';
+
+  @override
+  String get nochatsyet => 'لا توجد محادثات بعد';
+
+  @override
+  String get editmembers => 'تعديل الأعضاء';
+
+  @override
+  String get nolikesthispost => 'لا أحد أعجب بهذا المنشور';
+
+  @override
+  String get editcomments => 'تعديل التعليقات..';
+
+  @override
+  String get save => 'حفظ';
+
+  @override
+  String get whatdoyouthinkforthis => 'ما رأيك في هذا؟';
+
+  @override
+  String get reportchat => 'الإبلاغ عن المحادثة';
+
+  @override
+  String get yesreport => 'نعم، إبلاغ';
+
+  @override
+  String get allimages => 'جميع الصور';
+
+  @override
+  String get polled => 'تم التصويت';
+
+  @override
+  String get voterspickedthisastopchoicesheet => 'اخترتُ هذا كخيارٍ مفضّل.';
+
+  @override
+  String get peoplelikeyouchosetop => 'أشخاص مثلك اختاروا الأفضل';
+
+  @override
+  String get notagsavailable => 'لا توجد علامات متاحة';
+
+  @override
+  String get messageisrequired => 'الرسالة مطلوبة';
+
+  @override
+  String get pleasefillinallfields => 'يرجى ملء جميع الحقول';
+
+  @override
+  String get passwordmustbeatleasteightcharacters =>
+      'يجب أن تكون كلمة المرور 8 أحرف على الأقل';
+
+  @override
+  String get passworddonotmatch => 'كلمات المرور غير متطابقة';
 }

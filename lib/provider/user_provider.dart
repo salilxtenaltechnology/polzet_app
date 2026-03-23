@@ -169,7 +169,6 @@ class UserProvider with ChangeNotifier {
   }
 
   Future<void> loadUserImages() async {
-    // Don't change isLoading state to avoid showing loading indicators
     try {
       var data = await apiService.fetchUserData();
 
@@ -179,8 +178,6 @@ class UserProvider with ChangeNotifier {
 
       notifyListeners();
     } catch (e) {
-      // On error, don't clear fields or change loading state
-      // Just log the error and keep current data
       debugPrint("Error loading user images: $e");
     }
   }

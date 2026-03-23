@@ -4,6 +4,8 @@ class SharedPrefService {
   static const String _accessKey = 'access_token';
   static const String _refreshKey = 'refresh_token';
   static const String _fcmToken = 'fcm_token';
+  static const String _firstLaunchKey = 'first_launch';
+  static const String _languageCode = 'languageCode';
   static const String _termsAcceptedKey = 'terms_accepted';
   static const String _firstName = 'first_name';
   static const String _lastName = 'last_name';
@@ -52,6 +54,7 @@ class SharedPrefService {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_accessKey);
     await prefs.remove(_refreshKey);
+    await prefs.remove(_languageCode);
   }
 
   // ─── FCM Token ──────────────────────────────────────────────────────────────
@@ -68,6 +71,22 @@ class SharedPrefService {
   static Future<void> removeFcmToken() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_fcmToken);
+  }
+
+  // ─── Language ────────────────────────────────────────────────────────────────
+  static Future<void> saveLanguage(String code) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_languageCode, code);
+  }
+
+  static Future<String?> getLanguage() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_languageCode);
+  }
+
+  static Future<void> clearLanguage() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_languageCode);
   }
 
   // ─── Terms ──────────────────────────────────────────────────────────────────
@@ -176,6 +195,20 @@ class SharedPrefService {
   static Future<void> removeKey(String key) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(key);
+  }
+
+  static Future<void> clearOnFirstLaunch() async {
+    final prefs = await SharedPreferences.getInstance();
+    final isFirstLaunch = prefs.getBool(_firstLaunchKey) ?? true;
+
+    if (isFirstLaunch) {
+      // 👇 clear tokens on fresh install
+      _cachedAccessToken = null;
+      _cachedRefreshToken = null;
+      await prefs.remove(_accessKey);
+      await prefs.remove(_refreshKey);
+      await prefs.setBool(_firstLaunchKey, false); // mark as launched
+    }
   }
 }
 

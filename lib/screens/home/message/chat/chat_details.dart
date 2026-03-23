@@ -10,6 +10,7 @@ import 'package:provider/provider.dart';
 import '../../../../../core/constants/app_colors.dart';
 import '../../../../api/services/api_service.dart';
 import '../../../../api/services/image/image_picker_service.dart';
+import '../../../../languages/l10n/generated/app_localizations.dart';
 import '../../../../mixin/utility_mixins.dart';
 import '../../../../provider/group_chat_provider.dart';
 import '../../../../provider/private_chat_provider.dart';
@@ -255,7 +256,7 @@ class _ChatDetailsState extends State<ChatDetails> with UtilityMixin {
             const Spacer(),
             Expanded(
               child: Text(
-                'See all members',
+                AppLocalizations.of(context)!.seeallmembers,
                 style: TextStyle(
                   color: Colors.white,
                   fontSize: 11.sp,
@@ -316,7 +317,7 @@ class _ChatDetailsState extends State<ChatDetails> with UtilityMixin {
       appBar: AppBar(
         automaticallyImplyLeading: false,
         leading: GestureDetector(
-        onTap: () => Navigator.pop(context, _isUserBlock), 
+          onTap: () => Navigator.pop(context, _isUserBlock),
           child: const Icon(Icons.arrow_back_ios),
         ),
         centerTitle: true,
@@ -530,7 +531,7 @@ class _ChatDetailsState extends State<ChatDetails> with UtilityMixin {
                     Icon(FeatherIcons.image, size: 18.spMax),
                     SizedBox(width: 8.w),
                     Text(
-                      'Media, Links & Documents',
+                      AppLocalizations.of(context)!.medialinksdocs,
                       style: TextStyle(
                         color: Theme.of(context).colorScheme.onBackground,
                         fontSize: 11.sp,
@@ -539,7 +540,7 @@ class _ChatDetailsState extends State<ChatDetails> with UtilityMixin {
                     ),
                     const Spacer(),
                     Text(
-                      '155',
+                      '0',
                       style: TextStyle(
                         color: Theme.of(context).colorScheme.onBackground,
                         fontSize: 11.sp,
@@ -559,16 +560,19 @@ class _ChatDetailsState extends State<ChatDetails> with UtilityMixin {
               ),
             ),
             _switchRow(
-              'Mute Notification',
+              AppLocalizations.of(context)!.mutenotification,
               FeatherIcons.volume2,
               isMuteNotification,
               (v) => widget.isGroupChat
                   ? null
                   : privateProvider!.toggleMuteNotification(v),
             ),
-            _arrowRow('Custom Notification', FeatherIcons.bell),
+            _arrowRow(
+              AppLocalizations.of(context)!.customnotification,
+              FeatherIcons.bell,
+            ),
             _switchRow(
-              'Protected Chat',
+              AppLocalizations.of(context)!.protectedchat,
               FeatherIcons.shield,
               isProtectedChat,
               (v) => widget.isGroupChat
@@ -576,7 +580,7 @@ class _ChatDetailsState extends State<ChatDetails> with UtilityMixin {
                   : privateProvider!.toggleProtectedChat(v),
             ),
             _switchRow(
-              'Hide Chat',
+              AppLocalizations.of(context)!.hidechat,
               FeatherIcons.eye,
               isHideChat,
               (v) => widget.isGroupChat
@@ -584,7 +588,7 @@ class _ChatDetailsState extends State<ChatDetails> with UtilityMixin {
                   : privateProvider!.toggleHideChat(v),
             ),
             _switchRow(
-              'Hide Chat History',
+              AppLocalizations.of(context)!.hidechathistory,
               FeatherIcons.eye,
               isHideChatHistory,
               (v) => widget.isGroupChat
@@ -592,12 +596,12 @@ class _ChatDetailsState extends State<ChatDetails> with UtilityMixin {
                   : privateProvider!.toggleHideChatHistory(v),
             ),
             _colorRow(
-              'Custom Color Chat',
+              AppLocalizations.of(context)!.customcolorchat,
               Icons.color_lens_outlined,
               Theme.of(context).colorScheme.primary,
             ),
             _colorRow(
-              'Custom Background Chat',
+              AppLocalizations.of(context)!.custombackgroundchat,
               FeatherIcons.image,
               const Color(0XFFF0F0F3),
             ),
@@ -630,7 +634,9 @@ class _ChatDetailsState extends State<ChatDetails> with UtilityMixin {
                       ),
                       SizedBox(width: 8.w),
                       Text(
-                        isAdmin ? 'Delete Group' : 'Leave Group',
+                        isAdmin
+                            ? AppLocalizations.of(context)!.deletegroup
+                            : AppLocalizations.of(context)!.leavegroup,
                         style: TextStyle(
                           color: const Color(0XFFF44336),
                           fontSize: 11.sp,
@@ -643,25 +649,32 @@ class _ChatDetailsState extends State<ChatDetails> with UtilityMixin {
               ),
 
             if (!widget.isGroupChat) ...[
-              Padding(
-                padding: EdgeInsets.only(top: 15.h),
-                child: Row(
-                  children: [
-                    Icon(
-                      Icons.warning_amber_outlined,
-                      size: 18.spMax,
-                      color: const Color(0XFFF44336),
-                    ),
-                    SizedBox(width: 8.w),
-                    Text(
-                      'Report',
-                      style: TextStyle(
+              GestureDetector(
+                onTap: () {
+                  showReportChatDiolog(context, () {
+                    Navigator.pop(context);
+                  });
+                },
+                child: Padding(
+                  padding: EdgeInsets.only(top: 15.h),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.warning_amber_outlined,
+                        size: 18.spMax,
                         color: const Color(0XFFF44336),
-                        fontSize: 11.sp,
-                        fontWeight: FontWeight.w600,
                       ),
-                    ),
-                  ],
+                      SizedBox(width: 8.w),
+                      Text(
+                        AppLocalizations.of(context)!.report,
+                        style: TextStyle(
+                          color: const Color(0XFFF44336),
+                          fontSize: 11.sp,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
               Padding(
@@ -677,7 +690,7 @@ class _ChatDetailsState extends State<ChatDetails> with UtilityMixin {
                           : await privateProvider!.blockUser(widget.userId!);
                       if (mounted && result['success'] != true) {
                         setState(() => _isUserBlock = wasBlocked);
-                       // showToast(message: result['error'] ?? 'Action failed');
+                        // showToast(message: result['error'] ?? 'Action failed');
                       }
                     }, _isUserBlock);
                   },
@@ -691,7 +704,9 @@ class _ChatDetailsState extends State<ChatDetails> with UtilityMixin {
                       ),
                       SizedBox(width: 8.w),
                       Text(
-                        _isUserBlock ? 'Unblock' : 'Block',
+                        _isUserBlock
+                            ? AppLocalizations.of(context)!.unblock
+                            : AppLocalizations.of(context)!.block,
                         style: TextStyle(
                           color: const Color(0XFFF44336),
                           fontSize: 11.sp,

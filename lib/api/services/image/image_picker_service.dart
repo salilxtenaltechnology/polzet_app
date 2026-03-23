@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:image_cropper/image_cropper.dart';
+import 'package:polzet_app/languages/l10n/generated/app_localizations.dart';
 import 'package:wechat_assets_picker/wechat_assets_picker.dart';
 import 'package:wechat_camera_picker/wechat_camera_picker.dart';
 
@@ -43,7 +44,7 @@ class ImagePickerService {
                     Icons.camera_alt,
                     color: AppColors.primaryColor,
                   ),
-                  title: const Text('Take Photo'),
+                  title: Text(AppLocalizations.of(context)!.takephoto),
                   onTap: () => Navigator.pop(context, 'camera'),
                 ),
               ListTile(
@@ -51,7 +52,7 @@ class ImagePickerService {
                   Icons.photo_library,
                   color: AppColors.primaryColor,
                 ),
-                title: const Text('Choose from Gallery'),
+                title: Text(AppLocalizations.of(context)!.choosefromgallery),
                 onTap: () => Navigator.pop(context, 'gallery'),
               ),
             ],

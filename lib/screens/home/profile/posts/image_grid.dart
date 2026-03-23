@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:polzet_app/languages/l10n/generated/app_localizations.dart';
 
 import '../../../../api/api_config.dart';
 import '../../../../api/services/api_service.dart';
@@ -218,7 +219,7 @@ class _AllImagesPopupState extends State<ShowImagesPopup> {
                   Row(
                     children: [
                       Text(
-                        'All Images',
+                       AppLocalizations.of(context)!.allimages,
                         style: TextStyle(
                           color: AppColors.primaryColor,
                           fontSize: 11.2.sp,
@@ -258,7 +259,7 @@ class _AllImagesPopupState extends State<ShowImagesPopup> {
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: Text(
-                            'Polled',
+                            AppLocalizations.of(context)!.polled,
                             style: TextStyle(
                               color: Colors.white,
                               fontSize: 9.3.sp,
@@ -585,7 +586,9 @@ class _AllImagesPopupState extends State<ShowImagesPopup> {
                                     ),
                                     SizedBox(width: 5.w),
                                     Text(
-                                      'picked this as\ntop choice',
+                                      AppLocalizations.of(
+                                        context,
+                                      )!.pickedthisastopchoice,
                                       style: TextStyle(
                                         color: Colors.grey[500],
                                         fontSize: 9.sp,

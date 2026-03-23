@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../../core/constants/app_colors.dart';
-import '../../../l10n/generated/app_localizations.dart';
+import '../../languages/l10n/generated/app_localizations.dart';
 
 class LeaveGroupDialog extends StatelessWidget {
   const LeaveGroupDialog({super.key, required this.onPressed});
@@ -24,7 +24,7 @@ class LeaveGroupDialog extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Text(
-            'Leave Group',
+           AppLocalizations.of(context)!.leavegroup,
             style: TextStyle(
               color: Theme.of(context).colorScheme.onBackground,
               fontSize: 11.3.sp,
@@ -33,7 +33,7 @@ class LeaveGroupDialog extends StatelessWidget {
           ),
           SizedBox(height: 8.h),
           Text(
-            'Are you sure you want to leave this group?',
+           AppLocalizations.of(context)!.areyousureyouwanttoleavethisgroup,
             style: TextStyle(
               color: Theme.of(context).colorScheme.onBackground,
               fontSize: 11.sp,
@@ -59,7 +59,7 @@ class LeaveGroupDialog extends StatelessWidget {
               GestureDetector(
                 onTap: onPressed,
                 child: Text(
-                  'LEAVE',
+                AppLocalizations.of(context)!.yesleave,
                   style: TextStyle(
                     fontSize: 11.5.sp,
                     color: AppColors.redColor,

@@ -7,7 +7,7 @@ import 'package:polzet_app/widgets/show_toast.dart';
 
 import '../../../../api/services/api_service.dart';
 import '../../../../core/constants/app_colors.dart';
-import '../../../../l10n/generated/app_localizations.dart';
+import '../../../../languages/l10n/generated/app_localizations.dart';
 import '../../../../mixin/utility_mixins.dart';
 import '../../../../widgets/base64/image_convert.dart';
 import '../../../../widgets/button/back_button.dart';
@@ -510,11 +510,15 @@ class _UserChaseState extends State<UserChase>
                       ? _buildEmptyState(
                           icon: FeatherIcons.users,
                           message: _searchQuery.isEmpty
-                              ? 'No chase yet'
-                              : 'No users found',
+                              ? AppLocalizations.of(context)!.nochaseyet
+                              : AppLocalizations.of(context)!.nousersfound,
                           subtitle: _searchQuery.isEmpty
-                              ? 'When people chase you, they\'ll appear here'
-                              : 'Try searching with a different keyword',
+                              ? AppLocalizations.of(
+                                  context,
+                                )!.whenpeoplechasechaseyoutheywillappearhere
+                              : AppLocalizations.of(
+                                  context,
+                                )!.trysearchingwithadifferent,
                         )
                       : ListView.builder(
                           itemCount: _filteredFollowers.length,
@@ -539,11 +543,15 @@ class _UserChaseState extends State<UserChase>
                       ? _buildEmptyState(
                           icon: FeatherIcons.userPlus,
                           message: _searchQuery.isEmpty
-                              ? 'Not re-chase anyone yet'
-                              : 'No users found',
+                              ? AppLocalizations.of(context)!.norechaseyet
+                              : AppLocalizations.of(context)!.nousersfound,
                           subtitle: _searchQuery.isEmpty
-                              ? 'Start re-chase people to see them here'
-                              : 'Try searching with a different keyword',
+                              ? AppLocalizations.of(
+                                  context,
+                                )!.startrechasepeopletoseethemhere
+                              : AppLocalizations.of(
+                                  context,
+                                )!.trysearchingwithadifferent,
                         )
                       : ListView.builder(
                           itemCount: _filteredFollowing.length,

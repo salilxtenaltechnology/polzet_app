@@ -9,7 +9,7 @@ import 'package:provider/provider.dart';
 import '../../api/services/notification/notification_services.dart';
 import '../../core/navigation/notification_router.dart';
 import '../../data/token/shared_preferences.dart';
-import '../../l10n/generated/app_localizations.dart';
+import '../../languages/l10n/generated/app_localizations.dart';
 import '../../mixin/utility_mixins.dart';
 import '../../widgets/app_icons.dart';
 import '../../widgets/bottom navigation bar/bottom_navigation_bar.dart';

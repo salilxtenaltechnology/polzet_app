@@ -15,12 +15,13 @@ import '../../../../api/services/api_service.dart';
 import '../../../../api/services/image/image_picker_service.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../data/token/shared_preferences.dart';
-import '../../../../l10n/generated/app_localizations.dart';
+import '../../../../languages/l10n/generated/app_localizations.dart';
 import '../../../../mixin/utility_mixins.dart';
 import '../../../../models/user/user_profile_model.dart';
 import '../../../../provider/user_provider.dart';
 import '../../../../widgets/button/back_button.dart';
 import '../../../../widgets/custom_text_styles.dart';
+import '../../../../widgets/diolog/custom_diolog.dart';
 import '../../../../widgets/loader.dart';
 import '../../../../widgets/profile/profile_form_section.dart';
 import '../../../../widgets/profile/profile_header_section.dart';
@@ -254,7 +255,7 @@ class _EditProfileState extends State<EditProfile> with UtilityMixin {
 
       await _uploadProfilePhoto(finalFile);
     } catch (e) {
-      if (kDebugMode) print('Error picking profile photo: $e');
+      if (kDebugMode) debugPrint('Error picking profile photo: $e');
       if (mounted) {
         setState(() {
           _isUploadingProfile = false;
@@ -288,7 +289,7 @@ class _EditProfileState extends State<EditProfile> with UtilityMixin {
 
       await _uploadCoverPhoto(finalFile);
     } catch (e) {
-      if (kDebugMode) print('Error picking cover photo: $e');
+      if (kDebugMode) debugPrint('Error picking cover photo: $e');
       if (mounted) {
         setState(() {
           _isUploadingCover = false;
@@ -299,24 +300,9 @@ class _EditProfileState extends State<EditProfile> with UtilityMixin {
     }
   }
 
+  // show crop diolog
   Future<bool?> _showCropDialog() {
-    return showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Crop Image?'),
-        content: const Text('Would you like to crop the image?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Skip'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Crop'),
-          ),
-        ],
-      ),
-    );
+    return cropImageDiolog(context);
   }
 
   // =====================
@@ -331,7 +317,7 @@ class _EditProfileState extends State<EditProfile> with UtilityMixin {
       setState(() => _isUploadingProfile = false);
 
       if (result.isEmpty) {
-        showToast(message: 'Profile photo uploaded successfully!');
+       // showToast(message: 'Profile photo uploaded successfully!');
         await _refreshUserData();
       } else {
         showToast(message: result);
@@ -358,7 +344,7 @@ class _EditProfileState extends State<EditProfile> with UtilityMixin {
       setState(() => _isUploadingCover = false);
 
       if (result.isEmpty) {
-        showToast(message: 'Cover photo uploaded successfully!');
+        //showToast(message: 'Cover photo uploaded successfully!');
         await _refreshUserData();
       } else {
         showToast(message: result);
@@ -524,80 +510,79 @@ class _EditProfileState extends State<EditProfile> with UtilityMixin {
                       ),
                     ),
                   ),
-                  SizedBox(height: 12.h),
-                   Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 12.w),
-                    child: GestureDetector(
-                      onTap: () {
-                        navigationPush(context, const Settings());
-                      },
-                      child: Container(
-                        width: double.infinity,
-                        padding: EdgeInsets.symmetric(
-                          horizontal: 12.w,
-                          vertical: 7.h,
+                SizedBox(height: 12.h),
+                Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 12.w),
+                  child: GestureDetector(
+                    onTap: () {
+                      navigationPush(context, const Settings());
+                    },
+                    child: Container(
+                      width: double.infinity,
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 12.w,
+                        vertical: 7.h,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.primaryContainer,
+                        borderRadius: BorderRadius.circular(12.r),
+                        border: Border.all(
+                          color: AppColors.primaryColor.withOpacity(0.3),
+                          width: 1,
                         ),
-                        decoration: BoxDecoration(
-                          color: Theme.of(context).colorScheme.primaryContainer,
-                          borderRadius: BorderRadius.circular(12.r),
-                          border: Border.all(
-                            color: AppColors.primaryColor.withOpacity(0.3),
-                            width: 1,
-                          ),
-                        ),
-                        child: Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(8),
-                              decoration: BoxDecoration(
-                                color: AppColors.primaryColor.withOpacity(0.1),
-                                shape: BoxShape.circle,
-                              ),
-                              child: const Icon(
-                                Icons.settings,
-                                color: AppColors.primaryColor,
-                                size: 20,
-                              ),
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: AppColors.primaryColor.withOpacity(0.1),
+                              shape: BoxShape.circle,
                             ),
-                            SizedBox(width: 12.w),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    'More Settings',
-                                    style: TextStyle(
-                                      color: Theme.of(
-                                        context,
-                                      ).colorScheme.onBackground,
-                                      fontWeight: FontWeight.w600,
-                                      fontSize: 12.sp,
-                                    ),
-                                  ),
-                                  SizedBox(height: 2.h),
-                                  Text(
-                                    'Dark Mode,Security,Privacy Policy,Terms..',
-                                    style: TextStyle(
-                                      color: Theme.of(context)
-                                          .colorScheme
-                                          .onBackground
-                                          .withOpacity(0.5),
-                                      fontSize: 10.sp,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            Icon(
-                              Icons.arrow_forward_ios,
+                            child: const Icon(
+                              Icons.settings,
                               color: AppColors.primaryColor,
-                              size: 14.sp,
+                              size: 20,
                             ),
-                          ],
-                        ),
+                          ),
+                          SizedBox(width: 12.w),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  AppLocalizations.of(context)!.moresettings,
+                                  style: TextStyle(
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onBackground,
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 12.sp,
+                                  ),
+                                ),
+                                SizedBox(height: 2.h),
+                                Text(
+                                  '${AppLocalizations.of(context)!.darkmode},${AppLocalizations.of(context)!.security},${AppLocalizations.of(context)!.privacypolicy},${AppLocalizations.of(context)!.blockedaccounts}...',
+                                  style: TextStyle(
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onBackground.withOpacity(0.5),
+                                    fontSize: 10.sp,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Icon(
+                            Icons.arrow_forward_ios,
+                            color: AppColors.primaryColor,
+                            size: 14.sp,
+                          ),
+                        ],
                       ),
                     ),
                   ),
+                ),
 
                 SizedBox(height: 12.h),
                 if (_hasGoogleAuth && !_hasLocalPassword)
@@ -641,7 +626,7 @@ class _EditProfileState extends State<EditProfile> with UtilityMixin {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    'Set Account Password',
+                                   AppLocalizations.of(context)!.setaccountpassword,
                                     style: TextStyle(
                                       color: Theme.of(
                                         context,
@@ -652,7 +637,7 @@ class _EditProfileState extends State<EditProfile> with UtilityMixin {
                                   ),
                                   SizedBox(height: 2.h),
                                   Text(
-                                    'Add a password to sign in without Google',
+                                    AppLocalizations.of(context)!.addapasswordtosigninwithoutgoogle,
                                     style: TextStyle(
                                       color: Theme.of(context)
                                           .colorScheme

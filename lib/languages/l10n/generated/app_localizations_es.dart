@@ -15,7 +15,22 @@ class AppLocalizationsEs extends AppLocalizations {
   String get hindi => 'Hindi';
 
   @override
+  String get arabic => 'Árabe';
+
+  @override
   String get hello => 'Hola';
+
+  @override
+  String get improveyourprofile => 'Mejora tu perfil';
+
+  @override
+  String get completeprofilesetup => 'Completar configuración del perfil';
+
+  @override
+  String get peopleyoumayknow => 'Personas que quizás conozcas';
+
+  @override
+  String get discoverdusers => 'Usuarios descubiertos';
 
   @override
   String get searchgroup => 'Buscar grupo';
@@ -39,7 +54,20 @@ class AppLocalizationsEs extends AppLocalizations {
   String get yoursearchhistory => 'Tu historial de búsqueda aparecerá aquí';
 
   @override
+  String get clearsearchhistory => '¿Borrar historial de búsqueda?';
+
+  @override
+  String get areyousurewanttoclearallsaerchhistory =>
+      '¿Estás seguro de que deseas borrar todo el historial de búsqueda?';
+
+  @override
   String get insights => 'Perspectivas';
+
+  @override
+  String get pollcreated => 'Encuesta creada';
+
+  @override
+  String get weeklyviews => 'Vistas semanales';
 
   @override
   String get insightsareavailable =>
@@ -51,6 +79,20 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get switchtobusinessaccount => 'CAMBIAR A CUENTA EMPRESARIAL';
+
+  @override
+  String get upgradetobusinessaccount => '¿Actualizar a cuenta empresarial?';
+
+  @override
+  String get morefunctionalitywillbesoon =>
+      '¡Más funcionalidades próximamente!';
+
+  @override
+  String get youareabouttounlockpowerfull =>
+      'Estás a punto de desbloquear análisis y funciones avanzadas. Confirma para continuar.';
+
+  @override
+  String get upgrade => 'ACTUALIZAR';
 
   @override
   String get totalviews => 'Vistas totales';
@@ -76,19 +118,56 @@ class AppLocalizationsEs extends AppLocalizations {
   String get block => 'Bloquear';
 
   @override
+  String get unblock => 'Desbloquear';
+
+  @override
   String get messages => 'Mensajes';
 
   @override
   String get pollgroup => 'Grupo de encuestas';
 
   @override
-  String get groupcreate => 'Crear grupo';
+  String get newgroup => 'Nuevo grupo';
 
   @override
-  String get seeallmembers => 'Ver todas las miembros';
+  String get creategroup => 'Crear grupo';
+
+  @override
+  String get namegroup => 'Nombre del grupo';
+
+  @override
+  String get entergroupame => 'Ingresa el nombre del grupo';
+
+  @override
+  String get addmemberstothegroup => 'Agregar miembros al grupo';
 
   @override
   String get members => 'Miembros';
+
+  @override
+  String get admin => 'Administrador';
+
+  @override
+  String get addmemberstogroup => 'Agregar miembros al grupo';
+
+  @override
+  String get nousersfound => 'No se encontraron usuarios';
+
+  @override
+  String get nousersavailable => 'No hay usuarios disponibles';
+
+  @override
+  String get startchasepeopletoseethemhere =>
+      '¡Comienza a seguir personas para verlas aquí!';
+
+  @override
+  String get add => 'Agregar';
+
+  @override
+  String get makeadmin => 'Hacer administrador';
+
+  @override
+  String get removefromgroup => 'Eliminar del grupo';
 
   @override
   String get addmember => 'Agregar miembro';
@@ -128,6 +207,81 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get message => 'Mensaje';
+
+  @override
+  String get membersinchat => 'miembros';
+
+  @override
+  String get nomessagesyetstarttheconversation =>
+      'Aún no hay mensajes.\n¡Inicia la conversación!';
+
+  @override
+  String get seeallmembers => 'Ver todas las miembros';
+
+  @override
+  String get medialinksdocs => 'Medios, enlaces y documentos';
+
+  @override
+  String get media => 'Medios';
+
+  @override
+  String get nomedia => 'Sin medios';
+
+  @override
+  String get mediasharedinthischatwillappearhere =>
+      '¡Los medios compartidos en este chat aparecerán aquí!';
+
+  @override
+  String get link => 'Enlace';
+
+  @override
+  String get nolinks => 'Sin enlaces';
+
+  @override
+  String get linkssharedinthischatwillappearhere =>
+      '¡Los enlaces compartidos en este chat aparecerán aquí!';
+
+  @override
+  String get document => 'Documento';
+
+  @override
+  String get nodocuments => 'Sin documentos';
+
+  @override
+  String get docssharedinthischatwillappearhere =>
+      '¡Los documentos compartidos en este chat aparecerán aquí!';
+
+  @override
+  String get mutenotification => 'Silenciar notificación';
+
+  @override
+  String get customnotification => 'Notificación personalizada';
+
+  @override
+  String get protectedchat => 'Chat protegido';
+
+  @override
+  String get hidechat => 'Ocultar chat';
+
+  @override
+  String get hidechathistory => 'Ocultar historial del chat';
+
+  @override
+  String get customcolorchat => 'Color personalizado del chat';
+
+  @override
+  String get custombackgroundchat => 'Fondo personalizado del chat';
+
+  @override
+  String get deletegroup => 'Eliminar grupo';
+
+  @override
+  String get areyousureyouwanttodeletedeletethisgroup =>
+      '¿Estás seguro de que deseas eliminar este grupo?';
+
+  @override
+  String get areyousureyouwanttoreportchatthisuser =>
+      '¿Estás seguro de que deseas reportar el chat de este usuario?';
 
   @override
   String get newvibe => 'Nueva vibra';
@@ -204,6 +358,9 @@ class AppLocalizationsEs extends AppLocalizations {
   String get allpolls => 'Todas las encuestas';
 
   @override
+  String get noactivepollfound => '¡No se encontró ninguna encuesta activa!';
+
+  @override
   String get rememberme => 'Recuérdame';
 
   @override
@@ -231,10 +388,16 @@ class AppLocalizationsEs extends AppLocalizations {
   String get cancel => 'Cancelar';
 
   @override
+  String get confirm => 'CONFIRMAR';
+
+  @override
   String get delete => 'Borrar';
 
   @override
   String get settings => 'Configuración';
+
+  @override
+  String get moresettings => 'Más configuraciones';
 
   @override
   String get account => 'Cuenta';
@@ -246,6 +409,18 @@ class AppLocalizationsEs extends AppLocalizations {
   String get editprofile => 'Editar perfil';
 
   @override
+  String get cropimage => '¿Recortar imagen?';
+
+  @override
+  String get wouldyouliketocroptheimage => '¿Te gustaría recortar la imagen?';
+
+  @override
+  String get skip => 'Omitir';
+
+  @override
+  String get crop => 'Recortar';
+
+  @override
   String get usersettings => 'Configuración de usuario';
 
   @override
@@ -255,10 +430,37 @@ class AppLocalizationsEs extends AppLocalizations {
   String get vibe => 'Onda';
 
   @override
+  String get nochaseyet => 'Aún no hay seguidores';
+
+  @override
+  String get whenpeoplechasechaseyoutheywillappearhere =>
+      '¡Cuando las personas te sigan, aparecerán aquí!';
+
+  @override
+  String get startrechasepeopletoseethemhere =>
+      '¡Comienza a seguir de vuelta a personas para verlas aquí!';
+
+  @override
   String get revibe => 'Revibe';
 
   @override
+  String get norechaseyet => 'Aún no hay seguidores mutuos';
+
+  @override
+  String get notusersfound => 'No se encontraron usuarios';
+
+  @override
+  String get trysearchingwithadifferent =>
+      'Intenta buscar con una palabra clave diferente';
+
+  @override
   String get posts => 'Publicaciones';
+
+  @override
+  String get nopostwithimage => 'No hay publicaciones con imagen';
+
+  @override
+  String get nopostswiththings => 'No hay publicaciones con contenido';
 
   @override
   String get nopostsfound => 'No se encontraron publicaciones';
@@ -277,6 +479,37 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get createyourfirstthings => 'Crea tus primeras cosas';
+
+  @override
+  String get likes => 'Me gusta';
+
+  @override
+  String get comments => 'Comentarios';
+
+  @override
+  String get nocommentsyet => '¡Aún no hay comentarios!';
+
+  @override
+  String get bethefirsttocomment => 'Sé el primero en comentar';
+
+  @override
+  String get addacomment => 'Agregar un comentario..';
+
+  @override
+  String get deletecomment => 'Eliminar comentario';
+
+  @override
+  String get areyousurewanttodeletethiscomments =>
+      '¿Estás seguro de que deseas eliminar este comentario?';
+
+  @override
+  String get voters => 'Votantes';
+
+  @override
+  String get pickedthisastopchoice => 'eligió esto como\nopción principal';
+
+  @override
+  String get novotersthisimageyet => '¡Aún no hay votantes para esta imagen!';
 
   @override
   String get votes => 'Votos';
@@ -420,6 +653,26 @@ class AppLocalizationsEs extends AppLocalizations {
   String get photos => 'Fotos';
 
   @override
+  String get accountprivacy => 'Privacidad de la cuenta';
+
+  @override
+  String get privatepolzet => 'Polzet privado';
+
+  @override
+  String get whenyourpolzetaccountispublic =>
+      '• Cuando tu cuenta de Polzet es pública, cualquiera puede ver tus publicaciones, encuestas, seguidores y listas de seguidos.';
+
+  @override
+  String get whenyourpolzetaccountisprivate =>
+      '• Cuando tu cuenta es privada, solo las personas que apruebes podrán ver lo que compartes en Polzet.';
+
+  @override
+  String get blockedaccounts => 'Cuentas bloqueadas';
+
+  @override
+  String get noblockedaccount => 'No hay cuentas bloqueadas';
+
+  @override
   String get supportandabout => 'Soporte y acerca de';
 
   @override
@@ -430,6 +683,92 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get addaccount => 'Agregar cuenta';
+
+  @override
+  String get feedbackttl => 'Comentarios';
+
+  @override
+  String get sharefeedback => 'Compartir comentarios';
+
+  @override
+  String get howwouldyourateyourexperince =>
+      '¿Cómo calificarías tu experiencia?';
+
+  @override
+  String get broken => 'Defectuoso';
+
+  @override
+  String get confusing => 'Confuso';
+
+  @override
+  String get okay => 'Regular';
+
+  @override
+  String get good => 'Bueno';
+
+  @override
+  String get loveit => 'Me encanta';
+
+  @override
+  String get tapastartorate => 'Toca una estrella para calificar';
+
+  @override
+  String get subject => 'Asunto';
+
+  @override
+  String get egAppissueloginproblem =>
+      'p. ej. Problema con la app, Problema de inicio de sesión...';
+
+  @override
+  String get category => 'Categoría';
+
+  @override
+  String get bugreport => 'Reporte de error';
+
+  @override
+  String get featurerequest => 'Solicitud de función';
+
+  @override
+  String get uiissue => 'Problema de interfaz';
+
+  @override
+  String get perfomance => 'Rendimiento';
+
+  @override
+  String get general => 'General';
+
+  @override
+  String get complaint => 'Queja';
+
+  @override
+  String get describeyourissueorsuggestionindetails =>
+      'Describe tu problema o sugerencia en detalle...';
+
+  @override
+  String get characters => 'Caracteres';
+
+  @override
+  String get submitfeedback => 'Enviar comentarios';
+
+  @override
+  String get deleteaccount => 'Eliminar cuenta';
+
+  @override
+  String get areyousureyouwanttodeleteyouraccount =>
+      '¿Estás seguro de que deseas eliminar tu cuenta? Se eliminarán permanentemente tu cuenta y todos los datos asociados. Puedes restaurarla dentro de 30 días.';
+
+  @override
+  String get confirmdelete => 'CONFIRMAR, ELIMINAR';
+
+  @override
+  String get yesdelete => 'SÍ, ELIMINAR';
+
+  @override
+  String get confirmaccountdeletion => 'Confirmar eliminación de cuenta';
+
+  @override
+  String get enteryourpasswordtopermentlydeleteyouraccount =>
+      'Ingresa tu contraseña para eliminar permanentemente tu cuenta.';
 
   @override
   String get logout => 'Cerrar sesión';
@@ -1283,4 +1622,112 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get byusingpolzetyouacknowledge =>
       'Al usar Polzet, usted reconoce haber leído y comprendido estos Términos y acepta regirse por ellos. ¡Gracias por formar parte de nuestra comunidad!';
+
+  @override
+  String get polloptions => 'Opciones de encuesta';
+
+  @override
+  String get takephoto => 'Tomar foto';
+
+  @override
+  String get choosefromgallery => 'Elegir de la galería';
+
+  @override
+  String get leavegroup => 'Abandonar grupo';
+
+  @override
+  String get areyousureyouwanttoleavethisgroup =>
+      '¿Estás seguro de que quieres abandonar este grupo?';
+
+  @override
+  String get yesleave => 'SÍ, ABANDONAR';
+
+  @override
+  String get member => 'Miembro';
+
+  @override
+  String get subjectisrequired => 'El asunto es obligatorio';
+
+  @override
+  String get messagemustbeatleasttencharacters =>
+      'El mensaje debe tener al menos 10 caracteres';
+
+  @override
+  String get setaccountpassword => 'Establecer contraseña de cuenta';
+
+  @override
+  String get addapasswordtosigninwithoutgoogle =>
+      'Añade una contraseña para iniciar sesión sin Google';
+
+  @override
+  String get setapasswordsoyoucansigninwithoutgoogle =>
+      'Establece una contraseña para poder iniciar sesión sin Google';
+
+  @override
+  String get setpassword => 'Establecer contraseña';
+
+  @override
+  String get reenternewpassword => 'Volver a introducir la nueva contraseña';
+
+  @override
+  String get savepassword => 'Guardar contraseña';
+
+  @override
+  String get trendingtoday => 'Tendencias de hoy';
+
+  @override
+  String get alltimepopular => 'Popular de todos los tiempos';
+
+  @override
+  String get nochatsyet => 'Aún no hay chats';
+
+  @override
+  String get editmembers => 'Editar miembros';
+
+  @override
+  String get nolikesthispost => 'A nadie le gusta esta publicación';
+
+  @override
+  String get editcomments => 'Editar comentarios..';
+
+  @override
+  String get save => 'Guardar';
+
+  @override
+  String get whatdoyouthinkforthis => '¿Qué opinas sobre esto?';
+
+  @override
+  String get reportchat => 'Reportar chat';
+
+  @override
+  String get yesreport => 'SÍ, REPORTAR';
+
+  @override
+  String get allimages => 'Todas las imágenes';
+
+  @override
+  String get polled => 'Votado';
+
+  @override
+  String get voterspickedthisastopchoicesheet =>
+      'personas eligieron esto como mejor opción ';
+
+  @override
+  String get peoplelikeyouchosetop => 'personas como tú eligieron lo mejor';
+
+  @override
+  String get notagsavailable => 'No hay etiquetas disponibles';
+
+  @override
+  String get messageisrequired => 'El mensaje es obligatorio';
+
+  @override
+  String get pleasefillinallfields => 'Por favor complete todos los campos';
+
+  @override
+  String get passwordmustbeatleasteightcharacters =>
+      'La contraseña debe tener al menos 8 caracteres';
+
+  @override
+  String get passworddonotmatch => 'Las contraseñas no coinciden';
 }

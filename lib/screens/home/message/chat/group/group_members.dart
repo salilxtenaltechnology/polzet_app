@@ -1,4 +1,4 @@
-// ignore_for_file: must_be_immutable, deprecated_member_use
+// ignore_for_file: unused_field, must_be_immutable, deprecated_member_use
 
 import 'dart:convert';
 import 'package:feather_icons/feather_icons.dart';
@@ -9,6 +9,7 @@ import 'package:polzet_app/widgets/custom_card.dart';
 import 'package:polzet_app/widgets/show_toast.dart';
 import 'package:provider/provider.dart';
 
+import '../../../../../languages/l10n/generated/app_localizations.dart';
 import '../../../../../provider/group_chat_provider.dart';
 import '../../../../../provider/user_provider.dart';
 import '../../../../../widgets/custom_text_styles.dart';
@@ -27,7 +28,7 @@ class _GroupMembersState extends State<GroupMembers> {
   final TextEditingController _searchController = TextEditingController();
   List<Map<String, dynamic>> _filtered = [];
   Set<int> _selectedIds = {};
-List<Map<String, dynamic>> _selectedUsers = [];
+  List<Map<String, dynamic>> _selectedUsers = [];
 
   @override
   void initState() {
@@ -145,7 +146,7 @@ List<Map<String, dynamic>> _selectedUsers = [];
                     ),
                     SizedBox(width: 12.w),
                     Text(
-                      'Make Admin',
+                      AppLocalizations.of(context)!.makeadmin,
                       style: TextStyle(
                         color: AppColors.primaryColor,
                         fontSize: 12.sp,
@@ -173,7 +174,7 @@ List<Map<String, dynamic>> _selectedUsers = [];
                     ),
                     SizedBox(width: 12.w),
                     Text(
-                      'Remove from Group',
+                      AppLocalizations.of(context)!.removefromgroup,
                       style: TextStyle(
                         color: const Color(0XFFF44336),
                         fontSize: 12.sp,
@@ -213,7 +214,7 @@ List<Map<String, dynamic>> _selectedUsers = [];
           child: const Icon(Icons.arrow_back_ios),
         ),
         title: Text(
-          'Members',
+            AppLocalizations.of(context)!.members,
           style: CustomTextStyles.appBarTitleText(context),
         ),
         centerTitle: true,
@@ -221,39 +222,44 @@ List<Map<String, dynamic>> _selectedUsers = [];
         surfaceTintColor: Theme.of(context).colorScheme.background,
         toolbarHeight: 25.h,
         actions: [
-         Padding(
-  padding: EdgeInsets.only(right: 12.w),
-  child: GestureDetector(
-  onTap: isCurrentUserAdmin
-    ? () async {
-        // Extract existing member IDs from provider
-        final providerMembers = context.read<GroupChatProvider>().members;
-        final existingIds = providerMembers
-            .map((m) => _user(m)['id'] as int?)
-            .whereType<int>()
-            .toSet();
+          Padding(
+            padding: EdgeInsets.only(right: 12.w),
+            child: GestureDetector(
+              onTap: isCurrentUserAdmin
+                  ? () async {
+                      // Extract existing member IDs from provider
+                      final providerMembers = context
+                          .read<GroupChatProvider>()
+                          .members;
+                      final existingIds = providerMembers
+                          .map((m) => _user(m)['id'] as int?)
+                          .whereType<int>()
+                          .toSet();
 
-        final result = await BottomSheetUtils.showAddMembersBottomSheet(
-          context: context,
-          alreadySelected: existingIds, // ← pass current members' IDs
-        );
-        if (result != null) {
-          setState(() {
-            _selectedIds = result['ids'] as Set<int>;
-            _selectedUsers = result['users'] as List<Map<String, dynamic>>;
-          });
-        }
-      }
-    : null,
-    child: Icon(
-      FeatherIcons.userPlus,
-      size: 20.spMax,
-      color: isCurrentUserAdmin
-          ? Theme.of(context).colorScheme.onBackground
-          : Theme.of(context).colorScheme.onBackground.withOpacity(0.4),
-    ),
-  ),
-),
+                      final result =
+                          await BottomSheetUtils.showAddMembersBottomSheet(
+                            context: context,
+                            alreadySelected:
+                                existingIds, // ← pass current members' IDs
+                          );
+                      if (result != null) {
+                        setState(() {
+                          _selectedIds = result['ids'] as Set<int>;
+                          _selectedUsers =
+                              result['users'] as List<Map<String, dynamic>>;
+                        });
+                      }
+                    }
+                  : null,
+              child: Icon(
+                FeatherIcons.userPlus,
+                size: 20.spMax,
+                color: isCurrentUserAdmin
+                    ? Theme.of(context).colorScheme.onBackground
+                    : Colors.transparent
+              ),
+            ),
+          ),
         ],
       ),
       body: Padding(
@@ -282,7 +288,7 @@ List<Map<String, dynamic>> _selectedUsers = [];
                     left: 12.w,
                     top: 10.h,
                   ),
-                  hintText: 'Search',
+                  hintText: AppLocalizations.of(context)!.searchusers,
                   hintStyle: CustomTextStyles.lblPrimaryHintText(context),
                   border: InputBorder.none,
                   suffixIcon: Icon(
@@ -394,7 +400,7 @@ List<Map<String, dynamic>> _selectedUsers = [];
                                   const Spacer(),
                                   if (isAdmin)
                                     Text(
-                                      'Admin',
+                                      AppLocalizations.of(context)!.admin,
                                       style: TextStyle(
                                         color: AppColors.primaryColor,
                                         fontSize: 10.2.sp,

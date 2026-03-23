@@ -109,6 +109,13 @@ class _LoginScreenState extends State<LoginScreen> with UtilityMixin {
       password: password,
       context: context,
     );
+
+    final savedLang = await SharedPrefService.getLanguage();
+    if (mounted && savedLang != null) {
+      MyApp.of(context)?.changeLanguage(Locale(savedLang));
+    } else if (mounted) {
+      MyApp.of(context)?.resetLocale();
+    }
     if (!mounted) return;
     setState(() => _isLoading = false);
   }

@@ -15,7 +15,22 @@ class AppLocalizationsId extends AppLocalizations {
   String get hindi => 'Hindi';
 
   @override
+  String get arabic => 'Arab';
+
+  @override
   String get hello => 'Halo';
+
+  @override
+  String get improveyourprofile => 'Tingkatkan profil Anda';
+
+  @override
+  String get completeprofilesetup => 'Lengkapi pengaturan profil';
+
+  @override
+  String get peopleyoumayknow => 'Orang yang mungkin Anda kenal';
+
+  @override
+  String get discoverdusers => 'Pengguna yang ditemukan';
 
   @override
   String get searchgroup => 'Cari Grup';
@@ -39,7 +54,20 @@ class AppLocalizationsId extends AppLocalizations {
   String get yoursearchhistory => 'Riwayat pencarian Anda akan muncul di sini';
 
   @override
+  String get clearsearchhistory => 'Hapus riwayat pencarian?';
+
+  @override
+  String get areyousurewanttoclearallsaerchhistory =>
+      'Apakah Anda yakin ingin menghapus semua riwayat pencarian?';
+
+  @override
   String get insights => 'Wawasan';
+
+  @override
+  String get pollcreated => 'Polling dibuat';
+
+  @override
+  String get weeklyviews => 'Tampilan mingguan';
 
   @override
   String get insightsareavailable => 'Wawasan hanya tersedia untuk Akun Bisnis';
@@ -50,6 +78,20 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String get switchtobusinessaccount => 'BERPINDAH KE AKUN BISNIS';
+
+  @override
+  String get upgradetobusinessaccount => 'Tingkatkan ke akun bisnis?';
+
+  @override
+  String get morefunctionalitywillbesoon =>
+      'Lebih banyak fitur akan segera hadir!';
+
+  @override
+  String get youareabouttounlockpowerfull =>
+      'Anda akan membuka analitik dan fitur canggih. Konfirmasi untuk melanjutkan.';
+
+  @override
+  String get upgrade => 'TINGKATKAN';
 
   @override
   String get totalviews => 'Total Tampilan';
@@ -75,19 +117,56 @@ class AppLocalizationsId extends AppLocalizations {
   String get block => 'Memblokir';
 
   @override
+  String get unblock => 'Buka blokir';
+
+  @override
   String get messages => 'Pesan';
 
   @override
   String get pollgroup => 'Grup Jajak Pendapat';
 
   @override
-  String get groupcreate => 'Buat Grup';
+  String get newgroup => 'Grup baru';
 
   @override
-  String get seeallmembers => 'Lihat semua anggota';
+  String get creategroup => 'Buat Grup';
+
+  @override
+  String get namegroup => 'Nama Grup';
+
+  @override
+  String get entergroupame => 'Masukkan nama grup';
+
+  @override
+  String get addmemberstothegroup => 'Tambahkan anggota ke grup';
 
   @override
   String get members => 'Anggota';
+
+  @override
+  String get admin => 'Admin';
+
+  @override
+  String get addmemberstogroup => 'Tambahkan anggota ke grup';
+
+  @override
+  String get nousersfound => 'Tidak ada pengguna ditemukan';
+
+  @override
+  String get nousersavailable => 'Tidak ada pengguna tersedia';
+
+  @override
+  String get startchasepeopletoseethemhere =>
+      'Mulai ikuti orang untuk melihat mereka di sini!';
+
+  @override
+  String get add => 'Tambah';
+
+  @override
+  String get makeadmin => 'Jadikan Admin';
+
+  @override
+  String get removefromgroup => 'Hapus dari grup';
 
   @override
   String get addmember => 'Tambahkan Anggota';
@@ -127,6 +206,81 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String get message => 'Pesan';
+
+  @override
+  String get membersinchat => 'anggota';
+
+  @override
+  String get nomessagesyetstarttheconversation =>
+      'Belum ada pesan.\nMulai percakapan!';
+
+  @override
+  String get seeallmembers => 'Lihat semua anggota';
+
+  @override
+  String get medialinksdocs => 'Media, Tautan & Dokumen';
+
+  @override
+  String get media => 'Media';
+
+  @override
+  String get nomedia => 'Tidak ada media';
+
+  @override
+  String get mediasharedinthischatwillappearhere =>
+      'Media yang dibagikan dalam obrolan ini akan muncul di sini!';
+
+  @override
+  String get link => 'Tautan';
+
+  @override
+  String get nolinks => 'Tidak ada tautan';
+
+  @override
+  String get linkssharedinthischatwillappearhere =>
+      'Tautan yang dibagikan dalam obrolan ini akan muncul di sini!';
+
+  @override
+  String get document => 'Dokumen';
+
+  @override
+  String get nodocuments => 'Tidak ada dokumen';
+
+  @override
+  String get docssharedinthischatwillappearhere =>
+      'Dokumen yang dibagikan dalam obrolan ini akan muncul di sini!';
+
+  @override
+  String get mutenotification => 'Bisukan notifikasi';
+
+  @override
+  String get customnotification => 'Notifikasi kustom';
+
+  @override
+  String get protectedchat => 'Obrolan terlindungi';
+
+  @override
+  String get hidechat => 'Sembunyikan Obrolan';
+
+  @override
+  String get hidechathistory => 'Sembunyikan riwayat obrolan';
+
+  @override
+  String get customcolorchat => 'Warna obrolan kustom';
+
+  @override
+  String get custombackgroundchat => 'Latar belakang obrolan kustom';
+
+  @override
+  String get deletegroup => 'Hapus grup';
+
+  @override
+  String get areyousureyouwanttodeletedeletethisgroup =>
+      'Apakah Anda yakin ingin menghapus grup ini?';
+
+  @override
+  String get areyousureyouwanttoreportchatthisuser =>
+      'Apakah Anda yakin ingin melaporkan obrolan pengguna ini?';
 
   @override
   String get newvibe => 'Suasana Baru';
@@ -203,6 +357,9 @@ class AppLocalizationsId extends AppLocalizations {
   String get allpolls => 'Semua Jajak Pendapat';
 
   @override
+  String get noactivepollfound => 'Tidak ada polling aktif ditemukan!';
+
+  @override
   String get rememberme => 'Ingat Saya';
 
   @override
@@ -230,10 +387,16 @@ class AppLocalizationsId extends AppLocalizations {
   String get cancel => 'Membatalkan';
 
   @override
+  String get confirm => 'KONFIRMASI';
+
+  @override
   String get delete => 'Menghapus';
 
   @override
   String get settings => 'Pengaturan';
+
+  @override
+  String get moresettings => 'Pengaturan lainnya';
 
   @override
   String get account => 'Akun';
@@ -245,6 +408,18 @@ class AppLocalizationsId extends AppLocalizations {
   String get editprofile => 'Edit Profil';
 
   @override
+  String get cropimage => 'Potong Gambar?';
+
+  @override
+  String get wouldyouliketocroptheimage => 'Apakah Anda ingin memotong gambar?';
+
+  @override
+  String get skip => 'Lewati';
+
+  @override
+  String get crop => 'Potong';
+
+  @override
   String get usersettings => 'Pengaturan Pengguna';
 
   @override
@@ -254,10 +429,37 @@ class AppLocalizationsId extends AppLocalizations {
   String get vibe => 'Atmosfer';
 
   @override
+  String get nochaseyet => 'Belum ada pengikut';
+
+  @override
+  String get whenpeoplechasechaseyoutheywillappearhere =>
+      'Ketika orang mengikuti Anda, mereka akan muncul di sini!';
+
+  @override
+  String get startrechasepeopletoseethemhere =>
+      'Mulai ikuti balik orang untuk melihat mereka di sini!';
+
+  @override
   String get revibe => 'Revibe';
 
   @override
+  String get norechaseyet => 'Belum ada pengikut timbal balik';
+
+  @override
+  String get notusersfound => 'Tidak ada pengguna ditemukan';
+
+  @override
+  String get trysearchingwithadifferent =>
+      'Coba cari dengan kata kunci yang berbeda';
+
+  @override
   String get posts => 'Postingan';
+
+  @override
+  String get nopostwithimage => 'Tidak ada postingan dengan gambar';
+
+  @override
+  String get nopostswiththings => 'Tidak ada postingan dengan konten';
 
   @override
   String get nopostsfound => 'Tidak ada postingan ditemukan';
@@ -276,6 +478,37 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String get createyourfirstthings => 'Ciptakan hal pertamamu';
+
+  @override
+  String get likes => 'Suka';
+
+  @override
+  String get comments => 'Komentar';
+
+  @override
+  String get nocommentsyet => 'Belum ada komentar!';
+
+  @override
+  String get bethefirsttocomment => 'Jadilah yang pertama berkomentar';
+
+  @override
+  String get addacomment => 'Tambahkan komentar..';
+
+  @override
+  String get deletecomment => 'Hapus komentar';
+
+  @override
+  String get areyousurewanttodeletethiscomments =>
+      'Apakah Anda yakin ingin menghapus komentar ini?';
+
+  @override
+  String get voters => 'Pemilih';
+
+  @override
+  String get pickedthisastopchoice => 'memilih ini sebagai\npilihan utama';
+
+  @override
+  String get novotersthisimageyet => 'Belum ada pemilih untuk gambar ini!';
 
   @override
   String get votes => 'Suara';
@@ -419,6 +652,26 @@ class AppLocalizationsId extends AppLocalizations {
   String get photos => 'Foto';
 
   @override
+  String get accountprivacy => 'Privasi akun';
+
+  @override
+  String get privatepolzet => 'Polzet pribadi';
+
+  @override
+  String get whenyourpolzetaccountispublic =>
+      '• Ketika akun Polzet Anda publik, siapa pun dapat melihat postingan, polling, pengikut, dan daftar mengikuti Anda.';
+
+  @override
+  String get whenyourpolzetaccountisprivate =>
+      '• Ketika akun Anda privat, hanya orang yang Anda setujui yang dapat melihat apa yang Anda bagikan di Polzet.';
+
+  @override
+  String get blockedaccounts => 'Akun yang diblokir';
+
+  @override
+  String get noblockedaccount => 'Tidak ada akun yang diblokir';
+
+  @override
   String get supportandabout => 'Dukungan dan Tentang';
 
   @override
@@ -429,6 +682,92 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String get addaccount => 'Tambah Akun';
+
+  @override
+  String get feedbackttl => 'Umpan balik';
+
+  @override
+  String get sharefeedback => 'Bagikan umpan balik';
+
+  @override
+  String get howwouldyourateyourexperince =>
+      'Bagaimana Anda menilai pengalaman Anda?';
+
+  @override
+  String get broken => 'Rusak';
+
+  @override
+  String get confusing => 'Membingungkan';
+
+  @override
+  String get okay => 'Oke';
+
+  @override
+  String get good => 'Bagus';
+
+  @override
+  String get loveit => 'Saya suka';
+
+  @override
+  String get tapastartorate => 'Ketuk bintang untuk menilai';
+
+  @override
+  String get subject => 'Subjek';
+
+  @override
+  String get egAppissueloginproblem =>
+      'mis. Masalah aplikasi, Masalah login...';
+
+  @override
+  String get category => 'Kategori';
+
+  @override
+  String get bugreport => 'Laporan bug';
+
+  @override
+  String get featurerequest => 'Permintaan fitur';
+
+  @override
+  String get uiissue => 'Masalah antarmuka';
+
+  @override
+  String get perfomance => 'Performa';
+
+  @override
+  String get general => 'Umum';
+
+  @override
+  String get complaint => 'Keluhan';
+
+  @override
+  String get describeyourissueorsuggestionindetails =>
+      'Jelaskan masalah atau saran Anda secara detail...';
+
+  @override
+  String get characters => 'Karakter';
+
+  @override
+  String get submitfeedback => 'Kirim umpan balik';
+
+  @override
+  String get deleteaccount => 'Hapus akun';
+
+  @override
+  String get areyousureyouwanttodeleteyouraccount =>
+      'Apakah Anda yakin ingin menghapus akun Anda? Akun dan semua data terkait akan dihapus secara permanen. Anda dapat memulihkannya dalam 30 hari.';
+
+  @override
+  String get confirmdelete => 'KONFIRMASI, HAPUS';
+
+  @override
+  String get yesdelete => 'YA, HAPUS';
+
+  @override
+  String get confirmaccountdeletion => 'Konfirmasi penghapusan akun';
+
+  @override
+  String get enteryourpasswordtopermentlydeleteyouraccount =>
+      'Masukkan kata sandi Anda untuk menghapus akun Anda secara permanen.';
 
   @override
   String get logout => 'Keluar';
@@ -1277,4 +1616,112 @@ class AppLocalizationsId extends AppLocalizations {
   @override
   String get byusingpolzetyouacknowledge =>
       'Dengan menggunakan Polzet, Anda mengakui bahwa Anda telah membaca dan memahami syarat-syarat ini dan setuju untuk terikat olehnya. Terima kasih telah menjadi bagian dari komunitas kami!';
+
+  @override
+  String get polloptions => 'Opsi Polling';
+
+  @override
+  String get takephoto => 'Ambil Foto';
+
+  @override
+  String get choosefromgallery => 'Pilih dari Galeri';
+
+  @override
+  String get leavegroup => 'Tinggalkan Grup';
+
+  @override
+  String get areyousureyouwanttoleavethisgroup =>
+      'Apakah Anda yakin ingin meninggalkan grup ini?';
+
+  @override
+  String get yesleave => 'YA, TINGGALKAN';
+
+  @override
+  String get member => 'Anggota';
+
+  @override
+  String get subjectisrequired => 'Subjek wajib diisi';
+
+  @override
+  String get messagemustbeatleasttencharacters =>
+      'Pesan harus minimal 10 karakter';
+
+  @override
+  String get setaccountpassword => 'Atur Kata Sandi Akun';
+
+  @override
+  String get addapasswordtosigninwithoutgoogle =>
+      'Tambahkan kata sandi untuk masuk tanpa Google';
+
+  @override
+  String get setapasswordsoyoucansigninwithoutgoogle =>
+      'Atur kata sandi agar Anda dapat masuk tanpa Google';
+
+  @override
+  String get setpassword => 'Atur Kata Sandi';
+
+  @override
+  String get reenternewpassword => 'Masukkan ulang kata sandi baru';
+
+  @override
+  String get savepassword => 'Simpan Kata Sandi';
+
+  @override
+  String get trendingtoday => 'Trending Hari Ini';
+
+  @override
+  String get alltimepopular => 'Populer Sepanjang Masa';
+
+  @override
+  String get nochatsyet => 'Belum ada obrolan';
+
+  @override
+  String get editmembers => 'Edit Anggota';
+
+  @override
+  String get nolikesthispost => 'Belum ada yang menyukai postingan ini';
+
+  @override
+  String get editcomments => 'Edit komentar..';
+
+  @override
+  String get save => 'Simpan';
+
+  @override
+  String get whatdoyouthinkforthis => 'Apa pendapat Anda tentang ini?';
+
+  @override
+  String get reportchat => 'Laporkan Obrolan';
+
+  @override
+  String get yesreport => 'YA, LAPORKAN';
+
+  @override
+  String get allimages => 'Semua Gambar';
+
+  @override
+  String get polled => 'Sudah Memilih';
+
+  @override
+  String get voterspickedthisastopchoicesheet =>
+      'orang memilih ini sebagai pilihan terbaik ';
+
+  @override
+  String get peoplelikeyouchosetop => 'orang seperti Anda memilih yang terbaik';
+
+  @override
+  String get notagsavailable => 'Tidak ada tag yang tersedia';
+
+  @override
+  String get messageisrequired => 'Pesan wajib diisi';
+
+  @override
+  String get pleasefillinallfields => 'Harap isi semua kolom';
+
+  @override
+  String get passwordmustbeatleasteightcharacters =>
+      'Kata sandi harus minimal 8 karakter';
+
+  @override
+  String get passworddonotmatch => 'Kata sandi tidak cocok';
 }

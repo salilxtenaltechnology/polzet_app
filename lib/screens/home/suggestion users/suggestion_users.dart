@@ -7,6 +7,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:polzet_app/widgets/loader.dart';
 
 import '../../../api/services/api_service.dart';
+import '../../../languages/l10n/generated/app_localizations.dart';
 import '../../../mixin/utility_mixins.dart';
 import '../../../models/user/suggestionsb users/suggestions_users_model.dart';
 import '../../../widgets/button/back_button.dart';
@@ -32,7 +33,7 @@ class _SuggestionUsersState extends State<SuggestionUsers> with UtilityMixin {
         leading: const PrimaryBackButton(),
         centerTitle: true,
         title: Text(
-          'Discoverd users',
+          AppLocalizations.of(context)!.discoverdusers,
           style: CustomTextStyles.appBarTitleText(context),
         ),
         backgroundColor: Theme.of(context).colorScheme.background,

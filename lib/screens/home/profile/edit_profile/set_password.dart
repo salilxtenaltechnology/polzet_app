@@ -5,6 +5,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../../../api/services/api_service.dart';
 import '../../../../core/constants/app_colors.dart';
+import '../../../../languages/l10n/generated/app_localizations.dart';
 import '../../../../mixin/utility_mixins.dart';
 import '../../../../widgets/button/back_button.dart';
 import '../../../../widgets/custom_text_styles.dart';
@@ -43,17 +44,17 @@ class _SetPasswordScreenState extends State<SetPasswordScreen>
 
     // ✅ Validation
     if (newPassword.isEmpty || confirmPassword.isEmpty) {
-      setState(() => _errorMessage = 'Please fill in all fields');
+      setState(() => _errorMessage = AppLocalizations.of(context)!.pleasefillinallfields);
       return;
     }
 
     if (newPassword.length < 8) {
-      setState(() => _errorMessage = 'Password must be at least 8 characters');
+      setState(() => _errorMessage = AppLocalizations.of(context)!.passwordmustbeatleasteightcharacters);
       return;
     }
 
     if (newPassword != confirmPassword) {
-      setState(() => _errorMessage = 'Passwords do not match');
+      setState(() => _errorMessage = AppLocalizations.of(context)!.passworddonotmatch);
       return;
     }
 
@@ -85,7 +86,7 @@ class _SetPasswordScreenState extends State<SetPasswordScreen>
         toolbarHeight: 25.h,
         leading: const PrimaryBackButton(),
         title: Text(
-          'Set Password',
+          AppLocalizations.of(context)!.setpassword,
           style: CustomTextStyles.appBarTitleText(context),
         ),
         centerTitle: true,
@@ -99,7 +100,7 @@ class _SetPasswordScreenState extends State<SetPasswordScreen>
           children: [
             SizedBox(height: 12.h),
             Text(
-              'New Password',
+              AppLocalizations.of(context)!.newpassword,
               style: TextStyle(
                 color: Theme.of(context).colorScheme.onBackground,
                 fontSize: 11.sp,
@@ -110,7 +111,7 @@ class _SetPasswordScreenState extends State<SetPasswordScreen>
             _buildPasswordTextField(
               _newPasswordController,
               TextInputType.visiblePassword,
-              'Enter new password',
+              AppLocalizations.of(context)!.enternewpassword,
               _isNewPasswordHidden,
               () =>
                   setState(() => _isNewPasswordHidden = !_isNewPasswordHidden),
@@ -120,7 +121,7 @@ class _SetPasswordScreenState extends State<SetPasswordScreen>
 
             // ─── Confirm Password ────────────────────────────────────────
             Text(
-              'Confirm Password',
+              AppLocalizations.of(context)!.confirmpassword,
               style: TextStyle(
                 color: Theme.of(context).colorScheme.onBackground,
                 fontSize: 11.sp,
@@ -131,7 +132,7 @@ class _SetPasswordScreenState extends State<SetPasswordScreen>
             _buildPasswordTextField(
               _confirmPasswordController,
               TextInputType.visiblePassword,
-              'Re-enter new password',
+            AppLocalizations.of(context)!.reenternewpassword,
               _isConfirmPasswordHidden,
               () => setState(
                 () => _isConfirmPasswordHidden = !_isConfirmPasswordHidden,
@@ -171,7 +172,7 @@ class _SetPasswordScreenState extends State<SetPasswordScreen>
                           ),
                         )
                       : Text(
-                          'Save Password',
+                           AppLocalizations.of(context)!.savepassword,
                           style: TextStyle(
                             color: Colors.white,
                             fontWeight: FontWeight.w600,
@@ -202,7 +203,7 @@ class _SetPasswordScreenState extends State<SetPasswordScreen>
                   SizedBox(width: 8.w),
                   Expanded(
                     child: Text(
-                      'Set a password so you can sign in without Google.',
+                     AppLocalizations.of(context)!.setapasswordsoyoucansigninwithoutgoogle,
                       style: TextStyle(
                         color: AppColors.primaryColor,
                         fontSize: 10.5.sp,

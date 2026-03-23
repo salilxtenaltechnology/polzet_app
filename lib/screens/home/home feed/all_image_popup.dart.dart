@@ -6,6 +6,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../../api/api_config.dart';
 import '../../../api/services/api_service.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../languages/l10n/generated/app_localizations.dart';
 import '../../../models/posts/homefeed_posts_model.dart';
 import '../../../models/voters/top_voters_model.dart';
 import '../../../widgets/show_toast.dart';
@@ -181,7 +182,7 @@ class _AllImagesPopupState extends State<AllImagesPopup> {
           Row(
             children: [
               Text(
-                'All Images',
+              AppLocalizations.of(context)!.allimages,
                 style: TextStyle(
                   color: AppColors.primaryColor,
                   fontSize: 12.sp,
@@ -197,7 +198,7 @@ class _AllImagesPopupState extends State<AllImagesPopup> {
               ],
               if (widget.isPolledByCurrentUser) ...[
                 SizedBox(width: 10.w),
-                _badge('Polled', color: Colors.grey),
+                _badge( AppLocalizations.of(context)!.polled, color: Colors.grey),
               ],
             ],
           ),
@@ -415,7 +416,9 @@ class _AllImagesPopupState extends State<AllImagesPopup> {
                             ),
                             SizedBox(width: 5.w),
                             Text(
-                              'picked this as\ntop choice',
+                              AppLocalizations.of(
+                                        context,
+                                      )!.pickedthisastopchoice,
                               style: TextStyle(
                                 color: Colors.grey[500],
                                 fontSize: 9.sp,

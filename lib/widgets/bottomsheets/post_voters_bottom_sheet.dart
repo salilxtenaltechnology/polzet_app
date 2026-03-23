@@ -6,6 +6,7 @@ import 'package:polzet_app/widgets/base64/image_convert.dart';
 
 import '../../api/services/api_service.dart';
 import '../../core/constants/app_colors.dart';
+import '../../languages/l10n/generated/app_localizations.dart';
 import '../../models/voters/top_voters_model.dart';
 
 class PostVotersBottomSheet extends StatefulWidget {
@@ -82,7 +83,7 @@ class _PostVotersBottomSheetState extends State<PostVotersBottomSheet> {
             ),
             child: Center(
               child: Text(
-                'Voters',
+                AppLocalizations.of(context)!.voters,
                 style: TextStyle(
                   color: Theme.of(context).colorScheme.onBackground,
                   fontSize: 12.5.sp,
@@ -142,7 +143,7 @@ class _PostVotersBottomSheetState extends State<PostVotersBottomSheet> {
             ),
             SizedBox(height: 12.h),
             Text(
-              'No voters this image yet!',
+              AppLocalizations.of(context)!.novotersthisimageyet,
               style: TextStyle(fontSize: 11.sp, color: Colors.grey[500]),
             ),
           ],
@@ -209,7 +210,9 @@ class _PostVotersBottomSheetState extends State<PostVotersBottomSheet> {
                 text: TextSpan(
                   children: [
                     TextSpan(
-                      text: '${_data?.label ?? 'picked this as top choice'} ',
+                      text: AppLocalizations.of(
+                        context,
+                      )!.voterspickedthisastopchoicesheet, // dynamic : _data?.label
                       style: TextStyle(
                         fontSize: 12.sp,
                         color: Colors.grey[500],
@@ -217,7 +220,7 @@ class _PostVotersBottomSheetState extends State<PostVotersBottomSheet> {
                       ),
                     ),
                     TextSpan(
-                      text: 'people like you chose this',
+                      text: AppLocalizations.of(context)!.peoplelikeyouchosetop,
                       style: TextStyle(
                         fontSize: 12.sp,
                         color: Colors.green,

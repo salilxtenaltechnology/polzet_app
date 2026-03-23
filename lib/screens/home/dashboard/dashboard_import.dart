@@ -9,6 +9,7 @@ import 'dart:convert';
 import '../../../api/services/api_service.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../data/token/shared_preferences.dart';
+import '../../../languages/l10n/generated/app_localizations.dart';
 import '../../../mixin/utility_mixins.dart';
 import '../../../models/category/category.dart';
 import '../../../models/posts/homefeed_posts_model.dart';

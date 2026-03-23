@@ -5,7 +5,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
 
 import '../../../core/constants/app_colors.dart';
-import '../../../l10n/generated/app_localizations.dart';
+import '../../languages/l10n/generated/app_localizations.dart';
 import '../../provider/user_provider.dart';
 import '../custom_text_styles.dart';
 import '../show_toast.dart';
@@ -50,12 +50,12 @@ class _ConfirmDeletionAccountDioloigState
         mainAxisSize: MainAxisSize.min,
         children: [
           Text(
-            'Confirm Account Deletion',
+            AppLocalizations.of(context)!.confirmaccountdeletion,
             style: CustomTextStyles.appBarTitleText(context),
           ),
           SizedBox(height: 10.h),
           Text(
-            'Enter your password to permanently delete your account.',
+            AppLocalizations.of(context)!.enteryourpasswordtopermentlydeleteyouraccount,
             textAlign: TextAlign.center,
             style: TextStyle(
               color: const Color(0xB0757575),
@@ -69,7 +69,7 @@ class _ConfirmDeletionAccountDioloigState
             isPassword: false,
             isRead: true,
             keyboardType: TextInputType.text,
-            labelText: 'Username',
+            labelText: AppLocalizations.of(context)!.username,
             prefixIcon: Icon(
               FeatherIcons.user,
               size: 17,
@@ -82,7 +82,7 @@ class _ConfirmDeletionAccountDioloigState
             controller: confirmPasswordController,
             isPassword: _isPasswordHidden,
             keyboardType: TextInputType.text,
-            labelText: 'Confirm password',
+            labelText:   AppLocalizations.of(context)!.confirmpassword,
             prefixIcon: Icon(
               FeatherIcons.lock,
               size: 17,
@@ -131,7 +131,7 @@ class _ConfirmDeletionAccountDioloigState
                   widget.onPressed?.call(password);
                 },
                 child: Text(
-                  'YES, DELETE',
+                    AppLocalizations.of(context)!.yesdelete,
                   style: TextStyle(
                     fontSize: 12.sp,
                     color: AppColors.redColor,
