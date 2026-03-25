@@ -13,6 +13,7 @@ import 'package:http/http.dart' as http;
 
 import '../../data/token/shared_preferences.dart';
 import '../../mixin/utility_mixins.dart';
+import '../../models/global search/global_search_model.dart';
 import '../../models/hashtags/enhanced_trending_hashtags_model.dart';
 import '../../models/insights/insights_model.dart';
 import '../../models/like/like_uers_model.dart';
@@ -166,6 +167,32 @@ class ApiService with UtilityMixin {
     } catch (e) {
       debugPrint('❌ Unexpected error: $e');
       rethrow;
+    }
+  }
+
+  Future<Map<String, dynamic>> acceptPrivacyStatus({
+    required String status,
+  }) async {
+    try {
+      final response = await _dio.post(
+        ApiConstants.privacyPolicy,
+        data: FormData.fromMap({'status': status}),
+        options: Options(headers: await _getAuthHeaders()),
+      );
+
+      if (response.statusCode == 200) {
+        final data = response.data as Map<String, dynamic>;
+        return {'success': true, 'data': data['data']};
+      }
+      return {'success': false, 'message': 'Failed to update privacy status'};
+    } on DioException catch (e) {
+      return {
+        'success': false,
+        'message': _handleDioError(
+          e,
+          defaultMessage: 'Failed to update privacy status',
+        ),
+      };
     }
   }
   // ==================== USER PROFILE ====================
@@ -962,6 +989,26 @@ class ApiService with UtilityMixin {
     }
   }
 
+  Future<GlobalSearchModel?> globalSearch(String query) async {
+    try {
+      final response = await _dio.get(
+        ApiConstants.globalSearch,
+        queryParameters: {'q': query},
+        options: Options(headers: await _getAuthHeaders()),
+      );
+
+      if (response.statusCode == 200) {
+        return GlobalSearchModel.fromJson(
+          response.data as Map<String, dynamic>,
+        );
+      }
+      return null;
+    } on DioException catch (e) {
+      _handleDioError(e, defaultMessage: 'Failed to perform search');
+      return null;
+    }
+  }
+
   Future<EnhancedTrendingHashtagsModel> fetchEnhancedTrendingHashtags() async {
     try {
       final response = await _dio.get(
@@ -1207,6 +1254,35 @@ class ApiService with UtilityMixin {
       return response.data as Map<String, dynamic>;
     } catch (e) {
       return {'error': e.toString()};
+    }
+  }
+
+  // add member
+  Future<Map<String, dynamic>> addGroupChatMembers({
+    required int groupChatId,
+    required List<int> members,
+  }) async {
+    try {
+      final response = await _dio.post(
+        '${ApiConstants.addGroupMembers}/$groupChatId/add_members',
+        data: {'members': members},
+        options: Options(headers: await _getAuthHeaders()),
+      );
+
+      if (response.statusCode == 200) {
+        final data = response.data as Map<String, dynamic>;
+        return {
+          'success': true,
+          'message': data['message'],
+          'added': data['added'],
+        };
+      }
+      return {'success': false, 'message': 'Failed to add members'};
+    } on DioException catch (e) {
+      return {
+        'success': false,
+        'message': _handleDioError(e, defaultMessage: 'Failed to add members'),
+      };
     }
   }
 

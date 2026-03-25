@@ -4,12 +4,8 @@ part of 'home_imports.dart';
 class HomeScreen extends StatefulWidget {
   final int initialIndex;
   final Widget? pendingDestination;
-  
-  const HomeScreen({
-    super.key, 
-    this.initialIndex = 0,
-    this.pendingDestination,
-  });
+
+  const HomeScreen({super.key, this.initialIndex = 0, this.pendingDestination});
 
   @override
   State<StatefulWidget> createState() {
@@ -28,27 +24,31 @@ class HomeScreenState extends State<HomeScreen> with UtilityMixin {
     super.initState();
     pageIndex = widget.initialIndex;
     _loadCachedUserData();
-    
+
     // Initialize notifications and request permissions after login/splash
     WidgetsBinding.instance.addPostFrameCallback((_) {
       NotificationService().initialize();
 
+      _checkPrivacyStatus();
+
       // ✅ Handle pending navigation (safely after build)
       if (widget.pendingDestination != null) {
-        debugPrint('🚀 HomeScreen: Navigating to pending destination: ${widget.pendingDestination.runtimeType}');
-        Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (_) => widget.pendingDestination!,
-          ),
+        debugPrint(
+          '🚀 HomeScreen: Navigating to pending destination: ${widget.pendingDestination.runtimeType}',
         );
+        Navigator.of(
+          context,
+        ).push(MaterialPageRoute(builder: (_) => widget.pendingDestination!));
         // ✅ Cleared pending notification after handling
         NotificationRouter().clear();
       }
       // ✅ NEW: Safety check for pending notifications (intermittent fix)
       // Handles cases where main.dart didn't pass it (e.g., warm start)
       else if (NotificationRouter().hasPendingNotification()) {
-         debugPrint('🚀 HomeScreen: Found pending notification in Router (intermittent fix)');
-         NotificationRouter().handlePendingNotification(context);
+        debugPrint(
+          '🚀 HomeScreen: Found pending notification in Router (intermittent fix)',
+        );
+        NotificationRouter().handlePendingNotification(context);
       }
     });
   }
@@ -58,7 +58,7 @@ class HomeScreenState extends State<HomeScreen> with UtilityMixin {
     try {
       final fName = await SharedPrefService.getFirstName();
       final lName = await SharedPrefService.getLastName();
-      
+
       if (mounted) {
         setState(() {
           firstname = fName;
@@ -77,6 +77,38 @@ class HomeScreenState extends State<HomeScreen> with UtilityMixin {
     const Notifications(),
     const UserProfile(),
   ];
+
+  void _checkPrivacyStatus() {
+    final userProvider = Provider.of<UserProvider>(context, listen: false);
+
+    // If still loading, wait for it
+    if (userProvider.isLoading) {
+      userProvider.addListener(_onUserProviderReady);
+    } else {
+      _navigateIfPrivacyNotAccepted(userProvider);
+    }
+  }
+
+  void _onUserProviderReady() {
+    final userProvider = Provider.of<UserProvider>(context, listen: false);
+
+    if (!userProvider.isLoading) {
+      userProvider.removeListener(
+        _onUserProviderReady,
+      ); // ✅ Remove to avoid repeat calls
+      _navigateIfPrivacyNotAccepted(userProvider);
+    }
+  }
+
+  void _navigateIfPrivacyNotAccepted(UserProvider userProvider) {
+    final bool privacyAccepted = userProvider.privacy_status ?? false;
+
+    if (!privacyAccepted && mounted) {
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (_) => const TermsAcceptance()),
+      );
+    }
+  }
 
   void navigateToNotifications() {
     setState(() {
@@ -184,7 +216,8 @@ class HomeScreenState extends State<HomeScreen> with UtilityMixin {
                 if (pageIndex == 0)
                   AppIcons(
                     onTap: () {
-                      navigationPush(context, const UserSearch());
+                     // navigationPush(context, const UserSearch());
+                      navigationPush(context, const GlobalSearchScreen());
                     },
                     icon: FeatherIcons.search,
                   ),

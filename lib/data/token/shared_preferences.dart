@@ -6,7 +6,6 @@ class SharedPrefService {
   static const String _fcmToken = 'fcm_token';
   static const String _firstLaunchKey = 'first_launch';
   static const String _languageCode = 'languageCode';
-  static const String _termsAcceptedKey = 'terms_accepted';
   static const String _firstName = 'first_name';
   static const String _lastName = 'last_name';
   static const String _username = 'username';
@@ -87,17 +86,6 @@ class SharedPrefService {
   static Future<void> clearLanguage() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_languageCode);
-  }
-
-  // ─── Terms ──────────────────────────────────────────────────────────────────
-  static Future<void> setTermsAccepted() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool(_termsAcceptedKey, true);
-  }
-
-  static Future<bool> hasAcceptedTerms() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getBool(_termsAcceptedKey) ?? false;
   }
 
   // ─── User Details ───────────────────────────────────────────────────────────

@@ -8,6 +8,8 @@ import '../models/user/user_model.dart';
 
 class UserProvider with ChangeNotifier {
   final ApiService apiService = ApiService();
+
+  // ─── Basic Info ───────────────────────────────────────────────
   int? userId;
   String? username;
   String? firstName;
@@ -15,31 +17,50 @@ class UserProvider with ChangeNotifier {
   String? email;
   String? bio;
   String? dob;
-  bool? has_google_auth;
-  bool? has_local_password;
-  int? profile_completion;
-  bool? onboarding_completed;
   String? gender;
   String? country_code;
   String? mobile_number;
+  String? next_username_change;
+
+  // ─── Auth ─────────────────────────────────────────────────────
+  bool? has_google_auth;
+  bool? has_local_password;
+
+  // ─── Profile Media ────────────────────────────────────────────
   String? profile_picture;
+  String? profile_thumbnail_url;
   String? cover_photo;
+  String? cover_thumbnail_url;
+
+  // ─── Profile Completion ───────────────────────────────────────
+  int? profile_completion;
+  bool? onboarding_completed;
+  Map<String, bool>? profile_status;
+
+  // ─── Account Settings ─────────────────────────────────────────
+  bool? is_private;
+  bool? is_business_account;
+  bool? privacy_status;
+
+  // ─── Counts ───────────────────────────────────────────────────
   String? followers_count;
   String? following_count;
   int? image_post_count;
   int? text_post_count;
-  bool isLoading = true;
+  Map<String, int>? counts;
 
-  // ✅ NEW: Track if initial load is complete
+  // ─── Chase / Rechase Lists ────────────────────────────────────
+  List<Map<String, dynamic>> chase_list = [];
+  List<Map<String, dynamic>> rechase_list = [];
+
+  // ─── Loading State ────────────────────────────────────────────
+  bool isLoading = true;
   bool _isInitialLoadComplete = false;
   bool get isInitialLoadComplete => _isInitialLoadComplete;
 
-  UserProvider() {
-    // Don't call loadUserData here - we'll call it explicitly from main.dart
-    // This prevents automatic loading before we're ready
-  }
+  UserProvider();
 
-  /// ✅ ENHANCED: Load user data from API with completion tracking
+  // ─── Load User Data ───────────────────────────────────────────
   Future<void> loadUserData() async {
     isLoading = true;
     notifyListeners();
@@ -47,30 +68,9 @@ class UserProvider with ChangeNotifier {
     try {
       var data = await apiService.fetchUserData();
       await apiService.getFollowersList();
-
-      userId = data?['id'];
-      username = data?['username'];
-      firstName = data?['first_name'];
-      lastName = data?['last_name'];
-      email = data?['email'];
-      bio = data?['bio'];
-      dob = data?['dob'];
-      has_google_auth = data?['has_google_auth'];
-      has_local_password = data?['has_local_password'];
-      profile_completion = data?['profile_completion'];
-      onboarding_completed = data?['onboarding_completed'];
-      gender = data?['gender'];
-      country_code = data?['country_code'];
-      mobile_number = data?['mobile_number'];
-      profile_picture = data?['profile_picture_url'];
-      cover_photo = data?['cover_photo_url'];
-      followers_count = data?['followers_count'];
-      following_count = data?['following_count'];
-      image_post_count = data?['image_post_count'];
-      text_post_count = data?['text_post_count'];
+      _mapDataToFields(data);
       _isInitialLoadComplete = true;
       isLoading = false;
-
       notifyListeners();
     } catch (e) {
       debugPrint('❌ UserProvider: Error loading user data: $e');
@@ -78,29 +78,102 @@ class UserProvider with ChangeNotifier {
       _isInitialLoadComplete = false;
       isLoading = false;
       notifyListeners();
-      rethrow; // ✅ Rethrow so main.dart knows there was an error
+      rethrow;
     }
   }
 
-  /// ✅ NEW: Check if user data is valid and ready
+  // ─── Load Silently ────────────────────────────────────────────
+  Future<void> loadUserDataSilently() async {
+    try {
+      var data = await apiService.fetchUserData();
+      _mapDataToFields(data);
+      _isInitialLoadComplete = true;
+      if (isLoading) isLoading = false;
+      notifyListeners();
+    } catch (e) {
+      debugPrint("❌ UserProvider: Error loading user data silently: $e");
+    }
+  }
+
+  // ─── Central Mapper ───────────────────────────────────────────
+  void _mapDataToFields(Map<String, dynamic>? data) {
+    if (data == null) return;
+
+    // Basic Info
+    userId = data['id'];
+    username = data['username'];
+    firstName = data['first_name'];
+    lastName = data['last_name'];
+    email = data['email'];
+    bio = data['bio'];
+    dob = data['dob'];
+    gender = data['gender'];
+    country_code = data['country_code'];
+    mobile_number = data['mobile_number'];
+    next_username_change = data['next_username_change'];
+
+    // Auth
+    has_google_auth = data['has_google_auth'];
+    has_local_password = data['has_local_password'];
+
+    // Profile Media
+    profile_picture = data['profile_picture_url'];
+    profile_thumbnail_url = data['profile_thumbnail_url'];
+    cover_photo = data['cover_photo_url'];
+    cover_thumbnail_url = data['cover_thumbnail_url'];
+
+    // Profile Completion
+    profile_completion = data['profile_completion'];
+    onboarding_completed = data['onboarding_completed'];
+    if (data['profile_status'] != null) {
+      profile_status = Map<String, bool>.from(data['profile_status']);
+    }
+
+    // Account Settings
+    is_private = data['is_private'];
+    is_business_account = data['is_business_account'];
+    privacy_status = data['privacy_status'];
+
+    // Counts
+    followers_count = data['followers_count'];
+    following_count = data['following_count'];
+    image_post_count = data['image_post_count'];
+    text_post_count = data['text_post_count'];
+    if (data['counts'] != null) {
+      counts = Map<String, int>.from(data['counts']);
+    }
+
+    // Chase / Rechase Lists
+    if (data['chase_list'] != null) {
+      chase_list = List<Map<String, dynamic>>.from(data['chase_list']);
+    }
+    if (data['rechase_list'] != null) {
+      rechase_list = List<Map<String, dynamic>>.from(data['rechase_list']);
+    }
+  }
+
+  // ─── Load Only Images ─────────────────────────────────────────
+  Future<void> loadUserImages() async {
+    try {
+      var data = await apiService.fetchUserData();
+      profile_picture = data?['profile_picture_url'];
+      profile_thumbnail_url = data?['profile_thumbnail_url'];
+      cover_photo = data?['cover_photo_url'];
+      cover_thumbnail_url = data?['cover_thumbnail_url'];
+      notifyListeners();
+    } catch (e) {
+      debugPrint("Error loading user images: $e");
+    }
+  }
+
+  // ─── Validity Checks ──────────────────────────────────────────
   bool isUserDataValid() {
-    final isValid =
-        _isInitialLoadComplete &&
+    return _isInitialLoadComplete &&
         userId != null &&
         username != null &&
         username!.isNotEmpty;
-
-    if (!isValid) {
-      debugPrint('⚠️ UserProvider: Data not valid');
-      debugPrint('   isInitialLoadComplete: $_isInitialLoadComplete');
-      debugPrint('   userId: $userId');
-      debugPrint('   username: $username');
-    }
-
-    return isValid;
   }
 
-  /// ✅ NEW: Wait for user data to be ready (with timeout)
   Future<bool> waitForUserData({
     Duration timeout = const Duration(seconds: 10),
   }) async {
@@ -110,7 +183,6 @@ class UserProvider with ChangeNotifier {
     }
 
     debugPrint('⏳ UserProvider: Waiting for user data...');
-
     final startTime = DateTime.now();
     while (!isUserDataValid()) {
       if (DateTime.now().difference(startTime) > timeout) {
@@ -124,65 +196,59 @@ class UserProvider with ChangeNotifier {
     return true;
   }
 
-  // Method to load user data silently without showing loading state
-  Future<void> loadUserDataSilently() async {
-    // Don't change isLoading state to avoid showing loading indicators
-    try {
-      // debugPrint('🔄 UserProvider: Silently refreshing user data...');
-
-      var data = await apiService.fetchUserData();
-
-      // Update all fields with fresh data
-      userId = data?['id'];
-      username = data?['username'];
-      firstName = data?['first_name'];
-      lastName = data?['last_name'];
-      email = data?['email'];
-      bio = data?['bio'];
-      dob = data?['dob'];
-      profile_completion = data?['profile_completion'];    
-      onboarding_completed = data?['onboarding_completed'];
-      gender = data?['gender'];
-      country_code = data?['country_code'];
-      mobile_number = data?['mobile_number'];
-      followers_count = data?['followers_count'];
-      following_count = data?['following_count'];
-      image_post_count = data?['image_post_count'];
-      text_post_count = data?['text_post_count'];
-
-      _isInitialLoadComplete = true;
-
-      // ✅ Ensure isLoading is false so UI switches to using provider data
-      if (isLoading) {
-        isLoading = false;
-      }
-
-      //debugPrint('✅ UserProvider: Data refreshed silently');
-
-      // Only notify listeners to update UI with fresh data
-      notifyListeners();
-    } catch (e) {
-      // On error, don't clear fields or change loading state
-      // Just log the error and keep current data
-      debugPrint("❌ UserProvider: Error loading user data silently: $e");
-    }
+  // ─── Setters ──────────────────────────────────────────────────
+  void setPrivacyStatus(bool status) {
+    privacy_status = status;
+    notifyListeners();
   }
 
-  Future<void> loadUserImages() async {
-    try {
-      var data = await apiService.fetchUserData();
-
-      // Update image fields with fresh data
-      profile_picture = data?['profile_picture_url'];
-      cover_photo = data?['cover_photo_url'];
-
-      notifyListeners();
-    } catch (e) {
-      debugPrint("Error loading user images: $e");
-    }
+  void setIsPrivate(bool status) {
+    is_private = status;
+    notifyListeners();
   }
 
-  /// ✅ NEW: Clear all user data (for logout)
+  // ─── Update Single Field ──────────────────────────────────────
+  void updateUserField(String field, dynamic value) {
+    switch (field) {
+      case 'userId':             userId = value; break;
+      case 'username':           username = value; break;
+      case 'firstName':          firstName = value; break;
+      case 'lastName':           lastName = value; break;
+      case 'email':              email = value; break;
+      case 'bio':                bio = value; break;
+      case 'dob':                dob = value; break;
+      case 'gender':             gender = value; break;
+      case 'country_code':       country_code = value; break;
+      case 'mobile_number':      mobile_number = value; break;
+      case 'next_username_change': next_username_change = value; break;
+      case 'has_google_auth':    has_google_auth = value; break;
+      case 'has_local_password': has_local_password = value; break;
+      case 'profile_picture':    profile_picture = value; break;
+      case 'profile_thumbnail_url': profile_thumbnail_url = value; break;
+      case 'cover_photo':        cover_photo = value; break;
+      case 'cover_thumbnail_url': cover_thumbnail_url = value; break;
+      case 'profile_completion': profile_completion = value; break;
+      case 'onboarding_completed': onboarding_completed = value; break;
+      case 'profile_status':     profile_status = value; break;
+      case 'is_private':         is_private = value; break;
+      case 'is_business_account': is_business_account = value; break;
+      case 'privacy_status':     privacy_status = value; break;
+      case 'followers_count':    followers_count = value; break;
+      case 'following_count':    following_count = value; break;
+      case 'image_post_count':   image_post_count = value; break;
+      case 'text_post_count':    text_post_count = value; break;
+      case 'counts':             counts = value; break;
+      case 'chase_list':         chase_list = value; break;
+      case 'rechase_list':       rechase_list = value; break;
+    }
+    notifyListeners();
+  }
+
+  void updateUserFields(Map<String, dynamic> updates) {
+    updates.forEach((key, value) => updateUserField(key, value));
+  }
+
+  // ─── Clear Data ───────────────────────────────────────────────
   void clearUserData() {
     debugPrint('🗑️ UserProvider: Clearing all user data');
     _clearUserFields();
@@ -191,7 +257,6 @@ class UserProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  // Helper method to clear user fields
   void _clearUserFields() {
     userId = null;
     username = null;
@@ -200,83 +265,32 @@ class UserProvider with ChangeNotifier {
     email = null;
     bio = null;
     dob = null;
-    has_google_auth = null;
-    has_local_password = null;
-    profile_completion = null;
-    onboarding_completed = null;
     gender = null;
     country_code = null;
     mobile_number = null;
+    next_username_change = null;
+    has_google_auth = null;
+    has_local_password = null;
     profile_picture = null;
+    profile_thumbnail_url = null;
     cover_photo = null;
+    cover_thumbnail_url = null;
+    profile_completion = null;
+    onboarding_completed = null;
+    profile_status = null;
+    is_private = null;
+    is_business_account = null;
+    privacy_status = null;
     followers_count = null;
     following_count = null;
     image_post_count = 0;
     text_post_count = 0;
+    counts = null;
+    chase_list = [];
+    rechase_list = [];
   }
 
-  // Method to update specific fields and notify listeners immediately
-  void updateUserField(String field, dynamic value) {
-    switch (field) {
-      case 'userId':
-        userId = value;
-        break;
-      case 'username':
-        username = value;
-        break;
-      case 'firstName':
-        firstName = value;
-        break;
-      case 'lastName':
-        lastName = value;
-        break;
-      case 'email':
-        email = value;
-        break;
-      case 'bio':
-        bio = value;
-        break;
-      case 'profile_picture':
-        profile_picture = value;
-        break;
-      case 'cover_photo':
-        cover_photo = value;
-        break;
-      case 'has_google_auth':
-        has_google_auth = value;
-        break;
-      case 'has_local_password':
-        has_local_password = value;
-        break;
-      case 'profile_completion':
-        profile_completion = value;
-        break;
-      case 'onboarding_completed':
-        onboarding_completed = value;
-        break;
-      case 'followers_count':
-        followers_count = value;
-        break;
-      case 'following_count':
-        following_count = value;
-        break;
-      case 'image_post_count':
-        image_post_count = value;
-        break;
-      case 'text_post_count':
-        text_post_count = value;
-        break;
-    }
-    notifyListeners();
-  }
-
-  // Method to update multiple fields at once
-  void updateUserFields(Map<String, dynamic> updates) {
-    updates.forEach((key, value) {
-      updateUserField(key, value);
-    });
-  }
-
+  // ─── Image Decoders ───────────────────────────────────────────
   UserModel? _user;
   UserModel? get user => _user;
 
@@ -306,6 +320,7 @@ class UserProvider with ChangeNotifier {
     }
   }
 
+  // ─── Friend Request ───────────────────────────────────────────
   Future<bool> sendFriendRequest(String username) async {
     try {
       bool result = await ApiService().sendFriendRequest(username);

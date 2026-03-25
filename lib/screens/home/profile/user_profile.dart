@@ -30,8 +30,8 @@ class ProfileState extends State<UserProfile>
   Uint8List? _cachedCoverImageBytes;
 
   // Futures for UI
-  late Future<List<Map<String, dynamic>>> getFollowers;
-  late Future<List<Map<String, dynamic>>> getFollowing;
+  late Future<List<Map<String, dynamic>>> getChase;
+  late Future<List<Map<String, dynamic>>> getRechase;
   late Future<List<UserPostModel>> _postsFuture;
   late Future<List<UserPostModel>> _pollPostsFuture;
 
@@ -46,8 +46,8 @@ class ProfileState extends State<UserProfile>
     final userProvider = Provider.of<UserProvider>(context, listen: false);
 
     // Initialize with cached data or empty futures
-    getFollowers = _loadFollowersWithCache();
-    getFollowing = _loadFollowingWithCache();
+    getChase = _loadChaseWithCache();
+    getRechase = _loadRechaseWithCache();
     _postsFuture = _loadPostsWithCache(userProvider.username);
     _pollPostsFuture = _loadPollPostsWithCache(userProvider.username);
 
@@ -143,42 +143,22 @@ class ProfileState extends State<UserProfile>
     }
   }
 
-  // FOLLOWERS - Load with cache
-  Future<List<Map<String, dynamic>>> _loadFollowersWithCache() async {
-    try {
-      final followers = await apiService.getFollowersList();
-      if (mounted) {
-        setState(() {
-          _cachedFollowers = followers;
-        });
-      }
-      return followers;
-    } catch (e) {
-      if (kDebugMode) {
-        print('Error loading followers: $e');
-      }
-      // Return cached data on error
-      return _cachedFollowers;
+  Future<List<Map<String, dynamic>>> _loadChaseWithCache() async {
+    final userProvider = Provider.of<UserProvider>(context, listen: false);
+    final list = userProvider.chase_list;
+    if (mounted) {
+      setState(() => _cachedFollowers = list);
     }
+    return list;
   }
 
-  // FOLLOWING - Load with cache
-  Future<List<Map<String, dynamic>>> _loadFollowingWithCache() async {
-    try {
-      final following = await apiService.getFollowingList();
-      if (mounted) {
-        setState(() {
-          _cachedFollowing = following;
-        });
-      }
-      return following;
-    } catch (e) {
-      if (kDebugMode) {
-        print('Error loading following: $e');
-      }
-      // Return cached data on error
-      return _cachedFollowing;
+  Future<List<Map<String, dynamic>>> _loadRechaseWithCache() async {
+    final userProvider = Provider.of<UserProvider>(context, listen: false);
+    final list = userProvider.rechase_list;
+    if (mounted) {
+      setState(() => _cachedFollowing = list);
     }
+    return list;
   }
 
   // POSTS - Load with cache
@@ -244,61 +224,33 @@ class ProfileState extends State<UserProfile>
   void _refreshAllDataSilently() {
     final userProvider = Provider.of<UserProvider>(context, listen: false);
 
-    // Refresh profile
     _loadProfileSilently();
 
-    // Refresh followers/following silently
+    // Now sourced from provider directly
     if (mounted) {
-      apiService
-          .getFollowersList()
-          .then((followers) {
-            if (mounted) {
-              setState(() {
-                _cachedFollowers = followers;
-                getFollowers = Future.value(followers);
-              });
-            }
+      setState(() {
+        _cachedFollowers = userProvider.chase_list;
+        getChase = Future.value(userProvider.chase_list);
+        _cachedFollowing = userProvider.rechase_list;
+        getRechase = Future.value(userProvider.rechase_list);
+      });
+    }
+
+    // Refresh posts silently
+    if (mounted &&
+        userProvider.username != null &&
+        userProvider.username!.isNotEmpty) {
+      _loadPostsWithCache(userProvider.username)
+          .then((posts) {
+            if (mounted) setState(() => _postsFuture = Future.value(posts));
           })
           .catchError((e) {
-            if (kDebugMode) print('Silent refresh followers error: $e');
+            if (kDebugMode) print('Silent refresh posts error: $e');
           });
 
-      apiService
-          .getFollowingList()
-          .then((following) {
-            if (mounted) {
-              setState(() {
-                _cachedFollowing = following;
-                getFollowing = Future.value(following);
-              });
-            }
-          })
-          .catchError((e) {
-            if (kDebugMode) print('Silent refresh following error: $e');
-          });
-
-      // Refresh posts silently
-      if (userProvider.username != null && userProvider.username!.isNotEmpty) {
-        _loadPostsWithCache(userProvider.username)
-            .then((posts) {
-              if (mounted) {
-                setState(() {
-                  _postsFuture = Future.value(posts);
-                });
-              }
-            })
-            .catchError((e) {
-              if (kDebugMode) print('Silent refresh posts error: $e');
-            });
-
-        _loadPollPostsWithCache(userProvider.username).then((data) {
-          if (mounted) {
-            setState(() {
-              _pollPostsFuture = Future.value(data);
-            });
-          }
-        });
-      }
+      _loadPollPostsWithCache(userProvider.username).then((data) {
+        if (mounted) setState(() => _pollPostsFuture = Future.value(data));
+      });
     }
   }
 
@@ -308,17 +260,17 @@ class ProfileState extends State<UserProfile>
 
     await Future.wait([
       _loadProfileSilently(),
-      _loadFollowersWithCache().then((data) {
+      _loadChaseWithCache().then((data) {
         if (mounted) {
           setState(() {
-            getFollowers = Future.value(data);
+            getChase = Future.value(data);
           });
         }
       }),
-      _loadFollowingWithCache().then((data) {
+      _loadRechaseWithCache().then((data) {
         if (mounted) {
           setState(() {
-            getFollowing = Future.value(data);
+            getRechase = Future.value(data);
           });
         }
       }),
@@ -512,17 +464,22 @@ class ProfileState extends State<UserProfile>
                                 FeatherIcons.arrowUp,
                                 userProvider.isLoading
                                     ? '-'
-                                    : (userProvider.followers_count ?? '-'),
+                                    : (userProvider.counts?['chasing']
+                                              ?.toString() ??
+                                          '-'),
                                 () {
                                   navigationPush(
                                     context,
                                     UserChase(
                                       username: userProvider.username ?? '-',
-
                                       followingCount:
-                                          userProvider.following_count ?? '0',
+                                          (userProvider.counts?['rechasing']
+                                              ?.toString() ??
+                                          '0'),
                                       followerCount:
-                                          userProvider.followers_count ?? '0',
+                                          (userProvider.counts?['chasing']
+                                              ?.toString() ??
+                                          '0'),
                                       initialIndex: 0,
                                     ),
                                   );
@@ -547,7 +504,9 @@ class ProfileState extends State<UserProfile>
                                 FeatherIcons.arrowDown,
                                 userProvider.isLoading
                                     ? '-'
-                                    : (userProvider.following_count ?? '-'),
+                                    : (userProvider.counts?['rechasing']
+                                              ?.toString() ??
+                                          '-'),
                                 () {
                                   navigationPush(
                                     context,
@@ -555,9 +514,13 @@ class ProfileState extends State<UserProfile>
                                       username: userProvider.username ?? '-',
 
                                       followingCount:
-                                          userProvider.following_count ?? '0',
+                                          (userProvider.counts?['rechasing']
+                                              ?.toString() ??
+                                          '0'),
                                       followerCount:
-                                          userProvider.followers_count ?? '0',
+                                          (userProvider.counts?['chasing']
+                                              ?.toString() ??
+                                          '0'),
                                       initialIndex: 1,
                                     ),
                                   );
@@ -589,55 +552,56 @@ class ProfileState extends State<UserProfile>
                               ),
                             ),
                             const Spacer(),
-                            if (_cachedFollowers.isNotEmpty) 
-                            GestureDetector(
-                              onTap: () {
-                                navigationPush(
-                                  context,
-                                  UserChase(
-                                    username: userProvider.username ?? '-',
+                            if (_cachedFollowers.isNotEmpty)
+                              GestureDetector(
+                                onTap: () {
+                                  navigationPush(
+                                    context,
+                                    UserChase(
+                                      username: userProvider.username ?? '-',
 
-                                    followingCount:
-                                        userProvider.following_count ?? '0',
-                                    followerCount:
-                                        userProvider.followers_count ?? '0',
-                                    initialIndex: 0,
-                                  ),
-                                );
-
-                                if (mounted) {
-                                  setState(() {
-                                    getFollowers = _loadFollowersWithCache();
-                                    getFollowing = _loadFollowingWithCache();
-                                  });
-                                }
-                              },
-                              child: Padding(
-                                padding: EdgeInsets.only(right: 10.w),
-                                child: Row(
-                                  children: [
-                                    Text(
-                                      '${AppLocalizations.of(context)!.seeall} >',
-                                      style: TextStyle(
-                                        color: Theme.of(
-                                          context,
-                                        ).colorScheme.primary,
-                                        fontWeight: FontWeight.w700,
-                                        fontSize: 10.5.sp,
-                                      ),
+                                      followingCount:
+                                          userProvider.following_count ?? '0',
+                                      followerCount:
+                                          userProvider.followers_count ?? '0',
+                                      initialIndex: 0,
                                     ),
-                                  ],
+                                  );
+
+                                  if (mounted) {
+                                    setState(() {
+                                      getChase = _loadChaseWithCache();
+                                      getRechase = _loadRechaseWithCache();
+                                    });
+                                  }
+                                },
+                                child: Padding(
+                                  padding: EdgeInsets.only(right: 10.w),
+                                  child: Row(
+                                    children: [
+                                      Text(
+                                        '${AppLocalizations.of(context)!.seeall} >',
+                                        style: TextStyle(
+                                          color: Theme.of(
+                                            context,
+                                          ).colorScheme.primary,
+                                          fontWeight: FontWeight.w700,
+                                          fontSize: 10.5.sp,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               ),
-                            ),
                           ],
                         ),
                         SizedBox(height: 5.h),
 
                         FutureBuilder<List<Map<String, dynamic>>>(
-                          future: getFollowers,
+                          future: getChase,
                           builder: (context, snapshot) {
-                            final usersVibe = snapshot.data ?? _cachedFollowers;
+                            final chaseUsers =
+                                snapshot.data ?? _cachedFollowers;
 
                             if (isInitialLoad &&
                                 snapshot.connectionState ==
@@ -646,7 +610,7 @@ class ProfileState extends State<UserProfile>
                               return const UserChaseSimmer();
                             }
 
-                            if (usersVibe.isEmpty) {
+                            if (chaseUsers.isEmpty) {
                               return Center(
                                 child: Padding(
                                   padding: EdgeInsets.only(
@@ -665,24 +629,22 @@ class ProfileState extends State<UserProfile>
                               );
                             }
 
-                            final recentUsers = usersVibe.length > 4
-                                ? usersVibe.take(4).toList()
-                                : usersVibe;
+                            final recentUsers = chaseUsers.length > 4
+                                ? chaseUsers.take(4).toList()
+                                : chaseUsers;
 
                             return Container(
                               height: 55.h,
                               padding: EdgeInsets.symmetric(horizontal: 5.w),
                               child: Row(
-                                mainAxisAlignment: usersVibe.length < 4
+                                mainAxisAlignment: chaseUsers.length < 4
                                     ? MainAxisAlignment.start
                                     : MainAxisAlignment.spaceBetween,
                                 children: recentUsers.map((user) {
                                   final profilePic =
-                                      user['profile_picture_url'] as String?;
-                                  final firstName =
-                                      user['first_name'] as String? ??
-                                      user['name'] as String? ??
-                                      '';
+                                      user['avatar_url'] as String?;
+                                  final firstName = user['username'] as String;
+
                                   final firstLetter = firstName.isNotEmpty
                                       ? firstName[0].toUpperCase()
                                       : '?';
@@ -691,7 +653,7 @@ class ProfileState extends State<UserProfile>
                                     onTap: () {
                                       navigationPush(
                                         context,
-                                        PublicProfile(userId: user['id']),
+                                        PublicProfile(userId: user['user_id']),
                                       );
                                     },
                                     child: Container(
@@ -760,48 +722,48 @@ class ProfileState extends State<UserProfile>
                               ),
                             ),
                             const Spacer(),
-                            if (_cachedFollowing.isNotEmpty) 
-                            GestureDetector(
-                              onTap: () {
-                                navigationPush(
-                                  context,
-                                  UserChase(
-                                    username: userProvider.username ?? '-',
+                            if (_cachedFollowing.isNotEmpty)
+                              GestureDetector(
+                                onTap: () {
+                                  navigationPush(
+                                    context,
+                                    UserChase(
+                                      username: userProvider.username ?? '-',
 
-                                    followingCount:
-                                        userProvider.following_count ?? '0',
-                                    followerCount:
-                                        userProvider.followers_count ?? '0',
-                                    initialIndex: 1,
-                                  ),
-                                );
-                              },
-                              child: Padding(
-                                padding: EdgeInsets.only(right: 10.w),
-                                child: Row(
-                                  children: [
-                                    Text(
-                                      '${AppLocalizations.of(context)!.seeall} >',
-                                      style: TextStyle(
-                                        color: Theme.of(
-                                          context,
-                                        ).colorScheme.primary,
-                                        fontWeight: FontWeight.w700,
-                                        fontSize: 10.5.sp,
-                                      ),
+                                      followingCount:
+                                          userProvider.following_count ?? '0',
+                                      followerCount:
+                                          userProvider.followers_count ?? '0',
+                                      initialIndex: 1,
                                     ),
-                                  ],
+                                  );
+                                },
+                                child: Padding(
+                                  padding: EdgeInsets.only(right: 10.w),
+                                  child: Row(
+                                    children: [
+                                      Text(
+                                        '${AppLocalizations.of(context)!.seeall} >',
+                                        style: TextStyle(
+                                          color: Theme.of(
+                                            context,
+                                          ).colorScheme.primary,
+                                          fontWeight: FontWeight.w700,
+                                          fontSize: 10.5.sp,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               ),
-                            ),
                           ],
                         ),
                         SizedBox(height: 5.h),
                         FutureBuilder<List<Map<String, dynamic>>>(
-                          future: getFollowing,
+                          future: getRechase,
                           builder: (context, snapshot) {
-                            // Show cached data immediately while loading
-                            final usersVibe = snapshot.data ?? _cachedFollowing;
+                            final rechaseUsers =
+                                snapshot.data ?? _cachedFollowing;
 
                             if (isInitialLoad &&
                                 snapshot.connectionState ==
@@ -810,7 +772,7 @@ class ProfileState extends State<UserProfile>
                               return const UserChaseSimmer();
                             }
 
-                            if (usersVibe.isEmpty) {
+                            if (rechaseUsers.isEmpty) {
                               return Center(
                                 child: Padding(
                                   padding: EdgeInsets.only(
@@ -829,24 +791,22 @@ class ProfileState extends State<UserProfile>
                               );
                             }
 
-                            final recentUsers = usersVibe.length > 4
-                                ? usersVibe.take(4).toList()
-                                : usersVibe;
+                            final recentUsers = rechaseUsers.length > 4
+                                ? rechaseUsers.take(4).toList()
+                                : rechaseUsers;
 
                             return Container(
                               height: 55.h,
                               padding: EdgeInsets.symmetric(horizontal: 5.w),
                               child: Row(
-                                mainAxisAlignment: usersVibe.length < 4
+                                mainAxisAlignment: rechaseUsers.length < 4
                                     ? MainAxisAlignment.start
                                     : MainAxisAlignment.spaceBetween,
                                 children: recentUsers.map((user) {
                                   final profilePic =
-                                      user['profile_picture_url'] as String?;
-                                  final firstName =
-                                      user['first_name'] as String? ??
-                                      user['name'] as String? ??
-                                      '';
+                                      user['avatar_url'] as String?;
+                                  final firstName = user['username'] as String;
+
                                   final firstLetter = firstName.isNotEmpty
                                       ? firstName[0].toUpperCase()
                                       : '?';
@@ -855,7 +815,7 @@ class ProfileState extends State<UserProfile>
                                     onTap: () {
                                       navigationPush(
                                         context,
-                                        PublicProfile(userId: user['id']),
+                                        PublicProfile(userId: user['user_id']),
                                       );
                                     },
                                     child: Container(

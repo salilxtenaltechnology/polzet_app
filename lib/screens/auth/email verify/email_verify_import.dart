@@ -11,7 +11,6 @@ import 'package:google_sign_in/google_sign_in.dart';
 import 'package:http/http.dart' as http;
 import 'package:page_transition/page_transition.dart';
 import 'package:polzet_app/api/services/api_service.dart';
-import 'package:polzet_app/widgets/loader.dart';
 import 'dart:convert';
 
 import '../../../../api/app_api.dart';

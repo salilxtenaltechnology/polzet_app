@@ -154,6 +154,23 @@ class _MessageListState extends State<MessageList> with UtilityMixin {
     return user?['profile_image']?.toString();
   }
 
+  bool _isOtherMemberOnline(Map<String, dynamic> chat) {
+    final currentUserId = Provider.of<UserProvider>(
+      context,
+      listen: false,
+    ).userId;
+    final members = chat['members'] as List?;
+    if (members == null) return false;
+    for (final m in members) {
+      final member = m as Map<String, dynamic>;
+      final user = member['user'] as Map<String, dynamic>?;
+      if (user?['id'] != currentUserId) {
+        return (member['is_online'] as bool?) ?? false;
+      }
+    }
+    return false;
+  }
+
   int _unreadCount(Map<String, dynamic> chat) =>
       (chat['unread_count'] as int?) ?? 0;
 
@@ -308,7 +325,7 @@ class _MessageListState extends State<MessageList> with UtilityMixin {
                   Icon(Icons.add, size: 17.sp, color: Colors.white),
                   SizedBox(width: 3.w),
                   Text(
-                  AppLocalizations.of(context)!.newgroup,
+                    AppLocalizations.of(context)!.newgroup,
                     style: TextStyle(fontSize: 10.sp, color: Colors.white),
                   ),
                 ],
@@ -351,26 +368,49 @@ class _MessageListState extends State<MessageList> with UtilityMixin {
                       return ListTile(
                         onTap: () => _openChat(chat, title, avatarUrl),
                         contentPadding: EdgeInsets.zero,
-                        leading: CircleAvatar(
-                          radius: 24,
-                          backgroundColor: chat['chat_type'] == 'group'
-                              ? Colors
-                                    .blueGrey[600] // distinct color for groups
-                              : Colors.grey[700],
-                          backgroundImage: imageBytes != null
-                              ? MemoryImage(imageBytes)
-                              : null,
-                          child: imageBytes == null
-                              ? Text(
-                                  title.isNotEmpty
-                                      ? title[0].toUpperCase()
-                                      : '?',
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.w600,
+                        leading: Stack(
+                          children: [
+                            CircleAvatar(
+                              radius: 24,
+                              backgroundColor: chat['chat_type'] == 'group'
+                                  ? Colors.blueGrey[600]
+                                  : Colors.grey[700],
+                              backgroundImage: imageBytes != null
+                                  ? MemoryImage(imageBytes)
+                                  : null,
+                              child: imageBytes == null
+                                  ? Text(
+                                      title.isNotEmpty
+                                          ? title[0].toUpperCase()
+                                          : '?',
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    )
+                                  : null,
+                            ),
+                            if (chat['chat_type'] == 'private' &&
+                                _isOtherMemberOnline(chat))
+                              Positioned(
+                                bottom: 0,
+                                right: 0,
+                                child: Container(
+                                  width: 10.w,
+                                  height: 10.h,
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF4CAF50),
+                                    shape: BoxShape.circle,
+                                    border: Border.all(
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.background,
+                                      width: 1.8,
+                                    ),
                                   ),
-                                )
-                              : null,
+                                ),
+                              ),
+                          ],
                         ),
                         title: Text(
                           title,

@@ -1,4 +1,4 @@
-// ignore_for_file: deprecated_member_use
+// ignore_for_file: prefer_final_fields, deprecated_member_use
 
 import 'package:feather_icons/feather_icons.dart';
 import 'package:flutter/material.dart';
@@ -19,12 +19,16 @@ class PublicChaseList extends StatefulWidget {
   final int userId;
   final String? username;
   final int initialIndex;
+  final List<dynamic>? chaseList;
+  final List<dynamic>? rechaseList;
 
   const PublicChaseList({
     super.key,
     required this.userId,
     required this.username,
-    required this.initialIndex
+    required this.initialIndex,
+    required this.chaseList,
+    required this.rechaseList,
   });
 
   @override
@@ -50,56 +54,41 @@ class _PublicChaseListState extends State<PublicChaseList>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this, initialIndex: widget.initialIndex,);
-    _loadData();
+    _tabController = TabController(
+      length: 2,
+      vsync: this,
+      initialIndex: widget.initialIndex,
+    );
+    _initFromPassedLists();
   }
 
-  Future<void> _loadData() async {
-    await Future.wait([_loadChaseList(), _loadRechaseList()]);
-  }
+  void _initFromPassedLists() {
+    final chase = (widget.chaseList ?? []).map<Map<String, dynamic>>((e) {
+      return {
+        'user_id': e.userId,
+        'username': e.username,
+        'avatar_url': e.avatarUrl,
+        'is_online': e.isOnline ?? false,
+      };
+    }).toList();
 
-  Future<void> _loadChaseList() async {
-    setState(() => _isLoadingChase = true);
+    final rechase = (widget.rechaseList ?? []).map<Map<String, dynamic>>((e) {
+      return {
+        'user_id': e.userId,
+        'username': e.username,
+        'avatar_url': e.avatarUrl,
+        'is_online': e.isOnline ?? false,
+      };
+    }).toList();
 
-    try {
-      final response = await apiService.getConnectionsList(
-        userId: widget.userId,
-        type: 'chase',
-      );
-
-      setState(() {
-        _chaseCount = response['count'] ?? 0;
-        _chaseList = List<Map<String, dynamic>>.from(response['results'] ?? []);
-        _filteredChaseList = _chaseList;
-      });
-    } catch (e) {
-      debugPrint('Error loading chase list: $e');
-    } finally {
-      setState(() => _isLoadingChase = false);
-    }
-  }
-
-  Future<void> _loadRechaseList() async {
-    setState(() => _isLoadingRechase = true);
-
-    try {
-      final response = await apiService.getConnectionsList(
-        userId: widget.userId,
-        type: 'rechase',
-      );
-
-      setState(() {
-        _rechaseCount = response['count'] ?? 0;
-        _rechaseList = List<Map<String, dynamic>>.from(
-          response['results'] ?? [],
-        );
-        _filteredRechaseList = _rechaseList;
-      });
-    } catch (e) {
-      debugPrint('Error loading rechase list: $e');
-    } finally {
-      setState(() => _isLoadingRechase = false);
-    }
+    setState(() {
+      _chaseList = chase;
+      _rechaseList = rechase;
+      _filteredChaseList = chase;
+      _filteredRechaseList = rechase;
+      _chaseCount = chase.length;
+      _rechaseCount = rechase.length;
+    });
   }
 
   void _filterList(String query) {
@@ -109,12 +98,12 @@ class _PublicChaseListState extends State<PublicChaseList>
         _filteredRechaseList = _rechaseList;
       } else {
         _filteredChaseList = _chaseList.where((user) {
-          final name = (user['name'] ?? '').toString().toLowerCase();
+          final name = (user['username'] ?? '').toString().toLowerCase();
           return name.contains(query.toLowerCase());
         }).toList();
 
         _filteredRechaseList = _rechaseList.where((user) {
-          final name = (user['name'] ?? '').toString().toLowerCase();
+          final name = (user['username'] ?? '').toString().toLowerCase();
           return name.contains(query.toLowerCase());
         }).toList();
       }
@@ -273,8 +262,8 @@ class _PublicChaseListState extends State<PublicChaseList>
     );
   }
 
- Widget _buildUserTile(Map<String, dynamic> user) {
-    final userName = user['name'] ?? 'Unknown User';
+  Widget _buildUserTile(Map<String, dynamic> user) {
+    final userName = user['username'] ?? 'Unknown User';
     final avatarUrl = user['avatar_url'];
     final isOnline = user['is_online'] as bool? ?? false;
 

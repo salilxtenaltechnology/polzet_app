@@ -340,7 +340,7 @@ class GroupChatProvider extends ChangeNotifier {
           isSentByMe: isSentByMe,
           isPending: false,
           senderUsername: senderUsername,
-          senderProfileImage: profileImage, 
+          senderProfileImage: profileImage,
         ),
       );
       _emitMessages();
@@ -368,6 +368,50 @@ class GroupChatProvider extends ChangeNotifier {
     } else {
       debugPrint('❌ Group: max reconnect attempts reached.');
     }
+  }
+
+  // ── Add members ───────────────────────────────────────────────────────────
+  Future<bool> addGroupMembers(
+    List<int> memberIds,
+    List<Map<String, dynamic>> selectedUsers,
+  ) async {
+    if (chatId == null) return false;
+
+    final result = await _api.addGroupChatMembers(
+      groupChatId: chatId!,
+      members: memberIds,
+    );
+
+    if (result['success'] == true) {
+      final addedIds = List<int>.from(result['added'] ?? []);
+      for (final user in selectedUsers) {
+        final id = user['id'] as int?;
+        if (id != null && addedIds.contains(id)) {
+          final alreadyExists = members.any(
+            (m) => _userFromMember(m)['id'] == id,
+          );
+          if (!alreadyExists) {
+            members.add({
+              'user': {
+                'id': user['id'],
+                'username':
+                    user['username'] ?? user['name'] ?? user['full_name'],
+                'profile_image':
+                    user['profile_image'] ??
+                    user['avatar'] ??
+                    user['profile_picture_url'] ??
+                    user['image'],
+              },
+              'is_admin': false,
+            });
+          }
+        }
+      }
+      _syncMembersIntoChat();
+      notifyListeners();
+      return true;
+    }
+    return false;
   }
 
   void _cleanupConnection() {
@@ -433,11 +477,11 @@ class GroupChatProvider extends ChangeNotifier {
 
   // -- Upload Profile Image -───────────────────────────
   void updateGroupPicture(String url) {
-  if (chat != null) {
-    chat = {...chat!, 'profile_url': url};
+    if (chat != null) {
+      chat = {...chat!, 'profile_url': url};
+    }
+    notifyListeners();
   }
-  notifyListeners();
-}
 
   // ── Remove member ────────────────────────────────────
   Future<bool> removeMember(int userId) async {

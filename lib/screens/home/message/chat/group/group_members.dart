@@ -9,6 +9,7 @@ import 'package:polzet_app/widgets/custom_card.dart';
 import 'package:polzet_app/widgets/show_toast.dart';
 import 'package:provider/provider.dart';
 
+import '../../../../../api/services/api_service.dart';
 import '../../../../../languages/l10n/generated/app_localizations.dart';
 import '../../../../../provider/group_chat_provider.dart';
 import '../../../../../provider/user_provider.dart';
@@ -71,6 +72,17 @@ class _GroupMembersState extends State<GroupMembers> {
       if (_user(m)['id'] == id) return m['is_admin'] == true;
     }
     return false;
+  }
+
+  Future<Map<String, dynamic>> addGroupMembers({
+    required int groupChatId,
+    required List<int> members,
+  }) async {
+    final result = await ApiService().addGroupChatMembers(
+      groupChatId: groupChatId,
+      members: members,
+    );
+    return result;
   }
 
   Future<void> _removeMember(int userId) async {
@@ -214,7 +226,7 @@ class _GroupMembersState extends State<GroupMembers> {
           child: const Icon(Icons.arrow_back_ios),
         ),
         title: Text(
-            AppLocalizations.of(context)!.members,
+          AppLocalizations.of(context)!.members,
           style: CustomTextStyles.appBarTitleText(context),
         ),
         centerTitle: true,
@@ -227,7 +239,6 @@ class _GroupMembersState extends State<GroupMembers> {
             child: GestureDetector(
               onTap: isCurrentUserAdmin
                   ? () async {
-                      // Extract existing member IDs from provider
                       final providerMembers = context
                           .read<GroupChatProvider>()
                           .members;
@@ -239,15 +250,35 @@ class _GroupMembersState extends State<GroupMembers> {
                       final result =
                           await BottomSheetUtils.showAddMembersBottomSheet(
                             context: context,
-                            alreadySelected:
-                                existingIds, // ← pass current members' IDs
+                            alreadySelected: existingIds,
                           );
+
                       if (result != null) {
+                        final selectedIds = result['ids'] as Set<int>;
+                        final selectedUsers =
+                            result['users'] as List<Map<String, dynamic>>;
+
+                        if (selectedIds.isEmpty) return;
+
                         setState(() {
-                          _selectedIds = result['ids'] as Set<int>;
-                          _selectedUsers =
-                              result['users'] as List<Map<String, dynamic>>;
+                          _selectedIds = selectedIds;
+                          _selectedUsers = selectedUsers;
                         });
+
+                        final provider = context.read<GroupChatProvider>();
+                        final success = await provider.addGroupMembers(
+                          selectedIds.toList(),
+                          selectedUsers,
+                        );
+
+                        if (mounted) {
+                          if (success) {
+                            _applyFilter(provider.members);
+                            showToast(message: 'Members added successfully');
+                          } else {
+                            showToast(message: 'Failed to add members');
+                          }
+                        }
                       }
                     }
                   : null,
@@ -256,7 +287,7 @@ class _GroupMembersState extends State<GroupMembers> {
                 size: 20.spMax,
                 color: isCurrentUserAdmin
                     ? Theme.of(context).colorScheme.onBackground
-                    : Colors.transparent
+                    : Colors.transparent,
               ),
             ),
           ),

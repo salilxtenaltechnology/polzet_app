@@ -898,6 +898,8 @@ class _PublicProfileState extends State<PublicProfile>
                                                   userId: profile.id,
                                                   username: profile.username,
                                                   initialIndex: 0,
+                                                  chaseList: profile.chaseList,
+                                                  rechaseList: profile.rechaseList,
                                                 ),
                                               );
                                             },
@@ -937,6 +939,8 @@ class _PublicProfileState extends State<PublicProfile>
                                                   userId: profile.id,
                                                   username: profile.username,
                                                   initialIndex: 1,
+                                                  chaseList: profile.chaseList,
+                                                  rechaseList: profile.rechaseList,
                                                 ),
                                               );
                                             },
@@ -975,6 +979,8 @@ class _PublicProfileState extends State<PublicProfile>
                                                 userId: profile.id,
                                                 username: profile.username,
                                                 initialIndex: 0,
+                                                chaseList: profile.chaseList,
+                                                  rechaseList: profile.rechaseList,
                                               ),
                                             );
                                           },
@@ -1130,6 +1136,8 @@ class _PublicProfileState extends State<PublicProfile>
                                                 userId: profile.id,
                                                 username: profile.username,
                                                 initialIndex: 1,
+                                                chaseList: profile.chaseList,
+                                                  rechaseList: profile.rechaseList,
                                               ),
                                             );
                                           },

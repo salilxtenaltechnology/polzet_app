@@ -20,7 +20,6 @@ import '../../../../languages/l10n/generated/app_localizations.dart';
 import '../../../../mixin/utility_mixins.dart';
 import '../../../../models/posts/user_post_model.dart';
 import '../../../../provider/user_provider.dart';
-import '../../../../widgets/base64/image_convert.dart';
 import '../../../../widgets/card/user_things_card.dart';
 import '../../../../widgets/dotted_border/dotted_border.dart';
 import '../../../../widgets/simmer/chase/profile_chase_simmer.dart';

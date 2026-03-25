@@ -19,7 +19,6 @@ import '../home/settings/security/biometric/biometric_screen.dart';
 import '../home/settings/security/biometric/biometric_service.dart';
 import '../home/settings/security/pin/pin_gate_screen.dart';
 import '../home/settings/security/pin/pin_status.dart';
-import '../terms_acceptance/terms_acceptance.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -93,11 +92,6 @@ class _SplashScreenState extends State<SplashScreen>
       return const LoginScreen();
     }
 
-    // ✅ Check if user has accepted terms (new user check)
-    final bool hasAcceptedTerms = await SharedPrefService.hasAcceptedTerms();
-    if (!hasAcceptedTerms) {
-      return const TermsAcceptanceScreen(); // ✅ Show only for new users
-    }
 
     // existing notification + biometric logic...
     final notificationRouter = NotificationRouter();

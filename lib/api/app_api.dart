@@ -30,10 +30,12 @@ class ApiConstants {
   static String deleteGroup = "$baseUrl/chats/group";
   static String leaveGroup = "$baseUrl/chats/group";
   static String makeAdmin = "$baseUrl/chats/group";
+  static String addGroupMembers = "$baseUrl/chats/group";
   static String messageList = "$baseUrl/chats";
   static String sendMessage = "$baseUrl/chats";
   static String markAsRead = "$baseUrl/chats";
   static String searchUsers = "$baseUrl/users";
+  static String globalSearch = "$baseUrl/global_search";
   static String enhancedTrendingHashtags =
       "$baseUrl/trending/hashtags/enhanced";
   static String blockUser = "$baseUrl/users/block";
