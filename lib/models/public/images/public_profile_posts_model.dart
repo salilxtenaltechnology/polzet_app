@@ -1,21 +1,21 @@
-import '../../posts/public_post_model.dart';
+import '../public_profile_model.dart';
 
 class UserPublicProfile {
-  final List<PublicPostItem> posts;
-  final List<PublicPostPoll> postsPolls;
+  final List<PublicPost> posts;
+  final List<PublicPoll> postsPolls;
 
   UserPublicProfile({required this.posts, required this.postsPolls});
 
   factory UserPublicProfile.fromJson(Map<String, dynamic> json) {
     return UserPublicProfile(
       posts: (json['posts'] as List)
-          .map((postJson) => PublicPostItem.fromJson(postJson))
+          .map((postJson) => PublicPost.fromJson(postJson))
           .toList(),
       postsPolls:
           (json['polls'] as List<dynamic>?)
-              ?.map((e) => PublicPostPoll.fromJson(e as Map<String, dynamic>))
+              ?.map((e) => PublicPoll.fromJson(e as Map<String, dynamic>))
               .toList() ??
-          <PublicPostPoll>[],
+          <PublicPoll>[],
     );
   }
 }

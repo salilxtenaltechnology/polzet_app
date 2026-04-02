@@ -11,6 +11,7 @@ import '../../../languages/l10n/generated/app_localizations.dart';
 import '../../../models/insights/insights_model.dart';
 import '../../../widgets/custom_card.dart';
 import '../../../widgets/diolog/custom_diolog.dart';
+import '../../../widgets/loader.dart';
 
 class InsightsScreen extends StatefulWidget {
   const InsightsScreen({super.key});
@@ -54,7 +55,7 @@ class _InsightsScreenState extends State<InsightsScreen> {
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.background,
       body: _loading
-          ? const Center(child: CircularProgressIndicator())
+          ? Center(child: Loader(color: Theme.of(context).colorScheme.primary))
           : ListView(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               children: [
@@ -149,7 +150,7 @@ class _InsightsScreenState extends State<InsightsScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                         AppLocalizations.of(context)!.weeklyviews,
+                          AppLocalizations.of(context)!.weeklyviews,
                           style: TextStyle(
                             color: Theme.of(context).colorScheme.onBackground,
                             fontSize: 11.sp,

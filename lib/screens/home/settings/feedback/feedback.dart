@@ -1,13 +1,16 @@
 // ignore_for_file: unused_field, deprecated_member_use
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:polzet_app/widgets/show_toast.dart';
 import 'package:provider/provider.dart';
 
 import '../../../../api/services/api_service.dart';
 import '../../../../core/constants/app_colors.dart';
+import '../../../../data/token/shared_preferences.dart';
 import '../../../../languages/l10n/generated/app_localizations.dart';
 import '../../../../provider/user_provider.dart';
 import '../../../../widgets/button/back_button.dart';
@@ -30,23 +33,18 @@ class _FeedbackScreenState extends State<FeedbackScreen>
   int hoverRating = 0;
   bool isSubmitting = false;
 
+  // Screenshot
+  File? _screenshotFile;
+  bool _isPickingImage = false;
+
+  // Issue ID from response
+  String? _submittedIssueId;
+
   final _formKey = GlobalKey<FormState>();
 
   late AnimationController _fadeController;
   late AnimationController _submitController;
   late Animation<double> _fadeAnimation;
-  late Animation<double> _submitAnimation;
-
-  final List<Map<String, dynamic>> categories = [
-    {'value': 'bug', 'label': 'Bug Report', 'icon': Icons.bug_report_rounded},
-    {
-      'value': 'suggestion',
-      'label': 'Suggestion',
-      'icon': Icons.lightbulb_rounded,
-    },
-    {'value': 'general', 'label': 'General', 'icon': Icons.chat_bubble_rounded},
-    {'value': 'complaint', 'label': 'Complaint', 'icon': Icons.warning_rounded},
-  ];
 
   @override
   void initState() {
@@ -64,10 +62,6 @@ class _FeedbackScreenState extends State<FeedbackScreen>
       parent: _fadeController,
       curve: Curves.easeOut,
     );
-    _submitAnimation = CurvedAnimation(
-      parent: _submitController,
-      curve: Curves.easeInOut,
-    );
 
     _fadeController.forward();
   }
@@ -81,7 +75,65 @@ class _FeedbackScreenState extends State<FeedbackScreen>
     super.dispose();
   }
 
+  // ── Pick Screenshot ───────────────────────────────────────
+ Future<void> _pickScreenshot() async {
+  setState(() => _isPickingImage = true);
+  try {
+    final picker = ImagePicker();
+    final XFile? picked = await picker.pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 85,
+    );
+    if (!mounted) return;
+    if (picked == null) return;
+
+    final file = File(picked.path);
+    final int sizeInBytes = await file.length();
+    if (!mounted) return;
+
+    if (sizeInBytes > 3 * 1024 * 1024) {
+      showToast(message: 'Screenshot must be under 3 MB');
+      return;
+    }
+
+    if (!mounted) return;
+    setState(() {
+      _screenshotFile = file;   // ✅ just store the File
+    });
+  } catch (e) {
+    if (!mounted) return;
+    showToast(message: 'Failed to pick image');
+  } finally {
+    if (mounted) setState(() => _isPickingImage = false);
+  }
+}
+
+  void _removeScreenshot() {
+    setState(() {
+      _screenshotFile = null;
+    });
+  }
+
+  // ── Get device info ───────────────────────────────────────
+  Map<String, String> _getDeviceInfo() {
+    final view = WidgetsBinding.instance.platformDispatcher.views.first;
+    final w = view.physicalSize.width.toInt();
+    final h = view.physicalSize.height.toInt();
+    return {
+      'browser': 'Flutter App',
+      'os': Platform.operatingSystem,
+      'screen_resolution': '${w}x$h',
+      'user_agent': 'Polzet Flutter/${Platform.operatingSystemVersion}',
+    };
+  }
+
+  // ── Submit ────────────────────────────────────────────────
   Future<void> _submitFeedback() async {
+    final userProvider = Provider.of<UserProvider>(context, listen: false);
+    final String email = (userProvider.email?.isNotEmpty == true)
+        ? userProvider.email!
+        : await SharedPrefService.getEmail() ?? '';
+    final deviceInfo = _getDeviceInfo();
     if (!_formKey.currentState!.validate()) return;
     if (selectedCategory == null) {
       showToast(message: 'Please select a category');
@@ -92,38 +144,61 @@ class _FeedbackScreenState extends State<FeedbackScreen>
       return;
     }
 
+    // Capture context-dependent values BEFORE any await
+
     setState(() => isSubmitting = true);
     HapticFeedback.mediumImpact();
 
     try {
-      final userProvider = Provider.of<UserProvider>(context, listen: false);
-      final String email = userProvider.user?.email ?? '';
-
       final result = await ApiService().submitFeedback(
         email: email,
         subject: subjectController.text.trim(),
         category: selectedCategory!,
         message: messageController.text.trim(),
         rating: starRating,
+        reaction: _getRatingEmoji(),
+        screenshotFile: _screenshotFile,
+        deviceInfo: deviceInfo,
       );
 
-      if (result['status'] == true) {
-        showToast(message: 'Feedback submitted successfully!');
+      if (!mounted) return; // ← guard after await
 
-        // Clear form
+      if (result['status'] == true) {
+        final issueId = result['data']?['issue_id'] as String? ?? '';
+        setState(() => _submittedIssueId = issueId);
+        showToast(message: 'Thank you for helping improve Polzet ❤️');
         subjectController.clear();
         messageController.clear();
         setState(() {
           selectedCategory = null;
           starRating = 0;
+          _screenshotFile = null;
         });
       } else {
         showToast(message: 'Something went wrong.');
       }
     } catch (e) {
+      if (!mounted) return; // ← guard after await in catch
       showToast(message: e.toString());
     } finally {
-      setState(() => isSubmitting = false);
+      if (mounted) setState(() => isSubmitting = false); // ← guard in finally
+    }
+  }
+
+  String _getRatingEmoji() {
+    switch (starRating) {
+      case 1:
+        return '😡';
+      case 2:
+        return '😕';
+      case 3:
+        return '😐';
+      case 4:
+        return '🙂';
+      case 5:
+        return '🤩';
+      default:
+        return '😐';
     }
   }
 
@@ -156,9 +231,17 @@ class _FeedbackScreenState extends State<FeedbackScreen>
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      // ── Issue ID Banner (shown after submit) ──
+                      if (_submittedIssueId != null &&
+                          _submittedIssueId!.isNotEmpty) ...[
+                        _buildIssueIdBanner(),
+                        SizedBox(height: 12.h),
+                      ],
+
                       // ── Rating Card ──
                       _buildRatingCard(),
                       SizedBox(height: 12.h),
+
                       // ── Subject Field ──
                       _buildLabel(AppLocalizations.of(context)!.subject),
                       const SizedBox(height: 8),
@@ -173,6 +256,7 @@ class _FeedbackScreenState extends State<FeedbackScreen>
                             : null,
                       ),
                       const SizedBox(height: 20),
+
                       // ── Category ──
                       _buildLabel(AppLocalizations.of(context)!.category),
                       const SizedBox(height: 8),
@@ -190,10 +274,14 @@ class _FeedbackScreenState extends State<FeedbackScreen>
                         maxLines: 5,
                         validator: (v) {
                           if (v == null || v.isEmpty) {
-                            return AppLocalizations.of(context)!.messageisrequired;
+                            return AppLocalizations.of(
+                              context,
+                            )!.messageisrequired;
                           }
                           if (v.length < 10) {
-                            return AppLocalizations.of(context)!.messagemustbeatleasttencharacters;
+                            return AppLocalizations.of(
+                              context,
+                            )!.messagemustbeatleasttencharacters;
                           }
                           return null;
                         },
@@ -214,6 +302,12 @@ class _FeedbackScreenState extends State<FeedbackScreen>
                           ),
                         ),
                       ),
+                      const SizedBox(height: 20),
+
+                      // ── Screenshot ──
+                      _buildLabel('Screenshot (Optional)'),
+                      const SizedBox(height: 8),
+                      _buildScreenshotPicker(),
                       const SizedBox(height: 32),
 
                       // ── Submit Button ──
@@ -226,6 +320,166 @@ class _FeedbackScreenState extends State<FeedbackScreen>
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  // ── Issue ID Banner ───────────────────────────────────────
+  Widget _buildIssueIdBanner() {
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
+      decoration: BoxDecoration(
+        color: AppColors.primaryColor.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.primaryColor.withOpacity(0.25)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: AppColors.primaryColor.withOpacity(0.12),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: const Icon(
+              Icons.confirmation_number_outlined,
+              color: AppColors.primaryColor,
+              size: 20,
+            ),
+          ),
+          SizedBox(width: 12.w),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Issue Submitted',
+                  style: TextStyle(
+                    fontSize: 11.sp,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.primaryColor,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'Issue ID: $_submittedIssueId',
+                  style: TextStyle(
+                    fontSize: 10.sp,
+                    fontWeight: FontWeight.w500,
+                    color: const Color(0xFF1A1A2E),
+                    letterSpacing: 0.3,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          GestureDetector(
+            onTap: () {
+              Clipboard.setData(ClipboardData(text: _submittedIssueId!));
+              showToast(message: 'Issue ID copied!');
+            },
+            child: Container(
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                color: AppColors.primaryColor.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(
+                Icons.copy_rounded,
+                size: 16,
+                color: AppColors.primaryColor,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ── Screenshot Picker ─────────────────────────────────────
+  Widget _buildScreenshotPicker() {
+    if (_screenshotFile != null) {
+      return Stack(
+        children: [
+          Container(
+            height: 160.h,
+            width: double.infinity,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.grey.shade200),
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(15),
+              child: Image.file(_screenshotFile!, fit: BoxFit.cover),
+            ),
+          ),
+          Positioned(
+            top: 8,
+            right: 8,
+            child: GestureDetector(
+              onTap: _removeScreenshot,
+              child: Container(
+                padding: const EdgeInsets.all(4),
+                decoration: const BoxDecoration(
+                  color: Color(0xFFE53E3E),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.close_rounded,
+                  size: 16,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+          ),
+        ],
+      );
+    }
+
+    return GestureDetector(
+      onTap: _isPickingImage ? null : _pickScreenshot,
+      child: Container(
+        width: double.infinity,
+        height: 100.h,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: Colors.grey.shade200,
+            style: BorderStyle.solid,
+          ),
+        ),
+        child: _isPickingImage
+            ? const Center(
+                child: SizedBox(
+                  width: 24,
+                  height: 24,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: AppColors.primaryColor,
+                  ),
+                ),
+              )
+            : Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.add_photo_alternate_outlined,
+                    size: 32,
+                    color: Colors.grey.shade400,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Attach screenshot (PNG/JPEG, max 3MB)',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey.shade400,
+                      fontWeight: FontWeight.w400,
+                    ),
+                  ),
+                ],
+              ),
       ),
     );
   }
@@ -249,7 +503,7 @@ class _FeedbackScreenState extends State<FeedbackScreen>
       child: Column(
         children: [
           Text(
-           AppLocalizations.of(context)!.howwouldyourateyourexperince,
+            AppLocalizations.of(context)!.howwouldyourateyourexperince,
             style: TextStyle(
               fontSize: 11.2.sp,
               fontWeight: FontWeight.w500,
@@ -314,13 +568,13 @@ class _FeedbackScreenState extends State<FeedbackScreen>
   String _getRatingLabel() {
     switch (starRating) {
       case 1:
-        return '😞 ${AppLocalizations.of(context)!.broken}';
+        return '😡 ${AppLocalizations.of(context)!.broken}';
       case 2:
         return '😕 ${AppLocalizations.of(context)!.confusing}';
       case 3:
         return '😐 ${AppLocalizations.of(context)!.okay}';
       case 4:
-        return '😊 ${AppLocalizations.of(context)!.good}';
+        return '🙂 ${AppLocalizations.of(context)!.good}';
       case 5:
         return '🤩 ${AppLocalizations.of(context)!.loveit}';
       default:
@@ -408,60 +662,66 @@ class _FeedbackScreenState extends State<FeedbackScreen>
     );
   }
 
- Widget _buildCategorySelector() {
-  final List<String> feedbackOptions = [
-    AppLocalizations.of(context)!.bugreport,
-    AppLocalizations.of(context)!.featurerequest,
-    AppLocalizations.of(context)!.uiissue,
-    AppLocalizations.of(context)!.perfomance,
-    AppLocalizations.of(context)!.general,
-    AppLocalizations.of(context)!.complaint,
-  ];
+  Widget _buildCategorySelector() {
+    final List<Map<String, String>> feedbackOptions = [
+      {'value': 'bug', 'label': AppLocalizations.of(context)!.bugreport},
+      {
+        'value': 'suggestion',
+        'label': AppLocalizations.of(context)!.featurerequest,
+      },
+      {'value': 'ui', 'label': AppLocalizations.of(context)!.uiissue},
+      {
+        'value': 'performance',
+        'label': AppLocalizations.of(context)!.perfomance,
+      },
+      {'value': 'general', 'label': AppLocalizations.of(context)!.general},
+      {'value': 'complaint', 'label': AppLocalizations.of(context)!.complaint},
+    ];
 
-  return Container(
-    width: double.infinity,
-    padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 4.h),
-    decoration: BoxDecoration(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(16),
-      border: Border.all(color: Colors.grey.shade200),
-    ),
-    child: DropdownButtonHideUnderline(
-      child: DropdownButton<String>(
-        value: selectedCategory,
-        hint: Text(
-          AppLocalizations.of(context)!.complaint,
-          style: TextStyle(
-            color: Colors.grey.shade400,
-            fontSize: 14,
-            fontWeight: FontWeight.w400,
-          ),
-        ),
-        dropdownColor: Colors.white,
-        isExpanded: true,
-        items: feedbackOptions.map((option) {
-          return DropdownMenuItem<String>(
-            value: option,
-            child: Text(
-              option,
-              style: const TextStyle(
-                fontSize: 15,
-                color: Color(0xFF1A1A2E),
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          );
-        }).toList(),
-        onChanged: (String? newValue) {
-          if (newValue != null) {
-            setState(() => selectedCategory = newValue);
-          }
-        },
-        iconEnabledColor: Colors.grey.shade400,
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 4.h),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.grey.shade200),
       ),
-    ),
-  );
-}
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<String>(
+          value: selectedCategory,
+          hint: Text(
+            AppLocalizations.of(context)!.complaint,
+            style: TextStyle(
+              color: Colors.grey.shade400,
+              fontSize: 14,
+              fontWeight: FontWeight.w400,
+            ),
+          ),
+          dropdownColor: Colors.white,
+          isExpanded: true,
+          items: feedbackOptions.map((opt) {
+            return DropdownMenuItem<String>(
+              value: opt['value'],
+              child: Text(
+                opt['label']!,
+                style: const TextStyle(
+                  fontSize: 15,
+                  color: Color(0xFF1A1A2E),
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            );
+          }).toList(),
+          onChanged: (String? newValue) {
+            if (newValue != null) {
+              setState(() => selectedCategory = newValue);
+            }
+          },
+          iconEnabledColor: Colors.grey.shade400,
+        ),
+      ),
+    );
+  }
 
   // ── Submit Button ─────────────────────────────────────────
   Widget _buildSubmitButton() {
@@ -518,8 +778,3 @@ class _FeedbackScreenState extends State<FeedbackScreen>
     );
   }
 }
- 
-
-
-
-//  colors: [AppColors.primaryColor,Color(0xFFE93A5D)],

@@ -257,44 +257,28 @@ class _PrivateChatScreenState extends State<PrivateChatScreen>
                         child: provider.isMemberTyping
                             ? Row(
                                 key: const ValueKey('typing'),
+                                mainAxisSize: MainAxisSize.min, 
                                 children: [
                                   Text(
-                                    'typing...',
+                                    'Typing...',
                                     style: TextStyle(
                                       fontSize: 9.5.sp,
-                                      color: const Color(0xFF8593A8),
+                                      color:  Colors.green,
                                       fontStyle: FontStyle.italic,
-                                    ),
-                                  ),
-                                  SizedBox(width: 4.w),
-                                  const SizedBox(
-                                    width: 16,
-                                    child: LinearProgressIndicator(
-                                      minHeight: 2,
-                                      backgroundColor: Colors.transparent,
-                                      color: Color(0xFF8593A8),
                                     ),
                                   ),
                                 ],
                               )
                             : Row(
                                 key: const ValueKey('status'),
-                                children: [
-                                  Container(
-                                    width: 6.w,
-                                    height: 6.w,
-                                    decoration: BoxDecoration(
-                                      color: provider.isConnected
-                                          ? Colors.green
-                                          : Colors.grey,
-                                      shape: BoxShape.circle,
-                                    ),
-                                  ),
-                                  SizedBox(width: 4.w),
+                                mainAxisSize: MainAxisSize.min,
+                                children: [      
                                   Text(
-                                    provider.isConnected ? 'Online' : 'Offline',
+                                    provider.isMemberOnline
+                                        ? 'Online'
+                                        : 'Offline',
                                     style: TextStyle(
-                                      color: provider.isConnected
+                                      color: provider.isMemberOnline
                                           ? Colors.green
                                           : Colors.grey,
                                       fontSize: 9.5.sp,
@@ -358,8 +342,10 @@ class _PrivateChatScreenState extends State<PrivateChatScreen>
                 if (messages.isEmpty && !isLoading) {
                   return Center(
                     child: Text(
-                      AppLocalizations.of(context)!.nomessagesyetstarttheconversation,
-                    
+                      AppLocalizations.of(
+                        context,
+                      )!.nomessagesyetstarttheconversation,
+
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         color: const Color(0XFF8593A8),

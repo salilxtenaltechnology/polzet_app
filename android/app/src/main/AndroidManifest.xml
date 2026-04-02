@@ -1,4 +1,4 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android" xmlns:tools="http://schemas.android.com/tools">
     <!-- Internet permission (existing) -->
     <uses-permission android:name="android.permission.INTERNET"/>
     
@@ -96,9 +96,10 @@
         <!-- ============================================= -->
         <activity
             android:name="com.yalantis.ucrop.UCropActivity"
-            android:screenOrientation="portrait"
+            android:screenOrientation="unspecified"
             android:theme="@style/Theme.AppCompat.Light.NoActionBar"
-            android:exported="false"/>
+            android:exported="false"
+            tools:replace="android:screenOrientation"/>
         <!-- ============================================= -->
         
         <!-- Firebase Cloud Messaging -->
@@ -128,6 +129,10 @@
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
+
+        <meta-data
+            android:name="io.flutter.embedding.android.EnableImpeller"
+            android:value="false" />
     </application>
     <!-- Required to query activities that can process text, see:
          https://developer.android.com/training/package-visibility and

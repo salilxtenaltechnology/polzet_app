@@ -66,17 +66,17 @@ class _PublicPostsListState extends State<PublicImagePostsList> {
         postLikeStates.clear();
         postLikeCounts.clear();
         postCommentsCounts.clear();
-
         for (var post in posts) {
           postLikeStates[post.id] = post.isLiked;
           postLikeCounts[post.id] = post.likesCount;
           postCommentsCounts[post.id] = post.comments.length;
-
-          if (post.likesCount > 0) {
-            _fetchLikedUsers(post.id);
-          }
         }
       });
+      for (var post in posts) {
+        if (post.likesCount > 0) {
+          _fetchLikedUsers(post.id);
+        }
+      }
     } catch (e) {
       debugPrint('Error loading posts: $e');
       setState(() {
@@ -334,7 +334,7 @@ class _PublicPostsListState extends State<PublicImagePostsList> {
   Widget _buildPostsList(List<PublicPost> postsWithImages) {
     return ListView.builder(
       padding: EdgeInsets.only(top: 5.h),
-      itemCount: postsWithImages.length > 4 ? 4 : postsWithImages.length,
+      itemCount: postsWithImages.length,
       itemBuilder: (context, index) {
         final post = postsWithImages[index];
         final isLiked = postLikeStates.containsKey(post.id)

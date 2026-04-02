@@ -4,11 +4,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:polzet_app/api/services/api_service.dart';
 
-import '../../core/constants/app_colors.dart';
-import '../../languages/l10n/generated/app_localizations.dart';
-import '../../models/like/like_uers_model.dart';
-import '../../widgets/base64/image_convert.dart';
-import '../custom_text_styles.dart';
+import '../../../core/constants/app_colors.dart';
+import '../../../languages/l10n/generated/app_localizations.dart';
+import '../../../models/like/like_uers_model.dart';
+import '../../base64/image_convert.dart';
+import '../../custom_text_styles.dart';
 
 class LikedUsersBottomSheet extends StatefulWidget {
   final int postId;

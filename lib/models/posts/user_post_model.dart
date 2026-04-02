@@ -257,7 +257,7 @@ class UserPollOption {
           ? PollOptionImage.fromJson(json['image'] as Map<String, dynamic>)
           : null,
       voteCount: json['vote_count'] as String? ?? '0',
-      percentage: (json['percentage'] as num?)?.toDouble() ?? 0.0,
+      percentage: (json['percentage'] ?? 0).toDouble(),
       voters: json['voters'] as List<dynamic>? ?? [],
     );
   }

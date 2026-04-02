@@ -46,6 +46,8 @@ class HomeFeedPost {
   final int likesCount;
   final bool isLikedByCurrentUser;
   final int commentsCount;
+  final String followingStatus;
+
   final List<HomeFeedLikeUser> viewLikes;
 
   HomeFeedPost({
@@ -58,6 +60,7 @@ class HomeFeedPost {
     required this.isLikedByCurrentUser,
     required this.commentsCount,
     required this.viewLikes,
+    required this.followingStatus,
   });
 
   factory HomeFeedPost.fromJson(Map<String, dynamic> json) {
@@ -78,6 +81,7 @@ class HomeFeedPost {
           json['view_likes'] ?? json['likes'],
           (item) => HomeFeedLikeUser.fromJson(item),
         ),
+        followingStatus:_parseToString(json['following_status'])
       );
     } catch (e) {
       debugPrint('Error parsing HomeFeedPost: $e');
@@ -97,6 +101,7 @@ class HomeFeedPost {
       'is_liked_by_current_user': isLikedByCurrentUser,
       'comments_count': commentsCount,
       'view_likes': viewLikes.map((like) => like.toJson()).toList(),
+      'following_status': followingStatus,
     };
   }
 
@@ -317,6 +322,8 @@ class HomeFeedPollOption {
   final int voteCount;
   final int score;
   double percentage;
+  int rank1Count; 
+  int? rankPosition;    
   final List<HomeFeedLikeUser> userList;
 
   HomeFeedPollOption({
@@ -326,6 +333,8 @@ class HomeFeedPollOption {
     required this.voteCount,
     required this.score,
     required this.percentage,
+     this.rank1Count = 0, 
+     this.rankPosition, 
     required this.userList,
   });
 

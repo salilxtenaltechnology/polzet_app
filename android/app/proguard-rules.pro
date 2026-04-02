@@ -6,6 +6,16 @@
 -keep class io.flutter.** { *; }
 -keep class io.flutter.plugins.** { *; }
 
+# Keep Play Core task classes referenced by Flutter's deferred components
+-dontwarn com.google.android.play.core.tasks.OnFailureListener
+-dontwarn com.google.android.play.core.tasks.OnSuccessListener
+-dontwarn com.google.android.play.core.tasks.Task
+-dontwarn com.google.android.play.core.tasks.**
+-dontwarn com.google.android.play.core.**
+
+# Keep Flutter deferred component manager
+-keep class io.flutter.embedding.engine.deferredcomponents.** { *; }
+
 # Biometric Authentication (local_auth)
 -keep class androidx.biometric.** { *; }
 -keep class androidx.fragment.app.** { *; }
@@ -56,6 +66,15 @@
 -keep class com.polzet_app.MainActivity { *; }
 -keep class io.flutter.plugin.common.MethodChannel { *; }
 -keep class io.flutter.plugin.common.MethodChannel$MethodCallHandler { *; }
+
+# ✅ Google Sign-In (google_sign_in)
+-keep class com.google.android.gms.auth.** { *; }
+-keep class com.google.android.gms.common.** { *; }
+-keep class io.flutter.plugins.googlesignin.** { *; }
+
+# ✅ WebSocket (if chat uses WebSocket connection)
+-keep class okhttp3.WebSocket { *; }
+-keep class okhttp3.WebSocketListener { *; }
 
 # General Rules
 -keepattributes *Annotation*

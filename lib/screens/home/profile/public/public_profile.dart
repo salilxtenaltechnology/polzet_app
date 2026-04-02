@@ -1,4 +1,6 @@
-// ignore_for_file: deprecated_member_use, unused_local_variable, unused_field, unused_element
+// ignore_for_file: prefer_final_fields, deprecated_member_use, unused_local_variable, unused_field, unused_element
+import 'dart:async';
+import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
@@ -7,6 +9,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:glass/glass.dart';
 import 'package:polzet_app/screens/home/profile/public/chase/public_chase_list.dart';
+import 'package:polzet_app/widgets/loader.dart';
 import 'package:provider/provider.dart';
 import 'package:shimmer/shimmer.dart';
 
@@ -22,10 +25,11 @@ import '../../../../provider/private_chat_provider.dart';
 import '../../../../provider/public_profile_provider.dart';
 import '../../../../provider/user_provider.dart';
 import '../../../../widgets/base64/image_convert.dart';
+import '../../../../widgets/connection/no_internet_screen.dart';
 import '../../../../widgets/simmer/public_profile_simmer.dart';
 import '../../message/chat/private/private_chat_screen.dart';
 import '../posts/public_image_posts_list.dart';
-import 'public_things_questions_list.dart';
+import '../posts/public_things_questions_list.dart';
 import 'widgets/bio_widget.dart';
 import 'widgets/poll_images_stack.dart';
 import 'widgets/profile_stats_tiles.dart';
@@ -66,7 +70,7 @@ class _PublicProfileState extends State<PublicProfile>
   Future<List<PublicPost>>? _pollsFuture;
   late PublicPoll publicPollsQuestion;
 
-  List<PublicPost> cachedPollPosts = [];
+  List<PublicPost> cachedImagesPosts = [];
   List<PublicPost> cachedThingsPosts = [];
 
   final ApiService apiService = ApiService();
@@ -83,6 +87,9 @@ class _PublicProfileState extends State<PublicProfile>
 
   bool _imagesInitialized = false;
 
+  Timer? _retryTimer;
+  bool _isRetrying = false;
+
   @override
   void initState() {
     super.initState();
@@ -90,19 +97,27 @@ class _PublicProfileState extends State<PublicProfile>
     autoRefreshEnabled = true;
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<PublicProfileProvider>().fetchPublicUserProfile(
-        widget.userId,
-      );
+      context
+          .read<PublicProfileProvider>()
+          .fetchPublicUserProfile(widget.userId)
+          .then((_) {
+            final profile = context.read<PublicProfileProvider>().userProfile;
+            if (profile == null) return;
 
-      // Initialize with empty data to show "No posts" initially
+            // ✅ Only load posts if profile is public OR user is a friend
+            final isFriend = profile.isFriend;
+            final canLoad = !profile.isPrivate || isFriend;
 
-      _pollsFuture = Future.value(<PublicPost>[]);
-
-      // Load fresh data silently in background
-      _loadFreshPostsData();
-      _loadFreshPollsData();
+            if (canLoad) {
+              _pollsFuture = Future.value(<PublicPost>[]);
+              _loadFreshPostsData();
+              _loadFreshPollsData();
+            } else {
+              // Private profile — skip all post fetching
+              _pollsFuture = Future.value(<PublicPost>[]);
+            }
+          });
     });
-
     // Initialize animation controller
     _animationController = AnimationController(
       duration: const Duration(milliseconds: 300),
@@ -117,6 +132,32 @@ class _PublicProfileState extends State<PublicProfile>
       CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
     );
     _scrollController.addListener(_scrollListener);
+  }
+
+  // Add this method
+  void _startAutoRetry(int userId) {
+    _retryTimer?.cancel();
+    _retryTimer = Timer.periodic(const Duration(seconds: 5), (_) async {
+      if (_isRetrying) return;
+      try {
+        _isRetrying = true;
+        // Check internet by pinging a reliable host
+        final result = await InternetAddress.lookup(
+          'google.com',
+        ).timeout(const Duration(seconds: 3));
+        if (result.isNotEmpty && result[0].rawAddress.isNotEmpty) {
+          _retryTimer?.cancel();
+          _isRetrying = false;
+          if (mounted) {
+            context.read<PublicProfileProvider>().fetchPublicUserProfile(
+              userId,
+            );
+          }
+        }
+      } catch (_) {
+        _isRetrying = false;
+      }
+    });
   }
 
   // Initialize images once and cache URLs
@@ -162,6 +203,10 @@ class _PublicProfileState extends State<PublicProfile>
         _imagesInitialized = false;
         _cachedProfilePictureUrl = null;
         _cachedCoverPictureUrl = null;
+        // ✅ Reset post caches too
+        cachedImagesPosts = [];
+        cachedThingsPosts = [];
+        _pollsFuture = Future.value(<PublicPost>[]);
       });
     }
   }
@@ -320,9 +365,7 @@ class _PublicProfileState extends State<PublicProfile>
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
-                content: Text(
-                  'Failed to send follow request. Please try again.',
-                ),
+                content: Text('Failed to send request. Please try again.'),
                 backgroundColor: Colors.red,
                 duration: Duration(seconds: 2),
               ),
@@ -385,7 +428,7 @@ class _PublicProfileState extends State<PublicProfile>
 
             setState(() {
               _pollsFuture = Future.value(freshPolls);
-              cachedPollPosts = imagePosts;
+              cachedImagesPosts = imagePosts;
               cachedThingsPosts = textPosts;
             });
           }
@@ -449,6 +492,7 @@ class _PublicProfileState extends State<PublicProfile>
 
   @override
   void dispose() {
+    _retryTimer?.cancel();
     _scrollController.removeListener(_scrollListener);
     _scrollController.dispose();
     _animationController.dispose();
@@ -468,60 +512,39 @@ class _PublicProfileState extends State<PublicProfile>
             child: Consumer<PublicProfileProvider>(
               builder: (context, publicProfileProvider, child) {
                 if (publicProfileProvider.isLoading) {
-                  return const PublicProfileSimmer();
+                  return SizedBox(
+                    height: MediaQuery.of(context).size.height,
+                    child: Center(
+                      child: Loader(
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                    ),
+                  );
                 }
                 // ERROR STATE
                 if (publicProfileProvider.error != null) {
-                  return Center(
-                    child: Padding(
-                      padding: const EdgeInsets.all(24.0),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.error_outline,
-                            size: 80,
-                            color: Colors.red[300],
-                          ),
-                          const SizedBox(height: 24),
-                          Text(
-                            'Oops! Something went wrong',
-                            style: Theme.of(context).textTheme.headlineSmall
-                                ?.copyWith(fontWeight: FontWeight.bold),
-                          ),
-                          const SizedBox(height: 12),
-                          Text(
-                            publicProfileProvider.error!,
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              color: Colors.grey[600],
-                              fontSize: 16,
-                            ),
-                          ),
-                          const SizedBox(height: 24),
-                          ElevatedButton.icon(
-                            onPressed: () {
-                              debugPrint(
-                                '🔄 Retry button pressed for: ${widget.userId}',
-                              );
-                              publicProfileProvider.fetchPublicUserProfile(
-                                widget.userId,
-                              );
-                            },
-                            icon: const Icon(Icons.refresh),
-                            label: const Text('Try Again'),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.blue,
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 24,
-                                vertical: 12,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
+                  // Auto-retry for no internet
+                  if (publicProfileProvider.errorType ==
+                      ProfileErrorType.noInternet) {
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      _startAutoRetry(widget.userId);
+                    });
+                  }
+
+                  return ConnectionErrorScreen(
+                    type: switch (publicProfileProvider.errorType) {
+                      ProfileErrorType.noInternet =>
+                        ConnectionErrorType.noInternet,
+                      ProfileErrorType.serverError =>
+                        ConnectionErrorType.serverError,
+                      _ => ConnectionErrorType.unknown,
+                    },
+                    onRetry: () {
+                      _retryTimer?.cancel();
+                      context
+                          .read<PublicProfileProvider>()
+                          .fetchPublicUserProfile(widget.userId);
+                    },
                   );
                 }
 
@@ -899,7 +922,8 @@ class _PublicProfileState extends State<PublicProfile>
                                                   username: profile.username,
                                                   initialIndex: 0,
                                                   chaseList: profile.chaseList,
-                                                  rechaseList: profile.rechaseList,
+                                                  rechaseList:
+                                                      profile.rechaseList,
                                                 ),
                                               );
                                             },
@@ -940,7 +964,8 @@ class _PublicProfileState extends State<PublicProfile>
                                                   username: profile.username,
                                                   initialIndex: 1,
                                                   chaseList: profile.chaseList,
-                                                  rechaseList: profile.rechaseList,
+                                                  rechaseList:
+                                                      profile.rechaseList,
                                                 ),
                                               );
                                             },
@@ -980,7 +1005,8 @@ class _PublicProfileState extends State<PublicProfile>
                                                 username: profile.username,
                                                 initialIndex: 0,
                                                 chaseList: profile.chaseList,
-                                                  rechaseList: profile.rechaseList,
+                                                rechaseList:
+                                                    profile.rechaseList,
                                               ),
                                             );
                                           },
@@ -1137,7 +1163,8 @@ class _PublicProfileState extends State<PublicProfile>
                                                 username: profile.username,
                                                 initialIndex: 1,
                                                 chaseList: profile.chaseList,
-                                                  rechaseList: profile.rechaseList,
+                                                rechaseList:
+                                                    profile.rechaseList,
                                               ),
                                             );
                                           },
@@ -1511,7 +1538,16 @@ class _PublicProfileState extends State<PublicProfile>
                               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                               children: [
                                 GestureDetector(
-                                  onTap: () {},
+                                  onTap: () {
+                                    navigationPush(
+                                      context,
+                                      PublicImagePostsList(
+                                        userId: widget.userId,
+                                        username: profile.username,
+                                        profileImage: profile.profilePictureUrl,
+                                      ),
+                                    );
+                                  },
                                   child: Container(
                                     color: Colors.transparent,
                                     width: 55.w,
@@ -1522,7 +1558,7 @@ class _PublicProfileState extends State<PublicProfile>
                                           MainAxisAlignment.center,
                                       children: [
                                         Text(
-                                          (profile.imagePostCount).toString(),
+                                          cachedImagesPosts.length.toString(),
                                           style: TextStyle(
                                             color: Colors.white,
                                             fontSize: 13.sp,
@@ -1548,7 +1584,16 @@ class _PublicProfileState extends State<PublicProfile>
                                   ),
                                 ),
                                 GestureDetector(
-                                  onTap: () {},
+                                  onTap: () {
+                                    navigationPush(
+                                      context,
+                                      PublicThingsQuestionsList(
+                                        userId: widget.userId,
+                                        username: profile.username,
+                                        profileImage: profile.profilePictureUrl,
+                                      ),
+                                    );
+                                  },
                                   child: Container(
                                     color: Colors.transparent,
                                     width: 55.w,
@@ -1559,7 +1604,7 @@ class _PublicProfileState extends State<PublicProfile>
                                           MainAxisAlignment.center,
                                       children: [
                                         Text(
-                                          (profile.textPostCount).toString(),
+                                          cachedThingsPosts.length.toString(),
                                           style: TextStyle(
                                             color: Colors.white,
                                             fontSize: 13.sp,
@@ -1598,7 +1643,7 @@ class _PublicProfileState extends State<PublicProfile>
                                   ),
                                 ),
                                 const Spacer(),
-                                if (cachedPollPosts.isNotEmpty)
+                                if (cachedImagesPosts.isNotEmpty)
                                   GestureDetector(
                                     onTap: () {
                                       navigationPush(
@@ -1965,6 +2010,17 @@ class _PublicProfileState extends State<PublicProfile>
                                     gradientColors:
                                         gradientOptions[index %
                                             gradientOptions.length],
+                                    onTap: () {
+                                      navigationPush(
+                                        context,
+                                        PublicThingsQuestionsList(
+                                          userId: widget.userId,
+                                          username: profile.username,
+                                          profileImage:
+                                              profile.profilePictureUrl,
+                                        ),
+                                      );
+                                    },
                                   );
                                 },
                               );

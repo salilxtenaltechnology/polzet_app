@@ -6,7 +6,10 @@ class SharedPrefService {
   static const String _fcmToken = 'fcm_token';
   static const String _firstLaunchKey = 'first_launch';
   static const String _languageCode = 'languageCode';
+  static const String _userId = 'user_id';
   static const String _firstName = 'first_name';
+    static const String _email = 'email';
+
   static const String _lastName = 'last_name';
   static const String _username = 'username';
   static const String _bio = 'bio';
@@ -89,6 +92,17 @@ class SharedPrefService {
   }
 
   // ─── User Details ───────────────────────────────────────────────────────────
+
+  Future<void> saveUserId(String id) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_userId, id);
+  }
+
+   static Future<void> saveUserEmail(String email) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_email, email);
+  }
+
   Future<void> saveUserFirstName(String name) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_firstName, name);
@@ -109,9 +123,19 @@ class SharedPrefService {
     await prefs.setString(_bio, bio);
   }
 
+  static Future<String?> getUserId() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_userId);
+  }
+
   static Future<String?> getFirstName() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getString(_firstName);
+  }
+
+  static Future<String?> getEmail() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_email);
   }
 
   static Future<String?> getLastName() async {

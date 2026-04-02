@@ -8,6 +8,7 @@ import 'package:provider/provider.dart';
 
 import 'api/services/link/deeplink_generator_service.dart';
 import 'api/services/notification/notification_services.dart';
+import 'core/connectivity/connectivity_overlay.dart';
 import 'core/constants/app_strings.dart';
 import 'core/navigation/notification_router.dart';
 import 'core/themes/app_themes.dart';
@@ -15,6 +16,7 @@ import 'core/themes/theme_provider.dart';
 import 'data/token/shared_preferences.dart';
 import 'firebase_options.dart';
 import 'languages/l10n/generated/app_localizations.dart';
+import 'provider/connection_provider.dart';
 import 'provider/private_chat_provider.dart';
 import 'provider/public_profile_provider.dart';
 import 'provider/user_provider.dart';
@@ -74,6 +76,7 @@ void main() async {
   runApp(
     MultiProvider(
       providers: [
+        ChangeNotifierProvider(create: (_) => ConnectivityProvider()),
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
         ChangeNotifierProvider(create: (_) => UserProvider()),
         ChangeNotifierProvider(create: (_) => PublicProfileProvider()),
@@ -397,6 +400,8 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
         darkTheme: AppThemes.darkMode,
         themeMode: themeProvider.isDarkMode ? ThemeMode.dark : ThemeMode.light,
         title: AppStrings.appName,
+        builder: (context, child) =>
+            ConnectivityOverlay(navigatorKey: navigatorKey, child: child!),
         home: const SplashScreen(),
       ),
     );

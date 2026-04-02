@@ -64,10 +64,10 @@ class NotificationState extends State<Notifications>
   bool _hasMoreData = true;
   String? _nextPageUrl;
   final ScrollController _allNotificationsScrollController = ScrollController();
-  final ScrollController _pollNotificationsScrollController =
-      ScrollController();
+  final ScrollController _pollNotificationsScrollController = ScrollController();
 
-  // Get auth headers
+  // ── Auth headers ──────────────────────────────────────────────────────────
+
   Future<Map<String, String>> _getAuthHeaders() async {
     final accessToken = await SharedPrefService.getToken();
     return {
@@ -77,7 +77,8 @@ class NotificationState extends State<Notifications>
     };
   }
 
-  // Load notifications from cache
+  // ── Cache ─────────────────────────────────────────────────────────────────
+
   Future<void> _loadNotificationsFromCache() async {
     if (_isDisposed) return;
 
@@ -92,26 +93,20 @@ class NotificationState extends State<Notifications>
 
         if (jsonData.containsKey('notifications') &&
             jsonData['notifications'] != null) {
-          final notificationsResponse = NotificationsResponse.fromJson(
-            jsonData,
-          );
+          final notificationsResponse = NotificationsResponse.fromJson(jsonData);
           _lastNotifications = notificationsResponse.notifications;
 
           if (!_isDisposed && !_notificationStreamController.isClosed) {
             _notificationStreamController.add(_lastNotifications);
           }
 
-          if (kDebugMode) {
-            print(
-              'Loaded ${notificationsResponse.notifications.length} notifications from cache',
-            );
-          }
+          // if (kDebugMode) {
+          //   print('Loaded ${notificationsResponse.notifications.length} notifications from cache');
+          // }
         }
       }
     } catch (e) {
-      if (kDebugMode) {
-        print('Error loading notifications from cache: $e');
-      }
+      if (kDebugMode) print('Error loading notifications from cache: $e');
       if (!_isDisposed) {
         final prefs = await SharedPreferences.getInstance();
         await prefs.remove(_notificationsCacheKey);
@@ -119,21 +114,15 @@ class NotificationState extends State<Notifications>
     }
   }
 
-  // Save notifications to cache
-  Future<void> _saveNotificationsToCache(
-    Map<String, dynamic> responseData,
-  ) async {
+  Future<void> _saveNotificationsToCache(Map<String, dynamic> responseData) async {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(_notificationsCacheKey, json.encode(responseData));
     } catch (e) {
-      if (kDebugMode) {
-        print('Error saving notifications to cache: $e');
-      }
+      if (kDebugMode) print('Error saving notifications to cache: $e');
     }
   }
 
-  // Load friend requests from cache
   Future<List<IncomingData>> _loadFriendRequestsFromCache() async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -143,41 +132,29 @@ class NotificationState extends State<Notifications>
         final List<dynamic> jsonData = json.decode(cachedData);
         incoming = jsonData;
         final requests = jsonData.map((e) => IncomingData.fromJson(e)).toList();
-
-        if (kDebugMode) {
-          print('Loaded ${requests.length} friend requests from cache');
-        }
-
+        // if (kDebugMode) print('Loaded ${requests.length} friend requests from cache');
         return requests;
       }
     } catch (e) {
-      if (kDebugMode) {
-        print('Error loading friend requests from cache: $e');
-      }
+      if (kDebugMode) print('Error loading friend requests from cache: $e');
     }
     return [];
   }
 
-  // Save friend requests to cache
   Future<void> _saveFriendRequestsToCache(List<dynamic> requests) async {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(_friendRequestsCacheKey, json.encode(requests));
-
-      if (kDebugMode) {
-        print('Friend requests saved to cache');
-      }
+      // if (kDebugMode) print('Friend requests saved to cache');
     } catch (e) {
-      if (kDebugMode) {
-        print('Error saving friend requests to cache: $e');
-      }
+      if (kDebugMode) print('Error saving friend requests to cache: $e');
     }
   }
 
-  // Fetch notifications with caching (Initial load)
+  // ── Network fetches ───────────────────────────────────────────────────────
+
   Future<void> fetchNotifications({bool showLoader = false}) async {
     if (_isDisposed || !mounted) return;
-
     if (_isLoadingFromNetwork) return;
 
     _isLoadingFromNetwork = true;
@@ -197,16 +174,12 @@ class NotificationState extends State<Notifications>
           return;
         }
 
-        // Save to cache
         await _saveNotificationsToCache(response.data);
 
         if (_isDisposed || _notificationStreamController.isClosed) return;
 
         try {
-          final notificationsResponse = NotificationsResponse.fromJson(
-            response.data,
-          );
-
+          final notificationsResponse = NotificationsResponse.fromJson(response.data);
           _lastNotifications = notificationsResponse.notifications;
           _nextPageUrl = response.data['next'];
           _hasMoreData = _nextPageUrl != null;
@@ -222,63 +195,30 @@ class NotificationState extends State<Notifications>
               print('First notification: ${response.data['notifications'][0]}');
             }
           }
-
-          if (response.data['notifications'] is List) {
-            final notificationsList = response.data['notifications'] as List;
-            if (notificationsList.isNotEmpty) {
-              final firstNotif = notificationsList[0];
-              if (kDebugMode) {
-                print('🔍 Checking first notification fields:');
-                print(
-                  '  - id: ${firstNotif['id']} (${firstNotif['id'].runtimeType})',
-                );
-                print(
-                  '  - type: ${firstNotif['type']} (${firstNotif['type']?.runtimeType})',
-                );
-                print(
-                  '  - message: ${firstNotif['message']} (${firstNotif['message']?.runtimeType})',
-                );
-                print(
-                  '  - created_at: ${firstNotif['created_at']} (${firstNotif['created_at']?.runtimeType})',
-                );
-                print('  - actor keys: ${firstNotif['actor']?.keys}');
-                print('  - post keys: ${firstNotif['post']?.keys}');
-              }
-            }
-          }
-
           rethrow;
         }
       } else {
-        throw Exception(
-          'Failed to load notifications: ${response.data['message']}',
-        );
+        throw Exception('Failed to load notifications: ${response.data['message']}');
       }
     } catch (e, stackTrace) {
       if (kDebugMode) {
         print('❌ Error fetching notifications: $e');
         print('Stack trace: $stackTrace');
       }
-
       if (!_isDisposed &&
           !_notificationStreamController.isClosed &&
           _notificationStreamController.hasListener) {
         _notificationStreamController.addError(e);
       }
     } finally {
-      if (!_isDisposed) {
-        _isLoadingFromNetwork = false;
-      }
+      if (!_isDisposed) _isLoadingFromNetwork = false;
     }
   }
 
-  // Load more notifications (Pagination)
   Future<void> _loadMoreNotifications() async {
     if (_isLoadingMore || !_hasMoreData || _nextPageUrl == null) return;
 
-    setState(() {
-      _isLoadingMore = true;
-    });
+    setState(() => _isLoadingMore = true);
 
     try {
       final headers = await _getAuthHeaders();
@@ -288,11 +228,7 @@ class NotificationState extends State<Notifications>
       );
 
       if (response.data['status'] == 'success') {
-        final notificationsResponse = NotificationsResponse.fromJson(
-          response.data,
-        );
-
-        // Append new notifications to existing list
+        final notificationsResponse = NotificationsResponse.fromJson(response.data);
         _lastNotifications.addAll(notificationsResponse.notifications);
         _nextPageUrl = response.data['next'];
         _hasMoreData = _nextPageUrl != null;
@@ -302,19 +238,14 @@ class NotificationState extends State<Notifications>
         }
       }
     } catch (e) {
-      if (kDebugMode) {
-        print('❌ Error loading more notifications: $e');
-      }
+      if (kDebugMode) print('❌ Error loading more notifications: $e');
     } finally {
-      if (mounted) {
-        setState(() {
-          _isLoadingMore = false;
-        });
-      }
+      if (mounted) setState(() => _isLoadingMore = false);
     }
   }
 
-  // Scroll listener for All Notifications tab
+  // ── Scroll listeners ──────────────────────────────────────────────────────
+
   void _onAllNotificationsScroll() {
     if (_allNotificationsScrollController.position.pixels >=
             _allNotificationsScrollController.position.maxScrollExtent * 0.8 &&
@@ -324,7 +255,6 @@ class NotificationState extends State<Notifications>
     }
   }
 
-  // Scroll listener for Poll Notifications tab
   void _onPollNotificationsScroll() {
     if (_pollNotificationsScrollController.position.pixels >=
             _pollNotificationsScrollController.position.maxScrollExtent * 0.8 &&
@@ -333,6 +263,8 @@ class NotificationState extends State<Notifications>
       _loadMoreNotifications();
     }
   }
+
+  // ── Friend requests ───────────────────────────────────────────────────────
 
   Future<List<IncomingData>> getFriendRequests() async {
     final accessToken = await SharedPrefService.getToken();
@@ -344,29 +276,22 @@ class NotificationState extends State<Notifications>
 
       if (response.data['status'] == 'success') {
         incoming = response.data['data']['incoming'];
-
         await _saveFriendRequestsToCache(incoming);
-
         return incoming.map((e) => IncomingData.fromJson(e)).toList();
       } else {
         throw Exception('Failed to load data');
       }
     } catch (e) {
-      if (kDebugMode) {
-        print('Error fetching data: $e');
-      }
+      if (kDebugMode) print('Error fetching data: $e');
       return await _loadFriendRequestsFromCache();
     }
   }
 
   Future<void> acceptRequest(int requestId) async {
     final accessToken = await SharedPrefService.getToken();
-
     var body = {'action': 'accept'};
     try {
-      if (kDebugMode) {
-        print('Accepting request: ${ApiConstants.acceptRequest}/$requestId');
-      }
+      if (kDebugMode) print('Accepting request: ${ApiConstants.acceptRequest}/$requestId');
       final response = await _dio.put(
         '${ApiConstants.acceptRequest}/$requestId',
         options: Options(
@@ -376,13 +301,10 @@ class NotificationState extends State<Notifications>
         data: body,
       );
 
-      if (kDebugMode) {
-        print(response);
-      }
+      if (kDebugMode) print(response);
 
       if (response.statusCode == 200 && response.data['status'] == 'success') {
         showToast(message: 'Friend request accepted successfully!');
-
         setState(() {
           incoming.removeWhere(
             (request) => request['id'].toString() == requestId.toString(),
@@ -394,40 +316,41 @@ class NotificationState extends State<Notifications>
         throw Exception('Failed to accept request');
       }
     } catch (e) {
-      if (kDebugMode) {
-        print('Error accepting request: $e');
-      }
+      if (kDebugMode) print('Error accepting request: $e');
       showToast(message: 'Failed to accept request try again!');
     }
   }
 
+  // ── Helpers ───────────────────────────────────────────────────────────────
+
   String formatDateTime(String utcTime) {
     final date = DateTime.parse(utcTime).toLocal();
     final now = DateTime.now();
-
     final difference = now.difference(date);
 
-    if (difference.inSeconds < 60) {
-      return '${difference.inSeconds}s';
-    } else if (difference.inMinutes < 60) {
-      final minutes = difference.inMinutes;
-      return minutes == 1 ? '1m ago' : '${minutes}m ago';
-    } else if (difference.inHours < 24) {
-      final hours = difference.inHours;
-      return hours == 1 ? '1h ago' : '${hours}h ago';
-    } else if (difference.inDays < 7) {
-      final days = difference.inDays;
-      return days == 1 ? '1d ago' : '${days}d ago';
-    } else if (difference.inDays < 30) {
-      final weeks = (difference.inDays / 7).floor();
-      return weeks == 1 ? '1w ago' : '${weeks}w ago';
-    } else if (difference.inDays < 365) {
-      final months = (difference.inDays / 30).floor();
-      return months == 1 ? '1mo ago' : '${months}mo ago';
-    } else {
-      final years = (difference.inDays / 365).floor();
-      return years == 1 ? '1y ago' : '${years}y ago';
+    if (difference.inSeconds < 60) return '${difference.inSeconds}s';
+    if (difference.inMinutes < 60) {
+      final m = difference.inMinutes;
+      return m == 1 ? '1m ago' : '${m}m ago';
     }
+    if (difference.inHours < 24) {
+      final h = difference.inHours;
+      return h == 1 ? '1h ago' : '${h}h ago';
+    }
+    if (difference.inDays < 7) {
+      final d = difference.inDays;
+      return d == 1 ? '1d ago' : '${d}d ago';
+    }
+    if (difference.inDays < 30) {
+      final w = (difference.inDays / 7).floor();
+      return w == 1 ? '1w ago' : '${w}w ago';
+    }
+    if (difference.inDays < 365) {
+      final mo = (difference.inDays / 30).floor();
+      return mo == 1 ? '1mo ago' : '${mo}mo ago';
+    }
+    final y = (difference.inDays / 365).floor();
+    return y == 1 ? '1y ago' : '${y}y ago';
   }
 
   String getNotificationMessage(NotificationItem notification) {
@@ -437,9 +360,9 @@ class NotificationState extends State<Notifications>
       case 'LIKE':
         return 'liked your post';
       case 'COMMENT':
-        String message = notification.message ?? '';
+        final message = notification.message ?? '';
         if (message.contains('commented on your post: ')) {
-          String commentText = message.split('commented on your post: ').last;
+          final commentText = message.split('commented on your post: ').last;
           return 'commented on your post: $commentText';
         }
         return 'commented on your post';
@@ -450,6 +373,31 @@ class NotificationState extends State<Notifications>
     }
   }
 
+  Uint8List? getUserImage(String? imageUrl) {
+    if (imageUrl == null || imageUrl.isEmpty) return null;
+    if (_imageCache.containsKey(imageUrl)) return _imageCache[imageUrl];
+
+    try {
+      final base64Data = imageUrl.replaceFirst(
+        RegExp(r'data:image/[^;]+;base64,'),
+        '',
+      );
+      final decoded = base64Decode(base64Data);
+      _imageCache[imageUrl] = decoded;
+      return decoded;
+    } catch (e) {
+      if (kDebugMode) print('Error decoding image: $e');
+      return null;
+    }
+  }
+
+  String getInitial(String name) {
+    if (name.isEmpty) return '?';
+    return name.trim()[0].toUpperCase();
+  }
+
+  // ── Lifecycle ─────────────────────────────────────────────────────────────
+
   @override
   void initState() {
     super.initState();
@@ -458,57 +406,25 @@ class NotificationState extends State<Notifications>
 
     _tabController.addListener(() {
       if (_tabController.index == 0 && !_tabController.indexIsChanging) {
-        if (!_isLoadingFromNetwork) {
-          fetchNotifications();
-        }
+        if (!_isLoadingFromNetwork) fetchNotifications();
       }
     });
 
-    // Add scroll listeners
     _allNotificationsScrollController.addListener(_onAllNotificationsScroll);
     _pollNotificationsScrollController.addListener(_onPollNotificationsScroll);
 
-    _loadNotificationsFromCache().then((_) {
-      fetchNotifications();
-    });
+    _loadNotificationsFromCache().then((_) => fetchNotifications());
 
-    friendRequestsFuture = _loadFriendRequestsFromCache().then((
-      cachedRequests,
-    ) {
+    friendRequestsFuture = _loadFriendRequestsFromCache().then((cachedRequests) {
       getFriendRequests();
       return cachedRequests;
     });
 
+    // Periodic silent refresh every 30s
     _refreshTimer = Timer.periodic(const Duration(seconds: 30), (timer) {
-      if (!_isLoadingFromNetwork) {
-        fetchNotifications();
-      }
+      if (!_isLoadingFromNetwork) fetchNotifications();
     });
-  }
-
-  Uint8List? getUserImage(String? imageUrl) {
-    if (imageUrl == null || imageUrl.isEmpty) return null;
-
-    if (_imageCache.containsKey(imageUrl)) {
-      return _imageCache[imageUrl];
-    }
-
-    try {
-      String base64Data = imageUrl.replaceFirst(
-        RegExp(r'data:image/[^;]+;base64,'),
-        '',
-      );
-      final decoded = base64Decode(base64Data);
-
-      _imageCache[imageUrl] = decoded;
-
-      return decoded;
-    } catch (e) {
-      if (kDebugMode) {
-        print('Error decoding image: $e');
-      }
-      return null;
-    }
+    // ✅ No connectivity listener — ConnectivityOverlay handles UI globally
   }
 
   @override
@@ -523,10 +439,7 @@ class NotificationState extends State<Notifications>
     super.dispose();
   }
 
-  String getInitial(String name) {
-    if (name.isEmpty) return '?';
-    return name.trim()[0].toUpperCase();
-  }
+  // ── Build ─────────────────────────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
@@ -557,7 +470,7 @@ class NotificationState extends State<Notifications>
               child: TabBarView(
                 controller: _tabController,
                 children: [
-                  // All Notifications Tab
+                  // ── All Notifications Tab ────────────────────────────
                   RefreshIndicator(
                     onRefresh: () async {
                       _lastNotifications.clear();
@@ -571,8 +484,7 @@ class NotificationState extends State<Notifications>
                           ? _lastNotifications
                           : null,
                       builder: (context, snapshot) {
-                        if (snapshot.connectionState ==
-                                ConnectionState.waiting &&
+                        if (snapshot.connectionState == ConnectionState.waiting &&
                             (!snapshot.hasData ||
                                 snapshot.data == null ||
                                 snapshot.data!.isEmpty)) {
@@ -585,7 +497,6 @@ class NotificationState extends State<Notifications>
 
                         if (snapshot.hasData && snapshot.data!.isNotEmpty) {
                           final notifications = snapshot.data!;
-
                           return ListView.builder(
                             controller: _allNotificationsScrollController,
                             itemCount:
@@ -608,158 +519,9 @@ class NotificationState extends State<Notifications>
 
                               final notification = notifications[index];
                               final post = notification.post;
-                              return GestureDetector(
-                                onTap: () {
-                                  if (post != null) {
-                                    navigationPush(
-                                      context,
-                                      NotificationDetails(postId: post.postId),
-                                    );
-                                  } else if (notification.type == 'FOLLOW') {
-                                    navigationPush(
-                                      context,
-                                      PublicProfile(
-                                        userId: notification.actor.userId,
-                                      ),
-                                    );
-                                  } else {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                        content: Text('Post not available'),
-                                      ),
-                                    );
-                                  }
-                                },
-                                child: Container(
-                                  margin: EdgeInsets.fromLTRB(0, 5.h, 0, 0),
-                                  padding: EdgeInsets.fromLTRB(0, 5.h, 0, 5.h),
-                                  color: Colors.transparent,
-                                  child: Row(
-                                    children: [
-                                      (notification.actor.avatarUrl != null &&
-                                              notification
-                                                  .actor
-                                                  .avatarUrl!
-                                                  .isNotEmpty)
-                                          ? CircleAvatar(
-                                              backgroundImage: MemoryImage(
-                                                getUserImage(
-                                                  notification.actor.avatarUrl,
-                                                )!,
-                                              ),
-                                              radius: 17.w,
-                                              onBackgroundImageError:
-                                                  (exception, stackTrace) {
-                                                    if (kDebugMode) {
-                                                      print(
-                                                        'Error loading avatar: $exception',
-                                                      );
-                                                    }
-                                                  },
-                                            )
-                                          : CircleAvatar(
-                                              radius: 17.w,
-                                              backgroundColor: Theme.of(context)
-                                                  .colorScheme
-                                                  .primary
-                                                  .withOpacity(0.15),
-                                              child: Text(
-                                                getInitial(
-                                                  notification.actor.name,
-                                                ),
-                                                style: TextStyle(
-                                                  fontSize: 14.sp,
-                                                  fontWeight: FontWeight.w600,
-                                                  color: Theme.of(
-                                                    context,
-                                                  ).colorScheme.primary,
-                                                ),
-                                              ),
-                                            ),
-                                      SizedBox(width: 8.w),
-                                      Expanded(
-                                        child: Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: [
-                                            RichText(
-                                              text: TextSpan(
-                                                style:
-                                                    CustomTextStyles.lblPrimaryText(
-                                                      context,
-                                                    ),
-                                                children: <TextSpan>[
-                                                  TextSpan(
-                                                    text:
-                                                        notification.actor.name,
-                                                    style: TextStyle(
-                                                      color: Theme.of(context)
-                                                          .colorScheme
-                                                          .onBackground,
-                                                      fontSize: 12.2.sp,
-                                                      fontWeight:
-                                                          FontWeight.w600,
-                                                    ),
-                                                  ),
-                                                  TextSpan(
-                                                    text:
-                                                        ' ${getNotificationMessage(notification)}',
-                                                    style: TextStyle(
-                                                      fontSize: 12.sp,
-                                                      fontWeight:
-                                                          FontWeight.w400,
-                                                      color: Theme.of(context)
-                                                          .colorScheme
-                                                          .onBackground,
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                            ),
-                                            SizedBox(height: 2.h),
-                                            Text(
-                                              formatDateTime(
-                                                notification.createdAt
-                                                    .toString(),
-                                              ),
-                                              style: TextStyle(
-                                                fontSize: 9.sp,
-                                                color: Theme.of(context)
-                                                    .colorScheme
-                                                    .onSurface
-                                                    .withOpacity(0.6),
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                      if (post != null &&
-                                          post.imageUrl.isNotEmpty)
-                                        Container(
-                                          width: 35.w,
-                                          height: 30.h,
-                                          decoration: BoxDecoration(
-                                            borderRadius: BorderRadius.circular(
-                                              8.r,
-                                            ),
-                                            image: DecorationImage(
-                                              image: NetworkImage(
-                                                '${ApiConfig.baseUrlImage}${post.imageUrl}',
-                                              ),
-                                              fit: BoxFit.cover,
-                                              onError: (exception, stackTrace) {
-                                                if (kDebugMode) {
-                                                  print(
-                                                    'Error loading post image: $exception',
-                                                  );
-                                                }
-                                              },
-                                            ),
-                                          ),
-                                        ),
-                                    ],
-                                  ),
-                                ),
+                              return _buildNotificationTile(
+                                notification: notification,
+                                post: post,
                               );
                             },
                           );
@@ -799,7 +561,7 @@ class NotificationState extends State<Notifications>
                     ),
                   ),
 
-                  // Poll Tab
+                  // ── Poll Notifications Tab ───────────────────────────
                   RefreshIndicator(
                     onRefresh: () async {
                       _lastNotifications.clear();
@@ -813,8 +575,7 @@ class NotificationState extends State<Notifications>
                           ? _lastNotifications
                           : null,
                       builder: (context, snapshot) {
-                        if (snapshot.connectionState ==
-                                ConnectionState.waiting &&
+                        if (snapshot.connectionState == ConnectionState.waiting &&
                             (!snapshot.hasData ||
                                 snapshot.data == null ||
                                 snapshot.data!.isEmpty)) {
@@ -826,21 +587,15 @@ class NotificationState extends State<Notifications>
                         }
 
                         if (snapshot.hasData && snapshot.data!.isNotEmpty) {
-                          final notifications = snapshot.data!;
-
-                          final voteNotifications = notifications
-                              .where(
-                                (notification) => notification.type == 'VOTE',
-                              )
+                          final voteNotifications = snapshot.data!
+                              .where((n) => n.type == 'VOTE')
                               .toList();
 
                           if (voteNotifications.isEmpty) {
                             return Center(
                               child: Text(
                                 'No vote notifications available',
-                                style: CustomTextStyles.lblSecondryText(
-                                  context,
-                                ),
+                                style: CustomTextStyles.lblSecondryText(context),
                               ),
                             );
                           }
@@ -851,7 +606,6 @@ class NotificationState extends State<Notifications>
                                 voteNotifications.length +
                                 (_hasMoreData ? 1 : 0),
                             itemBuilder: (context, index) {
-                              // Show loading indicator at the bottom
                               if (index == voteNotifications.length) {
                                 return Center(
                                   child: Padding(
@@ -869,159 +623,9 @@ class NotificationState extends State<Notifications>
 
                               final notification = voteNotifications[index];
                               final post = notification.post;
-
-                              return GestureDetector(
-                                onTap: () {
-                                  if (post != null) {
-                                    navigationPush(
-                                      context,
-                                      NotificationDetails(postId: post.postId),
-                                    );
-                                  } else if (notification.type == 'FOLLOW') {
-                                    navigationPush(
-                                      context,
-                                      PublicProfile(
-                                        userId: notification.actor.userId,
-                                      ),
-                                    );
-                                  } else {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                        content: Text('Post not available'),
-                                      ),
-                                    );
-                                  }
-                                },
-                                child: Container(
-                                  margin: EdgeInsets.fromLTRB(0, 5.h, 0, 0),
-                                  padding: EdgeInsets.fromLTRB(0, 5.h, 0, 5.h),
-                                  color: Colors.transparent,
-                                  child: Row(
-                                    children: [
-                                      (notification.actor.avatarUrl != null &&
-                                              notification
-                                                  .actor
-                                                  .avatarUrl!
-                                                  .isNotEmpty)
-                                          ? CircleAvatar(
-                                              backgroundImage: MemoryImage(
-                                                getUserImage(
-                                                  notification.actor.avatarUrl,
-                                                )!,
-                                              ),
-                                              radius: 17.w,
-                                              onBackgroundImageError:
-                                                  (exception, stackTrace) {
-                                                    if (kDebugMode) {
-                                                      print(
-                                                        'Error loading avatar: $exception',
-                                                      );
-                                                    }
-                                                  },
-                                            )
-                                          : CircleAvatar(
-                                              radius: 17.w,
-                                              backgroundColor: Theme.of(context)
-                                                  .colorScheme
-                                                  .primary
-                                                  .withOpacity(0.15),
-                                              child: Text(
-                                                getInitial(
-                                                  notification.actor.name,
-                                                ),
-                                                style: TextStyle(
-                                                  fontSize: 14.sp,
-                                                  fontWeight: FontWeight.w600,
-                                                  color: Theme.of(
-                                                    context,
-                                                  ).colorScheme.primary,
-                                                ),
-                                              ),
-                                            ),
-                                      SizedBox(width: 8.w),
-                                      Expanded(
-                                        child: Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: [
-                                            RichText(
-                                              text: TextSpan(
-                                                style:
-                                                    CustomTextStyles.lblPrimaryText(
-                                                      context,
-                                                    ),
-                                                children: <TextSpan>[
-                                                  TextSpan(
-                                                    text:
-                                                        notification.actor.name,
-                                                    style: TextStyle(
-                                                      color: Theme.of(context)
-                                                          .colorScheme
-                                                          .onBackground,
-                                                      fontSize: 12.2.sp,
-                                                      fontWeight:
-                                                          FontWeight.w600,
-                                                    ),
-                                                  ),
-                                                  TextSpan(
-                                                    text:
-                                                        ' ${getNotificationMessage(notification)}',
-                                                    style: TextStyle(
-                                                      fontSize: 12.sp,
-                                                      fontWeight:
-                                                          FontWeight.w400,
-                                                      color: Theme.of(context)
-                                                          .colorScheme
-                                                          .onBackground,
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                            ),
-                                            SizedBox(height: 2.h),
-                                            Text(
-                                              formatDateTime(
-                                                notification.createdAt
-                                                    .toString(),
-                                              ),
-                                              style: TextStyle(
-                                                fontSize: 9.sp,
-                                                color: Theme.of(context)
-                                                    .colorScheme
-                                                    .onSurface
-                                                    .withOpacity(0.6),
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                      if (post != null &&
-                                          post.imageUrl.isNotEmpty)
-                                        Container(
-                                          width: 35.w,
-                                          height: 30.h,
-                                          decoration: BoxDecoration(
-                                            borderRadius: BorderRadius.circular(
-                                              8.r,
-                                            ),
-                                            image: DecorationImage(
-                                              image: NetworkImage(
-                                                '${ApiConfig.baseUrlImage}${post.imageUrl}',
-                                              ),
-                                              fit: BoxFit.cover,
-                                              onError: (exception, stackTrace) {
-                                                if (kDebugMode) {
-                                                  print(
-                                                    'Error loading poll: $exception',
-                                                  );
-                                                }
-                                              },
-                                            ),
-                                          ),
-                                        ),
-                                    ],
-                                  ),
-                                ),
+                              return _buildNotificationTile(
+                                notification: notification,
+                                post: post,
                               );
                             },
                           );
@@ -1068,205 +672,124 @@ class NotificationState extends State<Notifications>
       ),
     );
   }
+
+  // ── Shared notification tile ──────────────────────────────────────────────
+
+  Widget _buildNotificationTile({
+    required NotificationItem notification,
+    required dynamic post,
+  }) {
+    return GestureDetector(
+      onTap: () {
+        if (post != null) {
+          navigationPush(context, NotificationDetails(postId: post.postId));
+        } else if (notification.type == 'FOLLOW') {
+          navigationPush(
+            context,
+            PublicProfile(userId: notification.actor.userId),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Post not available')),
+          );
+        }
+      },
+      child: Container(
+        margin: EdgeInsets.fromLTRB(0, 5.h, 0, 0),
+        padding: EdgeInsets.fromLTRB(0, 5.h, 0, 5.h),
+        color: Colors.transparent,
+        child: Row(
+          children: [
+            (notification.actor.avatarUrl != null &&
+                    notification.actor.avatarUrl!.isNotEmpty)
+                ? CircleAvatar(
+                    backgroundImage: MemoryImage(
+                      getUserImage(notification.actor.avatarUrl)!,
+                    ),
+                    radius: 17.w,
+                    onBackgroundImageError: (exception, stackTrace) {
+                      if (kDebugMode) print('Error loading avatar: $exception');
+                    },
+                  )
+                : CircleAvatar(
+                    radius: 17.w,
+                    backgroundColor: Theme.of(context)
+                        .colorScheme
+                        .primary
+                        .withOpacity(0.15),
+                    child: Text(
+                      getInitial(notification.actor.name),
+                      style: TextStyle(
+                        fontSize: 14.sp,
+                        fontWeight: FontWeight.w600,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                    ),
+                  ),
+            SizedBox(width: 8.w),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  RichText(
+                    text: TextSpan(
+                      style: CustomTextStyles.lblPrimaryText(context),
+                      children: <TextSpan>[
+                        TextSpan(
+                          text: notification.actor.name,
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.onBackground,
+                            fontSize: 12.2.sp,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        TextSpan(
+                          text: ' ${getNotificationMessage(notification)}',
+                          style: TextStyle(
+                            fontSize: 12.sp,
+                            fontWeight: FontWeight.w400,
+                            color: Theme.of(context).colorScheme.onBackground,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  SizedBox(height: 2.h),
+                  Text(
+                    formatDateTime(notification.createdAt.toString()),
+                    style: TextStyle(
+                      fontSize: 9.sp,
+                      color: Theme.of(context)
+                          .colorScheme
+                          .onSurface
+                          .withOpacity(0.6),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (post != null && post.imageUrl.isNotEmpty)
+              Container(
+                width: 35.w,
+                height: 30.h,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(8.r),
+                  image: DecorationImage(
+                    image: NetworkImage(
+                      '${ApiConfig.baseUrlImage}${post.imageUrl}',
+                    ),
+                    fit: BoxFit.cover,
+                    onError: (exception, stackTrace) {
+                      if (kDebugMode) {
+                        print('Error loading post image: $exception');
+                      }
+                    },
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
 }
-
-
-
- // Request Tab
-                  // FutureBuilder<List<IncomingData>>(
-                  //   future: friendRequestsFuture,
-                  //   builder: (context, snapshot) {
-                  //     if (snapshot.connectionState == ConnectionState.waiting &&
-                  //         (!snapshot.hasData || snapshot.data!.isEmpty)) {
-                  //       return Center(
-                  //         child: Loader(
-                  //           color: Theme.of(context).colorScheme.primary,
-                  //         ),
-                  //       );
-                  //     } else if (snapshot.hasError && !snapshot.hasData) {
-                  //       return Text('Error: ${snapshot.error}');
-                  //     } else if (snapshot.hasData) {
-                  //       final requests = snapshot.data!;
-                  //       return incoming.isEmpty
-                  //           ? Center(
-                  //               child: Text(
-                  //                 AppLocalizations.of(
-                  //                   context,
-                  //                 )!.norequestavailable,
-                  //                 style: CustomTextStyles.lblSecondryText(
-                  //                   context,
-                  //                 ),
-                  //               ),
-                  //             )
-                  //           : ListView.builder(
-                  //               itemCount: requests.length,
-                  //               itemBuilder: (context, index) {
-                  //                 final userData = requests[index];
-                  //                 final senderId = incoming[index]['id'];
-                  //                 return Column(
-                  //                   children: [
-                  //                     ListTile(
-                  //                       contentPadding: EdgeInsets.symmetric(
-                  //                         horizontal: 12.w,
-                  //                       ),
-                  //                       titleAlignment:
-                  //                           ListTileTitleAlignment.top,
-                  //                       leading:
-                  //                           (userData.profile_picture != null &&
-                  //                               userData
-                  //                                   .profile_picture!
-                  //                                   .isNotEmpty)
-                  //                           ? CircleAvatar(
-                  //                               backgroundImage: MemoryImage(
-                  //                                 userProvider.getProfileImage(
-                  //                                   userData.profile_picture,
-                  //                                 )!,
-                  //                               ),
-                  //                               radius: 14.w,
-                  //                             )
-                  //                           : Image.asset(
-                  //                               Assets.assetsImagesIcUser,
-                  //                               height: 25.h,
-                  //                               width: 25.w,
-                  //                             ),
-                  //                       title: RichText(
-                  //                         text: TextSpan(
-                  //                           style:
-                  //                               CustomTextStyles.lblPrimaryText(
-                  //                                 context,
-                  //                               ),
-                  //                           children: <TextSpan>[
-                  //                             TextSpan(
-                  //                               text: userData.senderUsername,
-                  //                               style: TextStyle(
-                  //                                 color: const Color(
-                  //                                   0XFF1A1F36,
-                  //                                 ),
-                  //                                 fontSize: 12.2.sp,
-                  //                                 fontWeight: FontWeight.w600,
-                  //                               ),
-                  //                             ),
-                  //                             const TextSpan(
-                  //                               text:
-                  //                                   ' has requested to follow you.',
-                  //                             ),
-                  //                           ],
-                  //                         ),
-                  //                       ),
-                  //                       subtitle: Column(
-                  //                         crossAxisAlignment:
-                  //                             CrossAxisAlignment.start,
-                  //                         children: [
-                  //                           Row(
-                  //                             mainAxisAlignment:
-                  //                                 MainAxisAlignment.start,
-                  //                             children: [
-                  //                               GestureDetector(
-                  //                                 onTap: () {
-                  //                                   if (kDebugMode) {
-                  //                                     print(senderId);
-                  //                                   }
-                  //                                   acceptRequest(senderId);
-                  //                                 },
-                  //                                 child: Container(
-                  //                                   height: 23.h,
-                  //                                   width: 80.w,
-                  //                                   margin: EdgeInsets.only(
-                  //                                     right: 12.w,
-                  //                                     top: 7.h,
-                  //                                   ),
-                  //                                   decoration: BoxDecoration(
-                  //                                     color: Theme.of(
-                  //                                       context,
-                  //                                     ).colorScheme.primary,
-                  //                                     borderRadius:
-                  //                                         BorderRadius.circular(
-                  //                                           6.r,
-                  //                                         ),
-                  //                                   ),
-                  //                                   child: Center(
-                  //                                     child: Text(
-                  //                                       'Confirm',
-                  //                                       style: TextStyle(
-                  //                                         color: Colors.white,
-                  //                                         fontSize: 10.2.sp,
-                  //                                         fontWeight:
-                  //                                             FontWeight.w600,
-                  //                                       ),
-                  //                                     ),
-                  //                                   ),
-                  //                                 ),
-                  //                               ),
-                  //                               Container(
-                  //                                 height: 23.h,
-                  //                                 width: 80.w,
-                  //                                 margin: EdgeInsets.only(
-                  //                                   top: 7.h,
-                  //                                 ),
-                  //                                 decoration: BoxDecoration(
-                  //                                   color: Colors.transparent,
-                  //                                   borderRadius:
-                  //                                       BorderRadius.circular(
-                  //                                         6.r,
-                  //                                       ),
-                  //                                   border: Border.all(
-                  //                                     color: const Color(
-                  //                                       0xFFDDDEE1,
-                  //                                     ),
-                  //                                     width: 1.w,
-                  //                                   ),
-                  //                                 ),
-                  //                                 child: Center(
-                  //                                   child: Text(
-                  //                                     'Delete',
-                  //                                     style: TextStyle(
-                  //                                       color: const Color(
-                  //                                         0XFF3C4257,
-                  //                                       ),
-                  //                                       fontSize: 10.2.sp,
-                  //                                       fontWeight:
-                  //                                           FontWeight.w600,
-                  //                                     ),
-                  //                                   ),
-                  //                                 ),
-                  //                               ),
-                  //                             ],
-                  //                           ),
-                  //                           SizedBox(height: 5.h),
-                  //                           Row(
-                  //                             mainAxisAlignment:
-                  //                                 MainAxisAlignment.end,
-                  //                             children: [
-                  //                               Text(
-                  //                                 formatDateTime(
-                  //                                   userData.createdAt,
-                  //                                 ),
-                  //                                 style: TextStyle(
-                  //                                   fontSize: 9.sp,
-                  //                                   color: const Color(
-                  //                                     0XFF999999,
-                  //                                   ),
-                  //                                 ),
-                  //                               ),
-                  //                             ],
-                  //                           ),
-                  //                         ],
-                  //                       ),
-                  //                     ),
-                  //                     Divider(
-                  //                       thickness: 1,
-                  //                       color: Theme.of(context)
-                  //                           .colorScheme
-                  //                           .onBackground
-                  //                           .withOpacity(0.1),
-                  //                     ),
-                  //                   ],
-                  //                 );
-                  //               },
-                  //             );
-                  //     } else {
-                  //       return const Text('No data');
-                  //     }
-                  //   },
-                  // ),
-                  //  ],

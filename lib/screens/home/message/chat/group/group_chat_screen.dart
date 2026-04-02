@@ -281,58 +281,94 @@ class GroupChatScreenState extends State<GroupChatScreen> with UtilityMixin {
                   : null,
             ),
             SizedBox(width: 7.w),
-            GestureDetector(
-              onTap: () => Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => ChangeNotifierProvider.value(
-                    value: context.read<GroupChatProvider>(),
-                    child: ChatDetails(
-                      chatName: provider.chatName,
-                      profileUrl: _avatarUrl,
-                      isGroupChat: true,
-                      chatId: provider.chatId,
-                      chat: provider.chat,
+            Expanded(
+              child: GestureDetector(
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => ChangeNotifierProvider.value(
+                      value: context.read<GroupChatProvider>(),
+                      child: ChatDetails(
+                        chatName: provider.chatName,
+                        profileUrl: _avatarUrl,
+                        isGroupChat: true,
+                        chatId: provider.chatId,
+                        chat: provider.chat,
+                      ),
                     ),
                   ),
                 ),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    title,
-                    style: TextStyle(
-                      color: Theme.of(context).colorScheme.onBackground,
-                      fontSize: 12.sp,
-                      fontWeight: FontWeight.w600,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      title,
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.onBackground,
+                        fontSize: 12.sp,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
-                  ),
-                  Row(
-                    children: [
-                      Container(
-                        width: 6.w,
-                        height: 6.w,
-                        decoration: BoxDecoration(
-                          color: provider.isConnected
-                              ? Colors.green
-                              : Colors.grey,
-                          shape: BoxShape.circle,
-                        ),
-                      ),
-                      SizedBox(width: 4.w),
-                      Text(
-                        '$memberCount ${memberCount == 1 ? AppLocalizations.of(context)!.member : AppLocalizations.of(context)!.members}',
-                        style: TextStyle(
-                          color: const Color(0XFF8593A8),
-                          fontSize: 9.5.sp,
-                          fontWeight: FontWeight.w300,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
+                    Consumer<GroupChatProvider>(
+                      builder: (_, prov, __) {
+                        return AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 250),
+                          child: prov.isSomeoneTyping
+                              ? Row(
+                                  key: const ValueKey('typing'),
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(
+                                      prov.typingText,
+                                      style: TextStyle(
+                                        fontSize: 9.5.sp,
+                                        color: Colors.green,
+                                        fontStyle: FontStyle.italic,
+                                      ),
+                                    ),
+                                  ],
+                                )
+                              // ── Online / offline state ───────────────────────────────
+                              : Row(
+                                  key: const ValueKey('status'),
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    if (prov.onlineMemberCount > 0) ...[
+                                      Text(
+                                        prov.onlineStatusText,
+                                        style: TextStyle(
+                                          color: Colors.green,
+                                          fontSize: 9.5.sp,
+                                          fontWeight: FontWeight.w300,
+                                        ),
+                                      ),
+                                    ] else ...[
+                                      // No one online — show offline member names
+                                      ConstrainedBox(
+                                        constraints: BoxConstraints(maxWidth: 200.w),
+                                        child: Text(
+                                          prov.offlineMembersText.isNotEmpty
+                                              ? prov.offlineMembersText
+                                              : '$memberCount ${memberCount == 1 ? AppLocalizations.of(context)!.member : AppLocalizations.of(context)!.members}',
+                                          style: TextStyle(
+                                            color: const Color(0XFF8593A8),
+                                            fontSize: 9.5.sp,
+                                            fontWeight: FontWeight.w300,
+                                          ),
+                                          overflow: TextOverflow.ellipsis,
+                                          maxLines: 1,
+                                          softWrap: false,
+                                        ),
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                        );
+                      },
+                    ),
+                  ],
+                ),
               ),
             ),
           ],
@@ -366,7 +402,9 @@ class GroupChatScreenState extends State<GroupChatScreen> with UtilityMixin {
                 if (messages.isEmpty && !prov.isLoadingHistory) {
                   return Center(
                     child: Text(
-                     AppLocalizations.of(context)!.nomessagesyetstarttheconversation,
+                      AppLocalizations.of(
+                        context,
+                      )!.nomessagesyetstarttheconversation,
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         color: const Color(0XFF8593A8),
@@ -408,7 +446,7 @@ class GroupChatScreenState extends State<GroupChatScreen> with UtilityMixin {
                 Expanded(
                   child: TextField(
                     controller: _messageController,
-                    decoration:  InputDecoration(
+                    decoration: InputDecoration(
                       border: InputBorder.none,
                       hintText: AppLocalizations.of(context)!.message,
                       hintStyle: const TextStyle(color: Color(0XFF8593A8)),

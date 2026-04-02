@@ -58,12 +58,19 @@ dependencies:
   intl: ^0.20.2
   fl_chart: ^1.1.1
   google_sign_in: ^7.2.0
+  flutter_gen_runner: ^5.13.0+1
+  build_runner: ^2.13.1
+  screenshot: ^3.0.0
+  image: ^4.8.0
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^3.0.0  # Kept at 3.0.0 for better compatibility with SDK 3.10
   flutter_launcher_icons: ^0.14.4
+
+flutter_gen:
+  output: lib/gen
 
 flutter_launcher_icons: # Fixed name (was flutter_icons)
   android: "launcher_icon"

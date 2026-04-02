@@ -4,26 +4,27 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:polzet_app/widgets/base64/image_convert.dart';
 
-import '../../api/services/api_service.dart';
-import '../../core/constants/app_colors.dart';
-import '../../languages/l10n/generated/app_localizations.dart';
-import '../../models/voters/top_voters_model.dart';
+import '../../../../api/services/api_service.dart';
+import '../../../../core/constants/app_colors.dart';
+import '../../../../languages/l10n/generated/app_localizations.dart';
+import '../../../../models/voters/top_voters_model.dart';
 
-class PostVotersBottomSheet extends StatefulWidget {
+class ImagePostVotersBottomSheet extends StatefulWidget {
   final int pollId;
   final int optionId;
 
-  const PostVotersBottomSheet({
+  const ImagePostVotersBottomSheet({
     super.key,
     required this.pollId,
     required this.optionId,
   });
 
   @override
-  State<PostVotersBottomSheet> createState() => _PostVotersBottomSheetState();
+  State<ImagePostVotersBottomSheet> createState() =>
+      _PostVotersBottomSheetState();
 }
 
-class _PostVotersBottomSheetState extends State<PostVotersBottomSheet> {
+class _PostVotersBottomSheetState extends State<ImagePostVotersBottomSheet> {
   bool _isLoading = true;
   String? _error;
   TopVotersModel? _data;

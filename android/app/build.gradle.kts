@@ -35,8 +35,8 @@ android {
         applicationId = "com.polzet_app"
         minSdk = flutter.minSdkVersion
         targetSdk = 35
-        versionCode = 5
-        versionName = "1.0.2"
+        versionCode = 8
+        versionName = "1.0.3"
         multiDexEnabled = true
     }
 
@@ -61,6 +61,16 @@ android {
             )
         }
     }
+
+    configurations.all {
+        resolutionStrategy {
+            // Force newer split libraries over legacy play:core
+            force("com.google.android.play:app-update:2.1.0")
+            force("com.google.android.play:review:2.0.1")
+            force("com.google.android.play:feature-delivery:2.1.0")
+        }
+        exclude(group = "com.google.android.play", module = "core")
+    }
 }
 
 afterEvaluate {
@@ -74,12 +84,11 @@ flutter {
 }
 
 dependencies {
-    // Core library desugaring for flutter_local_notifications
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
-    
+
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
     implementation("androidx.core:core-ktx:1.13.1")
-    
-    // Add Play Core dependency
-    implementation("com.google.android.play:core:1.10.3")
+    implementation("com.google.android.play:app-update-ktx:2.1.0")
+    implementation("com.google.android.play:review-ktx:2.0.1")
+    implementation("com.google.android.play:feature-delivery:2.1.0")
 }

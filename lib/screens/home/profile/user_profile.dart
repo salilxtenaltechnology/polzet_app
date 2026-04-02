@@ -14,8 +14,9 @@ class UserProfile extends StatefulWidget {
 class ProfileState extends State<UserProfile>
     with UtilityMixin, WidgetsBindingObserver, TickerProviderStateMixin {
   final ApiService apiService = ApiService();
+  final _cache = ProfileCache.instance;
 
-  // Cached data
+  // ── Local mirror of cache ────────────────────────────────────────────────
   List<UserPostModel> _cachedPosts = [];
   List<Map<String, dynamic>> _cachedFollowers = [];
   List<Map<String, dynamic>> _cachedFollowing = [];
@@ -25,11 +26,10 @@ class ProfileState extends State<UserProfile>
   String? _cachedProfileImage;
   List<UserPostModel> _cachedTextPolls = [];
 
-  // Add these cached decoded bytes
   Uint8List? _cachedProfileImageBytes;
   Uint8List? _cachedCoverImageBytes;
 
-  // Futures for UI
+  // ── Futures for FutureBuilders ───────────────────────────────────────────
   late Future<List<Map<String, dynamic>>> getChase;
   late Future<List<Map<String, dynamic>>> getRechase;
   late Future<List<UserPostModel>> _postsFuture;
@@ -38,31 +38,89 @@ class ProfileState extends State<UserProfile>
   bool isInitialLoad = true;
   bool autoRefreshEnabled = true;
 
+  int _totalImagePostsCount = 0;
+  int _totalTextPostsCount = 0;
+
+  // ── Lifecycle ────────────────────────────────────────────────────────────
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _seedFromCache();
 
     final userProvider = Provider.of<UserProvider>(context, listen: false);
-
-    // Initialize with cached data or empty futures
     getChase = _loadChaseWithCache();
     getRechase = _loadRechaseWithCache();
     _postsFuture = _loadPostsWithCache(userProvider.username);
     _pollPostsFuture = _loadPollPostsWithCache(userProvider.username);
-
-    // Load profile data silently
     _loadProfileSilently();
+    // ✅ No connectivity listener — ConnectivityOverlay handles UI globally
   }
 
   @override
   void dispose() {
-    clearAllCache();
+    _clearLocalMirror();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
 
-  void clearAllCache() {
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    if (state == AppLifecycleState.resumed && autoRefreshEnabled) {
+      _refreshAllDataSilently();
+      _loadProfileSilently();
+    }
+  }
+
+  // ── Cache helpers ────────────────────────────────────────────────────────
+
+  void _seedFromCache() {
+    _cachedPosts = List.of(_cache.imagePosts);
+    _cachedTextPolls = List.of(_cache.textPosts);
+    _cachedFollowers = List.of(_cache.followers);
+    _cachedFollowing = List.of(_cache.following);
+
+    _cachedProfileImage = _cache.profileImageRaw;
+    _cachedCoverImage = _cache.coverImageRaw;
+    _cachedProfileImageBytes = _cache.profileImageBytes;
+    _cachedCoverImageBytes = _cache.coverImageBytes;
+
+    _totalImagePostsCount = _cache.totalImageCount;
+    _totalTextPostsCount = _cache.totalTextCount;
+  }
+
+  void _applyProfileImages({String? profileRaw, String? coverRaw}) {
+    if (!mounted) return;
+
+    Uint8List? profileBytes;
+    Uint8List? coverBytes;
+
+    if (profileRaw != null && profileRaw.isNotEmpty) {
+      profileBytes = decodeBase64Image(profileRaw);
+      _cache.profileImageRaw = profileRaw;
+      _cache.profileImageBytes = profileBytes;
+    }
+    if (coverRaw != null && coverRaw.isNotEmpty) {
+      coverBytes = decodeBase64Image(coverRaw);
+      _cache.coverImageRaw = coverRaw;
+      _cache.coverImageBytes = coverBytes;
+    }
+
+    setState(() {
+      if (profileRaw != null && profileRaw.isNotEmpty) {
+        _cachedProfileImage = profileRaw;
+        _cachedProfileImageBytes = profileBytes;
+      }
+      if (coverRaw != null && coverRaw.isNotEmpty) {
+        _cachedCoverImage = coverRaw;
+        _cachedCoverImageBytes = coverBytes;
+      }
+    });
+  }
+
+  void _clearLocalMirror() {
     _cachedPosts = [];
     _cachedFollowers = [];
     _cachedFollowing = [];
@@ -72,43 +130,32 @@ class ProfileState extends State<UserProfile>
     _cachedProfileImageBytes = null;
     _cachedCoverImageBytes = null;
     _decodedImageCache.clear();
+    _totalImagePostsCount = 0;
+    _totalTextPostsCount = 0;
   }
 
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    super.didChangeAppLifecycleState(state);
-
-    if (state == AppLifecycleState.resumed && autoRefreshEnabled) {
-      _refreshAllDataSilently();
-      _loadProfileSilently();
-    }
+  void clearAllCache() {
+    _cache.clearAll();
+    _clearLocalMirror();
   }
 
-  // PROFILE IMAGE & COVER - Load silently with cache
+  // ── Data loaders ─────────────────────────────────────────────────────────
+
   Future<void> _loadProfileSilently() async {
     await Provider.of<UserProvider>(context, listen: false).loadUserImages();
-    if (mounted) {
-      final userProvider = Provider.of<UserProvider>(context, listen: false);
+    if (!mounted) return;
 
-      final profilePic = userProvider.profile_picture;
-      final coverPic = userProvider.cover_photo;
-      setState(() {
-        if (profilePic != null && profilePic.isNotEmpty) {
-          _cachedProfileImage = profilePic;
-          _cachedProfileImageBytes = decodeBase64Image(profilePic);
-        }
-        if (coverPic != null && coverPic.isNotEmpty) {
-          _cachedCoverImage = coverPic;
-          _cachedCoverImageBytes = decodeBase64Image(coverPic);
-        }
-      });
-    }
+    final userProvider = Provider.of<UserProvider>(context, listen: false);
+    _applyProfileImages(
+      profileRaw: userProvider.profile_picture,
+      coverRaw: userProvider.cover_photo,
+    );
+
     try {
       final accessToken = await SharedPrefService.getToken();
       if (accessToken == null) return;
 
-      var dio = Dio();
-      var response = await dio.get(
+      final response = await Dio().get(
         ApiConstants.userProfile,
         options: Options(
           headers: {
@@ -119,75 +166,55 @@ class ProfileState extends State<UserProfile>
       );
 
       if (response.statusCode == 200 && mounted) {
-        Map<String, dynamic> data = response.data;
-        final newProfile = data['profile_picture_url'] as String?;
-        final newCover = data['cover_photo_url'] as String?;
-
-        if (mounted) {
-          setState(() {
-            if (newProfile != null && newProfile.isNotEmpty) {
-              _cachedProfileImage = newProfile;
-              _cachedProfileImageBytes = decodeBase64Image(newProfile);
-            }
-            if (newCover != null && newCover.isNotEmpty) {
-              _cachedCoverImage = newCover;
-              _cachedCoverImageBytes = decodeBase64Image(newCover);
-            }
-          });
-        }
+        final data = response.data as Map<String, dynamic>;
+        _applyProfileImages(
+          profileRaw: data['profile_picture_url'] as String?,
+          coverRaw: data['cover_photo_url'] as String?,
+        );
       }
     } catch (e) {
-      if (kDebugMode) {
-        print('Error fetching user profile: $e');
-      }
+      if (kDebugMode) print('Error fetching user profile: $e');
     }
   }
 
   Future<List<Map<String, dynamic>>> _loadChaseWithCache() async {
-    final userProvider = Provider.of<UserProvider>(context, listen: false);
-    final list = userProvider.chase_list;
-    if (mounted) {
-      setState(() => _cachedFollowers = list);
-    }
+    final list = Provider.of<UserProvider>(context, listen: false).chase_list;
+    _cache.followers = list;
+    if (mounted) setState(() => _cachedFollowers = list);
     return list;
   }
 
   Future<List<Map<String, dynamic>>> _loadRechaseWithCache() async {
-    final userProvider = Provider.of<UserProvider>(context, listen: false);
-    final list = userProvider.rechase_list;
-    if (mounted) {
-      setState(() => _cachedFollowing = list);
-    }
+    final list = Provider.of<UserProvider>(context, listen: false).rechase_list;
+    _cache.following = list;
+    if (mounted) setState(() => _cachedFollowing = list);
     return list;
   }
 
-  // POSTS - Load with cache
   Future<List<UserPostModel>> _loadPostsWithCache(String? username) async {
-    if (username == null || username.isEmpty) {
-      return _cachedPosts;
-    }
+    if (username == null || username.isEmpty) return _cachedPosts;
 
     try {
       final posts = await apiService.fetchPostsImages(username);
-      final imagePosts = posts.where((p) => p.images.isNotEmpty).toList();
-      imagePosts.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      final imagePosts = posts.where((p) => p.images.isNotEmpty).toList()
+        ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
 
       final latestPosts = imagePosts.take(4).toList();
+
+      _cache.imagePosts = latestPosts;
+      _cache.totalImageCount = imagePosts.length;
 
       if (mounted) {
         setState(() {
           _cachedPosts = latestPosts;
+          _totalImagePostsCount = imagePosts.length;
           isInitialLoad = false;
         });
       }
-
       return latestPosts;
     } catch (e) {
-      if (kDebugMode) {
-        print("Error loading posts: $e");
-      }
-      // Return cached data on error
-      return _cachedPosts;
+      if (kDebugMode) print('Error loading posts: $e');
+      return _cache.hasImagePosts ? _cache.imagePosts : _cachedPosts;
     }
   }
 
@@ -208,35 +235,44 @@ class ProfileState extends State<UserProfile>
         );
       }).toList();
 
+      _cache.textPosts = postsWithTextPolls;
+      _cache.totalTextCount = postsWithTextPolls.length;
+
       if (mounted) {
         setState(() {
           _cachedTextPolls = postsWithTextPolls;
+          _totalTextPostsCount = postsWithTextPolls.length;
         });
       }
       return postsWithTextPolls;
     } catch (e) {
       if (kDebugMode) print('Error loading poll posts: $e');
-      return _cachedTextPolls;
+      return _cache.hasTextPosts ? _cache.textPosts : _cachedTextPolls;
     }
   }
 
-  // SILENT REFRESH - Updates data in background without showing loading
+  // ── Silent refresh ────────────────────────────────────────────────────────
+
   void _refreshAllDataSilently() {
     final userProvider = Provider.of<UserProvider>(context, listen: false);
 
     _loadProfileSilently();
 
-    // Now sourced from provider directly
+    final freshFollowers = userProvider.chase_list;
+    final freshFollowing = userProvider.rechase_list;
+
+    _cache.followers = freshFollowers;
+    _cache.following = freshFollowing;
+
     if (mounted) {
       setState(() {
-        _cachedFollowers = userProvider.chase_list;
-        getChase = Future.value(userProvider.chase_list);
-        _cachedFollowing = userProvider.rechase_list;
-        getRechase = Future.value(userProvider.rechase_list);
+        _cachedFollowers = freshFollowers;
+        getChase = Future.value(freshFollowers);
+        _cachedFollowing = freshFollowing;
+        getRechase = Future.value(freshFollowing);
       });
     }
 
-    // Refresh posts silently
     if (mounted &&
         userProvider.username != null &&
         userProvider.username!.isNotEmpty) {
@@ -254,53 +290,40 @@ class ProfileState extends State<UserProfile>
     }
   }
 
-  // PULL TO REFRESH - Shows brief loading indicator
+  // ── Pull-to-refresh ───────────────────────────────────────────────────────
+
   Future<void> _handleRefresh() async {
     final userProvider = Provider.of<UserProvider>(context, listen: false);
 
     await Future.wait([
       _loadProfileSilently(),
       _loadChaseWithCache().then((data) {
-        if (mounted) {
-          setState(() {
-            getChase = Future.value(data);
-          });
-        }
+        if (mounted) setState(() => getChase = Future.value(data));
       }),
       _loadRechaseWithCache().then((data) {
-        if (mounted) {
-          setState(() {
-            getRechase = Future.value(data);
-          });
-        }
+        if (mounted) setState(() => getRechase = Future.value(data));
       }),
       if (userProvider.username != null && userProvider.username!.isNotEmpty)
         _loadPostsWithCache(userProvider.username).then((data) {
-          if (mounted) {
-            setState(() {
-              _postsFuture = Future.value(data);
-            });
-          }
+          if (mounted) setState(() => _postsFuture = Future.value(data));
         }),
       _loadPollPostsWithCache(userProvider.username).then((data) {
-        if (mounted) {
-          setState(() {
-            _pollPostsFuture = Future.value(data);
-          });
-        }
+        if (mounted) setState(() => _pollPostsFuture = Future.value(data));
       }),
     ]);
   }
 
+  // ── Image decoding ────────────────────────────────────────────────────────
+
   Uint8List? decodeBase64Image(String? value) {
     if (value == null || value.isEmpty) return null;
     try {
-      String base64Data = value.replaceFirst(
+      final base64Data = value.replaceFirst(
         RegExp(r'data:image/[^;]+;base64,'),
         '',
       );
       return base64Decode(base64Data);
-    } catch (e) {
+    } catch (_) {
       return null;
     }
   }
@@ -315,6 +338,8 @@ class ProfileState extends State<UserProfile>
     return bytes;
   }
 
+  // ── Build ─────────────────────────────────────────────────────────────────
+
   @override
   Widget build(BuildContext context) {
     final userProvider = Provider.of<UserProvider>(context, listen: false);
@@ -326,7 +351,7 @@ class ProfileState extends State<UserProfile>
           onRefresh: _handleRefresh,
           child: ListView(
             children: [
-              // Cover Image Section
+              // ── Cover Image ────────────────────────────────────────────
               Container(
                 height: 180.h,
                 width: double.infinity,
@@ -371,505 +396,213 @@ class ProfileState extends State<UserProfile>
                     ),
                     Align(
                       alignment: Alignment.bottomCenter,
-                      child:
-                          Container(
-                            width: double.infinity,
-                            height: 60.h,
-                            padding: EdgeInsets.all(8.w),
-                            child: Row(
+                      child: Container(
+                        width: double.infinity,
+                        height: 60.h,
+                        padding: EdgeInsets.all(8.w),
+                        child: Row(
+                          children: [
+                            Container(
+                              height: 50.h,
+                              width: 50.h,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: Colors.white,
+                                  width: 1.5.w,
+                                ),
+                                image: _cachedProfileImageBytes == null
+                                    ? const DecorationImage(
+                                        image: AssetImage(
+                                          Assets.assetsImagesIcUser,
+                                        ),
+                                        fit: BoxFit.fill,
+                                      )
+                                    : DecorationImage(
+                                        image: MemoryImage(
+                                          _cachedProfileImageBytes!,
+                                        ),
+                                        fit: BoxFit.cover,
+                                      ),
+                              ),
+                            ),
+                            SizedBox(width: 10.w),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Container(
-                                  height: 50.h,
-                                  width: 50.h,
-                                  decoration: BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    border: Border.all(
-                                      color: Colors.white,
-                                      width: 1.5.w,
-                                    ),
-                                    image: _cachedProfileImageBytes == null
-                                        ? const DecorationImage(
-                                            image: AssetImage(
-                                              Assets.assetsImagesIcUser,
-                                            ),
-                                            fit: BoxFit.fill,
-                                          )
-                                        : DecorationImage(
-                                            image: MemoryImage(
-                                              _cachedProfileImageBytes!,
-                                            ),
-                                            fit: BoxFit.cover,
-                                          ),
+                                Text(
+                                  userProvider.isLoading
+                                      ? '-'
+                                      : userProvider.username ?? '-',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 14.sp,
                                   ),
                                 ),
-                                SizedBox(width: 10.w),
-                                Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      userProvider.isLoading
-                                          ? '-'
-                                          : userProvider.username ?? '-',
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 14.sp,
-                                      ),
-                                    ),
-                                    SizedBox(height: 2.h),
-                                    Text(
-                                      userProvider.isLoading
-                                          ? '-'
-                                          : userProvider.bio ?? '-',
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 12.sp,
-                                      ),
-                                    ),
-                                  ],
+                                SizedBox(height: 2.h),
+                                Text(
+                                  userProvider.isLoading
+                                      ? '-'
+                                      : userProvider.bio ?? '-',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 12.sp,
+                                  ),
                                 ),
                               ],
                             ),
-                          ).asGlass(
-                            tintColor: Colors.black,
-                            clipBorderRadius: BorderRadius.circular(12.r),
-                          ),
+                          ],
+                        ),
+                      ).asGlass(
+                        tintColor: Colors.black,
+                        clipBorderRadius: BorderRadius.circular(12.r),
+                      ),
                     ),
                   ],
                 ),
               ),
 
-              // Stats and Chase/Re-chase Section
+              // ── Stats + Chase/Re-chase ────────────────────────────────
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Stats Column
                   SizedBox(
                     width: 100,
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.start,
                       children: [
-                        Container(
-                          width: 80.w,
-                          height: 80.h,
-                          decoration: BoxDecoration(
-                            color: Theme.of(context).primaryColor,
-                            borderRadius: BorderRadius.circular(20.r),
+                        _buildStatContainer(
+                          icon: FeatherIcons.arrowUp,
+                          value: userProvider.isLoading
+                              ? '-'
+                              : (userProvider.counts?['chasing']?.toString() ??
+                                    '-'),
+                          onTap: () => navigationPush(
+                            context,
+                            UserChase(
+                              username: userProvider.username ?? '-',
+                              followingCount:
+                                  (userProvider.counts?['rechasing']
+                                      ?.toString() ??
+                                  '0'),
+                              followerCount:
+                                  (userProvider.counts?['chasing']
+                                      ?.toString() ??
+                                  '0'),
+                              initialIndex: 0,
+                            ),
                           ),
-                          padding: EdgeInsets.symmetric(vertical: 8.h),
-                          margin: EdgeInsets.fromLTRB(10.w, 10.h, 10.w, 0),
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.spaceAround,
-                            children: [
-                              statTile(
-                                FeatherIcons.arrowUp,
-                                userProvider.isLoading
-                                    ? '-'
-                                    : (userProvider.counts?['chasing']
-                                              ?.toString() ??
-                                          '-'),
-                                () {
-                                  navigationPush(
-                                    context,
-                                    UserChase(
-                                      username: userProvider.username ?? '-',
-                                      followingCount:
-                                          (userProvider.counts?['rechasing']
-                                              ?.toString() ??
-                                          '0'),
-                                      followerCount:
-                                          (userProvider.counts?['chasing']
-                                              ?.toString() ??
-                                          '0'),
-                                      initialIndex: 0,
-                                    ),
-                                  );
-                                },
-                              ),
-                            ],
-                          ),
+                          topMargin: 10.h,
                         ),
-                        Container(
-                          width: 80.w,
-                          height: 80.h,
-                          decoration: BoxDecoration(
-                            color: Theme.of(context).primaryColor,
-                            borderRadius: BorderRadius.circular(20.r),
+                        _buildStatContainer(
+                          icon: FeatherIcons.arrowDown,
+                          value: userProvider.isLoading
+                              ? '-'
+                              : (userProvider.counts?['rechasing']
+                                        ?.toString() ??
+                                    '-'),
+                          onTap: () => navigationPush(
+                            context,
+                            UserChase(
+                              username: userProvider.username ?? '-',
+                              followingCount:
+                                  (userProvider.counts?['rechasing']
+                                      ?.toString() ??
+                                  '0'),
+                              followerCount:
+                                  (userProvider.counts?['chasing']
+                                      ?.toString() ??
+                                  '0'),
+                              initialIndex: 1,
+                            ),
                           ),
-                          padding: EdgeInsets.symmetric(vertical: 7.h),
-                          margin: EdgeInsets.fromLTRB(10.w, 5.h, 10.w, 0),
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.spaceAround,
-                            children: [
-                              statTile(
-                                FeatherIcons.arrowDown,
-                                userProvider.isLoading
-                                    ? '-'
-                                    : (userProvider.counts?['rechasing']
-                                              ?.toString() ??
-                                          '-'),
-                                () {
-                                  navigationPush(
-                                    context,
-                                    UserChase(
-                                      username: userProvider.username ?? '-',
-
-                                      followingCount:
-                                          (userProvider.counts?['rechasing']
-                                              ?.toString() ??
-                                          '0'),
-                                      followerCount:
-                                          (userProvider.counts?['chasing']
-                                              ?.toString() ??
-                                          '0'),
-                                      initialIndex: 1,
-                                    ),
-                                  );
-                                },
-                              ),
-                            ],
-                          ),
+                          topMargin: 5.h,
                         ),
                       ],
                     ),
                   ),
-
-                  // Chase/Re-chase Section
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         SizedBox(height: 10.h),
-                        Row(
-                          children: [
-                            Text(
-                              AppLocalizations.of(context)!.vibe,
-                              style: TextStyle(
-                                color: Theme.of(
-                                  context,
-                                ).colorScheme.onBackground,
-                                fontSize: 11.sp,
-                                fontWeight: FontWeight.w600,
+                        _buildSectionHeader(
+                          label: AppLocalizations.of(context)!.vibe,
+                          showSeeAll: _cachedFollowers.isNotEmpty,
+                          onSeeAll: () {
+                            navigationPush(
+                              context,
+                              UserChase(
+                                username: userProvider.username ?? '-',
+                                followingCount:
+                                    userProvider.following_count ?? '0',
+                                followerCount:
+                                    userProvider.followers_count ?? '0',
+                                initialIndex: 0,
                               ),
-                            ),
-                            const Spacer(),
-                            if (_cachedFollowers.isNotEmpty)
-                              GestureDetector(
-                                onTap: () {
-                                  navigationPush(
-                                    context,
-                                    UserChase(
-                                      username: userProvider.username ?? '-',
-
-                                      followingCount:
-                                          userProvider.following_count ?? '0',
-                                      followerCount:
-                                          userProvider.followers_count ?? '0',
-                                      initialIndex: 0,
-                                    ),
-                                  );
-
-                                  if (mounted) {
-                                    setState(() {
-                                      getChase = _loadChaseWithCache();
-                                      getRechase = _loadRechaseWithCache();
-                                    });
-                                  }
-                                },
-                                child: Padding(
-                                  padding: EdgeInsets.only(right: 10.w),
-                                  child: Row(
-                                    children: [
-                                      Text(
-                                        '${AppLocalizations.of(context)!.seeall} >',
-                                        style: TextStyle(
-                                          color: Theme.of(
-                                            context,
-                                          ).colorScheme.primary,
-                                          fontWeight: FontWeight.w700,
-                                          fontSize: 10.5.sp,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                          ],
+                            );
+                            if (mounted) {
+                              setState(() {
+                                getChase = _loadChaseWithCache();
+                                getRechase = _loadRechaseWithCache();
+                              });
+                            }
+                          },
                         ),
                         SizedBox(height: 5.h),
-
                         FutureBuilder<List<Map<String, dynamic>>>(
                           future: getChase,
                           builder: (context, snapshot) {
-                            final chaseUsers =
-                                snapshot.data ?? _cachedFollowers;
-
+                            final users = snapshot.data ?? _cachedFollowers;
                             if (isInitialLoad &&
                                 snapshot.connectionState ==
                                     ConnectionState.waiting &&
                                 _cachedFollowers.isEmpty) {
                               return const UserChaseSimmer();
                             }
-
-                            if (chaseUsers.isEmpty) {
-                              return Center(
-                                child: Padding(
-                                  padding: EdgeInsets.only(
-                                    top: 15.h,
-                                    bottom: 25.h,
-                                  ),
-                                  child: Text(
-                                    AppLocalizations.of(context)!.nochaseyet,
-                                    style: TextStyle(
-                                      color: Colors.grey,
-                                      fontSize: 10.8.sp,
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                  ),
-                                ),
+                            if (users.isEmpty) {
+                              return _buildEmptyChaseText(
+                                AppLocalizations.of(context)!.nochaseyet,
                               );
                             }
-
-                            final recentUsers = chaseUsers.length > 4
-                                ? chaseUsers.take(4).toList()
-                                : chaseUsers;
-
-                            return Container(
-                              height: 55.h,
-                              padding: EdgeInsets.symmetric(horizontal: 5.w),
-                              child: Row(
-                                mainAxisAlignment: chaseUsers.length < 4
-                                    ? MainAxisAlignment.start
-                                    : MainAxisAlignment.spaceBetween,
-                                children: recentUsers.map((user) {
-                                  final profilePic =
-                                      user['avatar_url'] as String?;
-                                  final firstName = user['username'] as String;
-
-                                  final firstLetter = firstName.isNotEmpty
-                                      ? firstName[0].toUpperCase()
-                                      : '?';
-
-                                  return GestureDetector(
-                                    onTap: () {
-                                      navigationPush(
-                                        context,
-                                        PublicProfile(userId: user['user_id']),
-                                      );
-                                    },
-                                    child: Container(
-                                      height: 55.h,
-                                      width: 55.w,
-                                      margin: EdgeInsets.only(right: 5.w),
-                                      decoration: BoxDecoration(
-                                        shape: BoxShape.circle,
-                                        border: Border.all(
-                                          color: Theme.of(context)
-                                              .colorScheme
-                                              .outline
-                                              .withOpacity(0.7),
-                                        ),
-                                        image:
-                                            getCachedProfileImage(profilePic) !=
-                                                null
-                                            ? DecorationImage(
-                                                image: MemoryImage(
-                                                  getCachedProfileImage(
-                                                    profilePic,
-                                                  )!,
-                                                ),
-                                                fit: BoxFit.cover,
-                                              )
-                                            : null,
-                                        color: profilePic == null
-                                            ? Theme.of(
-                                                context,
-                                              ).primaryColor.withOpacity(0.08)
-                                            : null,
-                                      ),
-                                      child: profilePic == null
-                                          ? Center(
-                                              child: Text(
-                                                firstLetter,
-                                                style: TextStyle(
-                                                  fontSize: 22.sp,
-                                                  fontWeight: FontWeight.bold,
-                                                  color: Theme.of(
-                                                    context,
-                                                  ).primaryColor,
-                                                ),
-                                              ),
-                                            )
-                                          : null,
-                                    ),
-                                  );
-                                }).toList(),
-                              ),
-                            );
+                            return _buildUserAvatarRow(users);
                           },
                         ),
-
                         SizedBox(height: 8.h),
-                        Row(
-                          children: [
-                            Text(
-                              AppLocalizations.of(context)!.revibe,
-                              style: TextStyle(
-                                color: Theme.of(
-                                  context,
-                                ).colorScheme.onBackground,
-                                fontSize: 11.5.sp,
-                                fontWeight: FontWeight.w600,
-                              ),
+                        _buildSectionHeader(
+                          label: AppLocalizations.of(context)!.revibe,
+                          showSeeAll: _cachedFollowing.isNotEmpty,
+                          onSeeAll: () => navigationPush(
+                            context,
+                            UserChase(
+                              username: userProvider.username ?? '-',
+                              followingCount:
+                                  userProvider.following_count ?? '0',
+                              followerCount:
+                                  userProvider.followers_count ?? '0',
+                              initialIndex: 1,
                             ),
-                            const Spacer(),
-                            if (_cachedFollowing.isNotEmpty)
-                              GestureDetector(
-                                onTap: () {
-                                  navigationPush(
-                                    context,
-                                    UserChase(
-                                      username: userProvider.username ?? '-',
-
-                                      followingCount:
-                                          userProvider.following_count ?? '0',
-                                      followerCount:
-                                          userProvider.followers_count ?? '0',
-                                      initialIndex: 1,
-                                    ),
-                                  );
-                                },
-                                child: Padding(
-                                  padding: EdgeInsets.only(right: 10.w),
-                                  child: Row(
-                                    children: [
-                                      Text(
-                                        '${AppLocalizations.of(context)!.seeall} >',
-                                        style: TextStyle(
-                                          color: Theme.of(
-                                            context,
-                                          ).colorScheme.primary,
-                                          fontWeight: FontWeight.w700,
-                                          fontSize: 10.5.sp,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                          ],
+                          ),
                         ),
                         SizedBox(height: 5.h),
                         FutureBuilder<List<Map<String, dynamic>>>(
                           future: getRechase,
                           builder: (context, snapshot) {
-                            final rechaseUsers =
-                                snapshot.data ?? _cachedFollowing;
-
+                            final users = snapshot.data ?? _cachedFollowing;
                             if (isInitialLoad &&
                                 snapshot.connectionState ==
                                     ConnectionState.waiting &&
                                 _cachedFollowing.isEmpty) {
                               return const UserChaseSimmer();
                             }
-
-                            if (rechaseUsers.isEmpty) {
-                              return Center(
-                                child: Padding(
-                                  padding: EdgeInsets.only(
-                                    top: 15.h,
-                                    bottom: 20.h,
-                                  ),
-                                  child: Text(
-                                    AppLocalizations.of(context)!.norechaseyet,
-                                    style: TextStyle(
-                                      color: Colors.grey,
-                                      fontSize: 10.8.sp,
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                  ),
-                                ),
+                            if (users.isEmpty) {
+                              return _buildEmptyChaseText(
+                                AppLocalizations.of(context)!.norechaseyet,
                               );
                             }
-
-                            final recentUsers = rechaseUsers.length > 4
-                                ? rechaseUsers.take(4).toList()
-                                : rechaseUsers;
-
-                            return Container(
-                              height: 55.h,
-                              padding: EdgeInsets.symmetric(horizontal: 5.w),
-                              child: Row(
-                                mainAxisAlignment: rechaseUsers.length < 4
-                                    ? MainAxisAlignment.start
-                                    : MainAxisAlignment.spaceBetween,
-                                children: recentUsers.map((user) {
-                                  final profilePic =
-                                      user['avatar_url'] as String?;
-                                  final firstName = user['username'] as String;
-
-                                  final firstLetter = firstName.isNotEmpty
-                                      ? firstName[0].toUpperCase()
-                                      : '?';
-
-                                  return GestureDetector(
-                                    onTap: () {
-                                      navigationPush(
-                                        context,
-                                        PublicProfile(userId: user['user_id']),
-                                      );
-                                    },
-                                    child: Container(
-                                      height: 55.h,
-                                      width: 55.w,
-                                      margin: EdgeInsets.only(right: 5.w),
-                                      decoration: BoxDecoration(
-                                        shape: BoxShape.circle,
-                                        border: Border.all(
-                                          color: Theme.of(context)
-                                              .colorScheme
-                                              .outline
-                                              .withOpacity(0.7),
-                                        ),
-                                        image:
-                                            getCachedProfileImage(profilePic) !=
-                                                null
-                                            ? DecorationImage(
-                                                image: MemoryImage(
-                                                  getCachedProfileImage(
-                                                    profilePic,
-                                                  )!,
-                                                ),
-                                                fit: BoxFit.cover,
-                                              )
-                                            : null,
-                                        color: profilePic == null
-                                            ? Theme.of(
-                                                context,
-                                              ).primaryColor.withOpacity(0.08)
-                                            : null,
-                                      ),
-                                      child: profilePic == null
-                                          ? Center(
-                                              child: Text(
-                                                firstLetter,
-                                                style: TextStyle(
-                                                  fontSize: 20.sp,
-                                                  fontWeight: FontWeight.bold,
-                                                  color: Theme.of(
-                                                    context,
-                                                  ).primaryColor,
-                                                ),
-                                              ),
-                                            )
-                                          : null,
-                                    ),
-                                  );
-                                }).toList(),
-                              ),
-                            );
+                            return _buildUserAvatarRow(users);
                           },
                         ),
-
                         SizedBox(height: 5.h),
                       ],
                     ),
@@ -877,7 +610,7 @@ class ProfileState extends State<UserProfile>
                 ],
               ),
 
-              // Polls/Things Section
+              // ── Polls / Things count bar ──────────────────────────────
               Container(
                 width: double.infinity,
                 height: 38.h,
@@ -897,17 +630,15 @@ class ProfileState extends State<UserProfile>
                   children: [
                     pollThingsTile(
                       Assets.assetsImagesPoll,
-                      (userProvider.image_post_count ?? 0).toString(),
+                      _totalImagePostsCount.toString(),
                       Icons.image,
-                      () {
-                        navigationPush(
-                          context,
-                          ImagePostsList(
-                            username: userProvider.username!,
-                            profileImage: userProvider.profile_picture,
-                          ),
-                        );
-                      },
+                      () => navigationPush(
+                        context,
+                        ImagePostsList(
+                          username: userProvider.username!,
+                          profileImage: userProvider.profile_picture,
+                        ),
+                      ),
                     ),
                     SizedBox(
                       height: 30.h,
@@ -919,23 +650,21 @@ class ProfileState extends State<UserProfile>
                     ),
                     pollThingsTile(
                       Assets.assetsImagesThings,
-                      (userProvider.text_post_count ?? 0).toString(),
+                      _totalTextPostsCount.toString(),
                       Icons.image,
-                      () {
-                        navigationPush(
-                          context,
-                          QuestionsPostsList(
-                            username: userProvider.username!,
-                            profileImage: userProvider.profile_picture,
-                          ),
-                        );
-                      },
+                      () => navigationPush(
+                        context,
+                        ThingsPostsList(
+                          username: userProvider.username!,
+                          profileImage: userProvider.profile_picture,
+                        ),
+                      ),
                     ),
                   ],
                 ),
               ),
 
-              // Posts Section Header
+              // ── Image posts section ────────────────────────────────────
               Padding(
                 padding: EdgeInsets.fromLTRB(10.w, 0, 10.w, 10.h),
                 child: Row(
@@ -951,160 +680,40 @@ class ProfileState extends State<UserProfile>
                     const Spacer(),
                     if (_cachedPosts.isNotEmpty)
                       GestureDetector(
-                        onTap: () {
-                          navigationPush(
-                            context,
-                            ImagePostsList(
-                              username: userProvider.username!,
-                              profileImage: _cachedProfileImage,
-                            ),
-                          );
-                        },
-                        child: Row(
-                          children: [
-                            Text(
-                              '${AppLocalizations.of(context)!.seeall} >',
-                              style: TextStyle(
-                                color: Theme.of(context).colorScheme.primary,
-                                fontWeight: FontWeight.w700,
-                                fontSize: 10.5.sp,
-                              ),
-                            ),
-                            // Icon(
-                            //   Icons.arrow_forward_ios,
-                            //   size: 14.spMax,
-                            //   color: AppColors.primaryColor.withOpacity(0.8),
-                            // ),
-                          ],
+                        onTap: () => navigationPush(
+                          context,
+                          ImagePostsList(
+                            username: userProvider.username!,
+                            profileImage: _cachedProfileImage,
+                          ),
+                        ),
+                        child: Text(
+                          '${AppLocalizations.of(context)!.seeall} >',
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.primary,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 10.5.sp,
+                          ),
                         ),
                       ),
                   ],
                 ),
               ),
 
-              // Posts Grid
               Padding(
                 padding: EdgeInsets.symmetric(horizontal: 12.w),
                 child: FutureBuilder<List<UserPostModel>>(
                   future: _postsFuture,
                   builder: (context, snapshot) {
-                    // Show cached data immediately while loading
                     final posts = snapshot.data ?? _cachedPosts;
 
                     if (isInitialLoad &&
                         snapshot.connectionState == ConnectionState.waiting &&
                         _cachedPosts.isEmpty) {
-                      return Shimmer.fromColors(
-                        baseColor: Colors.grey[300]!,
-                        highlightColor: Colors.grey[100]!,
-                        child: Column(
-                          children: [
-                            Container(
-                              height: 110.h,
-                              width: double.infinity,
-                              margin: EdgeInsets.only(bottom: 5.h),
-                              decoration: BoxDecoration(
-                                color: Theme.of(
-                                  context,
-                                ).colorScheme.secondaryContainer,
-                                borderRadius: BorderRadius.circular(10.r),
-                              ),
-                            ),
-                            Container(
-                              height: 110.h,
-                              width: double.infinity,
-                              margin: EdgeInsets.only(bottom: 5.h),
-                              decoration: BoxDecoration(
-                                color: Theme.of(
-                                  context,
-                                ).colorScheme.secondaryContainer,
-                                borderRadius: BorderRadius.circular(10.r),
-                              ),
-                            ),
-                          ],
-                        ),
-                      );
+                      return _buildPostsShimmer();
                     }
 
-                    if (posts.isEmpty) {
-                      return Center(
-                        child: CustomPaint(
-                          painter: DottedBorderPainter(
-                            color: Theme.of(
-                              context,
-                            ).colorScheme.primary.withOpacity(0.7),
-                            strokeWidth: 1.5,
-                            gap: 5,
-                          ),
-                          child: GestureDetector(
-                            onTap: () {
-                              navigationPush(context, const PollImages());
-                            },
-                            child: SizedBox(
-                              height: 100.h,
-                              width: double.infinity,
-                              child: Center(
-                                child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Text(
-                                      AppLocalizations.of(
-                                        context,
-                                      )!.createsomethingcool,
-                                      style: TextStyle(
-                                        color: Theme.of(context)
-                                            .colorScheme
-                                            .onBackground
-                                            .withOpacity(0.6),
-                                        fontSize: 11.sp,
-                                        fontWeight: FontWeight.w500,
-                                      ),
-                                    ),
-                                    Container(
-                                      height: 27.h,
-                                      width: 200.w,
-                                      margin: EdgeInsets.only(top: 8.h),
-                                      decoration: BoxDecoration(
-                                        gradient: const LinearGradient(
-                                          colors: [
-                                            Color(0xFFB91C1C),
-                                            Color(0xFFDB2777),
-                                          ],
-                                          begin: Alignment.centerLeft,
-                                          end: Alignment.centerRight,
-                                        ),
-                                        borderRadius: BorderRadius.circular(12),
-                                        boxShadow: [
-                                          BoxShadow(
-                                            color: Colors.black.withOpacity(
-                                              0.1,
-                                            ),
-                                            blurRadius: 8,
-                                            offset: const Offset(0, 3),
-                                          ),
-                                        ],
-                                      ),
-                                      child: Center(
-                                        child: Text(
-                                          AppLocalizations.of(
-                                            context,
-                                          )!.createyourfirstpoll,
-                                          style: TextStyle(
-                                            color: Colors.white,
-                                            fontSize: 11.sp,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      );
-                    }
+                    if (posts.isEmpty) return _buildEmptyPostsPlaceholder();
 
                     return GridView.builder(
                       shrinkWrap: true,
@@ -1118,18 +727,15 @@ class ProfileState extends State<UserProfile>
                           ),
                       itemCount: posts.length > 4 ? 4 : posts.length,
                       itemBuilder: (context, index) {
-                        final post = posts[index];
                         return GestureDetector(
-                          onTap: () {
-                            navigationPush(
-                              context,
-                              ImagePostsList(
-                                username: userProvider.username!,
-                                profileImage: userProvider.profile_picture,
-                              ),
-                            );
-                          },
-                          child: _buildImagesStack(post.polls),
+                          onTap: () => navigationPush(
+                            context,
+                            ImagePostsList(
+                              username: userProvider.username!,
+                              profileImage: userProvider.profile_picture,
+                            ),
+                          ),
+                          child: _buildImagesStack(posts[index].polls),
                         );
                       },
                     );
@@ -1137,7 +743,7 @@ class ProfileState extends State<UserProfile>
                 ),
               ),
 
-              // Things Section Header
+              // ── Text-poll (Things) section ────────────────────────────
               Padding(
                 padding: EdgeInsets.fromLTRB(10.w, 10.h, 10.w, 0.h),
                 child: Row(
@@ -1153,33 +759,26 @@ class ProfileState extends State<UserProfile>
                     const Spacer(),
                     if (_cachedTextPolls.isNotEmpty)
                       GestureDetector(
-                        onTap: () {
-                          navigationPush(
-                            context,
-                            QuestionsPostsList(
-                              username: userProvider.username!,
-                              profileImage: _cachedProfileImage,
-                            ),
-                          );
-                        },
-                        child: Row(
-                          children: [
-                            Text(
-                              '${AppLocalizations.of(context)!.seeall} >',
-                              style: TextStyle(
-                                color: Theme.of(context).colorScheme.primary,
-                                fontWeight: FontWeight.w700,
-                                fontSize: 10.5.sp,
-                              ),
-                            ),
-                          ],
+                        onTap: () => navigationPush(
+                          context,
+                          ThingsPostsList(
+                            username: userProvider.username!,
+                            profileImage: _cachedProfileImage,
+                          ),
+                        ),
+                        child: Text(
+                          '${AppLocalizations.of(context)!.seeall} >',
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.primary,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 10.5.sp,
+                          ),
                         ),
                       ),
                   ],
                 ),
               ),
 
-              // Things Polls Section
               FutureBuilder<List<UserPostModel>>(
                 future: _pollPostsFuture,
                 builder: (context, snapshot) {
@@ -1209,7 +808,6 @@ class ProfileState extends State<UserProfile>
 
                   final postsPolls = snapshot.data ?? const <UserPostModel>[];
 
-                  // Filter posts: only show polls where ALL options have text (image == null)
                   final postsWithTextPolls = postsPolls.where((post) {
                     if (post.polls.isEmpty) return false;
                     return post.polls.every(
@@ -1226,91 +824,25 @@ class ProfileState extends State<UserProfile>
                       _cachedTextPolls != postsWithTextPolls) {
                     WidgetsBinding.instance.addPostFrameCallback((_) {
                       if (mounted) {
-                        setState(() => _cachedTextPolls = postsWithTextPolls);
+                        _cache.textPosts = postsWithTextPolls;
+                        _cache.totalTextCount = postsWithTextPolls.length;
+                        setState(() {
+                          _cachedTextPolls = postsWithTextPolls;
+                          _totalTextPostsCount = postsWithTextPolls.length;
+                        });
                       }
                     });
                   }
 
                   if (postsWithTextPolls.isEmpty) {
-                    return Padding(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: 12.w,
-                        vertical: 10.h,
-                      ),
-                      child: CustomPaint(
-                        painter: DottedBorderPainter(
-                          color: Theme.of(
-                            context,
-                          ).colorScheme.primary.withOpacity(0.7),
-                          strokeWidth: 1.5,
-                        ),
-                        child: SizedBox(
-                          height: 100.h,
-                          width: double.infinity,
-                          child: Center(
-                            child: GestureDetector(
-                              onTap: () {
-                                navigationPush(context, const PollQuestion());
-                              },
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Text(
-                                    AppLocalizations.of(
-                                      context,
-                                    )!.createsomethingcool,
-                                    style: TextStyle(
-                                      color: Theme.of(context)
-                                          .colorScheme
-                                          .onBackground
-                                          .withOpacity(0.6),
-                                      fontSize: 11.sp,
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                  ),
-                                  Container(
-                                    height: 27.h,
-                                    width: 200.w,
-                                    margin: EdgeInsets.only(top: 8.h),
-                                    decoration: BoxDecoration(
-                                      gradient: const LinearGradient(
-                                        colors: [
-                                          Color(0xFFB91C1C),
-                                          Color(0xFFDB2777),
-                                        ],
-                                        begin: Alignment.centerLeft,
-                                        end: Alignment.centerRight,
-                                      ),
-                                      borderRadius: BorderRadius.circular(12),
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: Colors.black.withOpacity(0.1),
-                                          blurRadius: 8,
-                                          offset: const Offset(0, 3),
-                                        ),
-                                      ],
-                                    ),
-                                    child: Center(
-                                      child: Text(
-                                        AppLocalizations.of(
-                                          context,
-                                        )!.createyourfirstthings,
-                                        style: TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 11.sp,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    );
+                    return _buildEmptyThingsPlaceholder();
                   }
+
+                  const List<List<Color>> gradientOptions = [
+                    [Color(0xFFFC3E7E), Color(0xFF935994)],
+                    [Color(0xFF4FC3F7), Color(0xFF7C9CAC)],
+                    [Colors.red, Color(0xFF9F6C7B)],
+                  ];
 
                   return ListView.builder(
                     padding: EdgeInsets.all(12.w),
@@ -1320,15 +852,7 @@ class ProfileState extends State<UserProfile>
                         ? 3
                         : postsWithTextPolls.length,
                     itemBuilder: (context, index) {
-                      const List<List<Color>> gradientOptions = [
-                        [Color(0xFFFC3E7E), Color(0xFF935994)],
-                        [Color(0xFF4FC3F7), Color(0xFF7C9CAC)],
-                        [Colors.red, Color(0xFF9F6C7B)],
-                      ];
                       final post = postsWithTextPolls[index];
-                      final pollQuestion =
-                          post.polls.first; // Get the first poll question
-
                       return Padding(
                         padding: EdgeInsets.only(
                           bottom: index < postsWithTextPolls.length - 1
@@ -1336,17 +860,15 @@ class ProfileState extends State<UserProfile>
                               : 0,
                         ),
                         child: GestureDetector(
-                          onTap: () {
-                            navigationPush(
-                              context,
-                              QuestionsPostsList(
-                                username: userProvider.username!,
-                                profileImage: userProvider.profile_picture,
-                              ),
-                            );
-                          },
+                          onTap: () => navigationPush(
+                            context,
+                            ThingsPostsList(
+                              username: userProvider.username!,
+                              profileImage: userProvider.profile_picture,
+                            ),
+                          ),
                           child: UserThingsCard(
-                            post: pollQuestion,
+                            post: post.polls.first,
                             gradientColors:
                                 gradientOptions[index % gradientOptions.length],
                           ),
@@ -1362,6 +884,282 @@ class ProfileState extends State<UserProfile>
       ),
     );
   }
+
+  // ── Small widget builders ─────────────────────────────────────────────────
+
+  Widget _buildStatContainer({
+    required IconData icon,
+    required String value,
+    required VoidCallback onTap,
+    required double topMargin,
+  }) {
+    return Container(
+      width: 80.w,
+      height: 80.h,
+      decoration: BoxDecoration(
+        color: Theme.of(context).primaryColor,
+        borderRadius: BorderRadius.circular(20.r),
+      ),
+      padding: EdgeInsets.symmetric(vertical: 8.h),
+      margin: EdgeInsets.fromLTRB(10.w, topMargin, 10.w, 0),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.spaceAround,
+        children: [statTile(icon, value, onTap)],
+      ),
+    );
+  }
+
+  Widget _buildSectionHeader({
+    required String label,
+    required bool showSeeAll,
+    required VoidCallback onSeeAll,
+  }) {
+    return Row(
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            color: Theme.of(context).colorScheme.onBackground,
+            fontSize: 11.5.sp,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        const Spacer(),
+        if (showSeeAll)
+          GestureDetector(
+            onTap: onSeeAll,
+            child: Padding(
+              padding: EdgeInsets.only(right: 10.w),
+              child: Text(
+                '${AppLocalizations.of(context)!.seeall} >',
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.primary,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 10.5.sp,
+                ),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildEmptyChaseText(String text) {
+    return Center(
+      child: Padding(
+        padding: EdgeInsets.only(top: 15.h, bottom: 25.h),
+        child: Text(
+          text,
+          style: TextStyle(
+            color: Colors.grey,
+            fontSize: 10.8.sp,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildUserAvatarRow(List<Map<String, dynamic>> users) {
+    final recentUsers = users.length > 4 ? users.take(4).toList() : users;
+    return Container(
+      height: 55.h,
+      padding: EdgeInsets.symmetric(horizontal: 5.w),
+      child: Row(
+        mainAxisAlignment: users.length < 4
+            ? MainAxisAlignment.start
+            : MainAxisAlignment.spaceBetween,
+        children: recentUsers.map((user) {
+          final profilePic = user['avatar_url'] as String?;
+          final firstName = user['username'] as String;
+          final firstLetter = firstName.isNotEmpty
+              ? firstName[0].toUpperCase()
+              : '?';
+          final imageBytes = getCachedProfileImage(profilePic);
+
+          return GestureDetector(
+            onTap: () =>
+                navigationPush(context, PublicProfile(userId: user['user_id'])),
+            child: Container(
+              height: 55.h,
+              width: 55.w,
+              margin: EdgeInsets.only(right: 5.w),
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: Theme.of(context).colorScheme.outline.withOpacity(0.7),
+                ),
+                image: imageBytes != null
+                    ? DecorationImage(
+                        image: MemoryImage(imageBytes),
+                        fit: BoxFit.cover,
+                      )
+                    : null,
+                color: profilePic == null
+                    ? Theme.of(context).primaryColor.withOpacity(0.08)
+                    : null,
+              ),
+              child: profilePic == null
+                  ? Center(
+                      child: Text(
+                        firstLetter,
+                        style: TextStyle(
+                          fontSize: 20.sp,
+                          fontWeight: FontWeight.bold,
+                          color: Theme.of(context).primaryColor,
+                        ),
+                      ),
+                    )
+                  : null,
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
+
+  Widget _buildPostsShimmer() {
+    return Shimmer.fromColors(
+      baseColor: Colors.grey[300]!,
+      highlightColor: Colors.grey[100]!,
+      child: Column(
+        children: [
+          Container(
+            height: 110.h,
+            width: double.infinity,
+            margin: EdgeInsets.only(bottom: 5.h),
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.secondaryContainer,
+              borderRadius: BorderRadius.circular(10.r),
+            ),
+          ),
+          Container(
+            height: 110.h,
+            width: double.infinity,
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.secondaryContainer,
+              borderRadius: BorderRadius.circular(10.r),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEmptyPostsPlaceholder() {
+    return Center(
+      child: CustomPaint(
+        painter: DottedBorderPainter(
+          color: Theme.of(context).colorScheme.primary.withOpacity(0.7),
+          strokeWidth: 1.5,
+          gap: 5,
+        ),
+        child: GestureDetector(
+          onTap: () => navigationPush(context, const PollImages()),
+          child: SizedBox(
+            height: 100.h,
+            width: double.infinity,
+            child: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    AppLocalizations.of(context)!.createsomethingcool,
+                    style: TextStyle(
+                      color: Theme.of(context)
+                          .colorScheme
+                          .onBackground
+                          .withOpacity(0.6),
+                      fontSize: 11.sp,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  _buildGradientButton(
+                    AppLocalizations.of(context)!.createyourfirstpoll,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmptyThingsPlaceholder() {
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
+      child: CustomPaint(
+        painter: DottedBorderPainter(
+          color: Theme.of(context).colorScheme.primary.withOpacity(0.7),
+          strokeWidth: 1.5,
+        ),
+        child: SizedBox(
+          height: 100.h,
+          width: double.infinity,
+          child: Center(
+            child: GestureDetector(
+              onTap: () => navigationPush(context, const PollQuestion()),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    AppLocalizations.of(context)!.createsomethingcool,
+                    style: TextStyle(
+                      color: Theme.of(context)
+                          .colorScheme
+                          .onBackground
+                          .withOpacity(0.6),
+                      fontSize: 11.sp,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  _buildGradientButton(
+                    AppLocalizations.of(context)!.createyourfirstthings,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildGradientButton(String label) {
+    return Container(
+      height: 27.h,
+      width: 200.w,
+      margin: EdgeInsets.only(top: 8.h),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFFB91C1C), Color(0xFFDB2777)],
+          begin: Alignment.centerLeft,
+          end: Alignment.centerRight,
+        ),
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 8,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Center(
+        child: Text(
+          label,
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 11.sp,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ── Reusable tile widgets ─────────────────────────────────────────────────
 
   Widget statTile(IconData icon, String value, VoidCallback onTap) {
     return GestureDetector(
@@ -1444,26 +1242,19 @@ class ProfileState extends State<UserProfile>
   }
 
   Widget _buildImagesStack(List<UserPollQuestion> polls) {
-    // Extract images from poll options
-    List<PollOptionImage> validImages = [];
-
-    for (var poll in polls) {
+    final validImages = <PollOptionImage>[];
+    for (final poll in polls) {
       if (poll.options != null) {
-        for (var option in poll.options!) {
-          if (option.image != null) {
-            validImages.add(option.image!);
-          }
+        for (final option in poll.options!) {
+          if (option.image != null) validImages.add(option.image!);
         }
       }
     }
 
-    // If no valid images, return empty container
-    if (validImages.isEmpty) {
-      return const SizedBox.shrink();
-    }
+    if (validImages.isEmpty) return const SizedBox.shrink();
 
-    List<Alignment> getAlignments(int totalImages) {
-      switch (totalImages) {
+    List<Alignment> getAlignments(int total) {
+      switch (total) {
         case 1:
           return [Alignment.center];
         case 2:
@@ -1474,7 +1265,6 @@ class ProfileState extends State<UserProfile>
             Alignment.center,
             Alignment.centerRight,
           ];
-        case 4:
         default:
           return [
             Alignment.centerLeft,
@@ -1485,12 +1275,12 @@ class ProfileState extends State<UserProfile>
       }
     }
 
-    List<Alignment> alignments = getAlignments(validImages.length);
+    final alignments = getAlignments(validImages.length);
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        double availableWidth = constraints.maxWidth;
-        double imageHeight = 150.h;
+        final availableWidth = constraints.maxWidth;
+        final imageHeight = 150.h;
 
         return SizedBox(
           height: imageHeight,
@@ -1500,11 +1290,12 @@ class ProfileState extends State<UserProfile>
                 .asMap()
                 .entries
                 .map<Widget>((entry) {
-                  int index = entry.key;
-                  PollOptionImage imageData = entry.value;
-                  Alignment alignment = alignments[index];
-                  double imageWidth = (availableWidth * 0.7) - (index * 8.0);
-                  imageWidth = imageWidth < 60.w ? 60.w : imageWidth;
+                  final index = entry.key;
+                  final imageData = entry.value;
+                  final alignment = alignments[index];
+                  final imageWidth =
+                      ((availableWidth * 0.7) - (index * 8.0))
+                          .clamp(60.w, double.infinity);
 
                   return Align(
                     alignment: alignment,
@@ -1512,54 +1303,46 @@ class ProfileState extends State<UserProfile>
                       margin: EdgeInsets.symmetric(horizontal: 3.w),
                       width: imageWidth,
                       height: imageHeight,
-                      child: Container(
-                        decoration: BoxDecoration(
-                          border: Border.all(color: Colors.white, width: 1),
-                          borderRadius: BorderRadius.circular(20.r),
-                        ),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(19.r),
-                          child: Image.network(
-                            '${ApiConfig.baseUrlImage}${imageData.url}',
-                            fit: BoxFit.cover,
-                            width: double.infinity,
-                            height: double.infinity,
-                            errorBuilder: (context, error, stackTrace) {
-                              return Container(
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(12.r),
-                                  color: Colors.grey[200],
-                                ),
-                                child: Icon(
-                                  Icons.image_not_supported,
-                                  color: Colors.grey[600],
-                                  size: 30,
-                                ),
-                              );
-                            },
-                            loadingBuilder: (context, child, loadingProgress) {
-                              if (loadingProgress == null) return child;
-                              return Container(
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(20.r),
-                                  color: Colors.grey[200],
-                                ),
-                                child: Center(
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    value:
-                                        loadingProgress.expectedTotalBytes !=
-                                            null
-                                        ? loadingProgress
-                                                  .cumulativeBytesLoaded /
-                                              loadingProgress
-                                                  .expectedTotalBytes!
-                                        : null,
-                                  ),
-                                ),
-                              );
-                            },
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.white, width: 1),
+                        borderRadius: BorderRadius.circular(20.r),
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(19.r),
+                        child: Image.network(
+                          '${ApiConfig.baseUrlImage}${imageData.url}',
+                          fit: BoxFit.cover,
+                          width: double.infinity,
+                          height: double.infinity,
+                          errorBuilder: (_, __, ___) => Container(
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(12.r),
+                              color: Colors.grey[200],
+                            ),
+                            child: Icon(
+                              Icons.image_not_supported,
+                              color: Colors.grey[600],
+                              size: 30,
+                            ),
                           ),
+                          loadingBuilder: (_, child, progress) {
+                            if (progress == null) return child;
+                            return Container(
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(20.r),
+                                color: Colors.grey[200],
+                              ),
+                              child: Center(
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  value: progress.expectedTotalBytes != null
+                                      ? progress.cumulativeBytesLoaded /
+                                            progress.expectedTotalBytes!
+                                      : null,
+                                ),
+                              ),
+                            );
+                          },
                         ),
                       ),
                     ),

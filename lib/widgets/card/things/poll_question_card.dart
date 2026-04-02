@@ -30,6 +30,11 @@ class ThingsQustionsCard extends StatefulWidget {
     this.currentCommentsCount,
     this.currentLikedUsers,
     this.onLikedUsersUpdated,
+    required this.localPercentages,
+    required this.pollPolledStates,
+    required this.onPercentagesUpdated,
+    required this.onPollPolledStateChanged,
+    this.onVoteSuccess,
   });
 
   final UserPostModel post;
@@ -44,6 +49,11 @@ class ThingsQustionsCard extends StatefulWidget {
   final Function(int postId, List<LikeUser> users)? onLikedUsersUpdated;
   String? username;
   String? profileImage;
+  final Map<int, double> localPercentages;
+  final Map<String, bool> pollPolledStates;
+  final Function(Map<int, double> updated) onPercentagesUpdated;
+  final Function(String pollKey, bool polled) onPollPolledStateChanged;
+  final VoidCallback? onVoteSuccess;
 
   @override
   State<ThingsQustionsCard> createState() => _ThingsQustionsCardState();
@@ -63,7 +73,6 @@ class _ThingsQustionsCardState extends State<ThingsQustionsCard> {
   Map<String, List<int>> selectedOptions = {};
   Map<String, bool> pollVotingStates = {};
   // Track is_polled_by_current_user per poll (mutable for optimistic update)
-  late Map<String, bool> pollPolledStates;
 
   @override
   void initState() {
@@ -72,12 +81,6 @@ class _ThingsQustionsCardState extends State<ThingsQustionsCard> {
     likesCount = widget.currentLikesCount ?? widget.post.likesCount;
     commentsCount = widget.currentCommentsCount ?? widget.post.commentsCount;
     likedUsers = widget.currentLikedUsers ?? [];
-
-    // Initialize polled states from model
-    pollPolledStates = {
-      for (var poll in widget.post.polls)
-        poll.id.toString(): widget.post.is_polled_by_current_user,
-    };
   }
 
   @override
@@ -130,22 +133,25 @@ class _ThingsQustionsCardState extends State<ThingsQustionsCard> {
     if (pollVotingStates[pollKey] == true) return;
 
     final previousSelected = List<int>.from(selectedOptions[pollKey] ?? []);
-    final previousPolled = pollPolledStates[pollKey] ?? false;
+    final previousPolled = widget.pollPolledStates[pollKey] ?? false;
     final previousPercentages =
-        poll.options?.map((o) => o.percentage).toList() ?? [];
+        poll.options
+            ?.map((o) => widget.localPercentages[o.id] ?? o.percentage)
+            .toList() ??
+        [];
 
-    // Optimistic update
+    if (!mounted) return;
+
+    // Show spinner only — do NOT optimistically flip polled state here.
     setState(() {
-      pollPolledStates[pollKey] = true;
       pollVotingStates[pollKey] = true;
       selectedOptions[pollKey] = [];
     });
 
     try {
-      List<Map<String, int>> votes = [];
+      final List<Map<String, int>> votes = [];
       for (int i = 0; i < previousSelected.length; i++) {
-        final optionIndex = previousSelected[i];
-        final option = poll.options![optionIndex];
+        final option = poll.options![previousSelected[i]];
         votes.add({'option_id': option.id, 'rank': i + 1});
       }
 
@@ -154,54 +160,94 @@ class _ThingsQustionsCardState extends State<ThingsQustionsCard> {
         votes: votes,
       );
 
-      if (result['success'] == true) {
-        setState(() {
-          pollVotingStates[pollKey] = false;
+      if (!mounted) return;
 
-          // Update percentages from server response
-          if (result['data']?['options'] != null) {
-            for (var optionData in result['data']['options']) {
-              final optionId = optionData['option_id'] as int;
-              final pct = (optionData['percentage'] as num?)?.toDouble() ?? 0.0;
-              final opt = poll.options?.firstWhere(
-                (o) => o.id == optionId,
-                orElse: () => poll.options!.first,
-              );
-              opt?.percentage = pct;
-            }
+      if (result['success'] == true) {
+        // ── Step 1: push updated percentages from API response ───────────────
+        bool hasApiPercentages = false;
+        final responseOptions = result['data']?['options'];
+        if (responseOptions is List && responseOptions.isNotEmpty) {
+          final Map<int, double> updated = {};
+          for (final optionData in responseOptions) {
+            if (optionData is! Map) continue;
+            final rawId = optionData['option_id'];
+            if (rawId == null) continue;
+            // Handle both int and num (JSON can decode as either)
+            final optionId = rawId is int ? rawId : (rawId as num).toInt();
+            final pct = (optionData['percentage'] as num?)?.toDouble() ?? 0.0;
+            updated[optionId] = pct;
           }
-        });
-        showToast(message: 'Vote submitted successfully!');
-      } else {
-        // Revert on failure
-        setState(() {
-          pollPolledStates[pollKey] = previousPolled;
-          pollVotingStates[pollKey] = false;
-          selectedOptions[pollKey] = previousSelected;
-          for (int i = 0; i < (poll.options?.length ?? 0); i++) {
-            if (i < previousPercentages.length) {
-              poll.options![i].percentage = previousPercentages[i];
-            }
-          }
-        });
-        showToast(message: result['message'] ?? 'Failed to submit votes.');
-      }
-    } catch (e) {
-      // Revert on error
-      setState(() {
-        pollPolledStates[pollKey] = previousPolled;
-        pollVotingStates[pollKey] = false;
-        selectedOptions[pollKey] = previousSelected;
-        for (int i = 0; i < (poll.options?.length ?? 0); i++) {
-          if (i < previousPercentages.length) {
-            poll.options![i].percentage = previousPercentages[i];
+          if (updated.isNotEmpty) {
+            widget.onPercentagesUpdated(
+              updated,
+            ); // localPercentages now correct
+            hasApiPercentages = true;
           }
         }
-      });
+
+        setState(() => pollVotingStates[pollKey] = false);
+
+        // ── Step 2: flip polled state ONLY after percentages are in place ────
+        // If the API returned percentages, flip immediately — correct values
+        // are already in localPercentages before the rebuild happens.
+        // If not, leave the card in the pre-vote display; _silentReload (called
+        // next) will set both localPercentages and pollPolledStates together
+        // using plain = (not ??=), so the first rendered frame is always correct.
+        if (hasApiPercentages) {
+          widget.onPollPolledStateChanged(pollKey, true);
+        }
+
+        showToast(message: 'Vote submitted successfully!');
+
+        // _silentReload uses = for both localPercentages and pollPolledStates,
+        // so it handles the !hasApiPercentages path and also confirms the
+        // hasApiPercentages path with authoritative server data.
+        widget.onVoteSuccess?.call();
+      } else {
+        _revertPollState(
+          poll,
+          pollKey,
+          previousPolled,
+          previousSelected,
+          previousPercentages,
+        );
+        showToast(message: result['message'] ?? 'Failed to submit votes.');
+      }
+    } catch (_) {
+      if (!mounted) return;
+      _revertPollState(
+        poll,
+        pollKey,
+        previousPolled,
+        previousSelected,
+        previousPercentages,
+      );
       showToast(message: 'An error occurred. Please try again.');
     }
   }
 
+  void _revertPollState(
+    UserPollQuestion poll,
+    String pollKey,
+    bool previousPolled,
+    List<int> previousSelected,
+    List<double> previousPercentages,
+  ) {
+    if (!mounted) return;
+    // ✅ Notify parent to revert
+    widget.onPollPolledStateChanged(pollKey, previousPolled);
+    final Map<int, double> reverted = {};
+    for (int i = 0; i < (poll.options?.length ?? 0); i++) {
+      if (i < previousPercentages.length) {
+        reverted[poll.options![i].id] = previousPercentages[i];
+      }
+    }
+    widget.onPercentagesUpdated(reverted);
+    setState(() {
+      pollVotingStates[pollKey] = false;
+      selectedOptions[pollKey] = previousSelected;
+    });
+  }
   // ─── Like helpers ──────────────────────────────────────────────────────────
 
   Future<void> _fetchLikedUsersSilently() async {
@@ -412,7 +458,8 @@ class _ThingsQustionsCardState extends State<ThingsQustionsCard> {
     final ApiService apiService = ApiService();
     final totalVotes = int.tryParse(pollQuestion.totalVotes) ?? 0;
     final pollKey = pollQuestion.id.toString();
-    final hasUserPolled = pollPolledStates[pollKey] ?? false;
+    final hasUserPolled =
+        widget.pollPolledStates[pollKey] ?? false; // ✅ from parent
     final areAllSelected = _areAllPollOptionsSelected(pollQuestion);
     final isVoting = pollVotingStates[pollKey] ?? false;
 
@@ -574,8 +621,9 @@ class _ThingsQustionsCardState extends State<ThingsQustionsCard> {
   }) {
     final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
     final pollKey = poll.id.toString();
-    final percentage = option.percentage;
-    final hasUserPolled = pollPolledStates[pollKey] ?? false;
+    final double percentage =
+        widget.localPercentages[option.id] ?? option.percentage;
+    final hasUserPolled = widget.pollPolledStates[pollKey] ?? false;
 
     final bool isSelected =
         selectedOptions[pollKey]?.contains(optionIndex) ?? false;
@@ -609,6 +657,7 @@ class _ThingsQustionsCardState extends State<ThingsQustionsCard> {
             if (showPercentage && percentage > 0)
               Positioned.fill(
                 child: TweenAnimationBuilder<double>(
+                  key: ValueKey('bar_${poll.id}_${option.id}_$percentage'),
                   duration: const Duration(milliseconds: 800),
                   curve: Curves.easeOutCubic,
                   tween: Tween<double>(begin: 0, end: percentage / 100),
@@ -648,6 +697,7 @@ class _ThingsQustionsCardState extends State<ThingsQustionsCard> {
                   // Right indicator: percentage after voted, number while selecting
                   if (showPercentage)
                     TweenAnimationBuilder<int>(
+                      key: ValueKey('pct_${poll.id}_${option.id}_$percentage'),
                       duration: const Duration(milliseconds: 600),
                       curve: Curves.easeOut,
                       tween: IntTween(begin: 0, end: percentage.round()),

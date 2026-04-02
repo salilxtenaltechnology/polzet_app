@@ -54,6 +54,8 @@ class _PublicThingsQuestionsListState extends State<PublicThingsQuestionsList> {
   Map<int, List<LikeUser>> postLikedUsers = {};
   Map<int, bool> likedUsersLoading = {};
 
+  final Map<int, double> pollPercentages = {};
+
   List<PublicPost>? cachedPosts;
 
   // ── Poll helpers ───────────────────────────────────────────────────────────
@@ -89,15 +91,9 @@ class _PublicThingsQuestionsListState extends State<PublicThingsQuestionsList> {
     if (pollVotingStates[pollKey] == true) return;
 
     final previousSelected = List<int>.from(selectedOptions[pollKey] ?? []);
-    final previousPolled = pollPolledStates[pollKey] ?? false;
-    final previousPercentages = poll.options.map((o) => o.percentage).toList();
 
-    // Optimistic update
-    setState(() {
-      pollPolledStates[pollKey] = true;
-      pollVotingStates[pollKey] = true;
-      selectedOptions[pollKey] = [];
-    });
+    // ── Step 1: Show spinner only — nothing else changes ──
+    setState(() => pollVotingStates[pollKey] = true);
 
     try {
       final List<Map<String, int>> votes = [];
@@ -111,51 +107,84 @@ class _PublicThingsQuestionsListState extends State<PublicThingsQuestionsList> {
         votes: votes,
       );
 
+      if (!mounted) return;
+
       if (result['success'] == true) {
+        // ── Step 2: Fetch real percentages — writes pollPercentages, no setState inside ──
+        await _fetchPollResults(postId);
+
+        if (!mounted) return;
+
+        // ── Step 3: One setState reveals everything with real percentages — no 0% flash ──
         setState(() {
           pollVotingStates[pollKey] = false;
-          // Update percentages from server response
-          if (result['data']?['options'] != null) {
-            for (var optData in result['data']['options']) {
-              final optId = optData['option_id'] as int;
-              final pct = (optData['percentage'] as num?)?.toDouble() ?? 0.0;
-              for (var opt in poll.options) {
-                if (opt.id == optId) {
-                  // PublicPollOption.percentage is final — rebuild via cachedPosts
-                  _updateOptionPercentage(postId, poll.id, optId, pct);
-                  break;
-                }
-              }
-            }
-          }
+          selectedOptions[pollKey] = [];
+          pollPolledStates[pollKey] =
+              true; // ← flipped AFTER percentages are ready
         });
+
         showToast(message: 'Vote submitted successfully!');
       } else {
-        _revertPollState(
-          pollKey,
-          previousPolled,
-          previousSelected,
-          poll,
-          previousPercentages,
-          postId,
-        );
+        setState(() {
+          pollVotingStates[pollKey] = false;
+          selectedOptions[pollKey] = previousSelected;
+          // pollPolledStates unchanged — user hasn't voted
+        });
         showToast(message: result['message'] ?? 'Failed to submit votes.');
       }
     } catch (_) {
-      _revertPollState(
-        pollKey,
-        previousPolled,
-        previousSelected,
-        poll,
-        previousPercentages,
-        postId,
-      );
+      if (!mounted) return;
+      setState(() {
+        pollVotingStates[pollKey] = false;
+        selectedOptions[pollKey] = previousSelected;
+        // pollPolledStates unchanged — revert silently
+      });
       showToast(message: 'An error occurred. Please try again.');
     }
   }
 
-  /// Since PublicPollOption fields are final, update percentage by rebuilding
-  /// the cachedPosts entry.
+  Future<void> _fetchPollResultsAndRefresh(PublicPoll poll, int postId) async {
+    await _fetchPollResults(postId);
+    if (mounted) setState(() {});
+  }
+
+  // Writes ONLY into pollPercentages — never calls setState.
+  // Caller owns the setState.
+  Future<void> _fetchPollResults(int postId) async {
+    try {
+      final Map<String, dynamic> response = await ApiService().getPollResults(
+        postId,
+      );
+
+      if (!mounted) return;
+      if (response['status'] != 'success') return;
+
+      final data = response['data'] as Map<String, dynamic>?;
+      if (data == null) return;
+
+      final List<dynamic> results = data['results'] as List<dynamic>? ?? [];
+
+      for (final dynamic item in results) {
+        final r = item as Map<String, dynamic>;
+        final int optionId = r['option_id'] as int;
+        final double pct = (r['percentage'] as num?)?.toDouble() ?? 0.0;
+        // Write directly — no setState, caller owns the setState
+        pollPercentages[optionId] = pct;
+      }
+    } catch (e) {
+      debugPrint('Error fetching poll results: $e');
+    }
+  }
+
+  void _showThingsPostVotersBottomSheet(PublicPoll poll, int postId) {
+    poll.options.sort((a, b) => b.percentage.compareTo(a.percentage));
+    BottomSheetUtils.showPublicUserThingsPostBottomSheet(
+      context: context,
+      poll: poll,
+      postId: postId,
+    );
+  }
+
   void _updateOptionPercentage(
     int postId,
     int pollId,
@@ -204,31 +233,32 @@ class _PublicThingsQuestionsListState extends State<PublicThingsQuestionsList> {
     );
   }
 
-  void _revertPollState(
-    String pollKey,
-    bool previousPolled,
-    List<int> previousSelected,
-    PublicPoll poll,
-    List<double> previousPercentages,
-    int postId,
-  ) {
-    setState(() {
-      pollPolledStates[pollKey] = previousPolled;
-      pollVotingStates[pollKey] = false;
-      selectedOptions[pollKey] = previousSelected;
-      // Revert percentages
-      for (int i = 0; i < poll.options.length; i++) {
-        if (i < previousPercentages.length) {
-          _updateOptionPercentage(
-            postId,
-            poll.id,
-            poll.options[i].id,
-            previousPercentages[i],
-          );
-        }
-      }
-    });
-  }
+  // void _revertPollState(
+  //   String pollKey,
+  //   bool previousPolled,
+  //   List<int> previousSelected,
+  //   PublicPoll poll,
+  //   List<double> previousPercentages,
+  //   int postId,
+  // ) {
+  //   if (!mounted) return;
+  //   setState(() {
+  //     pollPolledStates[pollKey] = previousPolled;
+  //     pollVotingStates[pollKey] = false;
+  //     selectedOptions[pollKey] = previousSelected;
+  //     // Revert percentages
+  //     for (int i = 0; i < poll.options.length; i++) {
+  //       if (i < previousPercentages.length) {
+  //         _updateOptionPercentage(
+  //           postId,
+  //           poll.id,
+  //           poll.options[i].id,
+  //           previousPercentages[i],
+  //         );
+  //       }
+  //     }
+  //   });
+  // }
 
   // ── Like helpers ───────────────────────────────────────────────────────────
 
@@ -346,14 +376,22 @@ class _PublicThingsQuestionsListState extends State<PublicThingsQuestionsList> {
             postLikeStates[post.id] = post.isLiked;
             postLikeCounts[post.id] = post.likesCount;
             postCommentsCounts[post.id] = post.comments.length;
-            // Initialize poll polled states from model
             for (var poll in post.polls) {
               pollPolledStates[poll.id.toString()] =
                   post.is_polled_by_current_user;
             }
           }
         });
+
+        // ── Fetch real percentages for already-voted posts ──
         for (var post in posts) {
+          if (post.is_polled_by_current_user) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              for (final poll in post.polls) {
+                _fetchPollResultsAndRefresh(poll, post.id);
+              }
+            });
+          }
           if (post.likesCount > 0 && !likedUsersLoading.containsKey(post.id)) {
             _fetchLikedUsers(post.id);
           }
@@ -402,13 +440,9 @@ class _PublicThingsQuestionsListState extends State<PublicThingsQuestionsList> {
       return _buildEmptyState('No active polls found');
     }
 
-    final displayCount = postsWithTextPolls.length > 3
-        ? 3
-        : postsWithTextPolls.length;
-
     return ListView.builder(
       padding: const EdgeInsets.all(12),
-      itemCount: displayCount,
+      itemCount: postsWithTextPolls.length,
       itemBuilder: (context, index) {
         return _buildPostCard(postsWithTextPolls[index]);
       },
@@ -588,26 +622,35 @@ class _PublicThingsQuestionsListState extends State<PublicThingsQuestionsList> {
                           ),
                         ],
                       ),
-                      child: isVoting
-                          ? Padding(
-                              padding: EdgeInsets.all(12.w),
-                              child: const CircularProgressIndicator(
-                                strokeWidth: 2,
-                                valueColor: AlwaysStoppedAnimation<Color>(
-                                  Colors.white,
-                                ),
-                              ),
-                            )
-                          : Icon(
-                              Icons.stacked_bar_chart,
-                              color: Colors.white,
-                              size: 20.spMax,
-                            ),
+                      child: Icon(
+                        Icons.stacked_bar_chart,
+                        color: Colors.white,
+                        size: 20.spMax,
+                      ),
                     ),
                   ),
                 )
               : const SizedBox.shrink(),
         ),
+        if (hasUserPolled) ...[
+          SizedBox(height: 4.h),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              GestureDetector(
+                onTap: () => _showThingsPostVotersBottomSheet(poll, post.id),
+                child: Text(
+                  'View votes',
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.primary,
+                    fontSize: 10.sp,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
 
         SizedBox(height: 7.h),
         _buildPostActions(post),
@@ -622,7 +665,10 @@ class _PublicThingsQuestionsListState extends State<PublicThingsQuestionsList> {
     bool isDarkMode,
     bool hasUserPolled,
   ) {
-    final percentage = option.percentage;
+    // ✅ Read ONLY from pollPercentages — never option.percentage
+    final double pct = pollPercentages[option.id] ?? 0.0;
+    final int pctRounded = pct.round();
+
     final isSelected = selectedOptions[pollKey]?.contains(optionIndex) ?? false;
     final int? selectionNumber = _getSelectionNumber(pollKey, optionIndex);
 
@@ -648,13 +694,14 @@ class _PublicThingsQuestionsListState extends State<PublicThingsQuestionsList> {
         ),
         child: Stack(
           children: [
-            // Progress bar (shown after voting)
-            if (hasUserPolled && percentage > 0)
+            // ── Progress bar ──────────────────────────────────────────────
+            if (hasUserPolled && pctRounded > 0)
               Positioned.fill(
                 child: TweenAnimationBuilder<double>(
+                  key: ValueKey('bar_${pollKey}_${option.id}_$pctRounded'),
                   duration: const Duration(milliseconds: 800),
                   curve: Curves.easeOutCubic,
-                  tween: Tween<double>(begin: 0, end: percentage / 100),
+                  tween: Tween<double>(begin: 0, end: pctRounded / 100),
                   builder: (context, value, _) => FractionallySizedBox(
                     alignment: Alignment.centerLeft,
                     widthFactor: value,
@@ -670,7 +717,7 @@ class _PublicThingsQuestionsListState extends State<PublicThingsQuestionsList> {
                 ),
               ),
 
-            // Content
+            // ── Content row ───────────────────────────────────────────────
             Padding(
               padding: EdgeInsets.fromLTRB(8.w, 4.h, 8.w, 0),
               child: Row(
@@ -680,8 +727,7 @@ class _PublicThingsQuestionsListState extends State<PublicThingsQuestionsList> {
                     child: Text(
                       option.text ?? '',
                       style: TextStyle(
-                        color: Theme.of(context).colorScheme.onBackground
-                            .withOpacity(hasUserPolled ? 0.7 : 1.0),
+                        color: Theme.of(context).colorScheme.onBackground,
                         fontSize: 10.5.sp,
                         fontWeight: isSelected && !hasUserPolled
                             ? FontWeight.w600
@@ -689,13 +735,12 @@ class _PublicThingsQuestionsListState extends State<PublicThingsQuestionsList> {
                       ),
                     ),
                   ),
-                  // After voting: show animated percentage
-                  // While selecting: show selection order number
                   if (hasUserPolled)
                     TweenAnimationBuilder<int>(
-                      duration: const Duration(milliseconds: 600),
+                      key: ValueKey('pct_${pollKey}_${option.id}_$pctRounded'),
+                      duration: const Duration(milliseconds: 700),
                       curve: Curves.easeOut,
-                      tween: IntTween(begin: 0, end: percentage.round()),
+                      tween: IntTween(begin: 0, end: pctRounded),
                       builder: (context, value, _) => Text(
                         '$value%',
                         style: TextStyle(

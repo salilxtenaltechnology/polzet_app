@@ -7,11 +7,13 @@ import '../public_profile_model.dart';
 class PublicPollTextCard extends StatelessWidget {
   final PublicPost publicPost;
   final List<Color>? gradientColors;
+  final VoidCallback onTap;
 
   const PublicPollTextCard({
     super.key,
     required this.publicPost,
     this.gradientColors,
+    required this.onTap
   });
 
   @override
@@ -30,38 +32,41 @@ class PublicPollTextCard extends StatelessWidget {
 
     return Padding(
       padding: EdgeInsets.only(bottom: 12.h),
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(10).w,
-        decoration: BoxDecoration(
-          gradient: gradientColors != null
-              ? LinearGradient(
-                  colors: gradientColors!,
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                )
-              : null,
-          color: gradientColors == null
-              ? Theme.of(context).colorScheme.secondaryContainer
-              : null,
-          borderRadius: BorderRadius.circular(15.r),
-          boxShadow: const [
-            BoxShadow(color: Colors.black12, blurRadius: 6, spreadRadius: 2),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Poll Question
-            Text(
-              poll.question,
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 12.5.sp,
-                fontWeight: FontWeight.w400,
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(10).w,
+          decoration: BoxDecoration(
+            gradient: gradientColors != null
+                ? LinearGradient(
+                    colors: gradientColors!,
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  )
+                : null,
+            color: gradientColors == null
+                ? Theme.of(context).colorScheme.secondaryContainer
+                : null,
+            borderRadius: BorderRadius.circular(15.r),
+            boxShadow: const [
+              BoxShadow(color: Colors.black12, blurRadius: 6, spreadRadius: 2),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Poll Question
+              Text(
+                poll.question,
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 12.5.sp,
+                  fontWeight: FontWeight.w400,
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

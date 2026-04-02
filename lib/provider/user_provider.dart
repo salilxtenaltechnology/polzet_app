@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'dart:typed_data';
 import '../api/services/api_service.dart';
+import '../data/token/shared_preferences.dart';
 import '../models/user/user_model.dart';
 
 class UserProvider with ChangeNotifier {
@@ -105,6 +106,9 @@ class UserProvider with ChangeNotifier {
     firstName = data['first_name'];
     lastName = data['last_name'];
     email = data['email'];
+    if (email != null && email!.isNotEmpty) {
+    SharedPrefService.saveUserEmail(email!);
+  }
     bio = data['bio'];
     dob = data['dob'];
     gender = data['gender'];

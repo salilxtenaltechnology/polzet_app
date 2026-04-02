@@ -5,9 +5,9 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:feather_icons/feather_icons.dart';
 import 'package:polzet_app/languages/l10n/generated/app_localizations.dart';
 import 'package:polzet_app/widgets/base64/image_convert.dart';
-import '../../../models/comment/comment.dart';
-import '../../api/services/comment/comment_service.dart';
-import '../diolog/custom_diolog.dart';
+import '../../../../models/comment/comment.dart';
+import '../../../api/services/comment/comment_service.dart';
+import '../../diolog/custom_diolog.dart';
 
 class CommentsBottomSheet extends StatefulWidget {
   final int postId;
@@ -56,6 +56,7 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
       comments = fetchedComments;
       isLoading = false;
     });
+     widget.onCommentsCountChanged?.call(comments.length);
   }
 
   Future<void> _postComment() async {
@@ -108,7 +109,7 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
 
   showDeleteCommentDiolog(context, () {
     confirmed = true;
-    Navigator.pop(context); // 👈 close dialog
+    Navigator.pop(context); 
   });
 
   if (!confirmed) return;
@@ -135,11 +136,8 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
       ),
       child: Column(
         children: [
-          // Header
           _buildHeader(),
-          // Comments list
           Expanded(child: _buildCommentsList()),
-          // Comment input
           _buildCommentInput(),
         ],
       ),

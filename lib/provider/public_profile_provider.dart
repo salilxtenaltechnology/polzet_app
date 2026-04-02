@@ -3,11 +3,17 @@ import 'package:flutter/material.dart';
 import '../api/services/api_service.dart';
 import '../models/public/public_profile_model.dart';
 
+enum ProfileErrorType { noInternet, serverError, unknown, none }
+
 class PublicProfileProvider extends ChangeNotifier {
   PublicProfileModel? _profileResponse;
   ProfileData? _userProfile;
   bool _isLoading = false;
   String? _error;
+
+  ProfileErrorType _errorType = ProfileErrorType.none;
+
+  ProfileErrorType get errorType => _errorType;
 
   // Getters
   PublicProfileModel? get profileResponse => _profileResponse;
@@ -19,24 +25,45 @@ class PublicProfileProvider extends ChangeNotifier {
   Future<void> fetchPublicUserProfile(int userId) async {
     _isLoading = true;
     _error = null;
+    _errorType = ProfileErrorType.none; // ✅
     notifyListeners();
 
     try {
-      // Call the static API service method
       final response = await ApiService.getUserPublicProfile(userId);
 
       if (response.status == 'success') {
         _profileResponse = response;
         _userProfile = response.data;
         _error = null;
+        _errorType = ProfileErrorType.none;
       } else {
         _error = response.message;
+        _errorType = ProfileErrorType.unknown;
         _profileResponse = null;
         _userProfile = null;
       }
     } catch (e) {
       debugPrint('Error fetching public profile: $e');
-      _error = _parseErrorMessage(e.toString());
+      final msg = e.toString();
+
+      // ✅ Detect error type
+      if (msg.contains('Network error') ||
+          msg.contains('SocketException') ||
+          msg.contains('connection') ||
+          msg.contains('NetworkException')) {
+        _errorType = ProfileErrorType.noInternet;
+        _error = 'No internet connection';
+      } else if (msg.contains('500') ||
+          msg.contains('503') ||
+          msg.contains('502') ||
+          msg.contains('server')) {
+        _errorType = ProfileErrorType.serverError;
+        _error = 'Server error';
+      } else {
+        _errorType = ProfileErrorType.unknown;
+        _error = _parseErrorMessage(msg);
+      }
+
       _profileResponse = null;
       _userProfile = null;
     } finally {

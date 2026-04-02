@@ -4,22 +4,22 @@ import 'package:feather_icons/feather_icons.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
-import '../../../../api/api_config.dart';
-import '../../../../api/services/api_service.dart';
-import '../../../../api/services/like/like_service.dart';
-import '../../../../core/constants/app_images.dart';
-import '../../../../languages/l10n/generated/app_localizations.dart';
-import '../../../../models/like/like_uers_model.dart';
-import '../../../../models/posts/user_post_model.dart';
-import '../../../../widgets/base64/image_convert.dart';
-import '../../../../widgets/button/back_button.dart';
-import '../../../../widgets/custom_text_styles.dart';
-import '../../../../widgets/diolog/custom_diolog.dart';
-import '../../../../widgets/loader.dart';
-import '../../../../widgets/show_toast.dart';
-import '../../../../widgets/utils/bottomsheet_util.dart';
-import '../../../../widgets/utils/like_util.dart';
-import 'image_grid.dart';
+import '../../../../../api/api_config.dart';
+import '../../../../../api/services/api_service.dart';
+import '../../../../../api/services/like/like_service.dart';
+import '../../../../../core/constants/app_images.dart';
+import '../../../../../languages/l10n/generated/app_localizations.dart';
+import '../../../../../models/like/like_uers_model.dart';
+import '../../../../../models/posts/user_post_model.dart';
+import '../../../../../widgets/base64/image_convert.dart';
+import '../../../../../widgets/button/back_button.dart';
+import '../../../../../widgets/custom_text_styles.dart';
+import '../../../../../widgets/diolog/custom_diolog.dart';
+import '../../../../../widgets/loader.dart';
+import '../../../../../widgets/show_toast.dart';
+import '../../../../../widgets/utils/bottomsheet_util.dart';
+import '../../../../../widgets/utils/like_util.dart';
+import '../image_grid.dart';
 
 class ImagePostsList extends StatefulWidget {
   String? username;
@@ -62,15 +62,8 @@ class _ImagePostsListState extends State<ImagePostsList> {
     });
 
     try {
-      final postsImage = await apiService.fetchImagePosts(widget.username!);
-
-      // Debug: Print the like states from API
-      for (var post in postsImage) {
-        debugPrint(
-          'Post ${post.id}: isLiked=${post.isLiked}, likesCount=${post.likesCount}',
-        );
-      }
-
+      final postsImage = await apiService.fetchImagePosts(widget.username!);  
+      
       setState(() {
         cachedPosts = postsImage;
         isLoading = false;
@@ -374,12 +367,7 @@ class _ImagePostsListState extends State<ImagePostsList> {
 
         // Get liked users for this post
         final viewLikes = postLikedUsers[imagePost.id] ?? [];
-
-        // Debug print for verification
-        debugPrint(
-          'Rendering Post ${imagePost.id}: isLiked=$isLiked, likesCount=$likesCount',
-        );
-
+       
         return Container(
           padding: EdgeInsets.all(8.w),
           margin: EdgeInsets.all(10.w),

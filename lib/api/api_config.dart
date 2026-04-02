@@ -6,14 +6,13 @@ class ApiConfig {
   // www.polzet.com : Official Domain
 
   static String domainUrl =
-      'testbackend.polzet.in'; // Change this to your backend domain
+      'prodbackend.polzet.in'; // Change this to your backend domain
 
   static String get baseUrl {
     const protocol = useHttps ? 'https' : 'http';
     final domain = domainUrl;
     return '$protocol://$domain/api';
   }
-
 
   static String get baseUrlImage {
     const protocol = useHttps ? 'https' : 'http';

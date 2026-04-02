@@ -21,13 +21,9 @@ class PrivateChatProvider extends ChangeNotifier {
   bool isMemberTyping = false;
   int? _memberUserId;
   Timer? _typingTimer;
-
   Timer? _pollingTimer;
 
-
   // ── Stream for SILENT real-time message updates ────────────────────────────
-  // Only this stream triggers StreamBuilder rebuilds — notifyListeners() is
-  // reserved ONLY for non-message state: connection status, loading flags, errors.
   final StreamController<List<ChatMessage>> _messagesStreamController =
       StreamController<List<ChatMessage>>.broadcast();
 
@@ -50,18 +46,8 @@ class PrivateChatProvider extends ChangeNotifier {
       return '$h:$m';
     } else if (dt.year == now.year) {
       const months = [
-        'Jan',
-        'Feb',
-        'Mar',
-        'Apr',
-        'May',
-        'Jun',
-        'Jul',
-        'Aug',
-        'Sep',
-        'Oct',
-        'Nov',
-        'Dec',
+        'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+        'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
       ];
       return '${months[dt.month - 1]} ${dt.day}';
     } else {
@@ -69,8 +55,7 @@ class PrivateChatProvider extends ChangeNotifier {
     }
   }
 
-  // ── Loading / error state — these DO call notifyListeners() ───────────────
-  // But they are separated from message updates so the StreamBuilder is unaffected.
+  // ── Loading / error state ──────────────────────────────────────────────────
   bool _isLoadingHistory = false;
   bool get isLoadingHistory => _isLoadingHistory;
 
@@ -80,44 +65,43 @@ class PrivateChatProvider extends ChangeNotifier {
   String? _nextPageUrl;
   bool get hasMoreHistory => _nextPageUrl != null;
 
-
   // ── WebSocket state ────────────────────────────────────────────────────────
   static const String _wsBaseUrl = 'wss://testbackend.polzet.in';
 
   WebSocketChannel? _channel;
   StreamSubscription? _wsSubscription;
-  bool _isConnected = false;
+
+  // ✅ TWO separate booleans — never mix them
+  bool _isConnected = false;    // YOUR socket is alive
+  bool _isMemberOnline = false; // member's presence from WS events only
+
   bool _isConnecting = false;
   bool _shouldReconnect = false;
   int _reconnectAttempts = 0;
   Timer? _reconnectTimer;
 
-  // After sendMessage REST succeeds, we wait this long for WS echo before
-  // auto-confirming the pending optimistic message ourselves.
   static const Duration _pendingConfirmTimeout = Duration(seconds: 4);
   static const int _maxReconnectAttempts = 5;
 
-  bool get isConnected => _isConnected;
+  // ✅ Getters — clearly separated
+  bool get isConnected => _isConnected;         // use for WS logic only
+  bool get isMemberOnline => _isMemberOnline;   // use in UI for Online/Offline
   bool get isConnecting => _isConnecting;
   bool get showConnectionBanner => !_isConnected;
 
   // ── Current user ──────────────────────────────────────────────────────────
   String? _currentUsername;
 
-  // ── Chat settings ──────────────────────────────────────────────────────────
+  // ── Chat settings ─────────────────────────────────────────────────────────
   bool isMuteNotification = false;
   bool isProtectedChat = false;
   bool isHideChat = false;
   bool isHideChatHistory = false;
 
-  // Block user settings can be added here when that feature is implemented
   bool _isBlocking = false;
   bool get isBlocking => _isBlocking;
 
   // ── Emit helpers ───────────────────────────────────────────────────────────
-
-  /// Pushes the current message list into the stream.
-  /// This is the ONLY way the message list UI updates — zero notifyListeners().
   void _emitMessages() {
     if (!_messagesStreamController.isClosed) {
       _messagesStreamController.add(List.unmodifiable(_messages));
@@ -142,7 +126,6 @@ class PrivateChatProvider extends ChangeNotifier {
     }
     debugPrint('👤 Current username: $_currentUsername');
 
-    // Only notify for initial metadata — not for messages
     notifyListeners();
 
     if (_chatId == null) {
@@ -159,63 +142,60 @@ class PrivateChatProvider extends ChangeNotifier {
     } else {
       debugPrint('❌ PrivateChatProvider: No access token for WS');
     }
+
     _startPolling();
   }
 
-  // ── REST: fetch initial message history ────────────────────────────────────
-
+  // ── Polling ────────────────────────────────────────────────────────────────
   void _startPolling() {
-  _pollingTimer?.cancel();
-  _pollingTimer = Timer.periodic(const Duration(seconds: 10), (_) async {
-    debugPrint('🔄 Polling: fetching latest messages...');
-    await _fetchLatestMessages();
-  });
-}
-
-
-Future<void> _fetchLatestMessages() async {
-  if (_chatId == null) return;
-
-  try {
-    final response = await ApiService().getMessageList(chatId: _chatId!);
-
-    final fetched = response.results
-        .map(
-          (item) => ChatMessage(
-            text: item.message,
-            created_at: item.created_at,
-            isSentByMe: _currentUsername != null
-                ? item.isSentBy(_currentUsername)
-                : false,
-          ),
-        )
-        .toList()
-        .reversed
-        .toList();
-
-    // Only update if there are new messages
-    if (fetched.length > _messages.where((m) => !m.isPending).length) {
-      // Preserve pending (optimistic) messages
-      final pendingMessages = _messages.where((m) => m.isPending).toList();
-
-      _messages.clear();
-      _messages.addAll(fetched);
-      _messages.addAll(pendingMessages);
-
-      debugPrint('🔄 Polling: ${fetched.length} messages synced');
-      _emitMessages();
-    }
-  } catch (e) {
-    debugPrint('❌ Polling fetch failed: $e');
+    _pollingTimer?.cancel();
+    _pollingTimer = Timer.periodic(const Duration(seconds: 10), (_) async {
+      debugPrint('🔄 Polling: fetching latest messages...');
+      await _fetchLatestMessages();
+    });
   }
-}
+
+  Future<void> _fetchLatestMessages() async {
+    if (_chatId == null) return;
+
+    try {
+      final response = await ApiService().getMessageList(chatId: _chatId!);
+
+      final fetched = response.results
+          .map(
+            (item) => ChatMessage(
+              text: item.message,
+              created_at: item.created_at,
+              isSentByMe: _currentUsername != null
+                  ? item.isSentBy(_currentUsername)
+                  : false,
+            ),
+          )
+          .toList()
+          .reversed
+          .toList();
+
+      if (fetched.length > _messages.where((m) => !m.isPending).length) {
+        final pendingMessages = _messages.where((m) => m.isPending).toList();
+        _messages.clear();
+        _messages.addAll(fetched);
+        _messages.addAll(pendingMessages);
+        debugPrint('🔄 Polling: ${fetched.length} messages synced');
+        _emitMessages();
+      }
+    } catch (e) {
+      debugPrint('❌ Polling fetch failed: $e');
+    }
+  }
+
+  // ── REST: fetch initial message history ────────────────────────────────────
   Future<void> fetchMessageHistory() async {
     if (_chatId == null) return;
     if (_isLoadingHistory) return;
 
     _isLoadingHistory = true;
     _historyError = null;
-    notifyListeners(); // ✅ only notifies for loading spinner / error banner
+    notifyListeners();
 
     try {
       final response = await ApiService().getMessageList(chatId: _chatId!);
@@ -234,19 +214,15 @@ Future<void> _fetchLatestMessages() async {
           .toList();
 
       _messages.clear();
-      // API returns newest→oldest; reverse for top→bottom display
       _messages.addAll(fetched.reversed.toList());
-
       debugPrint('✅ Loaded ${fetched.length} messages');
-
-      // ✅ SILENT update — StreamBuilder rebuilds, nothing else does
       _emitMessages();
     } catch (e) {
       _historyError = e.toString();
       debugPrint('❌ Failed to load message history: $e');
     } finally {
       _isLoadingHistory = false;
-      notifyListeners(); // clears spinner, shows error banner if needed
+      notifyListeners();
     }
   }
 
@@ -256,7 +232,7 @@ Future<void> _fetchLatestMessages() async {
     if (_isLoadingHistory) return;
 
     _isLoadingHistory = true;
-    notifyListeners(); // shows top spinner
+    notifyListeners();
 
     try {
       final response = await ApiService().getMessageList(
@@ -275,11 +251,8 @@ Future<void> _fetchLatestMessages() async {
           )
           .toList();
 
-      // Prepend older messages at the top
       _messages.insertAll(0, fetched.reversed.toList());
       debugPrint('✅ Loaded ${fetched.length} more messages');
-
-      // ✅ SILENT update
       _emitMessages();
     } catch (e) {
       debugPrint('❌ Failed to load more history: $e');
@@ -291,7 +264,7 @@ Future<void> _fetchLatestMessages() async {
 
   // ── WebSocket ──────────────────────────────────────────────────────────────
   Future<void> _connectWebSocket(String token) async {
-    if (_isConnecting || _isConnected) return;
+    if (_isConnecting || _isConnected) return; // ✅ guard uses _isConnected only
     if (_chatId == null) {
       debugPrint('❌ Cannot connect WS — chatId is null');
       return;
@@ -323,16 +296,18 @@ Future<void> _fetchLatestMessages() async {
         cancelOnError: false,
       );
 
-      _isConnected = true;
+      _isConnected = true;   // ✅ YOUR socket is alive
       _isConnecting = false;
       _reconnectAttempts = 0;
+      // ✅ _isMemberOnline is NOT touched here — only WS events set it
       debugPrint('✅ Chat WebSocket connected');
       notifyListeners();
     } catch (e) {
       debugPrint('❌ Chat WS connection failed: $e');
       if (_isUpgradeRejected(e.toString())) _shouldReconnect = false;
-      _isConnected = false;
+      _isConnected = false;  // ✅ YOUR socket failed
       _isConnecting = false;
+      // ✅ _isMemberOnline is NOT touched here
       notifyListeners();
       _handleDisconnection();
     }
@@ -353,29 +328,35 @@ Future<void> _fetchLatestMessages() async {
     }
   }
 
-  // ── Incoming WS message ────────────────────────────────────────────────────
-
+  // ── Member user id ─────────────────────────────────────────────────────────
   void setMemberUserId(int userId) {
     _memberUserId = userId;
   }
 
+  // ── Incoming WS message ────────────────────────────────────────────────────
   void _onMessageReceived(dynamic raw) {
-    debugPrint('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-    debugPrint('📨 RAW WS RESPONSE: $raw');
+   // debugPrint('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+   // debugPrint('📨 RAW WS RESPONSE: $raw');
     try {
       final data = jsonDecode(raw as String) as Map<String, dynamic>;
 
-      // ── Presence: online/offline ──────────────────────────────────────────
-      if (data['action'] == 'status_change') {
+      // ── Presence: USER_JOINED_CHAT / USER_LEFT_CHAT ───────────────────────
+      // ✅ ONLY place where _isMemberOnline is ever set
+      if (data['type'] == 'USER_JOINED_CHAT' ||
+          data['type'] == 'USER_LEFT_CHAT') {
         final userId = data['user_id'];
         if (userId == _memberUserId) {
-          _isConnected = data['status'] == 'online';
+          _isMemberOnline = data['type'] == 'USER_JOINED_CHAT';
+          debugPrint(
+            '👤 Member online status: $_isMemberOnline '
+            '(event: ${data['type']})',
+          );
           notifyListeners();
         }
         return;
       }
 
-      // ── Presence: typing indicator ────────────────────────────────────────
+      // ── Typing indicator ──────────────────────────────────────────────────
       if (data['action'] == 'typing') {
         final userId = data['user_id'];
         if (userId == _memberUserId) {
@@ -385,7 +366,7 @@ Future<void> _fetchLatestMessages() async {
         return;
       }
 
-      // ── existing message handling below (unchanged) ───────────────────────
+      // ── Chat message ──────────────────────────────────────────────────────
       const encoder = JsonEncoder.withIndent('  ');
       debugPrint('📦 PARSED WS DATA:\n${encoder.convert(data)}');
       debugPrint('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
@@ -410,7 +391,6 @@ Future<void> _fetchLatestMessages() async {
           DateTime.now();
 
       if (isSentByMe) {
-        // ✅ Confirm the matching pending optimistic message with server timestamp
         final pendingIndex = _messages.lastIndexWhere(
           (m) => m.isSentByMe && m.isPending && m.text == text,
         );
@@ -421,11 +401,9 @@ Future<void> _fetchLatestMessages() async {
             isSentByMe: true,
             isPending: false,
           );
-          // ✅ SILENT — only StreamBuilder sees this
           _emitMessages();
           return;
         }
-        // Edge case: no matching pending found — fall through to add normally
       }
 
       _messages.add(
@@ -436,19 +414,18 @@ Future<void> _fetchLatestMessages() async {
           isPending: false,
         ),
       );
-      // ✅ SILENT — only StreamBuilder sees this
       _emitMessages();
     } catch (e) {
       debugPrint('❌ Error parsing WS message: $e');
     }
   }
 
+  // ── Typing ─────────────────────────────────────────────────────────────────
   void sendTyping(bool isTyping) {
     if (_channel == null || !_isConnected) return;
     _channel!.sink.add(jsonEncode({'typing': isTyping}));
   }
 
-  /// Call on each keystroke — auto-sends false after 2s of no typing
   void onUserTyping() {
     sendTyping(true);
     _typingTimer?.cancel();
@@ -457,12 +434,12 @@ Future<void> _fetchLatestMessages() async {
     });
   }
 
-  /// Call when message is sent
   void stopTyping() {
     _typingTimer?.cancel();
     sendTyping(false);
   }
 
+  // ── Disconnection handling ─────────────────────────────────────────────────
   void _handleDisconnection() {
     _cleanupConnection();
     if (!_shouldReconnect) return;
@@ -489,17 +466,14 @@ Future<void> _fetchLatestMessages() async {
     _wsSubscription = null;
     _channel?.sink.close(status.normalClosure);
     _channel = null;
-    _isConnected = false;
+    _isConnected = false;   // ✅ YOUR socket dropped
     _isConnecting = false;
+    // ✅ _isMemberOnline NOT reset here — they may still be online
+    //    it will be updated when USER_LEFT_CHAT event arrives
     notifyListeners();
   }
 
-  // ── Send message ──────
-  // Strategy:
-  // 1. Optimistic insert → user sees it immediately (via stream, silently)
-  // 2. REST API call → guaranteed server delivery
-  // 3. WS echo → confirms pending and sets real server timestamp
-  // 4. Fallback timer → if WS echo never arrives, auto-confirm after timeout
+  // ── Send message ───────────────────────────────────────────────────────────
   Future<void> sendMessage(String text) async {
     final trimmed = text.trim();
     if (trimmed.isEmpty) return;
@@ -512,15 +486,12 @@ Future<void> _fetchLatestMessages() async {
       isPending: true,
     );
     _messages.add(optimistic);
-    // ✅ SILENT — shows instantly in StreamBuilder with no screen flicker
     _emitMessages();
 
     try {
       await ApiService().sendMessage(chatId: _chatId!, text: trimmed);
       debugPrint('✅ Message delivered to server: $trimmed');
 
-      // ── Fallback: if WS echo doesn't arrive, confirm pending after timeout ─
-      // This prevents the message staying "pending" style forever.
       Future.delayed(_pendingConfirmTimeout, () {
         final pendingIndex = _messages.lastIndexWhere(
           (m) => m.isSentByMe && m.isPending && m.text == trimmed,
@@ -554,10 +525,10 @@ Future<void> _fetchLatestMessages() async {
     }
   }
 
+  // ── Block / Unblock ────────────────────────────────────────────────────────
   Future<Map<String, dynamic>> blockUser(int userId) async {
     _isBlocking = true;
     notifyListeners();
-
     try {
       final result = await ApiService().blockUser(userId);
       return result;
@@ -572,7 +543,6 @@ Future<void> _fetchLatestMessages() async {
   Future<Map<String, dynamic>> unblockUser(int userId) async {
     _isBlocking = true;
     notifyListeners();
-
     try {
       final result = await ApiService().unblockUser(userId);
       return result;
@@ -584,7 +554,7 @@ Future<void> _fetchLatestMessages() async {
     }
   }
 
-  // ── Toggles ─────────
+  // ── Toggles ────────────────────────────────────────────────────────────────
   void toggleMuteNotification(bool value) {
     isMuteNotification = value;
     notifyListeners();
@@ -609,8 +579,10 @@ Future<void> _fetchLatestMessages() async {
   void reset() {
     _shouldReconnect = false;
     _reconnectTimer?.cancel();
-    _cleanupConnection();
+    _cleanupConnection(); // sets _isConnected = false
 
+    _isMemberOnline = false; // ✅ reset member presence on full reset
+    isMemberTyping = false;
     _memberName = null;
     _profileUrl = null;
     _chatId = null;
@@ -619,13 +591,12 @@ Future<void> _fetchLatestMessages() async {
     _reconnectAttempts = 0;
     _nextPageUrl = null;
     _historyError = null;
-
     isMuteNotification = false;
     isProtectedChat = false;
     isHideChat = false;
     isHideChatHistory = false;
     _typingTimer?.cancel();
-     _pollingTimer?.cancel();
+    _pollingTimer?.cancel();
 
     notifyListeners();
   }
@@ -637,7 +608,7 @@ Future<void> _fetchLatestMessages() async {
     _cleanupConnection();
     _messagesStreamController.close();
     _typingTimer?.cancel();
-     _pollingTimer?.cancel(); 
+    _pollingTimer?.cancel();
     super.dispose();
   }
 }

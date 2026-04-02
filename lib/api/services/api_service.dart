@@ -1,4 +1,5 @@
 // ignore_for_file: unused_field, unused_element, non_constant_identifier_names, use_build_context_synchronously
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -19,6 +20,7 @@ import '../../models/insights/insights_model.dart';
 import '../../models/like/like_uers_model.dart';
 import '../../models/message/message_model.dart';
 import '../../models/posts/homefeed_posts_model.dart';
+import '../../models/posts/single_post_model.dart';
 import '../../models/posts/user_post_model.dart';
 import '../../models/public/public_profile_model.dart';
 import '../../models/search/search_user_model.dart';
@@ -40,11 +42,15 @@ class ApiService with UtilityMixin {
   factory ApiService() => _instance;
   ApiService._internal();
 
+  static bool simulateError = false;
+  static String simulateErrorType = 'none';
+
   static final Dio _dio = Dio(
     BaseOptions(
       connectTimeout: const Duration(seconds: 60),
       receiveTimeout: const Duration(seconds: 60),
       validateStatus: (status) => status != null && status < 500,
+      responseType: ResponseType.json,
     ),
   );
 
@@ -150,7 +156,7 @@ class ApiService with UtilityMixin {
 
   Future socialLogin(String googleToken) async {
     try {
-      debugPrint('📤 socialLogin token: $googleToken');
+      // debugPrint('📤 socialLogin token: $googleToken');
 
       final response = await _dio.post(
         ApiConstants.socialAuth,
@@ -206,6 +212,9 @@ class ApiService with UtilityMixin {
         ApiConstants.userProfile,
         options: Options(headers: await _getAuthHeaders()),
       );
+
+      final String userId = response.data['id'].toString();
+      await _prefService.saveUserId(userId);
 
       return response.statusCode == 200 ? response.data : null;
     } on DioException catch (e) {
@@ -398,7 +407,6 @@ class ApiService with UtilityMixin {
         };
       }
     } on DioException catch (e) {
-      // ✅ Dio throws DioException for non-2xx responses
       final message = e.response?.data['message'] ?? 'Failed to delete account';
       return {'success': false, 'message': message};
     } catch (e) {
@@ -406,7 +414,7 @@ class ApiService with UtilityMixin {
     }
   }
 
-  // ==================== IMAGE UPLOADS ====================
+  //*==================== IMAGE UPLOADS ====================*//
 
   // Upload profile picture
   Future<String> uploadProfileImage(File file) async {
@@ -425,12 +433,7 @@ class ApiService with UtilityMixin {
       final response = await _dio.put(
         ApiConstants.profileImage,
         data: formData,
-        options: Options(
-          headers: {
-            'Authorization': 'Bearer ${await SharedPrefService.getToken()}',
-            'Content-Type': 'multipart/form-data',
-          },
-        ),
+        options: Options(headers: await _getAuthHeaders()),
       );
 
       if (response.statusCode == 200) {
@@ -463,12 +466,7 @@ class ApiService with UtilityMixin {
       final response = await _dio.put(
         ApiConstants.coverImage,
         data: formData,
-        options: Options(
-          headers: {
-            'Authorization': 'Bearer ${await SharedPrefService.getToken()}',
-            'Content-Type': 'multipart/form-data',
-          },
-        ),
+        options: Options(headers: await _getAuthHeaders()),
       );
 
       if (response.statusCode == 200) {
@@ -506,8 +504,29 @@ class ApiService with UtilityMixin {
     }
   }
 
-  /// Fetch home feed posts
   static Future<HomeFeedResponse> fetchHomeFeedPosts({String? url}) async {
+    // // ✅ Test simulation — auto-removed in release builds
+    // assert(() {
+    //   if (simulateError) {
+    //     switch (simulateErrorType) {
+    //       case 'no_internet':
+    //         throw const SocketException('Simulated no internet');
+    //       case 'server':
+    //         throw DioException(
+    //           requestOptions: RequestOptions(path: ''),
+    //           response: Response(
+    //             requestOptions: RequestOptions(path: ''),
+    //             statusCode: 500,
+    //           ),
+    //           type: DioExceptionType.badResponse,
+    //         );
+    //       case 'timeout':
+    //         throw TimeoutException('Simulated timeout');
+    //     }
+    //   }
+    //   return true;
+    // }());
+
     try {
       final accessToken = await SharedPrefService.getToken();
       final response = await _dio.get(
@@ -528,6 +547,24 @@ class ApiService with UtilityMixin {
     } on DioException catch (e) {
       debugPrint('Error fetching home feed: $e');
       throw Exception('Error fetching posts: $e');
+    }
+  }
+
+  Future<SinglePostModel> getSinglePost(String username, int postId) async {
+    try {
+      final response = await _dio.get(
+        '${ApiConstants.singlePost}/$username/$postId/',
+        options: Options(headers: await _getAuthHeaders()),
+      );
+
+      if (response.statusCode == 200) {
+        final jsonData = response.data as Map<String, dynamic>;
+        return SinglePostModel.fromJson(jsonData);
+      }
+      throw Exception('Failed to load post: ${response.statusCode}');
+    } on DioException catch (e) {
+      debugPrint('Error fetching single post: $e');
+      throw Exception('Error fetching single post: $e');
     }
   }
 
@@ -591,9 +628,6 @@ class ApiService with UtilityMixin {
           },
         ),
       );
-
-      debugPrint('✅ FetchSinglePost Response Status: ${response.statusCode}');
-      // debugPrint('📄 FetchSinglePost Response Data: ${response.data}');
 
       if (response.statusCode == 200) {
         final data = response.data;
@@ -1138,12 +1172,26 @@ class ApiService with UtilityMixin {
 
   Future<Map<String, dynamic>> createGroup({
     required String title,
+    required String profileImage,
     required List<int> members,
   }) async {
     try {
+      final body = {
+        'title': title,
+        'profile_image': 'data:image/jpeg;base64,$profileImage',
+        'members': members,
+      };
+
+      debugPrint('=== CREATE GROUP REQUEST ===');
+      debugPrint('title: $title');
+      debugPrint('profile_image length: ${profileImage.length}');
+      debugPrint('profile_image preview: ${profileImage.substring(0, 50)}...');
+      debugPrint('members: $members');
+      debugPrint('============================');
+
       final response = await _dio.post(
         ApiConstants.createGroup,
-        data: {'title': title, 'members': members},
+        data: body,
         options: Options(headers: await _getAuthHeaders()),
       );
 
@@ -1425,6 +1473,7 @@ class ApiService with UtilityMixin {
 
       if (response.statusCode == 200) {
         final data = response.data;
+        // debugPrint('Public profile data: $data');
         if (data['status'] == 'success') {
           return PublicProfileModel.fromJson(data);
         }
@@ -1943,7 +1992,7 @@ class ApiService with UtilityMixin {
       final accessToken = await SharedPrefService.getToken();
 
       final response = await http.get(
-        Uri.parse('${ApiConstants.baseUrl}/api/posts/$postId/poll_results'),
+        Uri.parse('${ApiConstants.baseUrl}/posts/$postId/poll_results'),
         headers: {
           'Authorization': 'Bearer $accessToken',
           'Content-Type': 'application/json',
@@ -1997,30 +2046,98 @@ class ApiService with UtilityMixin {
 
   // ==================== FEEDBACK ====================
 
+  //   Future<Map<String, dynamic>> submitFeedback({
+  //     required String email,
+  //     required String subject,
+  //     required String category,
+  //     required String message,
+  //     required int rating,
+  //   }) async {
+  //     try {
+  //       final FormData formData = FormData.fromMap({
+  //         'email': email,
+  //         'subject': subject,
+  //         'category': category,
+  //         'message': message,
+  //         'rating': rating.toString(),
+  //       });
+
+  //       final Response response = await _dio.post(
+  //         ApiConstants.feedback,
+  //         data: formData,
+  //         options: Options(headers: await _getAuthHeaders()),
+  //       );
+
+  //       return response.data as Map<String, dynamic>;
+  //     } on DioException catch (e) {
+  //       throw _handleDioError(e);
+  //     }
+  //   }
+  // }
+
   Future<Map<String, dynamic>> submitFeedback({
     required String email,
     required String subject,
     required String category,
     required String message,
     required int rating,
+    required String reaction,
+    File? screenshotFile,
+    Map<String, String>? deviceInfo,
   }) async {
     try {
-      final FormData formData = FormData.fromMap({
+      final deviceData =
+          deviceInfo ??
+          {
+            'browser': 'Flutter App',
+            'os': Platform.operatingSystem,
+            'screen_resolution':
+                '${WidgetsBinding.instance.platformDispatcher.views.first.physicalSize.width.toInt()}'
+                'x${WidgetsBinding.instance.platformDispatcher.views.first.physicalSize.height.toInt()}',
+            'user_agent': 'Polzet Flutter/${Platform.operatingSystemVersion}',
+          };
+
+      String? screenshotBase64;
+      if (screenshotFile != null) {
+        final bytes = await screenshotFile.readAsBytes();
+        final base64Str = base64Encode(bytes);
+        screenshotBase64 = 'data:image/jpeg;base64,$base64Str';
+      }
+
+      final Map<String, dynamic> body = {
         'email': email,
         'subject': subject,
         'category': category,
         'message': message,
-        'rating': rating.toString(),
-      });
+        'rating': rating,
+        'reaction': reaction,
+        'device_info': deviceData,
+        if (screenshotBase64 != null) 'screenshot': screenshotBase64,
+      };
 
       final Response response = await _dio.post(
         ApiConstants.feedback,
-        data: formData,
-        options: Options(headers: await _getAuthHeaders()),
+        data: body,
+        options: Options(
+          headers: await _getAuthHeaders(),
+          contentType: 'application/json',
+        ),
       );
 
-      return response.data as Map<String, dynamic>;
+      final data = response.data;
+      if (data is Map<String, dynamic>) {
+        return data;
+      } else if (data is String) {
+        if (data.trimLeft().startsWith('<!')) {
+          throw Exception('Server returned HTML — check endpoint URL.');
+        }
+        return jsonDecode(data) as Map<String, dynamic>;
+      } else {
+        throw Exception('Unexpected response format: ${data.runtimeType}');
+      }
     } on DioException catch (e) {
+      debugPrint('❌ Status: ${e.response?.statusCode}');
+      debugPrint('❌ Error body: ${e.response?.data}');
       throw _handleDioError(e);
     }
   }

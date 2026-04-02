@@ -1,12 +1,18 @@
-// ignore_for_file: deprecated_member_use
+// ignore_for_file: prefer_final_fields, deprecated_member_use
 
+import 'dart:convert';
+import 'dart:io';
+
+import 'package:feather_icons/feather_icons.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:polzet_app/core/constants/app_colors.dart';
 import 'package:polzet_app/languages/l10n/generated/app_localizations.dart';
+import 'package:polzet_app/widgets/loader.dart';
 import 'package:polzet_app/widgets/show_toast.dart';
 
 import '../../../api/services/api_service.dart';
+import '../../../api/services/image/image_picker_service.dart';
 import '../../../mixin/utility_mixins.dart';
 import '../../../widgets/base64/image_convert.dart';
 import '../../../widgets/button/back_button.dart';
@@ -32,9 +38,11 @@ class _CreateGroupState extends State<CreateGroup> with UtilityMixin {
 
   /// Full user maps for displaying the selected members list
   List<Map<String, dynamic>> _selectedUsers = [];
+  bool _isUploadingImage = false;
 
   bool _isCreating = false;
-
+  File? _selectedImage;
+  String? _base64ProfileImage;
   @override
   void dispose() {
     _groupNameController.dispose();
@@ -62,6 +70,22 @@ class _CreateGroupState extends State<CreateGroup> with UtilityMixin {
 
   // ── Create group API ─────────────────────────────────────────────────────────
 
+  Future<void> _pickGroupImage() async {
+    final file = await ImagePickerService.pickImage(context: context);
+    if (file == null) return;
+
+    final cropped = await ImagePickerService.cropImage(file);
+    final finalFile = cropped ?? file;
+
+    final bytes = await finalFile.readAsBytes();
+    final base64Str = base64Encode(bytes);
+
+    setState(() {
+      _selectedImage = finalFile;
+      _base64ProfileImage = base64Str;
+    });
+  }
+
   Future<void> _createGroup() async {
     final groupName = _groupNameController.text.trim();
 
@@ -79,8 +103,11 @@ class _CreateGroupState extends State<CreateGroup> with UtilityMixin {
     try {
       final result = await _apiServices.createGroup(
         title: groupName,
+        profileImage: _base64ProfileImage ?? '',
         members: _selectedIds.toList(),
       );
+
+     
 
       if (result['success'] == true) {
         if (mounted) Navigator.pop(context, result['chat_id']);
@@ -119,7 +146,7 @@ class _CreateGroupState extends State<CreateGroup> with UtilityMixin {
         automaticallyImplyLeading: false,
         leading: const PrimaryBackButton(),
         title: Text(
-        AppLocalizations.of(context)!.creategroup,
+          AppLocalizations.of(context)!.creategroup,
           style: CustomTextStyles.appBarTitleText(context),
         ),
         centerTitle: true,
@@ -130,8 +157,81 @@ class _CreateGroupState extends State<CreateGroup> with UtilityMixin {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Stack(
+                  children: [
+                    SizedBox(
+                      height: 90.h,
+                      width: 90.w,
+                      child: Container(
+                        margin: EdgeInsets.only(bottom: 10.h),
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+
+                          border: Border.all(
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onBackground.withOpacity(0.14),
+                            width: 1.5.w,
+                          ),
+                          image: _selectedImage != null
+                              ? DecorationImage(
+                                  image: FileImage(_selectedImage!),
+                                  fit: BoxFit.cover,
+                                )
+                              : null,
+                        ),
+                        child: _selectedImage == null
+                            ? Center(
+                                child: Icon(
+                                  Icons.group_rounded, 
+                                  size: 36.sp,
+                                  color: Theme.of(
+                              context,
+                            ).colorScheme.onBackground.withOpacity(0.14),
+                                ),
+                              )
+                            : null,
+                      ),
+                    ),
+
+                    Positioned(
+                      bottom: 12.h,
+                      right: 10,
+                      child: GestureDetector(
+                        onTap: _isUploadingImage ? null : _pickGroupImage,
+                        child: Container(
+                          padding: const EdgeInsets.all(4),
+                          decoration: BoxDecoration(
+                            color: Theme.of(context).colorScheme.primary,
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: Theme.of(context).colorScheme.background,
+                              width: 1.5.w,
+                            ),
+                          ),
+                          child: _isUploadingImage
+                              ? SizedBox(
+                                  width: 12.sp,
+                                  height: 12.sp,
+                                  child: Loader(color: AppColors.primaryColor),
+                                )
+                              : Icon(
+                                  FeatherIcons.camera,
+                                  size: 10.sp,
+                                  color: Colors.white,
+                                ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
             Text(
-             AppLocalizations.of(context)!.namegroup,
+              AppLocalizations.of(context)!.namegroup,
               style: TextStyle(
                 color: Theme.of(context).colorScheme.onBackground,
                 fontSize: 11.sp,
@@ -147,12 +247,12 @@ class _CreateGroupState extends State<CreateGroup> with UtilityMixin {
             Row(
               children: [
                 Text(
-                 AppLocalizations.of(context)!.members,
-                   style: TextStyle(
-                color: Theme.of(context).colorScheme.onBackground,
-                fontSize: 11.sp,
-                fontWeight: FontWeight.w400,
-              ),
+                  AppLocalizations.of(context)!.members,
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onBackground,
+                    fontSize: 11.sp,
+                    fontWeight: FontWeight.w400,
+                  ),
                 ),
                 const Spacer(),
                 if (_selectedIds.isNotEmpty)
@@ -260,7 +360,7 @@ class _CreateGroupState extends State<CreateGroup> with UtilityMixin {
         padding: EdgeInsets.zero,
         height: 50.h,
         child: PrimaryButton(
-          title:  AppLocalizations.of(context)!.creategroup,
+          title: AppLocalizations.of(context)!.creategroup,
           onPressed: _createGroup,
           isLoading: _isCreating,
         ),

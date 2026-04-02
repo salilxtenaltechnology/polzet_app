@@ -67,9 +67,7 @@ class MessageItem {
         json['sender'] as Map<String, dynamic>? ?? {},
       ),
       message: json['message']?.toString() ?? json['text']?.toString() ?? '',
-      created_at:
-          DateTime.tryParse(json['created_at']?.toString() ?? '') ??
-          DateTime.now(),
+     created_at: DateTime.parse(json['created_at']).toLocal(),
     );
   }
 

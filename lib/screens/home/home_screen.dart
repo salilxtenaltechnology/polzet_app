@@ -8,9 +8,7 @@ class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key, this.initialIndex = 0, this.pendingDestination});
 
   @override
-  State<StatefulWidget> createState() {
-    return HomeScreenState();
-  }
+  State<StatefulWidget> createState() => HomeScreenState();
 }
 
 class HomeScreenState extends State<HomeScreen> with UtilityMixin {
@@ -25,40 +23,31 @@ class HomeScreenState extends State<HomeScreen> with UtilityMixin {
     pageIndex = widget.initialIndex;
     _loadCachedUserData();
 
-    // Initialize notifications and request permissions after login/splash
     WidgetsBinding.instance.addPostFrameCallback((_) {
       NotificationService().initialize();
-
       _checkPrivacyStatus();
 
-      // ✅ Handle pending navigation (safely after build)
       if (widget.pendingDestination != null) {
-        debugPrint(
-          '🚀 HomeScreen: Navigating to pending destination: ${widget.pendingDestination.runtimeType}',
-        );
         Navigator.of(
           context,
         ).push(MaterialPageRoute(builder: (_) => widget.pendingDestination!));
-        // ✅ Cleared pending notification after handling
         NotificationRouter().clear();
-      }
-      // ✅ NEW: Safety check for pending notifications (intermittent fix)
-      // Handles cases where main.dart didn't pass it (e.g., warm start)
-      else if (NotificationRouter().hasPendingNotification()) {
-        debugPrint(
-          '🚀 HomeScreen: Found pending notification in Router (intermittent fix)',
-        );
+      } else if (NotificationRouter().hasPendingNotification()) {
+        debugPrint('🚀 HomeScreen: Found pending notification in Router');
         NotificationRouter().handlePendingNotification(context);
       }
     });
   }
 
-  // ✅ Load cached user data for immediate display
+  @override
+  void dispose() {
+    super.dispose();
+  }
+
   Future<void> _loadCachedUserData() async {
     try {
       final fName = await SharedPrefService.getFirstName();
       final lName = await SharedPrefService.getLastName();
-
       if (mounted) {
         setState(() {
           firstname = fName;
@@ -78,10 +67,19 @@ class HomeScreenState extends State<HomeScreen> with UtilityMixin {
     const UserProfile(),
   ];
 
-  void _checkPrivacyStatus() {
+  Future<void> _checkPrivacyStatus() async {
+    final prefs = await SharedPreferences.getInstance();
+    final cachedPrivacy = prefs.getBool('privacy_accepted');
+
+    if (cachedPrivacy == true) {
+      debugPrint('Privacy already accepted (cached)');
+      return;
+    }
+
+    if (!mounted) return;
+
     final userProvider = Provider.of<UserProvider>(context, listen: false);
 
-    // If still loading, wait for it
     if (userProvider.isLoading) {
       userProvider.addListener(_onUserProviderReady);
     } else {
@@ -91,36 +89,47 @@ class HomeScreenState extends State<HomeScreen> with UtilityMixin {
 
   void _onUserProviderReady() {
     final userProvider = Provider.of<UserProvider>(context, listen: false);
-
     if (!userProvider.isLoading) {
-      userProvider.removeListener(
-        _onUserProviderReady,
-      ); // ✅ Remove to avoid repeat calls
+      userProvider.removeListener(_onUserProviderReady);
       _navigateIfPrivacyNotAccepted(userProvider);
     }
   }
 
-  void _navigateIfPrivacyNotAccepted(UserProvider userProvider) {
+  void _navigateIfPrivacyNotAccepted(UserProvider userProvider) async {
+    if (!mounted) return;
+    final navigator = Navigator.of(context);
+    final prefs = await SharedPreferences.getInstance();
+
+    if (!mounted) return;
+
+    final cachedPrivacy = prefs.getBool('privacy_accepted');
+    if (cachedPrivacy == true) return;
+
+    // ✅ Use ConnectivityProvider (already in tree) — no manual check needed
+    final connectivity = context.read<ConnectivityProvider>();
+    if (!connectivity.isOnline) {
+      debugPrint('Offline — skipping privacy check');
+      return;
+    }
+
     final bool privacyAccepted = userProvider.privacy_status ?? false;
 
-    if (!privacyAccepted && mounted) {
-      Navigator.of(context).pushReplacement(
+    if (!privacyAccepted) {
+      navigator.pushReplacement(
         MaterialPageRoute(builder: (_) => const TermsAcceptance()),
       );
+    } else {
+      await prefs.setBool('privacy_accepted', true);
     }
   }
 
   void navigateToNotifications() {
-    setState(() {
-      pageIndex = 3;
-    });
+    setState(() => pageIndex = 3);
     bottomNavigationKey.currentState?.setPage(3);
   }
 
   void navigateToUserProfile() {
-    setState(() {
-      pageIndex = 4;
-    });
+    setState(() => pageIndex = 4);
     bottomNavigationKey.currentState?.setPage(4);
   }
 
@@ -134,6 +143,7 @@ class HomeScreenState extends State<HomeScreen> with UtilityMixin {
   @override
   Widget build(BuildContext context) {
     final userProvider = Provider.of<UserProvider>(context);
+
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.background,
       appBar: pageIndex == 4
@@ -206,58 +216,50 @@ class HomeScreenState extends State<HomeScreen> with UtilityMixin {
                       style: CustomTextStyles.appBarTitleText(context),
                     )
                   : null,
-              centerTitle: pageIndex == 2
-                  ? pageIndex == 3
-                        ? true
-                        : false
-                  : true,
+              centerTitle: pageIndex == 2 ? false : true,
               actions: [
-                // home icons
                 if (pageIndex == 0)
                   AppIcons(
                     onTap: () {
-                     // navigationPush(context, const UserSearch());
-                      navigationPush(context, const GlobalSearchScreen());
+                    // ConnectivityOverlay.showTestSheet(context, 'server');
+                      // showModalBottomSheet(
+                      //   context: context,
+                      //   isScrollControlled: true, // ← required for tall sheets
+                      //   backgroundColor: Colors.transparent,
+                      //   builder: (_) => const FeedbackBottomsheet(),
+                      // );
                     },
+                    icon: Icons.feedback,
+                  ),
+                SizedBox(width: 9.w),
+                if (pageIndex == 0)
+                  AppIcons(
+                    onTap: () =>
+                        navigationPush(context, const GlobalSearchScreen()),
                     icon: FeatherIcons.search,
                   ),
                 SizedBox(width: 9.w),
                 if (pageIndex == 0)
                   AppIcons(
-                    onTap: () {
-                      navigationPush(context, const MessageList());
-                    },
+                    onTap: () => navigationPush(context, const MessageList()),
                     icon: FeatherIcons.messageSquare,
                   ),
-                // SizedBox(width: 7.w),
-                // if (pageIndex == 0)
-                //   AppIcons(
-                //     onTap: () {
-                //       navigationPush(context, const Settings());
-                //     },
-                //     icon: FeatherIcons.settings,
-                //   ),
                 SizedBox(width: 8.w),
               ],
             ),
       body: SafeArea(child: screens[pageIndex]),
       floatingActionButton: SafeArea(
         child: CustomFloatingActionButton(
-          onTap: () {
-            _showNewPollSheet(context);
-          },
+          onTap: () => _showNewPollSheet(context),
         ),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+      // ✅ OfflineBanner removed — ConnectivityOverlay in MaterialApp.builder handles it globally
       bottomNavigationBar: SafeArea(
         child: CustomBottomNavigationBar(
           index: pageIndex,
           bottomNavigationKey: bottomNavigationKey,
-          onTap: (index) {
-            setState(() {
-              pageIndex = index;
-            });
-          },
+          onTap: (index) => setState(() => pageIndex = index),
         ),
       ),
     );
@@ -266,13 +268,7 @@ class HomeScreenState extends State<HomeScreen> with UtilityMixin {
   void _showNewPollSheet(BuildContext context) {
     showModalBottomSheet(
       context: context,
-      builder: (BuildContext context) {
-        return Builder(
-          builder: (BuildContext context) {
-            return const NewPollBottomsheet();
-          },
-        );
-      },
+      builder: (_) => const NewPollBottomsheet(),
     );
   }
 }

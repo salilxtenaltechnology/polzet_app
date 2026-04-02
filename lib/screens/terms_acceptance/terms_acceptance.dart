@@ -8,6 +8,7 @@ import 'package:polzet_app/mixin/utility_mixins.dart';
 import 'package:polzet_app/screens/home/home_imports.dart';
 import 'package:polzet_app/screens/home/settings/privacy/privacy_policy.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../api/services/api_service.dart';
 import '../../core/constants/app_colors.dart';
@@ -63,39 +64,48 @@ class _TermsAcceptanceScreenState extends State<TermsAcceptance>
     _fadeController.forward();
   }
 
- Future<void> onAcceptPrivacy() async {
-  if (!_canProceed || _isLoading) return;
+  Future<void> onAcceptPrivacy() async {
+    if (!_canProceed || _isLoading) return;
 
-  setState(() => _isLoading = true);
+    setState(() => _isLoading = true);
 
-  try {
-    final result = await ApiService().acceptPrivacyStatus(status: 'accept');
+    try {
+      final result = await ApiService().acceptPrivacyStatus(status: 'accept');
 
-    debugPrint('Privacy result: $result');
+      debugPrint('Privacy result: $result');
 
-    final isAccepted = result['is_accepted'] == true || result['success'] == true;
+      final isAccepted =
+          result['is_accepted'] == true || result['success'] == true;
 
-    if (isAccepted) {
-      if (!mounted) return;
-      Provider.of<UserProvider>(context, listen: false).setPrivacyStatus(true);
-      navigationPushReplacement(context, const HomeScreen(initialIndex: 0));
-    } else {
+      if (isAccepted) {
+        final prefs = await SharedPreferences.getInstance();
+        if (!mounted) return;
+        await prefs.setBool('privacy_accepted', true);
+
+        Provider.of<UserProvider>(
+          context,
+          listen: false,
+        ).setPrivacyStatus(true);
+        navigationPushReplacement(context, const HomeScreen(initialIndex: 0));
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(result['message'] ?? 'Something went wrong')),
+        );
+      }
+    } on DioException catch (e) {
+      final message = e.response?.data?['message'] ?? 'Something went wrong';
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(message)));
+    } catch (e) {
+      debugPrint('Error: $e');
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(result['message'] ?? 'Something went wrong')),
+        const SnackBar(content: Text('Failed to update privacy status')),
       );
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
-  } on DioException catch (e) {
-    final message = e.response?.data?['message'] ?? 'Something went wrong';
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
-  } catch (e) {
-    debugPrint('Error: $e');
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Failed to update privacy status')),
-    );
-  } finally {
-    if (mounted) setState(() => _isLoading = false);
   }
-}
 
   @override
   void dispose() {

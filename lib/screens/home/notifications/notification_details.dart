@@ -4,6 +4,7 @@ import 'package:feather_icons/feather_icons.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:polzet_app/widgets/custom_card.dart';
+import 'package:polzet_app/widgets/loader.dart';
 import 'package:provider/provider.dart';
 
 import '../../../api/api_config.dart';
@@ -30,18 +31,21 @@ class NotificationDetails extends StatefulWidget {
 }
 
 class _NotificationDetailsState extends State<NotificationDetails> {
-  // Initialize with default values - will be updated when post loads
-  int likesCount = 0;
-  bool isLike = false;
-  bool isLikeLoading = false;
-  List<LikeUser> viewLikes = [];
-  int commentsCount = 0;
 
   final ApiService apiService = ApiService();
-  UserPostModel? currentPost;
-
-  // Store the Future to prevent recreating it on every build
   late Future<UserPostModel?> _postFuture;
+
+  Map<int, double> localPercentages = {};
+  Map<String, bool> pollPolledStates = {};
+
+  List<LikeUser> viewLikes = [];
+
+  int likesCount = 0;
+  int commentsCount = 0;
+
+  bool isLike = false;
+  bool isLikeLoading = false;
+  UserPostModel? currentPost;
 
   @override
   void initState() {
@@ -70,9 +74,9 @@ class _NotificationDetailsState extends State<NotificationDetails> {
         }
       }
 
-      debugPrint('✅ NotificationDetails: UserProvider ready');
-      debugPrint('   Username: ${userProvider.username}');
-      debugPrint('   User ID: ${userProvider.userId}');
+      // debugPrint('✅ NotificationDetails: UserProvider ready');
+      // debugPrint('   Username: ${userProvider.username}');
+      // debugPrint('   User ID: ${userProvider.userId}');
 
       // ✅ Step 2: Now load the post
       return await loadSinglePost(widget.postId);
@@ -82,26 +86,47 @@ class _NotificationDetailsState extends State<NotificationDetails> {
     }
   }
 
+  void _handlePercentagesUpdated(Map<int, double> updated) {
+    if (mounted) {
+      setState(() => localPercentages.addAll(updated));
+    }
+  }
+
+  void _handlePollPolledStateChanged(String pollKey, bool polled) {
+    if (mounted) {
+      setState(() => pollPolledStates[pollKey] = polled);
+    }
+  }
+
   // Initialize like state from loaded post
   void _initializeLikeState(UserPostModel post) {
     currentPost = post;
     isLike = post.isLiked;
     likesCount = post.likesCount;
     commentsCount = post.commentsCount;
+
+    localPercentages.clear();
+    pollPolledStates.clear();
+    for (var poll in post.polls) {
+      pollPolledStates[poll.id.toString()] = post.is_polled_by_current_user;
+      for (var option in poll.options ?? []) {
+        localPercentages[option.id] = option.percentage;
+      }
+    }
     // Copy the viewLikes list if it exists in your model
     // viewLikes = List.from(post.viewLikes);
 
-    debugPrint('==== POST LIKE STATE ====');
-    debugPrint('Post ID: ${post.id}');
-    debugPrint('Post Type: ${_getPostType(post)}');
-    debugPrint('isLiked from server: ${post.isLiked}');
-    debugPrint('isLike variable: $isLike');
-    debugPrint('likesCount: $likesCount');
-    debugPrint('commentsCount: $commentsCount');
-    debugPrint('========================');
+    // debugPrint('==== POST LIKE STATE ====');
+    // debugPrint('Post ID: ${post.id}');
+    // debugPrint('Post Type: ${_getPostType(post)}');
+    // debugPrint('isLiked from server: ${post.isLiked}');
+    // debugPrint('isLike variable: $isLike');
+    // debugPrint('likesCount: $likesCount');
+    // debugPrint('commentsCount: $commentsCount');
+    // debugPrint('========================');
   }
 
-  /// ✅ ENHANCED: Load post with better error handling
+  ///ENHANCED: Load post with better error handling
   Future<UserPostModel?> loadSinglePost(int postId) async {
     if (postId == 0) {
       debugPrint("❌ Invalid postId: 0");
@@ -117,9 +142,9 @@ class _NotificationDetailsState extends State<NotificationDetails> {
         throw Exception('User session not found. Please login again.');
       }
 
-      debugPrint('⏳ Fetching posts for username: $username');
+      //   debugPrint('⏳ Fetching posts for username: $username');
       final posts = await apiService.fetchPostsImages(username);
-      debugPrint('✅ Fetched ${posts.length} posts');
+      //   debugPrint('✅ Fetched ${posts.length} posts');
 
       // Find the specific post
       final post = posts.firstWhere(
@@ -127,11 +152,11 @@ class _NotificationDetailsState extends State<NotificationDetails> {
         orElse: () => throw Exception('Post not found'),
       );
 
-      debugPrint('✅ Found post with ID: ${post.id}');
+     // debugPrint('✅ Found post with ID: ${post.id}');
 
       // Validate post has content (either images or polls)
       if (post.images.isEmpty && post.polls.isEmpty) {
-        debugPrint('⚠️ Post has no content');
+        // debugPrint('⚠️ Post has no content');
         throw Exception('This post has no content to display');
       }
 
@@ -148,16 +173,6 @@ class _NotificationDetailsState extends State<NotificationDetails> {
       debugPrint("❌ Error loading post: $e");
       rethrow;
     }
-  }
-
-  /// Determine post type
-  String _getPostType(UserPostModel post) {
-    if (post.polls.isNotEmpty) {
-      return 'poll';
-    } else if (post.images.isNotEmpty) {
-      return 'image';
-    }
-    return 'unknown';
   }
 
   /// Check if post is a poll post
@@ -509,15 +524,16 @@ class _NotificationDetailsState extends State<NotificationDetails> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const CircularProgressIndicator(),
-                  SizedBox(height: 16.h),
+                  Loader(color: Theme.of(context).colorScheme.primary),
+                  SizedBox(height: 12.h),
                   Text(
                     'Loading post...',
                     style: TextStyle(
-                      fontSize: 12.sp,
+                      fontSize: 11.sp,
                       color: Theme.of(
                         context,
                       ).colorScheme.onSurface.withOpacity(0.6),
+                      fontWeight: FontWeight.w500
                     ),
                   ),
                 ],
@@ -661,6 +677,10 @@ class _NotificationDetailsState extends State<NotificationDetails> {
                   currentLikeState: isLike,
                   currentLikesCount: likesCount,
                   currentCommentsCount: commentsCount,
+                  localPercentages: localPercentages,
+                  pollPolledStates: pollPolledStates,
+                  onPercentagesUpdated: _handlePercentagesUpdated,
+                  onPollPolledStateChanged: _handlePollPolledStateChanged,
                 ),
               ),
             );

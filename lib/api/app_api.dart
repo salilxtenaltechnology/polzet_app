@@ -47,6 +47,7 @@ class ApiConstants {
   static String reChaseList = "$baseUrl/friends/following";
   static String publicProfile = "$baseUrl/users";
   static String homeFeed = "$baseUrl/home_feed";
+  static String singlePost = "$baseUrl/posts";
   static String insights = "$baseUrl/insights";
   static String suggestionUsers = "$baseUrl/users/suggestions";
   static String pollOnThings = "$baseUrl/posts";
@@ -54,7 +55,7 @@ class ApiConstants {
   static String likePost = "$baseUrl/posts";
   static String topVoters = "$baseUrl/polls";
   static String privacyPolicy = "$baseUrl/privacy_status";
-  static String feedback = "$baseUrl/feedback/submit";
+  static String feedback = "$baseUrl/feedback/report";
   static String logout = "$baseUrl/logout";
   static String deleteAccount = "$baseUrl/users/delete_account";
 }

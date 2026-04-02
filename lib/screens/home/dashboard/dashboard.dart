@@ -50,10 +50,13 @@ class DashboardState extends State<Dashboard> with UtilityMixin {
     _scrollController.addListener(_onScroll);
     _suggestionsFuture = apiService.fetchUserSuggestions();
     _loadInitialData();
+    // ✅ No connectivity listener here — ConnectivityOverlay handles UI globally.
+    //    Auto-refresh on reconnect is driven by ConnectivityProvider via overlay.
   }
 
   @override
   void dispose() {
+    _scrollController.removeListener(_onScroll);
     _scrollController.dispose();
     _postsStreamController.close();
     super.dispose();
@@ -62,6 +65,7 @@ class DashboardState extends State<Dashboard> with UtilityMixin {
   // ── Scroll listener ────────────────────────────────────────────────────────
 
   void _onScroll() {
+    if (!mounted) return;
     if (_scrollController.position.pixels >=
             _scrollController.position.maxScrollExtent * 0.8 &&
         !_isLoadingMore &&
@@ -73,22 +77,21 @@ class DashboardState extends State<Dashboard> with UtilityMixin {
   // ── Load more ──────────────────────────────────────────────────────────────
 
   Future<void> _loadMorePosts() async {
+    if (!mounted) return;
     if (_isLoadingMore || !_hasMoreData || _nextPageUrl == null) return;
 
     setState(() => _isLoadingMore = true);
 
     try {
       final response = await ApiService.fetchHomeFeedPosts(url: _nextPageUrl);
-
-      if (mounted) {
-        setState(() {
-          posts.addAll(response.results);
-          _nextPageUrl = response.next;
-          _hasMoreData = response.next != null;
-          _isLoadingMore = false;
-        });
-        _postsStreamController.add(List.from(posts));
-      }
+      if (!mounted) return;
+      setState(() {
+        posts.addAll(response.results);
+        _nextPageUrl = response.next;
+        _hasMoreData = response.next != null;
+        _isLoadingMore = false;
+      });
+      _postsStreamController.add(List.from(posts));
     } catch (e) {
       debugPrint('Error loading more posts: $e');
       if (mounted) setState(() => _isLoadingMore = false);
@@ -154,6 +157,7 @@ class DashboardState extends State<Dashboard> with UtilityMixin {
   // ── Fetch (first page) ─────────────────────────────────────────────────────
 
   Future<void> fetchHomeFeed({bool showLoader = false}) async {
+    if (!mounted) return;
     try {
       if (showLoader) {
         setState(() {
@@ -162,12 +166,10 @@ class DashboardState extends State<Dashboard> with UtilityMixin {
         });
       }
 
-      // Reset pagination on fresh fetch
       _nextPageUrl = null;
       _hasMoreData = true;
 
       final response = await ApiService.fetchHomeFeedPosts();
-
       _nextPageUrl = response.next;
       _hasMoreData = response.next != null;
 
@@ -186,23 +188,52 @@ class DashboardState extends State<Dashboard> with UtilityMixin {
         });
         _postsStreamController.add(List.from(posts));
       }
+    } on SocketException {
+      debugPrint('No internet connection');
+      if (mounted) {
+        setState(() {
+          isLoading = false;
+          isInitialLoad = false;
+          if (posts.isEmpty) errorMessage = 'no_internet';
+        });
+      }
+    } on TimeoutException {
+      debugPrint('Request timed out');
+      if (mounted) {
+        setState(() {
+          isLoading = false;
+          isInitialLoad = false;
+          if (posts.isEmpty) errorMessage = 'no_internet';
+        });
+      }
+    } on DioException catch (e) {
+      debugPrint('Dio error: ${e.response?.statusCode} | ${e.type}');
+      if (mounted) {
+        setState(() {
+          isLoading = false;
+          isInitialLoad = false;
+          if (posts.isEmpty) {
+            final statusCode = e.response?.statusCode ?? 0;
+            if (statusCode >= 500) {
+              errorMessage = 'server_error';
+            } else if (e.type == DioExceptionType.connectionError ||
+                e.type == DioExceptionType.connectionTimeout ||
+                e.type == DioExceptionType.receiveTimeout) {
+              errorMessage = 'no_internet';
+            } else {
+              errorMessage = 'unknown';
+            }
+          }
+        });
+      }
     } catch (e) {
       debugPrint('Error fetching home feed: $e');
-      if (posts.isNotEmpty) {
-        if (mounted) {
-          setState(() {
-            isLoading = false;
-            isInitialLoad = false;
-          });
-        }
-      } else {
-        if (mounted) {
-          setState(() {
-            errorMessage = e.toString();
-            isLoading = false;
-            isInitialLoad = false;
-          });
-        }
+      if (mounted) {
+        setState(() {
+          isLoading = false;
+          isInitialLoad = false;
+          if (posts.isEmpty) errorMessage = 'unknown';
+        });
       }
     }
   }
@@ -268,31 +299,20 @@ class DashboardState extends State<Dashboard> with UtilityMixin {
       return const HomeFeedSimmer();
     }
 
-    if (errorMessage != null) {
-      return ListView(
-        children: [
-          SizedBox(height: 200.h),
-          Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  'Error: $errorMessage',
-                  style: TextStyle(color: Theme.of(context).colorScheme.error),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 16),
-                ElevatedButton(
-                  onPressed: () {
-                    setState(() => isInitialLoad = true);
-                    fetchHomeFeed();
-                  },
-                  child: const Text('Retry'),
-                ),
-              ],
-            ),
-          ),
-        ],
+    if (errorMessage != null && posts.isEmpty) {
+      return ConnectionErrorScreen(
+        type: errorMessage == 'no_internet'
+            ? ConnectionErrorType.noInternet
+            : errorMessage == 'server_error'
+            ? ConnectionErrorType.serverError
+            : ConnectionErrorType.unknown,
+        onRetry: () {
+          setState(() {
+            errorMessage = null;
+            isInitialLoad = true;
+          });
+          fetchHomeFeed(showLoader: true);
+        },
       );
     }
 
@@ -350,7 +370,7 @@ class DashboardState extends State<Dashboard> with UtilityMixin {
               final int completion = userProvider.profile_completion ?? 0;
               final bool showProfileCard = completion < 100;
 
-              // Profile completion
+              // Profile completion card at index 3
               if (index == 3 && showProfileCard) {
                 final bool isDarkMode =
                     Theme.of(context).brightness == Brightness.dark;
@@ -422,9 +442,7 @@ class DashboardState extends State<Dashboard> with UtilityMixin {
                               ),
                               child: Center(
                                 child: Text(
-                                  AppLocalizations.of(
-                                    context,
-                                  )!.completeprofilesetup,
+                                  AppLocalizations.of(context)!.completeprofilesetup,
                                   style: TextStyle(
                                     color: Colors.white,
                                     fontWeight: FontWeight.w600,
@@ -442,10 +460,8 @@ class DashboardState extends State<Dashboard> with UtilityMixin {
                 );
               }
 
-              // Suggested Users list
+              // Suggested users at index 6
               if (index == 6) {
-                final bool isDarkMode =
-                    Theme.of(context).brightness == Brightness.dark;
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
