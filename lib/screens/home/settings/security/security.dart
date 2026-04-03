@@ -12,7 +12,7 @@ import '../../../../core/constants/app_colors.dart';
 import '../../../../languages/l10n/generated/app_localizations.dart';
 import '../../../../mixin/utility_mixins.dart';
 import '../../../../widgets/custom_text_styles.dart';
-import '../../../../widgets/diolog/pin_security_diolog.dart';
+import '../../../../widgets/dialog/pin_security_diolog.dart';
 import '../../../../widgets/loader.dart';
 import '../../../../widgets/show_toast.dart';
 import '../../../auth/forgot password/forgot_password_import.dart';

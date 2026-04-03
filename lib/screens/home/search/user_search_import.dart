@@ -18,9 +18,9 @@
 // import '../../../widgets/button/primary_button.dart';
 // import '../../../widgets/custom_card.dart';
 // import '../../../widgets/custom_text_styles.dart';
-// import '../../../widgets/diolog/custom_diolog.dart';
+// import '../../../widgets/dialog/custom_diolog.dart';
 // import '../../../widgets/show_toast.dart';
-// import '../../../widgets/simmer/search_user_simmer.dart';
+// import '../../../widgets/shimmer/search_user_simmer.dart';
 // import '../../../widgets/tabbar/indicatore_animation.dart';
 // import '../profile/public/public_profile.dart';
 

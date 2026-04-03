@@ -14,6 +14,8 @@ import '../../../widgets/button/back_button.dart';
 import '../../../widgets/custom_text_styles.dart';
 import '../profile/public/public_profile.dart';
 
+import '../../../widgets/error/api_error_widget.dart';
+
 class SuggestionUsers extends StatefulWidget {
   const SuggestionUsers({super.key});
 
@@ -49,9 +51,13 @@ class _SuggestionUsersState extends State<SuggestionUsers> with UtilityMixin {
             );
           }
 
-          if (snapshot.hasError || !snapshot.hasData) {
-            return const SizedBox.shrink();
+          if (snapshot.hasError) {
+            return ApiErrorWidget(
+              onRetry: () => setState(() {}),
+            );
           }
+          
+          if (!snapshot.hasData) return const SizedBox.shrink();
 
           final users = snapshot.data?.data.peopleYouMayKnow ?? [];
           if (users.isEmpty) return const SizedBox.shrink();

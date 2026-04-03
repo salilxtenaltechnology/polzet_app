@@ -3,6 +3,7 @@
 import 'dart:math';
 import 'package:feather_icons/feather_icons.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:polzet_app/api/services/api_service.dart';
 import 'package:polzet_app/widgets/show_toast.dart';
@@ -57,6 +58,9 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
   Map<String, int> pollTotalVotes = {};
   Map<String, bool> pollResultsLoaded = {};
 
+  bool _isLocalChased = false;
+  Uint8List? _profileImageBytes;
+
   // ── Cached percentages: optionId → percentage ──────────────────────────────
   // Written ONLY by _fetchAndApplyPollResults — never from model data.
   // This is the single source of truth for what is rendered.
@@ -106,6 +110,10 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
 
     final userProvider = Provider.of<UserProvider>(context, listen: false);
     user_id = userProvider.userId;
+
+    if (widget.post.user.profileImage != null && widget.post.user.profileImage!.isNotEmpty) {
+      _profileImageBytes = getProfileImage(widget.post.user.profileImage);
+    }
 
     for (var poll in widget.post.polls) {
       pollTotalVotes[poll.id.toString()] = poll.totalVotes;
@@ -463,12 +471,8 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
                         backgroundColor: Theme.of(
                           context,
                         ).colorScheme.primary.withOpacity(0.15),
-                        backgroundImage:
-                            widget.post.user.profileImage != null &&
-                                widget.post.user.profileImage!.isNotEmpty
-                            ? MemoryImage(
-                                getProfileImage(widget.post.user.profileImage)!,
-                              )
+                        backgroundImage: _profileImageBytes != null
+                            ? MemoryImage(_profileImageBytes!)
                             : null,
                         child:
                             widget.post.user.profileImage == null ||
@@ -509,35 +513,59 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
                       ],
                     ),
                     const Spacer(),
-                    if(widget.post.followingStatus == 'none')
-                    Container(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: 8.w,
-                        vertical: 2.h,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.transparent,
-                        border: Border.all(
-                          color: Theme.of(context).colorScheme.primary,
-                          width: 1.2,
+                    if(widget.post.followingStatus == 'none' && widget.post.user.userid != user_id)
+                      GestureDetector(
+                        onTap: () async {
+                          if (_isLocalChased) {
+                            setState(() => _isLocalChased = false);
+                            try {
+                              await ApiService().unfriend(widget.post.user.userid);
+                            } catch (e) {
+                              setState(() => _isLocalChased = true);
+                            }
+                          } else {
+                            setState(() => _isLocalChased = true);
+                            try {
+                              await ApiService().sendFriendRequest(widget.post.user.username);
+                            } catch (e) {
+                              setState(() => _isLocalChased = false);
+                            }
+                          }
+                        },
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 250),
+                          padding: EdgeInsets.symmetric(
+                            horizontal: 8.w,
+                            vertical: 2.h,
+                          ),
+                          decoration: BoxDecoration(
+                            color: _isLocalChased
+                                ? Theme.of(context).colorScheme.primary
+                                : Colors.transparent,
+                            border: Border.all(
+                              color: Theme.of(context).colorScheme.primary,
+                              width: 1.2,
+                            ),
+                            borderRadius: BorderRadius.circular(6.r),
+                          ),
+                          child: Text(
+                            _isLocalChased ? 'Chased' : 'Chase',
+                            style: TextStyle(
+                              fontSize: 9.sp,
+                              fontWeight: FontWeight.w500,
+                              color: _isLocalChased
+                                  ? Colors.white
+                                  : Theme.of(context).colorScheme.primary,
+                            ),
+                          ),
                         ),
-                        borderRadius: BorderRadius.circular(6.r),
                       ),
-                      child: Text(
-                        'Chase',
-                        style: TextStyle(
-                          fontSize: 9.sp,
-                          fontWeight: FontWeight.w500,
-                          color: Theme.of(context).colorScheme.primary,
-                        ),
-                      ),
-                    ),
                   ],
                 ),
 
                 if (hasPolls) ..._buildPollContent(),
 
-                // ── Actions ──────────────────────────────────────────────────
+                /*──── Actions ────*/
                 Row(
                   children: [
                     GestureDetector(

@@ -21,12 +21,12 @@ import '../../../../models/user/user_profile_model.dart';
 import '../../../../provider/user_provider.dart';
 import '../../../../widgets/button/back_button.dart';
 import '../../../../widgets/custom_text_styles.dart';
-import '../../../../widgets/diolog/custom_diolog.dart';
+import '../../../../widgets/dialog/custom_diolog.dart';
 import '../../../../widgets/loader.dart';
 import '../../../../widgets/profile/profile_form_section.dart';
 import '../../../../widgets/profile/profile_header_section.dart';
 import '../../../../widgets/show_toast.dart';
-import '../../../../widgets/simmer/profile_simmer.dart';
+import '../../../../widgets/shimmer/profile_simmer.dart';
 import 'set_password.dart';
 
 class EditProfile extends StatefulWidget {

@@ -94,30 +94,36 @@ class ProfileState extends State<UserProfile>
   void _applyProfileImages({String? profileRaw, String? coverRaw}) {
     if (!mounted) return;
 
-    Uint8List? profileBytes;
-    Uint8List? coverBytes;
+    bool needsUpdate = false;
+    Uint8List? profileBytes = _cachedProfileImageBytes;
+    Uint8List? coverBytes = _cachedCoverImageBytes;
 
-    if (profileRaw != null && profileRaw.isNotEmpty) {
+    if (profileRaw != null && profileRaw.isNotEmpty && profileRaw != _cachedProfileImage) {
       profileBytes = decodeBase64Image(profileRaw);
       _cache.profileImageRaw = profileRaw;
       _cache.profileImageBytes = profileBytes;
+      needsUpdate = true;
     }
-    if (coverRaw != null && coverRaw.isNotEmpty) {
+    
+    if (coverRaw != null && coverRaw.isNotEmpty && coverRaw != _cachedCoverImage) {
       coverBytes = decodeBase64Image(coverRaw);
       _cache.coverImageRaw = coverRaw;
       _cache.coverImageBytes = coverBytes;
+      needsUpdate = true;
     }
 
-    setState(() {
-      if (profileRaw != null && profileRaw.isNotEmpty) {
-        _cachedProfileImage = profileRaw;
-        _cachedProfileImageBytes = profileBytes;
-      }
-      if (coverRaw != null && coverRaw.isNotEmpty) {
-        _cachedCoverImage = coverRaw;
-        _cachedCoverImageBytes = coverBytes;
-      }
-    });
+    if (needsUpdate) {
+      setState(() {
+        if (profileRaw != null && profileRaw.isNotEmpty) {
+          _cachedProfileImage = profileRaw;
+          _cachedProfileImageBytes = profileBytes;
+        }
+        if (coverRaw != null && coverRaw.isNotEmpty) {
+          _cachedCoverImage = coverRaw;
+          _cachedCoverImageBytes = coverBytes;
+        }
+      });
+    }
   }
 
   void _clearLocalMirror() {
@@ -180,14 +186,14 @@ class ProfileState extends State<UserProfile>
   Future<List<Map<String, dynamic>>> _loadChaseWithCache() async {
     final list = Provider.of<UserProvider>(context, listen: false).chase_list;
     _cache.followers = list;
-    if (mounted) setState(() => _cachedFollowers = list);
+    _cachedFollowers = list;
     return list;
   }
 
   Future<List<Map<String, dynamic>>> _loadRechaseWithCache() async {
     final list = Provider.of<UserProvider>(context, listen: false).rechase_list;
     _cache.following = list;
-    if (mounted) setState(() => _cachedFollowing = list);
+    _cachedFollowing = list;
     return list;
   }
 
@@ -204,13 +210,14 @@ class ProfileState extends State<UserProfile>
       _cache.imagePosts = latestPosts;
       _cache.totalImageCount = imagePosts.length;
 
-      if (mounted) {
-        setState(() {
-          _cachedPosts = latestPosts;
-          _totalImagePostsCount = imagePosts.length;
-          isInitialLoad = false;
-        });
+      bool countChanged = _totalImagePostsCount != imagePosts.length;
+      _cachedPosts = latestPosts;
+      _totalImagePostsCount = imagePosts.length;
+
+      if (mounted && countChanged) {
+        setState(() {});
       }
+      isInitialLoad = false;
       return latestPosts;
     } catch (e) {
       if (kDebugMode) print('Error loading posts: $e');
@@ -238,11 +245,12 @@ class ProfileState extends State<UserProfile>
       _cache.textPosts = postsWithTextPolls;
       _cache.totalTextCount = postsWithTextPolls.length;
 
-      if (mounted) {
-        setState(() {
-          _cachedTextPolls = postsWithTextPolls;
-          _totalTextPostsCount = postsWithTextPolls.length;
-        });
+      bool countChanged = _totalTextPostsCount != postsWithTextPolls.length;
+      _cachedTextPolls = postsWithTextPolls;
+      _totalTextPostsCount = postsWithTextPolls.length;
+
+      if (mounted && countChanged) {
+        setState(() {});
       }
       return postsWithTextPolls;
     } catch (e) {
@@ -278,14 +286,14 @@ class ProfileState extends State<UserProfile>
         userProvider.username!.isNotEmpty) {
       _loadPostsWithCache(userProvider.username)
           .then((posts) {
-            if (mounted) setState(() => _postsFuture = Future.value(posts));
+            if (mounted) setState(() { _postsFuture = Future.value(posts); });
           })
           .catchError((e) {
             if (kDebugMode) print('Silent refresh posts error: $e');
           });
 
       _loadPollPostsWithCache(userProvider.username).then((data) {
-        if (mounted) setState(() => _pollPostsFuture = Future.value(data));
+        if (mounted) setState(() { _pollPostsFuture = Future.value(data); });
       });
     }
   }
@@ -298,17 +306,17 @@ class ProfileState extends State<UserProfile>
     await Future.wait([
       _loadProfileSilently(),
       _loadChaseWithCache().then((data) {
-        if (mounted) setState(() => getChase = Future.value(data));
+        if (mounted) setState(() { getChase = Future.value(data); });
       }),
       _loadRechaseWithCache().then((data) {
-        if (mounted) setState(() => getRechase = Future.value(data));
+        if (mounted) setState(() { getRechase = Future.value(data); });
       }),
       if (userProvider.username != null && userProvider.username!.isNotEmpty)
         _loadPostsWithCache(userProvider.username).then((data) {
-          if (mounted) setState(() => _postsFuture = Future.value(data));
+          if (mounted) setState(() { _postsFuture = Future.value(data); });
         }),
       _loadPollPostsWithCache(userProvider.username).then((data) {
-        if (mounted) setState(() => _pollPostsFuture = Future.value(data));
+        if (mounted) setState(() { _pollPostsFuture = Future.value(data); });
       }),
     ]);
   }
@@ -552,8 +560,9 @@ class ProfileState extends State<UserProfile>
                         SizedBox(height: 5.h),
                         FutureBuilder<List<Map<String, dynamic>>>(
                           future: getChase,
+                          initialData: _cachedFollowers,
                           builder: (context, snapshot) {
-                            final users = snapshot.data ?? _cachedFollowers;
+                            final users = snapshot.hasData ? snapshot.data! : _cachedFollowers;
                             if (isInitialLoad &&
                                 snapshot.connectionState ==
                                     ConnectionState.waiting &&
@@ -587,8 +596,9 @@ class ProfileState extends State<UserProfile>
                         SizedBox(height: 5.h),
                         FutureBuilder<List<Map<String, dynamic>>>(
                           future: getRechase,
+                          initialData: _cachedFollowing,
                           builder: (context, snapshot) {
-                            final users = snapshot.data ?? _cachedFollowing;
+                            final users = snapshot.hasData ? snapshot.data! : _cachedFollowing;
                             if (isInitialLoad &&
                                 snapshot.connectionState ==
                                     ConnectionState.waiting &&
@@ -704,8 +714,9 @@ class ProfileState extends State<UserProfile>
                 padding: EdgeInsets.symmetric(horizontal: 12.w),
                 child: FutureBuilder<List<UserPostModel>>(
                   future: _postsFuture,
+                  initialData: _cachedPosts,
                   builder: (context, snapshot) {
-                    final posts = snapshot.data ?? _cachedPosts;
+                    final posts = snapshot.hasData ? snapshot.data! : _cachedPosts;
 
                     if (isInitialLoad &&
                         snapshot.connectionState == ConnectionState.waiting &&
@@ -781,8 +792,13 @@ class ProfileState extends State<UserProfile>
 
               FutureBuilder<List<UserPostModel>>(
                 future: _pollPostsFuture,
+                initialData: _cachedTextPolls,
                 builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
+                  final postsWithTextPolls = snapshot.hasData ? snapshot.data! : _cachedTextPolls;
+
+                  if (isInitialLoad &&
+                      snapshot.connectionState == ConnectionState.waiting &&
+                      _cachedTextPolls.isEmpty) {
                     return Center(
                       child: Padding(
                         padding: EdgeInsets.symmetric(vertical: 30.h),
@@ -804,34 +820,6 @@ class ProfileState extends State<UserProfile>
                         ),
                       ),
                     );
-                  }
-
-                  final postsPolls = snapshot.data ?? const <UserPostModel>[];
-
-                  final postsWithTextPolls = postsPolls.where((post) {
-                    if (post.polls.isEmpty) return false;
-                    return post.polls.every(
-                      (poll) => poll.options!.every(
-                        (option) =>
-                            option.text != null &&
-                            option.text!.isNotEmpty &&
-                            option.image == null,
-                      ),
-                    );
-                  }).toList();
-
-                  if (snapshot.hasData &&
-                      _cachedTextPolls != postsWithTextPolls) {
-                    WidgetsBinding.instance.addPostFrameCallback((_) {
-                      if (mounted) {
-                        _cache.textPosts = postsWithTextPolls;
-                        _cache.totalTextCount = postsWithTextPolls.length;
-                        setState(() {
-                          _cachedTextPolls = postsWithTextPolls;
-                          _totalTextPostsCount = postsWithTextPolls.length;
-                        });
-                      }
-                    });
                   }
 
                   if (postsWithTextPolls.isEmpty) {

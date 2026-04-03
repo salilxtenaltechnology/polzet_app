@@ -9,7 +9,6 @@ import 'package:polzet_app/widgets/custom_card.dart';
 import 'package:polzet_app/widgets/show_toast.dart';
 import 'package:provider/provider.dart';
 
-import '../../../../../api/services/api_service.dart';
 import '../../../../../languages/l10n/generated/app_localizations.dart';
 import '../../../../../provider/group_chat_provider.dart';
 import '../../../../../provider/user_provider.dart';
@@ -27,14 +26,11 @@ class GroupMembers extends StatefulWidget {
 
 class _GroupMembersState extends State<GroupMembers> {
   final TextEditingController _searchController = TextEditingController();
-  List<Map<String, dynamic>> _filtered = [];
-  Set<int> _selectedIds = {};
-  List<Map<String, dynamic>> _selectedUsers = [];
+  String _searchQuery = '';
 
   @override
   void initState() {
     super.initState();
-    _filtered = List.from(widget.members);
     _searchController.addListener(_onSearch);
   }
 
@@ -45,71 +41,128 @@ class _GroupMembersState extends State<GroupMembers> {
     super.dispose();
   }
 
-  void _onSearch() => _applyFilter(
-    context.read<GroupChatProvider>().members,
-  ); // always filter from provider
-
-  void _applyFilter(List<Map<String, dynamic>> source) {
-    final q = _searchController.text.trim().toLowerCase();
-    setState(() {
-      _filtered = q.isEmpty
-          ? List.from(source)
-          : source.where((m) {
-              final name = (_user(m)['username'] ?? '')
-                  .toString()
-                  .toLowerCase();
-              return name.contains(q);
-            }).toList();
-    });
+  void _onSearch() {
+    setState(() => _searchQuery = _searchController.text.trim().toLowerCase());
   }
 
-  Map<String, dynamic> _user(Map<String, dynamic> m) =>
-      Map<String, dynamic>.from(m['user'] as Map? ?? {});
+  // ── Helpers ────────────────────────────────────────────────────────────────
 
-  bool _isCurrentUserAdmin(List<Map<String, dynamic>> members) {
-    final id = context.read<UserProvider>().userId;
-    for (final m in members) {
-      if (_user(m)['id'] == id) return m['is_admin'] == true;
+  /// Extracts the nested user map from a member entry
+  /// Structure: { user: { id, username, profile_image }, is_admin: bool }
+  Map<String, dynamic> _user(Map<String, dynamic> member) =>
+      Map<String, dynamic>.from(member['user'] as Map? ?? {});
+
+  /// Deduplicates members by user id
+  List<Map<String, dynamic>> _deduplicated(
+    List<Map<String, dynamic>> source,
+  ) {
+    final seen = <int>{};
+    final result = <Map<String, dynamic>>[];
+    for (final m in source) {
+      final id = (_user(m)['id']) as int?;
+      if (id != null && seen.add(id)) result.add(m);
     }
-    return false;
-  }
-
-  Future<Map<String, dynamic>> addGroupMembers({
-    required int groupChatId,
-    required List<int> members,
-  }) async {
-    final result = await ApiService().addGroupChatMembers(
-      groupChatId: groupChatId,
-      members: members,
-    );
     return result;
   }
 
-  Future<void> _removeMember(int userId) async {
+  List<Map<String, dynamic>> _getDisplayList(
+    List<Map<String, dynamic>> providerMembers,
+  ) {
+    final deduped = _deduplicated(providerMembers);
+    if (_searchQuery.isEmpty) return deduped;
+    return deduped.where((m) {
+      final name = (_user(m)['username'] ?? '').toString().toLowerCase();
+      return name.contains(_searchQuery);
+    }).toList();
+  }
+
+  bool _isCurrentUserAdmin(GroupChatProvider provider) {
+    final id = context.read<UserProvider>().userId;
+    if (id == null) return false;
+    return provider.isAdmin(id);
+  }
+
+  // ── Actions ────────────────────────────────────────────────────────────────
+
+  Future<void> _removeMember(int userId, String username) async {
     final provider = context.read<GroupChatProvider>();
-    final success = await provider.removeMember(userId); // ← updates provider
-    _applyFilter(provider.members); // ← sync filter list
+
+    // ✅ Optimistic remove
+    provider.removeMemberOptimistically(userId);
+
+    final success = await provider.removeMember(userId);
+
     if (mounted && !success) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Failed to remove member')));
+      // ✅ Rollback on failure
+      await provider.refreshChatData();
+      showToast(message: 'Failed to remove $username');
+    } else if (mounted && success) {
+      showToast(message: '$username removed from group');
     }
   }
 
   Future<void> _makeAdmin(int userId, String username) async {
     final provider = context.read<GroupChatProvider>();
-    final success = await provider.makeAdmin(userId); // ← updates provider
-    _applyFilter(provider.members);
-    if (mounted) {
-      showToast(
-        message: success
-            ? '$username is now admin'
-            : 'Failed to make $username admin',
-      );
+
+    // ✅ Optimistic update
+    provider.updateMemberAdminStatus(userId, true);
+
+    final success = await provider.makeAdmin(userId);
+
+    if (mounted && !success) {
+      // ✅ Rollback on failure
+      provider.updateMemberAdminStatus(userId, false);
+      showToast(message: 'Failed to make $username admin');
+    } else if (mounted && success) {
+      showToast(message: '$username is now admin');
     }
   }
 
-  void _showOptions(int userId, String username) {
+  Future<void> _handleAddMembers(bool isCurrentUserAdmin) async {
+    if (!isCurrentUserAdmin) return;
+
+    final provider = context.read<GroupChatProvider>();
+
+    final existingIds = _deduplicated(provider.members)
+        .map((m) => _user(m)['id'] as int?)
+        .whereType<int>()
+        .toSet();
+
+    final result = await BottomSheetUtils.showAddMembersBottomSheet(
+      context: context,
+      alreadySelected: existingIds,
+    );
+
+    if (result == null) return;
+
+    final selectedIds = result['ids'] as Set<int>;
+    final selectedUsers = result['users'] as List<Map<String, dynamic>>;
+
+    final newIds = selectedIds.difference(existingIds);
+    final newUsers = selectedUsers
+        .where((u) => newIds.contains(u['id'] as int?))
+        .toList();
+
+    if (newIds.isEmpty) {
+      showToast(message: 'Selected users are already in the group');
+      return;
+    }
+
+    // ✅ Optimistic add
+    provider.addMembersOptimistically(newUsers);
+
+    final success = await provider.addGroupMembers(newIds.toList(), newUsers);
+
+    if (!success && mounted) {
+      // ✅ Rollback on failure
+      provider.rollbackOptimisticMembers(newIds);
+      showToast(message: 'Failed to add members');
+    } else if (success && mounted) {
+      showToast(message: '${newIds.length} member(s) added');
+    }
+  }
+
+  void _showOptions(int userId, String username, bool isAdmin) {
     showModalBottomSheet(
       context: context,
       backgroundColor: Theme.of(context).colorScheme.background,
@@ -142,38 +195,43 @@ class _GroupMembersState extends State<GroupMembers> {
               ),
             ),
             SizedBox(height: 5.h),
-            GestureDetector(
-              onTap: () {
-                Navigator.pop(context);
-                _makeAdmin(userId, username);
-              },
-              child: Padding(
-                padding: EdgeInsets.symmetric(vertical: 10.h),
-                child: Row(
-                  children: [
-                    Icon(
-                      Icons.admin_panel_settings_outlined,
-                      size: 20.spMax,
-                      color: AppColors.primaryColor,
-                    ),
-                    SizedBox(width: 12.w),
-                    Text(
-                      AppLocalizations.of(context)!.makeadmin,
-                      style: TextStyle(
+
+            // ✅ Only show Make Admin if not already admin
+            if (!isAdmin) ...[
+              GestureDetector(
+                onTap: () {
+                  Navigator.pop(context);
+                  _makeAdmin(userId, username);
+                },
+                child: Padding(
+                  padding: EdgeInsets.symmetric(vertical: 10.h),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.admin_panel_settings_outlined,
+                        size: 20.spMax,
                         color: AppColors.primaryColor,
-                        fontSize: 12.sp,
-                        fontWeight: FontWeight.w500,
                       ),
-                    ),
-                  ],
+                      SizedBox(width: 12.w),
+                      Text(
+                        AppLocalizations.of(context)!.makeadmin,
+                        style: TextStyle(
+                          color: AppColors.primaryColor,
+                          fontSize: 12.sp,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
-            Divider(color: Colors.grey.withOpacity(0.2)),
+              Divider(color: Colors.grey.withOpacity(0.2)),
+            ],
+
             GestureDetector(
               onTap: () {
                 Navigator.pop(context);
-                _removeMember(userId);
+                _removeMember(userId, username);
               },
               child: Padding(
                 padding: EdgeInsets.symmetric(vertical: 10.h),
@@ -182,13 +240,13 @@ class _GroupMembersState extends State<GroupMembers> {
                     Icon(
                       Icons.person_remove_outlined,
                       size: 20.spMax,
-                      color: const Color(0XFFF44336),
+                      color: const Color(0xFFF44336),
                     ),
                     SizedBox(width: 12.w),
                     Text(
                       AppLocalizations.of(context)!.removefromgroup,
                       style: TextStyle(
-                        color: const Color(0XFFF44336),
+                        color: const Color(0xFFF44336),
                         fontSize: 12.sp,
                         fontWeight: FontWeight.w500,
                       ),
@@ -206,16 +264,10 @@ class _GroupMembersState extends State<GroupMembers> {
 
   @override
   Widget build(BuildContext context) {
-    final providerMembers = context.watch<GroupChatProvider>().members;
-    final isCurrentUserAdmin = _isCurrentUserAdmin(providerMembers);
-
-    final q = _searchController.text.trim().toLowerCase();
-    final displayList = q.isEmpty
-        ? providerMembers
-        : providerMembers.where((m) {
-            final name = (_user(m)['username'] ?? '').toString().toLowerCase();
-            return name.contains(q);
-          }).toList();
+    final provider = context.watch<GroupChatProvider>();
+    final providerMembers = provider.members;
+    final isCurrentUserAdmin = _isCurrentUserAdmin(provider);
+    final displayList = _getDisplayList(providerMembers);
 
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.background,
@@ -237,51 +289,7 @@ class _GroupMembersState extends State<GroupMembers> {
           Padding(
             padding: EdgeInsets.only(right: 12.w),
             child: GestureDetector(
-              onTap: isCurrentUserAdmin
-                  ? () async {
-                      final providerMembers = context
-                          .read<GroupChatProvider>()
-                          .members;
-                      final existingIds = providerMembers
-                          .map((m) => _user(m)['id'] as int?)
-                          .whereType<int>()
-                          .toSet();
-
-                      final result =
-                          await BottomSheetUtils.showAddMembersBottomSheet(
-                            context: context,
-                            alreadySelected: existingIds,
-                          );
-
-                      if (result != null) {
-                        final selectedIds = result['ids'] as Set<int>;
-                        final selectedUsers =
-                            result['users'] as List<Map<String, dynamic>>;
-
-                        if (selectedIds.isEmpty) return;
-
-                        setState(() {
-                          _selectedIds = selectedIds;
-                          _selectedUsers = selectedUsers;
-                        });
-
-                        final provider = context.read<GroupChatProvider>();
-                        final success = await provider.addGroupMembers(
-                          selectedIds.toList(),
-                          selectedUsers,
-                        );
-
-                        if (mounted) {
-                          if (success) {
-                            _applyFilter(provider.members);
-                            showToast(message: 'Members added successfully');
-                          } else {
-                            showToast(message: 'Failed to add members');
-                          }
-                        }
-                      }
-                    }
-                  : null,
+              onTap: () => _handleAddMembers(isCurrentUserAdmin),
               child: Icon(
                 FeatherIcons.userPlus,
                 size: 20.spMax,
@@ -297,6 +305,7 @@ class _GroupMembersState extends State<GroupMembers> {
         padding: EdgeInsets.symmetric(horizontal: 12.w),
         child: Column(
           children: [
+            // ── Search bar ─────────────────────────────────────────────────
             Container(
               margin: EdgeInsets.only(top: 10.h),
               height: 34.h,
@@ -329,9 +338,10 @@ class _GroupMembersState extends State<GroupMembers> {
                   ),
                   enabledBorder: OutlineInputBorder(
                     borderSide: BorderSide(
-                      color: Theme.of(
-                        context,
-                      ).colorScheme.onBackground.withOpacity(0.1),
+                      color: Theme.of(context)
+                          .colorScheme
+                          .onBackground
+                          .withOpacity(0.1),
                     ),
                     borderRadius: BorderRadius.circular(15.r),
                   ),
@@ -351,15 +361,18 @@ class _GroupMembersState extends State<GroupMembers> {
               ),
             ),
             SizedBox(height: 12.h),
+
+            // ── Members list ───────────────────────────────────────────────
             Expanded(
               child: displayList.isEmpty
                   ? Center(
                       child: Text(
                         'No members found',
                         style: TextStyle(
-                          color: Theme.of(
-                            context,
-                          ).colorScheme.onBackground.withOpacity(0.4),
+                          color: Theme.of(context)
+                              .colorScheme
+                              .onBackground
+                              .withOpacity(0.4),
                           fontSize: 11.sp,
                         ),
                       ),
@@ -369,24 +382,30 @@ class _GroupMembersState extends State<GroupMembers> {
                       itemBuilder: (context, i) {
                         final member = displayList[i];
                         final user = _user(member);
-                        final bool isAdmin = member['is_admin'] == true;
-                        final String username = user['username'] ?? '';
-                        final String? profileImage = user['profile_image'];
-                        final int? memberId = user['id'];
-                        final int? currentUserId = context
-                            .read<UserProvider>()
-                            .userId;
+
+                        final int? memberId = user['id'] as int?;
+                        final String username = user['username']?.toString() ?? '';
+                        final String? profileImage = user['profile_image']?.toString();
+
+                        // ✅ Use provider.isAdmin — always reflects latest state
+                        final bool isAdmin = memberId != null
+                            ? provider.isAdmin(memberId)
+                            : false;
+
+                        final int? currentUserId =
+                            context.read<UserProvider>().userId;
                         final bool isSelf = memberId == currentUserId;
 
                         return Padding(
                           padding: EdgeInsets.only(bottom: 10.h),
                           child: GestureDetector(
-                            onTap: isCurrentUserAdmin && !isSelf && !isAdmin
-                                ? () => _showOptions(memberId!, username)
+                            onTap: isCurrentUserAdmin && !isSelf
+                                ? () => _showOptions(memberId!, username, isAdmin)
                                 : null,
                             child: CustomCard(
                               widget: Row(
                                 children: [
+                                  // ── Avatar ───────────────────────────────
                                   CircleAvatar(
                                     radius: 18,
                                     backgroundImage: profileImage != null
@@ -408,9 +427,9 @@ class _GroupMembersState extends State<GroupMembers> {
                                                 ? username[0].toUpperCase()
                                                 : '?',
                                             style: TextStyle(
-                                              color: Theme.of(
-                                                context,
-                                              ).colorScheme.primary,
+                                              color: Theme.of(context)
+                                                  .colorScheme
+                                                  .primary,
                                               fontSize: 14.5.sp,
                                               fontWeight: FontWeight.w500,
                                             ),
@@ -418,17 +437,23 @@ class _GroupMembersState extends State<GroupMembers> {
                                         : null,
                                   ),
                                   SizedBox(width: 10.w),
-                                  Text(
-                                    username,
-                                    style: TextStyle(
-                                      color: Theme.of(
-                                        context,
-                                      ).colorScheme.onBackground,
-                                      fontSize: 11.2.sp,
-                                      fontWeight: FontWeight.w400,
+
+                                  // ── Username ─────────────────────────────
+                                  Expanded(
+                                    child: Text(
+                                      username,
+                                      style: TextStyle(
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .onBackground,
+                                        fontSize: 11.2.sp,
+                                        fontWeight: FontWeight.w400,
+                                      ),
+                                      overflow: TextOverflow.ellipsis,
                                     ),
                                   ),
-                                  const Spacer(),
+
+                                  // ── Admin badge / more icon ───────────────
                                   if (isAdmin)
                                     Text(
                                       AppLocalizations.of(context)!.admin,
@@ -440,8 +465,11 @@ class _GroupMembersState extends State<GroupMembers> {
                                     )
                                   else if (isCurrentUserAdmin && !isSelf)
                                     GestureDetector(
-                                      onTap: () =>
-                                          _showOptions(memberId!, username),
+                                      onTap: () => _showOptions(
+                                        memberId!,
+                                        username,
+                                        isAdmin,
+                                      ),
                                       child: Icon(
                                         Icons.more_vert,
                                         size: 18.spMax,

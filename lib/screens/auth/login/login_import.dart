@@ -14,7 +14,7 @@ import '../../../main.dart';
 import '../../../mixin/utility_mixins.dart';
 import '../../../models/country/country_model.dart';
 import '../../../widgets/button/auth_button.dart';
-import '../../../widgets/country code/custom_country_code.dart';
+import '../../../widgets/country_code/custom_country_code.dart';
 import '../../../widgets/custom_card.dart';
 import '../../../widgets/custom_text_styles.dart';
 import '../../../widgets/text_field/primary_textfield.dart';

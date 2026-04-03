@@ -7,7 +7,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../languages/l10n/generated/app_localizations.dart';
 import '../../../../widgets/custom_text_styles.dart';
-import '../../../../widgets/diolog/custom_diolog.dart';
+import '../../../../widgets/dialog/custom_diolog.dart';
 
 class NotificationsSettings extends StatefulWidget {
   const NotificationsSettings({super.key});

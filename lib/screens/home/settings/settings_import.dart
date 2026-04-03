@@ -22,7 +22,7 @@ import '../../../provider/user_provider.dart';
 import '../../../widgets/app_icons.dart';
 import '../../../widgets/button/back_button.dart';
 import '../../../widgets/custom_text_styles.dart';
-import '../../../widgets/diolog/custom_diolog.dart';
+import '../../../widgets/dialog/custom_diolog.dart';
 import '../../../widgets/show_toast.dart';
 import '../../auth/login/login_import.dart';
 

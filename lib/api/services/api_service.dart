@@ -23,9 +23,11 @@ import '../../models/posts/homefeed_posts_model.dart';
 import '../../models/posts/single_post_model.dart';
 import '../../models/posts/user_post_model.dart';
 import '../../models/public/public_profile_model.dart';
+import '../../models/search/hashtag/hashtag_posts_list_model.dart';
 import '../../models/search/search_user_model.dart';
 import '../../models/user/suggestionsb users/suggestions_users_model.dart';
 import '../../models/voters/top_voters_model.dart';
+import '../../provider/connection_provider.dart';
 import '../../provider/user_provider.dart';
 import '../../screens/home/home_imports.dart';
 import '../../widgets/show_toast.dart';
@@ -40,7 +42,22 @@ class ApiService with UtilityMixin {
 
   static final ApiService _instance = ApiService._internal();
   factory ApiService() => _instance;
-  ApiService._internal();
+  ApiService._internal() {
+    // Intercept API responses globally to detect 500 level errors for the ServerDown BottomSheet
+    _dio.interceptors.add(
+      InterceptorsWrapper(
+        onError: (DioException e, handler) {
+          final ignore500 = e.requestOptions.headers['Ignore-500'] == 'true';
+          if (!ignore500 &&
+              e.response?.statusCode != null &&
+              e.response!.statusCode! >= 500) {
+            ServerMonitor.reportServerDown();
+          }
+          return handler.next(e);
+        },
+      ),
+    );
+  }
 
   static bool simulateError = false;
   static String simulateErrorType = 'none';
@@ -69,7 +86,6 @@ class ApiService with UtilityMixin {
     };
   }
 
-  /// Handle Dio exceptions consistently
   String _handleDioError(
     DioException e, {
     String defaultMessage = _errorMessageGeneric,
@@ -79,19 +95,39 @@ class ApiService with UtilityMixin {
       debugPrint('Response: ${e.response?.data}');
     }
 
-    if (e.response?.statusCode == 401) return _errorMessageAuth;
-    if (e.response?.statusCode == 404) return 'Resource not found';
-    if (e.type == DioExceptionType.connectionTimeout ||
-        e.type == DioExceptionType.receiveTimeout) {
-      return 'Connection timeout. Please check your internet connection';
+    final statusCode = e.response?.statusCode;
+
+    if (statusCode == 401) return _errorMessageAuth;
+    if (statusCode == 403) {
+      return 'You do not have permission to perform this action.';
     }
-    if (e.type == DioExceptionType.connectionError) {
-      return 'No internet connection';
+    if (statusCode == 404) return 'The requested resource was not found.';
+
+    // Server errors (500+)
+    if (statusCode != null && statusCode >= 500) {
+      return 'We encountered a temporary issue with our servers. Please try again.';
     }
 
-    return e.response?.data['message'] ??
-        e.response?.data['detail'] ??
-        defaultMessage;
+    // Network & Timeout Errors
+    if (e.type == DioExceptionType.connectionTimeout ||
+        e.type == DioExceptionType.receiveTimeout) {
+      return 'Connection timeout. Please check your internet connection.';
+    }
+    if (e.type == DioExceptionType.connectionError) {
+      return 'No internet connection available.';
+    }
+
+    // Only passthrough backend error string if it is a 4xx validation/client error.
+    // Otherwise, mask it behind the generic message to prevent leaking system errors.
+    if (statusCode != null && statusCode >= 400 && statusCode < 500) {
+      if (e.response?.data != null && e.response?.data is Map) {
+        return e.response?.data['message']?.toString() ??
+            e.response?.data['detail']?.toString() ??
+            defaultMessage;
+      }
+    }
+
+    return defaultMessage;
   }
 
   /// Validate file size
@@ -504,7 +540,10 @@ class ApiService with UtilityMixin {
     }
   }
 
-  static Future<HomeFeedResponse> fetchHomeFeedPosts({String? url}) async {
+  static Future<HomeFeedResponse> fetchHomeFeedPosts({
+    String? url,
+    bool isPagination = false,
+  }) async {
     // // ✅ Test simulation — auto-removed in release builds
     // assert(() {
     //   if (simulateError) {
@@ -535,6 +574,7 @@ class ApiService with UtilityMixin {
           headers: {
             'Authorization': 'Bearer $accessToken',
             'Content-Type': 'application/json',
+            if (isPagination) 'Ignore-500': 'true',
           },
         ),
       );
@@ -1043,6 +1083,20 @@ class ApiService with UtilityMixin {
     }
   }
 
+  Future<HashtagPostsListModel> searchHashtagPosts(String tag) async {
+    try {
+      final response = await _dio.get(
+        '${ApiConstants.baseUrl}/posts/search/hashtag',
+        queryParameters: {'tag': tag},
+        options: Options(headers: await _getAuthHeaders()),
+      );
+
+      return HashtagPostsListModel.fromJson(response.data);
+    } on DioException catch (e) {
+      throw _handleDioError(e);
+    }
+  }
+
   Future<EnhancedTrendingHashtagsModel> fetchEnhancedTrendingHashtags() async {
     try {
       final response = await _dio.get(
@@ -1282,22 +1336,14 @@ class ApiService with UtilityMixin {
   }) async {
     final accessToken = await SharedPrefService.getToken();
     try {
-      final formData = FormData.fromMap({
-        'group_picture': await MultipartFile.fromFile(
-          imageFile.path,
-          filename: imageFile.path.split('/').last,
-        ),
-      });
+      final bytes = await imageFile.readAsBytes();
+      final base64String = base64Encode(bytes);
+      final base64WithPrefix = 'data:image/jpeg;base64,$base64String';
 
       final response = await _dio.post(
         '${ApiConstants.uploadGroupProfile}/$chatId/update_picture',
-        data: formData,
-        options: Options(
-          headers: {
-            'Authorization': 'Bearer $accessToken',
-            'Content-Type': 'multipart/form-data',
-          },
-        ),
+        data: {'group_picture': base64WithPrefix},
+        options: Options(headers: {'Authorization': 'Bearer $accessToken'}),
       );
       return response.data as Map<String, dynamic>;
     } catch (e) {
@@ -1390,16 +1436,35 @@ class ApiService with UtilityMixin {
   }) async {
     try {
       final response = await _dio.post(
-        '${ApiConstants.makeAdmin}/$chatId/make_admin',
+        '/chats/group/$chatId/make_admin',
         data: {'user_id': userId},
         options: Options(headers: await _getAuthHeaders()),
       );
-      if (response.statusCode == 200) {
-        return {'message': response.data['message']};
-      }
-      return {'message': response.data['message'] ?? 'Failed to make admin'};
+
+      debugPrint(
+        'Make admin response: ${response.statusCode} ${response.data}',
+      );
+
+      return response.data as Map<String, dynamic>;
+    } on DioException catch (e) {
+      return {
+        'success': false,
+        'message': e.response?.data?['message'] ?? 'Failed',
+      };
     } catch (e) {
-      return {'message': 'Failed to make admin'};
+      return {'success': false, 'message': 'Failed to make admin'};
+    }
+  }
+
+  Future<Map<String, dynamic>> getGroupChatInfo({required int chatId}) async {
+    try {
+      final response = await _dio.get(
+        '/chats/group/$chatId/info',
+        options: Options(headers: await _getAuthHeaders()),
+      );
+      return response.data as Map<String, dynamic>;
+    } on DioException catch (e) {
+      throw _handleDioError(e);
     }
   }
 
@@ -1432,15 +1497,15 @@ class ApiService with UtilityMixin {
     try {
       debugPrint('📤 Sending message to server — chatId: $chatId, text: $text');
 
-      final response = await _dio.post(
+      await _dio.post(
         '${ApiConstants.sendMessage}/$chatId/messages',
         data: {'text': text},
         options: Options(headers: await _getAuthHeaders()),
       );
 
-      debugPrint(
-        '✅ sendMessage response [${response.statusCode}]: ${response.data}',
-      );
+      // debugPrint(
+      //   'sendMessage response [${response.statusCode}]: ${response.data}',
+      // );
     } on DioException catch (e) {
       debugPrint(
         '❌ sendMessage DioException: '

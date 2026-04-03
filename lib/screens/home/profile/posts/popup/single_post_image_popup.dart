@@ -4,23 +4,23 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:polzet_app/languages/l10n/generated/app_localizations.dart';
 
-import '../../../../api/api_config.dart';
-import '../../../../api/services/api_service.dart';
-import '../../../../core/constants/app_colors.dart';
-import '../../../../models/posts/user_post_model.dart';
-import '../../../../models/voters/top_voters_model.dart';
-import '../../../../widgets/show_toast.dart';
-import '../../../../widgets/utils/bottomsheet_util.dart';
-import '../../../../widgets/voter list/voters_list.dart';
+import '../../../../../api/api_config.dart';
+import '../../../../../api/services/api_service.dart';
+import '../../../../../core/constants/app_colors.dart';
+import '../../../../../models/posts/single_post_model.dart';
+import '../../../../../models/voters/top_voters_model.dart';
+import '../../../../../widgets/show_toast.dart';
+import '../../../../../widgets/utils/bottomsheet_util.dart';
+import '../../../../../widgets/voter_list/voters_list.dart';
 
-class ShowImagesPopup extends StatefulWidget {
-  final List<UserPollOption> images;
+class SinglePostImagePopup extends StatefulWidget {
+  final List<SinglePostPollOption> images;
   final Function(int) onImageTap;
   final int postId;
   final int pollId;
   final bool isPolledByCurrentUser;
 
-  const ShowImagesPopup({
+  const SinglePostImagePopup({
     super.key,
     required this.images,
     required this.onImageTap,
@@ -30,10 +30,10 @@ class ShowImagesPopup extends StatefulWidget {
   });
 
   @override
-  State<ShowImagesPopup> createState() => _AllImagesPopupState();
+  State<SinglePostImagePopup> createState() => _AllImagesPopupState();
 }
 
-class _AllImagesPopupState extends State<ShowImagesPopup> {
+class _AllImagesPopupState extends State<SinglePostImagePopup> {
   Map<int, int> selectedImages = {};
   int selectionCounter = 0;
   bool isSubmitting = false;

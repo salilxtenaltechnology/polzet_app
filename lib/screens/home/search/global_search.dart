@@ -14,6 +14,7 @@ import '../../../mixin/utility_mixins.dart';
 import '../../../models/global search/global_search_model.dart';
 import '../../../widgets/custom_text_styles.dart';
 import '../../../widgets/tabbar/indicatore_animation.dart';
+import 'posts/hashtag_posts_list.dart';
 import 'posts/single_post_details.dart';
 
 // ─── Palette ────────────────────────────────────────────────────────────────
@@ -808,6 +809,10 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen>
 
   Widget _buildHashtagTile(SearchHashtag tag) {
     return ListTile(
+      onTap: () {
+        navigationPush(context, HashtagPostsList(hashtag: tag.tag));
+      },
+
       contentPadding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 2.h),
       leading: Container(
         width: 35.w,

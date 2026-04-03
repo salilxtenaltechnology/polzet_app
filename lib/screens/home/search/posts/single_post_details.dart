@@ -22,7 +22,7 @@ import '../../../../widgets/custom_text_styles.dart';
 import '../../../../widgets/show_toast.dart';
 import '../../../../widgets/utils/bottomsheet_util.dart';
 import '../../../../widgets/utils/like_util.dart';
-import '../../profile/posts/single_post_image_popup.dart';
+import '../../profile/posts/popup/single_post_image_popup.dart';
 
 // ─── Palette ─────────────────────────────────────────────────────────────────
 

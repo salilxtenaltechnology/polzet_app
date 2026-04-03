@@ -1,6 +1,7 @@
 // ignore_for_file: deprecated_member_use
 
 import 'dart:async';
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -33,8 +34,17 @@ class _MessageListState extends State<MessageList> with UtilityMixin {
       StreamController<List<Map<String, dynamic>>>.broadcast();
 
   List<Map<String, dynamic>> _cachedChats = [];
+  final Map<String, Uint8List> _imageCache = {};
   Timer? _pollingTimer;
   bool _initialLoading = true;
+
+  Uint8List? _getCachedImage(String? avatarUrl) {
+    if (avatarUrl == null || avatarUrl.trim().isEmpty) return null;
+    if (_imageCache.containsKey(avatarUrl)) return _imageCache[avatarUrl];
+    final bytes = getProfileImage(avatarUrl);
+    if (bytes != null) _imageCache[avatarUrl] = bytes;
+    return bytes;
+  }
 
   @override
   void initState() {
@@ -239,16 +249,7 @@ class _MessageListState extends State<MessageList> with UtilityMixin {
         context,
         MaterialPageRoute(
           builder: (_) => ChangeNotifierProvider(
-            create: (_) => GroupChatProvider(
-              chatId: chatId,
-              chatName: title,
-              chat: chat,
-              members: List<Map<String, dynamic>>.from(
-                (chat['members'] as List? ?? []).map(
-                  (m) => Map<String, dynamic>.from(m as Map),
-                ),
-              ),
-            ),
+            create: (_) => GroupChatProvider(),
             child: GroupChatScreen(
               groupName: title,
               chat: chat,
@@ -359,9 +360,7 @@ class _MessageListState extends State<MessageList> with UtilityMixin {
                     itemBuilder: (context, index) {
                       final chat = chats[index];
                       final avatarUrl = _avatarUrl(chat);
-                      final imageBytes = avatarUrl != null
-                          ? getProfileImage(avatarUrl)
-                          : null;
+                      final imageBytes = _getCachedImage(avatarUrl);
                       final title = _chatTitle(chat);
                       final unread = _unreadCount(chat);
 

@@ -5,6 +5,17 @@ import 'package:flutter/material.dart';
 
 enum ConnectionStatus { unknown, online, offline, serverDown }
 
+// Global event bus for server down events from any API call
+class ServerMonitor {
+  static final StreamController<bool> _serverDownController =
+      StreamController<bool>.broadcast();
+  static Stream<bool> get onServerDown => _serverDownController.stream;
+
+  static void reportServerDown() {
+    _serverDownController.add(true);
+  }
+}
+
 class ConnectivityProvider extends ChangeNotifier {
   ConnectionStatus _status = ConnectionStatus.unknown;
   bool _isInitialized = false;
@@ -26,6 +37,11 @@ class ConnectivityProvider extends ChangeNotifier {
   Future<void> _init() async {
     await _check();
     _startPolling();
+
+    // Listen to global server down events (e.g. 500 status code from any API)
+    ServerMonitor.onServerDown.listen((_) {
+      _updateStatus(ConnectionStatus.serverDown);
+    });
   }
 
   // ── Core check ─────────────────────────────────────────────────────────────

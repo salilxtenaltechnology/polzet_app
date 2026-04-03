@@ -17,6 +17,30 @@ class ChatMessage {
     this.senderUsername,
     this.senderProfileImage,
   });
+
+  Map<String, dynamic> toJson() {
+    return {
+      'text': text,
+      'created_at': created_at.toIso8601String(),
+      'isSentByMe': isSentByMe,
+      'isPending': isPending,
+      'isFailed': isFailed,
+      'senderUsername': senderUsername,
+      'senderProfileImage': senderProfileImage,
+    };
+  }
+
+  factory ChatMessage.fromJson(Map<String, dynamic> json) {
+    return ChatMessage(
+      text: json['text'] as String? ?? '',
+      created_at: DateTime.tryParse(json['created_at']?.toString() ?? '') ?? DateTime.now(),
+      isSentByMe: json['isSentByMe'] as bool? ?? false,
+      isPending: json['isPending'] as bool? ?? false,
+      isFailed: json['isFailed'] as bool? ?? false,
+      senderUsername: json['senderUsername'] as String?,
+      senderProfileImage: json['senderProfileImage'] as String?,
+    );
+  }
 }
 
 class MessageListModel {

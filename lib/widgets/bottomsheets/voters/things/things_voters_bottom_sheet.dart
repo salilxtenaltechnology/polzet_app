@@ -11,8 +11,7 @@ import '../../../../models/poll/poll_results_model.dart';
 import '../../../../models/voters/top_voters_model.dart';
 import '../../../../models/voters/things_voter_tile.dart';
 import '../../../../models/voters/things_voters_models.dart';
-import '../../../loader.dart';
-import '../../../simmer/things_voter_tile_shimmer.dart';
+import '../../../shimmer/things_voter_tile_shimmer.dart';
 
 class ThingsVotersBottomSheet extends StatefulWidget {
   final int pollId;

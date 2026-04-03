@@ -83,7 +83,7 @@ class DashboardState extends State<Dashboard> with UtilityMixin {
     setState(() => _isLoadingMore = true);
 
     try {
-      final response = await ApiService.fetchHomeFeedPosts(url: _nextPageUrl);
+      final response = await ApiService.fetchHomeFeedPosts(url: _nextPageUrl, isPagination: true);
       if (!mounted) return;
       setState(() {
         posts.addAll(response.results);
@@ -105,11 +105,11 @@ class DashboardState extends State<Dashboard> with UtilityMixin {
     fetchHomeFeed(showLoader: posts.isEmpty);
   }
 
+
   Future<void> _savePostsToCache(List<HomeFeedPost> postsToCache) async {
     try {
-      final jsonString = jsonEncode(
-        postsToCache.map((post) => post.toJson()).toList(),
-      );
+      final jsonList = postsToCache.map((post) => post.toJson()).toList();
+      final jsonString = await compute(_encodePostsBackground, jsonList);
       await SharedPrefService.setString(_cacheKey, jsonString);
       await SharedPrefService.setString(
         _cacheTimeKey,
@@ -136,7 +136,7 @@ class DashboardState extends State<Dashboard> with UtilityMixin {
           }
         }
 
-        final List<dynamic> jsonList = jsonDecode(cachedJsonString);
+        final List<dynamic> jsonList = await compute(_decodePostsBackground, cachedJsonString);
         final cachedPosts = jsonList
             .map((json) => HomeFeedPost.fromJson(json as Map<String, dynamic>))
             .toList();
@@ -520,4 +520,14 @@ class DashboardState extends State<Dashboard> with UtilityMixin {
       ),
     );
   }
+}
+
+// ── Isolate Parsing Functions ────────────────────────────────────────────────
+
+String _encodePostsBackground(List<dynamic> jsonList) {
+  return jsonEncode(jsonList);
+}
+
+List<dynamic> _decodePostsBackground(String jsonString) {
+  return jsonDecode(jsonString) as List<dynamic>;
 }

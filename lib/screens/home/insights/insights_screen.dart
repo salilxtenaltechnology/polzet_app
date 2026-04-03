@@ -10,7 +10,7 @@ import '../../../api/services/api_service.dart';
 import '../../../languages/l10n/generated/app_localizations.dart';
 import '../../../models/insights/insights_model.dart';
 import '../../../widgets/custom_card.dart';
-import '../../../widgets/diolog/custom_diolog.dart';
+import '../../../widgets/dialog/custom_diolog.dart';
 import '../../../widgets/loader.dart';
 
 class InsightsScreen extends StatefulWidget {

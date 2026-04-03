@@ -16,7 +16,7 @@ import '../../../../provider/group_chat_provider.dart';
 import '../../../../provider/private_chat_provider.dart';
 import '../../../../provider/user_provider.dart';
 import '../../../../widgets/base64/image_convert.dart';
-import '../../../../widgets/diolog/custom_diolog.dart';
+import '../../../../widgets/dialog/custom_diolog.dart';
 import '../../../../widgets/show_toast.dart';
 import '../media/media_screen.dart';
 import '../message_list.dart';
@@ -301,7 +301,6 @@ class _ChatDetailsState extends State<ChatDetails> with UtilityMixin {
         ? false
         : privateProvider!.isHideChatHistory;
 
-    // Use provider's live picture_url for group, else widget.profileUrl
     final profileUrl = widget.isGroupChat
         ? (groupProvider!.chat?['profile_url']?.toString() ?? widget.profileUrl)
         : widget.profileUrl;
@@ -334,7 +333,7 @@ class _ChatDetailsState extends State<ChatDetails> with UtilityMixin {
         padding: EdgeInsets.symmetric(horizontal: 12.w),
         child: Column(
           children: [
-            // ── Avatar with optional camera button ────────────────────────
+            /*───── Avatar with optional camera button ─────*/
             Stack(
               children: [
                 SizedBox(

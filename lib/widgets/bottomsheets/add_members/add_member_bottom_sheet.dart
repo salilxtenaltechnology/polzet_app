@@ -102,14 +102,30 @@ class _AddMemberBottomSheetState extends State<AddMemberBottomSheet>
           .toString();
 
   String? _userAvatar(Map<String, dynamic> user) =>
-      (user['avatar'] ?? user['profile_picture_url'] ?? user['image'])
+      (user['profile_image'] ??
+              user['avatar'] ??
+              user['profile_picture_url'] ??
+              user['image'] ??
+              user['photo'] ??
+              user['profile_picture'])
           ?.toString();
 
-  /// Pop and return selected IDs + their full user maps to caller
   void _onAdd() {
     final selectedUsers = _allUsers
         .where((u) => _selectedIds.contains(u['id']))
+        .map((u) {
+          final normalized = Map<String, dynamic>.from(u);
+          normalized['profile_image'] ??=
+              u['profile_image'] ??
+              u['avatar'] ??
+              u['profile_picture_url'] ??
+              u['image'] ??
+              u['photo'] ??
+              u['profile_picture'];
+          return normalized;
+        })
         .toList();
+
     Navigator.pop(context, {'ids': _selectedIds, 'users': selectedUsers});
   }
 
@@ -188,7 +204,7 @@ class _AddMemberBottomSheetState extends State<AddMemberBottomSheet>
                     left: 12.w,
                     top: 10.h,
                   ),
-                  hintText:   AppLocalizations.of(context)!.searchusers,
+                  hintText: AppLocalizations.of(context)!.searchusers,
                   hintStyle: CustomTextStyles.lblPrimaryHintText(context),
                   border: InputBorder.none,
                   suffixIcon: Icon(
@@ -247,7 +263,7 @@ class _AddMemberBottomSheetState extends State<AddMemberBottomSheet>
                 child: Center(
                   child: Text(
                     _selectedIds.isEmpty
-                        ?   AppLocalizations.of(context)!.add
+                        ? AppLocalizations.of(context)!.add
                         : '${AppLocalizations.of(context)!.add} (${_selectedIds.length})',
                     style: CustomTextStyles.btnPrimaryText,
                   ),
@@ -279,7 +295,7 @@ class _AddMemberBottomSheetState extends State<AddMemberBottomSheet>
             ),
             SizedBox(height: 10.h),
             Text(
-            AppLocalizations.of(context)!.nousersfound,
+              AppLocalizations.of(context)!.nousersfound,
               style: CustomTextStyles.lblSecondryText(context),
             ),
           ],

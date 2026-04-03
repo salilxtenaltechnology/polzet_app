@@ -10,7 +10,7 @@ import '../../core/constants/app_strings.dart';
 import '../../languages/l10n/generated/app_localizations.dart';
 import '../../models/country/country_model.dart';
 import '../../models/user/user_profile_model.dart';
-import '../country code/custom_country_code.dart';
+import '../country_code/custom_country_code.dart';
 import '../custom_card.dart';
 import '../custom_text_styles.dart';
 

@@ -9,8 +9,10 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../../api/services/api_service.dart';
 import '../../../mixin/utility_mixins.dart';
 import '../../../models/user/suggestionsb users/suggestions_users_model.dart';
-import '../../../widgets/simmer/suggestion_users_shimmer.dart';
+import '../../../widgets/shimmer/suggestion_users_shimmer.dart';
 import '../profile/public/public_profile.dart';
+
+import '../../../widgets/error/api_error_widget.dart';
 
 class PeopleYouMayKnowSection extends StatefulWidget {
   final Future<UserSuggestionsModel> suggestionsFuture;
@@ -53,7 +55,13 @@ class _PeopleYouMayKnowSectionState extends State<PeopleYouMayKnowSection>
 
         if (snapshot.hasError) {
           debugPrint('❌ Error: ${snapshot.error}');
-          return const SizedBox.shrink();
+          return const SizedBox(
+            height: 200,
+            child: ApiErrorWidget(
+              title: 'Unexpected Error',
+              subtitle: 'Could not load suggested users',
+            ),
+          );
         }
 
         if (!snapshot.hasData) return const SizedBox.shrink();

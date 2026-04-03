@@ -11,7 +11,7 @@ import '../../../models/posts/homefeed_posts_model.dart';
 import '../../../models/voters/top_voters_model.dart';
 import '../../../widgets/show_toast.dart';
 import '../../../widgets/utils/bottomsheet_util.dart';
-import '../../../widgets/voter list/voters_list.dart';
+import '../../../widgets/voter_list/voters_list.dart';
 
 class AllImagesPopup extends StatefulWidget {
   final List<HomeFeedPollOption> images;

@@ -7,7 +7,7 @@ import 'package:polzet_app/languages/l10n/generated/app_localizations.dart';
 import 'package:polzet_app/widgets/base64/image_convert.dart';
 import '../../../../models/comment/comment.dart';
 import '../../../api/services/comment/comment_service.dart';
-import '../../diolog/custom_diolog.dart';
+import '../../dialog/custom_diolog.dart';
 
 class CommentsBottomSheet extends StatefulWidget {
   final int postId;

@@ -2,79 +2,133 @@
 
 import 'dart:async';
 import 'dart:convert';
+import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 import 'package:web_socket_channel/status.dart' as status;
-import 'package:polzet_app/api/services/api_service.dart';
-import 'package:polzet_app/models/message/message_model.dart';
-import 'package:polzet_app/data/token/shared_preferences.dart';
+import '../../models/message/message_model.dart';
+import '../../data/token/shared_preferences.dart';
+import '../api/services/api_service.dart';
 
-class GroupChatProvider extends ChangeNotifier {
-  final ApiService _api = ApiService();
+/// Represents a single group member's online/typing state.
+class GroupMemberPresence {
+  final int userId;
+  String username;
+  bool isOnline;
+  bool isTyping;
 
-  // ── State ─────────────────────────────────────────────────────────────────
-  int? chatId;
-  String? chatName;
-  Map<String, dynamic>? chat;
-  List<Map<String, dynamic>> members;
-
-  bool isRenaming = false;
-
-  // ── Online presence tracking ──────────────────────────────────────────────
-  // key = user_id (int), value = username (String)
-  final Map<int, String> _onlineMembers = {};
-
-  int get onlineMemberCount => _onlineMembers.length;
-
-  /// "1 online", "2 online", or "" if none
-  String get onlineStatusText {
-    final count = _onlineMembers.length;
-    if (count == 0) return '';
-    return '$count online';
-  }
-
-  
-
-  /// e.g. "pratik, salil and 2 others are offline"
- String get offlineMembersText {
-  final onlineIds = _onlineMembers.keys.toSet();
-  final offlineNames = members
-      .map((m) => m['user'] as Map?)
-      .where((u) => u != null)
-      .where((u) => !onlineIds.contains(u!['id'] as int?))
-      .where((u) => (u!['id'] as int?) != _currentUserId)
-      .map((u) => (u!['username'] ?? u['full_name'] ?? '').toString())
-      .where((name) => name.isNotEmpty)
-      .toList();
-
-  if (offlineNames.isEmpty) return 'You';
-  return '${offlineNames.join(', ')}, You';
+  GroupMemberPresence({
+    required this.userId,
+    required this.username,
+    this.isOnline = false,
+    this.isTyping = false,
+  });
 }
 
-  // ── Typing indicator ──────────────────────────────────────────────────────
-  // key = user_id, value = username
-  final Map<int, String> _typingMembers = {};
-  Timer? _memberTypingTimer;
+class GroupChatProvider extends ChangeNotifier {
+  // ── Group meta ─────────────────────────────────────────────────────────────
+  String? _groupName;
+  String? _groupImageUrl;
+  int? _chatId;
+  Map<String, dynamic>? _chat;
 
-  /// e.g. "pratik is typing...", "pratik, salil are typing..."
-  String get typingText {
-    if (_typingMembers.isEmpty) return '';
-    final names = _typingMembers.values.toList();
-    if (names.length == 1) return '${names[0]} is typing...';
-    if (names.length == 2) return '${names[0]}, ${names[1]} are typing...';
-    return '${names[0]} and ${names.length - 1} others are typing...';
+  // ── Admin IDs set — single source of truth for admin status ───────────────
+  final Set<int> _adminIds = {};
+
+  String? get groupName => _groupName;
+  String? get chatName => _groupName;
+  String? get groupImageUrl => _groupImageUrl;
+  int? get chatId => _chatId;
+  Map<String, dynamic>? get chat => _chat;
+
+  // ── Members getter — works with both nested {user:{}} and flat {} structures
+  List<Map<String, dynamic>> get members {
+    if (_chat != null && _chat!['members'] != null) {
+      return List<Map<String, dynamic>>.from(_chat!['members']);
+    }
+    return [];
   }
 
-  bool get isSomeoneTyping => _typingMembers.isNotEmpty;
+  // ── Admin IDs getter ───────────────────────────────────────────────────────
+  Set<int> get adminIds => Set.unmodifiable(_adminIds);
 
-  // ── Stream for real-time silent UI updates ────────────────────────────────
+  /// ✅ Single source of truth — checks _adminIds set directly
+  bool isAdmin(int userId) => _adminIds.contains(userId);
+
+  /// ✅ Rebuild _adminIds from whatever structure _chat holds
+  void _syncAdminIds() {
+    _adminIds.clear();
+
+    if (_chat == null) return;
+
+    // Strategy 1: separate "admins" array (from /info endpoint)
+    // Structure: { admins: [{ id: 1, username: "..." }] }
+    if (_chat!['admins'] != null) {
+      final adminsList = _chat!['admins'] as List<dynamic>;
+      for (final a in adminsList) {
+        if (a is Map<String, dynamic>) {
+          final id = a['id'] as int?;
+          if (id != null) _adminIds.add(id);
+        }
+      }
+      debugPrint('🔑 [Group] Synced ${_adminIds.length} admins from admins[]');
+      return;
+    }
+
+    // Strategy 2: is_admin on each member (from /chats/group/{id}/ endpoint)
+    // Structure: { members: [{ user: { id: 1 }, is_admin: true }] }
+    if (_chat!['members'] != null) {
+      final membersList = _chat!['members'] as List<dynamic>;
+      for (final m in membersList) {
+        if (m is Map<String, dynamic> && m['is_admin'] == true) {
+          final user = m['user'] as Map<String, dynamic>?;
+          final id = user?['id'] as int?;
+          if (id != null) _adminIds.add(id);
+        }
+      }
+      debugPrint(
+        '🔑 [Group] Synced ${_adminIds.length} admins from members[].is_admin',
+      );
+    }
+  }
+
+  bool _isRenaming = false;
+  bool get isRenaming => _isRenaming;
+
+  // ── Member presence map  { userId → GroupMemberPresence } ─────────────────
+  final Map<int, GroupMemberPresence> _memberPresence = {};
+  Map<int, GroupMemberPresence> get memberPresence =>
+      Map.unmodifiable(_memberPresence);
+
+  List<String> get typingUsernames => _memberPresence.values
+      .where((m) => m.isTyping)
+      .map((m) => m.username)
+      .toList();
+
+  bool get isSomeoneTyping => typingUsernames.isNotEmpty;
+
+  String get typingIndicatorText {
+    final names = typingUsernames;
+    if (names.isEmpty) return '';
+    if (names.length == 1) return '${names.first} is typing…';
+    if (names.length == 2) return '${names[0]} and ${names[1]} are typing…';
+    return '${names.take(2).join(', ')} and ${names.length - 2} more are typing…';
+  }
+
+  // ── Timers ─────────────────────────────────────────────────────────────────
+  Timer? _typingTimer;
+  Timer? _pollingTimer;
+  final Map<int, Timer> _memberTypingTimers = {};
+
+  // ── Stream for SILENT real-time message updates ────────────────────────────
   final StreamController<List<ChatMessage>> _messagesStreamController =
       StreamController<List<ChatMessage>>.broadcast();
 
   Stream<List<ChatMessage>> get messagesStream =>
       _messagesStreamController.stream;
 
-  // ── Message state ─────────────────────────────────────────────────────────
+  // ── Message state ──────────────────────────────────────────────────────────
   final List<ChatMessage> _messages = [];
   List<ChatMessage> get messages => List.unmodifiable(_messages);
 
@@ -90,18 +144,8 @@ class GroupChatProvider extends ChangeNotifier {
       return '$h:$m';
     } else if (dt.year == now.year) {
       const months = [
-        'Jan',
-        'Feb',
-        'Mar',
-        'Apr',
-        'May',
-        'Jun',
-        'Jul',
-        'Aug',
-        'Sep',
-        'Oct',
-        'Nov',
-        'Dec',
+        'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+        'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
       ];
       return '${months[dt.month - 1]} ${dt.day}';
     } else {
@@ -109,6 +153,7 @@ class GroupChatProvider extends ChangeNotifier {
     }
   }
 
+  // ── Loading / error state ──────────────────────────────────────────────────
   bool _isLoadingHistory = false;
   bool get isLoadingHistory => _isLoadingHistory;
 
@@ -118,94 +163,223 @@ class GroupChatProvider extends ChangeNotifier {
   String? _nextPageUrl;
   bool get hasMoreHistory => _nextPageUrl != null;
 
-  // ── WebSocket state ───────────────────────────────────────────────────────
+  // ── WebSocket state ────────────────────────────────────────────────────────
   static const String _wsBaseUrl = 'wss://testbackend.polzet.in';
 
-  WebSocketChannel? _channel;
-  StreamSubscription? _wsSubscription;
-  bool _isConnected = false;
-  bool _isConnecting = false;
-  bool _shouldReconnect = false;
-  int _reconnectAttempts = 0;
-  Timer? _reconnectTimer;
-  static const int _maxReconnectAttempts = 5;
+  WebSocketChannel? _presenceChannel;
+  StreamSubscription? _presenceSubscription;
+  bool _isPresenceConnected = false;
+  bool _isPresenceConnecting = false;
+  int _presenceReconnectAttempts = 0;
+  Timer? _presenceReconnectTimer;
 
-  bool get isConnected => _isConnected;
-  bool get isConnecting => _isConnecting;
-  bool get showConnectionBanner => !_isConnected;
+  WebSocketChannel? _messageChannel;
+  StreamSubscription? _messageSubscription;
+  bool _isMessageConnected = false;
+  bool _isMessageConnecting = false;
+  int _messageReconnectAttempts = 0;
+  Timer? _messageReconnectTimer;
+
+  bool _shouldReconnect = false;
+
+  static const int _maxReconnectAttempts = 5;
+  static const Duration _pendingConfirmTimeout = Duration(seconds: 4);
+
+  // ── Getters ────────────────────────────────────────────────────────────────
+  bool get isPresenceConnected => _isPresenceConnected;
+  bool get isMessageConnected => _isMessageConnected;
+  bool get isConnected => _isPresenceConnected && _isMessageConnected;
+  bool get isConnecting => _isPresenceConnecting || _isMessageConnecting;
+  bool get showConnectionBanner =>
+      !_isPresenceConnected || !_isMessageConnected;
 
   // ── Current user ──────────────────────────────────────────────────────────
   String? _currentUsername;
+  String? get currentUsername => _currentUsername;
+
   int? _currentUserId;
+  int? get currentUserId => _currentUserId;
 
-  // ── Chat settings ─────────────────────────────────────────────────────────
+  // ── Chat settings ──────────────────────────────────────────────────────────
   bool isMuteNotification = false;
-  bool isProtectedChat = false;
-  bool isHideChat = false;
-  bool isHideChatHistory = false;
 
-  GroupChatProvider({
-    required this.chatId,
-    required this.chatName,
-    required this.chat,
-    required this.members,
-  });
-
-  // ── Emit helper ───────────────────────────────────────────────────────────
+  // ── Emit helpers ───────────────────────────────────────────────────────────
   void _emitMessages() {
     if (!_messagesStreamController.isClosed) {
       _messagesStreamController.add(List.unmodifiable(_messages));
     }
   }
 
-  // ── Helper: get username from members list by user_id ─────────────────────
-  String _getUsernameById(int userId) {
-    for (final m in members) {
-      final user = m['user'] as Map?;
-      if (user != null && user['id'] == userId) {
-        return (user['username'] ?? user['full_name'] ?? 'Unknown').toString();
+  // ── Caching ────────────────────────────────────────────────────────────────
+  String get _cacheKey => 'group_chat_history_$_chatId';
+
+  Future<void> _loadCachedMessages() async {
+    if (_chatId == null) return;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final String? cachedStr = prefs.getString(_cacheKey);
+      if (cachedStr != null) {
+        final List<dynamic> decoded = jsonDecode(cachedStr);
+        final cached = decoded.map((e) => ChatMessage.fromJson(e)).toList();
+        if (cached.isNotEmpty) {
+          _messages.clear();
+          _messages.addAll(cached);
+          _emitMessages();
+          debugPrint('✅ [Group] Loaded ${cached.length} messages from CACHE');
+        }
       }
+    } catch (e) {
+      debugPrint('❌ [Group] Failed to load cached messages: $e');
     }
-    return 'Unknown';
   }
 
-  // ── Init ──────────────────────────────────────────────────────────────────
-  Future<void> init({String? currentUsername}) async {
+  Future<void> _saveCachedMessages() async {
+    if (_chatId == null) return;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final toCache = _messages.length > 60
+          ? _messages
+                .sublist(_messages.length - 60)
+                .map((m) => m.toJson())
+                .toList()
+          : _messages.map((m) => m.toJson()).toList();
+      await prefs.setString(_cacheKey, jsonEncode(toCache));
+    } catch (e) {
+      debugPrint('❌ [Group] Failed to save cached messages: $e');
+    }
+  }
+
+  // ── Init ───────────────────────────────────────────────────────────────────
+  Future<void> init({
+    required String? groupName,
+    required String? groupImageUrl,
+    int? chatId,
+    String? currentUsername,
+    int? currentUserId,
+    Map<String, dynamic>? chat,
+  }) async {
+    _groupName = groupName;
+    _groupImageUrl = groupImageUrl;
+    _chatId = chatId;
+    _currentUserId = currentUserId;
+    _chat = chat;
+
+    // ✅ Sync admin IDs immediately from initial chat payload
+    _syncAdminIds();
+
     if (currentUsername != null && currentUsername.isNotEmpty) {
       _currentUsername = currentUsername;
     } else {
       _currentUsername = await SharedPrefService.getUsername();
     }
+    debugPrint('👤 [Group] Current username: $_currentUsername');
 
-    // Get current user id to exclude self from typing/online display
-    final userId = await SharedPrefService.getUserId();
-    _currentUserId = int.tryParse(userId ?? '') ?? 0;
+    // Pre-populate member presence
+    if (chat != null && chat['members'] != null) {
+      final membersList = chat['members'] as List<dynamic>?;
+      if (membersList != null) {
+        for (final m in membersList) {
+          if (m is Map<String, dynamic>) {
+            final user = m['user'] as Map<String, dynamic>?;
+            final userId = user?['id'] as int?;
+            final username = user?['username']?.toString();
+            final isOnline = (m['is_online'] as bool?) ?? false;
 
-    debugPrint('👤 Group current username: $_currentUsername');
+            if (userId != null) {
+              _memberPresence[userId] = GroupMemberPresence(
+                userId: userId,
+                username: username ?? 'User $userId',
+                isOnline: isOnline,
+              );
+            }
+          }
+        }
+      }
+    }
 
     notifyListeners();
 
-    if (chatId != null) {
-      await fetchMessageHistory();
-    } else {
+    if (_chatId == null) {
       debugPrint(
-        '⚠️ GroupChatProvider: chatId is null — skipping history & WS',
+        '⚠️ [Group] chatId is null — skipping history fetch and WS connect',
       );
       return;
     }
 
+    await _loadCachedMessages();
+    fetchMessageHistory();
+
     final token = await SharedPrefService.getToken();
     if (token != null && token.isNotEmpty) {
       _shouldReconnect = true;
-      await _connectWebSocket(token);
+      await _connectPresenceSocket(token);
+      await _connectMessageSocket(token);
     } else {
-      debugPrint('❌ GroupChatProvider: No access token for WS');
+      debugPrint('❌ [Group] No access token for WS');
+    }
+
+    _startPolling();
+  }
+
+  // ── Polling ────────────────────────────────────────────────────────────────
+  void _startPolling() {
+    _pollingTimer?.cancel();
+    _pollingTimer = Timer.periodic(const Duration(seconds: 10), (_) async {
+      await _fetchLatestMessages();
+    });
+  }
+
+  Future<void> _fetchLatestMessages() async {
+    final cid = _chatId;
+    if (cid == null) return;
+
+    try {
+      final response = await ApiService().getMessageList(chatId: cid);
+
+      final fetched = response.results
+          .map(
+            (item) => ChatMessage(
+              text: item.message,
+              created_at: item.created_at,
+              isSentByMe: _currentUsername != null
+                  ? item.isSentBy(_currentUsername)
+                  : false,
+              senderUsername: item.sender.username,
+              senderProfileImage: item.sender.profileImage,
+            ),
+          )
+          .toList()
+          .reversed
+          .toList();
+
+      final confirmedCount = _messages.where((m) => !m.isPending).length;
+
+      if (fetched.length > confirmedCount) {
+        final pendingMessages = _messages.where((m) => m.isPending).toList();
+        final oldPrependedCount =
+            _messages.length - confirmedCount - pendingMessages.length;
+        final preserved = oldPrependedCount > 0
+            ? _messages.sublist(0, oldPrependedCount)
+            : <ChatMessage>[];
+
+        _messages.clear();
+        _messages.addAll(preserved);
+        _messages.addAll(fetched);
+        _messages.addAll(pendingMessages);
+
+        debugPrint('🔄 [Group] Polling: synced ${fetched.length} messages');
+        _saveCachedMessages();
+        _emitMessages();
+      }
+    } catch (e) {
+      debugPrint('❌ [Group] Polling fetch failed: $e');
     }
   }
 
-  // ── REST: fetch initial message history ───────────────────────────────────
+  // ── REST: fetch initial message history ────────────────────────────────────
   Future<void> fetchMessageHistory() async {
-    if (chatId == null) return;
+    final cid = _chatId;
+    if (cid == null) return;
     if (_isLoadingHistory) return;
 
     _isLoadingHistory = true;
@@ -213,7 +387,7 @@ class GroupChatProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final response = await _api.getMessageList(chatId: chatId!);
+      final response = await ApiService().getMessageList(chatId: cid);
       _nextPageUrl = response.next;
 
       final fetched = response.results
@@ -232,31 +406,36 @@ class GroupChatProvider extends ChangeNotifier {
 
       _messages.clear();
       _messages.addAll(fetched.reversed.toList());
-
-      debugPrint('✅ Group: loaded ${fetched.length} messages');
+      debugPrint(
+        '✅ [Group] Loaded ${fetched.length} messages | next: $_nextPageUrl',
+      );
+      _saveCachedMessages();
       _emitMessages();
     } catch (e) {
       _historyError = e.toString();
-      debugPrint('❌ Group: failed to load message history: $e');
+      debugPrint('❌ [Group] Failed to load message history: $e');
     } finally {
       _isLoadingHistory = false;
       notifyListeners();
     }
   }
 
-  // ── REST: fetch older paginated messages ──────────────────────────────────
+  // ── REST: paginated older messages ─────────────────────────────────────────
   Future<void> fetchMoreHistory() async {
-    if (chatId == null || _nextPageUrl == null) return;
+    final cid = _chatId;
+    final nextUrl = _nextPageUrl;
+    if (cid == null || nextUrl == null) return;
     if (_isLoadingHistory) return;
 
     _isLoadingHistory = true;
     notifyListeners();
 
     try {
-      final response = await _api.getMessageList(
-        chatId: chatId!,
-        nextPageUrl: _nextPageUrl,
+      final response = await ApiService().getMessageList(
+        chatId: cid,
+        nextPageUrl: nextUrl,
       );
+
       _nextPageUrl = response.next;
 
       final fetched = response.results
@@ -264,72 +443,122 @@ class GroupChatProvider extends ChangeNotifier {
             (item) => ChatMessage(
               text: item.message,
               created_at: item.created_at,
-              isSentByMe: _currentUsername != null
-                  ? item.isSentBy(_currentUsername)
-                  : false,
+              isSentByMe: item.isSentBy(_currentUsername),
               senderUsername: item.sender.username,
               senderProfileImage: item.sender.profileImage,
             ),
           )
           .toList();
 
+      if (fetched.isEmpty) {
+        debugPrint('✅ [Group] No more older messages');
+        _nextPageUrl = null;
+        return;
+      }
+
       _messages.insertAll(0, fetched.reversed.toList());
-      debugPrint('✅ Group: loaded ${fetched.length} more messages');
+      debugPrint(
+        '✅ [Group] Loaded ${fetched.length} older messages | next: $_nextPageUrl',
+      );
+      _saveCachedMessages();
       _emitMessages();
     } catch (e) {
-      debugPrint('❌ Group: failed to load more history: $e');
+      debugPrint('❌ [Group] Failed to load more history: $e');
     } finally {
       _isLoadingHistory = false;
       notifyListeners();
     }
   }
 
-  // ── WebSocket ─────────────────────────────────────────────────────────────
-  Future<void> _connectWebSocket(String token) async {
-    if (_isConnecting || _isConnected) return;
-    if (chatId == null) {
-      debugPrint('❌ Cannot connect WS — chatId is null');
-      return;
-    }
+  // ── Presence WebSocket ─────────────────────────────────────────────────────
+  Future<void> _connectPresenceSocket(String token) async {
+    if (_isPresenceConnecting || _isPresenceConnected) return;
+    if (_chatId == null) return;
 
-    _isConnecting = true;
+    _isPresenceConnecting = true;
     notifyListeners();
 
     try {
-      final wsUrl = '$_wsBaseUrl/ws/chats/$chatId/presence/?token=$token';
-      debugPrint('🔌 Connecting to Group Chat WebSocket: $wsUrl');
+      final url = '$_wsBaseUrl/ws/chats/$_chatId/presence/?token=$token';
+      debugPrint('🔌 [Group] Connecting Presence WS: $url');
 
-      _channel = WebSocketChannel.connect(Uri.parse(wsUrl));
-      await _channel!.ready;
+      _presenceChannel = WebSocketChannel.connect(Uri.parse(url));
+      final presenceChannel = _presenceChannel;
+      if (presenceChannel == null) return;
+      await presenceChannel.ready;
 
-      _wsSubscription = _channel!.stream.listen(
-        _onMessageReceived,
+      _presenceSubscription = presenceChannel.stream.listen(
+        _onPresenceMessageReceived,
         onError: (error) {
-          debugPrint('❌ Group WS error: $error');
-          if (_isUpgradeRejected(error.toString())) {
-            _shouldReconnect = false;
-          }
-          _handleDisconnection();
+          debugPrint('❌ [Group] Presence WS error: $error');
+          if (_isUpgradeRejected(error.toString())) _shouldReconnect = false;
+          _handlePresenceDisconnection();
         },
         onDone: () {
-          debugPrint('🔌 Group WebSocket closed');
-          _handleDisconnection();
+          debugPrint('🔌 [Group] Presence WS closed');
+          _handlePresenceDisconnection();
         },
         cancelOnError: false,
       );
 
-      _isConnected = true;
-      _isConnecting = false;
-      _reconnectAttempts = 0;
-      debugPrint('✅ Group WebSocket connected');
+      _isPresenceConnected = true;
+      _isPresenceConnecting = false;
+      _presenceReconnectAttempts = 0;
+      debugPrint('✅ [Group] Presence WebSocket connected');
       notifyListeners();
     } catch (e) {
-      debugPrint('❌ Group WS connection failed: $e');
+      debugPrint('❌ [Group] Presence WS connection failed: $e');
       if (_isUpgradeRejected(e.toString())) _shouldReconnect = false;
-      _isConnected = false;
-      _isConnecting = false;
+      _isPresenceConnected = false;
+      _isPresenceConnecting = false;
       notifyListeners();
-      _handleDisconnection();
+      _handlePresenceDisconnection();
+    }
+  }
+
+  // ── Message WebSocket ──────────────────────────────────────────────────────
+  Future<void> _connectMessageSocket(String token) async {
+    if (_isMessageConnecting || _isMessageConnected) return;
+    if (_chatId == null) return;
+
+    _isMessageConnecting = true;
+    notifyListeners();
+
+    try {
+      final url = '$_wsBaseUrl/ws/chat/$_chatId/?token=$token';
+      debugPrint('🔌 [Group] Connecting Message WS: $url');
+
+      _messageChannel = WebSocketChannel.connect(Uri.parse(url));
+      final messageChannel = _messageChannel;
+      if (messageChannel == null) return;
+      await messageChannel.ready;
+
+      _messageSubscription = messageChannel.stream.listen(
+        _onMessageReceived,
+        onError: (error) {
+          debugPrint('❌ [Group] Message WS error: $error');
+          if (_isUpgradeRejected(error.toString())) _shouldReconnect = false;
+          _handleMessageDisconnection();
+        },
+        onDone: () {
+          debugPrint('🔌 [Group] Message WS closed');
+          _handleMessageDisconnection();
+        },
+        cancelOnError: false,
+      );
+
+      _isMessageConnected = true;
+      _isMessageConnecting = false;
+      _messageReconnectAttempts = 0;
+      debugPrint('✅ [Group] Message WebSocket connected');
+      notifyListeners();
+    } catch (e) {
+      debugPrint('❌ [Group] Message WS connection failed: $e');
+      if (_isUpgradeRejected(e.toString())) _shouldReconnect = false;
+      _isMessageConnected = false;
+      _isMessageConnecting = false;
+      notifyListeners();
+      _handleMessageDisconnection();
     }
   }
 
@@ -338,347 +567,650 @@ class GroupChatProvider extends ChangeNotifier {
       error.contains('403') ||
       error.contains('404');
 
+  // ── Manual reconnect ───────────────────────────────────────────────────────
   Future<void> reconnect() async {
-    if (_isConnected || _isConnecting) return;
-    debugPrint('🔄 Group: manual reconnect triggered');
+    debugPrint('🔄 [Group] Manual reconnect triggered');
     final token = await SharedPrefService.getToken();
-    if (token != null && token.isNotEmpty) {
-      _shouldReconnect = true;
-      await _connectWebSocket(token);
+    if (token == null || token.isEmpty) return;
+    _shouldReconnect = true;
+    if (!_isPresenceConnected && !_isPresenceConnecting) {
+      await _connectPresenceSocket(token);
+    }
+    if (!_isMessageConnected && !_isMessageConnecting) {
+      await _connectMessageSocket(token);
     }
   }
 
-  // ── Incoming WS message ───────────────────────────────────────────────────
+  // ── Presence WS handler ────────────────────────────────────────────────────
+  void _onPresenceMessageReceived(dynamic raw) {
+    try {
+      final data = jsonDecode(raw as String) as Map<String, dynamic>;
+      final String type = data['type']?.toString() ?? '';
+
+      if (type == 'USER_JOINED_CHAT' || type == 'USER_LEFT_CHAT') {
+        final int? userId = data['user_id'] as int?;
+        if (userId != null && userId != _currentUserId) {
+          _upsertMemberOnline(
+            userId: userId,
+            username: data['username']?.toString(),
+            isOnline: type == 'USER_JOINED_CHAT',
+          );
+        }
+        return;
+      }
+
+      if (type == 'user_status') {
+        final int? userId = data['user_id'] as int?;
+        final String memberStatus = data['status']?.toString() ?? '';
+        if (userId != null && userId != _currentUserId) {
+          _upsertMemberOnline(
+            userId: userId,
+            username: data['username']?.toString(),
+            isOnline: memberStatus == 'online',
+          );
+        }
+        return;
+      }
+
+      if (data['action'] == 'typing') {
+        final int? userId = data['user_id'] as int?;
+        final bool isTyping = data['is_typing'] == true;
+        if (userId != null && userId != _currentUserId) {
+          _upsertMemberTyping(
+            userId: userId,
+            username: data['username']?.toString(),
+            isTyping: isTyping,
+          );
+        }
+        return;
+      }
+    } catch (e) {
+      debugPrint('❌ [Group] Error parsing presence message: $e');
+    }
+  }
+
+  void _upsertMemberOnline({
+    required int userId,
+    String? username,
+    required bool isOnline,
+  }) {
+    final existing = _memberPresence[userId];
+    final finalUsername = username ?? existing?.username ?? 'User $userId';
+
+    if (existing != null) {
+      existing.isOnline = isOnline;
+      existing.username = finalUsername;
+    } else {
+      _memberPresence[userId] = GroupMemberPresence(
+        userId: userId,
+        username: finalUsername,
+        isOnline: isOnline,
+      );
+    }
+    debugPrint(
+      '👥 [Group] Member $finalUsername ($userId) → online: $isOnline',
+    );
+    notifyListeners();
+  }
+
+  void _upsertMemberTyping({
+    required int userId,
+    String? username,
+    required bool isTyping,
+  }) {
+    final existing = _memberPresence[userId];
+    final finalUsername = username ?? existing?.username ?? 'User $userId';
+
+    if (existing != null) {
+      existing.isTyping = isTyping;
+      existing.username = finalUsername;
+    } else {
+      _memberPresence[userId] = GroupMemberPresence(
+        userId: userId,
+        username: finalUsername,
+        isTyping: isTyping,
+      );
+    }
+
+    if (isTyping) {
+      _memberTypingTimers[userId]?.cancel();
+      _memberTypingTimers[userId] = Timer(const Duration(seconds: 3), () {
+        _memberPresence[userId]?.isTyping = false;
+        _memberTypingTimers.remove(userId);
+        notifyListeners();
+      });
+    } else {
+      _memberTypingTimers[userId]?.cancel();
+      _memberTypingTimers.remove(userId);
+    }
+
+    notifyListeners();
+  }
+
+  // ── Message WS handler ─────────────────────────────────────────────────────
   void _onMessageReceived(dynamic raw) {
     try {
       final data = jsonDecode(raw as String) as Map<String, dynamic>;
-      debugPrint('📨 Group WS message received: $data');
+      final String type = data['type']?.toString() ?? '';
 
-      // ── Presence: USER_JOINED_CHAT ────────────────────────────────────────
-      if (data['type'] == 'USER_JOINED_CHAT') {
-        final userId = data['user_id'];
-        if (userId != null && userId != _currentUserId) {
-          final username = _getUsernameById(userId as int);
-          _onlineMembers[userId] = username;
-          debugPrint('🟢 $username joined — online: $_onlineMembers');
-          notifyListeners();
-        }
-        return;
-      }
-
-      // ── Presence: USER_LEFT_CHAT ──────────────────────────────────────────
-      if (data['type'] == 'USER_LEFT_CHAT') {
-        final userId = data['user_id'];
-        if (userId != null) {
-          _onlineMembers.remove(userId);
-          _typingMembers.remove(userId); // stop typing if they left
-          debugPrint('🔴 User $userId left — online: $_onlineMembers');
-          notifyListeners();
-        }
-        return;
-      }
-
-      // ── Typing indicator ──────────────────────────────────────────────────
-      if (data['action'] == 'typing') {
-        final userId = data['user_id'];
-        if (userId != null && userId != _currentUserId) {
-          final isTyping = data['is_typing'] == true;
-          final username = _getUsernameById(userId as int);
-
-          if (isTyping) {
-            _typingMembers[userId] = username;
-            // Auto-reset if server never sends is_typing: false
-            _memberTypingTimer?.cancel();
-            _memberTypingTimer = Timer(const Duration(seconds: 3), () {
-              _typingMembers.remove(userId);
-              notifyListeners();
-            });
-          } else {
-            _typingMembers.remove(userId);
-            _memberTypingTimer?.cancel();
-          }
-
-          debugPrint('⌨️ Typing: $_typingMembers');
-          notifyListeners();
-        }
-        return;
-      }
-
-      // ── Chat message ──────────────────────────────────────────────────────
-      final String text =
-          data['message']?.toString() ?? data['text']?.toString() ?? '';
-      if (text.isEmpty) return;
-
-      String? senderUsername;
-      if (data['sender'] is Map) {
-        senderUsername = (data['sender'] as Map)['username']?.toString();
-      } else {
-        senderUsername =
-            data['sender']?.toString() ?? data['username']?.toString();
-      }
-
-      final bool isSentByMe =
-          _currentUsername != null && senderUsername == _currentUsername;
-
-      final DateTime serverTimestamp =
-          DateTime.tryParse(data['timestamp']?.toString() ?? '') ??
-          DateTime.now();
-
-      if (isSentByMe) {
-        final pendingIndex = _messages.lastIndexWhere(
-          (m) => m.isSentByMe && m.isPending && m.text == text,
+      if (type == 'read_receipt') {
+        debugPrint(
+          '📖 [Group] Read receipt — chat: ${data['chat_id']}, '
+          'user: ${data['user_id']}, at: ${data['read_at']}',
         );
-        if (pendingIndex != -1) {
-          _messages[pendingIndex] = ChatMessage(
-            text: text,
-            created_at: serverTimestamp,
-            isSentByMe: true,
-            isPending: false,
-          );
-          _emitMessages();
+        return;
+      }
+
+      if (type == 'chat_message') {
+        final msgMap = data['message'] as Map<String, dynamic>?;
+        if (msgMap == null) {
+          debugPrint('⚠️ [Group] chat_message received but "message" is null');
           return;
         }
+
+        const encoder = JsonEncoder.withIndent('  ');
+        debugPrint(
+          '📦 [Group] PARSED CHAT MESSAGE:\n${encoder.convert(msgMap)}',
+        );
+
+        final String text = msgMap['text']?.toString() ?? '';
+        if (text.isEmpty) return;
+
+        String? senderUsername;
+        String? senderProfileImage;
+        int? senderUserId;
+
+        if (msgMap['sender'] is Map) {
+          final sender = msgMap['sender'] as Map<String, dynamic>;
+          senderUsername = sender['username']?.toString();
+          senderProfileImage = sender['profile_image']?.toString();
+          senderUserId = sender['id'] as int?;
+        }
+
+        final bool isSentByMe =
+            _currentUsername != null && senderUsername == _currentUsername;
+
+        final DateTime serverTimestamp =
+            DateTime.tryParse(msgMap['created_at']?.toString() ?? '') ??
+            DateTime.now();
+
+        if (isSentByMe) {
+          final pendingIndex = _messages.lastIndexWhere(
+            (m) => m.isSentByMe && m.isPending && m.text == text,
+          );
+          if (pendingIndex != -1) {
+            _messages[pendingIndex] = ChatMessage(
+              text: text,
+              created_at: serverTimestamp,
+              isSentByMe: true,
+              isPending: false,
+              senderUsername: senderUsername,
+              senderProfileImage: senderProfileImage,
+            );
+            _saveCachedMessages();
+            _emitMessages();
+            return;
+          }
+        }
+
+        _messages.add(
+          ChatMessage(
+            text: text,
+            created_at: serverTimestamp,
+            isSentByMe: isSentByMe,
+            isPending: false,
+            senderUsername: senderUsername,
+            senderProfileImage: senderProfileImage,
+          ),
+        );
+
+        if (senderUserId != null) {
+          _upsertMemberTyping(
+            userId: senderUserId,
+            username: senderUsername ?? 'User $senderUserId',
+            isTyping: false,
+          );
+        }
+
+        _saveCachedMessages();
+        _emitMessages();
+        return;
       }
 
-      final String? profileImage = data['sender'] is Map
-          ? (data['sender'] as Map)['profile_image']?.toString()
-          : null;
-
-      _messages.add(
-        ChatMessage(
-          text: text,
-          created_at: serverTimestamp,
-          isSentByMe: isSentByMe,
-          isPending: false,
-          senderUsername: senderUsername,
-          senderProfileImage: profileImage,
-        ),
-      );
-      _emitMessages();
+      debugPrint('⚠️ [Group] Unknown WS message type: $type');
     } catch (e) {
-      debugPrint('❌ Error parsing Group WS message: $e');
+      debugPrint('❌ [Group] Error parsing chat WS message: $e');
     }
   }
 
-  void _handleDisconnection() {
-    _cleanupConnection();
+  // ── Typing signals ─────────────────────────────────────────────────────────
+  void sendTyping(bool isTyping) {
+    final presence = _presenceChannel;
+    if (presence == null || !_isPresenceConnected) return;
+    presence.sink.add(jsonEncode({'action': 'typing', 'is_typing': isTyping}));
+  }
+
+  void onUserTyping() {
+    sendTyping(true);
+    _typingTimer?.cancel();
+    _typingTimer = Timer(const Duration(seconds: 2), () {
+      sendTyping(false);
+    });
+  }
+
+  void stopTyping() {
+    _typingTimer?.cancel();
+    sendTyping(false);
+  }
+
+  // ── Disconnection handling ─────────────────────────────────────────────────
+  void _handlePresenceDisconnection() {
+    _presenceSubscription?.cancel();
+    _presenceSubscription = null;
+    _presenceChannel?.sink.close(status.normalClosure);
+    _presenceChannel = null;
+    _isPresenceConnected = false;
+    _isPresenceConnecting = false;
+    notifyListeners();
+
     if (!_shouldReconnect) return;
 
-    if (_reconnectAttempts < _maxReconnectAttempts) {
-      _reconnectAttempts++;
-      final delay = Duration(seconds: 2 * _reconnectAttempts);
+    if (_presenceReconnectAttempts < _maxReconnectAttempts) {
+      _presenceReconnectAttempts++;
+      final delay = Duration(seconds: 2 * _presenceReconnectAttempts);
       debugPrint(
-        '⏳ Group: reconnecting in ${delay.inSeconds}s '
-        '(Attempt $_reconnectAttempts/$_maxReconnectAttempts)...',
+        '⏳ [Group] Presence reconnecting in ${delay.inSeconds}s '
+        '(Attempt $_presenceReconnectAttempts/$_maxReconnectAttempts)…',
       );
-      _reconnectTimer?.cancel();
-      _reconnectTimer = Timer(delay, () async {
+      _presenceReconnectTimer?.cancel();
+      _presenceReconnectTimer = Timer(delay, () async {
         final token = await SharedPrefService.getToken();
-        if (token != null) _connectWebSocket(token);
+        if (token != null) await _connectPresenceSocket(token);
       });
     } else {
-      debugPrint('❌ Group: max reconnect attempts reached.');
+      debugPrint('❌ [Group] Max presence reconnect attempts reached.');
+    }
+  }
+
+  void _handleMessageDisconnection() {
+    _messageSubscription?.cancel();
+    _messageSubscription = null;
+    _messageChannel?.sink.close(status.normalClosure);
+    _messageChannel = null;
+    _isMessageConnected = false;
+    _isMessageConnecting = false;
+    notifyListeners();
+
+    if (!_shouldReconnect) return;
+
+    if (_messageReconnectAttempts < _maxReconnectAttempts) {
+      _messageReconnectAttempts++;
+      final delay = Duration(seconds: 2 * _messageReconnectAttempts);
+      debugPrint(
+        '⏳ [Group] Message WS reconnecting in ${delay.inSeconds}s '
+        '(Attempt $_messageReconnectAttempts/$_maxReconnectAttempts)…',
+      );
+      _messageReconnectTimer?.cancel();
+      _messageReconnectTimer = Timer(delay, () async {
+        final token = await SharedPrefService.getToken();
+        if (token != null) await _connectMessageSocket(token);
+      });
+    } else {
+      debugPrint('❌ [Group] Max message reconnect attempts reached.');
     }
   }
 
   void _cleanupConnection() {
-    _wsSubscription?.cancel();
-    _wsSubscription = null;
-    _channel?.sink.close(status.normalClosure);
-    _channel = null;
-    _isConnected = false;
-    _isConnecting = false;
+    _presenceSubscription?.cancel();
+    _presenceSubscription = null;
+    _presenceChannel?.sink.close(status.normalClosure);
+    _presenceChannel = null;
+    _isPresenceConnected = false;
+    _isPresenceConnecting = false;
+
+    _messageSubscription?.cancel();
+    _messageSubscription = null;
+    _messageChannel?.sink.close(status.normalClosure);
+    _messageChannel = null;
+    _isMessageConnected = false;
+    _isMessageConnecting = false;
+
     notifyListeners();
   }
 
-  // ── Send message ──────────────────────────────────────────────────────────
+  // ── Send message ───────────────────────────────────────────────────────────
   Future<void> sendMessage(String text) async {
     final trimmed = text.trim();
     if (trimmed.isEmpty) return;
-    if (chatId == null) return;
+    if (_chatId == null) return;
 
     final optimistic = ChatMessage(
       text: trimmed,
       created_at: DateTime.now(),
       isSentByMe: true,
       isPending: true,
+      senderUsername: _currentUsername,
     );
     _messages.add(optimistic);
     _emitMessages();
 
     try {
-      await _api.sendMessage(chatId: chatId!, text: trimmed);
-      debugPrint('✅ Group: message delivered to server: $trimmed');
-    } catch (e) {
-      debugPrint('❌ Group: sendMessage API failed: $e');
-    }
-  }
-
-  Map<String, dynamic> _userFromMember(Map<String, dynamic> member) =>
-      Map<String, dynamic>.from(member['user'] as Map? ?? {});
-
-  // ── Add members ───────────────────────────────────────────────────────────
-  Future<bool> addGroupMembers(
-    List<int> memberIds,
-    List<Map<String, dynamic>> selectedUsers,
-  ) async {
-    if (chatId == null) return false;
-
-    final result = await _api.addGroupChatMembers(
-      groupChatId: chatId!,
-      members: memberIds,
-    );
-
-    if (result['success'] == true) {
-      final addedIds = List<int>.from(result['added'] ?? []);
-      for (final user in selectedUsers) {
-        final id = user['id'] as int?;
-        if (id != null && addedIds.contains(id)) {
-          final alreadyExists = members.any(
-            (m) => _userFromMember(m)['id'] == id,
-          );
-          if (!alreadyExists) {
-            members.add({
-              'user': {
-                'id': user['id'],
-                'username':
-                    user['username'] ?? user['name'] ?? user['full_name'],
-                'profile_image':
-                    user['profile_image'] ??
-                    user['avatar'] ??
-                    user['profile_picture_url'] ??
-                    user['image'],
-              },
-              'is_admin': false,
-            });
-          }
-        }
+      final cid = _chatId;
+      if (cid != null) {
+        await ApiService().sendMessage(chatId: cid, text: trimmed);
       }
-      _syncMembersIntoChat();
-      notifyListeners();
-      return true;
+
+      Future.delayed(_pendingConfirmTimeout, () {
+        final pendingIndex = _messages.lastIndexWhere(
+          (m) => m.isSentByMe && m.isPending && m.text == trimmed,
+        );
+        if (pendingIndex != -1) {
+          debugPrint(
+            '⏱ [Group] Fallback: auto-confirming pending message: $trimmed',
+          );
+          _messages[pendingIndex] = ChatMessage(
+            text: trimmed,
+            created_at: _messages[pendingIndex].created_at,
+            isSentByMe: true,
+            isPending: false,
+            senderUsername: _currentUsername,
+          );
+          _saveCachedMessages();
+          _emitMessages();
+        }
+      });
+    } catch (e) {
+      debugPrint('❌ [Group] sendMessage API failed: $e');
+      final pendingIndex = _messages.lastIndexWhere(
+        (m) => m.isSentByMe && m.isPending && m.text == trimmed,
+      );
+      if (pendingIndex != -1) {
+        _messages[pendingIndex] = ChatMessage(
+          text: trimmed,
+          created_at: _messages[pendingIndex].created_at,
+          isSentByMe: true,
+          isPending: false,
+          isFailed: true,
+          senderUsername: _currentUsername,
+        );
+        _saveCachedMessages();
+        _emitMessages();
+      }
     }
-    return false;
   }
 
-  Future<bool> renameGroup(String newTitle) async {
-    if (newTitle.trim().isEmpty || newTitle == chatName || chatId == null) {
-      return false;
-    }
-    isRenaming = true;
-    notifyListeners();
-
-    final result = await _api.renameGroup(
-      chatId: chatId!,
-      newTitle: newTitle.trim(),
-    );
-
-    isRenaming = false;
-    if (result['success'] == true) {
-      chatName = result['new_title'] as String?;
-      notifyListeners();
-      return true;
-    }
-    notifyListeners();
-    return false;
-  }
-
-  void updateGroupPicture(String url) {
-    if (chat != null) {
-      chat = {...chat!, 'profile_url': url};
-    }
-    notifyListeners();
-  }
-
-  Future<bool> removeMember(int userId) async {
-    members = members.where((m) => _userFromMember(m)['id'] != userId).toList();
-    _onlineMembers.remove(userId);
-    _typingMembers.remove(userId);
-    _syncMembersIntoChat();
-    notifyListeners();
-
-    final result = await _api.removeMember(chatId: chatId!, userId: userId);
-    if (result['success'] != true) return false;
-    return true;
-  }
-
-  Future<bool> makeAdmin(int userId) async {
-    members = members.map((m) {
-      final user = _userFromMember(m);
-      if (user['id'] == userId) return {...m, 'is_admin': true};
-      return m;
-    }).toList();
-    notifyListeners();
-
-    final result = await _api.makeAdmin(chatId: chatId!, userId: userId);
-    if (result['message'] != 'User promoted to admin') {
-      members = members.map((m) {
-        final user = _userFromMember(m);
-        if (user['id'] == userId) return {...m, 'is_admin': false};
-        return m;
-      }).toList();
-      notifyListeners();
-      return false;
-    }
-    return true;
-  }
-
-  Future<Map<String, dynamic>> deleteGroup() async {
-    if (chatId == null) return {'message': 'No chat ID'};
-    return await _api.deleteGroup(chatId: chatId!);
-  }
-
-  Future<Map<String, dynamic>> leaveGroup() async {
-    if (chatId == null) return {'message': 'No chat ID'};
-    return await _api.leaveGroup(chatId: chatId!);
-  }
-
+  // ── Toggles ────────────────────────────────────────────────────────────────
   void toggleMuteNotification(bool value) {
     isMuteNotification = value;
     notifyListeners();
   }
 
-  void toggleProtectedChat(bool value) {
-    isProtectedChat = value;
+  // ── Group Management ───────────────────────────────────────────────────────
+  Future<bool> renameGroup(String title) async {
+    if (_chatId == null) return false;
+    _isRenaming = true;
     notifyListeners();
-  }
-
-  void toggleHideChat(bool value) {
-    isHideChat = value;
-    notifyListeners();
-  }
-
-  void toggleHideChatHistory(bool value) {
-    isHideChatHistory = value;
-    notifyListeners();
-  }
-
-  void _syncMembersIntoChat() {
-    if (chat != null) {
-      chat = {...chat!, 'members': members};
+    try {
+      final res = await ApiService().renameGroup(
+        chatId: _chatId!,
+        newTitle: title,
+      );
+      _isRenaming = false;
+      if (res['success'] == true && res['new_title'] != null) {
+        _groupName = res['new_title'] as String;
+        notifyListeners();
+        return true;
+      }
+      notifyListeners();
+      return false;
+    } catch (e) {
+      _isRenaming = false;
+      notifyListeners();
+      return false;
     }
   }
 
-  // ── Reset / Dispose ───────────────────────────────────────────────────────
+  void updateGroupPicture(String url) {
+    _groupImageUrl = url;
+    if (_chat != null) {
+      _chat!['profile_url'] = url;
+    }
+    notifyListeners();
+  }
+
+  Future<Map<String, dynamic>> deleteGroup() async {
+    if (_chatId == null) return {'success': false, 'message': 'No chat ID'};
+    try {
+      return await ApiService().deleteGroup(chatId: _chatId!);
+    } catch (e) {
+      return {'success': false, 'message': e.toString()};
+    }
+  }
+
+  Future<Map<String, dynamic>> leaveGroup() async {
+    if (_chatId == null) return {'success': false, 'message': 'No chat ID'};
+    try {
+      return await ApiService().leaveGroup(chatId: _chatId!);
+    } catch (e) {
+      return {'success': false, 'message': e.toString()};
+    }
+  }
+
+  // ── Remove member ──────────────────────────────────────────────────────────
+  /// Instantly removes member from UI before API responds
+  void removeMemberOptimistically(int userId) {
+    if (_chat == null || _chat!['members'] == null) return;
+    final membersList = List<Map<String, dynamic>>.from(
+      (_chat!['members'] as List).map((e) => Map<String, dynamic>.from(e)),
+    );
+    membersList.removeWhere(
+      (m) => (m['user'] as Map?)?['id'] == userId,
+    );
+    _chat = {..._chat!, 'members': membersList};
+    // Also remove from adminIds if they were admin
+    _adminIds.remove(userId);
+    notifyListeners();
+  }
+
+  Future<bool> removeMember(int userId) async {
+    if (_chatId == null) return false;
+    try {
+      final res = await ApiService().removeMember(
+        chatId: _chatId!,
+        userId: userId,
+      );
+      if (res['success'] == true) {
+        await _refreshChatData();
+        return true;
+      }
+      return false;
+    } catch (e) {
+      debugPrint('removeMember error: $e');
+      return false;
+    }
+  }
+
+  // ── Make admin ─────────────────────────────────────────────────────────────
+  Future<bool> makeAdmin(int userId) async {
+    if (_chatId == null) return false;
+    try {
+      final res = await ApiService().makeAdmin(
+        chatId: _chatId!,
+        userId: userId,
+      );
+
+      if (res['message'] != null) {
+        await _refreshChatData();
+        return true;
+      }
+      return false;
+    } on DioException catch (e) {
+      debugPrint('makeAdmin DioError: ${e.response?.data}');
+      return false;
+    } catch (e) {
+      debugPrint('makeAdmin error: $e');
+      return false;
+    }
+  }
+
+  /// ✅ Optimistic admin toggle — instant UI, rollback if API fails
+  void updateMemberAdminStatus(int userId, bool isAdminStatus) {
+    if (isAdminStatus) {
+      _adminIds.add(userId);
+    } else {
+      _adminIds.remove(userId);
+    }
+    notifyListeners();
+  }
+
+  // ── Refresh chat data from server ──────────────────────────────────────────
+  Future<void> _refreshChatData() async {
+    if (_chatId == null) return;
+    try {
+      final freshChat = await ApiService().getGroupChatInfo(
+        chatId: _chatId!,
+      );
+      _chat = freshChat;
+
+      // ✅ Always re-sync admin IDs after any refresh
+      _syncAdminIds();
+
+      // Re-sync member presence
+      if (_chat != null && _chat!['members'] != null) {
+        final membersList = _chat!['members'] as List<dynamic>;
+        for (final m in membersList) {
+          if (m is Map<String, dynamic>) {
+            final user = m['user'] as Map<String, dynamic>?;
+            final uid = user?['id'] as int?;
+            final username = user?['username']?.toString();
+            if (uid != null) {
+              final existing = _memberPresence[uid];
+              if (existing != null) {
+                existing.username = username ?? existing.username;
+              } else {
+                _memberPresence[uid] = GroupMemberPresence(
+                  userId: uid,
+                  username: username ?? 'User $uid',
+                );
+              }
+            }
+          }
+        }
+      }
+
+      notifyListeners();
+      debugPrint('✅ [Group] Chat data refreshed — admins: $_adminIds');
+    } catch (e) {
+      debugPrint('❌ [Group] Failed to refresh chat data: $e');
+    }
+  }
+
+  /// Public wrapper so UI can trigger a refresh directly
+  Future<void> refreshChatData() => _refreshChatData();
+
+  // ── Add members ────────────────────────────────────────────────────────────
+  Future<bool> addGroupMembers(
+    List<int> userIds, [
+    List<Map<String, dynamic>>? newUsers,
+  ]) async {
+    if (_chatId == null) return false;
+    try {
+      final res = await ApiService().addGroupChatMembers(
+        groupChatId: _chatId!,
+        members: userIds,
+      );
+
+      if (res['success'] == true) {
+        // ✅ Refetch to get server-confirmed member list
+        await _refreshChatData();
+        return true;
+      }
+      return false;
+    } catch (e) {
+      debugPrint('addGroupMembers error: $e');
+      return false;
+    }
+  }
+
+  /// Instantly shows new members in UI before API responds
+  void addMembersOptimistically(List<Map<String, dynamic>> newUsers) {
+    if (_chat == null || _chat!['members'] == null) return;
+
+    final membersList = List<Map<String, dynamic>>.from(
+      (_chat!['members'] as List).map((e) => Map<String, dynamic>.from(e)),
+    );
+
+    final existingIds = membersList
+        .map((m) => (m['user'] as Map?)?['id'])
+        .whereType<int>()
+        .toSet();
+
+    for (final userObj in newUsers) {
+      final id = userObj['id'];
+      if (id != null && !existingIds.contains(id as int)) {
+        final normalized = Map<String, dynamic>.from(userObj);
+        normalized['profile_image'] ??=
+            userObj['avatar'] ??
+            userObj['profile_picture_url'] ??
+            userObj['image'];
+
+        membersList.add({'is_admin': false, 'user': normalized});
+        existingIds.add(id);
+      }
+    }
+
+    _chat = {..._chat!, 'members': membersList};
+    notifyListeners();
+  }
+
+  /// Rolls back optimistic members if API fails
+  void rollbackOptimisticMembers(Set<int> failedIds) {
+    if (_chat == null || _chat!['members'] == null) return;
+
+    final membersList = List<Map<String, dynamic>>.from(
+      (_chat!['members'] as List).map((e) => Map<String, dynamic>.from(e)),
+    );
+
+    _chat = {
+      ..._chat!,
+      'members': membersList
+          .where(
+            (m) =>
+                !failedIds.contains((m['user'] as Map?)?['id'] as int?),
+          )
+          .toList(),
+    };
+
+    notifyListeners();
+  }
+
+  // ── Reset / Dispose ────────────────────────────────────────────────────────
   void reset() {
     _shouldReconnect = false;
-    _reconnectTimer?.cancel();
+    _presenceReconnectTimer?.cancel();
+    _messageReconnectTimer?.cancel();
     _cleanupConnection();
 
-    _onlineMembers.clear();
-    _typingMembers.clear();
-    _memberTypingTimer?.cancel();
-    _messages.clear();
-    _reconnectAttempts = 0;
-    _nextPageUrl = null;
-    _historyError = null;
+    _memberPresence.clear();
+    _adminIds.clear();
+    for (final t in _memberTypingTimers.values) {
+      t.cancel();
+    }
+    _memberTypingTimers.clear();
+
+    _groupName = null;
+    _groupImageUrl = null;
+    _chatId = null;
     _currentUsername = null;
     _currentUserId = null;
-
+    _messages.clear();
+    _presenceReconnectAttempts = 0;
+    _messageReconnectAttempts = 0;
+    _nextPageUrl = null;
+    _historyError = null;
     isMuteNotification = false;
-    isProtectedChat = false;
-    isHideChat = false;
-    isHideChatHistory = false;
+    _typingTimer?.cancel();
+    _pollingTimer?.cancel();
 
     notifyListeners();
   }
@@ -686,10 +1218,15 @@ class GroupChatProvider extends ChangeNotifier {
   @override
   void dispose() {
     _shouldReconnect = false;
-    _reconnectTimer?.cancel();
+    _presenceReconnectTimer?.cancel();
+    _messageReconnectTimer?.cancel();
     _cleanupConnection();
     _messagesStreamController.close();
-    _memberTypingTimer?.cancel();
+    _typingTimer?.cancel();
+    _pollingTimer?.cancel();
+    for (final t in _memberTypingTimers.values) {
+      t.cancel();
+    }
     super.dispose();
   }
 }

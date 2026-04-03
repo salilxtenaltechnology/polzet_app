@@ -14,12 +14,12 @@ import '../../../../../models/posts/user_post_model.dart';
 import '../../../../../widgets/base64/image_convert.dart';
 import '../../../../../widgets/button/back_button.dart';
 import '../../../../../widgets/custom_text_styles.dart';
-import '../../../../../widgets/diolog/custom_diolog.dart';
+import '../../../../../widgets/dialog/custom_diolog.dart';
 import '../../../../../widgets/loader.dart';
 import '../../../../../widgets/show_toast.dart';
 import '../../../../../widgets/utils/bottomsheet_util.dart';
 import '../../../../../widgets/utils/like_util.dart';
-import '../image_grid.dart';
+import '../popup/image_grid.dart';
 
 class ImagePostsList extends StatefulWidget {
   String? username;

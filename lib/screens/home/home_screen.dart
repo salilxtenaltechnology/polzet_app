@@ -218,20 +218,20 @@ class HomeScreenState extends State<HomeScreen> with UtilityMixin {
                   : null,
               centerTitle: pageIndex == 2 ? false : true,
               actions: [
-                if (pageIndex == 0)
-                  AppIcons(
-                    onTap: () {
-                    // ConnectivityOverlay.showTestSheet(context, 'server');
-                      // showModalBottomSheet(
-                      //   context: context,
-                      //   isScrollControlled: true, // ← required for tall sheets
-                      //   backgroundColor: Colors.transparent,
-                      //   builder: (_) => const FeedbackBottomsheet(),
-                      // );
-                    },
-                    icon: Icons.feedback,
-                  ),
-                SizedBox(width: 9.w),
+                // if (pageIndex == 0)
+                //   AppIcons(
+                //     onTap: () {
+                //     ConnectivityOverlay.showTestSheet(context, 'server');
+                //       showModalBottomSheet(
+                //         context: context,
+                //         isScrollControlled: true, // ← required for tall sheets
+                //         backgroundColor: Colors.transparent,
+                //         builder: (_) => const FeedbackBottomsheet(),
+                //       );
+                //     },
+                //     icon: Icons.feedback,
+                //   ),
+                // SizedBox(width: 9.w),
                 if (pageIndex == 0)
                   AppIcons(
                     onTap: () =>
