@@ -5,16 +5,14 @@ import '../../../provider/user_provider.dart';
 import '../api_service.dart';
 
 class LikeService {
-  // Singleton pattern
+  //*---- Singleton pattern ----*//
   static final LikeService _instance = LikeService._internal();
   factory LikeService() => _instance;
   LikeService._internal();
 
-  // Cache to track ongoing like operations
   final Map<int, bool> _ongoingOperations = {};
 
-  /// Toggle like for a post with optimistic UI update
-  /// Returns updated like state and count
+  //*---- Returns updated like state and count ----*//
   Future<LikeResult> togglePostLike({
     required BuildContext context,
     required int postId,
@@ -33,7 +31,6 @@ class LikeService {
 
     _ongoingOperations[postId] = true;
 
-    // Calculate optimistic values
     final optimisticLikeState = !currentLikeState;
     final optimisticLikesCount = currentLikeState
         ? currentLikesCount - 1
@@ -43,7 +40,6 @@ class LikeService {
       final response = await ApiService.togglePostLike(postId);
 
       if (response['success'] == true) {
-        // Extract server data
         final data = response['data'];
         final serverLikesCount = data?['likes_count'] ?? optimisticLikesCount;
         final serverLikeState = data?['is_liked'] ?? optimisticLikeState;
@@ -55,7 +51,6 @@ class LikeService {
           message: 'Success',
         );
       } else {
-        // Revert to original state on failure
         return LikeResult(
           success: false,
           isLiked: currentLikeState,
@@ -76,7 +71,7 @@ class LikeService {
     }
   }
 
-  /// Check if current user has liked the post
+  //*---- Check if current user has liked the post ----*//
   static bool hasUserLikedPost(
     List<dynamic> viewLikes,
     String? currentUsername,
@@ -87,7 +82,6 @@ class LikeService {
     );
   }
 
-  /// Get formatted like count text
   static String getLikesCountText(int likesCount) {
     if (likesCount <= 0) return '';
     if (likesCount >= 1000000) {
@@ -99,7 +93,6 @@ class LikeService {
     return likesCount.toString();
   }
 
-  /// Get current username from UserProvider
   static String? getCurrentUsername(BuildContext context) {
     try {
       return Provider.of<UserProvider>(context, listen: false).username;
@@ -108,13 +101,11 @@ class LikeService {
     }
   }
 
-  /// Clear cache (call when needed, e.g., on logout)
   void clearCache() {
     _ongoingOperations.clear();
   }
 }
 
-/// Result class for like operations
 class LikeResult {
   final bool success;
   final bool isLiked;

@@ -1,10 +1,11 @@
 // ignore_for_file: deprecated_member_use
 
-import 'package:feather_icons/feather_icons.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../../core/constants/app_colors.dart';
+import '../../core/constants/app_radius.dart';
+import '../../gen/assets.gen.dart';
 import '../../languages/l10n/generated/app_localizations.dart';
 import '../../mixin/utility_mixins.dart';
 import '../../screens/home/poll/poll_images.dart';
@@ -21,9 +22,9 @@ class NewPollBottomsheet extends StatelessWidget with UtilityMixin {
       padding: const EdgeInsets.all(12).w,
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.tertiaryContainer,
-        borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(50.r),
-          topRight: Radius.circular(50.r),
+        borderRadius: const BorderRadius.only(
+          topLeft: Radius.circular(AppRadius.modal),
+          topRight: Radius.circular(AppRadius.modal),
         ),
       ),
       child: Column(
@@ -40,7 +41,7 @@ class NewPollBottomsheet extends StatelessWidget with UtilityMixin {
           SizedBox(height: 12.h),
           Text(
             AppLocalizations.of(context)!.addnewpoll,
-            style: CustomTextStyles.popTitleText(context),
+            style: CustomTextStyles.bottomsheetTitleTextStyle(context),
           ),
           Divider(
             color: Theme.of(context).colorScheme.onBackground.withOpacity(0.1),
@@ -59,15 +60,19 @@ class NewPollBottomsheet extends StatelessWidget with UtilityMixin {
                     child: Container(
                       height: 55.h,
                       width: 55.w,
+                      padding: const EdgeInsets.all(12).w,
                       decoration: const BoxDecoration(
                         shape: BoxShape.circle,
                         color: AppColors.primaryColor,
                       ),
-                      child: Icon(
-                        Icons.description_outlined,
-                        size: 23.spMax,
+                      child: Assets.images.thingsIcon.image(
                         color: Colors.white,
                       ),
+                      // Icon(
+                      //   Icons.description_outlined,
+                      //   size: 23.spMax,
+                      //   color: Colors.white,
+                      // ),
                     ),
                   ),
                   SizedBox(height: 5.h),
@@ -88,15 +93,12 @@ class NewPollBottomsheet extends StatelessWidget with UtilityMixin {
                     child: Container(
                       height: 55.h,
                       width: 55.w,
+                      padding: const EdgeInsets.all(12).w,
                       decoration: const BoxDecoration(
                         shape: BoxShape.circle,
                         color: AppColors.primaryColor,
                       ),
-                      child: Icon(
-                        FeatherIcons.image,
-                        size: 22.spMax,
-                        color: Colors.white,
-                      ),
+                      child: Assets.images.imageIcon.image(color: Colors.white),
                     ),
                   ),
                   SizedBox(height: 5.h),

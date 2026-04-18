@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../../../models/comment/comment.dart';
-import '../utils/time_formatter.dart';
+import '../../core/utils/time_formatter.dart';
 
 class CommentItem extends StatelessWidget {
   final Comment comment;

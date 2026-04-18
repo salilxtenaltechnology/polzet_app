@@ -8,7 +8,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../core/constants/app_colors.dart';
-import '../../core/constants/app_images.dart';
+import '../../gen/assets.gen.dart';
 
 class ProfileAvatarPicker extends StatelessWidget {
   final Uint8List? cachedImage;
@@ -42,7 +42,7 @@ class ProfileAvatarPicker extends StatelessWidget {
           ),
         ),
         if (isUploading) _buildLoadingOverlay(),
-        _buildCameraButton(),
+        _buildCameraButton(context),
       ],
     );
   }
@@ -63,8 +63,8 @@ class ProfileAvatarPicker extends StatelessWidget {
     return DecorationImage(
       image: AssetImage(
         isCoverPhoto
-            ? Assets.assetsImagesDefaultCover
-            : Assets.assetsImagesIcUser,
+            ? Assets.images.defaultCover.path
+            : Assets.images.icUser.path,
       ),
       fit: BoxFit.cover,
     );
@@ -83,7 +83,7 @@ class ProfileAvatarPicker extends StatelessWidget {
     );
   }
 
-  Widget _buildCameraButton() {
+  Widget _buildCameraButton(BuildContext context) {
     return Positioned(
       right: isCoverPhoto ? 7.w : 8.w,
       bottom: isCoverPhoto ? 7.h : 12.h,
@@ -94,11 +94,11 @@ class ProfileAvatarPicker extends StatelessWidget {
           width: isCoverPhoto ? 25.w : 22.w,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            color: isCoverPhoto ? AppColors.whiteColor : AppColors.primaryColor,
+            color: isCoverPhoto ? Theme.of(context).colorScheme.onPrimary : Theme.of(context).colorScheme.primary,
           ),
           child: Icon(
             FeatherIcons.camera,
-            color: isCoverPhoto ? AppColors.primaryColor : Colors.white,
+            color: isCoverPhoto ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.onPrimary,
             size: 13.spMax,
           ),
         ),

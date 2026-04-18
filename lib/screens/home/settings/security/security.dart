@@ -647,7 +647,7 @@ class SecurityState extends State<Security> with UtilityMixin {
                     padding: EdgeInsets.only(top: 5.h),
                     child: Text(
                       currentPasswordErrorText ?? '',
-                      style: CustomTextStyles.msgErrorText,
+                      style: CustomTextStyles.msgErrorText(context),
                     ),
                   ),
                 SizedBox(height: 5.h),
@@ -694,7 +694,7 @@ class SecurityState extends State<Security> with UtilityMixin {
                     padding: EdgeInsets.only(top: 5.h),
                     child: Text(
                       newPasswordErrorText ?? '',
-                      style: CustomTextStyles.msgErrorText,
+                      style: CustomTextStyles.msgErrorText(context),
                     ),
                   ),
                 SizedBox(height: 12.h),
@@ -723,7 +723,7 @@ class SecurityState extends State<Security> with UtilityMixin {
                     padding: EdgeInsets.only(top: 5.h),
                     child: Text(
                       confirmPasswordErrorText ?? '',
-                      style: CustomTextStyles.msgErrorText,
+                      style: CustomTextStyles.msgErrorText(context),
                     ),
                   ),
                 if (_showUpdatePasswordButton)

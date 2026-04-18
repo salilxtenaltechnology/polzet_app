@@ -138,7 +138,6 @@ class _ConnectivityOverlayState extends State<ConnectivityOverlay> {
     }
   }
 
-  // ── Build ──────────────────────────────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
     return Consumer<ConnectivityProvider>(
@@ -152,10 +151,8 @@ class _ConnectivityOverlayState extends State<ConnectivityOverlay> {
   }
 }
 
-// ── Sheet type ─────────────────────────────────────────────────────────────
 enum _SheetType { offline, serverDown, backOnline }
 
-// ── Connectivity Bottom Sheet ──────────────────────────────────────────────
 class _ConnectivitySheet extends StatefulWidget {
   final _SheetType type;
   final Future<void> Function() onRetry;
@@ -392,11 +389,9 @@ class _ConnectivitySheetState extends State<_ConnectivitySheet>
               ],
             ),
           ),
-
           SizedBox(height: MediaQuery.of(context).padding.bottom + 8),
         ],
       ),
     );
   }
 }
-

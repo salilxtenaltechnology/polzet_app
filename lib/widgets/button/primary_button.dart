@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../../core/constants/app_colors.dart';
+import '../../core/constants/app_radius.dart';
 import '../custom_text_styles.dart';
 import '../loader.dart';
 
@@ -35,7 +36,7 @@ class PrimaryButton extends StatelessWidget {
         ),
         decoration: BoxDecoration(
           color: AppColors.primaryColor,
-          borderRadius: BorderRadius.circular(50.r),
+          borderRadius: AppRadius.buttonRadius,
         ),
         child: Center(
           child: isLoading

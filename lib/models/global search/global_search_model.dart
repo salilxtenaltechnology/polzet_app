@@ -26,7 +26,6 @@ class GlobalSearchModel {
 }
 
 /* ─── Data ─────*/
-
 class GlobalSearchData {
   final List<SearchAccount> accounts;
   final List<SearchPost> posts;
@@ -62,7 +61,6 @@ class GlobalSearchData {
 }
 
 /* ─── Account ─────*/
-
 class SearchAccount {
   final int id;
   final String username;

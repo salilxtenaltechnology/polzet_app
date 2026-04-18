@@ -1,5 +1,7 @@
 // ignore_for_file: must_be_immutable, deprecated_member_use
 
+import 'dart:typed_data';
+
 import 'package:feather_icons/feather_icons.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -7,7 +9,9 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../../../../api/api_config.dart';
 import '../../../../../api/services/api_service.dart';
 import '../../../../../api/services/like/like_service.dart';
-import '../../../../../core/constants/app_images.dart';
+import '../../../../../api/services/share/share_service.dart';
+import '../../../../../core/constants/app_icons.dart';
+import '../../../../../core/constants/app_radius.dart';
 import '../../../../../languages/l10n/generated/app_localizations.dart';
 import '../../../../../models/like/like_uers_model.dart';
 import '../../../../../models/posts/user_post_model.dart';
@@ -17,8 +21,8 @@ import '../../../../../widgets/custom_text_styles.dart';
 import '../../../../../widgets/dialog/custom_diolog.dart';
 import '../../../../../widgets/loader.dart';
 import '../../../../../widgets/show_toast.dart';
-import '../../../../../widgets/utils/bottomsheet_util.dart';
-import '../../../../../widgets/utils/like_util.dart';
+import '../../../../../core/utils/bottomsheet_util.dart';
+import '../../../../../core/utils/like_util.dart';
 import '../popup/image_grid.dart';
 
 class ImagePostsList extends StatefulWidget {
@@ -34,69 +38,72 @@ class _ImagePostsListState extends State<ImagePostsList> {
   late final ApiService apiService = ApiService();
   late final LikeService likeService = LikeService();
 
-  // Track like state for each post
   Map<int, bool> postLikeStates = {};
   Map<int, int> postLikeCounts = {};
-
-  // Track comments count for each post
   Map<int, int> postCommentsCounts = {};
-
-  // Track liked users for each post (fetched on-demand)
   Map<int, List<LikeUser>> postLikedUsers = {};
   Map<int, bool> likedUsersLoading = {};
 
-  // Cache the posts data
   List<UserPostModel>? cachedPosts;
-  bool isLoading = true;
+  bool isLoading = false;
+  bool isInitialLoad = true;
+  Uint8List? _profileImageBytes;
 
   @override
   void initState() {
     super.initState();
-    _loadPosts();
+    if (widget.profileImage != null && widget.profileImage!.isNotEmpty) {
+      _profileImageBytes = getProfileImage(widget.profileImage);
+    }
+    _loadPosts(showLoader: true);
   }
 
-  // Load posts and initialize like states and comments counts
-  Future<void> _loadPosts() async {
-    setState(() {
-      isLoading = true;
-    });
+  Future<void> _loadPosts({bool showLoader = false}) async {
+    if (showLoader) {
+      setState(() {
+        isLoading = true;
+      });
+    }
 
     try {
-      final postsImage = await apiService.fetchImagePosts(widget.username!);  
-      
+      final postsImage = await apiService.fetchImagePosts(widget.username!);
+
+      if (!mounted) return;
       setState(() {
         cachedPosts = postsImage;
         isLoading = false;
+        isInitialLoad = false;
 
-        // Initialize like states and comments counts from fetched data
         postLikeStates.clear();
         postLikeCounts.clear();
         postCommentsCounts.clear();
 
         for (var post in postsImage) {
-          // Explicitly set the values from the post model
           postLikeStates[post.id] = post.isLiked;
           postLikeCounts[post.id] = post.likesCount;
           postCommentsCounts[post.id] = post.commentsCount;
 
-          // Fetch liked users for posts with likes
           if (post.likesCount > 0) {
-            _fetchLikedUsers(post.id);
+            if (showLoader) {
+              _fetchLikedUsers(post.id);
+            } else {
+              _fetchLikedUsersSilently(post.id);
+            }
           }
         }
       });
     } catch (e) {
       debugPrint('Error loading posts: $e');
+      if (!mounted) return;
       setState(() {
         cachedPosts = [];
         isLoading = false;
+        isInitialLoad = false;
       });
     }
   }
 
-  // Fetch liked users for a specific post
   Future<void> _fetchLikedUsers(int postId) async {
-    // Don't fetch if already loading or already loaded
     if (likedUsersLoading[postId] == true ||
         postLikedUsers.containsKey(postId)) {
       return;
@@ -110,9 +117,7 @@ class _ImagePostsListState extends State<ImagePostsList> {
       final users = await ApiService().fetchLikedUsers(postId);
 
       setState(() {
-        postLikedUsers[postId] = users
-            .take(3)
-            .toList(); // Only keep first 3 for display
+        postLikedUsers[postId] = users.take(3).toList();
         likedUsersLoading[postId] = false;
       });
     } catch (e) {
@@ -122,19 +127,15 @@ class _ImagePostsListState extends State<ImagePostsList> {
     }
   }
 
-  // Silently fetch liked users without clearing existing data (prevents flickering)
   Future<void> _fetchLikedUsersSilently(int postId) async {
     try {
       final users = await ApiService().fetchLikedUsers(postId);
 
       setState(() {
-        postLikedUsers[postId] = users
-            .take(3)
-            .toList(); // Only keep first 3 for display
+        postLikedUsers[postId] = users.take(3).toList();
       });
-    } catch (e) {
-      // debugPrint('Error silently fetching liked users for post $postId: $e');
-    }
+      // ignore: empty_catches
+    } catch (e) {}
   }
 
   void _showAllImagesGrid(
@@ -164,18 +165,15 @@ class _ImagePostsListState extends State<ImagePostsList> {
   }
 
   Future<void> _toggleLike(int postId) async {
-    // Get current state from our tracking maps
     final currentLikeState = postLikeStates[postId] ?? false;
     final currentLikeCount = postLikeCounts[postId] ?? 0;
 
-    // Optimistically update UI
     setState(() {
       postLikeStates[postId] = !currentLikeState;
       postLikeCounts[postId] = currentLikeState
           ? currentLikeCount - 1
           : currentLikeCount + 1;
 
-      // Also update the cached post model
       if (cachedPosts != null) {
         final postIndex = cachedPosts!.indexWhere((post) => post.id == postId);
         if (postIndex != -1) {
@@ -190,7 +188,6 @@ class _ImagePostsListState extends State<ImagePostsList> {
     });
 
     try {
-      // Call the LikeService
       final result = await likeService.togglePostLike(
         context: context,
         postId: postId,
@@ -198,12 +195,10 @@ class _ImagePostsListState extends State<ImagePostsList> {
         currentLikesCount: currentLikeCount,
       );
 
-      // Update UI with server response
       setState(() {
         postLikeStates[postId] = result.isLiked;
         postLikeCounts[postId] = result.likesCount;
 
-        // Update the cached post model with server response
         if (cachedPosts != null) {
           final postIndex = cachedPosts!.indexWhere(
             (post) => post.id == postId,
@@ -217,27 +212,22 @@ class _ImagePostsListState extends State<ImagePostsList> {
         }
       });
 
-      // Silently refresh liked users in background without clearing current data
       if (result.likesCount > 0) {
         _fetchLikedUsersSilently(postId);
       } else {
-        // Remove liked users if no likes left
         setState(() {
           postLikedUsers.remove(postId);
         });
       }
 
-      // Show error message if operation failed
       if (!result.success) {
         showToast(message: result.message);
       }
     } catch (e) {
-      // Revert optimistic update on error
       setState(() {
         postLikeStates[postId] = currentLikeState;
         postLikeCounts[postId] = currentLikeCount;
 
-        // Revert the cached post model
         if (cachedPosts != null) {
           final postIndex = cachedPosts!.indexWhere(
             (post) => post.id == postId,
@@ -254,7 +244,6 @@ class _ImagePostsListState extends State<ImagePostsList> {
     }
   }
 
-  // Comments Bottom Sheet
   void _showCommentsBottomSheet(int postId) async {
     BottomSheetUtils.showCommentsBottomSheet(
       context: context,
@@ -266,7 +255,6 @@ class _ImagePostsListState extends State<ImagePostsList> {
     );
   }
 
-  // Show Liked Users Bottom Sheet
   void _showLikedUsersBottomSheet(int postId) {
     BottomSheetUtils.showLikedUsersBottomSheet(
       context: context,
@@ -276,13 +264,10 @@ class _ImagePostsListState extends State<ImagePostsList> {
 
   Future<void> deletePost(int postId, int index) async {
     try {
-      // Call the API to delete
       bool success = await apiService.userDeletePost(postId);
       if (success) {
-        // Remove from UI after successful API call
         setState(() {
           cachedPosts?.removeAt(index);
-          // Clean up tracking maps
           postLikeStates.remove(postId);
           postLikeCounts.remove(postId);
           postCommentsCounts.remove(postId);
@@ -299,7 +284,6 @@ class _ImagePostsListState extends State<ImagePostsList> {
     }
   }
 
-  // Format comments count text similar to likes
   String _getCommentsCountText(int count) {
     if (count == 0) return '';
     if (count < 1000) return count.toString();
@@ -323,16 +307,27 @@ class _ImagePostsListState extends State<ImagePostsList> {
         surfaceTintColor: Theme.of(context).colorScheme.background,
         toolbarHeight: 25.h,
       ),
-      body: isLoading
+      body: isLoading && isInitialLoad
           ? Center(child: Loader(color: Theme.of(context).colorScheme.primary))
-          : cachedPosts == null || cachedPosts!.isEmpty
-          ? Center(
-              child: Text(
-                AppLocalizations.of(context)!.nopostsfound,
-                style: TextStyle(color: Colors.grey[600], fontSize: 11.sp),
-              ),
-            )
-          : _buildPostsList(cachedPosts!),
+          : RefreshIndicator(
+              onRefresh: _loadPosts,
+              child: cachedPosts == null || cachedPosts!.isEmpty
+                  ? ListView(
+                      children: [
+                        SizedBox(height: 200.h),
+                        Center(
+                          child: Text(
+                            AppLocalizations.of(context)!.nopostsfound,
+                            style: TextStyle(
+                              color: Colors.grey[600],
+                              fontSize: 11.sp,
+                            ),
+                          ),
+                        ),
+                      ],
+                    )
+                  : _buildPostsList(cachedPosts!),
+            ),
     );
   }
 
@@ -342,19 +337,14 @@ class _ImagePostsListState extends State<ImagePostsList> {
       itemBuilder: (context, index) {
         final imagePost = postsImage[index];
 
-        // Check if post has images in polls
         bool hasImages = imagePost.polls.any(
           (poll) =>
               poll.options?.any((option) => option.image != null) ?? false,
         );
 
-        // Skip posts without images in polls
         if (!hasImages) {
           return const SizedBox.shrink();
         }
-
-        // FIXED: Directly read from tracking maps with fallback
-        // Use postLikeStates first, if not found, use cached post value
         final isLiked = postLikeStates.containsKey(imagePost.id)
             ? postLikeStates[imagePost.id]!
             : imagePost.isLiked;
@@ -365,9 +355,8 @@ class _ImagePostsListState extends State<ImagePostsList> {
             ? postCommentsCounts[imagePost.id]!
             : imagePost.commentsCount;
 
-        // Get liked users for this post
         final viewLikes = postLikedUsers[imagePost.id] ?? [];
-       
+
         return Container(
           padding: EdgeInsets.all(8.w),
           margin: EdgeInsets.all(10.w),
@@ -393,14 +382,10 @@ class _ImagePostsListState extends State<ImagePostsList> {
                     backgroundColor: Theme.of(
                       context,
                     ).colorScheme.primary.withOpacity(0.15),
-                    backgroundImage:
-                        widget.profileImage != null &&
-                            widget.profileImage!.isNotEmpty
-                        ? MemoryImage(getProfileImage(widget.profileImage)!)
+                    backgroundImage: _profileImageBytes != null
+                        ? MemoryImage(_profileImageBytes!)
                         : null,
-                    child:
-                        widget.profileImage == null ||
-                            widget.profileImage!.isEmpty
+                    child: _profileImageBytes == null
                         ? Text(
                             widget.username?.isNotEmpty == true
                                 ? widget.username![0].toUpperCase()
@@ -466,7 +451,7 @@ class _ImagePostsListState extends State<ImagePostsList> {
                 imagePost.polls,
                 imagePost.is_polled_by_current_user,
               ),
-              SizedBox(height: 5.h),
+              SizedBox(height: 7.h),
               Row(
                 children: [
                   // Like button
@@ -483,20 +468,14 @@ class _ImagePostsListState extends State<ImagePostsList> {
                             );
                           },
                           child: isLiked
-                              ? Image.asset(
-                                  Assets.assetsImagesIcHeartFilled,
-                                  key: ValueKey('filled_${imagePost.id}'),
-                                  height: 21.h,
-                                  width: 21.w,
+                              ? AppIcons.filledHeart(
+                                  key: const ValueKey('filled'),
                                 )
-                              : Image.asset(
-                                  Assets.assetsImagesIcHeart,
-                                  key: ValueKey('outline_${imagePost.id}'),
-                                  height: 21.h,
-                                  width: 21.w,
+                              : AppIcons.outlineHeart(
+                                  key: const ValueKey('outline'),
                                   color: Theme.of(
                                     context,
-                                  ).colorScheme.onSurface.withOpacity(0.6),
+                                  ).colorScheme.onBackground.withOpacity(0.6),
                                 ),
                         ),
                         SizedBox(width: 3.w),
@@ -521,12 +500,10 @@ class _ImagePostsListState extends State<ImagePostsList> {
                     onTap: () => _showCommentsBottomSheet(imagePost.id),
                     child: Row(
                       children: [
-                        Icon(
-                          FeatherIcons.messageSquare,
-                          size: 20.sp,
+                        AppIcons.commnetBox(
                           color: Theme.of(
                             context,
-                          ).colorScheme.onSurface.withOpacity(0.6),
+                          ).colorScheme.onBackground.withOpacity(0.6),
                         ),
                         SizedBox(width: 3.w),
                         Text(
@@ -547,23 +524,23 @@ class _ImagePostsListState extends State<ImagePostsList> {
                   SizedBox(width: 8.w),
                   GestureDetector(
                     onTap: () {
-                      // ShareService.sharePost(widget.post, context: context);
+                      ShareService.sharePost(
+                        usernameOverride: widget.username,
+                        imagePost,
+                        context: context,
+                      );
                     },
-                    child: Icon(
-                      FeatherIcons.send,
-                      size: 18.3.sp,
+                    child: AppIcons.sharePost(
                       color: Theme.of(
                         context,
-                      ).colorScheme.onSurface.withOpacity(0.6),
+                      ).colorScheme.onBackground.withOpacity(0.7),
                     ),
                   ),
                 ],
               ),
-              // Liked Users Display - Shows immediately, updates silently
               if (likesCount > 0) ...[
                 SizedBox(height: 5.h),
                 if (viewLikes.isNotEmpty)
-                  // Show liked users with avatars and text (updates silently in background)
                   GestureDetector(
                     onTap: () => _showLikedUsersBottomSheet(imagePost.id),
                     child: Row(
@@ -616,13 +593,12 @@ class _ImagePostsListState extends State<ImagePostsList> {
         for (var option in poll.options!) {
           if (option.image != null) {
             validImages.add(option.image!);
-            firstPollWithImages ??= poll; // Store first poll with images
+            firstPollWithImages ??= poll;
           }
         }
       }
     }
 
-    // If no valid images, return empty container
     if (validImages.isEmpty || firstPollWithImages == null) {
       return const SizedBox.shrink();
     }
@@ -685,10 +661,14 @@ class _ImagePostsListState extends State<ImagePostsList> {
                         height: imageHeight,
                         child: Container(
                           decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(12.r),
+                            borderRadius: BorderRadius.circular(
+                              AppRadius.button,
+                            ),
                           ),
                           child: ClipRRect(
-                            borderRadius: BorderRadius.circular(12.r),
+                            borderRadius: BorderRadius.circular(
+                              AppRadius.button,
+                            ),
                             child: Image.network(
                               '${ApiConfig.baseUrlImage}${imageData.url}',
                               fit: BoxFit.cover,
@@ -697,7 +677,9 @@ class _ImagePostsListState extends State<ImagePostsList> {
                               errorBuilder: (context, error, stackTrace) {
                                 return Container(
                                   decoration: BoxDecoration(
-                                    borderRadius: BorderRadius.circular(12.r),
+                                    borderRadius: BorderRadius.circular(
+                                      AppRadius.button,
+                                    ),
                                     color: Colors.grey[200],
                                   ),
                                   child: Icon(

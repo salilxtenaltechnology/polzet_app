@@ -2,7 +2,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
-import '../../../core/constants/app_colors.dart';
 import '../../languages/l10n/generated/app_localizations.dart';
 import '../custom_text_styles.dart';
 
@@ -55,7 +54,7 @@ class LogoutDialog extends StatelessWidget {
                   AppLocalizations.of(context)!.logout.toUpperCase(),
                   style: TextStyle(
                     fontSize: 12.sp,
-                    color: AppColors.redColor,
+                     color: Theme.of(context).colorScheme.error,
                     fontWeight: FontWeight.w500,
                   ),
                 ),

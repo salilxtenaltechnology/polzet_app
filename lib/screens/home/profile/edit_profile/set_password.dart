@@ -145,7 +145,7 @@ class _SetPasswordScreenState extends State<SetPasswordScreen>
                 padding: EdgeInsets.only(top: 10.h),
                 child: Text(
                   _errorMessage,
-                  style: CustomTextStyles.msgErrorText,
+                  style: CustomTextStyles.msgErrorText(context),
                 ),
               ),
 

@@ -4,7 +4,6 @@
 
 import 'dart:convert';
 import 'dart:typed_data';
-import 'package:feather_icons/feather_icons.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:intl/intl.dart';
@@ -15,21 +14,18 @@ import 'package:polzet_app/widgets/loader.dart';
 import '../../../../api/services/api_service.dart';
 import '../../../../api/services/like/like_service.dart';
 import '../../../../core/constants/app_colors.dart';
-import '../../../../core/constants/app_images.dart';
+import '../../../../core/constants/app_icons.dart';
+import '../../../../core/constants/app_radius.dart';
 import '../../../../models/like/like_uers_model.dart';
 import '../../../../widgets/button/back_button.dart';
 import '../../../../widgets/custom_text_styles.dart';
 import '../../../../widgets/show_toast.dart';
-import '../../../../widgets/utils/bottomsheet_util.dart';
-import '../../../../widgets/utils/like_util.dart';
+import '../../../../core/utils/bottomsheet_util.dart';
+import '../../../../core/utils/like_util.dart';
 import '../../profile/posts/popup/single_post_image_popup.dart';
-
-// ─── Palette ─────────────────────────────────────────────────────────────────
 
 const _accent = AppColors.primaryColor;
 const _textSecondary = Color(0xFF888888);
-
-// ─── Entry point ─────────────────────────────────────────────────────────────
 
 class SinglePostDetails extends StatefulWidget {
   final String username;
@@ -50,17 +46,14 @@ class _SinglePostDetailsState extends State<SinglePostDetails> {
   bool _loading = true;
   String? _error;
 
-  // Image-poll: pollId -> selected optionId
   final Map<int, int> _selectedVotes = {};
 
-  // Text-poll multi-select: pollKey -> ordered list of selected option indices
   final Map<String, List<int>> _selectedOptions = {};
   final Map<String, bool> _pollVotingStates = {};
   Map<int, List<LikeUser>> postLikedUsers = {};
 
   Map<int, bool> likedUsersLoading = {};
 
-  // Interaction state
   bool _isLiked = false;
   int _likesCount = 0;
   int _commentsCount = 0;
@@ -70,8 +63,6 @@ class _SinglePostDetailsState extends State<SinglePostDetails> {
     super.initState();
     _fetchPost();
   }
-
-  // ── Fetch ─────────────────────────────────────────────────────────────────
 
   Future<void> _fetchPost() async {
     setState(() {
@@ -93,7 +84,6 @@ class _SinglePostDetailsState extends State<SinglePostDetails> {
         }
       });
 
-      // Fetch liked users and set count
       await _fetchLikedUsers(result.id);
       if (mounted) {
         setState(() {
@@ -135,7 +125,6 @@ class _SinglePostDetailsState extends State<SinglePostDetails> {
   }
 
   Future<void> _fetchLikedUsers(int postId) async {
-    // Don't fetch if already loading or already loaded
     if (likedUsersLoading[postId] == true ||
         postLikedUsers.containsKey(postId)) {
       return;
@@ -149,9 +138,7 @@ class _SinglePostDetailsState extends State<SinglePostDetails> {
       final users = await ApiService().fetchLikedUsers(postId);
 
       setState(() {
-        postLikedUsers[postId] = users
-            .take(3)
-            .toList(); // Only keep first 3 for display
+        postLikedUsers[postId] = users.take(3).toList();
         likedUsersLoading[postId] = false;
       });
     } catch (e) {
@@ -160,8 +147,6 @@ class _SinglePostDetailsState extends State<SinglePostDetails> {
       });
     }
   }
-
-  // ── Helpers ───────────────────────────────────────────────────────────────
 
   String _timeAgo(String isoDate) {
     try {
@@ -200,8 +185,6 @@ class _SinglePostDetailsState extends State<SinglePostDetails> {
     return count.toString();
   }
 
-  // ── Build ─────────────────────────────────────────────────────────────────
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -217,7 +200,6 @@ class _SinglePostDetailsState extends State<SinglePostDetails> {
         toolbarHeight: 25.h,
       ),
       body: _loading
-          // ? _buildShimmer(context)
           ? Center(child: Loader(color: AppColors.primaryColor))
           : _error != null
           ? _buildError()
@@ -238,9 +220,6 @@ class _SinglePostDetailsState extends State<SinglePostDetails> {
       ),
     );
   }
-
-  // ── Post card ─────────────────────────────────────────────────────────────
-  // Matches the container style used in both ImagePostsList and QuestionsPostsList
 
   Widget _buildPostCard(SinglePostModel post) {
     return Container(
@@ -319,10 +298,8 @@ class _SinglePostDetailsState extends State<SinglePostDetails> {
     );
   }
 
-  // ── Header  (same as both reference files) ────────────────────────────────
-
   Widget _buildHeader(SinglePostModel post) {
-    final avatarBytes = _decodeBase64(null); // no avatar URL in this endpoint
+    final avatarBytes = _decodeBase64(null);
     return Row(
       children: [
         CircleAvatar(
@@ -437,14 +414,14 @@ class _SinglePostDetailsState extends State<SinglePostDetails> {
                             width: imageWidth,
                             height: imageHeight,
                             decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(12.r),
+                              borderRadius: BorderRadius.circular(AppRadius.button),
                               border: Border.all(
                                 color: Colors.white.withOpacity(0.3),
                                 width: 1.2,
                               ),
                             ),
                             child: ClipRRect(
-                              borderRadius: BorderRadius.circular(12.r),
+                              borderRadius: BorderRadius.circular(AppRadius.button),
                               child: Stack(
                                 fit: StackFit.expand,
                                 children: [
@@ -614,11 +591,11 @@ class _SinglePostDetailsState extends State<SinglePostDetails> {
         duration: const Duration(milliseconds: 250),
         curve: Curves.easeInOut,
         margin: EdgeInsets.only(bottom: 10.h),
-        height: 23.h,
+        height: 27.h,
         width: double.infinity,
         decoration: BoxDecoration(
           color: isDark ? const Color(0xFF242831) : const Color(0xFFF5F6F7),
-          borderRadius: BorderRadius.circular(10.r),
+          borderRadius: BorderRadius.circular(AppRadius.button),
           border: Border.all(
             color: isSelected && !hasUserPolled
                 ? Theme.of(context).colorScheme.primary.withOpacity(0.5)
@@ -630,7 +607,6 @@ class _SinglePostDetailsState extends State<SinglePostDetails> {
         ),
         child: Stack(
           children: [
-            // Animated progress fill
             if (showPercentage && percentage > 0)
               Positioned.fill(
                 child: TweenAnimationBuilder<double>(
@@ -646,16 +622,15 @@ class _SinglePostDetailsState extends State<SinglePostDetails> {
                         color: isDark
                             ? const Color(0xFF30353D)
                             : const Color(0xFFE8E8E8),
-                        borderRadius: BorderRadius.circular(10.r),
+                        borderRadius: BorderRadius.circular(AppRadius.button),
                       ),
                     ),
                   ),
                 ),
               ),
 
-            // Text + percentage/selection number
             Padding(
-              padding: EdgeInsets.fromLTRB(8.w, 4.h, 8.w, 0),
+              padding: EdgeInsets.fromLTRB(8.w, 3.h, 8.w, 0),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -706,8 +681,6 @@ class _SinglePostDetailsState extends State<SinglePostDetails> {
     );
   }
 
-  // ── Text-poll helpers ─────────────────────────────────────────────────────
-
   bool _areAllOptionsSelected(SinglePostPoll poll) {
     final pollKey = poll.id.toString();
     if (!_selectedOptions.containsKey(pollKey)) return false;
@@ -752,21 +725,6 @@ class _SinglePostDetailsState extends State<SinglePostDetails> {
         votes.add({'option_id': option.id, 'rank': i + 1});
       }
 
-      // Uncomment when vote API is wired up:
-      // final result = await ApiService.voteOnPollMultiple(
-      //   postId: widget.postId,
-      //   votes: votes,
-      // );
-      // if (result['success'] == true) {
-      //   final updated = await ApiService().getSinglePost(widget.username, widget.postId);
-      //   if (!mounted) return;
-      //   setState(() { _post = updated; });
-      //   for (final p in updated.polls) {
-      //     if (p.userVote != null) _selectedVotes[p.id] = p.userVote!;
-      //   }
-      // }
-
-      // Optimistic mark as voted
       final firstOptionId = poll.options[previousSelected.first].id;
       setState(() {
         _selectedVotes[poll.id] = firstOptionId;
@@ -799,20 +757,12 @@ class _SinglePostDetailsState extends State<SinglePostDetails> {
                 transitionBuilder: (child, animation) =>
                     ScaleTransition(scale: animation, child: child),
                 child: _isLiked
-                    ? Image.asset(
-                        Assets.assetsImagesIcHeartFilled,
-                        key: ValueKey('filled_${post.id}'),
-                        height: 21.h,
-                        width: 21.w,
-                      )
-                    : Image.asset(
-                        Assets.assetsImagesIcHeart,
-                        key: ValueKey('outline_${post.id}'),
-                        height: 21.h,
-                        width: 21.w,
+                    ? AppIcons.filledHeart(key: const ValueKey('filled'))
+                    : AppIcons.outlineHeart(
+                        key: const ValueKey('outline'),
                         color: Theme.of(
                           context,
-                        ).colorScheme.onSurface.withOpacity(0.6),
+                        ).colorScheme.onBackground.withOpacity(0.6),
                       ),
               ),
               SizedBox(width: 3.w),
@@ -843,10 +793,10 @@ class _SinglePostDetailsState extends State<SinglePostDetails> {
           ),
           child: Row(
             children: [
-              Icon(
-                FeatherIcons.messageSquare,
-                size: 20.sp,
-                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+              AppIcons.commnetBox(
+                color: Theme.of(
+                  context,
+                ).colorScheme.onBackground.withOpacity(0.6),
               ),
               SizedBox(width: 3.w),
               Text(
@@ -863,14 +813,10 @@ class _SinglePostDetailsState extends State<SinglePostDetails> {
           ),
         ),
         SizedBox(width: 8.w),
-
-        // Share
         GestureDetector(
           onTap: () {},
-          child: Icon(
-            FeatherIcons.send,
-            size: 18.3.sp,
-            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+          child: AppIcons.sharePost(
+            color: Theme.of(context).colorScheme.onBackground.withOpacity(0.7),
           ),
         ),
       ],
@@ -891,16 +837,12 @@ class _SinglePostDetailsState extends State<SinglePostDetails> {
     final prev = _isLiked;
     final prevCount = _likesCount;
 
-    // Optimistic update
     setState(() {
       _isLiked = !prev;
       _likesCount = prev ? prevCount - 1 : prevCount + 1;
     });
 
     try {
-      // await LikeService().togglePostLike(...);
-
-      // Quietly refresh avatars only — no loading state, no count override
       if (_post != null) {
         await _refreshLikedUsersQuietly(_post!.id);
       }
@@ -1032,8 +974,6 @@ Widget _buildImagePollShimmer(BuildContext context) {
     ],
   );
 }
-
-// ── new text-poll shimmer ─────────────────────────────────────────────────
 
 Widget _buildTextPollShimmer(BuildContext context) {
   return ListView(

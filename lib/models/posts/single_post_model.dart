@@ -37,18 +37,15 @@ class SinglePostModel {
     'polls': polls.map((e) => e.toJson()).toList(),
   };
 
-  /// True when every option in every poll has an image (image-type post).
   bool get isImagePoll =>
       polls.isNotEmpty &&
       polls.every((p) => p.options.every((o) => o.image != null));
 
-  /// True when every option in every poll has text (text-type post).
   bool get isTextPoll =>
       polls.isNotEmpty &&
       polls.every((p) => p.options.every((o) => o.text != null));
 }
 
-// ─── Poll ─────────────────────────────────────────────────────────────────────
 
 class SinglePostPoll {
   final int id;
@@ -57,7 +54,7 @@ class SinglePostPoll {
   final List<SinglePostPollOption> options;
   final String totalVotes;
   final int?
-  userVote; // option id the current user voted for, null if not voted
+  userVote;
 
   const SinglePostPoll({
     required this.id,
@@ -97,7 +94,6 @@ class SinglePostPoll {
   bool get hasVoted => userVote != null;
 }
 
-// ─── PollOption ───────────────────────────────────────────────────────────────
 
 class SinglePostPollOption {
   final int id;
@@ -143,7 +139,6 @@ class SinglePostPollOption {
   };
 }
 
-// ─── PollImage ────────────────────────────────────────────────────────────────
 
 class SinglePostPollImage {
   final int id;
@@ -174,7 +169,6 @@ class SinglePostPollImage {
     'thumbnail_url': thumbnailUrl,
   };
 
-  /// Resolve against a base URL if the path is relative.
   String resolvedUrl(String baseUrl) {
     if (url.startsWith('http')) return url;
     return '$baseUrl$url';
@@ -186,7 +180,6 @@ class SinglePostPollImage {
   }
 }
 
-// ─── Voter ────────────────────────────────────────────────────────────────────
 
 class SinglePostVoter {
   final int id;

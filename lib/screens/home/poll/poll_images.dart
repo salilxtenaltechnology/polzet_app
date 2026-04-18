@@ -5,12 +5,12 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:image_picker/image_picker.dart';
 
 import '../../../api/services/api_service.dart';
 import '../../../api/services/image/image_picker_service.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../data/token/shared_preferences.dart';
+import '../../../gen/assets.gen.dart';
 import '../../../languages/l10n/generated/app_localizations.dart';
 import '../../../widgets/button/back_button.dart';
 import '../../../widgets/button/primary_button.dart';
@@ -29,7 +29,6 @@ class PollImages extends StatefulWidget {
 class _PollImagesState extends State<PollImages> {
   final ApiService service = ApiService();
   final descriptionController = TextEditingController();
-  final ImagePicker _picker = ImagePicker();
 
   String descriptionErrorText = '';
   String imageErrorText = '';
@@ -142,8 +141,7 @@ class _PollImagesState extends State<PollImages> {
       // Upload the poll
       Map<String, dynamic>? result = await ApiService.uploadImagePoll(
         description: descriptionController.text.trim(),
-        question:
-            'Image Preference Poll', // You can add a question field if needed
+        question: 'Image Preference Poll',
         pollOptions: selectedImages,
         maxOptions: maxImages,
         authToken: accessToken,
@@ -218,6 +216,7 @@ class _PollImagesState extends State<PollImages> {
         ),
         backgroundColor: Theme.of(context).colorScheme.background,
         surfaceTintColor: Theme.of(context).colorScheme.background,
+        toolbarHeight: 25.h,
       ),
       body: ListView(
         padding: EdgeInsets.symmetric(horizontal: 12.w),
@@ -244,7 +243,7 @@ class _PollImagesState extends State<PollImages> {
               padding: EdgeInsets.only(top: 5.h),
               child: Text(
                 descriptionErrorText,
-                style: CustomTextStyles.msgErrorText,
+                style: CustomTextStyles.msgErrorText(context),
               ),
             ),
           SizedBox(height: 20.h),
@@ -327,7 +326,7 @@ class _PollImagesState extends State<PollImages> {
               child: Center(
                 child: Text(
                   imageErrorText,
-                  style: CustomTextStyles.msgErrorText,
+                  style: CustomTextStyles.msgErrorText(context),
                   textAlign: TextAlign.center,
                 ),
               ),
@@ -409,13 +408,14 @@ class _PollImagesState extends State<PollImages> {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(
-                        Icons.add_photo_alternate_outlined,
-                        size: 35.sp,
+                      Assets.images.addImage.image(
+                        height: 25.sp,
+                        width: 25.sp,
                         color: Theme.of(
                           context,
-                        ).colorScheme.onSurface.withOpacity(0.6),
+                        ).colorScheme.onBackground.withOpacity(0.3),
                       ),
+
                       SizedBox(height: 8.h),
                       Text(
                         _getOptionText(context, index),
@@ -423,7 +423,7 @@ class _PollImagesState extends State<PollImages> {
                           color: Theme.of(
                             context,
                           ).colorScheme.onSurface.withOpacity(0.6),
-                          fontSize: 11.5.sp,
+                          fontSize: 10.3.sp,
                           fontWeight: FontWeight.w500,
                         ),
                       ),

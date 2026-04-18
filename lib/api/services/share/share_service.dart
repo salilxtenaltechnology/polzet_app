@@ -1,6 +1,7 @@
 // ignore_for_file: deprecated_member_use
 
 import 'package:flutter/material.dart';
+import 'package:polzet_app/widgets/show_toast.dart';
 import 'package:share_plus/share_plus.dart';
 import '../link/deeplink_generator_service.dart';
 
@@ -12,25 +13,22 @@ class ShareService {
   static Future<void> sharePost(
     dynamic post, {
     required BuildContext context,
+    String? usernameOverride,
   }) async {
     try {
-      // Extract username and post ID from your post object
-      // Adjust these based on your actual post model structure
-      final username = post.user?.username ?? 'user';
+      final username = usernameOverride ?? post.user?.username ?? 'user';
       final postId = post.id?.toString() ?? '0';
-
-      // Generate the deep link
       final link = DeepLinkService.generatePostLink(username, postId);
+      final shareText = '$link\n';
 
-      // Create share text
-      final shareText =
-          '''
-$link
-''';
-      // Get the render box for share position (iOS)
-      final box = context.findRenderObject() as RenderBox?;
+      // Safely get RenderBox — can be null on non-iPad or inside slivers
+      RenderBox? box;
+      try {
+        box = context.findRenderObject() as RenderBox?;
+      } catch (_) {
+        box = null; // RenderSliverList or other non-box render object
+      }
 
-      // Share using share_plus package
       final result = await Share.share(
         shareText,
         subject: 'Post from @$username',
@@ -39,7 +37,6 @@ $link
             : null,
       );
 
-      // Log the result
       if (result.status == ShareResultStatus.success) {
         debugPrint('Post shared successfully: $link');
       } else if (result.status == ShareResultStatus.dismissed) {
@@ -47,23 +44,8 @@ $link
       }
     } catch (e) {
       debugPrint('Error sharing post: $e');
-
-      // Show error message to user
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Row(
-              children: [
-                Icon(Icons.error_outline, color: Colors.white),
-                SizedBox(width: 8),
-                Expanded(child: Text('Failed to share post')),
-              ],
-            ),
-            backgroundColor: Colors.red.shade600,
-            behavior: SnackBarBehavior.floating,
-            duration: const Duration(seconds: 3),
-          ),
-        );
+        showToast(message: 'Failed to share post');
       }
     }
   }
@@ -94,7 +76,6 @@ $link
   }
 
   /// Share with custom message
-  ///
   /// [post] - Post object
   /// [customMessage] - Custom message to prepend
   /// [context] - BuildContext

@@ -12,7 +12,6 @@ class Country {
   });
 }
 
-// List of all countries (private to this file)
 final List<Country> _allCountries = [
   Country(name: 'Afghanistan', code: 'AF', dialCode: '+93', flag: '🇦🇫'),
   Country(name: 'Albania', code: 'AL', dialCode: '+355', flag: '🇦🇱'),
@@ -82,7 +81,6 @@ Country? getCountryByDialCode(String dialCode) {
       ),
     );
   } catch (e) {
-    // Return default country (US) if not found
     return _allCountries.firstWhere(
       (country) => country.dialCode == '+1',
       orElse: () => _allCountries.first,

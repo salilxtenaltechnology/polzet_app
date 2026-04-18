@@ -22,6 +22,7 @@ class HomeScreenState extends State<HomeScreen> with UtilityMixin {
     super.initState();
     pageIndex = widget.initialIndex;
     _loadCachedUserData();
+    _initializeDeepLinking();
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       NotificationService().initialize();
@@ -41,7 +42,31 @@ class HomeScreenState extends State<HomeScreen> with UtilityMixin {
 
   @override
   void dispose() {
+    DeepLinkService().dispose();
     super.dispose();
+  }
+
+  void _initializeDeepLinking() {
+    DeepLinkService().initialize(
+      onPostLinkReceived: (username, postId) {
+        debugPrint(
+          '🔗 Deep link inside Home - Username: $username, PostId: $postId',
+        );
+        _navigateToPostDetail(username, postId);
+      },
+    );
+  }
+
+  void _navigateToPostDetail(String username, String postId) {
+    if (!mounted) return;
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => SinglePostDetails(
+          username: username,
+          postId: int.tryParse(postId) ?? 0,
+        ),
+      ),
+    );
   }
 
   Future<void> _loadCachedUserData() async {
@@ -61,7 +86,7 @@ class HomeScreenState extends State<HomeScreen> with UtilityMixin {
 
   final List screens = [
     const Dashboard(),
-    const InsightsScreen(),
+    const MessageList(),
     const PollPop(),
     const Notifications(),
     const UserProfile(),
@@ -72,7 +97,6 @@ class HomeScreenState extends State<HomeScreen> with UtilityMixin {
     final cachedPrivacy = prefs.getBool('privacy_accepted');
 
     if (cachedPrivacy == true) {
-      debugPrint('Privacy already accepted (cached)');
       return;
     }
 
@@ -105,7 +129,6 @@ class HomeScreenState extends State<HomeScreen> with UtilityMixin {
     final cachedPrivacy = prefs.getBool('privacy_accepted');
     if (cachedPrivacy == true) return;
 
-    // ✅ Use ConnectivityProvider (already in tree) — no manual check needed
     final connectivity = context.read<ConnectivityProvider>();
     if (!connectivity.isOnline) {
       debugPrint('Offline — skipping privacy check');
@@ -207,13 +230,13 @@ class HomeScreenState extends State<HomeScreen> with UtilityMixin {
                     )
                   : pageIndex == 1
                   ? Text(
-                      AppLocalizations.of(context)!.insights,
-                      style: CustomTextStyles.appBarTitleText(context),
+                      AppLocalizations.of(context)!.messages,
+                      style: AppTextStyles.pageTitleTextStyle(context),
                     )
                   : pageIndex == 3
                   ? Text(
                       AppLocalizations.of(context)!.notifications,
-                      style: CustomTextStyles.appBarTitleText(context),
+                      style: AppTextStyles.pageTitleTextStyle(context),
                     )
                   : null,
               centerTitle: pageIndex == 2 ? false : true,
@@ -241,34 +264,39 @@ class HomeScreenState extends State<HomeScreen> with UtilityMixin {
                 SizedBox(width: 9.w),
                 if (pageIndex == 0)
                   AppIcons(
-                    onTap: () => navigationPush(context, const MessageList()),
-                    icon: FeatherIcons.messageSquare,
+                    onTap: () =>
+                        navigationPush(context, const InsightsScreen()),
+                    icon: FeatherIcons.barChart2,
                   ),
                 SizedBox(width: 8.w),
+                if (pageIndex == 1)
+                  GestureDetector(
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const CreateGroup()),
+                    ),
+                    child: Assets.images.addGroup.image(
+                      width: 28,
+                      height: 28,
+                      fit: BoxFit.contain,
+                      color: Theme.of(context).colorScheme.onBackground,
+                    ),
+                  ),
+
+                SizedBox(width: 9.w),
               ],
             ),
       body: SafeArea(child: screens[pageIndex]),
-      floatingActionButton: SafeArea(
-        child: CustomFloatingActionButton(
-          onTap: () => _showNewPollSheet(context),
-        ),
+      bottomNavigationBar: CustomBottomNavigationBar(
+        index: pageIndex,
+        bottomNavigationKey: bottomNavigationKey,
+        onTap: (i) {
+          // Skip index 2 — it's reserved for the FAB, not a tab
+          if (i != 2) setState(() => pageIndex = i);
+        },
+        notificationCount: 0,
+        onAddTap: () => BottomSheetUtils.showNewPollBottomSheet(context),
       ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-      // ✅ OfflineBanner removed — ConnectivityOverlay in MaterialApp.builder handles it globally
-      bottomNavigationBar: SafeArea(
-        child: CustomBottomNavigationBar(
-          index: pageIndex,
-          bottomNavigationKey: bottomNavigationKey,
-          onTap: (index) => setState(() => pageIndex = index),
-        ),
-      ),
-    );
-  }
-
-  void _showNewPollSheet(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      builder: (_) => const NewPollBottomsheet(),
     );
   }
 }

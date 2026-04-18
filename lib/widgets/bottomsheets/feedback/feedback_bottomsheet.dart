@@ -13,7 +13,9 @@ import '../../../../api/services/api_service.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../languages/l10n/generated/app_localizations.dart';
 import '../../../../provider/user_provider.dart';
+import '../../../core/constants/app_radius.dart';
 import '../../../data/token/shared_preferences.dart';
+import '../../custom_text_styles.dart';
 
 class FeedbackBottomsheet extends StatefulWidget {
   const FeedbackBottomsheet({super.key});
@@ -45,36 +47,36 @@ class _FeedbackBottomsheetState extends State<FeedbackBottomsheet> {
 
   // ── Pick Screenshot ───────────────────────────────────────
   Future<void> _pickScreenshot() async {
-  setState(() => _isPickingImage = true);
-  try {
-    final picker = ImagePicker();
-    final XFile? picked = await picker.pickImage(
-      source: ImageSource.gallery,
-      imageQuality: 85,
-    );
-    if (!mounted) return;
-    if (picked == null) return;
+    setState(() => _isPickingImage = true);
+    try {
+      final picker = ImagePicker();
+      final XFile? picked = await picker.pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 85,
+      );
+      if (!mounted) return;
+      if (picked == null) return;
 
-    final file = File(picked.path);
-    final int sizeInBytes = await file.length();
-    if (!mounted) return;
+      final file = File(picked.path);
+      final int sizeInBytes = await file.length();
+      if (!mounted) return;
 
-    if (sizeInBytes > 3 * 1024 * 1024) {
-      showToast(message: 'Screenshot must be under 3 MB');
-      return;
+      if (sizeInBytes > 3 * 1024 * 1024) {
+        showToast(message: 'Screenshot must be under 3 MB');
+        return;
+      }
+
+      if (!mounted) return;
+      setState(() {
+        _screenshotFile = file; // ✅ just store the File
+      });
+    } catch (e) {
+      if (!mounted) return;
+      showToast(message: 'Failed to pick image');
+    } finally {
+      if (mounted) setState(() => _isPickingImage = false);
     }
-
-    if (!mounted) return;
-    setState(() {
-      _screenshotFile = file;   // ✅ just store the File
-    });
-  } catch (e) {
-    if (!mounted) return;
-    showToast(message: 'Failed to pick image');
-  } finally {
-    if (mounted) setState(() => _isPickingImage = false);
   }
-}
 
   void _removeScreenshot() {
     setState(() {
@@ -211,9 +213,9 @@ class _FeedbackBottomsheetState extends State<FeedbackBottomsheet> {
       height: MediaQuery.of(context).size.height * 0.92,
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.background,
-        borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(20.r),
-          topRight: Radius.circular(20.r),
+        borderRadius: const BorderRadius.only(
+          topLeft: Radius.circular(AppRadius.modal),
+          topRight: Radius.circular(AppRadius.modal),
         ),
       ),
       child: Column(
@@ -246,11 +248,7 @@ class _FeedbackBottomsheetState extends State<FeedbackBottomsheet> {
             child: Center(
               child: Text(
                 AppLocalizations.of(context)!.sharefeedback,
-                style: TextStyle(
-                  color: Theme.of(context).colorScheme.onBackground,
-                  fontSize: 12.5.sp,
-                  fontWeight: FontWeight.w600,
-                ),
+                style: CustomTextStyles.bottomsheetTitleTextStyle(context),
               ),
             ),
           ),
@@ -438,7 +436,7 @@ class _FeedbackBottomsheetState extends State<FeedbackBottomsheet> {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: AppColors.blackColor.withOpacity(0.07),
+            color: Theme.of(context).colorScheme.onBackground,
             blurRadius: 5,
             offset: const Offset(0, 2),
           ),

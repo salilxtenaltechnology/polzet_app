@@ -1,3 +1,5 @@
+// ignore_for_file: empty_catches
+
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
@@ -15,9 +17,7 @@ class NotificationService {
   NotificationService._internal();
   static final NotificationService _instance = NotificationService._internal();
 
-  // Firebase & Local Notifications
-  // ✅ FIXED: Use getter to lazy load instance. Prevents crash in background isolates
-  // where Firebase is not initialized yet.
+  //*---- Firebase & Local Notifications ----*//
   FirebaseMessaging get _fcm => FirebaseMessaging.instance;
   final FlutterLocalNotificationsPlugin _localNotifications =
       FlutterLocalNotificationsPlugin();
@@ -25,10 +25,9 @@ class NotificationService {
   RemoteMessage? _pendingInitialMessage;
   RemoteMessage? get pendingInitialMessage => _pendingInitialMessage;
 
-  // ✅ App lifecycle state tracking
   AppLifecycleState _appLifecycleState = AppLifecycleState.resumed;
 
-  // WebSocket
+  //*---- WebSocket ----*//
   WebSocketChannel? _channel;
   StreamSubscription? _streamSubscription;
   bool _isConnecting = false;
@@ -38,11 +37,9 @@ class NotificationService {
   static const int _maxReconnectAttempts = 5;
   static const Duration _initialReconnectDelay = Duration(seconds: 2);
 
-  // Deduplication
   final Set<String> _processedNotificationIds = {};
   Timer? _cleanupTimer;
 
-  // Callbacks
   Function(NotificationPayload)? _onFCMMessageTap;
   NotificationPayload? _pendingTapPayload;
 
@@ -59,20 +56,16 @@ class NotificationService {
 
   bool _isInitialized = false;
 
-  // ✅ Update app lifecycle state
   void updateAppLifecycleState(AppLifecycleState state) {
     _appLifecycleState = state;
     debugPrint('📱 NotificationService: App state updated to $state');
   }
 
-  // ✅ Check if app is in foreground (active)
   bool get _isAppInForeground =>
       _appLifecycleState == AppLifecycleState.resumed;
 
-  // ========== INITIALIZATION ==========
   Future<void> initialize() async {
     if (_isInitialized) {
-      // Even if initialized, we should check if token needs syncing (e.g. app came to foreground)
       await _checkAndSyncToken();
       return;
     }
@@ -82,11 +75,10 @@ class NotificationService {
     _startCleanupTimer();
     _isInitialized = true;
 
-    // Sync token after initialization
     await _checkAndSyncToken();
   }
 
-  /// ✅ NEW: Sync FCM token with backend if user is logged in
+  //*---- Sync FCM token when logged in ----*//
   Future<void> _checkAndSyncToken() async {
     try {
       final accessToken = await SharedPrefService.getToken();
@@ -103,12 +95,11 @@ class NotificationService {
     }
   }
 
-  // ✅ Helper method to generate consistent notification content
+  //*---- Helper method to generate consistent notification content ----*//
   static NotificationContent _getNotificationContent(
     Map<String, dynamic> data,
     RemoteMessage? message,
   ) {
-    // Try to extract data from nested 'notification' key or root data
     final notificationData = data['notification'] is Map
         ? data['notification'] as Map<String, dynamic>
         : (data['notification'] != null
@@ -120,7 +111,6 @@ class NotificationService {
         data['type']?.toString().toUpperCase() ??
         'GENERAL';
 
-    // Get the title and body from either the custom data or the notification block
     String title =
         message?.notification?.title ??
         notificationData['title']?.toString() ??
@@ -135,7 +125,7 @@ class NotificationService {
         data['body']?.toString() ??
         '';
 
-    // Customize based on type
+    //*---- Customize based on type ----*//
     switch (type) {
       case 'FOLLOW':
         String sender =
@@ -166,15 +156,12 @@ class NotificationService {
     return NotificationContent(title, body, type);
   }
 
-  // ✅ NEW: Static method to show notification from background isolate
+  //*---- Static method to show notification from background isolate ----*//
   @pragma('vm:entry-point')
   static Future<void> showBackgroundNotification(RemoteMessage message) async {
     debugPrint('🌙 Background Notification Service Triggered');
     debugPrint('   Data: ${message.data}');
 
-    // ✅ CHECK: If notification payload exists, OS already showed it. No need to show another one.
-    // NOTE: To show custom text ("started chasing you"), the backend MUST send data-only messages.
-    // If it sends a 'notification' block, the OS shows the default text and we skip this logic to avoid duplicates.
     if (message.notification != null) {
       debugPrint(
         '🌙 Background message has notification payload - OS handles it. Skipping local display to prevent duplicates.',
@@ -202,11 +189,6 @@ class NotificationService {
       final content = _getNotificationContent(message.data, message);
 
       if (content.body.isEmpty) return;
-
-      // 3. Show notification
-      debugPrint(
-        '🌙 Showing background notification: ${content.title} - ${content.body}',
-      );
 
       const androidDetails = AndroidNotificationDetails(
         'high_importance_channel',
@@ -326,7 +308,7 @@ class NotificationService {
   }
 
   Future<void> _setupMessageHandlers() async {
-    // ✅ FOREGROUND - Show local notification ONLY if app is active
+    // FOREGROUND - Show local notification ONLY if app is active
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
       debugPrint('🔔 ===== FOREGROUND FCM MESSAGE =====');
       debugPrint('Title: ${message.notification?.title}');
@@ -339,7 +321,7 @@ class NotificationService {
       _handleForegroundMessage(message);
     });
 
-    // ✅ BACKGROUND tap (app in background) - CRITICAL for navigation
+    //BACKGROUND tap (app in background) - CRITICAL for navigation
     FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
       debugPrint('👆 ===== NOTIFICATION TAPPED (BACKGROUND) =====');
       debugPrint('Title: ${message.notification?.title}');
@@ -353,7 +335,6 @@ class NotificationService {
     final notificationId =
         message.messageId ?? DateTime.now().millisecondsSinceEpoch.toString();
 
-    // ✅ Prevent duplicate notifications
     if (_processedNotificationIds.contains(notificationId)) {
       debugPrint('⚠️ Duplicate FCM notification blocked: $notificationId');
       return;
@@ -363,19 +344,15 @@ class NotificationService {
 
     // ✅ CRITICAL: Only show local notification popup if app is ACTIVE (foreground)
     if (_isAppInForeground) {
-      debugPrint(
-        '✅ App is ACTIVE - Showing local notification popup (NO FILTERING)',
-      );
       _showNativeNotification(message);
     } else {
       debugPrint(
         '⏭️ App is NOT active (state: $_appLifecycleState) - Skipping local notification',
       );
-      debugPrint('   FCM will handle this notification in background');
     }
   }
 
-  // ✅ FIXED: Extract and customize notification data based on type using helper
+  // ✅ Extract and customize notification data based on type using helper
   Future<void> _showNativeNotification(RemoteMessage message) async {
     try {
       final content = _getNotificationContent(message.data, message);
@@ -439,10 +416,6 @@ class NotificationService {
         details,
         payload: jsonEncode(message.data),
       );
-
-      debugPrint(
-        '✅ Local notification popup shown successfully: ID=$notificationId',
-      );
     } catch (e, stackTrace) {
       debugPrint("❌ Error showing notification: $e");
       debugPrint("Stack trace: $stackTrace");
@@ -450,34 +423,17 @@ class NotificationService {
   }
 
   void _handleMessageTap(RemoteMessage message) {
-    debugPrint("👆 ===== _handleMessageTap called =====");
-    debugPrint("Message ID: ${message.messageId}");
-    debugPrint("Data: ${message.data}");
-
     final payload = NotificationPayload.fromFCM(message);
 
-    debugPrint("Payload type: ${payload.type}");
-    debugPrint("Payload title: ${payload.title}");
-    debugPrint("Callback set: ${_onFCMMessageTap != null}");
-
     if (_onFCMMessageTap != null) {
-      debugPrint("✅ Triggering onFCMMessageTap callback");
       _onFCMMessageTap!(payload);
     } else {
-      debugPrint("⚠️ Callback not ready, queuing tap payload");
       _pendingTapPayload = payload;
     }
-
-    debugPrint("=====================================");
   }
 
   @pragma('vm:entry-point')
   static void _onNotificationTapped(NotificationResponse response) {
-    debugPrint("👆 ===== LOCAL NOTIFICATION TAPPED =====");
-    debugPrint("Notification ID: ${response.id}");
-    debugPrint("Action ID: ${response.actionId}");
-    debugPrint("Has payload: ${response.payload != null}");
-
     if (response.payload != null) {
       try {
         debugPrint("Payload: ${response.payload}");
@@ -497,24 +453,17 @@ class NotificationService {
         );
 
         if (NotificationService()._onFCMMessageTap != null) {
-          debugPrint("✅ Triggering callback from local notification tap");
           NotificationService()._onFCMMessageTap!(payload);
         } else {
-          debugPrint("⚠️ Callback not ready, queuing local tap payload");
           NotificationService()._pendingTapPayload = payload;
         }
       } catch (e) {
-        debugPrint('❌ Error parsing notification payload: $e');
+        debugPrint("❌ Error handling notification tap: $e");
       }
-    } else {
-      debugPrint("⚠️ No payload in tapped notification");
-    }
-
-    debugPrint("=======================================");
+    } else {}
   }
 
   // ========== WEBSOCKET ==========
-
   Future<void> connectToWebSocket(String accessToken) async {
     if (_isConnecting || _channel != null) {
       debugPrint('⚠️ WebSocket: Already connected');
@@ -531,7 +480,7 @@ class NotificationService {
       _shouldStayConnected = true;
 
       final wsUrl =
-          'wss://testbackend.polzet.in/ws/notifications/?token=$accessToken';
+          'ws://testbackend.polzet.in/ws/notifications/?token=$accessToken';
       _channel = WebSocketChannel.connect(Uri.parse(wsUrl));
 
       _streamSubscription = _channel!.stream.listen(
@@ -541,7 +490,6 @@ class NotificationService {
           _reconnectAttempts = 0;
         },
         onError: (error) {
-          debugPrint('❌ WebSocket error: $error');
           _handleWebSocketDisconnection();
         },
         onDone: () {
@@ -566,11 +514,7 @@ class NotificationService {
       final data = jsonDecode(body);
       final notificationId = _generateNotificationId(data);
 
-      // ✅ Prevent WebSocket duplicates
       if (_processedNotificationIds.contains(notificationId)) {
-        debugPrint(
-          '⚠️ Duplicate WebSocket notification blocked: $notificationId',
-        );
         return;
       }
 
@@ -579,11 +523,7 @@ class NotificationService {
       debugPrint('📨 WebSocket notification: ${data['title'] ?? 'No title'}');
       debugPrint('App State: $_appLifecycleState');
 
-      // ✅ CRITICAL: Only show if app is ACTIVE
       if (_isAppInForeground) {
-        debugPrint(
-          '✅ App is ACTIVE - Showing WebSocket notification (NO FILTERING)',
-        );
         _showWebSocketNotification(data);
       } else {
         debugPrint('⏭️ App is NOT active - Skipping WebSocket notification');
@@ -661,7 +601,7 @@ class NotificationService {
       _reconnectAttempts++;
       final delay = _initialReconnectDelay * _reconnectAttempts;
       debugPrint(
-        '⏳ WebSocket disconnected. Reconnecting in ${delay.inSeconds}s '
+        //'⏳ WebSocket disconnected. Reconnecting in ${delay.inSeconds}s '
         '(Attempt $_reconnectAttempts/$_maxReconnectAttempts)...',
       );
 
@@ -937,7 +877,6 @@ class NotificationPayload {
   };
 }
 
-// ✅ Helper class for consistent content
 class NotificationContent {
   final String title;
   final String body;

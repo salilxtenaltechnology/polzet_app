@@ -10,7 +10,7 @@ import '../../../../../api/services/api_service.dart';
 import '../../../../../core/constants/app_colors.dart';
 import '../../../../../models/voters/top_voters_model.dart';
 import '../../../../../widgets/show_toast.dart';
-import '../../../../../widgets/utils/bottomsheet_util.dart';
+import '../../../../../core/utils/bottomsheet_util.dart';
 import '../../../../../widgets/voter_list/voters_list.dart';
 
 class PublicImagesPopup extends StatefulWidget {

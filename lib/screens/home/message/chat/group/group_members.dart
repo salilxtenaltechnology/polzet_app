@@ -13,7 +13,7 @@ import '../../../../../languages/l10n/generated/app_localizations.dart';
 import '../../../../../provider/group_chat_provider.dart';
 import '../../../../../provider/user_provider.dart';
 import '../../../../../widgets/custom_text_styles.dart';
-import '../../../../../widgets/utils/bottomsheet_util.dart';
+import '../../../../../core/utils/bottomsheet_util.dart';
 
 class GroupMembers extends StatefulWidget {
   final List<Map<String, dynamic>> members;

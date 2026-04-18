@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
 
-import '../../../core/constants/app_colors.dart';
+import '../../core/constants/app_radius.dart';
 import '../../languages/l10n/generated/app_localizations.dart';
 import '../../provider/user_provider.dart';
 import '../custom_text_styles.dart';
@@ -14,7 +14,7 @@ import '../text_field/primary_textfield.dart';
 class ConfirmDeletionAccountDioloig extends StatefulWidget {
   const ConfirmDeletionAccountDioloig({super.key, required this.onPressed});
 
-  final Function(String password)? onPressed; // ✅ passes password back
+  final Function(String password)? onPressed;
 
   @override
   State<ConfirmDeletionAccountDioloig> createState() =>
@@ -43,7 +43,7 @@ class _ConfirmDeletionAccountDioloigState
       padding: EdgeInsets.fromLTRB(15.w, 12.h, 15.w, 12.h),
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.secondaryContainer,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius:  AppRadius.cardRadius,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -134,7 +134,7 @@ class _ConfirmDeletionAccountDioloigState
                     AppLocalizations.of(context)!.yesdelete,
                   style: TextStyle(
                     fontSize: 12.sp,
-                    color: AppColors.redColor,
+                      color: Theme.of(context).colorScheme.error,
                     fontWeight: FontWeight.w500,
                   ),
                 ),

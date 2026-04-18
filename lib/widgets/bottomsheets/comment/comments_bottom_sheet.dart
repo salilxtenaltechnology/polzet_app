@@ -7,7 +7,10 @@ import 'package:polzet_app/languages/l10n/generated/app_localizations.dart';
 import 'package:polzet_app/widgets/base64/image_convert.dart';
 import '../../../../models/comment/comment.dart';
 import '../../../api/services/comment/comment_service.dart';
+import '../../../core/constants/app_radius.dart';
+import '../../custom_text_styles.dart';
 import '../../dialog/custom_diolog.dart';
+import '../../loader.dart';
 
 class CommentsBottomSheet extends StatefulWidget {
   final int postId;
@@ -56,7 +59,7 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
       comments = fetchedComments;
       isLoading = false;
     });
-     widget.onCommentsCountChanged?.call(comments.length);
+    widget.onCommentsCountChanged?.call(comments.length);
   }
 
   Future<void> _postComment() async {
@@ -105,23 +108,23 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
   }
 
   Future<void> _deleteComment(int commentId) async {
-  bool confirmed = false;
+    bool confirmed = false;
 
-  showDeleteCommentDiolog(context, () {
-    confirmed = true;
-    Navigator.pop(context); 
-  });
-
-  if (!confirmed) return;
-
-  final success = await _commentsService.deleteComment(commentId);
-  if (success) {
-    setState(() {
-      comments.removeWhere((c) => c.id == commentId);
+    showDeleteCommentDiolog(context, () {
+      confirmed = true;
+      Navigator.pop(context);
     });
-    widget.onCommentsCountChanged?.call(comments.length);
+
+    if (!confirmed) return;
+
+    final success = await _commentsService.deleteComment(commentId);
+    if (success) {
+      setState(() {
+        comments.removeWhere((c) => c.id == commentId);
+      });
+      widget.onCommentsCountChanged?.call(comments.length);
+    }
   }
-}
 
   @override
   Widget build(BuildContext context) {
@@ -129,9 +132,9 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
       height: MediaQuery.of(context).size.height * 0.75,
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surface,
-        borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(20.r),
-          topRight: Radius.circular(20.r),
+        borderRadius: const BorderRadius.only(
+          topLeft: Radius.circular(AppRadius.modal),
+          topRight: Radius.circular(AppRadius.modal),
         ),
       ),
       child: Column(
@@ -159,11 +162,7 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
       child: Center(
         child: Text(
           AppLocalizations.of(context)!.comments,
-          style: TextStyle(
-            color: Theme.of(context).colorScheme.onBackground,
-            fontSize: 12.5.sp,
-            fontWeight: FontWeight.w600,
-          ),
+          style: CustomTextStyles.bottomsheetTitleTextStyle(context),
         ),
       ),
     );
@@ -171,7 +170,9 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
 
   Widget _buildCommentsList() {
     if (isLoading) {
-      return const Center(child: CircularProgressIndicator());
+      return Center(
+        child: Loader(color: Theme.of(context).colorScheme.primary),
+      );
     }
 
     if (comments.isEmpty) {
@@ -186,7 +187,7 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
             ),
             SizedBox(height: 10.h),
             Text(
-                AppLocalizations.of(context)!.nocommentsyet, 
+              AppLocalizations.of(context)!.nocommentsyet,
               style: TextStyle(
                 fontSize: 12.sp,
                 color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
@@ -195,7 +196,7 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
             ),
             SizedBox(height: 5.h),
             Text(
-             AppLocalizations.of(context)!.bethefirsttocomment, 
+              AppLocalizations.of(context)!.bethefirsttocomment,
               style: TextStyle(
                 fontSize: 11.sp,
                 color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5),
@@ -393,7 +394,7 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
             TextButton(
               onPressed: () => _editComment(comment.id),
               child: Text(
-               AppLocalizations.of(context)!.save,
+                AppLocalizations.of(context)!.save,
                 style: TextStyle(fontSize: 11.sp, fontWeight: FontWeight.w600),
               ),
             ),

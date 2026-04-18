@@ -1,6 +1,5 @@
 // ignore_for_file: deprecated_member_use
 
-import 'package:feather_icons/feather_icons.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:polzet_app/widgets/custom_card.dart';
@@ -10,7 +9,9 @@ import 'package:provider/provider.dart';
 import '../../../api/api_config.dart';
 import '../../../api/services/api_service.dart';
 import '../../../api/services/like/like_service.dart';
-import '../../../core/constants/app_images.dart';
+import '../../../core/constants/app_icons.dart';
+import '../../../core/constants/app_radius.dart';
+import '../../../core/utils/like_util.dart';
 import '../../../models/like/like_uers_model.dart';
 import '../../../models/posts/user_post_model.dart';
 import '../../../provider/user_provider.dart';
@@ -19,7 +20,8 @@ import '../../../widgets/button/back_button.dart';
 import '../../../widgets/card/things/poll_question_card.dart';
 import '../../../widgets/custom_text_styles.dart';
 import '../../../widgets/show_toast.dart';
-import '../../../widgets/utils/bottomsheet_util.dart';
+import '../../../core/utils/bottomsheet_util.dart';
+import '../profile/posts/popup/image_grid.dart';
 
 class NotificationDetails extends StatefulWidget {
   final int postId;
@@ -31,7 +33,6 @@ class NotificationDetails extends StatefulWidget {
 }
 
 class _NotificationDetailsState extends State<NotificationDetails> {
-
   final ApiService apiService = ApiService();
   late Future<UserPostModel?> _postFuture;
 
@@ -50,35 +51,23 @@ class _NotificationDetailsState extends State<NotificationDetails> {
   @override
   void initState() {
     super.initState();
-    // Initialize the Future once in initState
     _postFuture = _initializeAndLoadPost();
   }
 
-  /// ✅ ENHANCED: Wait for UserProvider API data to load, then fetch post
   Future<UserPostModel?> _initializeAndLoadPost() async {
     try {
       final userProvider = Provider.of<UserProvider>(context, listen: false);
 
-      // ✅ Step 1: Check if user data is already valid
       if (!userProvider.isUserDataValid()) {
-        debugPrint('⏳ NotificationDetails: Waiting for user data from API...');
-
-        // Wait for user data to be loaded (with 10 second timeout)
         final dataReady = await userProvider.waitForUserData(
           timeout: const Duration(seconds: 10),
         );
 
         if (!dataReady) {
-          debugPrint('❌ NotificationDetails: Timeout waiting for user data');
           throw Exception('Unable to load user session. Please try again.');
         }
       }
 
-      // debugPrint('✅ NotificationDetails: UserProvider ready');
-      // debugPrint('   Username: ${userProvider.username}');
-      // debugPrint('   User ID: ${userProvider.userId}');
-
-      // ✅ Step 2: Now load the post
       return await loadSinglePost(widget.postId);
     } catch (e) {
       debugPrint('❌ NotificationDetails: Initialization error: $e');
@@ -98,7 +87,6 @@ class _NotificationDetailsState extends State<NotificationDetails> {
     }
   }
 
-  // Initialize like state from loaded post
   void _initializeLikeState(UserPostModel post) {
     currentPost = post;
     isLike = post.isLiked;
@@ -113,20 +101,8 @@ class _NotificationDetailsState extends State<NotificationDetails> {
         localPercentages[option.id] = option.percentage;
       }
     }
-    // Copy the viewLikes list if it exists in your model
-    // viewLikes = List.from(post.viewLikes);
-
-    // debugPrint('==== POST LIKE STATE ====');
-    // debugPrint('Post ID: ${post.id}');
-    // debugPrint('Post Type: ${_getPostType(post)}');
-    // debugPrint('isLiked from server: ${post.isLiked}');
-    // debugPrint('isLike variable: $isLike');
-    // debugPrint('likesCount: $likesCount');
-    // debugPrint('commentsCount: $commentsCount');
-    // debugPrint('========================');
   }
 
-  ///ENHANCED: Load post with better error handling
   Future<UserPostModel?> loadSinglePost(int postId) async {
     if (postId == 0) {
       debugPrint("❌ Invalid postId: 0");
@@ -142,28 +118,23 @@ class _NotificationDetailsState extends State<NotificationDetails> {
         throw Exception('User session not found. Please login again.');
       }
 
-      //   debugPrint('⏳ Fetching posts for username: $username');
       final posts = await apiService.fetchPostsImages(username);
-      //   debugPrint('✅ Fetched ${posts.length} posts');
 
-      // Find the specific post
       final post = posts.firstWhere(
         (p) => p.id == postId,
         orElse: () => throw Exception('Post not found'),
       );
 
-     // debugPrint('✅ Found post with ID: ${post.id}');
-
-      // Validate post has content (either images or polls)
       if (post.images.isEmpty && post.polls.isEmpty) {
-        // debugPrint('⚠️ Post has no content');
         throw Exception('This post has no content to display');
       }
 
-      // Initialize like state when post is loaded
       _initializeLikeState(post);
 
-      // Force a rebuild after initializing state
+      if (post.likesCount > 0) {
+        _fetchLikedUsersSilently(post.id);
+      }
+
       if (mounted) {
         setState(() {});
       }
@@ -175,7 +146,6 @@ class _NotificationDetailsState extends State<NotificationDetails> {
     }
   }
 
-  /// Check if post is a poll post
   bool _isPollPost(UserPostModel post) {
     return post.polls.isNotEmpty &&
         post.polls.every(
@@ -187,7 +157,6 @@ class _NotificationDetailsState extends State<NotificationDetails> {
         );
   }
 
-  /// ✅ Toggle like with optimistic updates
   Future<void> _toggleLike() async {
     if (isLikeLoading || currentPost == null) return;
 
@@ -196,20 +165,16 @@ class _NotificationDetailsState extends State<NotificationDetails> {
     final currentUsername = userProvider.username ?? '';
     final currentUserImage = userProvider.profile_picture;
 
-    // Store previous state for rollback
     final previousIsLike = isLike;
     final previousLikesCount = likesCount;
     final previousViewLikes = List<LikeUser>.from(viewLikes);
 
-    // Optimistic update - update UI immediately
     setState(() {
       isLike = !isLike;
 
       if (isLike) {
-        // User just liked the post
         likesCount++;
 
-        // Add current user to the beginning of viewLikes
         viewLikes.insert(
           0,
           LikeUser(
@@ -219,12 +184,10 @@ class _NotificationDetailsState extends State<NotificationDetails> {
           ),
         );
 
-        // Keep only first 3 users for display
         if (viewLikes.length > 3) {
           viewLikes = viewLikes.take(3).toList();
         }
       } else {
-        // User just unliked the post
         likesCount--;
         viewLikes.removeWhere((like) => like.username == currentUsername);
       }
@@ -232,7 +195,6 @@ class _NotificationDetailsState extends State<NotificationDetails> {
       isLikeLoading = true;
     });
 
-    // Call API to persist the change
     final result = await LikeService().togglePostLike(
       context: context,
       postId: widget.postId,
@@ -245,7 +207,6 @@ class _NotificationDetailsState extends State<NotificationDetails> {
         isLikeLoading = false;
 
         if (!result.success) {
-          // Rollback on failure
           isLike = previousIsLike;
           likesCount = previousLikesCount;
           viewLikes = previousViewLikes;
@@ -253,16 +214,20 @@ class _NotificationDetailsState extends State<NotificationDetails> {
           if (result.message.isNotEmpty) {
             showToast(message: result.message);
           }
-        } else {
-          // Update with server response (for accuracy)
+
           isLike = result.isLiked;
           likesCount = result.likesCount;
+
+          if (likesCount > 0) {
+            _fetchLikedUsersSilently(widget.postId);
+          } else {
+            viewLikes.clear();
+          }
         }
       });
     }
   }
 
-  /// Handle like changes from ThingsQuestionsCard
   void _handleLikeChanged(int postId, bool isLiked, int newLikesCount) {
     if (mounted && postId == widget.postId) {
       setState(() {
@@ -272,7 +237,6 @@ class _NotificationDetailsState extends State<NotificationDetails> {
     }
   }
 
-  /// Handle comments count changes
   void _handleCommentsChanged(int postId, int newCommentsCount) {
     if (mounted && postId == widget.postId) {
       setState(() {
@@ -281,7 +245,6 @@ class _NotificationDetailsState extends State<NotificationDetails> {
     }
   }
 
-  /// Show comments bottom sheet
   void _showCommentsBottomSheet() {
     final userProvider = Provider.of<UserProvider>(context, listen: false);
     final username = userProvider.username;
@@ -310,196 +273,48 @@ class _NotificationDetailsState extends State<NotificationDetails> {
     return '${(count / 1000000).toStringAsFixed(1)}M';
   }
 
-  // Build "Liked by" text
-  List<TextSpan> _buildLikedByText() {
-    if (viewLikes.isEmpty) return [];
-
-    List<TextSpan> spans = [];
-    spans.add(
-      TextSpan(
-        text: 'Liked by ',
-        style: TextStyle(
-          fontWeight: FontWeight.w400,
-          color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
-        ),
-      ),
+  void _showLikedUsersBottomSheet() {
+    BottomSheetUtils.showLikedUsersBottomSheet(
+      context: context,
+      postId: widget.postId,
     );
-
-    if (viewLikes.length == 1) {
-      spans.add(
-        TextSpan(
-          text: viewLikes[0].username,
-          style: const TextStyle(fontWeight: FontWeight.w600),
-        ),
-      );
-    } else if (viewLikes.length == 2) {
-      spans.add(
-        TextSpan(
-          text: viewLikes[0].username,
-          style: const TextStyle(fontWeight: FontWeight.w600),
-        ),
-      );
-      spans.add(
-        TextSpan(
-          text: ' and ',
-          style: TextStyle(
-            fontWeight: FontWeight.w400,
-            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
-          ),
-        ),
-      );
-      spans.add(
-        TextSpan(
-          text: viewLikes[1].username,
-          style: const TextStyle(fontWeight: FontWeight.w600),
-        ),
-      );
-    } else {
-      spans.add(
-        TextSpan(
-          text: viewLikes[0].username,
-          style: const TextStyle(fontWeight: FontWeight.w600),
-        ),
-      );
-      spans.add(
-        TextSpan(
-          text: ' and ',
-          style: TextStyle(
-            fontWeight: FontWeight.w400,
-            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
-          ),
-        ),
-      );
-      spans.add(
-        TextSpan(
-          text: '${viewLikes.length - 1} others',
-          style: const TextStyle(fontWeight: FontWeight.w600),
-        ),
-      );
-    }
-
-    return spans;
   }
 
-  // Show bottom sheet with all users who liked
-  void _showLikedUsersBottomSheet() {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => DraggableScrollableSheet(
-        initialChildSize: 0.6,
-        minChildSize: 0.4,
-        maxChildSize: 0.9,
-        builder: (context, scrollController) => Container(
-          decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.surface,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(20.r)),
+  Future<void> _fetchLikedUsersSilently(int postId) async {
+    try {
+      final users = await ApiService().fetchLikedUsers(postId);
+      if (mounted) {
+        setState(() {
+          viewLikes = users.take(3).toList();
+        });
+      }
+    } catch (e) {}
+  }
+
+  void _showAllImagesGrid(
+    int postId,
+    UserPollQuestion poll,
+    bool isPolledByCurrentUser,
+  ) {
+    Navigator.of(context)
+        .push(
+          MaterialPageRoute(
+            builder: (context) => ShowImagesPopup(
+              images: poll.options ?? [],
+              postId: postId,
+              pollId: poll.id,
+              onImageTap: (index) {},
+              isPolledByCurrentUser: isPolledByCurrentUser,
+            ),
           ),
-          child: Column(
-            children: [
-              SizedBox(height: 8.h),
-              // Drag handle
-              Container(
-                width: 40.w,
-                height: 4.h,
-                decoration: BoxDecoration(
-                  color: Theme.of(
-                    context,
-                  ).colorScheme.onSurface.withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(2.r),
-                ),
-              ),
-              SizedBox(height: 16.h),
-              // Title
-              Padding(
-                padding: EdgeInsets.symmetric(horizontal: 16.w),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'Liked by',
-                      style: TextStyle(
-                        fontSize: 18.sp,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    Text(
-                      '$likesCount ${likesCount == 1 ? "like" : "likes"}',
-                      style: TextStyle(
-                        fontSize: 14.sp,
-                        color: Theme.of(
-                          context,
-                        ).colorScheme.onSurface.withOpacity(0.6),
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              SizedBox(height: 16.h),
-              const Divider(height: 1, thickness: 1),
-              // User list
-              Expanded(
-                child: viewLikes.isEmpty
-                    ? Center(
-                        child: Text(
-                          'No likes yet',
-                          style: TextStyle(
-                            fontSize: 14.sp,
-                            color: Colors.grey[600],
-                          ),
-                        ),
-                      )
-                    : ListView.builder(
-                        controller: scrollController,
-                        itemCount: viewLikes.length,
-                        itemBuilder: (context, index) {
-                          final user = viewLikes[index];
-                          return ListTile(
-                            leading: CircleAvatar(
-                              radius: 20,
-                              backgroundImage:
-                                  user.profileImage != null &&
-                                      user.profileImage!.isNotEmpty
-                                  ? MemoryImage(
-                                      getProfileImage(user.profileImage)!,
-                                    )
-                                  : null,
-                              backgroundColor: Theme.of(
-                                context,
-                              ).colorScheme.primary.withOpacity(0.15),
-                              child:
-                                  user.profileImage == null ||
-                                      user.profileImage!.isEmpty
-                                  ? Text(
-                                      user.username[0].toUpperCase(),
-                                      style: TextStyle(
-                                        fontSize: 16.sp,
-                                        fontWeight: FontWeight.w600,
-                                        color: Theme.of(
-                                          context,
-                                        ).colorScheme.primary,
-                                      ),
-                                    )
-                                  : null,
-                            ),
-                            title: Text(
-                              user.username,
-                              style: TextStyle(
-                                fontSize: 14.sp,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
+        )
+        .then((result) {
+          if (result == true) {
+            setState(() {
+              _postFuture = _initializeAndLoadPost();
+            });
+          }
+        });
   }
 
   @override
@@ -533,7 +348,7 @@ class _NotificationDetailsState extends State<NotificationDetails> {
                       color: Theme.of(
                         context,
                       ).colorScheme.onSurface.withOpacity(0.6),
-                      fontWeight: FontWeight.w500
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
                 ],
@@ -541,7 +356,6 @@ class _NotificationDetailsState extends State<NotificationDetails> {
             );
           }
 
-          // Error state
           if (snapshot.hasError) {
             final error = snapshot.error.toString();
             return Center(
@@ -615,7 +429,6 @@ class _NotificationDetailsState extends State<NotificationDetails> {
             );
           }
 
-          // No data state
           if (!snapshot.hasData || snapshot.data == null) {
             return Center(
               child: Column(
@@ -657,7 +470,6 @@ class _NotificationDetailsState extends State<NotificationDetails> {
             listen: false,
           );
 
-          // Check if this is a poll post
           if (_isPollPost(post)) {
             return SingleChildScrollView(
               child: Padding(
@@ -665,7 +477,6 @@ class _NotificationDetailsState extends State<NotificationDetails> {
                 child: ThingsQustionsCard(
                   post: post,
                   onDelete: (_) {
-                    // Handle delete - navigate back
                     Navigator.pop(context);
                   },
                   onLikeChanged: _handleLikeChanged,
@@ -677,10 +488,25 @@ class _NotificationDetailsState extends State<NotificationDetails> {
                   currentLikeState: isLike,
                   currentLikesCount: likesCount,
                   currentCommentsCount: commentsCount,
+                  currentLikedUsers: viewLikes,
+                  onLikedUsersUpdated: (postId, users) {
+                    if (mounted) setState(() => viewLikes = users);
+                  },
                   localPercentages: localPercentages,
                   pollPolledStates: pollPolledStates,
                   onPercentagesUpdated: _handlePercentagesUpdated,
                   onPollPolledStateChanged: _handlePollPolledStateChanged,
+                  onViewVotesTap: (poll, postId) {
+                    final options = poll.options ?? [];
+                    options.sort(
+                      (a, b) => b.percentage.compareTo(a.percentage),
+                    );
+                    BottomSheetUtils.showCurrenUserThingsPostBottomSheet(
+                      context: context,
+                      poll: poll,
+                      postId: postId,
+                    );
+                  },
                 ),
               ),
             );
@@ -738,17 +564,20 @@ class _NotificationDetailsState extends State<NotificationDetails> {
                                 Text(
                                   userProvider.username ?? '',
                                   style: TextStyle(
-                                    fontSize: 12.8.sp,
+                                    fontSize: 11.sp,
                                     fontWeight: FontWeight.w600,
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onBackground,
                                   ),
                                 ),
                                 Text(
                                   'Placed a post',
                                   style: TextStyle(
-                                    fontSize: 10.sp,
+                                    fontSize: 8.8.sp,
                                     color: Theme.of(
                                       context,
-                                    ).colorScheme.onSurface.withOpacity(0.5),
+                                    ).colorScheme.onSurface.withOpacity(0.7),
                                     fontWeight: FontWeight.w500,
                                   ),
                                 ),
@@ -770,18 +599,11 @@ class _NotificationDetailsState extends State<NotificationDetails> {
                         SizedBox(height: 5.h),
 
                         // Images
-                        if (post.images.isNotEmpty)
-                          SizedBox(
-                            height: 150.h,
-                            child: LayoutBuilder(
-                              builder: (context, constraints) {
-                                return _buildImagesStack(
-                                  post.images,
-                                  constraints.maxWidth,
-                                );
-                              },
-                            ),
-                          ),
+                        _buildImagesStack(
+                          post.id,
+                          post.polls,
+                          post.is_polled_by_current_user,
+                        ),
                         SizedBox(height: 5.h),
 
                         // Like button and count
@@ -805,21 +627,14 @@ class _NotificationDetailsState extends State<NotificationDetails> {
                                           );
                                         },
                                         child: isLike
-                                            ? Image.asset(
-                                                Assets
-                                                    .assetsImagesIcHeartFilled,
+                                            ? AppIcons.filledHeart(
                                                 key: const ValueKey('filled'),
-                                                height: 21.h,
-                                                width: 21.w,
                                               )
-                                            : Image.asset(
-                                                Assets.assetsImagesIcHeart,
+                                            : AppIcons.outlineHeart(
                                                 key: const ValueKey('outline'),
-                                                height: 21.h,
-                                                width: 21.w,
                                                 color: Theme.of(context)
                                                     .colorScheme
-                                                    .onSurface
+                                                    .onBackground
                                                     .withOpacity(0.6),
                                               ),
                                       );
@@ -851,12 +666,10 @@ class _NotificationDetailsState extends State<NotificationDetails> {
                               onTap: _showCommentsBottomSheet,
                               child: Row(
                                 children: [
-                                  Icon(
-                                    FeatherIcons.messageSquare,
-                                    size: 20.sp,
+                                  AppIcons.commnetBox(
                                     color: Theme.of(
                                       context,
-                                    ).colorScheme.onSurface.withOpacity(0.6),
+                                    ).colorScheme.onBackground.withOpacity(0.6),
                                   ),
                                   SizedBox(width: 3.w),
                                   Text(
@@ -876,12 +689,11 @@ class _NotificationDetailsState extends State<NotificationDetails> {
                                     onTap: () {
                                       // ShareService.sharePost(widget.post, context: context);
                                     },
-                                    child: Icon(
-                                      FeatherIcons.send,
-                                      size: 18.3.sp,
-                                      color: Theme.of(
-                                        context,
-                                      ).colorScheme.onSurface.withOpacity(0.6),
+                                    child: AppIcons.sharePost(
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onBackground
+                                          .withOpacity(0.7),
                                     ),
                                   ),
                                 ],
@@ -892,95 +704,39 @@ class _NotificationDetailsState extends State<NotificationDetails> {
                         ),
 
                         // Who liked preview
-                        if (viewLikes.isNotEmpty) ...[
-                          SizedBox(height: 4.h),
-                          GestureDetector(
-                            onTap: _showLikedUsersBottomSheet,
-                            child: Row(
-                              crossAxisAlignment: CrossAxisAlignment.center,
-                              children: [
-                                // Avatar stack
-                                SizedBox(
-                                  height: 14.h,
-                                  width:
-                                      (viewLikes.take(3).length * 16.0) + 6.0,
-                                  child: Stack(
-                                    children: viewLikes
-                                        .take(3)
-                                        .toList()
-                                        .asMap()
-                                        .entries
-                                        .map((entry) {
-                                          int index = entry.key;
-                                          LikeUser user = entry.value;
-                                          return Positioned(
-                                            left: index * 16.0,
-                                            child: CircleAvatar(
-                                              radius: 9,
-                                              backgroundColor: Colors.white,
-                                              child: CircleAvatar(
-                                                radius: 14,
-                                                backgroundImage:
-                                                    user.profileImage != null &&
-                                                        user
-                                                            .profileImage!
-                                                            .isNotEmpty
-                                                    ? MemoryImage(
-                                                        getProfileImage(
-                                                          user.profileImage,
-                                                        )!,
-                                                      )
-                                                    : null,
-                                                backgroundColor:
-                                                    Theme.of(context)
-                                                        .colorScheme
-                                                        .primary
-                                                        .withOpacity(0.15),
-                                                child:
-                                                    user.profileImage == null ||
-                                                        user
-                                                            .profileImage!
-                                                            .isEmpty
-                                                    ? Text(
-                                                        user.username[0]
-                                                            .toUpperCase(),
-                                                        style: TextStyle(
-                                                          fontSize: 10.sp,
-                                                          fontWeight:
-                                                              FontWeight.w600,
-                                                          color: Theme.of(
-                                                            context,
-                                                          ).colorScheme.primary,
-                                                        ),
-                                                      )
-                                                    : null,
-                                              ),
-                                            ),
-                                          );
-                                        })
-                                        .toList(),
+                        if (likesCount > 0) ...[
+                          SizedBox(height: 5.h),
+                          if (viewLikes.isNotEmpty)
+                            GestureDetector(
+                              onTap: _showLikedUsersBottomSheet,
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.center,
+                                mainAxisAlignment: MainAxisAlignment.start,
+                                children: [
+                                  LikeUtils.buildLikeAvatarsStack(
+                                    context,
+                                    viewLikes,
+                                    avatarSize: 15,
                                   ),
-                                ),
-                                SizedBox(width: 2.w),
-
-                                // "Liked by" text
-                                Expanded(
-                                  child: RichText(
-                                    overflow: TextOverflow.ellipsis,
-                                    text: TextSpan(
-                                      style: TextStyle(
-                                        fontSize: 10.sp,
-                                        color: Theme.of(
-                                          context,
-                                        ).colorScheme.onSurface,
+                                  SizedBox(width: 5.w),
+                                  Expanded(
+                                    child: SizedBox(
+                                      height: 20.h,
+                                      child: Align(
+                                        alignment: Alignment.centerLeft,
+                                        child: RichText(
+                                          overflow: TextOverflow.ellipsis,
+                                          text: LikeUtils.buildLikedByRichText(
+                                            context,
+                                            viewLikes,
+                                          ),
+                                        ),
                                       ),
-                                      children: _buildLikedByText(),
                                     ),
                                   ),
-                                ),
-                              ],
+                                ],
+                              ),
                             ),
-                          ),
                         ],
                       ],
                     ),
@@ -994,8 +750,27 @@ class _NotificationDetailsState extends State<NotificationDetails> {
     );
   }
 
-  Widget _buildImagesStack(List images, double availableWidth) {
-    if (images.isEmpty) {
+  Widget _buildImagesStack(
+    int postId,
+    List<UserPollQuestion> polls,
+    bool isPolledByCurrentUser,
+  ) {
+    // Extract images from poll options
+    List<PollOptionImage> validImages = [];
+    UserPollQuestion? firstPollWithImages;
+
+    for (var poll in polls) {
+      if (poll.options != null) {
+        for (var option in poll.options!) {
+          if (option.image != null) {
+            validImages.add(option.image!);
+            firstPollWithImages ??= poll;
+          }
+        }
+      }
+    }
+
+    if (validImages.isEmpty || firstPollWithImages == null) {
       return const SizedBox.shrink();
     }
 
@@ -1022,80 +797,101 @@ class _NotificationDetailsState extends State<NotificationDetails> {
       }
     }
 
-    List<Alignment> alignments = getAlignments(images.length);
-    double imageHeight = 150.h;
+    List<Alignment> alignments = getAlignments(validImages.length);
 
-    return SizedBox(
-      height: imageHeight,
-      width: availableWidth,
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: images
-            .asMap()
-            .entries
-            .map<Widget>((entry) {
-              int index = entry.key;
-              dynamic imageData = entry.value;
-              Alignment alignment = alignments[index];
-              double imageWidth = (availableWidth * 0.7) - (index * 8.0);
-              imageWidth = imageWidth < 60.w ? 60.w : imageWidth;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        double availableWidth = constraints.maxWidth;
+        double imageHeight = 150.h;
 
-              return Align(
-                alignment: alignment,
-                child: Container(
-                  width: imageWidth,
-                  height: imageHeight,
-                  decoration: BoxDecoration(
-                    border: Border.all(color: Colors.white, width: 1),
-                    borderRadius: BorderRadius.circular(10.r),
-                  ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(10.r),
-                    child: Image.network(
-                      '${ApiConfig.baseUrlImage}${imageData.url}',
-                      fit: BoxFit.cover,
-                      width: double.infinity,
-                      height: double.infinity,
-                      errorBuilder: (context, error, stackTrace) {
-                        return Container(
-                          decoration: BoxDecoration(
-                            color: Colors.grey[200],
-                            borderRadius: BorderRadius.circular(10.r),
+        return GestureDetector(
+          onTap: () => _showAllImagesGrid(
+            postId,
+            firstPollWithImages!,
+            isPolledByCurrentUser,
+          ),
+          child: SizedBox(
+            height: imageHeight,
+            width: availableWidth,
+            child: Stack(
+              clipBehavior: Clip.none,
+              children: validImages
+                  .asMap()
+                  .entries
+                  .map<Widget>((entry) {
+                    int index = entry.key;
+                    PollOptionImage imageData = entry.value;
+                    Alignment alignment = alignments[index];
+                    double imageWidth = (availableWidth * 0.7) - (index * 8.0);
+                    imageWidth = imageWidth < 60.w ? 60.w : imageWidth;
+
+                    return Align(
+                      alignment: alignment,
+                      child: Container(
+                        width: imageWidth,
+                        height: imageHeight,
+                        decoration: BoxDecoration(
+                          border: Border.all(color: Colors.white, width: 1),
+                          borderRadius: BorderRadius.circular(AppRadius.button),
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(AppRadius.button),
+                          child: Image.network(
+                            '${ApiConfig.baseUrlImage}${imageData.url}',
+                            fit: BoxFit.cover,
+                            width: double.infinity,
+                            height: double.infinity,
+                            errorBuilder: (context, error, stackTrace) {
+                              return Container(
+                                decoration: BoxDecoration(
+                                  color: Colors.grey[200],
+                                  borderRadius: BorderRadius.circular(
+                                    AppRadius.button,
+                                  ),
+                                ),
+                                child: Icon(
+                                  Icons.image_not_supported,
+                                  color: Colors.grey[600],
+                                  size: 30,
+                                ),
+                              );
+                            },
+                            loadingBuilder: (context, child, loadingProgress) {
+                              if (loadingProgress == null) return child;
+                              return Container(
+                                decoration: BoxDecoration(
+                                  color: Colors.grey[100],
+                                  borderRadius: BorderRadius.circular(
+                                    AppRadius.button,
+                                  ),
+                                ),
+                                child: Center(
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    value:
+                                        loadingProgress.expectedTotalBytes !=
+                                            null
+                                        ? loadingProgress
+                                                  .cumulativeBytesLoaded /
+                                              loadingProgress
+                                                  .expectedTotalBytes!
+                                        : null,
+                                  ),
+                                ),
+                              );
+                            },
                           ),
-                          child: Icon(
-                            Icons.image_not_supported,
-                            color: Colors.grey[600],
-                            size: 30,
-                          ),
-                        );
-                      },
-                      loadingBuilder: (context, child, loadingProgress) {
-                        if (loadingProgress == null) return child;
-                        return Container(
-                          decoration: BoxDecoration(
-                            color: Colors.grey[100],
-                            borderRadius: BorderRadius.circular(10.r),
-                          ),
-                          child: Center(
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              value: loadingProgress.expectedTotalBytes != null
-                                  ? loadingProgress.cumulativeBytesLoaded /
-                                        loadingProgress.expectedTotalBytes!
-                                  : null,
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-                ),
-              );
-            })
-            .toList()
-            .reversed
-            .toList(),
-      ),
+                        ),
+                      ),
+                    );
+                  })
+                  .toList()
+                  .reversed
+                  .toList(),
+            ),
+          ),
+        );
+      },
     );
   }
 }

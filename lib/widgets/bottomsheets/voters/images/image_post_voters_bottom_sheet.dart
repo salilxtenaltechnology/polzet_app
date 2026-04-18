@@ -6,8 +6,10 @@ import 'package:polzet_app/widgets/base64/image_convert.dart';
 
 import '../../../../api/services/api_service.dart';
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/constants/app_radius.dart';
 import '../../../../languages/l10n/generated/app_localizations.dart';
 import '../../../../models/voters/top_voters_model.dart';
+import '../../../loader.dart';
 
 class ImagePostVotersBottomSheet extends StatefulWidget {
   final int pollId;
@@ -63,9 +65,9 @@ class _PostVotersBottomSheetState extends State<ImagePostVotersBottomSheet> {
       height: MediaQuery.of(context).size.height * 0.8,
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surface,
-        borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(20.r),
-          topRight: Radius.circular(20.r),
+        borderRadius: const BorderRadius.only(
+          topLeft: Radius.circular(AppRadius.modal),
+          topRight: Radius.circular(AppRadius.modal),
         ),
       ),
       child: Column(
@@ -101,7 +103,7 @@ class _PostVotersBottomSheetState extends State<ImagePostVotersBottomSheet> {
 
   Widget _buildBody() {
     if (_isLoading) {
-      return const Center(child: CircularProgressIndicator());
+      return  Center(child: Loader(color: Theme.of(context).colorScheme.primary));
     }
     if (_error != null) {
       return Center(

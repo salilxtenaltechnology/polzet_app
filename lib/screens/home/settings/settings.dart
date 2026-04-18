@@ -19,7 +19,6 @@ class SettingsState extends State<Settings>
     try {
       final prefs = await SharedPreferences.getInstance();
 
-      // List of all cache keys used in your app
       const cacheKeys = [
         'home_feed_cache',
         'home_feed_cache_time',
@@ -31,16 +30,8 @@ class SettingsState extends State<Settings>
         'cached_following',
       ];
 
-      // Remove each cache key
       for (String key in cacheKeys) {
         await prefs.remove(key);
-      }
-
-      // Alternative: Clear ALL SharedPreferences (be careful with this)
-      // await prefs.clear(); // This removes EVERYTHING including tokens
-
-      if (kDebugMode) {
-        print('✅ All caches cleared successfully');
       }
     } catch (e) {
       if (kDebugMode) {
@@ -109,12 +100,11 @@ class SettingsState extends State<Settings>
         await SharedPrefService.removeFcmToken();
         await SharedPrefService.clearLanguage();
 
-        // Clear provider state
         if (mounted) {
           context.read<UserProvider>().clearUserData();
         }
 
-        Navigator.pop(context); // close confirm dialog
+        Navigator.pop(context);
         showToast(
           message: 'Account ${userProvider.username} deleted permanently',
         );
@@ -123,7 +113,7 @@ class SettingsState extends State<Settings>
         showToast(message: result['message'] ?? 'Failed to delete account');
       }
     } catch (e) {
-      Navigator.pop(context); // close loading dialog
+      Navigator.pop(context);
       showToast(message: 'An error occurred. Please try again.');
     }
   }
@@ -348,7 +338,7 @@ class SettingsState extends State<Settings>
                     AppLocalizations.of(context)!.deleteaccount,
                     onTap: () {
                       showDeleteAccountDiolog(context, () {
-                        Navigator.pop(context); // close info dialog
+                        Navigator.pop(context);
                         showConfirmDeletionAccountDiolog(context, (
                           password,
                         ) async {

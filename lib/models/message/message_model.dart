@@ -96,7 +96,6 @@ class MessageItem {
   }
 
   /// Returns true if this message was sent by [currentUsername].
-  /// Called in the provider after the logged-in user is loaded from SharedPrefs.
   bool isSentBy(String? currentUsername) {
     if (currentUsername == null || currentUsername.isEmpty) return false;
     return sender.username == currentUsername;

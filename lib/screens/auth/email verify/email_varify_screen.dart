@@ -145,13 +145,14 @@ class _EmailVerificationScreenState extends State<RegisterEmailVerification>
       showToast(message: 'Login Successful!');
 
       if (mounted) {
-        Navigator.pushReplacement(
+        Navigator.pushAndRemoveUntil(
           context,
           PageTransition(
             type: PageTransitionType.fade,
             duration: const Duration(milliseconds: 200),
             child: const HomeScreen(initialIndex: 0),
           ),
+          (route) => false,
         );
       }
     } catch (e) {
@@ -256,8 +257,8 @@ class _EmailVerificationScreenState extends State<RegisterEmailVerification>
     return Container(
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.background,
-        image: const DecorationImage(
-          image: AssetImage(Assets.assetsImagesBg),
+        image:  DecorationImage(
+          image: AssetImage(Assets.images.bg.path),
           fit: BoxFit.cover,
         ),
       ),
@@ -315,7 +316,7 @@ class _EmailVerificationScreenState extends State<RegisterEmailVerification>
           if (_errorMessage.isNotEmpty)
             Padding(
               padding: EdgeInsets.only(top: 5.h),
-              child: Text(_errorMessage, style: CustomTextStyles.msgErrorText),
+              child: Text(_errorMessage, style: CustomTextStyles.msgErrorText(context)),
             ),
           if (_successMessage.isNotEmpty)
             Padding(
@@ -459,7 +460,7 @@ class _EmailVerificationScreenState extends State<RegisterEmailVerification>
             children: [
               _authSocialMedia(
                 _handleGoogleSignIn,
-                Image.asset(Assets.assetsImagesIcGoogle),
+                Image.asset(Assets.images.icGoogle.path),
                 const EdgeInsets.all(8).w,
               ),
             ],

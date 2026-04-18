@@ -4,8 +4,6 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 
 enum ConnectionStatus { unknown, online, offline, serverDown }
-
-// Global event bus for server down events from any API call
 class ServerMonitor {
   static final StreamController<bool> _serverDownController =
       StreamController<bool>.broadcast();
@@ -21,30 +19,26 @@ class ConnectivityProvider extends ChangeNotifier {
   bool _isInitialized = false;
   Timer? _pollingTimer;
 
-  // ── Public getters ──────────────────────────────────────────────────────────
   bool get isOnline => _status == ConnectionStatus.online;
   bool get isOffline => _status == ConnectionStatus.offline;
   bool get isServerDown => _status == ConnectionStatus.serverDown;
   bool get isInitialized => _isInitialized;
-  bool get hasConnection => isOnline; // convenience
+  bool get hasConnection => isOnline;
   ConnectionStatus get status => _status;
 
   ConnectivityProvider() {
     _init();
   }
 
-  // ── Init ───────────────────────────────────────────────────────────────────
   Future<void> _init() async {
     await _check();
     _startPolling();
 
-    // Listen to global server down events (e.g. 500 status code from any API)
     ServerMonitor.onServerDown.listen((_) {
       _updateStatus(ConnectionStatus.serverDown);
     });
   }
 
-  // ── Core check ─────────────────────────────────────────────────────────────
   Future<void> _check() async {
     final hasInternet = await _checkInternet();
 
@@ -74,12 +68,10 @@ class ConnectivityProvider extends ChangeNotifier {
     }
   }
 
-  /// Optional: ping your own API base URL to detect server-down separately.
-  /// Replace the URL with your actual API health endpoint.
   Future<bool> _checkServer() async {
     try {
       final socket = await Socket.connect(
-        'google.com', // 🔁 Replace with your API domain e.g. 'api.yourapp.com'
+        'google.com',
         443,
         timeout: const Duration(seconds: 4),
       );
@@ -90,7 +82,6 @@ class ConnectivityProvider extends ChangeNotifier {
     }
   }
 
-  // ── Status update ──────────────────────────────────────────────────────────
   void _updateStatus(ConnectionStatus next) {
     if (_status == next) return;
     _status = next;
@@ -98,7 +89,6 @@ class ConnectivityProvider extends ChangeNotifier {
     if (_isInitialized) _restartPolling();
   }
 
-  // ── Polling ────────────────────────────────────────────────────────────────
   void _restartPolling() {
     _pollingTimer?.cancel();
     _startPolling();
@@ -106,12 +96,10 @@ class ConnectivityProvider extends ChangeNotifier {
 
   void _startPolling() {
     _pollingTimer?.cancel();
-    // Poll faster when offline/server-down so recovery is quick
     final seconds = isOnline ? 10 : 4;
     _pollingTimer = Timer.periodic(Duration(seconds: seconds), (_) => _check());
   }
 
-  // ── Manual retry ───────────────────────────────────────────────────────────
   Future<void> retryNow() async => _check();
 
   @override

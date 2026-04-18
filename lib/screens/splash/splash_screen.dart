@@ -7,11 +7,11 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 
 import '../../../core/constants/app_colors.dart';
-import '../../../core/constants/app_images.dart';
 import '../../../core/constants/app_strings.dart';
 import '../../../core/navigation/notification_router.dart';
 import '../../../data/token/shared_preferences.dart';
 import '../../../provider/user_provider.dart';
+import '../../gen/assets.gen.dart';
 import '../../mixin/utility_mixins.dart';
 import '../auth/login/login_import.dart';
 import '../home/home_imports.dart';
@@ -185,7 +185,7 @@ class _SplashScreenState extends State<SplashScreen>
                     return Transform.scale(
                       scale: _logoAnimation.value,
                       child: Image.asset(
-                        Assets.assetsImagesIcSplash,
+                        Assets.images.icSplash.path,
                         width: 38.w,
                         height: 38.h,
                       ),

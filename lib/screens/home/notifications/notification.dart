@@ -468,12 +468,12 @@ class NotificationState extends State<Notifications>
             ),
             Expanded(
               child: TabBarView(
+                
                 controller: _tabController,
                 children: [
                   // ── All Notifications Tab ────────────────────────────
                   RefreshIndicator(
                     onRefresh: () async {
-                      _lastNotifications.clear();
                       _hasMoreData = true;
                       _nextPageUrl = null;
                       await fetchNotifications();
@@ -564,7 +564,6 @@ class NotificationState extends State<Notifications>
                   // ── Poll Notifications Tab ───────────────────────────
                   RefreshIndicator(
                     onRefresh: () async {
-                      _lastNotifications.clear();
                       _hasMoreData = true;
                       _nextPageUrl = null;
                       await fetchNotifications();

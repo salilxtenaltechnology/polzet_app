@@ -5,12 +5,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../../../api/services/api_service.dart';
+import '../../../../core/constants/app_radius.dart';
 import '../../../../languages/l10n/generated/app_localizations.dart';
 import '../../../../mixin/utility_mixins.dart';
 import '../../../../models/poll/poll_results_model.dart';
 import '../../../../models/voters/top_voters_model.dart';
 import '../../../../models/voters/things_voter_tile.dart';
 import '../../../../models/voters/things_voters_models.dart';
+import '../../../custom_text_styles.dart';
 import '../../../shimmer/things_voter_tile_shimmer.dart';
 
 class ThingsVotersBottomSheet extends StatefulWidget {
@@ -105,15 +107,14 @@ class _ThingsVotersBottomSheetState extends State<ThingsVotersBottomSheet>
       height: MediaQuery.of(context).size.height * 0.8,
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surface,
-        borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(20.r),
-          topRight: Radius.circular(20.r),
+        borderRadius: const BorderRadius.only(
+          topLeft: Radius.circular(AppRadius.modal),
+          topRight: Radius.circular(AppRadius.modal),
         ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          /*──── Header ────*/
           Container(
             padding: EdgeInsets.symmetric(vertical: 10.h),
             margin: EdgeInsets.symmetric(horizontal: 10.w),
@@ -129,11 +130,7 @@ class _ThingsVotersBottomSheetState extends State<ThingsVotersBottomSheet>
             child: Center(
               child: Text(
                 AppLocalizations.of(context)!.voters,
-                style: TextStyle(
-                  color: Theme.of(context).colorScheme.onBackground,
-                  fontSize: 12.5.sp,
-                  fontWeight: FontWeight.w600,
-                ),
+                style: CustomTextStyles.bottomsheetTitleTextStyle(context),
               ),
             ),
           ),

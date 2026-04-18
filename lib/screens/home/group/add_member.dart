@@ -3,6 +3,7 @@
 import 'package:feather_icons/feather_icons.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:polzet_app/widgets/loader.dart';
 
 import '../../../api/services/api_service.dart';
 import '../../../core/constants/app_colors.dart';
@@ -34,7 +35,6 @@ class AddMemberState extends State<AddMember> with UtilityMixin {
   @override
   void initState() {
     super.initState();
-    // Clone so we don't mutate the parent's set
     _selectedIds = Set<int>.from(widget.alreadySelected);
     _fetchUsers();
     _searchController.addListener(_onSearch);
@@ -45,8 +45,6 @@ class AddMemberState extends State<AddMember> with UtilityMixin {
     _searchController.dispose();
     super.dispose();
   }
-
-  // ── Fetch ──────────────────────────────────────────────────────────────────
 
   Future<void> _fetchUsers() async {
     setState(() => _isLoadingUsers = true);
@@ -77,8 +75,6 @@ class AddMemberState extends State<AddMember> with UtilityMixin {
     }
   }
 
-  // ── Search ─────────────────────────────────────────────────────────────────
-
   void _onSearch() {
     final query = _searchController.text.trim().toLowerCase();
     setState(() {
@@ -89,7 +85,6 @@ class AddMemberState extends State<AddMember> with UtilityMixin {
                 .toList();
     });
   }
-
 
   void _toggleMember(int id) => setState(() {
     _selectedIds.contains(id) ? _selectedIds.remove(id) : _selectedIds.add(id);
@@ -103,7 +98,6 @@ class AddMemberState extends State<AddMember> with UtilityMixin {
       (user['avatar'] ?? user['profile_picture_url'] ?? user['image'])
           ?.toString();
 
-  /// Pop and return selected IDs + their full user maps to CreateGroup
   void _onAdd() {
     final selectedUsers = _allUsers
         .where((u) => _selectedIds.contains(u['id']))
@@ -122,7 +116,7 @@ class AddMemberState extends State<AddMember> with UtilityMixin {
           child: const Icon(Icons.arrow_back_ios),
         ),
         title: Text(
-           AppLocalizations.of(context)!.addmemberstogroup,
+          AppLocalizations.of(context)!.addmemberstogroup,
           style: CustomTextStyles.appBarTitleText(context),
         ),
         centerTitle: true,
@@ -211,7 +205,9 @@ class AddMemberState extends State<AddMember> with UtilityMixin {
             ),
             child: Center(
               child: Text(
-                _selectedIds.isEmpty ? AppLocalizations.of(context)!.add : '${AppLocalizations.of(context)!.addmemberstogroup} (${_selectedIds.length})',
+                _selectedIds.isEmpty
+                    ? AppLocalizations.of(context)!.add
+                    : '${AppLocalizations.of(context)!.addmemberstogroup} (${_selectedIds.length})',
                 style: CustomTextStyles.btnPrimaryText,
               ),
             ),
@@ -223,7 +219,9 @@ class AddMemberState extends State<AddMember> with UtilityMixin {
 
   Widget _buildUserList() {
     if (_isLoadingUsers) {
-      return const Center(child: CircularProgressIndicator());
+      return Center(
+        child: Loader(color: Theme.of(context).colorScheme.primary),
+      );
     }
 
     if (_filteredUsers.isEmpty) {
@@ -238,7 +236,7 @@ class AddMemberState extends State<AddMember> with UtilityMixin {
             ),
             SizedBox(height: 10.h),
             Text(
-             AppLocalizations.of(context)!.nousersfound,
+              AppLocalizations.of(context)!.nousersfound,
               style: CustomTextStyles.lblSecondryText(context),
             ),
           ],
@@ -280,7 +278,7 @@ class AddMemberState extends State<AddMember> with UtilityMixin {
                           ? Text(
                               initial,
                               style: TextStyle(
-                                fontSize: 13.sp,
+                                fontSize: 12.sp,
                                 fontWeight: FontWeight.w600,
                                 color: Colors.white,
                               ),
@@ -289,11 +287,15 @@ class AddMemberState extends State<AddMember> with UtilityMixin {
                     );
                   },
                 ),
-                SizedBox(width: 12.w),
+                SizedBox(width: 10.w),
                 Expanded(
                   child: Text(
                     _userName(user),
-                    style: CustomTextStyles.lblSecondryText(context),
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.onBackground,
+                      fontSize: 12.sp,
+                      fontWeight: FontWeight.w400,
+                    ),
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),

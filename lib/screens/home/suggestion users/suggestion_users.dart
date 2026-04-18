@@ -7,6 +7,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:polzet_app/widgets/loader.dart';
 
 import '../../../api/services/api_service.dart';
+import '../../../core/constants/app_radius.dart';
 import '../../../languages/l10n/generated/app_localizations.dart';
 import '../../../mixin/utility_mixins.dart';
 import '../../../models/user/suggestionsb users/suggestions_users_model.dart';
@@ -52,11 +53,9 @@ class _SuggestionUsersState extends State<SuggestionUsers> with UtilityMixin {
           }
 
           if (snapshot.hasError) {
-            return ApiErrorWidget(
-              onRetry: () => setState(() {}),
-            );
+            return ApiErrorWidget(onRetry: () => setState(() {}));
           }
-          
+
           if (!snapshot.hasData) return const SizedBox.shrink();
 
           final users = snapshot.data?.data.peopleYouMayKnow ?? [];
@@ -87,7 +86,7 @@ class _SuggestionUsersState extends State<SuggestionUsers> with UtilityMixin {
                 ),
                 decoration: BoxDecoration(
                   color: Theme.of(context).colorScheme.primaryContainer,
-                  borderRadius: BorderRadius.circular(12.r),
+                  borderRadius: BorderRadius.circular(AppRadius.card),
                   boxShadow: const [
                     BoxShadow(
                       color: Color(0x1C000000),
@@ -172,14 +171,16 @@ class _SuggestionUsersState extends State<SuggestionUsers> with UtilityMixin {
                           },
                           child: AnimatedContainer(
                             duration: const Duration(milliseconds: 250),
-                            height: 20.h,
+                            height: 24.h,
                             width: 80.w,
                             margin: EdgeInsets.only(left: 10.w),
                             decoration: BoxDecoration(
                               color: isChased
                                   ? Colors.grey.shade400
                                   : Theme.of(context).colorScheme.primary,
-                              borderRadius: BorderRadius.circular(25.r),
+                              borderRadius: BorderRadius.circular(
+                                AppRadius.button,
+                              ),
                             ),
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.center,

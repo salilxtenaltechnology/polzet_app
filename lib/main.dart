@@ -6,7 +6,6 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
 
-import 'api/services/link/deeplink_generator_service.dart';
 import 'api/services/notification/notification_services.dart';
 import 'core/connectivity/connectivity_overlay.dart';
 import 'core/constants/app_strings.dart';
@@ -20,7 +19,6 @@ import 'provider/connection_provider.dart';
 import 'provider/private_chat_provider.dart';
 import 'provider/public_profile_provider.dart';
 import 'provider/user_provider.dart';
-import 'screens/home/home feed/post/post_details_screen.dart';
 import 'screens/home/home_imports.dart';
 import 'screens/home/message/chat/private/private_chat_screen.dart';
 import 'screens/home/notifications/notification_details.dart';
@@ -109,7 +107,6 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _loadSavedLanguage();
-    _initializeDeepLinking();
     NotificationService().initialize();
     _setupNotificationCallbacks();
   }
@@ -117,7 +114,6 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
-    DeepLinkService().dispose();
     NotificationService().dispose();
     super.dispose();
   }
@@ -126,19 +122,16 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   void didChangeAppLifecycleState(AppLifecycleState state) {
     super.didChangeAppLifecycleState(state);
 
-    // ✅ Keep NotificationService in sync with lifecycle
     NotificationService().updateAppLifecycleState(state);
 
     switch (state) {
       case AppLifecycleState.resumed:
         debugPrint('📱 App resumed');
         _reconnectNotificationWebSocket();
-        _reconnectChatWebSocketIfActive(); // ✅ Also reconnect chat WS
+        _reconnectChatWebSocketIfActive();
         break;
       case AppLifecycleState.paused:
         debugPrint('📱 App paused');
-        // ✅ Do NOT disconnect chat WS on pause — let PrivateChatProvider
-        // handle its own reconnect. Disconnecting here causes the issue.
         break;
       default:
         break;
@@ -282,7 +275,6 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       debugPrint('   📝 Post notification detected - postId: $postId');
 
       if (postId > 0) {
-        debugPrint('✅ Creating NotificationDetails (postId: $postId)');
         destination = NotificationDetails(postId: postId);
       } else {
         debugPrint('❌ Invalid or missing post_id for type: $type');
@@ -326,7 +318,6 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
         context,
       ).push(MaterialPageRoute(builder: (_) => destination!));
     } else {
-      debugPrint('↩️ No valid destination, going to notifications tab');
       _navigateToNotificationsTab(context);
     }
   }
@@ -346,34 +337,11 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     return 0;
   }
 
-  void _initializeDeepLinking() {
-    DeepLinkService().initialize(
-      onPostLinkReceived: (username, postId) {
-        debugPrint('🔗 Deep link - Username: $username, PostId: $postId');
-        _navigateToPostDetail(username, postId);
-      },
-    );
-  }
-
-  void _navigateToPostDetail(String username, String postId) {
-    Future.delayed(const Duration(milliseconds: 500), () {
-      final context = navigatorKey.currentContext;
-      if (context != null && mounted) {
-        Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (context) =>
-                PostDetailScreen(username: username, postId: postId),
-          ),
-        );
-      }
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context);
     return ScreenUtilInit(
-      designSize: const Size(360, 690),
+      designSize: const Size(360, 800),
       minTextAdapt: true,
       useInheritedMediaQuery: true,
       child: MaterialApp(

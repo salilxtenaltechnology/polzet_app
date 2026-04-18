@@ -143,8 +143,8 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen>
     return Container(
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.background,
-        image: const DecorationImage(
-          image: AssetImage(Assets.assetsImagesBg),
+        image:  DecorationImage(
+          image: AssetImage(Assets.images.bg.path),
           fit: BoxFit.cover,
         ),
       ),
@@ -215,7 +215,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen>
           if (_errorMessage.isNotEmpty)
             Padding(
               padding: EdgeInsets.only(top: 5.h),
-              child: Text(_errorMessage, style: CustomTextStyles.msgErrorText),
+              child: Text(_errorMessage, style: CustomTextStyles.msgErrorText(context)),
             ),
           if (_successMessage.isNotEmpty)
             Padding(

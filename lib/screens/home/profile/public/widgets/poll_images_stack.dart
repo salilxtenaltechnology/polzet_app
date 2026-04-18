@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../../../../api/api_config.dart';
+import '../../../../../core/constants/app_radius.dart';
 import '../../../../../models/public/public_profile_model.dart';
 
 Widget PollImagesStack(List<PollOptionImage> images) {
@@ -57,10 +58,10 @@ Widget PollImagesStack(List<PollOptionImage> images) {
                     child: Container(
                       decoration: BoxDecoration(
                         border: Border.all(color: Colors.white, width: 1),
-                        borderRadius: BorderRadius.circular(20.r),
+                        borderRadius: BorderRadius.circular(AppRadius.button),
                       ),
                       child: ClipRRect(
-                        borderRadius: BorderRadius.circular(19.r),
+                        borderRadius: BorderRadius.circular(AppRadius.button),
                         child: Image.network(
                           '${ApiConfig.baseUrlImage}${imageData.url}',
                           fit: BoxFit.cover,
@@ -69,7 +70,7 @@ Widget PollImagesStack(List<PollOptionImage> images) {
                           errorBuilder: (context, error, stackTrace) {
                             return Container(
                               decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(12.r),
+                                borderRadius: BorderRadius.circular(AppRadius.button),
                               ),
                               child: Icon(
                                 Icons.image_not_supported,
@@ -82,7 +83,7 @@ Widget PollImagesStack(List<PollOptionImage> images) {
                             if (loadingProgress == null) return child;
                             return Container(
                               decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(20.r),
+                                borderRadius: BorderRadius.circular(AppRadius.button),
                               ),
                               child: Center(
                                 child: CircularProgressIndicator(

@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:lottie/lottie.dart';
 
-import '../../../core/constants/app_images.dart';
+import '../../gen/assets.gen.dart';
 import 'block_user_diolog.dart';
 import 'business/switch_business_acc_diolog.dart';
 import 'clear_search_history_diolog.dart';
@@ -29,7 +29,7 @@ void showLoadingDialog(BuildContext context) {
       height: 55.h,
       color: Colors.transparent,
       child: Center(
-        child: Lottie.asset(Assets.assetsImagesProgressIndicator, repeat: true),
+        child: Lottie.asset(Assets.images.progressIndicator, repeat: true),
       ),
     ),
   );
@@ -51,13 +51,13 @@ Future<bool?> cropImageDiolog(BuildContext context) {
 }
 
 // crop image diolog
-void searchHistoryDiolog(BuildContext context,VoidCallback onTap) {
-  diologanimation(context,  ClearSearchHistoryDiolog(onPressed: onTap));
+void searchHistoryDiolog(BuildContext context, VoidCallback onTap) {
+  diologanimation(context, ClearSearchHistoryDiolog(onPressed: onTap));
 }
 
 // delete comment diolog
-void showDeleteCommentDiolog(BuildContext context, VoidCallback onTap){
-   diologanimation(context,  DeleteCommentDiolog(onPressed: onTap));
+void showDeleteCommentDiolog(BuildContext context, VoidCallback onTap) {
+  diologanimation(context, DeleteCommentDiolog(onPressed: onTap));
 }
 
 // switch to business diolog

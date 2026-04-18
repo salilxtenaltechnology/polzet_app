@@ -10,7 +10,7 @@ import '../../../languages/l10n/generated/app_localizations.dart';
 import '../../../models/posts/homefeed_posts_model.dart';
 import '../../../models/voters/top_voters_model.dart';
 import '../../../widgets/show_toast.dart';
-import '../../../widgets/utils/bottomsheet_util.dart';
+import '../../../core/utils/bottomsheet_util.dart';
 import '../../../widgets/voter_list/voters_list.dart';
 
 class AllImagesPopup extends StatefulWidget {
@@ -523,7 +523,7 @@ class _AllImagesPopupState extends State<AllImagesPopup> {
       width: 150.w,
       padding: EdgeInsets.all(15.w),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color:  Theme.of(context).colorScheme.background,
         border: Border(
           top: BorderSide(color: Colors.white.withOpacity(0.1), width: 1),
         ),
@@ -534,7 +534,7 @@ class _AllImagesPopupState extends State<AllImagesPopup> {
           onPressed: isSubmitting ? null : submitPollVotes,
           style: ElevatedButton.styleFrom(
             backgroundColor: AppColors.primaryColor,
-            foregroundColor: Colors.white,
+            foregroundColor: Theme.of(context).colorScheme.background,
             minimumSize: Size(double.infinity, 35.h),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(50.r),

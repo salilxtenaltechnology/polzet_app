@@ -2,7 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
-import '../../../core/constants/app_colors.dart';
+import '../../core/constants/app_radius.dart';
 import '../../languages/l10n/generated/app_localizations.dart';
 
 class LeaveGroupDialog extends StatelessWidget {
@@ -17,7 +17,7 @@ class LeaveGroupDialog extends StatelessWidget {
       padding: EdgeInsets.fromLTRB(15.w, 12.h, 15.w, 12.h),
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.secondaryContainer,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius:  AppRadius.cardRadius,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -62,7 +62,7 @@ class LeaveGroupDialog extends StatelessWidget {
                 AppLocalizations.of(context)!.yesleave,
                   style: TextStyle(
                     fontSize: 11.5.sp,
-                    color: AppColors.redColor,
+                     color: Theme.of(context).colorScheme.error,
                     fontWeight: FontWeight.w500,
                   ),
                 ),

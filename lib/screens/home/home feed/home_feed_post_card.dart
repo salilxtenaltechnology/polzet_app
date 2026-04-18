@@ -1,7 +1,6 @@
 // ignore_for_file: deprecated_member_use, unused_local_variable, must_be_immutable, unused_element, avoid_function_literals_in_foreach_calls, dead_code, non_constant_identifier_names
 
 import 'dart:math';
-import 'package:feather_icons/feather_icons.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -10,15 +9,16 @@ import 'package:polzet_app/widgets/show_toast.dart';
 import 'package:provider/provider.dart';
 
 import '../../../../api/api_config.dart';
-import '../../../../core/constants/app_images.dart';
 import '../../../api/services/like/like_service.dart';
 import '../../../api/services/share/share_service.dart';
+import '../../../core/constants/app_icons.dart';
+import '../../../core/constants/app_radius.dart';
 import '../../../mixin/utility_mixins.dart';
 import '../../../models/posts/homefeed_posts_model.dart';
 import '../../../provider/user_provider.dart';
 import '../../../widgets/base64/image_convert.dart';
-import '../../../widgets/utils/bottomsheet_util.dart';
-import '../../../widgets/utils/like_util.dart';
+import '../../../core/utils/bottomsheet_util.dart';
+import '../../../core/utils/like_util.dart';
 import '../dashboard/dashboard_import.dart';
 import '../home_imports.dart';
 import '../profile/public/public_profile.dart';
@@ -111,7 +111,8 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
     final userProvider = Provider.of<UserProvider>(context, listen: false);
     user_id = userProvider.userId;
 
-    if (widget.post.user.profileImage != null && widget.post.user.profileImage!.isNotEmpty) {
+    if (widget.post.user.profileImage != null &&
+        widget.post.user.profileImage!.isNotEmpty) {
       _profileImageBytes = getProfileImage(widget.post.user.profileImage);
     }
 
@@ -279,7 +280,6 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
       );
 
       if (result['success']) {
-        // Fetch real percentages BEFORE flipping isPolledByCurrentUser
         await _fetchAndApplyPollResults(poll);
 
         if (mounted) {
@@ -331,8 +331,6 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
   }
 
   // ── Core: fetch getPollResults → write _cachedPercentages ───────────────────
-  // This is the ONLY place percentages are ever written.
-  // After writing, _animationDone[id] = false so animation plays exactly once.
   Future<void> _fetchAndApplyPollResults(HomeFeedPoll poll) async {
     try {
       final Map<String, dynamic> response = await ApiService().getPollResults(
@@ -513,20 +511,25 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
                       ],
                     ),
                     const Spacer(),
-                    if(widget.post.followingStatus == 'none' && widget.post.user.userid != user_id)
+                    if (widget.post.followingStatus == 'none' &&
+                        widget.post.user.userid != user_id)
                       GestureDetector(
                         onTap: () async {
                           if (_isLocalChased) {
                             setState(() => _isLocalChased = false);
                             try {
-                              await ApiService().unfriend(widget.post.user.userid);
+                              await ApiService().unfriend(
+                                widget.post.user.userid,
+                              );
                             } catch (e) {
                               setState(() => _isLocalChased = true);
                             }
                           } else {
                             setState(() => _isLocalChased = true);
                             try {
-                              await ApiService().sendFriendRequest(widget.post.user.username);
+                              await ApiService().sendFriendRequest(
+                                widget.post.user.username,
+                              );
                             } catch (e) {
                               setState(() => _isLocalChased = false);
                             }
@@ -577,20 +580,14 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
                             transitionBuilder: (child, animation) =>
                                 ScaleTransition(scale: animation, child: child),
                             child: isLike
-                                ? Image.asset(
-                                    Assets.assetsImagesIcHeartFilled,
+                                ? AppIcons.filledHeart(
                                     key: const ValueKey('filled'),
-                                    height: 21.h,
-                                    width: 21.w,
                                   )
-                                : Image.asset(
-                                    Assets.assetsImagesIcHeart,
+                                : AppIcons.outlineHeart(
                                     key: const ValueKey('outline'),
-                                    height: 21.h,
-                                    width: 21.w,
                                     color: Theme.of(
                                       context,
-                                    ).colorScheme.onSurface.withOpacity(0.6),
+                                    ).colorScheme.onBackground.withOpacity(0.6),
                                   ),
                           ),
                           SizedBox(width: 3.w),
@@ -614,12 +611,10 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
                       onTap: () => _showCommentsBottomSheet(widget.post.id),
                       child: Row(
                         children: [
-                          Icon(
-                            FeatherIcons.messageSquare,
-                            size: 20.sp,
+                          AppIcons.commnetBox(
                             color: Theme.of(
                               context,
-                            ).colorScheme.onSurface.withOpacity(0.6),
+                            ).colorScheme.onBackground.withOpacity(0.6),
                           ),
                           SizedBox(width: 3.w),
                           Text(
@@ -639,12 +634,10 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
                     GestureDetector(
                       onTap: () =>
                           ShareService.sharePost(widget.post, context: context),
-                      child: Icon(
-                        FeatherIcons.send,
-                        size: 18.3.sp,
+                      child: AppIcons.sharePost(
                         color: Theme.of(
                           context,
-                        ).colorScheme.onSurface.withOpacity(0.6),
+                        ).colorScheme.onBackground.withOpacity(0.7),
                       ),
                     ),
                   ],
@@ -781,10 +774,10 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
                             color: Theme.of(context).colorScheme.surface,
                             width: 1,
                           ),
-                          borderRadius: BorderRadius.circular(20.r),
+                          borderRadius: BorderRadius.circular(AppRadius.button),
                         ),
                         child: ClipRRect(
-                          borderRadius: BorderRadius.circular(19.r),
+                          borderRadius: BorderRadius.circular(AppRadius.button),
                           child: Image.network(
                             '${ApiConfig.baseUrlImage}${img.url}',
                             fit: BoxFit.cover,
@@ -966,12 +959,9 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
     final pollKey = poll.id.toString();
     final hasUserPolled = poll.isPolledByCurrentUser;
 
-    // ── Read ONLY from cache — written by _fetchAndApplyPollResults ───────────
     final double cachedPct = _cachedPercentages[option.id] ?? 0.0;
     final int pctRounded = cachedPct.round();
 
-    // ── If animation already completed once, start tween at final value ───────
-    // This means scroll rebuilds show the bar at full width instantly (no flash).
     final bool alreadyAnimated = _animationDone[option.id] ?? false;
     final double tweenBegin = alreadyAnimated ? cachedPct / 100 : 0.0;
     final int intTweenBegin = alreadyAnimated ? pctRounded : 0;
@@ -998,9 +988,9 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
         duration: const Duration(milliseconds: 250),
         curve: Curves.easeInOut,
         margin: EdgeInsets.only(bottom: 10.h),
-        height: 23.h,
+        height: 27.h,
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(10.r),
+          borderRadius: BorderRadius.circular(AppRadius.button),
           color: isDarkMode ? const Color(0xFF242831) : const Color(0xFFF5F6F7),
           border: Border.all(
             color: isSelected && !hasUserPolled
@@ -1013,23 +1003,14 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
         ),
         child: Stack(
           children: [
-            // ── Progress bar ─────────────────────────────────────────────────
-            // Key is stable while percentage hasn't changed → Flutter reuses
-            // the animation widget at whatever frame it reached → no re-fill.
-            // Key only changes when fresh API data arrives → plays once.
             if (showPercentage && pctRounded > 0)
               Positioned.fill(
                 child: TweenAnimationBuilder<double>(
                   key: ValueKey('bar_${option.id}_$pctRounded'),
                   duration: const Duration(milliseconds: 800),
                   curve: Curves.easeOutCubic,
-                  tween: Tween<double>(
-                    begin:
-                        tweenBegin, // final value if seen before → no re-fill
-                    end: cachedPct / 100,
-                  ),
+                  tween: Tween<double>(begin: tweenBegin, end: cachedPct / 100),
                   onEnd: () {
-                    // Mark done so next rebuild uses begin == end
                     if (mounted) {
                       setState(() => _animationDone[option.id] = true);
                     }
@@ -1042,14 +1023,13 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
                         color: isDarkMode
                             ? const Color(0xFF30353D)
                             : const Color(0xFFE8E8E8),
-                        borderRadius: BorderRadius.circular(10.r),
+                        borderRadius: BorderRadius.circular(AppRadius.button),
                       ),
                     ),
                   ),
                 ),
               ),
 
-            // ── Content row ──────────────────────────────────────────────────
             Padding(
               padding: EdgeInsets.fromLTRB(8.w, 3.h, 8.w, 0),
               child: Row(
@@ -1059,7 +1039,7 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
                       option.text ?? '',
                       style: TextStyle(
                         color: Theme.of(context).colorScheme.onBackground,
-                        fontSize: 10.2.sp,
+                        fontSize: 10.5.sp,
                         fontWeight: isSelected && !hasUserPolled
                             ? FontWeight.w600
                             : FontWeight.w500,
@@ -1073,11 +1053,7 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
                       key: ValueKey('pct_${option.id}_$pctRounded'),
                       duration: const Duration(milliseconds: 700),
                       curve: Curves.easeOut,
-                      tween: IntTween(
-                        begin:
-                            intTweenBegin, // final value if seen → no re-count
-                        end: pctRounded,
-                      ),
+                      tween: IntTween(begin: intTweenBegin, end: pctRounded),
                       builder: (_, value, __) => Text(
                         '$value%',
                         style: TextStyle(

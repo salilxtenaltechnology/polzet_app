@@ -1,6 +1,7 @@
 // ignore_for_file: deprecated_member_use
 
 import 'package:flutter/material.dart';
+import 'package:polzet_app/core/constants/app_radius.dart';
 
 import '../../../core/constants/app_colors.dart';
 import '../custom_text_styles.dart';
@@ -36,13 +37,13 @@ class SecondryTextfield extends StatelessWidget {
           borderSide: BorderSide(
             color: Theme.of(context).colorScheme.onBackground.withOpacity(0.1),
           ),
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(AppRadius.small),
         ),
         focusedBorder: OutlineInputBorder(
           borderSide: BorderSide(
             color: AppColors.primaryColor.withOpacity(0.7),
           ),
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(AppRadius.small),
         ),
       ),
     );

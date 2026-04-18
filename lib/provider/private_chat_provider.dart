@@ -24,14 +24,12 @@ class PrivateChatProvider extends ChangeNotifier {
   Timer? _typingTimer;
   Timer? _pollingTimer;
 
-  // ── Stream for SILENT real-time message updates ────────────────────────────
   final StreamController<List<ChatMessage>> _messagesStreamController =
       StreamController<List<ChatMessage>>.broadcast();
 
   Stream<List<ChatMessage>> get messagesStream =>
       _messagesStreamController.stream;
 
-  // ── Message state ──────────────────────────────────────────────────────────
   final List<ChatMessage> _messages = [];
   List<ChatMessage> get messages => List.unmodifiable(_messages);
 
@@ -66,7 +64,6 @@ class PrivateChatProvider extends ChangeNotifier {
     }
   }
 
-  // ── Loading / error state ──────────────────────────────────────────────────
   bool _isLoadingHistory = false;
   bool get isLoadingHistory => _isLoadingHistory;
 
@@ -74,13 +71,11 @@ class PrivateChatProvider extends ChangeNotifier {
   String? get historyError => _historyError;
 
   String? _nextPageUrl;
-  String? _previousPageUrl;
+  String? previousPageUrl;
   bool get hasMoreHistory => _nextPageUrl != null;
 
-  // ── WebSocket state ────────────────────────────────────────────────────────
-  static const String _wsBaseUrl = 'wss://testbackend.polzet.in';
+  static const String _wsBaseUrl = 'ws://testbackend.polzet.in';
 
-  // Presence WebSocket (online/offline/typing)
   WebSocketChannel? _presenceChannel;
   StreamSubscription? _presenceSubscription;
   bool _isPresenceConnected = false;
@@ -88,7 +83,6 @@ class PrivateChatProvider extends ChangeNotifier {
   int _presenceReconnectAttempts = 0;
   Timer? _presenceReconnectTimer;
 
-  // Message WebSocket (chat_message / read_receipt)
   WebSocketChannel? _messageChannel;
   StreamSubscription? _messageSubscription;
   bool _isMessageConnected = false;
@@ -101,10 +95,8 @@ class PrivateChatProvider extends ChangeNotifier {
   static const int _maxReconnectAttempts = 5;
   static const Duration _pendingConfirmTimeout = Duration(seconds: 4);
 
-  // ── Member online state — set ONLY by WS presence events ──────────────────
   bool _isMemberOnline = false;
 
-  // ── Getters ────────────────────────────────────────────────────────────────
   bool get isPresenceConnected => _isPresenceConnected;
   bool get isMessageConnected => _isMessageConnected;
   bool get isConnected => _isPresenceConnected && _isMessageConnected;
@@ -113,10 +105,8 @@ class PrivateChatProvider extends ChangeNotifier {
       !_isPresenceConnected || !_isMessageConnected;
   bool get isMemberOnline => _isMemberOnline;
 
-  // ── Current user ──────────────────────────────────────────────────────────
   String? _currentUsername;
 
-  // ── Chat settings ─────────────────────────────────────────────────────────
   bool isMuteNotification = false;
   bool isProtectedChat = false;
   bool isHideChat = false;
@@ -125,14 +115,12 @@ class PrivateChatProvider extends ChangeNotifier {
   bool _isBlocking = false;
   bool get isBlocking => _isBlocking;
 
-  // ── Emit helpers ───────────────────────────────────────────────────────────
   void _emitMessages() {
     if (!_messagesStreamController.isClosed) {
       _messagesStreamController.add(List.unmodifiable(_messages));
     }
   }
 
-  // ── Caching ────────────────────────────────────────────────────────────────
   String get _cacheKey => 'chat_history_$_chatId';
 
   Future<void> _loadCachedMessages() async {
@@ -147,7 +135,6 @@ class PrivateChatProvider extends ChangeNotifier {
           _messages.clear();
           _messages.addAll(cached);
           _emitMessages();
-          debugPrint('✅ Loaded ${cached.length} messages from CACHE');
         }
       }
     } catch (e) {
@@ -160,7 +147,10 @@ class PrivateChatProvider extends ChangeNotifier {
     try {
       final prefs = await SharedPreferences.getInstance();
       final toCache = _messages.length > 60
-          ? _messages.sublist(_messages.length - 60).map((m) => m.toJson()).toList()
+          ? _messages
+                .sublist(_messages.length - 60)
+                .map((m) => m.toJson())
+                .toList()
           : _messages.map((m) => m.toJson()).toList();
       await prefs.setString(_cacheKey, jsonEncode(toCache));
     } catch (e) {
@@ -168,7 +158,6 @@ class PrivateChatProvider extends ChangeNotifier {
     }
   }
 
-  // ── Init ───────────────────────────────────────────────────────────────────
   Future<void> init({
     required String? memberName,
     required String? profileUrl,
@@ -189,13 +178,11 @@ class PrivateChatProvider extends ChangeNotifier {
     notifyListeners();
 
     if (_chatId == null) {
-      debugPrint('⚠️ chatId is null — skipping history fetch and WS connect');
       return;
     }
 
     await _loadCachedMessages();
 
-    // Call fetch history without awaiting so UI does not block
     fetchMessageHistory();
 
     final token = await SharedPrefService.getToken();
@@ -210,7 +197,6 @@ class PrivateChatProvider extends ChangeNotifier {
     _startPolling();
   }
 
-  // ── Polling ────────────────────────────────────────────────────────────────
   void _startPolling() {
     _pollingTimer?.cancel();
     _pollingTimer = Timer.periodic(const Duration(seconds: 10), (_) async {
@@ -223,7 +209,6 @@ class PrivateChatProvider extends ChangeNotifier {
     if (cid == null) return;
 
     try {
-      // Always fetch from the base URL to get latest page
       final response = await ApiService().getMessageList(chatId: cid);
 
       final fetched = response.results
@@ -245,7 +230,6 @@ class PrivateChatProvider extends ChangeNotifier {
       if (fetched.length > confirmedCount) {
         final pendingMessages = _messages.where((m) => m.isPending).toList();
 
-        // Keep prepended older messages + replace confirmed page with fresh fetch
         final oldPrependedCount =
             _messages.length - confirmedCount - pendingMessages.length;
 
@@ -266,7 +250,7 @@ class PrivateChatProvider extends ChangeNotifier {
       debugPrint('❌ Polling fetch failed: $e');
     }
   }
-  // ── REST: fetch initial message history ────────────────────────────────────
+
   Future<void> fetchMessageHistory() async {
     final cid = _chatId;
     if (cid == null) return;
@@ -279,7 +263,7 @@ class PrivateChatProvider extends ChangeNotifier {
     try {
       final response = await ApiService().getMessageList(chatId: cid);
       _nextPageUrl = response.next;
-      _previousPageUrl = response.previous;
+      previousPageUrl = response.previous;
 
       final fetched = response.results
           .map(
@@ -295,10 +279,7 @@ class PrivateChatProvider extends ChangeNotifier {
 
       _messages.clear();
       _messages.addAll(fetched.reversed.toList());
-      debugPrint(
-        '✅ Loaded ${fetched.length} messages | '
-        'next: $_nextPageUrl | previous: $_previousPageUrl',
-      );
+
       _saveCachedMessages();
       _emitMessages();
     } catch (e) {
@@ -310,7 +291,6 @@ class PrivateChatProvider extends ChangeNotifier {
     }
   }
 
-  // ── REST: paginated older messages ─────────────────────────────────────────
   Future<void> fetchMoreHistory() async {
     final cid = _chatId;
     final nextUrl = _nextPageUrl;
@@ -327,7 +307,7 @@ class PrivateChatProvider extends ChangeNotifier {
       );
 
       _nextPageUrl = response.next;
-      _previousPageUrl = response.previous;
+      previousPageUrl = response.previous;
 
       final fetched = response.results
           .map(
@@ -340,16 +320,12 @@ class PrivateChatProvider extends ChangeNotifier {
           .toList();
 
       if (fetched.isEmpty) {
-        debugPrint('✅ No more older messages');
         _nextPageUrl = null;
         return;
       }
 
       _messages.insertAll(0, fetched.reversed.toList());
-      debugPrint(
-        '✅ Loaded ${fetched.length} older messages | '
-        'next: $_nextPageUrl | previous: $_previousPageUrl',
-      );
+
       _saveCachedMessages();
       _emitMessages();
     } catch (e) {
@@ -360,7 +336,6 @@ class PrivateChatProvider extends ChangeNotifier {
     }
   }
 
-  // ── Presence WebSocket ─────────────────────────────────────────────────────
   Future<void> _connectPresenceSocket(String token) async {
     if (_isPresenceConnecting || _isPresenceConnected) return;
     if (_chatId == null) return;
@@ -370,7 +345,6 @@ class PrivateChatProvider extends ChangeNotifier {
 
     try {
       final url = '$_wsBaseUrl/ws/chats/$_chatId/presence/?token=$token';
-     // debugPrint('🔌 Connecting Presence WS: $url');
 
       _presenceChannel = WebSocketChannel.connect(Uri.parse(url));
       final presenceChannel = _presenceChannel;
@@ -387,7 +361,6 @@ class PrivateChatProvider extends ChangeNotifier {
           _handlePresenceDisconnection();
         },
         onDone: () {
-          debugPrint('🔌 Presence WS closed');
           _handlePresenceDisconnection();
         },
         cancelOnError: false,
@@ -396,7 +369,7 @@ class PrivateChatProvider extends ChangeNotifier {
       _isPresenceConnected = true;
       _isPresenceConnecting = false;
       _presenceReconnectAttempts = 0;
-      debugPrint('✅ Presence WebSocket connected');
+
       notifyListeners();
     } catch (e) {
       debugPrint('❌ Presence WS connection failed: $e');
@@ -408,7 +381,6 @@ class PrivateChatProvider extends ChangeNotifier {
     }
   }
 
-  // ── Message WebSocket ──────────────────────────────────────────────────────
   Future<void> _connectMessageSocket(String token) async {
     if (_isMessageConnecting || _isMessageConnected) return;
     if (_chatId == null) return;
@@ -418,7 +390,6 @@ class PrivateChatProvider extends ChangeNotifier {
 
     try {
       final url = '$_wsBaseUrl/ws/chat/$_chatId/?token=$token';
-     // debugPrint('🔌 Connecting Message WS: $url');
 
       _messageChannel = WebSocketChannel.connect(Uri.parse(url));
       final messageChannel = _messageChannel;
@@ -444,10 +415,8 @@ class PrivateChatProvider extends ChangeNotifier {
       _isMessageConnected = true;
       _isMessageConnecting = false;
       _messageReconnectAttempts = 0;
-      debugPrint('✅ Message WebSocket connected');
       notifyListeners();
     } catch (e) {
-      debugPrint('❌ Message WS connection failed: $e');
       if (_isUpgradeRejected(e.toString())) _shouldReconnect = false;
       _isMessageConnected = false;
       _isMessageConnecting = false;
@@ -461,7 +430,6 @@ class PrivateChatProvider extends ChangeNotifier {
       error.contains('403') ||
       error.contains('404');
 
-  // ── Manual reconnect ───────────────────────────────────────────────────────
   Future<void> reconnect() async {
     debugPrint('🔄 Manual reconnect triggered');
     final token = await SharedPrefService.getToken();
@@ -475,17 +443,14 @@ class PrivateChatProvider extends ChangeNotifier {
     }
   }
 
-  // ── Member user id ─────────────────────────────────────────────────────────
   void setMemberUserId(int userId) {
     _memberUserId = userId;
   }
 
-  // ── Presence WS handler (online / offline / typing only) ──────────────────
   void _onPresenceMessageReceived(dynamic raw) {
     try {
       final data = jsonDecode(raw as String) as Map<String, dynamic>;
 
-      // ── Online / Offline ────────────────────────────────────────────────
       if (data['type'] == 'USER_JOINED_CHAT' ||
           data['type'] == 'USER_LEFT_CHAT') {
         final userId = data['user_id'];
@@ -497,7 +462,6 @@ class PrivateChatProvider extends ChangeNotifier {
         return;
       }
 
-      // ── Typing ──────────────────────────────────────────────────────────
       if (data['action'] == 'typing') {
         final userId = data['user_id'];
         if (userId == _memberUserId) {
@@ -506,28 +470,39 @@ class PrivateChatProvider extends ChangeNotifier {
         }
         return;
       }
+
+      if (data['type'] == 'presence_update') {
+        final userId = data['user_id'];
+        if (userId == _memberUserId) {
+          _isMemberOnline = data['is_online'] == true;
+          debugPrint('👤 Member online (presence_update): $_isMemberOnline');
+          notifyListeners();
+        }
+        return;
+      }
+
+      if (data['type'] == 'chat_message' || data['type'] == 'read_receipt') {
+        _onMessageReceived(raw);
+        return;
+      }
     } catch (e) {
       debugPrint('❌ Error parsing presence message: $e');
     }
   }
 
-  // ── Message WS handler (chat_message / read_receipt) ──────────────────────
   void _onMessageReceived(dynamic raw) {
     try {
       final data = jsonDecode(raw as String) as Map<String, dynamic>;
       final String type = data['type']?.toString() ?? '';
 
-      // ── Read receipt ─────────────────────────────────────────────────────
       if (type == 'read_receipt') {
         debugPrint(
           '📖 Read receipt — chat: ${data['chat_id']}, '
           'user: ${data['user_id']}, at: ${data['read_at']}',
         );
-        // TODO: mark messages as read in UI if needed
         return;
       }
 
-      // ── Chat message ──────────────────────────────────────────────────────
       if (type == 'chat_message') {
         final msgMap = data['message'] as Map<String, dynamic>?;
         if (msgMap == null) {
@@ -553,7 +528,6 @@ class PrivateChatProvider extends ChangeNotifier {
             DateTime.tryParse(msgMap['created_at']?.toString() ?? '') ??
             DateTime.now();
 
-        // ── Confirm pending message if sent by me ─────────────────────────
         if (isSentByMe) {
           final pendingIndex = _messages.lastIndexWhere(
             (m) => m.isSentByMe && m.isPending && m.text == text,
@@ -571,7 +545,6 @@ class PrivateChatProvider extends ChangeNotifier {
           }
         }
 
-        // ── New incoming message ──────────────────────────────────────────
         _messages.add(
           ChatMessage(
             text: text,
@@ -594,10 +567,7 @@ class PrivateChatProvider extends ChangeNotifier {
   void sendTyping(bool isTyping) {
     final presence = _presenceChannel;
     if (presence == null || !_isPresenceConnected) return;
-    presence.sink.add(jsonEncode({
-      'action': 'typing',
-      'is_typing': isTyping,
-    }));
+    presence.sink.add(jsonEncode({'action': 'typing', 'is_typing': isTyping}));
   }
 
   void onUserTyping() {
@@ -613,7 +583,6 @@ class PrivateChatProvider extends ChangeNotifier {
     sendTyping(false);
   }
 
-  // ── Disconnection handling ─────────────────────────────────────────────────
   void _handlePresenceDisconnection() {
     _presenceSubscription?.cancel();
     _presenceSubscription = null;
@@ -621,7 +590,6 @@ class PrivateChatProvider extends ChangeNotifier {
     _presenceChannel = null;
     _isPresenceConnected = false;
     _isPresenceConnecting = false;
-    // NOTE: _isMemberOnline is NOT reset here — updated only by WS events
     notifyListeners();
 
     if (!_shouldReconnect) return;
@@ -691,7 +659,6 @@ class PrivateChatProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  // ── Send message ───────────────────────────────────────────────────────────
   Future<void> sendMessage(String text) async {
     final trimmed = text.trim();
     if (trimmed.isEmpty) return;
@@ -709,7 +676,19 @@ class PrivateChatProvider extends ChangeNotifier {
     try {
       final cid = _chatId;
       if (cid != null) {
-        await ApiService().sendMessage(chatId: cid, text: trimmed);
+        if (_presenceChannel != null && _isPresenceConnected) {
+          _presenceChannel!.sink.add(jsonEncode({
+            'action': 'send_message',
+            'text': trimmed,
+          }));
+        } else if (_messageChannel != null && _isMessageConnected) {
+          _messageChannel!.sink.add(jsonEncode({
+            'action': 'send_message',
+            'text': trimmed,
+          }));
+        } else {
+          await ApiService().sendMessage(chatId: cid, text: trimmed);
+        }
       }
 
       Future.delayed(_pendingConfirmTimeout, () {
@@ -717,7 +696,6 @@ class PrivateChatProvider extends ChangeNotifier {
           (m) => m.isSentByMe && m.isPending && m.text == trimmed,
         );
         if (pendingIndex != -1) {
-          debugPrint('⏱ Fallback: auto-confirming pending message: $trimmed');
           _messages[pendingIndex] = ChatMessage(
             text: trimmed,
             created_at: _messages[pendingIndex].created_at,
@@ -747,7 +725,6 @@ class PrivateChatProvider extends ChangeNotifier {
     }
   }
 
-  // ── Block / Unblock ────────────────────────────────────────────────────────
   Future<Map<String, dynamic>> blockUser(int userId) async {
     _isBlocking = true;
     notifyListeners();
@@ -776,7 +753,6 @@ class PrivateChatProvider extends ChangeNotifier {
     }
   }
 
-  // ── Toggles ────────────────────────────────────────────────────────────────
   void toggleMuteNotification(bool value) {
     isMuteNotification = value;
     notifyListeners();
@@ -797,7 +773,6 @@ class PrivateChatProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  // ── Reset / Dispose ────────────────────────────────────────────────────────
   void reset() {
     _shouldReconnect = false;
     _presenceReconnectTimer?.cancel();

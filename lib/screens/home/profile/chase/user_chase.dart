@@ -38,10 +38,8 @@ class _UserChaseState extends State<UserChase>
   final ApiService apiService = ApiService();
   late TabController _tabController;
 
-  // Track following status for each user
   Map<String, bool> followingStatus = {};
 
-  // Search controller and filtered lists
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
   List<Map<String, dynamic>> _allFollowers = [];
@@ -52,7 +50,6 @@ class _UserChaseState extends State<UserChase>
   bool _isLoadingFollowers = true;
   bool _isLoadingFollowing = true;
 
-  // Dynamic counts
   int _followerCount = 0;
   int _followingCount = 0;
 
@@ -60,7 +57,6 @@ class _UserChaseState extends State<UserChase>
   void initState() {
     super.initState();
 
-    // Initialize counts from widget parameters
     _followerCount = int.tryParse(widget.followerCount) ?? 0;
     _followingCount = int.tryParse(widget.followingCount) ?? 0;
 
@@ -69,12 +65,9 @@ class _UserChaseState extends State<UserChase>
       vsync: this,
       initialIndex: widget.initialIndex,
     );
-
-    // Load initial data
     _loadData();
   }
 
-  // Load data from API
   void _loadData() async {
     try {
       setState(() {
@@ -93,11 +86,9 @@ class _UserChaseState extends State<UserChase>
         _isLoadingFollowers = false;
         _isLoadingFollowing = false;
 
-        // Update counts based on actual data
         _followerCount = followers.length;
         _followingCount = following.length;
 
-        // Initialize following status for all users in following list
         for (var user in following) {
           final username = user['username'] as String?;
           if (username != null) {
@@ -114,69 +105,6 @@ class _UserChaseState extends State<UserChase>
     }
   }
 
-  // Toggle follow/unfollow in Following tab
-  Future<void> _toggleFollow(String username, int userId) async {
-    try {
-      final isCurrentlyFollowing = followingStatus[username] ?? false;
-
-      if (isCurrentlyFollowing) {
-        // Optimistically update UI - just change button status, DON'T remove from list
-        setState(() {
-          followingStatus[username] = false;
-        });
-
-        // Unfollow: call unfriend API
-        final response = await apiService.unfriend(userId);
-
-        if (response['status'] == 'success') {
-          // if (mounted) {
-          //   showToast(message: 'Unfollowed successfully');
-          // }
-        } else {
-          // If failed, revert the button status
-          setState(() {
-            followingStatus[username] = true;
-          });
-
-          if (mounted) {
-            showToast(message: 'Failed to unfollow');
-          }
-        }
-      } else {
-        // Optimistically update UI
-        setState(() {
-          followingStatus[username] = true;
-        });
-
-        // Follow: send friend request
-        final success = await apiService.sendFriendRequest(username);
-
-        if (success) {
-        } else {
-          // If failed, revert the change
-          setState(() {
-            followingStatus[username] = false;
-          });
-
-          if (mounted) {
-            showToast(message: 'Failed to send friend request');
-          }
-        }
-      }
-    } catch (e) {
-      // If error, revert the button status
-      setState(() {
-        followingStatus[username] = !followingStatus[username]!;
-      });
-
-      if (mounted) {
-        showToast(message: 'Error: ${e.toString()}');
-      }
-      debugPrint('Error toggling follow: $e');
-    }
-  }
-
-  // Filter users based on search query
   void _filterUsers(String query) {
     setState(() {
       _searchQuery = query.toLowerCase().trim();
@@ -217,7 +145,6 @@ class _UserChaseState extends State<UserChase>
     super.dispose();
   }
 
-  // Build empty state widget
   Widget _buildEmptyState({
     required IconData icon,
     required String message,
@@ -259,7 +186,6 @@ class _UserChaseState extends State<UserChase>
     );
   }
 
-  // Build user list item
   Widget _buildUserListItem({
     required Map<String, dynamic> user,
     required bool isFollowersTab,
@@ -271,7 +197,6 @@ class _UserChaseState extends State<UserChase>
     final userId = user['id'] as int;
     final username = user['username'] as String? ?? '';
 
-    // Check if you're following this user (for both tabs)
     final isFollowing = followingStatus[username] ?? false;
 
     return Container(
@@ -336,49 +261,16 @@ class _UserChaseState extends State<UserChase>
                 overflow: TextOverflow.ellipsis,
               ),
             ),
-            // Action Button
+
             if (isFollowersTab)
-              // Remove Chase button for Followers tab
               GestureDetector(onTap: () {}, child: const SizedBox.shrink())
             else
-              // Chasing/Chase button for Following tab
-              GestureDetector(
-                onTap: () {
-                  // Call toggle follow when tapped
-                  _toggleFollow(username, userId);
-                },
-                child: Container(
-                  width: 72.w,
-                  margin: EdgeInsets.fromLTRB(3.w, 3.h, 0, 3.h),
-                  decoration: BoxDecoration(
-                    // If following: white background, else: primary color
-                    color: isFollowing
-                        ? Theme.of(context).colorScheme.primaryContainer
-                        : AppColors.primaryColor,
-                    borderRadius: BorderRadius.circular(8.r),
-                    border: Border.all(
-                      // If following: gray border, else: primary color border
-                      color: isFollowing
-                          ? const Color(0XFFD9D9D9)
-                          : AppColors.primaryColor,
-                      width: 1,
-                    ),
-                  ),
-                  child: Center(
-                    child: Text(
-                      // If following: show "Chasing", else: show "Chase"
-                      isFollowing ? 'Chasing' : 'Chase',
-                      style: TextStyle(
-                        // If following: dark text, else: white text
-                        color: isFollowing
-                            ? Theme.of(context).colorScheme.onBackground
-                            : Colors.white,
-                        fontSize: 10.sp,
-                        fontWeight: FontWeight.w400,
-                      ),
-                    ),
-                  ),
-                ),
+              _ChaseButton(
+                username: username,
+                userId: userId,
+                initialFollowing: isFollowing,
+                apiService: apiService,
+                followingStatus: followingStatus,
               ),
           ],
         ),
@@ -567,6 +459,121 @@ class _UserChaseState extends State<UserChase>
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _ChaseButton extends StatefulWidget {
+  final String username;
+  final int userId;
+  final bool initialFollowing;
+  final ApiService apiService;
+  final Map<String, bool> followingStatus;
+
+  const _ChaseButton({
+    required this.username,
+    required this.userId,
+    required this.initialFollowing,
+    required this.apiService,
+    required this.followingStatus,
+  });
+
+  @override
+  State<_ChaseButton> createState() => _ChaseButtonState();
+}
+
+class _ChaseButtonState extends State<_ChaseButton> {
+  late bool isFollowing;
+
+  @override
+  void initState() {
+    super.initState();
+    isFollowing = widget.initialFollowing;
+  }
+
+  @override
+  void didUpdateWidget(_ChaseButton oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.initialFollowing != widget.initialFollowing) {
+      isFollowing = widget.initialFollowing;
+    }
+  }
+
+  Future<void> _toggleFollow() async {
+    final originalState = isFollowing;
+    setState(() {
+      isFollowing = !originalState;
+    });
+    widget.followingStatus[widget.username] = !originalState;
+
+    try {
+      if (originalState) {
+        final response = await widget.apiService.unfriend(widget.userId);
+        if (response['status'] != 'success') {
+          widget.followingStatus[widget.username] = true;
+          if (mounted) {
+            setState(() {
+              isFollowing = true;
+            });
+            showToast(message: 'Failed to unfollow');
+          }
+        }
+      } else {
+        final success = await widget.apiService.sendFriendRequest(widget.username);
+        if (!success) {
+          widget.followingStatus[widget.username] = false;
+          if (mounted) {
+            setState(() {
+              isFollowing = false;
+            });
+            showToast(message: 'Failed to send friend request');
+          }
+        }
+      }
+    } catch (e) {
+      widget.followingStatus[widget.username] = originalState;
+      if (mounted) {
+        setState(() {
+          isFollowing = originalState;
+        });
+        showToast(message: 'Error: ${e.toString()}');
+      }
+      debugPrint('Error toggling follow: $e');
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: _toggleFollow,
+      child: Container(
+        width: 72.w,
+        margin: EdgeInsets.fromLTRB(3.w, 3.h, 0, 3.h),
+        decoration: BoxDecoration(
+          color: isFollowing
+              ? Theme.of(context).colorScheme.primaryContainer
+              : AppColors.primaryColor,
+          borderRadius: BorderRadius.circular(8.r),
+          border: Border.all(
+            color: isFollowing
+                ? const Color(0XFFD9D9D9)
+                : AppColors.primaryColor,
+            width: 1,
+          ),
+        ),
+        child: Center(
+          child: Text(
+            isFollowing ? 'Chasing' : 'Chase',
+            style: TextStyle(
+              color: isFollowing
+                  ? Theme.of(context).colorScheme.onBackground
+                  : Colors.white,
+              fontSize: 10.sp,
+              fontWeight: FontWeight.w400,
+            ),
+          ),
+        ),
       ),
     );
   }

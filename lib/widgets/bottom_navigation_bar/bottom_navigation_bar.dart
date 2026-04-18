@@ -1,10 +1,9 @@
 // ignore_for_file: must_be_immutable, deprecated_member_use
-import 'package:curved_navigation_bar/curved_navigation_bar.dart';
-import 'package:feather_icons/feather_icons.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../../core/constants/app_colors.dart';
+import '../../gen/assets.gen.dart';
 
 class CustomBottomNavigationBar extends StatelessWidget {
   CustomBottomNavigationBar({
@@ -12,64 +11,239 @@ class CustomBottomNavigationBar extends StatelessWidget {
     required this.index,
     required this.bottomNavigationKey,
     required this.onTap,
+    this.notificationCount = 0,
+    this.onAddTap,
   });
 
   final int index;
-  GlobalKey<CurvedNavigationBarState> bottomNavigationKey = GlobalKey();
+  GlobalKey bottomNavigationKey = GlobalKey();
   final ValueChanged<int> onTap;
+  final int notificationCount;
+  final VoidCallback? onAddTap;
+
+  static const Color _fabColor = Color(0xFF7D1F3A);
 
   @override
   Widget build(BuildContext context) {
-    return CurvedNavigationBar(
-      key: bottomNavigationKey,
-      height: 42.h,
-      index: index,
-      items: [
-        Icon(
-          FeatherIcons.home,
-          size: 22.sp,
-          weight: 1,
-          color: index == 0
-              ? Colors.white
-              : Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+    final bg = Theme.of(context).colorScheme.tertiaryContainer;
+    final surface = Theme.of(context).colorScheme.background;
+
+    return Container(
+      color: surface,
+      child: Container(
+        height: 50.h,
+        decoration: BoxDecoration(
+          color: bg,
+          borderRadius: BorderRadius.only(
+            topLeft: Radius.circular(24.r),
+            topRight: Radius.circular(24.r),
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.08),
+              blurRadius: 5,
+              offset: const Offset(0, 2),
+            ),
+          ],
         ),
-        Icon(
-          Icons.insights,
-          size: 22.sp,
-          color: index == 1
-              ? Colors.white
-              : Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+        child: Row(
+          children: [
+            // Left: Home + Message
+            Expanded(
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  _NavItemPng(
+                    activeImage: Assets.images.activeHome,
+                    inactiveImage: Assets.images.inactiveHome,
+                    isActive: index == 0,
+                    onTap: () => onTap(0),
+                    size: 24.sp,
+                  ),
+                  _NavItemPng(
+                    activeImage: Assets.images.activeMessage,
+                    inactiveImage: Assets.images.inactiveMessage,
+                    isActive: index == 1,
+                    onTap: () => onTap(1),
+                    size: 22.sp,
+                  ),
+                ],
+              ),
+            ),
+
+            // Center: Embedded FAB
+            GestureDetector(
+              onTap: onAddTap,
+              child: Container(
+                width: 38.w,
+                height: 38.w,
+                margin: EdgeInsets.symmetric(horizontal: 8.w),
+                decoration: BoxDecoration(
+                  color: _fabColor,
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Theme.of(context).colorScheme.primaryContainer,
+                      blurRadius: 6,
+                      offset: const Offset(0, 3),
+                    ),
+                  ],
+                ),
+                child: Icon(Icons.add, color: Colors.white, size: 24.sp),
+              ),
+            ),
+
+            // Right: Bell + Profile
+            Expanded(
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  _NavItemPngWithBadge(
+                    activeImage: Assets.images.activeBell,
+                    inactiveImage: Assets.images.inactiveBell,
+                    isActive: index == 3,
+                    badgeCount: notificationCount,
+                    onTap: () => onTap(3),
+                    size: 21.7.sp,
+                  ),
+                  _NavItemPng(
+                    activeImage: Assets.images.activeUser,
+                    inactiveImage: Assets.images.inactiveUser,
+                    isActive: index == 4,
+                    onTap: () => onTap(4),
+                    size: 21.sp,
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
-        IconButton(
-          onPressed: () {},
-          icon: const SizedBox.shrink(),
-          color: Theme.of(context).colorScheme.tertiaryContainer,
-        ),
-        Icon(
-          FeatherIcons.bell,
-          size: 22.sp,
-          color: index == 3
-              ? Colors.white
-              : Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
-        ),
-        Icon(
-          FeatherIcons.user,
-          size: 22.sp,
-          color: index == 4
-              ? Colors.white
-              : Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
-        ),
-      ],
-      backgroundColor: Theme.of(context).colorScheme.background,
-      color: Theme.of(context).colorScheme.tertiaryContainer,
-      animationCurve: Curves.easeInOut,
-      animationDuration: const Duration(milliseconds: 300),
-      buttonBackgroundColor: AppColors.primaryColor,
-      maxWidth: double.infinity,
+      ),
+    );
+  }
+}
+
+class _NavItemPng extends StatelessWidget {
+  const _NavItemPng({
+    required this.activeImage,
+    required this.inactiveImage,
+    required this.isActive,
+    required this.onTap,
+    required this.size,
+  });
+
+  final AssetGenImage activeImage;
+  final AssetGenImage inactiveImage;
+  final bool isActive;
+  final VoidCallback onTap;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = isActive
+        ? AppColors.primaryColor
+        : Theme.of(context).colorScheme.onSurface.withOpacity(0.6);
+
+    return GestureDetector(
       onTap: onTap,
-      letIndexChange: (index) {
-        return true;
-      },
+      behavior: HitTestBehavior.opaque,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 250),
+        curve: Curves.easeInOut,
+        padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 5.h),
+        decoration: BoxDecoration(
+          color: isActive
+              ? Theme.of(context).primaryColor.withOpacity(0.1)
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(20.r),
+        ),
+        child: (isActive ? activeImage : inactiveImage).image(
+          width: size,
+          height: size,
+          fit: BoxFit.contain,
+          color: color,
+          colorBlendMode: BlendMode.srcIn,
+        ),
+      ),
+    );
+  }
+}
+
+class _NavItemPngWithBadge extends StatelessWidget {
+  const _NavItemPngWithBadge({
+    required this.activeImage,
+    required this.inactiveImage,
+    required this.isActive,
+    required this.badgeCount,
+    required this.onTap,
+    required this.size,
+  });
+
+  final AssetGenImage activeImage;
+  final AssetGenImage inactiveImage;
+  final bool isActive;
+  final int badgeCount;
+  final VoidCallback onTap;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = isActive
+        ? AppColors.primaryColor
+        : Theme.of(context).colorScheme.onSurface.withOpacity(0.6);
+
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 250),
+        curve: Curves.easeInOut,
+        padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 4.h),
+        decoration: BoxDecoration(
+          color: isActive
+              ? AppColors.primaryColor.withOpacity(0.18)
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(20.r),
+        ),
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            (isActive ? activeImage : inactiveImage).image(
+              width: size,
+              height: size,
+              fit: BoxFit.contain,
+              color: color,
+              colorBlendMode: BlendMode.srcIn,
+            ),
+            if (badgeCount > 0)
+              Positioned(
+                top: -3,
+                right: -4,
+                child: Container(
+                  padding: EdgeInsets.all(2.sp),
+                  constraints: BoxConstraints(
+                    minWidth: 14.sp,
+                    minHeight: 14.sp,
+                  ),
+                  decoration: const BoxDecoration(
+                    color: Color(0xFF7D1F3A),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Center(
+                    child: Text(
+                      badgeCount > 9 ? '9+' : '$badgeCount',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 7.sp,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
     );
   }
 }

@@ -62,6 +62,7 @@ dependencies:
   build_runner: ^2.13.1
   screenshot: ^3.0.0
   image: ^4.8.0
+  photo_view: ^0.15.0
 
 dev_dependencies:
   flutter_test:
@@ -85,3 +86,16 @@ flutter:
   
   assets:
     - assets/images/
+    - assets/fonts/
+
+  fonts:
+    - family: Inter
+      fonts:
+        - asset: assets/fonts/Inter-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/Inter-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/Inter-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/Inter-Bold.ttf
+          weight: 700

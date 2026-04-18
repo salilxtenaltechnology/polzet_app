@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
+import '../../core/constants/app_radius.dart';
 import '../../models/country/country_model.dart';
 import '../custom_text_styles.dart';
 import '../text_field/secondry_textfield.dart';
@@ -61,7 +62,7 @@ class _CountryPickerBottomSheetState extends State<CountryPickerBottomSheet> {
       height: MediaQuery.of(context).size.height * 0.8,
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.secondaryContainer,
-        borderRadius: BorderRadius.circular(20.r),
+        borderRadius:   AppRadius.modalRadius,
       ),
       padding: const EdgeInsets.all(16),
       child: Column(

@@ -88,23 +88,21 @@ class UserPostModel {
               .toList() ??
           [],
       likesCount: json['likes_count'] as int? ?? 0,
-       isLiked: _parseBool(json['is_liked']),
-    is_polled_by_current_user: _parseBool(json['is_polled_by_current_user']),
+      isLiked: _parseBool(json['is_liked']),
+      is_polled_by_current_user: _parseBool(json['is_polled_by_current_user']),
     );
   }
 
   static bool _parseBool(dynamic value) {
-  if (value == null) return false;
-  if (value is bool) return value;
-  if (value is int) return value == 1;
-  if (value is String) return value.toLowerCase() == 'true' || value == '1';
-  return false;
-}
+    if (value == null) return false;
+    if (value is bool) return value;
+    if (value is int) return value == 1;
+    if (value is String) return value.toLowerCase() == 'true' || value == '1';
+    return false;
+  }
 
-  // Helper to get comments count
   int get commentsCount => comments.length;
 
-  // Helper to check if post has images in polls
   bool get hasPollImages {
     return polls.any(
       (poll) => poll.options?.any((option) => option.image != null) ?? false,
@@ -125,7 +123,6 @@ class UserPostModel {
     };
   }
 
-  // In post_image_model.dart
   UserPostModel copyWith({
     int? id,
     String? user,

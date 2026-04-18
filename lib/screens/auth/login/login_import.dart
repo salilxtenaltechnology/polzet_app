@@ -8,8 +8,8 @@ import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_strings.dart';
 import '../../../../provider/user_provider.dart';
 
-import '../../../core/constants/app_images.dart';
 import '../../../data/token/shared_preferences.dart';
+import '../../../gen/assets.gen.dart';
 import '../../../main.dart';
 import '../../../mixin/utility_mixins.dart';
 import '../../../models/country/country_model.dart';

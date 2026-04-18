@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
+import '../../core/constants/app_radius.dart';
 import '../../languages/l10n/generated/app_localizations.dart';
 import '../custom_text_styles.dart';
 
@@ -18,7 +19,7 @@ class DeletePostDiolog extends StatelessWidget {
       padding: EdgeInsets.fromLTRB(0, 10.h, 0, 10.h),
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.secondaryContainer,
-        borderRadius: BorderRadius.circular(20.r),
+        borderRadius:  AppRadius.cardRadius,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.center,

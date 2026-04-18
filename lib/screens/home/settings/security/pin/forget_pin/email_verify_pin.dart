@@ -10,8 +10,8 @@ import 'package:http/http.dart' as http;
 import '../../../../../../api/app_api.dart';
 import '../../../../../../api/services/api_service.dart';
 import '../../../../../../core/constants/app_colors.dart';
-import '../../../../../../core/constants/app_images.dart';
 import '../../../../../../core/constants/app_strings.dart';
+import '../../../../../../gen/assets.gen.dart';
 import '../../../../../../mixin/utility_mixins.dart';
 import '../../../../../../widgets/button/auth_button.dart';
 import '../../../../../../widgets/custom_card.dart';
@@ -132,8 +132,8 @@ class _EmailVerificationScreenState extends State<EmailVerifyPin>
     return Container(
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.background,
-        image: const DecorationImage(
-          image: AssetImage(Assets.assetsImagesBg),
+        image:  DecorationImage(
+          image: AssetImage(Assets.images.bg.path),
           fit: BoxFit.cover,
         ),
       ),
@@ -191,7 +191,7 @@ class _EmailVerificationScreenState extends State<EmailVerifyPin>
           if (_errorMessage.isNotEmpty)
             Padding(
               padding: EdgeInsets.only(top: 5.h),
-              child: Text(_errorMessage, style: CustomTextStyles.msgErrorText),
+              child: Text(_errorMessage, style: CustomTextStyles.msgErrorText(context)),
             ),
           if (_successMessage.isNotEmpty)
             Padding(

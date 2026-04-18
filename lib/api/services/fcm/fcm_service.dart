@@ -2,14 +2,14 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import '../../../data/token/shared_preferences.dart';
+import '../../api_config.dart';
 
 class FcmApiService {
-  static const String baseUrl = 'https://testbackend.polzet.in/api/fcm';
+  static String fcm = '${ApiConfig.baseUrl}/fcm';
 
-  /// Register FCM token with backend
+  /*---- Register FCM token ----*/
   static Future<bool> registerFcmToken(String fcmToken, String platform) async {
     try {
-      // Get access token for authorization
       final accessToken = await SharedPrefService.getToken();
 
       if (accessToken == null || accessToken.isEmpty) {
@@ -17,7 +17,7 @@ class FcmApiService {
         return false;
       }
 
-      final url = Uri.parse('$baseUrl/register-token');
+      final url = Uri.parse('$fcm/register-token');
 
       final response = await http.post(
         url,
@@ -33,8 +33,6 @@ class FcmApiService {
         debugPrint(
           '✅ FCM token registered successfully: ${responseData['data']}',
         );
-
-        // Save token locally after successful registration
         await SharedPrefService.saveFcmToken(fcmToken);
 
         return true;
@@ -49,7 +47,7 @@ class FcmApiService {
     }
   }
 
-  /// Unregister FCM token from backend (call on logout)
+  /*---- Unregister FCM token (call on logout) ----*/
   static Future<bool> unregisterFcmToken() async {
     try {
       final accessToken = await SharedPrefService.getToken();
@@ -60,7 +58,7 @@ class FcmApiService {
         return false;
       }
 
-      final url = Uri.parse('$baseUrl/unregister-token');
+      final url = Uri.parse('$fcm/unregister-token');
 
       final response = await http.post(
         url,
@@ -72,7 +70,7 @@ class FcmApiService {
       );
 
       if (response.statusCode == 200) {
-        debugPrint('✅ FCM token unregistered successfully');
+        debugPrint('FCM token unregistered successfully');
 
         // Remove token from local storage
         await SharedPrefService.removeFcmToken();
@@ -88,7 +86,7 @@ class FcmApiService {
     }
   }
 
-  /// Update FCM token (when token refreshes)
+  /*---- Update FCM token ----*/
   static Future<bool> updateFcmToken(
     String oldToken,
     String newToken,
@@ -102,7 +100,7 @@ class FcmApiService {
         return false;
       }
 
-      final url = Uri.parse('$baseUrl/update-token');
+      final url = Uri.parse('$fcm/update-token');
 
       final response = await http.put(
         url,
@@ -126,7 +124,6 @@ class FcmApiService {
         return true;
       } else {
         debugPrint('❌ Failed to update FCM token: ${response.statusCode}');
-        // Fallback: try to register the new token
         return await registerFcmToken(newToken, platform);
       }
     } catch (e) {

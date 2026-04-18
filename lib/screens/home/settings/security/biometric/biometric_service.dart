@@ -8,11 +8,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 class BiometricService {
   static final LocalAuthentication _localAuth = LocalAuthentication();
 
-  // SharedPreferences keys
   static const String _biometricEnabledKey = 'biometric_enabled';
   static const String _fingerprintKey = 'fingerprint_enabled';
 
-  // Check if device supports biometric authentication
   static Future<bool> isBiometricAvailable() async {
     try {
       final bool isAvailable = await _localAuth.canCheckBiometrics;
@@ -24,7 +22,6 @@ class BiometricService {
     }
   }
 
-  // Get available biometric types
   static Future<List<BiometricType>> getAvailableBiometrics() async {
     try {
       return await _localAuth.getAvailableBiometrics();
@@ -34,7 +31,6 @@ class BiometricService {
     }
   }
 
-  // Authenticate with biometrics
   static Future<bool> authenticateWithBiometrics({
     required String reason,
     bool useErrorDialogs = true,
@@ -58,7 +54,6 @@ class BiometricService {
     }
   }
 
-  // Save security preferences
   static Future<void> saveBiometricEnabled(bool enabled) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_biometricEnabledKey, enabled);
@@ -80,13 +75,11 @@ class BiometricService {
     return prefs.getBool(_fingerprintKey) ?? false;
   }
 
-  // Check if any biometric method is enabled
   static Future<bool> isAnyBiometricMethodEnabled() async {
     final fingerprint = await isFingerprintEnabled();
     return fingerprint;
   }
 
-  // Get appropriate biometric message based on available types
   static Future<String> getBiometricMessage() async {
     final availableBiometrics = await getAvailableBiometrics();
 

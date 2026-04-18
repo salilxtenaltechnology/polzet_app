@@ -5,8 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../../../api/app_api.dart';
-import '../../../../core/constants/app_images.dart';
 import '../../../../core/constants/app_strings.dart';
+import '../../../gen/assets.gen.dart';
 import '../../../widgets/button/auth_button.dart';
 import '../../../widgets/custom_card.dart';
 import '../../../widgets/custom_text_styles.dart';
@@ -92,8 +92,8 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
     return Container(
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.background,
-        image: const DecorationImage(
-          image: AssetImage(Assets.assetsImagesBg),
+        image:  DecorationImage(
+          image: AssetImage(Assets.images.bg.path),
           fit: BoxFit.cover,
         ),
       ),
@@ -202,7 +202,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
           if (_errorText.isNotEmpty)
             Padding(
               padding: EdgeInsets.only(top: 3.h),
-              child: Text(_errorText, style: CustomTextStyles.msgErrorText),
+              child: Text(_errorText, style: CustomTextStyles.msgErrorText(context)),
             ),
           SizedBox(height: 10.h),
           AuthButton(

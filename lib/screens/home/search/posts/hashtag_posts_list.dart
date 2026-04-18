@@ -2,24 +2,22 @@
 
 import 'dart:convert';
 import 'dart:typed_data';
-import 'package:feather_icons/feather_icons.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:intl/intl.dart';
 import 'package:polzet_app/api/api_config.dart';
 import 'package:polzet_app/widgets/button/back_button.dart';
-import 'package:polzet_app/widgets/button/primary_button.dart';
 import 'package:polzet_app/widgets/loader.dart';
 
 import '../../../../api/services/api_service.dart';
 import '../../../../api/services/like/like_service.dart';
 import '../../../../core/constants/app_colors.dart';
-import '../../../../core/constants/app_images.dart';
+import '../../../../core/constants/app_icons.dart';
 import '../../../../models/like/like_uers_model.dart';
 import '../../../../models/search/hashtag/hashtag_posts_list_model.dart';
 import '../../../../widgets/show_toast.dart';
-import '../../../../widgets/utils/bottomsheet_util.dart';
-import '../../../../widgets/utils/like_util.dart';
+import '../../../../core/utils/bottomsheet_util.dart';
+import '../../../../core/utils/like_util.dart';
 import '../../profile/posts/popup/hashtag_image_post_pop.dart';
 
 const _accent = AppColors.primaryColor;
@@ -40,7 +38,7 @@ class _HashtagPostsListState extends State<HashtagPostsList> {
   bool _loading = true;
   String? _error;
   String? _nextPage;
-  bool _loadingMore = false;
+  final bool _loadingMore = false;
 
   final ScrollController _scrollController = ScrollController();
 
@@ -898,20 +896,12 @@ class _HashtagPostsListState extends State<HashtagPostsList> {
                 transitionBuilder: (child, animation) =>
                     ScaleTransition(scale: animation, child: child),
                 child: isLiked
-                    ? Image.asset(
-                        Assets.assetsImagesIcHeartFilled,
-                        key: ValueKey('filled_${post.id}'),
-                        height: 21.h,
-                        width: 21.w,
-                      )
-                    : Image.asset(
-                        Assets.assetsImagesIcHeart,
-                        key: ValueKey('outline_${post.id}'),
-                        height: 21.h,
-                        width: 21.w,
+                    ? AppIcons.filledHeart(key: const ValueKey('filled'))
+                    : AppIcons.outlineHeart(
+                        key: const ValueKey('outline'),
                         color: Theme.of(
                           context,
-                        ).colorScheme.onSurface.withOpacity(0.6),
+                        ).colorScheme.onBackground.withOpacity(0.6),
                       ),
               ),
               SizedBox(width: 3.w),
@@ -943,10 +933,10 @@ class _HashtagPostsListState extends State<HashtagPostsList> {
           ),
           child: Row(
             children: [
-              Icon(
-                FeatherIcons.messageSquare,
-                size: 20.sp,
-                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+              AppIcons.commnetBox(
+                color: Theme.of(
+                  context,
+                ).colorScheme.onBackground.withOpacity(0.6),
               ),
               SizedBox(width: 3.w),
               Text(
@@ -968,10 +958,8 @@ class _HashtagPostsListState extends State<HashtagPostsList> {
         // Share
         GestureDetector(
           onTap: () {},
-          child: Icon(
-            FeatherIcons.send,
-            size: 18.3.sp,
-            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+          child: AppIcons.sharePost(
+            color: Theme.of(context).colorScheme.onBackground.withOpacity(0.7),
           ),
         ),
       ],

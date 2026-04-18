@@ -22,9 +22,6 @@ class HashtagPostsListModel {
     );
   }
 }
-
-// ─────────────────────────────────────────────
-
 class HashtagPostModel {
   final int id;
   final String? description;
@@ -79,8 +76,6 @@ class HashtagPostModel {
   }
 }
 
-// ─────────────────────────────────────────────
-
 class HashtagPostUser {
   final int userid;
   final String username;
@@ -103,8 +98,6 @@ class HashtagPostUser {
     );
   }
 }
-
-// ─────────────────────────────────────────────
 
 class HashtagPollModel {
   final int id;
@@ -130,8 +123,6 @@ class HashtagPollModel {
     );
   }
 }
-
-// ─────────────────────────────────────────────
 
 class HashtagPollOption {
   final int id;
@@ -174,8 +165,6 @@ class HashtagPollOption {
   }
 }
 
-// ─────────────────────────────────────────────
-
 class HashtagPollImage {
   final int id;
   final int order;
@@ -198,8 +187,6 @@ class HashtagPollImage {
     );
   }
 }
-
-// ─────────────────────────────────────────────
 
 class HashtagPollVoter {
   final int id;
@@ -226,8 +213,6 @@ class HashtagPollVoter {
     );
   }
 }
-
-// ─────────────────────────────────────────────
 
 class HashtagLikeUser {
   final int id;

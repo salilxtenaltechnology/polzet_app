@@ -26,7 +26,6 @@ import '../../../../widgets/loader.dart';
 import '../../../../widgets/profile/profile_form_section.dart';
 import '../../../../widgets/profile/profile_header_section.dart';
 import '../../../../widgets/show_toast.dart';
-import '../../../../widgets/shimmer/profile_simmer.dart';
 import 'set_password.dart';
 
 class EditProfile extends StatefulWidget {
@@ -317,7 +316,7 @@ class _EditProfileState extends State<EditProfile> with UtilityMixin {
       setState(() => _isUploadingProfile = false);
 
       if (result.isEmpty) {
-       // showToast(message: 'Profile photo uploaded successfully!');
+        // showToast(message: 'Profile photo uploaded successfully!');
         await _refreshUserData();
       } else {
         showToast(message: result);
@@ -443,7 +442,9 @@ class _EditProfileState extends State<EditProfile> with UtilityMixin {
         surfaceTintColor: Theme.of(context).colorScheme.background,
       ),
       body: _isLoading
-          ? const ProfileSimmer()
+          ? Center(
+              child: Loader(color: Theme.of(context).colorScheme.primary),
+            ) //const ProfileSimmer()
           : ListView(
               children: [
                 // Profile Header with images
@@ -626,7 +627,9 @@ class _EditProfileState extends State<EditProfile> with UtilityMixin {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                   AppLocalizations.of(context)!.setaccountpassword,
+                                    AppLocalizations.of(
+                                      context,
+                                    )!.setaccountpassword,
                                     style: TextStyle(
                                       color: Theme.of(
                                         context,
@@ -637,7 +640,9 @@ class _EditProfileState extends State<EditProfile> with UtilityMixin {
                                   ),
                                   SizedBox(height: 2.h),
                                   Text(
-                                    AppLocalizations.of(context)!.addapasswordtosigninwithoutgoogle,
+                                    AppLocalizations.of(
+                                      context,
+                                    )!.addapasswordtosigninwithoutgoogle,
                                     style: TextStyle(
                                       color: Theme.of(context)
                                           .colorScheme

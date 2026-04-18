@@ -2,6 +2,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
+import '../core/constants/app_radius.dart';
+
 class CustomCard extends StatelessWidget {
   final Widget widget;
   const CustomCard({super.key, required this.widget});
@@ -12,7 +14,7 @@ class CustomCard extends StatelessWidget {
       padding: const EdgeInsets.all(10).w,
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.primaryContainer,
-        borderRadius: BorderRadius.circular(15.r),
+        borderRadius: AppRadius.cardRadius,
         boxShadow: const [
           BoxShadow(color: Colors.black12, blurRadius: 6, spreadRadius: 2),
         ],

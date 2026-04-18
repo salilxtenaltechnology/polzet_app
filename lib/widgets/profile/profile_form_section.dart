@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../core/constants/app_colors.dart';
+import '../../core/constants/app_radius.dart';
 import '../../core/constants/app_strings.dart';
 import '../../languages/l10n/generated/app_localizations.dart';
 import '../../models/country/country_model.dart';
@@ -97,7 +98,7 @@ class _ProfileFormSectionState extends State<ProfileFormSection> {
                 padding: EdgeInsets.only(top: 5.h),
                 child: Text(
                   widget.usernameErrorText,
-                  style: CustomTextStyles.msgErrorText,
+                  style: CustomTextStyles.msgErrorText(context),
                 ),
               ),
             SizedBox(height: 12.h),
@@ -169,7 +170,7 @@ class _ProfileFormSectionState extends State<ProfileFormSection> {
                 context,
               ).colorScheme.onBackground.withOpacity(0.1),
             ),
-            borderRadius: BorderRadius.circular(7),
+            borderRadius: BorderRadius.circular(AppRadius.small),
           ),
           focusedBorder: OutlineInputBorder(
             borderSide: BorderSide(
@@ -188,7 +189,7 @@ class _ProfileFormSectionState extends State<ProfileFormSection> {
       width: double.infinity,
       decoration: BoxDecoration(
         color: Colors.transparent,
-        borderRadius: BorderRadius.circular(7.r),
+        borderRadius: BorderRadius.circular(AppRadius.small),
         border: Border.all(
           color: Theme.of(context).colorScheme.onBackground.withOpacity(0.1),
           width: 1,
@@ -222,7 +223,7 @@ class _ProfileFormSectionState extends State<ProfileFormSection> {
       padding: EdgeInsets.only(right: 12.w, left: 12.w, bottom: 5.h),
       decoration: BoxDecoration(
         color: Colors.transparent,
-        borderRadius: BorderRadius.circular(7.r),
+        borderRadius: BorderRadius.circular(AppRadius.small),
         border: Border.all(
           color: Theme.of(context).colorScheme.onBackground.withOpacity(0.1),
           width: 1,
@@ -273,13 +274,13 @@ class _ProfileFormSectionState extends State<ProfileFormSection> {
           borderSide: BorderSide(
             color: Theme.of(context).colorScheme.onBackground.withOpacity(0.1),
           ),
-          borderRadius: BorderRadius.circular(7),
+          borderRadius: BorderRadius.circular(AppRadius.small),
         ),
         focusedBorder: OutlineInputBorder(
           borderSide: BorderSide(
             color: AppColors.primaryColor.withOpacity(0.7),
           ),
-          borderRadius: BorderRadius.circular(7),
+          borderRadius: BorderRadius.circular(AppRadius.small),
         ),
       ),
     );
@@ -295,7 +296,7 @@ class _ProfileFormSectionState extends State<ProfileFormSection> {
       height: 35.h,
       decoration: BoxDecoration(
         color: Colors.transparent,
-        borderRadius: BorderRadius.circular(7.r),
+        borderRadius: BorderRadius.circular(AppRadius.small),
         border: Border.all(
           color: Theme.of(context).colorScheme.onBackground.withOpacity(0.1),
           width: 1,

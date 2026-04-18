@@ -1,5 +1,5 @@
 class ApiConfig {
-  static const bool useHttps = true; // toggle this for http/https
+  static const bool useHttps = true; 
 
   // prodbackend.polzet.in :  For Produation
   // testbackend.polzet.in : For Test

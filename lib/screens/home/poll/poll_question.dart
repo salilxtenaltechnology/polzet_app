@@ -357,7 +357,6 @@ class _PollQuestionState extends State<PollQuestion> with UtilityMixin {
     );
   }
 
-  /// Build question input field
   Widget _buildQuestionField() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -376,14 +375,13 @@ class _PollQuestionState extends State<PollQuestion> with UtilityMixin {
             padding: EdgeInsets.only(top: 5.h),
             child: Text(
               questionErrorText,
-              style: CustomTextStyles.msgErrorText,
+              style: CustomTextStyles.msgErrorText(context),
             ),
           ),
       ],
     );
   }
 
-  /// Build description input field
   Widget _buildDescriptionField() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -401,20 +399,20 @@ class _PollQuestionState extends State<PollQuestion> with UtilityMixin {
     );
   }
 
-  /// Build poll options section
   Widget _buildPollOptionsSection() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(AppLocalizations.of(context)!.polloptions, style: CustomTextStyles.lblPrimaryText(context)),
+        Text(
+          AppLocalizations.of(context)!.polloptions,
+          style: CustomTextStyles.lblPrimaryText(context),
+        ),
         SizedBox(height: 10.h),
 
-        // Option fields
         ...List.generate(optionControllers.length, (index) {
           return _buildOptionField(index);
         }),
 
-        // Add option button
         if (optionControllers.length < maxOptions)
           TextButton.icon(
             onPressed: addOptionField,
@@ -425,17 +423,18 @@ class _PollQuestionState extends State<PollQuestion> with UtilityMixin {
             ),
           ),
 
-        // Options error message
         if (optionsErrorText.isNotEmpty)
           Padding(
             padding: EdgeInsets.only(top: 5.h, bottom: 10.h),
-            child: Text(optionsErrorText, style: CustomTextStyles.msgErrorText),
+            child: Text(
+              optionsErrorText,
+              style: CustomTextStyles.msgErrorText(context),
+            ),
           ),
       ],
     );
   }
 
-  /// Build individual option field
   Widget _buildOptionField(int index) {
     final canRemove = optionControllers.length > minOptions;
 

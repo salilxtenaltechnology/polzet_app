@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
+import '../../core/constants/app_radius.dart';
 import '../../models/posts/user_post_model.dart';
 
 class UserThingsCard extends StatelessWidget {
@@ -17,7 +18,7 @@ class UserThingsCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: EdgeInsets.symmetric(horizontal: 10.w,vertical: 7.h),
+      padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 7.h),
       decoration: BoxDecoration(
         gradient: gradientColors != null
             ? LinearGradient(
@@ -29,18 +30,18 @@ class UserThingsCard extends StatelessWidget {
         color: gradientColors == null
             ? Theme.of(context).colorScheme.secondaryContainer
             : null,
-        borderRadius: BorderRadius.circular(15.r),
+        borderRadius: AppRadius.cardRadius,
         boxShadow: const [
           BoxShadow(color: Colors.black12, blurRadius: 6, spreadRadius: 2),
         ],
       ),
       child: Text(
         post.question,
-       style: TextStyle(
-                color: Colors.white,
-                fontSize: 11.sp,
-                fontWeight: FontWeight.w400,
-              ),
+        style: TextStyle(
+          color: Colors.white,
+          fontSize: 11.sp,
+          fontWeight: FontWeight.w400,
+        ),
       ),
     );
   }

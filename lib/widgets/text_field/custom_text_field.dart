@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../core/constants/app_colors.dart';
+import '../../core/constants/app_radius.dart';
 import '../custom_text_styles.dart';
 
 class CustomTextField extends StatelessWidget {
@@ -52,13 +53,13 @@ class CustomTextField extends StatelessWidget {
                 context,
               ).colorScheme.onBackground.withOpacity(0.1),
             ),
-            borderRadius: BorderRadius.circular(7),
+            borderRadius: BorderRadius.circular(AppRadius.small),
           ),
           focusedBorder: OutlineInputBorder(
             borderSide: BorderSide(
               color: AppColors.primaryColor.withOpacity(0.7),
             ),
-            borderRadius: BorderRadius.circular(7),
+            borderRadius: BorderRadius.circular(AppRadius.small),
           ),
         ),
       ),

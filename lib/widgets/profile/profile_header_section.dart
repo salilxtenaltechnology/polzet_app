@@ -9,7 +9,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:feather_icons/feather_icons.dart';
 
 import '../../core/constants/app_colors.dart';
-import '../../core/constants/app_images.dart';
+import '../../gen/assets.gen.dart';
 
 class ProfileHeaderSection extends StatelessWidget {
   final Uint8List? cachedProfileImage;
@@ -82,9 +82,9 @@ class ProfileHeaderSection extends StatelessWidget {
                   height: 25.h,
                   width: 25.w,
                   margin: EdgeInsets.only(bottom: 7.h, right: 7.w),
-                  decoration: const BoxDecoration(
+                  decoration:  BoxDecoration(
                     shape: BoxShape.circle,
-                    color: AppColors.whiteColor,
+                    color: Theme.of(context).colorScheme.onPrimary,
                   ),
                   child: Icon(
                     FeatherIcons.camera,
@@ -162,10 +162,10 @@ class ProfileHeaderSection extends StatelessWidget {
                     shape: BoxShape.circle,
                     color: Colors.black.withOpacity(0.3),
                   ),
-                  child: const Center(
+                  child:  Center(
                     child: CircularProgressIndicator(
                       valueColor: AlwaysStoppedAnimation<Color>(
-                        AppColors.whiteColor,
+                          Theme.of(context).colorScheme.onPrimary,
                       ),
                     ),
                   ),
@@ -189,8 +189,8 @@ class ProfileHeaderSection extends StatelessWidget {
       );
     }
 
-    return const DecorationImage(
-      image: AssetImage(Assets.assetsImagesDefaultCover),
+    return  DecorationImage(
+      image: AssetImage(Assets.images.defaultCover.path),
       fit: BoxFit.fill,
     );
   }
@@ -210,8 +210,8 @@ class ProfileHeaderSection extends StatelessWidget {
       );
     }
 
-    return const DecorationImage(
-      image: AssetImage(Assets.assetsImagesIcUser),
+    return  DecorationImage(
+      image: AssetImage(Assets.images.icUser.path),
       fit: BoxFit.cover,
     );
   }

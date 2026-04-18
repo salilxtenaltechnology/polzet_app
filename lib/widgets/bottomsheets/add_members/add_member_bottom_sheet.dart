@@ -10,10 +10,10 @@ import '../../../../mixin/utility_mixins.dart';
 import '../../../../widgets/base64/image_convert.dart';
 import '../../../../widgets/custom_card.dart';
 import '../../../../widgets/custom_text_styles.dart';
+import '../../../core/constants/app_radius.dart';
 import '../../../languages/l10n/generated/app_localizations.dart';
 
 class AddMemberBottomSheet extends StatefulWidget {
-  /// Pre-selected IDs passed from parent (so selections survive re-opens)
   final Set<int> alreadySelected;
 
   const AddMemberBottomSheet({super.key, this.alreadySelected = const {}});
@@ -35,7 +35,6 @@ class _AddMemberBottomSheetState extends State<AddMemberBottomSheet>
   @override
   void initState() {
     super.initState();
-    // Clone so we don't mutate the caller's set
     _selectedIds = Set<int>.from(widget.alreadySelected);
     _fetchUsers();
     _searchController.addListener(_onSearch);
@@ -46,8 +45,6 @@ class _AddMemberBottomSheetState extends State<AddMemberBottomSheet>
     _searchController.dispose();
     super.dispose();
   }
-
-  // ── Fetch ──────────────────────────────────────────────────────────────────
 
   Future<void> _fetchUsers() async {
     setState(() => _isLoadingUsers = true);
@@ -78,8 +75,6 @@ class _AddMemberBottomSheetState extends State<AddMemberBottomSheet>
     }
   }
 
-  // ── Search ─────────────────────────────────────────────────────────────────
-
   void _onSearch() {
     final query = _searchController.text.trim().toLowerCase();
     setState(() {
@@ -90,8 +85,6 @@ class _AddMemberBottomSheetState extends State<AddMemberBottomSheet>
                 .toList();
     });
   }
-
-  // ── Helpers ────────────────────────────────────────────────────────────────
 
   void _toggleMember(int id) => setState(() {
     _selectedIds.contains(id) ? _selectedIds.remove(id) : _selectedIds.add(id);
@@ -129,22 +122,19 @@ class _AddMemberBottomSheetState extends State<AddMemberBottomSheet>
     Navigator.pop(context, {'ids': _selectedIds, 'users': selectedUsers});
   }
 
-  // ── Build ──────────────────────────────────────────────────────────────────
-
   @override
   Widget build(BuildContext context) {
     return Container(
       height: MediaQuery.of(context).size.height * 0.85,
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.background,
-        borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(20.r),
-          topRight: Radius.circular(20.r),
+        borderRadius: const BorderRadius.only(
+          topLeft: Radius.circular(AppRadius.modal),
+          topRight: Radius.circular(AppRadius.modal),
         ),
       ),
       child: Column(
         children: [
-          // ── Handle bar ──────────────────────────────────────────────────
           Container(
             margin: EdgeInsets.only(top: 10.h),
             height: 4.h,
@@ -154,8 +144,6 @@ class _AddMemberBottomSheetState extends State<AddMemberBottomSheet>
               borderRadius: BorderRadius.circular(4.r),
             ),
           ),
-
-          // ── Title ───────────────────────────────────────────────────────
           Container(
             padding: EdgeInsets.symmetric(vertical: 12.h),
             margin: EdgeInsets.symmetric(horizontal: 10.w),
@@ -171,16 +159,10 @@ class _AddMemberBottomSheetState extends State<AddMemberBottomSheet>
             child: Center(
               child: Text(
                 AppLocalizations.of(context)!.addmember,
-                style: TextStyle(
-                  fontSize: 13.sp,
-                  fontWeight: FontWeight.w600,
-                  color: Theme.of(context).colorScheme.onBackground,
-                ),
+                style: CustomTextStyles.bottomsheetTitleTextStyle(context),
               ),
             ),
           ),
-
-          // ── Search bar ──────────────────────────────────────────────────
           Padding(
             padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
             child: Container(
@@ -236,16 +218,12 @@ class _AddMemberBottomSheetState extends State<AddMemberBottomSheet>
               ),
             ),
           ),
-
-          // ── User list ───────────────────────────────────────────────────
           Expanded(
             child: Padding(
               padding: EdgeInsets.symmetric(horizontal: 12.w),
               child: _buildUserList(),
             ),
           ),
-
-          // ── Add button ──────────────────────────────────────────────────
           Container(
             color: Theme.of(context).colorScheme.background,
             padding: EdgeInsets.fromLTRB(12.w, 5.h, 12.w, 16.h),
@@ -275,8 +253,6 @@ class _AddMemberBottomSheetState extends State<AddMemberBottomSheet>
       ),
     );
   }
-
-  // ── User list widget ────────────────────────────────────────────────────────
 
   Widget _buildUserList() {
     if (_isLoadingUsers) {
@@ -317,7 +293,6 @@ class _AddMemberBottomSheetState extends State<AddMemberBottomSheet>
           child: CustomCard(
             widget: Row(
               children: [
-                // ── Avatar ───────────────────────────────────────────────
                 Builder(
                   builder: (_) {
                     final imageBytes = avatarUrl != null
@@ -347,10 +322,7 @@ class _AddMemberBottomSheetState extends State<AddMemberBottomSheet>
                     );
                   },
                 ),
-
                 SizedBox(width: 12.w),
-
-                // ── Name ─────────────────────────────────────────────────
                 Expanded(
                   child: Text(
                     _userName(user),
@@ -362,8 +334,6 @@ class _AddMemberBottomSheetState extends State<AddMemberBottomSheet>
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
-
-                // ── Checkbox ─────────────────────────────────────────────
                 AnimatedContainer(
                   duration: const Duration(milliseconds: 180),
                   height: 20.sp,

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../core/constants/app_colors.dart';
+import '../../core/constants/app_radius.dart';
 import '../custom_text_styles.dart';
 import '../loader.dart';
 
@@ -28,7 +29,7 @@ class AuthButton extends StatelessWidget {
         width: double.infinity,
         decoration: BoxDecoration(
           color: Colors.transparent,
-          borderRadius: BorderRadius.circular(50.r),
+          borderRadius: AppRadius.buttonRadius,
           border: Border.all(color: AppColors.primaryColor, width: 0.7),
         ),
         child: Center(

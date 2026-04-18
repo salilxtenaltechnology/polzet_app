@@ -366,8 +366,8 @@ class ProfileState extends State<UserProfile>
                 padding: EdgeInsets.all(8.w),
                 decoration: BoxDecoration(
                   image: _cachedCoverImageBytes == null
-                      ? const DecorationImage(
-                          image: AssetImage(Assets.assetsImagesDefaultCover),
+                      ?  DecorationImage(
+                          image: AssetImage(Assets.images.defaultCover.path), 
                           fit: BoxFit.fill,
                         )
                       : DecorationImage(
@@ -420,9 +420,9 @@ class ProfileState extends State<UserProfile>
                                   width: 1.5.w,
                                 ),
                                 image: _cachedProfileImageBytes == null
-                                    ? const DecorationImage(
+                                    ?  DecorationImage(
                                         image: AssetImage(
-                                          Assets.assetsImagesIcUser,
+                                          Assets.images.icUser.path,
                                         ),
                                         fit: BoxFit.fill,
                                       )
@@ -454,7 +454,7 @@ class ProfileState extends State<UserProfile>
                                       : userProvider.bio ?? '-',
                                   style: TextStyle(
                                     color: Colors.white,
-                                    fontSize: 12.sp,
+                                    fontSize: 11.sp,
                                   ),
                                 ),
                               ],
@@ -463,7 +463,7 @@ class ProfileState extends State<UserProfile>
                         ),
                       ).asGlass(
                         tintColor: Colors.black,
-                        clipBorderRadius: BorderRadius.circular(12.r),
+                        clipBorderRadius: BorderRadius.circular( AppRadius.card),
                       ),
                     ),
                   ],
@@ -626,7 +626,7 @@ class ProfileState extends State<UserProfile>
                 height: 38.h,
                 decoration: BoxDecoration(
                   color: Theme.of(context).primaryColor,
-                  borderRadius: BorderRadius.circular(20.r),
+                  borderRadius: BorderRadius.circular(AppRadius.modal),
                 ),
                 padding: EdgeInsets.symmetric(vertical: 5.h),
                 margin: EdgeInsets.only(
@@ -639,7 +639,7 @@ class ProfileState extends State<UserProfile>
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
                     pollThingsTile(
-                      Assets.assetsImagesPoll,
+                      Assets.images.poll.path, 
                       _totalImagePostsCount.toString(),
                       Icons.image,
                       () => navigationPush(
@@ -659,7 +659,7 @@ class ProfileState extends State<UserProfile>
                       ),
                     ),
                     pollThingsTile(
-                      Assets.assetsImagesThings,
+                      Assets.images.things.path, 
                       _totalTextPostsCount.toString(),
                       Icons.image,
                       () => navigationPush(
@@ -873,8 +873,6 @@ class ProfileState extends State<UserProfile>
     );
   }
 
-  // ── Small widget builders ─────────────────────────────────────────────────
-
   Widget _buildStatContainer({
     required IconData icon,
     required String value,
@@ -886,7 +884,7 @@ class ProfileState extends State<UserProfile>
       height: 80.h,
       decoration: BoxDecoration(
         color: Theme.of(context).primaryColor,
-        borderRadius: BorderRadius.circular(20.r),
+        borderRadius: BorderRadius.circular(AppRadius.modal),
       ),
       padding: EdgeInsets.symmetric(vertical: 8.h),
       margin: EdgeInsets.fromLTRB(10.w, topMargin, 10.w, 0),
@@ -1147,8 +1145,6 @@ class ProfileState extends State<UserProfile>
     );
   }
 
-  // ── Reusable tile widgets ─────────────────────────────────────────────────
-
   Widget statTile(IconData icon, String value, VoidCallback onTap) {
     return GestureDetector(
       onTap: onTap,
@@ -1162,7 +1158,7 @@ class ProfileState extends State<UserProfile>
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 Image.asset(
-                  Assets.assetsImagesCurrentUser,
+                  Assets.images.currentUser.path,
                   height: 18.5.h,
                   width: 18.5.w,
                 ),
@@ -1174,7 +1170,7 @@ class ProfileState extends State<UserProfile>
                 ),
                 SizedBox(height: 2.h),
                 Image.asset(
-                  Assets.assetsImagesAddUsers,
+                  Assets.images.addUsers.path,
                   height: 18.5.h,
                   width: 18.5.w,
                 ),
@@ -1293,10 +1289,10 @@ class ProfileState extends State<UserProfile>
                       height: imageHeight,
                       decoration: BoxDecoration(
                         border: Border.all(color: Colors.white, width: 1),
-                        borderRadius: BorderRadius.circular(20.r),
+                        borderRadius: BorderRadius.circular(AppRadius.button),
                       ),
                       child: ClipRRect(
-                        borderRadius: BorderRadius.circular(19.r),
+                        borderRadius: BorderRadius.circular(AppRadius.button),
                         child: Image.network(
                           '${ApiConfig.baseUrlImage}${imageData.url}',
                           fit: BoxFit.cover,
@@ -1304,7 +1300,7 @@ class ProfileState extends State<UserProfile>
                           height: double.infinity,
                           errorBuilder: (_, __, ___) => Container(
                             decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(12.r),
+                              borderRadius: BorderRadius.circular(AppRadius.button),
                               color: Colors.grey[200],
                             ),
                             child: Icon(
@@ -1317,7 +1313,7 @@ class ProfileState extends State<UserProfile>
                             if (progress == null) return child;
                             return Container(
                               decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(20.r),
+                                borderRadius: BorderRadius.circular(AppRadius.button),
                                 color: Colors.grey[200],
                               ),
                               child: Center(

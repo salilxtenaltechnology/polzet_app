@@ -11,12 +11,10 @@ class LikeUser {
     this.isOnline = false,
   });
 
-  // Get first letter for avatar
   String get firstLetter {
     return username.isNotEmpty ? username[0].toUpperCase() : '?';
   }
 
-  // Factory constructor from JSON
   factory LikeUser.fromJson(Map<String, dynamic> json) {
     return LikeUser(
       id: json['user_id'] ?? 0,
@@ -26,7 +24,6 @@ class LikeUser {
     );
   }
 
-  // To JSON
   Map<String, dynamic> toJson() {
     return {
       'user_id': id,

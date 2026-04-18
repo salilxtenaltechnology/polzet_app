@@ -26,19 +26,17 @@ class _SignupScreenState extends State<SignupScreen> with UtilityMixin {
   bool _isConfirmPasswordHidden = true;
   bool _isLoading = false;
   String _errorText = '';
-  String? _countryCode = '91'; // Initialize with default value
-  String? _selectedGender;
+  String? _countryCode = '91';
 
   @override
   void initState() {
     super.initState();
     _emailController.text = widget.email;
-    _countryCode = '91'; // Ensure country code is initialized
+    _countryCode = '91';
   }
 
   @override
   void dispose() {
-    // Dispose controllers to prevent memory leaks
     _firstNameController.dispose();
     _lastNameController.dispose();
     _dobController.dispose();
@@ -53,7 +51,6 @@ class _SignupScreenState extends State<SignupScreen> with UtilityMixin {
   Future<void> _registrationAcc() async {
     setState(() => _errorText = '');
 
-    // Get form data and trim whitespace
     String firstName = _firstNameController.text.trim();
     String lastName = _lastNameController.text.trim();
     String dob = _dobController.text.trim();
@@ -63,7 +60,6 @@ class _SignupScreenState extends State<SignupScreen> with UtilityMixin {
     String password = _passwordController.text.trim();
     String confirmPassword = _confirmPasswordController.text.trim();
 
-    // Enhanced validation checks
     if (firstName.isEmpty) {
       setState(() => _errorText = "First name is required.");
       return;
@@ -91,11 +87,6 @@ class _SignupScreenState extends State<SignupScreen> with UtilityMixin {
 
     if (dob.isEmpty) {
       setState(() => _errorText = "Date of birth is required.");
-      return;
-    }
-
-    if (_selectedGender == null || _selectedGender!.isEmpty) {
-      setState(() => _errorText = "Please select gender.");
       return;
     }
 
@@ -176,23 +167,19 @@ class _SignupScreenState extends State<SignupScreen> with UtilityMixin {
     setState(() => _isLoading = true);
 
     try {
-      // Get access token from shared preferences
       final accessToken = await SharedPrefService.getToken();
 
-      // Prepare request body matching your Postman structure
       final body = {
         "first_name": firstName,
         "last_name": lastName,
-        "dob": dob, // Format: YYYY-MM-DD
-        "gender": _selectedGender?.toLowerCase(),
+        "dob": dob,
         "username": username,
         "email": email,
         "mobile_number": phone,
         "password": password,
-        "country_code": "+${_countryCode ?? '91'}", // Ensure + prefix
+        "country_code": "+${_countryCode ?? '91'}",
       };
 
-      // Create Dio instance with proper configuration
       final dio = Dio(
         BaseOptions(
           connectTimeout: const Duration(seconds: 30),
@@ -428,7 +415,6 @@ class _SignupScreenState extends State<SignupScreen> with UtilityMixin {
     _confirmPasswordController.clear();
     _usernameController.clear();
     setState(() {
-      _selectedGender = null;
       _countryCode = '91';
     });
   }
@@ -450,7 +436,7 @@ class _SignupScreenState extends State<SignupScreen> with UtilityMixin {
       context: context,
       initialDate: eighteenYearsAgo,
       firstDate: DateTime(1900),
-      lastDate: thirteenYearsAgo, // Minimum age of 13
+      lastDate: thirteenYearsAgo,
       builder: (context, child) {
         return Theme(
           data: ThemeData(
@@ -480,9 +466,9 @@ class _SignupScreenState extends State<SignupScreen> with UtilityMixin {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         image: DecorationImage(
-          image: AssetImage(Assets.assetsImagesBg),
+          image: AssetImage(Assets.images.bg.path),
           fit: BoxFit.cover,
         ),
       ),
@@ -504,21 +490,18 @@ class _SignupScreenState extends State<SignupScreen> with UtilityMixin {
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      // App Title
                       Text(
                         AppStrings.appName.toUpperCase(),
                         style: CustomTextStyles.appTitleText(context),
                       ),
                       SizedBox(height: 12.h),
 
-                      // Signup Message
                       Text(
                         AppStrings.msgSignUp,
                         style: CustomTextStyles.msgAuthTitleText(context),
                       ),
                       SizedBox(height: 15.h),
 
-                      // First Name
                       PrimaryTextfield(
                         isPassword: false,
                         controller: _firstNameController,
@@ -533,7 +516,6 @@ class _SignupScreenState extends State<SignupScreen> with UtilityMixin {
                       ),
                       SizedBox(height: 5.h),
 
-                      // Last Name
                       PrimaryTextfield(
                         isPassword: false,
                         controller: _lastNameController,
@@ -548,7 +530,6 @@ class _SignupScreenState extends State<SignupScreen> with UtilityMixin {
                       ),
                       SizedBox(height: 5.h),
 
-                      // Username
                       PrimaryTextfield(
                         isPassword: false,
                         controller: _usernameController,
@@ -571,7 +552,6 @@ class _SignupScreenState extends State<SignupScreen> with UtilityMixin {
                       _buildPhoneNumber(_phoneController, _countryCode ?? '91'),
                       SizedBox(height: 12.h),
 
-                      // Email (Read-only)
                       PrimaryTextfield(
                         isPassword: false,
                         isRead: true,
@@ -587,7 +567,6 @@ class _SignupScreenState extends State<SignupScreen> with UtilityMixin {
                       ),
                       SizedBox(height: 5.h),
 
-                      // Password
                       PrimaryTextfield(
                         controller: _passwordController,
                         isPassword: _isPasswordHidden,
@@ -618,7 +597,6 @@ class _SignupScreenState extends State<SignupScreen> with UtilityMixin {
                       ),
                       SizedBox(height: 5.h),
 
-                      // Confirm Password
                       PrimaryTextfield(
                         controller: _confirmPasswordController,
                         isPassword: _isConfirmPasswordHidden,
@@ -650,7 +628,6 @@ class _SignupScreenState extends State<SignupScreen> with UtilityMixin {
                       ),
                       SizedBox(height: 10.h),
 
-                      // Error Message
                       if (_errorText.isNotEmpty)
                         Container(
                           width: double.infinity,
@@ -685,7 +662,6 @@ class _SignupScreenState extends State<SignupScreen> with UtilityMixin {
                           ),
                         ),
 
-                      // Register Button
                       AuthButton(
                         onPressed: _isLoading ? null : _registrationAcc,
                         title: AppStrings.lblSignup,
@@ -763,7 +739,6 @@ class _SignupScreenState extends State<SignupScreen> with UtilityMixin {
       ),
     );
   }
-
 
   Widget _buildPhoneNumber(
     TextEditingController controller,

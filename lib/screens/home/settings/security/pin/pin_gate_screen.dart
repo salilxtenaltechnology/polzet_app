@@ -120,7 +120,10 @@ class _PinGateScreenState extends State<PinGateScreen> with UtilityMixin {
                         ),
                         child: Text(
                           _errorMessage,
-                          style: TextStyle(color: Colors.red, fontSize: 10.3.sp),
+                          style: TextStyle(
+                            color: Colors.red,
+                            fontSize: 10.3.sp,
+                          ),
                           textAlign: TextAlign.center,
                         ),
                       ),

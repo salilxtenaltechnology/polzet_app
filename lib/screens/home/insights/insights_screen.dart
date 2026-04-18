@@ -5,11 +5,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:lottie/lottie.dart';
 
-import '../../../../core/constants/app_images.dart';
 import '../../../api/services/api_service.dart';
+import '../../../gen/assets.gen.dart';
 import '../../../languages/l10n/generated/app_localizations.dart';
 import '../../../models/insights/insights_model.dart';
 import '../../../widgets/custom_card.dart';
+import '../../../widgets/custom_text_styles.dart';
 import '../../../widgets/dialog/custom_diolog.dart';
 import '../../../widgets/loader.dart';
 
@@ -54,6 +55,22 @@ class _InsightsScreenState extends State<InsightsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.background,
+      appBar: AppBar(
+        leading: GestureDetector(
+          onTap: () => Navigator.pop(context),
+          child: const Icon(Icons.arrow_back_ios),
+        ),
+        backgroundColor: Theme.of(context).colorScheme.background,
+        surfaceTintColor: Theme.of(context).colorScheme.background,
+        elevation: 0,
+        centerTitle: true,
+        automaticallyImplyLeading: false,
+        toolbarHeight: 25.h,
+        title: Text(
+          AppLocalizations.of(context)!.insights,
+          style: CustomTextStyles.appBarTitleText(context),
+        ),
+      ),
       body: _loading
           ? Center(child: Loader(color: Theme.of(context).colorScheme.primary))
           : ListView(
@@ -291,7 +308,7 @@ class _InsightsScreenState extends State<InsightsScreen> {
                         height: 70.h,
                         width: 70.w,
                         child: Lottie.asset(
-                          Assets.assetsImagesInsights,
+                          Assets.images.insights,
                           repeat: true,
                         ),
                       ),
@@ -323,7 +340,7 @@ class _InsightsScreenState extends State<InsightsScreen> {
                         child: Container(
                           width: double.infinity,
                           padding: EdgeInsets.symmetric(vertical: 8.h),
-                          margin: EdgeInsets.only(top: 12.h, bottom: 5.h),
+                          margin: EdgeInsets.only(top: 12.h, bottom: 10.h),
                           decoration: BoxDecoration(
                             gradient: const LinearGradient(
                               colors: [Color(0xFFEC4899), Color(0xFFF59E0B)],

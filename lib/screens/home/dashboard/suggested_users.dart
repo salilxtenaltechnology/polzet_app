@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../../api/services/api_service.dart';
+import '../../../core/constants/app_radius.dart';
 import '../../../mixin/utility_mixins.dart';
 import '../../../models/user/suggestionsb users/suggestions_users_model.dart';
 import '../../../widgets/shimmer/suggestion_users_shimmer.dart';
@@ -102,7 +103,7 @@ class _PeopleYouMayKnowSectionState extends State<PeopleYouMayKnowSection>
                     ),
                     decoration: BoxDecoration(
                       color: Theme.of(context).colorScheme.primaryContainer,
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(AppRadius.button),
                       boxShadow: [
                         BoxShadow(
                           color: Colors.black.withOpacity(
@@ -200,7 +201,9 @@ class _PeopleYouMayKnowSectionState extends State<PeopleYouMayKnowSection>
                               color: isChased
                                   ? Colors.grey.shade400
                                   : Theme.of(context).colorScheme.primary,
-                              borderRadius: BorderRadius.circular(25),
+                              borderRadius: BorderRadius.circular(
+                                AppRadius.button,
+                              ),
                             ),
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.center,
@@ -215,7 +218,7 @@ class _PeopleYouMayKnowSectionState extends State<PeopleYouMayKnowSection>
                                 ],
                                 Text(
                                   isChased ? 'Chased' : 'Chase',
-                                  style:  TextStyle(
+                                  style: TextStyle(
                                     color: Colors.white,
                                     fontSize: 10.8.sp,
                                   ),

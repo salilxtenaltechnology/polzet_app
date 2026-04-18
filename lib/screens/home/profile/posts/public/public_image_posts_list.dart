@@ -1,12 +1,13 @@
 // ignore_for_file: deprecated_member_use, must_be_immutable
-import 'package:feather_icons/feather_icons.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../../../../api/api_config.dart';
 import '../../../../../api/services/api_service.dart';
 import '../../../../../api/services/like/like_service.dart';
-import '../../../../../core/constants/app_images.dart';
+import '../../../../../api/services/share/share_service.dart';
+import '../../../../../core/constants/app_icons.dart';
+import '../../../../../core/constants/app_radius.dart';
 import '../../../../../languages/l10n/generated/app_localizations.dart';
 import '../../../../../models/like/like_uers_model.dart';
 import '../../../../../models/public/public_profile_model.dart';
@@ -15,8 +16,8 @@ import '../../../../../widgets/button/back_button.dart';
 import '../../../../../widgets/custom_text_styles.dart';
 import '../../../../../widgets/loader.dart';
 import '../../../../../widgets/show_toast.dart';
-import '../../../../../widgets/utils/bottomsheet_util.dart';
-import '../../../../../widgets/utils/like_util.dart';
+import '../../../../../core/utils/bottomsheet_util.dart';
+import '../../../../../core/utils/like_util.dart';
 import '../popup/public_image_grid.dart';
 
 class PublicImagePostsList extends StatefulWidget {
@@ -363,7 +364,7 @@ class _PublicPostsListState extends State<PublicImagePostsList> {
           margin: EdgeInsets.all(10.w),
           decoration: BoxDecoration(
             color: Theme.of(context).colorScheme.primaryContainer,
-            borderRadius: BorderRadius.circular(10.r),
+            borderRadius: BorderRadius.circular(AppRadius.button),
             boxShadow: const [
               BoxShadow(color: Colors.black12, blurRadius: 6, spreadRadius: 2),
             ],
@@ -438,7 +439,7 @@ class _PublicPostsListState extends State<PublicImagePostsList> {
                 _buildPollImagesStack(post.id, pollImages, post.polls)
               else
                 SizedBox(height: 120.h),
-              SizedBox(height: 5.h),
+              SizedBox(height: 7.h),
               Row(
                 children: [
                   GestureDetector(
@@ -450,20 +451,14 @@ class _PublicPostsListState extends State<PublicImagePostsList> {
                           transitionBuilder: (child, animation) =>
                               ScaleTransition(scale: animation, child: child),
                           child: isLiked
-                              ? Image.asset(
-                                  Assets.assetsImagesIcHeartFilled,
-                                  key: ValueKey('filled_${post.id}'),
-                                  height: 21.h,
-                                  width: 21.w,
+                              ? AppIcons.filledHeart(
+                                  key: const ValueKey('filled'),
                                 )
-                              : Image.asset(
-                                  Assets.assetsImagesIcHeart,
-                                  key: ValueKey('outline_${post.id}'),
-                                  height: 21.h,
-                                  width: 21.w,
+                              : AppIcons.outlineHeart(
+                                  key: const ValueKey('outline'),
                                   color: Theme.of(
                                     context,
-                                  ).colorScheme.onSurface.withOpacity(0.6),
+                                  ).colorScheme.onBackground.withOpacity(0.6),
                                 ),
                         ),
                         SizedBox(width: 3.w),
@@ -487,12 +482,10 @@ class _PublicPostsListState extends State<PublicImagePostsList> {
                     onTap: () => _showCommentsBottomSheet(post.id),
                     child: Row(
                       children: [
-                        Icon(
-                          FeatherIcons.messageSquare,
-                          size: 20.sp,
+                        AppIcons.commnetBox(
                           color: Theme.of(
                             context,
-                          ).colorScheme.onSurface.withOpacity(0.6),
+                          ).colorScheme.onBackground.withOpacity(0.6),
                         ),
                         SizedBox(width: 3.w),
                         Text(
@@ -512,13 +505,15 @@ class _PublicPostsListState extends State<PublicImagePostsList> {
                   ),
                   SizedBox(width: 8.w),
                   GestureDetector(
-                    onTap: () {},
-                    child: Icon(
-                      FeatherIcons.send,
-                      size: 18.3.sp,
+                    onTap: () => ShareService.sharePost(
+                      post,
+                      context: context,
+                      usernameOverride: widget.username,
+                    ),
+                    child: AppIcons.sharePost(
                       color: Theme.of(
                         context,
-                      ).colorScheme.onSurface.withOpacity(0.6),
+                      ).colorScheme.onBackground.withOpacity(0.7),
                     ),
                   ),
                 ],
@@ -617,10 +612,10 @@ class _PublicPostsListState extends State<PublicImagePostsList> {
                         height: imageHeight,
                         decoration: BoxDecoration(
                           border: Border.all(color: Colors.white, width: 1),
-                          borderRadius: BorderRadius.circular(10.r),
+                          borderRadius: BorderRadius.circular(AppRadius.button),
                         ),
                         child: ClipRRect(
-                          borderRadius: BorderRadius.circular(10.r),
+                          borderRadius: BorderRadius.circular(AppRadius.button),
                           child: Image.network(
                             '${ApiConfig.baseUrlImage}${imageData.url}',
                             fit: BoxFit.cover,
@@ -629,7 +624,7 @@ class _PublicPostsListState extends State<PublicImagePostsList> {
                             errorBuilder: (context, error, stackTrace) =>
                                 Container(
                                   decoration: BoxDecoration(
-                                    borderRadius: BorderRadius.circular(10.r),
+                                    borderRadius: BorderRadius.circular(AppRadius.button),
                                   ),
                                   child: Icon(
                                     Icons.image_not_supported,
@@ -641,7 +636,7 @@ class _PublicPostsListState extends State<PublicImagePostsList> {
                               if (loadingProgress == null) return child;
                               return Container(
                                 decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(12.r),
+                                  borderRadius: BorderRadius.circular(AppRadius.button),
                                 ),
                                 child: Center(
                                   child: CircularProgressIndicator(

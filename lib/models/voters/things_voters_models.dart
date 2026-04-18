@@ -36,8 +36,6 @@ class ThingsOptionVoterState {
     this.voters = const [],
   });
 }
-
-/// Lightweight poll option passed into the shared widget
 class ThingsVoterPollOption {
   final int id;
   final String text;

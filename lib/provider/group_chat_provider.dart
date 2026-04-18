@@ -11,7 +11,6 @@ import '../../models/message/message_model.dart';
 import '../../data/token/shared_preferences.dart';
 import '../api/services/api_service.dart';
 
-/// Represents a single group member's online/typing state.
 class GroupMemberPresence {
   final int userId;
   String username;
@@ -27,13 +26,11 @@ class GroupMemberPresence {
 }
 
 class GroupChatProvider extends ChangeNotifier {
-  // ── Group meta ─────────────────────────────────────────────────────────────
   String? _groupName;
   String? _groupImageUrl;
   int? _chatId;
   Map<String, dynamic>? _chat;
 
-  // ── Admin IDs set — single source of truth for admin status ───────────────
   final Set<int> _adminIds = {};
 
   String? get groupName => _groupName;
@@ -42,7 +39,6 @@ class GroupChatProvider extends ChangeNotifier {
   int? get chatId => _chatId;
   Map<String, dynamic>? get chat => _chat;
 
-  // ── Members getter — works with both nested {user:{}} and flat {} structures
   List<Map<String, dynamic>> get members {
     if (_chat != null && _chat!['members'] != null) {
       return List<Map<String, dynamic>>.from(_chat!['members']);
@@ -50,20 +46,15 @@ class GroupChatProvider extends ChangeNotifier {
     return [];
   }
 
-  // ── Admin IDs getter ───────────────────────────────────────────────────────
   Set<int> get adminIds => Set.unmodifiable(_adminIds);
 
-  /// ✅ Single source of truth — checks _adminIds set directly
   bool isAdmin(int userId) => _adminIds.contains(userId);
 
-  /// ✅ Rebuild _adminIds from whatever structure _chat holds
   void _syncAdminIds() {
     _adminIds.clear();
 
     if (_chat == null) return;
 
-    // Strategy 1: separate "admins" array (from /info endpoint)
-    // Structure: { admins: [{ id: 1, username: "..." }] }
     if (_chat!['admins'] != null) {
       final adminsList = _chat!['admins'] as List<dynamic>;
       for (final a in adminsList) {
@@ -76,8 +67,6 @@ class GroupChatProvider extends ChangeNotifier {
       return;
     }
 
-    // Strategy 2: is_admin on each member (from /chats/group/{id}/ endpoint)
-    // Structure: { members: [{ user: { id: 1 }, is_admin: true }] }
     if (_chat!['members'] != null) {
       final membersList = _chat!['members'] as List<dynamic>;
       for (final m in membersList) {
@@ -96,7 +85,6 @@ class GroupChatProvider extends ChangeNotifier {
   bool _isRenaming = false;
   bool get isRenaming => _isRenaming;
 
-  // ── Member presence map  { userId → GroupMemberPresence } ─────────────────
   final Map<int, GroupMemberPresence> _memberPresence = {};
   Map<int, GroupMemberPresence> get memberPresence =>
       Map.unmodifiable(_memberPresence);
@@ -116,19 +104,16 @@ class GroupChatProvider extends ChangeNotifier {
     return '${names.take(2).join(', ')} and ${names.length - 2} more are typing…';
   }
 
-  // ── Timers ─────────────────────────────────────────────────────────────────
   Timer? _typingTimer;
   Timer? _pollingTimer;
   final Map<int, Timer> _memberTypingTimers = {};
 
-  // ── Stream for SILENT real-time message updates ────────────────────────────
   final StreamController<List<ChatMessage>> _messagesStreamController =
       StreamController<List<ChatMessage>>.broadcast();
 
   Stream<List<ChatMessage>> get messagesStream =>
       _messagesStreamController.stream;
 
-  // ── Message state ──────────────────────────────────────────────────────────
   final List<ChatMessage> _messages = [];
   List<ChatMessage> get messages => List.unmodifiable(_messages);
 
@@ -144,8 +129,18 @@ class GroupChatProvider extends ChangeNotifier {
       return '$h:$m';
     } else if (dt.year == now.year) {
       const months = [
-        'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-        'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+        'Jan',
+        'Feb',
+        'Mar',
+        'Apr',
+        'May',
+        'Jun',
+        'Jul',
+        'Aug',
+        'Sep',
+        'Oct',
+        'Nov',
+        'Dec',
       ];
       return '${months[dt.month - 1]} ${dt.day}';
     } else {
@@ -153,7 +148,6 @@ class GroupChatProvider extends ChangeNotifier {
     }
   }
 
-  // ── Loading / error state ──────────────────────────────────────────────────
   bool _isLoadingHistory = false;
   bool get isLoadingHistory => _isLoadingHistory;
 
@@ -163,8 +157,7 @@ class GroupChatProvider extends ChangeNotifier {
   String? _nextPageUrl;
   bool get hasMoreHistory => _nextPageUrl != null;
 
-  // ── WebSocket state ────────────────────────────────────────────────────────
-  static const String _wsBaseUrl = 'wss://testbackend.polzet.in';
+  static const String _wsBaseUrl = 'ws://testbackend.polzet.in';
 
   WebSocketChannel? _presenceChannel;
   StreamSubscription? _presenceSubscription;
@@ -185,7 +178,6 @@ class GroupChatProvider extends ChangeNotifier {
   static const int _maxReconnectAttempts = 5;
   static const Duration _pendingConfirmTimeout = Duration(seconds: 4);
 
-  // ── Getters ────────────────────────────────────────────────────────────────
   bool get isPresenceConnected => _isPresenceConnected;
   bool get isMessageConnected => _isMessageConnected;
   bool get isConnected => _isPresenceConnected && _isMessageConnected;
@@ -193,24 +185,20 @@ class GroupChatProvider extends ChangeNotifier {
   bool get showConnectionBanner =>
       !_isPresenceConnected || !_isMessageConnected;
 
-  // ── Current user ──────────────────────────────────────────────────────────
   String? _currentUsername;
   String? get currentUsername => _currentUsername;
 
   int? _currentUserId;
   int? get currentUserId => _currentUserId;
 
-  // ── Chat settings ──────────────────────────────────────────────────────────
   bool isMuteNotification = false;
 
-  // ── Emit helpers ───────────────────────────────────────────────────────────
   void _emitMessages() {
     if (!_messagesStreamController.isClosed) {
       _messagesStreamController.add(List.unmodifiable(_messages));
     }
   }
 
-  // ── Caching ────────────────────────────────────────────────────────────────
   String get _cacheKey => 'group_chat_history_$_chatId';
 
   Future<void> _loadCachedMessages() async {
@@ -225,7 +213,6 @@ class GroupChatProvider extends ChangeNotifier {
           _messages.clear();
           _messages.addAll(cached);
           _emitMessages();
-          debugPrint('✅ [Group] Loaded ${cached.length} messages from CACHE');
         }
       }
     } catch (e) {
@@ -249,7 +236,6 @@ class GroupChatProvider extends ChangeNotifier {
     }
   }
 
-  // ── Init ───────────────────────────────────────────────────────────────────
   Future<void> init({
     required String? groupName,
     required String? groupImageUrl,
@@ -263,8 +249,6 @@ class GroupChatProvider extends ChangeNotifier {
     _chatId = chatId;
     _currentUserId = currentUserId;
     _chat = chat;
-
-    // ✅ Sync admin IDs immediately from initial chat payload
     _syncAdminIds();
 
     if (currentUsername != null && currentUsername.isNotEmpty) {
@@ -274,7 +258,6 @@ class GroupChatProvider extends ChangeNotifier {
     }
     debugPrint('👤 [Group] Current username: $_currentUsername');
 
-    // Pre-populate member presence
     if (chat != null && chat['members'] != null) {
       final membersList = chat['members'] as List<dynamic>?;
       if (membersList != null) {
@@ -300,9 +283,6 @@ class GroupChatProvider extends ChangeNotifier {
     notifyListeners();
 
     if (_chatId == null) {
-      debugPrint(
-        '⚠️ [Group] chatId is null — skipping history fetch and WS connect',
-      );
       return;
     }
 
@@ -321,7 +301,6 @@ class GroupChatProvider extends ChangeNotifier {
     _startPolling();
   }
 
-  // ── Polling ────────────────────────────────────────────────────────────────
   void _startPolling() {
     _pollingTimer?.cancel();
     _pollingTimer = Timer.periodic(const Duration(seconds: 10), (_) async {
@@ -376,7 +355,6 @@ class GroupChatProvider extends ChangeNotifier {
     }
   }
 
-  // ── REST: fetch initial message history ────────────────────────────────────
   Future<void> fetchMessageHistory() async {
     final cid = _chatId;
     if (cid == null) return;
@@ -407,7 +385,7 @@ class GroupChatProvider extends ChangeNotifier {
       _messages.clear();
       _messages.addAll(fetched.reversed.toList());
       debugPrint(
-        '✅ [Group] Loaded ${fetched.length} messages | next: $_nextPageUrl',
+        '[Group] Loaded ${fetched.length} messages | next: $_nextPageUrl',
       );
       _saveCachedMessages();
       _emitMessages();
@@ -420,7 +398,6 @@ class GroupChatProvider extends ChangeNotifier {
     }
   }
 
-  // ── REST: paginated older messages ─────────────────────────────────────────
   Future<void> fetchMoreHistory() async {
     final cid = _chatId;
     final nextUrl = _nextPageUrl;
@@ -458,7 +435,7 @@ class GroupChatProvider extends ChangeNotifier {
 
       _messages.insertAll(0, fetched.reversed.toList());
       debugPrint(
-        '✅ [Group] Loaded ${fetched.length} older messages | next: $_nextPageUrl',
+        '[Group] Loaded ${fetched.length} older messages | next: $_nextPageUrl',
       );
       _saveCachedMessages();
       _emitMessages();
@@ -470,7 +447,6 @@ class GroupChatProvider extends ChangeNotifier {
     }
   }
 
-  // ── Presence WebSocket ─────────────────────────────────────────────────────
   Future<void> _connectPresenceSocket(String token) async {
     if (_isPresenceConnecting || _isPresenceConnected) return;
     if (_chatId == null) return;
@@ -480,7 +456,6 @@ class GroupChatProvider extends ChangeNotifier {
 
     try {
       final url = '$_wsBaseUrl/ws/chats/$_chatId/presence/?token=$token';
-      debugPrint('🔌 [Group] Connecting Presence WS: $url');
 
       _presenceChannel = WebSocketChannel.connect(Uri.parse(url));
       final presenceChannel = _presenceChannel;
@@ -504,7 +479,6 @@ class GroupChatProvider extends ChangeNotifier {
       _isPresenceConnected = true;
       _isPresenceConnecting = false;
       _presenceReconnectAttempts = 0;
-      debugPrint('✅ [Group] Presence WebSocket connected');
       notifyListeners();
     } catch (e) {
       debugPrint('❌ [Group] Presence WS connection failed: $e');
@@ -516,7 +490,6 @@ class GroupChatProvider extends ChangeNotifier {
     }
   }
 
-  // ── Message WebSocket ──────────────────────────────────────────────────────
   Future<void> _connectMessageSocket(String token) async {
     if (_isMessageConnecting || _isMessageConnected) return;
     if (_chatId == null) return;
@@ -541,7 +514,6 @@ class GroupChatProvider extends ChangeNotifier {
           _handleMessageDisconnection();
         },
         onDone: () {
-          debugPrint('🔌 [Group] Message WS closed');
           _handleMessageDisconnection();
         },
         cancelOnError: false,
@@ -550,10 +522,9 @@ class GroupChatProvider extends ChangeNotifier {
       _isMessageConnected = true;
       _isMessageConnecting = false;
       _messageReconnectAttempts = 0;
-      debugPrint('✅ [Group] Message WebSocket connected');
+
       notifyListeners();
     } catch (e) {
-      debugPrint('❌ [Group] Message WS connection failed: $e');
       if (_isUpgradeRejected(e.toString())) _shouldReconnect = false;
       _isMessageConnected = false;
       _isMessageConnecting = false;
@@ -567,7 +538,6 @@ class GroupChatProvider extends ChangeNotifier {
       error.contains('403') ||
       error.contains('404');
 
-  // ── Manual reconnect ───────────────────────────────────────────────────────
   Future<void> reconnect() async {
     debugPrint('🔄 [Group] Manual reconnect triggered');
     final token = await SharedPrefService.getToken();
@@ -581,7 +551,6 @@ class GroupChatProvider extends ChangeNotifier {
     }
   }
 
-  // ── Presence WS handler ────────────────────────────────────────────────────
   void _onPresenceMessageReceived(dynamic raw) {
     try {
       final data = jsonDecode(raw as String) as Map<String, dynamic>;
@@ -687,7 +656,6 @@ class GroupChatProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  // ── Message WS handler ─────────────────────────────────────────────────────
   void _onMessageReceived(dynamic raw) {
     try {
       final data = jsonDecode(raw as String) as Map<String, dynamic>;
@@ -707,11 +675,6 @@ class GroupChatProvider extends ChangeNotifier {
           debugPrint('⚠️ [Group] chat_message received but "message" is null');
           return;
         }
-
-        const encoder = JsonEncoder.withIndent('  ');
-        debugPrint(
-          '📦 [Group] PARSED CHAT MESSAGE:\n${encoder.convert(msgMap)}',
-        );
 
         final String text = msgMap['text']?.toString() ?? '';
         if (text.isEmpty) return;
@@ -783,7 +746,6 @@ class GroupChatProvider extends ChangeNotifier {
     }
   }
 
-  // ── Typing signals ─────────────────────────────────────────────────────────
   void sendTyping(bool isTyping) {
     final presence = _presenceChannel;
     if (presence == null || !_isPresenceConnected) return;
@@ -803,7 +765,6 @@ class GroupChatProvider extends ChangeNotifier {
     sendTyping(false);
   }
 
-  // ── Disconnection handling ─────────────────────────────────────────────────
   void _handlePresenceDisconnection() {
     _presenceSubscription?.cancel();
     _presenceSubscription = null;
@@ -878,7 +839,6 @@ class GroupChatProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  // ── Send message ───────────────────────────────────────────────────────────
   Future<void> sendMessage(String text) async {
     final trimmed = text.trim();
     if (trimmed.isEmpty) return;
@@ -939,13 +899,11 @@ class GroupChatProvider extends ChangeNotifier {
     }
   }
 
-  // ── Toggles ────────────────────────────────────────────────────────────────
   void toggleMuteNotification(bool value) {
     isMuteNotification = value;
     notifyListeners();
   }
 
-  // ── Group Management ───────────────────────────────────────────────────────
   Future<bool> renameGroup(String title) async {
     if (_chatId == null) return false;
     _isRenaming = true;
@@ -996,16 +954,12 @@ class GroupChatProvider extends ChangeNotifier {
     }
   }
 
-  // ── Remove member ──────────────────────────────────────────────────────────
-  /// Instantly removes member from UI before API responds
   void removeMemberOptimistically(int userId) {
     if (_chat == null || _chat!['members'] == null) return;
     final membersList = List<Map<String, dynamic>>.from(
       (_chat!['members'] as List).map((e) => Map<String, dynamic>.from(e)),
     );
-    membersList.removeWhere(
-      (m) => (m['user'] as Map?)?['id'] == userId,
-    );
+    membersList.removeWhere((m) => (m['user'] as Map?)?['id'] == userId);
     _chat = {..._chat!, 'members': membersList};
     // Also remove from adminIds if they were admin
     _adminIds.remove(userId);
@@ -1030,7 +984,6 @@ class GroupChatProvider extends ChangeNotifier {
     }
   }
 
-  // ── Make admin ─────────────────────────────────────────────────────────────
   Future<bool> makeAdmin(int userId) async {
     if (_chatId == null) return false;
     try {
@@ -1053,7 +1006,6 @@ class GroupChatProvider extends ChangeNotifier {
     }
   }
 
-  /// ✅ Optimistic admin toggle — instant UI, rollback if API fails
   void updateMemberAdminStatus(int userId, bool isAdminStatus) {
     if (isAdminStatus) {
       _adminIds.add(userId);
@@ -1063,19 +1015,14 @@ class GroupChatProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  // ── Refresh chat data from server ──────────────────────────────────────────
   Future<void> _refreshChatData() async {
     if (_chatId == null) return;
     try {
-      final freshChat = await ApiService().getGroupChatInfo(
-        chatId: _chatId!,
-      );
+      final freshChat = await ApiService().getGroupChatInfo(chatId: _chatId!);
       _chat = freshChat;
 
-      // ✅ Always re-sync admin IDs after any refresh
       _syncAdminIds();
 
-      // Re-sync member presence
       if (_chat != null && _chat!['members'] != null) {
         final membersList = _chat!['members'] as List<dynamic>;
         for (final m in membersList) {
@@ -1099,7 +1046,6 @@ class GroupChatProvider extends ChangeNotifier {
       }
 
       notifyListeners();
-      debugPrint('✅ [Group] Chat data refreshed — admins: $_adminIds');
     } catch (e) {
       debugPrint('❌ [Group] Failed to refresh chat data: $e');
     }
@@ -1108,7 +1054,6 @@ class GroupChatProvider extends ChangeNotifier {
   /// Public wrapper so UI can trigger a refresh directly
   Future<void> refreshChatData() => _refreshChatData();
 
-  // ── Add members ────────────────────────────────────────────────────────────
   Future<bool> addGroupMembers(
     List<int> userIds, [
     List<Map<String, dynamic>>? newUsers,
@@ -1121,18 +1066,15 @@ class GroupChatProvider extends ChangeNotifier {
       );
 
       if (res['success'] == true) {
-        // ✅ Refetch to get server-confirmed member list
         await _refreshChatData();
         return true;
       }
       return false;
     } catch (e) {
-      debugPrint('addGroupMembers error: $e');
       return false;
     }
   }
 
-  /// Instantly shows new members in UI before API responds
   void addMembersOptimistically(List<Map<String, dynamic>> newUsers) {
     if (_chat == null || _chat!['members'] == null) return;
 
@@ -1163,7 +1105,6 @@ class GroupChatProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Rolls back optimistic members if API fails
   void rollbackOptimisticMembers(Set<int> failedIds) {
     if (_chat == null || _chat!['members'] == null) return;
 
@@ -1174,17 +1115,13 @@ class GroupChatProvider extends ChangeNotifier {
     _chat = {
       ..._chat!,
       'members': membersList
-          .where(
-            (m) =>
-                !failedIds.contains((m['user'] as Map?)?['id'] as int?),
-          )
+          .where((m) => !failedIds.contains((m['user'] as Map?)?['id'] as int?))
           .toList(),
     };
 
     notifyListeners();
   }
 
-  // ── Reset / Dispose ────────────────────────────────────────────────────────
   void reset() {
     _shouldReconnect = false;
     _presenceReconnectTimer?.cancel();

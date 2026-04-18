@@ -10,9 +10,9 @@ import 'dart:async';
 
 import '../../../../api/app_api.dart';
 import '../../../../core/constants/app_colors.dart';
-import '../../../../core/constants/app_images.dart';
 import '../../../../core/constants/app_strings.dart';
 import '../../../../data/token/shared_preferences.dart';
+import '../../../gen/assets.gen.dart';
 import '../../../mixin/utility_mixins.dart';
 import '../../../widgets/button/auth_button.dart';
 import '../../../widgets/custom_card.dart';

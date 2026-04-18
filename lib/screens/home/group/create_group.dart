@@ -49,7 +49,6 @@ class _CreateGroupState extends State<CreateGroup> with UtilityMixin {
     super.dispose();
   }
 
-  // ── Open AddMember and receive selection back ────────────────────────────────
 
   Future<void> _openAddMember() async {
     final result = await Navigator.push<Map<String, dynamic>>(
@@ -59,7 +58,6 @@ class _CreateGroupState extends State<CreateGroup> with UtilityMixin {
       ),
     );
 
-    // result is null if user pressed Cancel (Navigator.pop with no data)
     if (result == null) return;
 
     setState(() {
@@ -68,7 +66,6 @@ class _CreateGroupState extends State<CreateGroup> with UtilityMixin {
     });
   }
 
-  // ── Create group API ─────────────────────────────────────────────────────────
 
   Future<void> _pickGroupImage() async {
     final file = await ImagePickerService.pickImage(context: context);
@@ -119,8 +116,6 @@ class _CreateGroupState extends State<CreateGroup> with UtilityMixin {
     }
   }
 
-  // ── Helpers ──────────────────────────────────────────────────────────────────
-
   void _removeMember(int id) {
     setState(() {
       _selectedIds.remove(id);
@@ -136,7 +131,6 @@ class _CreateGroupState extends State<CreateGroup> with UtilityMixin {
       (user['avatar'] ?? user['profile_picture_url'] ?? user['image'])
           ?.toString();
 
-  // ── UI ───────────────────────────────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
@@ -151,6 +145,7 @@ class _CreateGroupState extends State<CreateGroup> with UtilityMixin {
         ),
         centerTitle: true,
         backgroundColor: Theme.of(context).colorScheme.background,
+        toolbarHeight: 25.h,
       ),
       body: Padding(
         padding: const EdgeInsets.all(12).w,

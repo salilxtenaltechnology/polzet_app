@@ -10,6 +10,7 @@ import 'package:provider/provider.dart';
 import '../../../../../core/constants/app_colors.dart';
 import '../../../../api/services/api_service.dart';
 import '../../../../api/services/image/image_picker_service.dart';
+import '../../../../core/themes/app_themes.dart';
 import '../../../../languages/l10n/generated/app_localizations.dart';
 import '../../../../mixin/utility_mixins.dart';
 import '../../../../provider/group_chat_provider.dart';
@@ -18,8 +19,8 @@ import '../../../../provider/user_provider.dart';
 import '../../../../widgets/base64/image_convert.dart';
 import '../../../../widgets/dialog/custom_diolog.dart';
 import '../../../../widgets/show_toast.dart';
+import '../../home_imports.dart';
 import '../media/media_screen.dart';
-import '../message_list.dart';
 import 'group/group_members.dart';
 
 class ChatDetails extends StatefulWidget {
@@ -141,7 +142,9 @@ class _ChatDetailsState extends State<ChatDetails> with UtilityMixin {
       if (result['message'] == 'Group deleted successfully') {
         Navigator.pushAndRemoveUntil(
           context,
-          MaterialPageRoute(builder: (_) => const MessageList()),
+          MaterialPageRoute(
+            builder: (_) => const HomeScreen(initialIndex: 1), // ← Messages tab
+          ),
           (route) => false,
         );
       } else {
@@ -161,7 +164,9 @@ class _ChatDetailsState extends State<ChatDetails> with UtilityMixin {
       if (result['message'] == 'You have left the group.') {
         Navigator.pushAndRemoveUntil(
           context,
-          MaterialPageRoute(builder: (_) => const MessageList()),
+          MaterialPageRoute(
+            builder: (_) => const HomeScreen(initialIndex: 1), // ← Messages tab
+          ),
           (route) => false,
         );
       } else {
@@ -220,7 +225,7 @@ class _ChatDetailsState extends State<ChatDetails> with UtilityMixin {
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         border: Border.all(
-                          color: AppColors.whiteColor,
+                          color: AppThemes.lightMode.colorScheme.primaryContainer,
                           width: 1.w,
                         ),
                       ),

@@ -18,44 +18,40 @@ class $AssetsImagesGen {
   AssetGenImage get accVerify =>
       const AssetGenImage('assets/images/acc_verify.png');
 
+  /// File path: assets/images/active_bell.png
+  AssetGenImage get activeBell =>
+      const AssetGenImage('assets/images/active_bell.png');
+
+  /// File path: assets/images/active_home.png
+  AssetGenImage get activeHome =>
+      const AssetGenImage('assets/images/active_home.png');
+
+  /// File path: assets/images/active_message.png
+  AssetGenImage get activeMessage =>
+      const AssetGenImage('assets/images/active_message.png');
+
+  /// File path: assets/images/active_user.png
+  AssetGenImage get activeUser =>
+      const AssetGenImage('assets/images/active_user.png');
+
+  /// File path: assets/images/add_group.png
+  AssetGenImage get addGroup =>
+      const AssetGenImage('assets/images/add_group.png');
+
+  /// File path: assets/images/add_image.png
+  AssetGenImage get addImage =>
+      const AssetGenImage('assets/images/add_image.png');
+
   /// File path: assets/images/add_users.png
   AssetGenImage get addUsers =>
       const AssetGenImage('assets/images/add_users.png');
 
-  /// File path: assets/images/analitics.json
-  String get analitics => 'assets/images/analitics.json';
-
-  /// File path: assets/images/app_icon.png
-  AssetGenImage get appIcon =>
-      const AssetGenImage('assets/images/app_icon.png');
-
-  /// File path: assets/images/avtar1.png
-  AssetGenImage get avtar1 => const AssetGenImage('assets/images/avtar1.png');
-
-  /// File path: assets/images/avtar2.png
-  AssetGenImage get avtar2 => const AssetGenImage('assets/images/avtar2.png');
-
-  /// File path: assets/images/avtar3.png
-  AssetGenImage get avtar3 => const AssetGenImage('assets/images/avtar3.png');
-
   /// File path: assets/images/bg.png
   AssetGenImage get bg => const AssetGenImage('assets/images/bg.png');
 
-  /// File path: assets/images/bg_profile.png
-  AssetGenImage get bgProfile =>
-      const AssetGenImage('assets/images/bg_profile.png');
-
-  /// File path: assets/images/bg_splash.jpg
-  AssetGenImage get bgSplash =>
-      const AssetGenImage('assets/images/bg_splash.jpg');
-
-  /// File path: assets/images/bg_splash_1.png
-  AssetGenImage get bgSplash1 =>
-      const AssetGenImage('assets/images/bg_splash_1.png');
-
-  /// File path: assets/images/bg_splash_2.png
-  AssetGenImage get bgSplash2 =>
-      const AssetGenImage('assets/images/bg_splash_2.png');
+  /// File path: assets/images/comments.png
+  AssetGenImage get comments =>
+      const AssetGenImage('assets/images/comments.png');
 
   /// File path: assets/images/connected.json
   String get connected => 'assets/images/connected.json';
@@ -68,9 +64,15 @@ class $AssetsImagesGen {
   AssetGenImage get defaultCover =>
       const AssetGenImage('assets/images/default_cover.png');
 
-  /// File path: assets/images/dummy_people.png
-  AssetGenImage get dummyPeople =>
-      const AssetGenImage('assets/images/dummy_people.png');
+  /// File path: assets/images/filled_heart.png
+  AssetGenImage get filledHeart =>
+      const AssetGenImage('assets/images/filled_heart.png');
+
+  /// File path: assets/images/forward.png
+  AssetGenImage get forward => const AssetGenImage('assets/images/forward.png');
+
+  /// File path: assets/images/heart.png
+  AssetGenImage get heart => const AssetGenImage('assets/images/heart.png');
 
   /// File path: assets/images/ic_active_poll.png
   AssetGenImage get icActivePoll =>
@@ -80,47 +82,13 @@ class $AssetsImagesGen {
   AssetGenImage get icAddUser =>
       const AssetGenImage('assets/images/ic_add_user.png');
 
-  /// File path: assets/images/ic_block.png
-  AssetGenImage get icBlock =>
-      const AssetGenImage('assets/images/ic_block.png');
-
   /// File path: assets/images/ic_facebook.png
   AssetGenImage get icFacebook =>
       const AssetGenImage('assets/images/ic_facebook.png');
 
-  /// File path: assets/images/ic_follow.png
-  AssetGenImage get icFollow =>
-      const AssetGenImage('assets/images/ic_follow.png');
-
-  /// File path: assets/images/ic_food.png
-  AssetGenImage get icFood => const AssetGenImage('assets/images/ic_food.png');
-
-  /// File path: assets/images/ic_game.png
-  AssetGenImage get icGame => const AssetGenImage('assets/images/ic_game.png');
-
   /// File path: assets/images/ic_google.png
   AssetGenImage get icGoogle =>
       const AssetGenImage('assets/images/ic_google.png');
-
-  /// File path: assets/images/ic_group.png
-  AssetGenImage get icGroup =>
-      const AssetGenImage('assets/images/ic_group.png');
-
-  /// File path: assets/images/ic_heart.png
-  AssetGenImage get icHeart =>
-      const AssetGenImage('assets/images/ic_heart.png');
-
-  /// File path: assets/images/ic_heart_filled.png
-  AssetGenImage get icHeartFilled =>
-      const AssetGenImage('assets/images/ic_heart_filled.png');
-
-  /// File path: assets/images/ic_inactive_poll.png
-  AssetGenImage get icInactivePoll =>
-      const AssetGenImage('assets/images/ic_inactive_poll.png');
-
-  /// File path: assets/images/ic_logout.png
-  AssetGenImage get icLogout =>
-      const AssetGenImage('assets/images/ic_logout.png');
 
   /// File path: assets/images/ic_poll.png
   AssetGenImage get icPoll => const AssetGenImage('assets/images/ic_poll.png');
@@ -129,10 +97,6 @@ class $AssetsImagesGen {
   AssetGenImage get icSplash =>
       const AssetGenImage('assets/images/ic_splash.png');
 
-  /// File path: assets/images/ic_things.png
-  AssetGenImage get icThings =>
-      const AssetGenImage('assets/images/ic_things.png');
-
   /// File path: assets/images/ic_user.png
   AssetGenImage get icUser => const AssetGenImage('assets/images/ic_user.png');
 
@@ -140,8 +104,25 @@ class $AssetsImagesGen {
   AssetGenImage get icUsers =>
       const AssetGenImage('assets/images/ic_users.png');
 
-  /// File path: assets/images/ic_x.png
-  AssetGenImage get icX => const AssetGenImage('assets/images/ic_x.png');
+  /// File path: assets/images/image_icon.png
+  AssetGenImage get imageIcon =>
+      const AssetGenImage('assets/images/image_icon.png');
+
+  /// File path: assets/images/inactive_bell.png
+  AssetGenImage get inactiveBell =>
+      const AssetGenImage('assets/images/inactive_bell.png');
+
+  /// File path: assets/images/inactive_home.png
+  AssetGenImage get inactiveHome =>
+      const AssetGenImage('assets/images/inactive_home.png');
+
+  /// File path: assets/images/inactive_message.png
+  AssetGenImage get inactiveMessage =>
+      const AssetGenImage('assets/images/inactive_message.png');
+
+  /// File path: assets/images/inactive_user.png
+  AssetGenImage get inactiveUser =>
+      const AssetGenImage('assets/images/inactive_user.png');
 
   /// File path: assets/images/insights.json
   String get insights => 'assets/images/insights.json';
@@ -149,63 +130,11 @@ class $AssetsImagesGen {
   /// File path: assets/images/loading.json
   String get loading => 'assets/images/loading.json';
 
-  /// File path: assets/images/logo_transprent.png
-  AssetGenImage get logoTransprent =>
-      const AssetGenImage('assets/images/logo_transprent.png');
-
   /// File path: assets/images/lost_connection.json
   String get lostConnection => 'assets/images/lost_connection.json';
 
-  /// File path: assets/images/people_1.png
-  AssetGenImage get people1 =>
-      const AssetGenImage('assets/images/people_1.png');
-
-  /// File path: assets/images/people_2.png
-  AssetGenImage get people2 =>
-      const AssetGenImage('assets/images/people_2.png');
-
-  /// File path: assets/images/people_3.png
-  AssetGenImage get people3 =>
-      const AssetGenImage('assets/images/people_3.png');
-
-  /// File path: assets/images/people_4.png
-  AssetGenImage get people4 =>
-      const AssetGenImage('assets/images/people_4.png');
-
   /// File path: assets/images/poll.png
   AssetGenImage get poll => const AssetGenImage('assets/images/poll.png');
-
-  /// File path: assets/images/poll_design_1.png
-  AssetGenImage get pollDesign1 =>
-      const AssetGenImage('assets/images/poll_design_1.png');
-
-  /// File path: assets/images/poll_design_2.png
-  AssetGenImage get pollDesign2 =>
-      const AssetGenImage('assets/images/poll_design_2.png');
-
-  /// File path: assets/images/poll_design_3.png
-  AssetGenImage get pollDesign3 =>
-      const AssetGenImage('assets/images/poll_design_3.png');
-
-  /// File path: assets/images/poll_design_4.png
-  AssetGenImage get pollDesign4 =>
-      const AssetGenImage('assets/images/poll_design_4.png');
-
-  /// File path: assets/images/poll_design_5.png
-  AssetGenImage get pollDesign5 =>
-      const AssetGenImage('assets/images/poll_design_5.png');
-
-  /// File path: assets/images/poll_design_6.png
-  AssetGenImage get pollDesign6 =>
-      const AssetGenImage('assets/images/poll_design_6.png');
-
-  /// File path: assets/images/poll_design_7.png
-  AssetGenImage get pollDesign7 =>
-      const AssetGenImage('assets/images/poll_design_7.png');
-
-  /// File path: assets/images/profile_bottom_shade.png
-  AssetGenImage get profileBottomShade =>
-      const AssetGenImage('assets/images/profile_bottom_shade.png');
 
   /// File path: assets/images/progress_indicator.json
   String get progressIndicator => 'assets/images/progress_indicator.json';
@@ -213,81 +142,56 @@ class $AssetsImagesGen {
   /// File path: assets/images/server.png
   AssetGenImage get server => const AssetGenImage('assets/images/server.png');
 
-  /// File path: assets/images/splash_effect.png
-  AssetGenImage get splashEffect =>
-      const AssetGenImage('assets/images/splash_effect.png');
-
-  /// File path: assets/images/splash_ic.png
-  AssetGenImage get splashIc =>
-      const AssetGenImage('assets/images/splash_ic.png');
+  /// File path: assets/images/share.png
+  AssetGenImage get share => const AssetGenImage('assets/images/share.png');
 
   /// File path: assets/images/things.png
   AssetGenImage get things => const AssetGenImage('assets/images/things.png');
 
-  /// File path: assets/images/user_profile.png
-  AssetGenImage get userProfile =>
-      const AssetGenImage('assets/images/user_profile.png');
+  /// File path: assets/images/things_icon.png
+  AssetGenImage get thingsIcon =>
+      const AssetGenImage('assets/images/things_icon.png');
 
   /// List of all assets
   List<dynamic> get values => [
     accVerify,
+    activeBell,
+    activeHome,
+    activeMessage,
+    activeUser,
+    addGroup,
+    addImage,
     addUsers,
-    analitics,
-    appIcon,
-    avtar1,
-    avtar2,
-    avtar3,
     bg,
-    bgProfile,
-    bgSplash,
-    bgSplash1,
-    bgSplash2,
+    comments,
     connected,
     currentUser,
     defaultCover,
-    dummyPeople,
+    filledHeart,
+    forward,
+    heart,
     icActivePoll,
     icAddUser,
-    icBlock,
     icFacebook,
-    icFollow,
-    icFood,
-    icGame,
     icGoogle,
-    icGroup,
-    icHeart,
-    icHeartFilled,
-    icInactivePoll,
-    icLogout,
     icPoll,
     icSplash,
-    icThings,
     icUser,
     icUsers,
-    icX,
+    imageIcon,
+    inactiveBell,
+    inactiveHome,
+    inactiveMessage,
+    inactiveUser,
     insights,
     loading,
-    logoTransprent,
     lostConnection,
-    people1,
-    people2,
-    people3,
-    people4,
     poll,
-    pollDesign1,
-    pollDesign2,
-    pollDesign3,
-    pollDesign4,
-    pollDesign5,
-    pollDesign6,
-    pollDesign7,
-    profileBottomShade,
     progressIndicator,
     server,
-    splashEffect,
-    splashIc,
+    share,
     things,
-    userProfile,
+    thingsIcon,
   ];
 }
 

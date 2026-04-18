@@ -51,12 +51,11 @@ class NotificationsResponse {
 class NotificationItem {
   final String id;
   final String type;
-  final String? title; // NULLABLE - not all notifications have titles
-  final String? message; // NULLABLE - not all notifications have messages
+  final String? title;
+  final String? message;
   final Post? post;
   final UserInfo actor;
-  final UserInfo?
-  postOwner; // NULLABLE - FOLLOW notifications don't have post owners
+  final UserInfo? postOwner;
   final DateTime createdAt;
   final bool isRead;
 
@@ -76,8 +75,8 @@ class NotificationItem {
     return NotificationItem(
       id: (json['id'] ?? '').toString(),
       type: (json['type'] ?? '').toString(),
-      title: json['title']?.toString(), // Allow null
-      message: json['message']?.toString(), // Allow null
+      title: json['title']?.toString(),
+      message: json['message']?.toString(),
       post: json['post'] != null
           ? Post.fromJson(json['post'] as Map<String, dynamic>)
           : null,
@@ -131,11 +130,11 @@ class NotificationItem {
 
 class Post {
   final int postId;
-  final String? title; // NULLABLE
-  final String? description; // NULLABLE
+  final String? title;
+  final String? description;
   final String imageUrl;
-  final PostOwner? postOwner; // NULLABLE
-  final String? username; // NULLABLE
+  final PostOwner? postOwner;
+  final String? username;
 
   Post({
     required this.postId,

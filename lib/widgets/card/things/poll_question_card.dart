@@ -1,19 +1,19 @@
 // ignore_for_file: deprecated_member_use, must_be_immutable
 
-import 'package:feather_icons/feather_icons.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../../api/services/api_service.dart';
 import '../../../api/services/like/like_service.dart';
-import '../../../core/constants/app_images.dart';
+import '../../../core/constants/app_icons.dart';
+import '../../../core/constants/app_radius.dart';
 import '../../../models/like/like_uers_model.dart';
 import '../../../models/posts/user_post_model.dart';
 import '../../dialog/custom_diolog.dart';
 import '../../show_toast.dart';
 import '../../base64/image_convert.dart';
-import '../../utils/bottomsheet_util.dart';
-import '../../utils/like_util.dart';
+import '../../../core/utils/bottomsheet_util.dart';
+import '../../../core/utils/like_util.dart';
 
 class ThingsQustionsCard extends StatefulWidget {
   ThingsQustionsCard({
@@ -35,6 +35,7 @@ class ThingsQustionsCard extends StatefulWidget {
     required this.onPercentagesUpdated,
     required this.onPollPolledStateChanged,
     this.onVoteSuccess,
+    required this.onViewVotesTap,
   });
 
   final UserPostModel post;
@@ -54,7 +55,7 @@ class ThingsQustionsCard extends StatefulWidget {
   final Function(Map<int, double> updated) onPercentagesUpdated;
   final Function(String pollKey, bool polled) onPollPolledStateChanged;
   final VoidCallback? onVoteSuccess;
-
+  final Function(UserPollQuestion poll, int postId) onViewVotesTap;
   @override
   State<ThingsQustionsCard> createState() => _ThingsQustionsCardState();
 }
@@ -98,8 +99,6 @@ class _ThingsQustionsCardState extends State<ThingsQustionsCard> {
     }
   }
 
-  // ─── Poll helpers (mirrors HomeFeedPostCard) ───────────────────────────────
-
   bool _areAllPollOptionsSelected(UserPollQuestion poll) {
     final pollKey = poll.id.toString();
     if (!selectedOptions.containsKey(pollKey)) return false;
@@ -142,7 +141,6 @@ class _ThingsQustionsCardState extends State<ThingsQustionsCard> {
 
     if (!mounted) return;
 
-    // Show spinner only — do NOT optimistically flip polled state here.
     setState(() {
       pollVotingStates[pollKey] = true;
       selectedOptions[pollKey] = [];
@@ -163,7 +161,6 @@ class _ThingsQustionsCardState extends State<ThingsQustionsCard> {
       if (!mounted) return;
 
       if (result['success'] == true) {
-        // ── Step 1: push updated percentages from API response ───────────────
         bool hasApiPercentages = false;
         final responseOptions = result['data']?['options'];
         if (responseOptions is List && responseOptions.isNotEmpty) {
@@ -178,30 +175,19 @@ class _ThingsQustionsCardState extends State<ThingsQustionsCard> {
             updated[optionId] = pct;
           }
           if (updated.isNotEmpty) {
-            widget.onPercentagesUpdated(
-              updated,
-            ); // localPercentages now correct
+            widget.onPercentagesUpdated(updated);
             hasApiPercentages = true;
           }
         }
 
         setState(() => pollVotingStates[pollKey] = false);
 
-        // ── Step 2: flip polled state ONLY after percentages are in place ────
-        // If the API returned percentages, flip immediately — correct values
-        // are already in localPercentages before the rebuild happens.
-        // If not, leave the card in the pre-vote display; _silentReload (called
-        // next) will set both localPercentages and pollPolledStates together
-        // using plain = (not ??=), so the first rendered frame is always correct.
         if (hasApiPercentages) {
           widget.onPollPolledStateChanged(pollKey, true);
         }
 
         showToast(message: 'Vote submitted successfully!');
 
-        // _silentReload uses = for both localPercentages and pollPolledStates,
-        // so it handles the !hasApiPercentages path and also confirms the
-        // hasApiPercentages path with authoritative server data.
         widget.onVoteSuccess?.call();
       } else {
         _revertPollState(
@@ -234,7 +220,6 @@ class _ThingsQustionsCardState extends State<ThingsQustionsCard> {
     List<double> previousPercentages,
   ) {
     if (!mounted) return;
-    // ✅ Notify parent to revert
     widget.onPollPolledStateChanged(pollKey, previousPolled);
     final Map<int, double> reverted = {};
     for (int i = 0; i < (poll.options?.length ?? 0); i++) {
@@ -248,7 +233,6 @@ class _ThingsQustionsCardState extends State<ThingsQustionsCard> {
       selectedOptions[pollKey] = previousSelected;
     });
   }
-  // ─── Like helpers ──────────────────────────────────────────────────────────
 
   Future<void> _fetchLikedUsersSilently() async {
     try {
@@ -315,8 +299,6 @@ class _ThingsQustionsCardState extends State<ThingsQustionsCard> {
     return '${(count / 1000000).toStringAsFixed(1)}M';
   }
 
-  // ─── Build ─────────────────────────────────────────────────────────────────
-
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -326,7 +308,7 @@ class _ThingsQustionsCardState extends State<ThingsQustionsCard> {
         padding: const EdgeInsets.all(10).w,
         decoration: BoxDecoration(
           color: Theme.of(context).colorScheme.primaryContainer,
-          borderRadius: BorderRadius.circular(10.r),
+          borderRadius: AppRadius.cardRadius,
           boxShadow: const [
             BoxShadow(color: Colors.black12, blurRadius: 5, spreadRadius: 2),
           ],
@@ -384,20 +366,12 @@ class _ThingsQustionsCardState extends State<ThingsQustionsCard> {
                 transitionBuilder: (child, animation) =>
                     ScaleTransition(scale: animation, child: child),
                 child: isLiked
-                    ? Image.asset(
-                        Assets.assetsImagesIcHeartFilled,
-                        key: ValueKey('filled_${widget.post.id}'),
-                        height: 21.h,
-                        width: 21.w,
-                      )
-                    : Image.asset(
-                        Assets.assetsImagesIcHeart,
-                        key: ValueKey('outline_${widget.post.id}'),
-                        height: 21.h,
-                        width: 21.w,
+                    ? AppIcons.filledHeart(key: const ValueKey('filled'))
+                    : AppIcons.outlineHeart(
+                        key: const ValueKey('outline'),
                         color: Theme.of(
                           context,
-                        ).colorScheme.onSurface.withOpacity(0.6),
+                        ).colorScheme.onBackground.withOpacity(0.6),
                       ),
               ),
               SizedBox(width: 3.w),
@@ -419,10 +393,10 @@ class _ThingsQustionsCardState extends State<ThingsQustionsCard> {
           onTap: widget.onCommentsIconTap,
           child: Row(
             children: [
-              Icon(
-                FeatherIcons.messageSquare,
-                size: 20.sp,
-                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+              AppIcons.commnetBox(
+                color: Theme.of(
+                  context,
+                ).colorScheme.onBackground.withOpacity(0.6),
               ),
               SizedBox(width: 3.w),
               Text(
@@ -441,10 +415,8 @@ class _ThingsQustionsCardState extends State<ThingsQustionsCard> {
         SizedBox(width: 8.w),
         GestureDetector(
           onTap: () {},
-          child: Icon(
-            FeatherIcons.send,
-            size: 18.3.sp,
-            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+          child: AppIcons.sharePost(
+            color: Theme.of(context).colorScheme.onBackground.withOpacity(0.7),
           ),
         ),
       ],
@@ -458,15 +430,13 @@ class _ThingsQustionsCardState extends State<ThingsQustionsCard> {
     final ApiService apiService = ApiService();
     final totalVotes = int.tryParse(pollQuestion.totalVotes) ?? 0;
     final pollKey = pollQuestion.id.toString();
-    final hasUserPolled =
-        widget.pollPolledStates[pollKey] ?? false; // ✅ from parent
+    final hasUserPolled = widget.pollPolledStates[pollKey] ?? false;
     final areAllSelected = _areAllPollOptionsSelected(pollQuestion);
     final isVoting = pollVotingStates[pollKey] ?? false;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // ── Header ────────────────────────────────────────────────────────
         Row(
           children: [
             CircleAvatar(
@@ -529,8 +499,6 @@ class _ThingsQustionsCardState extends State<ThingsQustionsCard> {
           ],
         ),
         SizedBox(height: 5.h),
-
-        // ── Question ──────────────────────────────────────────────────────
         Text(
           pollQuestion.question,
           style: TextStyle(
@@ -540,8 +508,6 @@ class _ThingsQustionsCardState extends State<ThingsQustionsCard> {
           ),
         ),
         SizedBox(height: 8.h),
-
-        // ── Options ───────────────────────────────────────────────────────
         if (pollQuestion.options != null)
           ...pollQuestion.options!.asMap().entries.map(
             (entry) => _buildPollOption(
@@ -554,7 +520,6 @@ class _ThingsQustionsCardState extends State<ThingsQustionsCard> {
             ),
           ),
 
-        // ── Submit button (shown when all options selected & not yet polled) ─
         AnimatedSwitcher(
           duration: const Duration(milliseconds: 300),
           transitionBuilder: (child, animation) => ScaleTransition(
@@ -606,7 +571,22 @@ class _ThingsQustionsCardState extends State<ThingsQustionsCard> {
                 )
               : const SizedBox.shrink(),
         ),
-        SizedBox(height: 5.h),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: [
+            GestureDetector(
+              onTap: () => widget.onViewVotesTap(pollQuestion, widget.post.id),
+              child: Text(
+                'View votes',
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.primary,
+                  fontSize: 10.sp,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          ],
+        ),
       ],
     );
   }
@@ -631,17 +611,17 @@ class _ThingsQustionsCardState extends State<ThingsQustionsCard> {
 
     return GestureDetector(
       onTap: hasUserPolled
-          ? null // Already voted — no interaction
+          ? null 
           : () => _toggleOption(pollKey, optionIndex),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 250),
         curve: Curves.easeInOut,
         margin: EdgeInsets.only(bottom: 10.h),
-        height: 23.h,
+        height: 27.h,
         width: double.infinity,
         decoration: BoxDecoration(
           color: isDarkMode ? const Color(0xFF242831) : const Color(0xFFF5F6F7),
-          borderRadius: BorderRadius.circular(10.r),
+          borderRadius: BorderRadius.circular(AppRadius.button),
           border: Border.all(
             color: isSelected && !hasUserPolled
                 ? Theme.of(context).colorScheme.primary.withOpacity(0.5)
@@ -653,7 +633,6 @@ class _ThingsQustionsCardState extends State<ThingsQustionsCard> {
         ),
         child: Stack(
           children: [
-            // ── Progress bar (after voting) ────────────────────────────
             if (showPercentage && percentage > 0)
               Positioned.fill(
                 child: TweenAnimationBuilder<double>(
@@ -669,16 +648,15 @@ class _ThingsQustionsCardState extends State<ThingsQustionsCard> {
                         color: isDarkMode
                             ? const Color(0xFF30353D)
                             : const Color(0xFFE8E8E8),
-                        borderRadius: BorderRadius.circular(10.r),
+                        borderRadius: BorderRadius.circular(AppRadius.button),
                       ),
                     ),
                   ),
                 ),
               ),
 
-            // ── Content ───────────────────────────────────────────────
             Padding(
-              padding: EdgeInsets.fromLTRB(8.w, 4.h, 8.w, 0),
+              padding: EdgeInsets.fromLTRB(8.w, 3.h, 8.w, 0),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -694,7 +672,7 @@ class _ThingsQustionsCardState extends State<ThingsQustionsCard> {
                       ),
                     ),
                   ),
-                  // Right indicator: percentage after voted, number while selecting
+
                   if (showPercentage)
                     TweenAnimationBuilder<int>(
                       key: ValueKey('pct_${poll.id}_${option.id}_$percentage'),
@@ -717,7 +695,7 @@ class _ThingsQustionsCardState extends State<ThingsQustionsCard> {
                       '$selectionNumber',
                       style: TextStyle(
                         color: Theme.of(context).colorScheme.primary,
-                        fontSize: 11.5.sp,
+                        fontSize: 10.5.sp,
                         fontWeight: FontWeight.bold,
                       ),
                     ),

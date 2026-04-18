@@ -3,7 +3,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
-import '../../../../../core/constants/app_images.dart';
+import '../../../../../gen/assets.gen.dart';
+
 
 Widget statTile(IconData icon, String value, VoidCallback onTap) {
   return GestureDetector(
@@ -18,7 +19,7 @@ Widget statTile(IconData icon, String value, VoidCallback onTap) {
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Image.asset(
-                Assets.assetsImagesCurrentUser,
+                Assets.images.currentUser.path,
                 height: 18.5.h,
                 width: 18.5.w,
               ),
@@ -26,7 +27,7 @@ Widget statTile(IconData icon, String value, VoidCallback onTap) {
               Icon(icon, size: 20.spMax, color: Colors.white.withOpacity(0.8)),
               SizedBox(height: 2.h),
               Image.asset(
-                Assets.assetsImagesAddUsers,
+                Assets.images.addUsers.path,
                 height: 18.5.h,
                 width: 18.5.w,
               ),

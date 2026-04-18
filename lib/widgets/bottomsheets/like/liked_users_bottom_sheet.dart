@@ -5,10 +5,12 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:polzet_app/api/services/api_service.dart';
 
 import '../../../core/constants/app_colors.dart';
+import '../../../core/constants/app_radius.dart';
 import '../../../languages/l10n/generated/app_localizations.dart';
 import '../../../models/like/like_uers_model.dart';
 import '../../base64/image_convert.dart';
 import '../../custom_text_styles.dart';
+import '../../loader.dart';
 
 class LikedUsersBottomSheet extends StatefulWidget {
   final int postId;
@@ -92,9 +94,9 @@ class _LikedUsersBottomSheetState extends State<LikedUsersBottomSheet> {
       height: MediaQuery.of(context).size.height * 0.8,
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surface,
-        borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(20.r),
-          topRight: Radius.circular(20.r),
+        borderRadius: const BorderRadius.only(
+          topLeft: Radius.circular(AppRadius.modal),
+          topRight: Radius.circular(AppRadius.modal),
         ),
       ),
       child: Column(
@@ -114,12 +116,8 @@ class _LikedUsersBottomSheetState extends State<LikedUsersBottomSheet> {
             ),
             child: Center(
               child: Text(
-               AppLocalizations.of(context)!.likes,
-                style: TextStyle(
-                  color: Theme.of(context).colorScheme.onBackground,
-                  fontSize: 12.5.sp,
-                  fontWeight: FontWeight.w600,
-                ),
+                AppLocalizations.of(context)!.likes,
+                style: CustomTextStyles.bottomsheetTitleTextStyle(context),
               ),
             ),
           ),
@@ -186,13 +184,15 @@ class _LikedUsersBottomSheetState extends State<LikedUsersBottomSheet> {
           // List of users who liked
           Expanded(
             child: _isLoading
-                ? const Center(child: CircularProgressIndicator())
+                ? Center(
+                    child: Loader(color: Theme.of(context).colorScheme.primary),
+                  )
                 : _filteredUsers.isEmpty
                 ? Center(
                     child: Text(
                       _searchController.text.trim().isEmpty
                           ? AppLocalizations.of(context)!.nolikesthispost
-                          :  AppLocalizations.of(context)!.nousersfound,
+                          : AppLocalizations.of(context)!.nousersfound,
                       style: TextStyle(
                         fontSize: 12.sp,
                         color: Theme.of(

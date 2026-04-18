@@ -25,7 +25,7 @@ class PublicProfileProvider extends ChangeNotifier {
   Future<void> fetchPublicUserProfile(int userId) async {
     _isLoading = true;
     _error = null;
-    _errorType = ProfileErrorType.none; // ✅
+    _errorType = ProfileErrorType.none;
     notifyListeners();
 
     try {
@@ -46,7 +46,6 @@ class PublicProfileProvider extends ChangeNotifier {
       debugPrint('Error fetching public profile: $e');
       final msg = e.toString();
 
-      // ✅ Detect error type
       if (msg.contains('Network error') ||
           msg.contains('SocketException') ||
           msg.contains('connection') ||
@@ -72,7 +71,6 @@ class PublicProfileProvider extends ChangeNotifier {
     }
   }
 
-  /// Parse error message to show user-friendly text
   String _parseErrorMessage(String error) {
     if (error.contains('Network error')) {
       return 'Network error. Please check your connection.';
@@ -84,16 +82,12 @@ class PublicProfileProvider extends ChangeNotifier {
     return 'An unexpected error occurred.';
   }
 
-  /// Sends a friend request to a user
-  /// Note: This uses instance method from ApiService
   Future<bool> sendFriendRequest(String username) async {
     try {
-      // Create instance of ApiService for instance methods
       final apiService = ApiService();
       bool result = await apiService.sendFriendRequest(username);
 
       if (result && _userProfile != null) {
-        // Optionally update local state after successful friend request
         notifyListeners();
       }
 
@@ -105,16 +99,12 @@ class PublicProfileProvider extends ChangeNotifier {
     }
   }
 
-  /// Unfriend a user
-  /// Note: This uses instance method from ApiService
   Future<Map<String, dynamic>> unfriend(int userId) async {
     try {
-      // Create instance of ApiService for instance methods
       final apiService = ApiService();
       final response = await apiService.unfriend(userId);
 
       if (response['status'] == 'success' && _userProfile != null) {
-        // Optionally update local state after successful unfriend
         notifyListeners();
       }
 
@@ -125,8 +115,6 @@ class PublicProfileProvider extends ChangeNotifier {
     }
   }
 
-  /// Updates the follow status locally (optimistic update)
-  /// This allows immediate UI feedback while API request is processing
   void updateFollowStatus(String newStatus) {
     if (_userProfile != null) {
       _userProfile = _userProfile!.copyWith(followStatus: newStatus);
@@ -134,7 +122,6 @@ class PublicProfileProvider extends ChangeNotifier {
     }
   }
 
-  /// Updates isFriend status locally
   void updateFriendStatus(bool isFriend) {
     if (_userProfile != null) {
       _userProfile = _userProfile!.copyWith(isFriend: isFriend);
@@ -142,7 +129,6 @@ class PublicProfileProvider extends ChangeNotifier {
     }
   }
 
-  /// Updates follower count (e.g., after follow/unfollow)
   void updateFollowerCount(int delta) {
     if (_userProfile != null) {
       final newCount = _userProfile!.followersCount + delta;
@@ -153,7 +139,6 @@ class PublicProfileProvider extends ChangeNotifier {
     }
   }
 
-  /// Clears the current profile data
   void clearProfile() {
     _profileResponse = null;
     _userProfile = null;
@@ -162,7 +147,6 @@ class PublicProfileProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Resets only the error state
   void clearError() {
     _error = null;
     notifyListeners();

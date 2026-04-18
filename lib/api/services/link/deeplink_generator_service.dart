@@ -18,7 +18,7 @@ class DeepLinkService {
   Uri? _initialLink;
   Function(String username, String postId)? _onPostLinkReceived;
 
-  /// Parameters: username, postId
+  /*---- Parameters: username, postId ----*/
   Future<void> initialize({
     required Function(String username, String postId) onPostLinkReceived,
   }) async {
@@ -27,14 +27,12 @@ class DeepLinkService {
     try {
       _initialLink = await _appLinks.getInitialLink();
       if (_initialLink != null) {
-       // debugPrint('Initial deep link: $_initialLink');
         _handleDeepLink(_initialLink!);
       }
     } catch (e) {
       debugPrint('Error getting initial link: $e');
     }
 
-    // Listen for links while the app is running
     _sub = _appLinks.uriLinkStream.listen(
       (Uri uri) {
         debugPrint('Deep link received while app running: $uri');
@@ -46,13 +44,13 @@ class DeepLinkService {
     );
   }
 
-  /// Parse and handle deep link
+  /*---- Parse and handle deep link ----*/
   void _handleDeepLink(Uri uri) {
     try {
       if (uri.host == 'www.polzet.com') {
         _handleHttpsLink(uri);
       }
-      // Handle custom scheme polzet://post/{username}/{postId}
+      // Generate custom scheme polzet url://post/{username}/{postId}
       else if (uri.scheme == 'polzet' && uri.host == 'post') {
         _handleCustomScheme(uri);
       } else {
@@ -105,10 +103,8 @@ class DeepLinkService {
     }
   }
 
-  /// Check if there's an initial link when app starts
   Uri? get initialLink => _initialLink;
 
-  /// Dispose the service
   void dispose() {
     _sub?.cancel();
     _sub = null;
@@ -116,7 +112,6 @@ class DeepLinkService {
   }
 
   /// Generate a shareable HTTPS link for a post
-  ///
   /// [username] - Username of the post author
   /// [postId] - ID of the post
   ///
@@ -126,7 +121,6 @@ class DeepLinkService {
   }
 
   /// Generate a custom scheme link for a post (fallback)
-  ///
   /// [username] - Username of the post author
   /// [postId] - ID of the post
   ///
@@ -149,31 +143,21 @@ class DeepLinkService {
 
     try {
       if (Platform.isAndroid) {
-        // ✅ Use native Android method channel for custom title
         const platform = MethodChannel('com.polzet_app/share');
         await platform.invokeMethod('sharePost', {
           'url': postLink,
-          'title': 'Sharing post',  // ✅ This will show in Android share sheet
+          'title': 'Share post',
         });
-        debugPrint('✅ Shared via native Android with title: Sharing post');
       } else {
         // iOS fallback
-        await Share.share(
-          postLink,
-          subject: 'Sharing post',
-        );
-        debugPrint('✅ Shared via iOS share');
+        await Share.share(postLink, subject: 'Share post');
       }
     } catch (e) {
-      debugPrint('❌ Native share failed: $e');
-      debugPrint('🔄 Falling back to share_plus...');
-      // Fallback to share_plus if native fails
       await Share.share(postLink);
     }
   }
 
   /// Share post with custom message
-  ///
   /// [username] - Username of the post author
   /// [postId] - ID of the post
   /// [message] - Custom message to include with the link
@@ -190,18 +174,12 @@ class DeepLinkService {
         const platform = MethodChannel('com.polzet_app/share');
         await platform.invokeMethod('sharePost', {
           'url': shareText,
-          'title': 'Sharing post',
+          'title': 'Share post',
         });
-        debugPrint('✅ Shared with message via native Android');
       } else {
-        await Share.share(
-          shareText,
-          subject: 'Sharing post',
-        );
-        debugPrint('✅ Shared with message via iOS');
+        await Share.share(shareText, subject: 'Share post');
       }
     } catch (e) {
-      debugPrint('❌ Share with message failed: $e');
       await Share.share(shareText);
     }
   }

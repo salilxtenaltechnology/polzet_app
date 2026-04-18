@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-
 class HomeFeedResponse {
   final int count;
   final String? next;

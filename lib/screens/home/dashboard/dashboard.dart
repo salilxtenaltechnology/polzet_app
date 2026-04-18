@@ -18,8 +18,6 @@ class DashboardState extends State<Dashboard> with UtilityMixin {
   String? errorMessage;
 
   final Set<int> _chasedUserIds = {};
-
-  // ── Pagination ─────────────────────────────────────────────────────────────
   bool _isLoadingMore = false;
   bool _hasMoreData = true;
   String? _nextPageUrl;
@@ -28,16 +26,6 @@ class DashboardState extends State<Dashboard> with UtilityMixin {
   final StreamController<List<HomeFeedPost>> _postsStreamController =
       StreamController<List<HomeFeedPost>>.broadcast();
 
-  final List<Category> categories = [
-    Category(name: 'Sports', icon: Icons.sports_soccer),
-    Category(name: 'Movie', icon: Icons.movie),
-    Category(name: 'Tech', icon: Icons.laptop),
-    Category(name: 'Trending polls', icon: Icons.trending_up),
-    Category(name: 'Music', icon: Icons.music_note),
-    Category(name: 'Gaming', icon: Icons.games),
-  ];
-
-  // Cache configuration
   static const String _cacheKey = 'home_feed_cache';
   static const String _cacheTimeKey = 'home_feed_cache_time';
   static const Duration _cacheValidDuration = Duration(minutes: 10);
@@ -50,8 +38,6 @@ class DashboardState extends State<Dashboard> with UtilityMixin {
     _scrollController.addListener(_onScroll);
     _suggestionsFuture = apiService.fetchUserSuggestions();
     _loadInitialData();
-    // ✅ No connectivity listener here — ConnectivityOverlay handles UI globally.
-    //    Auto-refresh on reconnect is driven by ConnectivityProvider via overlay.
   }
 
   @override
@@ -61,8 +47,6 @@ class DashboardState extends State<Dashboard> with UtilityMixin {
     _postsStreamController.close();
     super.dispose();
   }
-
-  // ── Scroll listener ────────────────────────────────────────────────────────
 
   void _onScroll() {
     if (!mounted) return;
@@ -74,8 +58,6 @@ class DashboardState extends State<Dashboard> with UtilityMixin {
     }
   }
 
-  // ── Load more ──────────────────────────────────────────────────────────────
-
   Future<void> _loadMorePosts() async {
     if (!mounted) return;
     if (_isLoadingMore || !_hasMoreData || _nextPageUrl == null) return;
@@ -83,7 +65,10 @@ class DashboardState extends State<Dashboard> with UtilityMixin {
     setState(() => _isLoadingMore = true);
 
     try {
-      final response = await ApiService.fetchHomeFeedPosts(url: _nextPageUrl, isPagination: true);
+      final response = await ApiService.fetchHomeFeedPosts(
+        url: _nextPageUrl,
+        isPagination: true,
+      );
       if (!mounted) return;
       setState(() {
         posts.addAll(response.results);
@@ -98,13 +83,10 @@ class DashboardState extends State<Dashboard> with UtilityMixin {
     }
   }
 
-  // ── Initial load ───────────────────────────────────────────────────────────
-
   Future<void> _loadInitialData() async {
     await _loadCachedPosts();
     fetchHomeFeed(showLoader: posts.isEmpty);
   }
-
 
   Future<void> _savePostsToCache(List<HomeFeedPost> postsToCache) async {
     try {
@@ -136,7 +118,10 @@ class DashboardState extends State<Dashboard> with UtilityMixin {
           }
         }
 
-        final List<dynamic> jsonList = await compute(_decodePostsBackground, cachedJsonString);
+        final List<dynamic> jsonList = await compute(
+          _decodePostsBackground,
+          cachedJsonString,
+        );
         final cachedPosts = jsonList
             .map((json) => HomeFeedPost.fromJson(json as Map<String, dynamic>))
             .toList();
@@ -153,8 +138,6 @@ class DashboardState extends State<Dashboard> with UtilityMixin {
       debugPrint('Error loading cached posts: $e');
     }
   }
-
-  // ── Fetch (first page) ─────────────────────────────────────────────────────
 
   Future<void> fetchHomeFeed({bool showLoader = false}) async {
     if (!mounted) return;
@@ -284,8 +267,6 @@ class DashboardState extends State<Dashboard> with UtilityMixin {
     _postsStreamController.add(List.from(posts));
   }
 
-  // ── Build ──────────────────────────────────────────────────────────────────
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -296,7 +277,9 @@ class DashboardState extends State<Dashboard> with UtilityMixin {
 
   Widget _buildBody() {
     if (isLoading && isInitialLoad) {
-      return const HomeFeedSimmer();
+      return Center(
+        child: Loader(color: Theme.of(context).colorScheme.primary),
+      );
     }
 
     if (errorMessage != null && posts.isEmpty) {
@@ -333,7 +316,9 @@ class DashboardState extends State<Dashboard> with UtilityMixin {
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting &&
               posts.isEmpty) {
-            return const HomeFeedSimmer();
+            return Center(
+              child: Loader(color: Theme.of(context).colorScheme.primary),
+            );
           }
 
           final currentPosts = snapshot.data ?? posts;
@@ -442,7 +427,9 @@ class DashboardState extends State<Dashboard> with UtilityMixin {
                               ),
                               child: Center(
                                 child: Text(
-                                  AppLocalizations.of(context)!.completeprofilesetup,
+                                  AppLocalizations.of(
+                                    context,
+                                  )!.completeprofilesetup,
                                   style: TextStyle(
                                     color: Colors.white,
                                     fontWeight: FontWeight.w600,
@@ -521,8 +508,6 @@ class DashboardState extends State<Dashboard> with UtilityMixin {
     );
   }
 }
-
-// ── Isolate Parsing Functions ────────────────────────────────────────────────
 
 String _encodePostsBackground(List<dynamic> jsonList) {
   return jsonEncode(jsonList);

@@ -15,7 +15,6 @@ import 'package:http/http.dart' as http;
 import '../../data/token/shared_preferences.dart';
 import '../../mixin/utility_mixins.dart';
 import '../../models/global search/global_search_model.dart';
-import '../../models/hashtags/enhanced_trending_hashtags_model.dart';
 import '../../models/insights/insights_model.dart';
 import '../../models/like/like_uers_model.dart';
 import '../../models/message/message_model.dart';
@@ -24,7 +23,6 @@ import '../../models/posts/single_post_model.dart';
 import '../../models/posts/user_post_model.dart';
 import '../../models/public/public_profile_model.dart';
 import '../../models/search/hashtag/hashtag_posts_list_model.dart';
-import '../../models/search/search_user_model.dart';
 import '../../models/user/suggestionsb users/suggestions_users_model.dart';
 import '../../models/voters/top_voters_model.dart';
 import '../../provider/connection_provider.dart';
@@ -43,7 +41,6 @@ class ApiService with UtilityMixin {
   static final ApiService _instance = ApiService._internal();
   factory ApiService() => _instance;
   ApiService._internal() {
-    // Intercept API responses globally to detect 500 level errors for the ServerDown BottomSheet
     _dio.interceptors.add(
       InterceptorsWrapper(
         onError: (DioException e, handler) {
@@ -118,7 +115,6 @@ class ApiService with UtilityMixin {
     }
 
     // Only passthrough backend error string if it is a 4xx validation/client error.
-    // Otherwise, mask it behind the generic message to prevent leaking system errors.
     if (statusCode != null && statusCode >= 400 && statusCode < 500) {
       if (e.response?.data != null && e.response?.data is Map) {
         return e.response?.data['message']?.toString() ??
@@ -171,13 +167,14 @@ class ApiService with UtilityMixin {
 
         if (context.mounted) {
           Provider.of<UserProvider>(context, listen: false);
-          Navigator.pushReplacement(
+          Navigator.pushAndRemoveUntil(
             context,
             PageTransition(
               type: PageTransitionType.fade,
               duration: const Duration(milliseconds: 200),
               child: const HomeScreen(),
             ),
+            (route) => false,
           );
         }
 
@@ -1029,40 +1026,6 @@ class ApiService with UtilityMixin {
     }
   }
 
-  /// Search users
-  Future<List<SearchUserModel>> searchUsers(String query) async {
-    try {
-      final response = await _dio.get(
-        ApiConstants.searchUsers,
-        queryParameters: {'q': query},
-        options: Options(headers: await _getAuthHeaders()),
-      );
-
-      if (response.statusCode == 200) {
-        final data = response.data;
-        if (data?['results'] != null) {
-          final results = data['results'] as List;
-          return results.map((e) => SearchUserModel.fromJson(e)).toList();
-        }
-        return [];
-      } else if (response.statusCode == 400) {
-        final errorMsg =
-            response.data['message'] ?? 'Please enter at least 2 characters';
-        throw Exception(errorMsg);
-      }
-      throw Exception('Failed to fetch users');
-    } on DioException catch (e) {
-      if (e.response?.statusCode == 400) {
-        final errorMsg =
-            e.response?.data['message'] ?? 'Please enter at least 2 characters';
-        throw Exception(errorMsg);
-      }
-      throw Exception(
-        _handleDioError(e, defaultMessage: 'Failed to search users'),
-      );
-    }
-  }
-
   Future<GlobalSearchModel?> globalSearch(String query) async {
     try {
       final response = await _dio.get(
@@ -1097,27 +1060,6 @@ class ApiService with UtilityMixin {
     }
   }
 
-  Future<EnhancedTrendingHashtagsModel> fetchEnhancedTrendingHashtags() async {
-    try {
-      final response = await _dio.get(
-        ApiConstants.enhancedTrendingHashtags,
-        options: Options(headers: await _getAuthHeaders()),
-      );
-
-      if (response.statusCode == 200) {
-        final jsonData = response.data as Map<String, dynamic>;
-
-        return EnhancedTrendingHashtagsModel.fromJson(jsonData);
-      }
-      throw Exception(
-        'Failed to load enhanced trending hashtags: ${response.statusCode}',
-      );
-    } on DioException catch (e) {
-      debugPrint('Error fetching enhanced trending hashtags: $e');
-      throw Exception('Error fetching enhanced trending hashtags: $e');
-    }
-  }
-
   /// Send friend request
   Future<bool> sendFriendRequest(String username) async {
     try {
@@ -1128,7 +1070,6 @@ class ApiService with UtilityMixin {
       );
 
       if (response.statusCode == 201 && response.data['status'] == 'success') {
-        // showToast(message: 'Friend request sent!');
         return true;
       }
       return false;
@@ -1138,7 +1079,7 @@ class ApiService with UtilityMixin {
     }
   }
 
-  /// Check friend request status
+  // Check friend request status
   Future<bool> checkFriendRequestStatus(String username) async {
     try {
       final response = await _dio.post(

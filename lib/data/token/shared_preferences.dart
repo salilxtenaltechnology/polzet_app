@@ -8,13 +8,12 @@ class SharedPrefService {
   static const String _languageCode = 'languageCode';
   static const String _userId = 'user_id';
   static const String _firstName = 'first_name';
-    static const String _email = 'email';
+  static const String _email = 'email';
 
   static const String _lastName = 'last_name';
   static const String _username = 'username';
   static const String _bio = 'bio';
 
-  // ─── TokenStorage (in-memory cache) ────────────────────────────────────────
   // Mirrors TokenStorage class — fast access without async for already-loaded tokens
   static String? _cachedAccessToken;
   static String? _cachedRefreshToken;
@@ -49,7 +48,7 @@ class SharedPrefService {
     return _cachedRefreshToken;
   }
 
-  /// Clear both tokens from memory and SharedPreferences (use on logout)
+  //*----- Clear Tokens (Memory and SharedPreferences) -----*/
   static Future<void> clearTokens() async {
     _cachedAccessToken = null;
     _cachedRefreshToken = null;
@@ -59,7 +58,6 @@ class SharedPrefService {
     await prefs.remove(_languageCode);
   }
 
-  // ─── FCM Token ──────────────────────────────────────────────────────────────
   static Future<void> saveFcmToken(String token) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_fcmToken, token);
@@ -75,7 +73,7 @@ class SharedPrefService {
     await prefs.remove(_fcmToken);
   }
 
-  // ─── Language ────────────────────────────────────────────────────────────────
+  //*-----Language -----*/
   static Future<void> saveLanguage(String code) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_languageCode, code);
@@ -91,14 +89,14 @@ class SharedPrefService {
     await prefs.remove(_languageCode);
   }
 
-  // ─── User Details ───────────────────────────────────────────────────────────
+  //*-----User Details -----*//
 
   Future<void> saveUserId(String id) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_userId, id);
   }
 
-   static Future<void> saveUserEmail(String email) async {
+  static Future<void> saveUserEmail(String email) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_email, email);
   }
@@ -153,7 +151,7 @@ class SharedPrefService {
     return prefs.getString(_bio);
   }
 
-  // ─── Update User Details ────────────────────────────────────────────────────
+  //*----- Update User Details -----*//
   Future<void> updateUserFirstname(String firstname) async =>
       saveUserFirstName(firstname);
 
@@ -164,7 +162,7 @@ class SharedPrefService {
 
   Future<void> updateUserBio(String bio) async => saveUserBio(bio);
 
-  // ─── Clear User Details ─────────────────────────────────────────────────────
+  //*----- Clear User Details -----*//
   static Future<void> clearFirstname() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_firstName);
@@ -185,7 +183,7 @@ class SharedPrefService {
     await prefs.remove(_bio);
   }
 
-  // ─── Full Logout (clear everything) ─────────────────────────────────────────
+  //*----- Full Logout (clear everything) -----*//
   static Future<void> clearAll() async {
     _cachedAccessToken = null;
     _cachedRefreshToken = null;
@@ -193,7 +191,7 @@ class SharedPrefService {
     await prefs.clear();
   }
 
-  // ─── Generic Helpers ────────────────────────────────────────────────────────
+  //*----- Generic Helpers -----*//
   static Future<void> setString(String key, String value) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(key, value);
@@ -214,12 +212,11 @@ class SharedPrefService {
     final isFirstLaunch = prefs.getBool(_firstLaunchKey) ?? true;
 
     if (isFirstLaunch) {
-      // 👇 clear tokens on fresh install
       _cachedAccessToken = null;
       _cachedRefreshToken = null;
       await prefs.remove(_accessKey);
       await prefs.remove(_refreshKey);
-      await prefs.setBool(_firstLaunchKey, false); // mark as launched
+      await prefs.setBool(_firstLaunchKey, false);
     }
   }
 }
