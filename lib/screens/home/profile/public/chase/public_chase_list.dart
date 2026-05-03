@@ -6,10 +6,13 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../../../../api/services/api_service.dart';
 import '../../../../../core/constants/app_colors.dart';
+import '../../../../../core/constants/app_constants.dart';
+import '../../../../../core/constants/app_radius.dart';
+import '../../../../../core/themes/app_text_styles.dart';
 import '../../../../../languages/l10n/generated/app_localizations.dart';
 import '../../../../../mixin/utility_mixins.dart';
+import '../../../../../widgets/appbar/common_appbar.dart';
 import '../../../../../widgets/base64/image_convert.dart';
-import '../../../../../widgets/button/back_button.dart';
 import '../../../../../widgets/custom_text_styles.dart';
 import '../../../../../widgets/loader.dart';
 import '../../../../../widgets/tabbar/indicatore_animation.dart';
@@ -121,17 +124,8 @@ class _PublicChaseListState extends State<PublicChaseList>
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.background,
-      appBar: AppBar(
-        leading: const PrimaryBackButton(),
-        title: Text(
-          widget.username ?? '',
-          style: CustomTextStyles.appBarTitleText(context),
-        ),
-        centerTitle: true,
-        backgroundColor: Theme.of(context).colorScheme.background,
-        surfaceTintColor: Theme.of(context).colorScheme.background,
-        toolbarHeight: 25.h,
-      ),
+      appBar: CommonAppBar(title: widget.username ?? ''),
+
       body: Column(
         children: [
           SizedBox(
@@ -164,19 +158,13 @@ class _PublicChaseListState extends State<PublicChaseList>
             ),
           ),
           Container(
-            height: 33.h,
+            height: AppConstants.searchbarHeight.h,
             width: double.infinity,
             margin: EdgeInsets.symmetric(vertical: 10.h, horizontal: 15.w),
             decoration: BoxDecoration(
               color: Theme.of(context).colorScheme.primaryContainer,
-              borderRadius: BorderRadius.circular(12.r),
-              boxShadow: const [
-                BoxShadow(
-                  color: Color(0x1C000000),
-                  blurRadius: 8,
-                  spreadRadius: 1,
-                ),
-              ],
+              borderRadius: BorderRadius.circular(AppRadius.button),
+              boxShadow: const [AppConstants.cardShadow],
             ),
             child: TextField(
               controller: _searchController,
@@ -200,14 +188,14 @@ class _PublicChaseListState extends State<PublicChaseList>
                       context,
                     ).colorScheme.onBackground.withOpacity(0.1),
                   ),
-                  borderRadius: BorderRadius.circular(13.r),
+                  borderRadius: BorderRadius.circular(AppRadius.button),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderSide: const BorderSide(
                     color: AppColors.primaryColor,
                     width: 0.7,
                   ),
-                  borderRadius: BorderRadius.circular(13.r),
+                  borderRadius: BorderRadius.circular(AppRadius.button),
                 ),
               ),
               style: TextStyle(
@@ -272,13 +260,13 @@ class _PublicChaseListState extends State<PublicChaseList>
         navigationPush(context, PublicProfile(userId: user['user_id']));
       },
       child: Container(
-        height: 35.h,
+        height: 40.h,
         width: double.infinity,
         padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
         margin: EdgeInsets.only(bottom: 10.h),
         decoration: BoxDecoration(
           color: Theme.of(context).colorScheme.primaryContainer,
-          borderRadius: BorderRadius.circular(12.r),
+          borderRadius: BorderRadius.circular(AppRadius.card),
           boxShadow: const [
             BoxShadow(color: Color(0x1C000000), blurRadius: 5, spreadRadius: 1),
           ],
@@ -286,15 +274,14 @@ class _PublicChaseListState extends State<PublicChaseList>
         child: Row(
           children: [
             _buildAvatar(userName, avatarUrl, isOnline),
-            SizedBox(width: 5.w),
+            const SizedBox(width: 5),
             Expanded(
               child: Text(
                 userName,
-                style: TextStyle(
+                style: AppTextStyles.bodyText.copyWith(
                   color: Theme.of(context).colorScheme.onBackground,
-                  fontSize: 11.sp,
-                  fontWeight: FontWeight.w400,
                 ),
+                overflow: TextOverflow.ellipsis,
               ),
             ),
           ],
@@ -358,7 +345,7 @@ class _PublicChaseListState extends State<PublicChaseList>
       child: Text(
         initial,
         style: TextStyle(
-          fontSize: 13.sp,
+          fontSize: 13,
           fontWeight: FontWeight.w500,
           color: Theme.of(context).primaryColor,
         ),

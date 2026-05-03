@@ -17,6 +17,8 @@ import 'delete_post_diolog.dart';
 import 'diolog_animation.dart';
 import 'leave_group.dart';
 import 'logout_dialog.dart';
+import 'notifications/clear_all_notifications_diolog.dart';
+import 'notifications/delete_notifications_diolog.dart';
 import 'notifications_diolog.dart';
 import 'report_chat_diolog.dart';
 
@@ -38,6 +40,16 @@ void showLoadingDialog(BuildContext context) {
 // notification timer diolog
 void showNotificationTimerDiolog(BuildContext context, VoidCallback onTap) {
   diologanimation(context, NotificationsDiolog(onPressed: onTap));
+}
+
+// clear all notifications diolog
+void showClearAllNotificationsDiolog(BuildContext context, VoidCallback onTap) {
+  diologanimation(context, ClearAllNotificationsDialog(onPressed: onTap));
+}
+
+// delete notifications diolog
+Future<bool?> showDeleteNotificationsDiolog(BuildContext context) {
+  return diologanimation<bool>(context, const DeleteNotificationsDialog());
 }
 
 // user delete post diolog

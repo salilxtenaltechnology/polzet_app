@@ -115,6 +115,8 @@ class PrivateChatProvider extends ChangeNotifier {
   bool _isBlocking = false;
   bool get isBlocking => _isBlocking;
 
+  int? currentUserId;
+
   void _emitMessages() {
     if (!_messagesStreamController.isClosed) {
       _messagesStreamController.add(List.unmodifiable(_messages));
@@ -164,6 +166,8 @@ class PrivateChatProvider extends ChangeNotifier {
     int? chatId,
     String? currentUsername,
   }) async {
+    final bool isNewChat = _chatId != chatId; // ← detect chat switch
+
     _memberName = memberName;
     _profileUrl = profileUrl;
     _chatId = chatId;
@@ -173,25 +177,36 @@ class PrivateChatProvider extends ChangeNotifier {
     } else {
       _currentUsername = await SharedPrefService.getUsername();
     }
-    debugPrint('👤 Current username: $_currentUsername');
+
+    final userIdStr = await SharedPrefService.getUserId();
+    currentUserId = userIdStr != null ? int.tryParse(userIdStr) : null;
+
+    if (isNewChat) {
+      _isMemberOnline = false;
+      _messages.clear();
+    }
 
     notifyListeners();
 
-    if (_chatId == null) {
-      return;
-    }
+    if (_chatId == null) return;
 
     await _loadCachedMessages();
-
     fetchMessageHistory();
 
     final token = await SharedPrefService.getToken();
     if (token != null && token.isNotEmpty) {
       _shouldReconnect = true;
-      await _connectPresenceSocket(token);
-      await _connectMessageSocket(token);
-    } else {
-      debugPrint('❌ PrivateChatProvider: No access token for WS');
+
+      // ✅ Reuse existing connections if same chat, reconnect if new chat
+      if (isNewChat || !_isPresenceConnected) {
+        await _connectPresenceSocket(token);
+      } else {
+        _requestMemberPresence(); // already connected, just re-ask
+      }
+
+      if (isNewChat || !_isMessageConnected) {
+        await _connectMessageSocket(token);
+      }
     }
 
     _startPolling();
@@ -214,8 +229,10 @@ class PrivateChatProvider extends ChangeNotifier {
       final fetched = response.results
           .map(
             (item) => ChatMessage(
+              id: item.id,
               text: item.message,
               created_at: item.created_at,
+              isRead: item.isRead,
               isSentByMe: _currentUsername != null
                   ? item.isSentBy(_currentUsername)
                   : false,
@@ -268,8 +285,10 @@ class PrivateChatProvider extends ChangeNotifier {
       final fetched = response.results
           .map(
             (item) => ChatMessage(
+              id: item.id,
               text: item.message,
               created_at: item.created_at,
+              isRead: item.isRead,
               isSentByMe: _currentUsername != null
                   ? item.isSentBy(_currentUsername)
                   : false,
@@ -312,8 +331,10 @@ class PrivateChatProvider extends ChangeNotifier {
       final fetched = response.results
           .map(
             (item) => ChatMessage(
+              id: item.id,
               text: item.message,
               created_at: item.created_at,
+              isRead: item.isRead,
               isSentByMe: item.isSentBy(_currentUsername),
             ),
           )
@@ -344,7 +365,7 @@ class PrivateChatProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final url = '$_wsBaseUrl/ws/chats/$_chatId/presence/?token=$token';
+      final url = '$_wsBaseUrl/ws/chat/private/$_chatId/?token=$token';
 
       _presenceChannel = WebSocketChannel.connect(Uri.parse(url));
       final presenceChannel = _presenceChannel;
@@ -367,6 +388,7 @@ class PrivateChatProvider extends ChangeNotifier {
       );
 
       _isPresenceConnected = true;
+      _requestMemberPresence();
       _isPresenceConnecting = false;
       _presenceReconnectAttempts = 0;
 
@@ -381,6 +403,13 @@ class PrivateChatProvider extends ChangeNotifier {
     }
   }
 
+  void _requestMemberPresence() {
+    final presence = _presenceChannel;
+    if (presence == null || !_isPresenceConnected) return;
+    presence.sink.add(jsonEncode({'action': 'get_presence'}));
+    debugPrint('📡 Requested member presence status');
+  }
+
   Future<void> _connectMessageSocket(String token) async {
     if (_isMessageConnecting || _isMessageConnected) return;
     if (_chatId == null) return;
@@ -389,7 +418,7 @@ class PrivateChatProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final url = '$_wsBaseUrl/ws/chat/$_chatId/?token=$token';
+      final url = '$_wsBaseUrl/ws/chat/private/$_chatId/?token=$token';
 
       _messageChannel = WebSocketChannel.connect(Uri.parse(url));
       final messageChannel = _messageChannel;
@@ -447,93 +476,132 @@ class PrivateChatProvider extends ChangeNotifier {
     _memberUserId = userId;
   }
 
-  void _onPresenceMessageReceived(dynamic raw) {
-    try {
-      final data = jsonDecode(raw as String) as Map<String, dynamic>;
+ void _onPresenceMessageReceived(dynamic raw) {
+  try {
+    final data = jsonDecode(raw as String) as Map<String, dynamic>;
+    final String type = data['type']?.toString() ?? '';
+    final int? userId = data['user_id'] as int?;
 
-      if (data['type'] == 'USER_JOINED_CHAT' ||
-          data['type'] == 'USER_LEFT_CHAT') {
-        final userId = data['user_id'];
-        if (userId == _memberUserId) {
-          _isMemberOnline = data['type'] == 'USER_JOINED_CHAT';
-          debugPrint('👤 Member online: $_isMemberOnline (${data['type']})');
-          notifyListeners();
-        }
+    if (type == 'presence_update') {
+      if (userId == null) return;
+
+      // ✅ Skip own presence entirely
+      if (userId == currentUserId) {
+        debugPrint('👤 Skipping own presence_update (userId=$userId)');
         return;
       }
 
-      if (data['action'] == 'typing') {
-        final userId = data['user_id'];
-        if (userId == _memberUserId) {
-          isMemberTyping = data['is_typing'] == true;
-          notifyListeners();
-        }
-        return;
+      // ✅ Only update if it's the member we're chatting with
+      if (userId == _memberUserId) {
+        _isMemberOnline = data['is_online'] == true;
+        debugPrint('👤 Member ($userId) online: $_isMemberOnline');
+        notifyListeners();
       }
-
-      if (data['type'] == 'presence_update') {
-        final userId = data['user_id'];
-        if (userId == _memberUserId) {
-          _isMemberOnline = data['is_online'] == true;
-          debugPrint('👤 Member online (presence_update): $_isMemberOnline');
-          notifyListeners();
-        }
-        return;
-      }
-
-      if (data['type'] == 'chat_message' || data['type'] == 'read_receipt') {
-        _onMessageReceived(raw);
-        return;
-      }
-    } catch (e) {
-      debugPrint('❌ Error parsing presence message: $e');
+      return;
     }
+
+    if (type == 'read_receipt') {
+      if (userId == null || userId == currentUserId) return;
+      if (userId == _memberUserId) {
+        final readAtStr = data['read_at']?.toString();
+        if (readAtStr != null) {
+          final readAtDttm = DateTime.tryParse(readAtStr)?.toLocal();
+          if (readAtDttm != null) {
+            bool changed = false;
+            for (int i = 0; i < _messages.length; i++) {
+              if (_messages[i].isSentByMe && !_messages[i].isRead && !_messages[i].created_at.isAfter(readAtDttm)) {
+                _messages[i] = ChatMessage(
+                  id: _messages[i].id,
+                  text: _messages[i].text,
+                  created_at: _messages[i].created_at,
+                  isSentByMe: true,
+                  isPending: false,
+                  isFailed: false,
+                  isRead: true,
+                );
+                changed = true;
+              }
+            }
+            if (changed) {
+              _saveCachedMessages();
+              _emitMessages();
+            }
+          }
+        }
+      }
+      return;
+    }
+
+    if (type == 'typing_status') {
+      if (userId == null || userId == currentUserId) return;
+      if (userId == _memberUserId) {
+        isMemberTyping = data['is_typing'] == true;
+        notifyListeners();
+      }
+      return;
+    }
+
+    if (type == 'typing_start' || type == 'typing_stop') {
+      if (userId == null || userId == currentUserId) return;
+      if (userId == _memberUserId) {
+        isMemberTyping = type == 'typing_start';
+        notifyListeners();
+      }
+      return;
+    }
+
+    if (type == 'new_message') {
+      _onMessageReceived(raw);
+      return;
+    }
+
+    debugPrint('⚠️ Unhandled presence type: $type');
+  } catch (e) {
+    debugPrint('❌ Error parsing presence message: $e');
   }
+}
 
   void _onMessageReceived(dynamic raw) {
     try {
       final data = jsonDecode(raw as String) as Map<String, dynamic>;
       final String type = data['type']?.toString() ?? '';
 
-      if (type == 'read_receipt') {
-        debugPrint(
-          '📖 Read receipt — chat: ${data['chat_id']}, '
-          'user: ${data['user_id']}, at: ${data['read_at']}',
-        );
-        return;
-      }
-
-      if (type == 'chat_message') {
+      if (type == 'new_message') {
         final msgMap = data['message'] as Map<String, dynamic>?;
-        if (msgMap == null) {
-          debugPrint('⚠️ chat_message received but "message" field is null');
-          return;
-        }
+        if (msgMap == null) return;
 
-        const encoder = JsonEncoder.withIndent('  ');
-        debugPrint('📦 PARSED CHAT MESSAGE:\n${encoder.convert(msgMap)}');
-
+        final int? serverId = msgMap['id'] as int?;
         final String text = msgMap['text']?.toString() ?? '';
         if (text.isEmpty) return;
 
+        // ✅ Deduplicate: ignore if message with same id already exists
+        if (serverId != null && _messages.any((m) => m.id == serverId)) {
+          debugPrint('⚠️ Duplicate message ignored: id=$serverId');
+          return;
+        }
+
         String? senderUsername;
+        int? senderId;
         if (msgMap['sender'] is Map) {
           senderUsername = (msgMap['sender'] as Map)['username']?.toString();
+          senderId = (msgMap['sender'] as Map)['id'] as int?;
         }
 
         final bool isSentByMe =
-            _currentUsername != null && senderUsername == _currentUsername;
+            currentUserId != null && senderId == currentUserId;
 
         final DateTime serverTimestamp =
             DateTime.tryParse(msgMap['created_at']?.toString() ?? '') ??
             DateTime.now();
 
+        // ✅ Confirm pending optimistic message instead of adding a new one
         if (isSentByMe) {
           final pendingIndex = _messages.lastIndexWhere(
             (m) => m.isSentByMe && m.isPending && m.text == text,
           );
           if (pendingIndex != -1) {
             _messages[pendingIndex] = ChatMessage(
+              id: serverId, // ← stamp the real id
               text: text,
               created_at: serverTimestamp,
               isSentByMe: true,
@@ -547,6 +615,7 @@ class PrivateChatProvider extends ChangeNotifier {
 
         _messages.add(
           ChatMessage(
+            id: serverId,
             text: text,
             created_at: serverTimestamp,
             isSentByMe: isSentByMe,
@@ -555,32 +624,43 @@ class PrivateChatProvider extends ChangeNotifier {
         );
         _saveCachedMessages();
         _emitMessages();
-        return;
       }
-
-      debugPrint('⚠️ Unknown WS message type: $type');
     } catch (e) {
       debugPrint('❌ Error parsing chat WS message: $e');
     }
   }
 
-  void sendTyping(bool isTyping) {
+  void sendTypingStart() {
     final presence = _presenceChannel;
     if (presence == null || !_isPresenceConnected) return;
-    presence.sink.add(jsonEncode({'action': 'typing', 'is_typing': isTyping}));
+    presence.sink.add(jsonEncode({'action': 'typing_start'}));
+  }
+
+  void sendTypingStop() {
+    final presence = _presenceChannel;
+    if (presence == null || !_isPresenceConnected) return;
+    presence.sink.add(jsonEncode({'action': 'typing_stop'}));
   }
 
   void onUserTyping() {
-    sendTyping(true);
+    sendTypingStart();
     _typingTimer?.cancel();
     _typingTimer = Timer(const Duration(seconds: 2), () {
-      sendTyping(false);
+      sendTypingStop();
     });
   }
 
   void stopTyping() {
     _typingTimer?.cancel();
-    sendTyping(false);
+    sendTypingStop();
+  }
+
+  void markAsRead() {
+    if (_presenceChannel != null && _isPresenceConnected) {
+      _presenceChannel!.sink.add(jsonEncode({'action': 'mark_read'}));
+    } else if (_messageChannel != null && _isMessageConnected) {
+      _messageChannel!.sink.add(jsonEncode({'action': 'mark_read'}));
+    }
   }
 
   void _handlePresenceDisconnection() {
@@ -677,15 +757,13 @@ class PrivateChatProvider extends ChangeNotifier {
       final cid = _chatId;
       if (cid != null) {
         if (_presenceChannel != null && _isPresenceConnected) {
-          _presenceChannel!.sink.add(jsonEncode({
-            'action': 'send_message',
-            'text': trimmed,
-          }));
+          _presenceChannel!.sink.add(
+            jsonEncode({'action': 'send_message', 'text': trimmed}),
+          );
         } else if (_messageChannel != null && _isMessageConnected) {
-          _messageChannel!.sink.add(jsonEncode({
-            'action': 'send_message',
-            'text': trimmed,
-          }));
+          _messageChannel!.sink.add(
+            jsonEncode({'action': 'send_message', 'text': trimmed}),
+          );
         } else {
           await ApiService().sendMessage(chatId: cid, text: trimmed);
         }

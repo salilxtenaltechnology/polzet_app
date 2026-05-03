@@ -12,19 +12,30 @@ import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../../api/app_api.dart';
+import '../../../../api/services/api_service.dart';
 import '../../../../data/token/shared_preferences.dart';
 import '../../../../provider/user_provider.dart';
-import '../../../api/api_config.dart';
+import '../../../../provider/private_chat_provider.dart';
+import '../../../../provider/group_chat_provider.dart';
+import '../../../core/constants/app_icons.dart';
+import '../../../core/constants/app_radius.dart';
+import '../../../core/themes/app_text_styles.dart';
 import '../../../languages/l10n/generated/app_localizations.dart';
 import '../../../mixin/utility_mixins.dart';
 import '../../../models/notifications/notification_model.dart';
 import '../../../models/request/incoming_request.dart';
 import '../../../models/user/user_model.dart';
+import '../../../widgets/appbar/common_appbar.dart';
+import '../../../widgets/button/request/friend_request_button.dart';
 import '../../../widgets/custom_text_styles.dart';
+import '../../../widgets/dialog/custom_diolog.dart';
 import '../../../widgets/loader.dart';
 import '../../../widgets/show_toast.dart';
 import '../../../widgets/tabbar/indicatore_animation.dart';
+import '../message/chat/group/group_chat_screen.dart';
+import '../message/chat/private/private_chat_screen.dart';
 import 'notification_details.dart';
+import 'poll_vote_notification_tile.dart';
 
 class Notifications extends StatefulWidget {
   const Notifications({super.key});
@@ -44,29 +55,76 @@ class NotificationState extends State<Notifications>
   UserModel? userModel;
   List<dynamic> incoming = [];
   bool _isDisposed = false;
+  int _currentPage = 1;
 
-  // Cache keys
   static const String _notificationsCacheKey = 'cached_notifications';
   static const String _friendRequestsCacheKey = 'cached_friend_requests';
 
-  // Stream controller for notifications
+  static final ValueNotifier<int> unreadNotificationCount = ValueNotifier<int>(
+    0,
+  );
+  static Timer? _globalPollingTimer;
+
+  static void startGlobalPolling() {
+    if (_globalPollingTimer != null) return;
+    _fetchUnreadCountGlobally();
+    _globalPollingTimer = Timer.periodic(
+      const Duration(seconds: 15),
+      (_) => _fetchUnreadCountGlobally(),
+    );
+  }
+
+  static void stopGlobalPolling() {
+    _globalPollingTimer?.cancel();
+    _globalPollingTimer = null;
+  }
+
+  static Future<void> _fetchUnreadCountGlobally() async {
+    try {
+      final dio = Dio();
+      final accessToken = await SharedPrefService.getToken();
+      final headers = {
+        'Authorization': 'Bearer ${accessToken ?? ''}',
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      };
+      final response = await dio.get(
+        ApiConstants.notifications,
+        options: Options(headers: headers),
+      );
+
+      if (response.data['results'] != null) {
+        final notificationsResponse = NotificationsResponse.fromJson(
+          response.data,
+        );
+        int unreadCount = notificationsResponse.results
+            .where((n) => !n.isRead)
+            .length;
+        unreadNotificationCount.value = unreadCount;
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('Error fetching global notification count: $e');
+      }
+    }
+  }
+
   final StreamController<List<NotificationItem>> _notificationStreamController =
       StreamController<List<NotificationItem>>.broadcast();
 
-  Timer? _refreshTimer;
-  bool _isLoadingFromNetwork = false;
-
-  final Map<String, Uint8List> _imageCache = {};
   List<NotificationItem> _lastNotifications = [];
 
-  // Pagination variables
+  final Map<String, Uint8List> _imageCache = {};
+  final ScrollController _allNotificationsScrollController = ScrollController();
+  final ScrollController _pollNotificationsScrollController =
+      ScrollController();
+
+  bool _isLoadingFromNetwork = false;
   bool _isLoadingMore = false;
   bool _hasMoreData = true;
   String? _nextPageUrl;
-  final ScrollController _allNotificationsScrollController = ScrollController();
-  final ScrollController _pollNotificationsScrollController = ScrollController();
 
-  // ── Auth headers ──────────────────────────────────────────────────────────
+  Timer? _refreshTimer;
 
   Future<Map<String, String>> _getAuthHeaders() async {
     final accessToken = await SharedPrefService.getToken();
@@ -77,32 +135,25 @@ class NotificationState extends State<Notifications>
     };
   }
 
-  // ── Cache ─────────────────────────────────────────────────────────────────
-
   Future<void> _loadNotificationsFromCache() async {
     if (_isDisposed) return;
-
     try {
       final prefs = await SharedPreferences.getInstance();
       final cachedData = prefs.getString(_notificationsCacheKey);
-
       if (_isDisposed) return;
 
       if (cachedData != null && cachedData.isNotEmpty) {
         final Map<String, dynamic> jsonData = json.decode(cachedData);
 
-        if (jsonData.containsKey('notifications') &&
-            jsonData['notifications'] != null) {
-          final notificationsResponse = NotificationsResponse.fromJson(jsonData);
-          _lastNotifications = notificationsResponse.notifications;
+        if (jsonData.containsKey('results') && jsonData['results'] != null) {
+          final notificationsResponse = NotificationsResponse.fromJson(
+            jsonData,
+          );
+          _lastNotifications = notificationsResponse.results;
 
           if (!_isDisposed && !_notificationStreamController.isClosed) {
             _notificationStreamController.add(_lastNotifications);
           }
-
-          // if (kDebugMode) {
-          //   print('Loaded ${notificationsResponse.notifications.length} notifications from cache');
-          // }
         }
       }
     } catch (e) {
@@ -114,10 +165,23 @@ class NotificationState extends State<Notifications>
     }
   }
 
-  Future<void> _saveNotificationsToCache(Map<String, dynamic> responseData) async {
+  Future<void> _saveNotificationsToCache(
+    List<NotificationItem> notifications,
+    Map<String, dynamic> rawResponse,
+  ) async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(_notificationsCacheKey, json.encode(responseData));
+      // Reconstruct a cache-friendly map that mirrors the API shape so
+      // _loadNotificationsFromCache can call NotificationsResponse.fromJson().
+      final Map<String, dynamic> cacheMap = {
+        'count': rawResponse['count'] ?? notifications.length,
+        'unread_count': rawResponse['unread_count'] ?? 0,
+        'page': rawResponse['page'] ?? 1,
+        'has_more': rawResponse['has_more'] ?? false,
+        // Use toJson() on every item so poll_details are included.
+        'results': notifications.map((n) => n.toJson()).toList(),
+      };
+      await prefs.setString(_notificationsCacheKey, json.encode(cacheMap));
     } catch (e) {
       if (kDebugMode) print('Error saving notifications to cache: $e');
     }
@@ -132,7 +196,6 @@ class NotificationState extends State<Notifications>
         final List<dynamic> jsonData = json.decode(cachedData);
         incoming = jsonData;
         final requests = jsonData.map((e) => IncomingData.fromJson(e)).toList();
-        // if (kDebugMode) print('Loaded ${requests.length} friend requests from cache');
         return requests;
       }
     } catch (e) {
@@ -145,13 +208,10 @@ class NotificationState extends State<Notifications>
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(_friendRequestsCacheKey, json.encode(requests));
-      // if (kDebugMode) print('Friend requests saved to cache');
     } catch (e) {
       if (kDebugMode) print('Error saving friend requests to cache: $e');
     }
   }
-
-  // ── Network fetches ───────────────────────────────────────────────────────
 
   Future<void> fetchNotifications({bool showLoader = false}) async {
     if (_isDisposed || !mounted) return;
@@ -168,37 +228,37 @@ class NotificationState extends State<Notifications>
 
       if (_isDisposed || !mounted) return;
 
-      if (response.data['status'] == 'success') {
-        if (response.data['notifications'] == null) {
-          debugPrint('⚠️ Notifications array is null in response');
-          return;
-        }
+      if (response.data['results'] != null) {
+        final notificationsResponse = NotificationsResponse.fromJson(
+          response.data,
+        );
 
-        await _saveNotificationsToCache(response.data);
+        // Build a NEW list — never mutate the existing one so StreamBuilder
+        // always receives a different reference and triggers a rebuild.
+        final List<NotificationItem> freshList = List<NotificationItem>.from(
+          notificationsResponse.results,
+        );
+
+        // Persist using model toJson() so poll_details are cached.
+        await _saveNotificationsToCache(freshList, response.data);
 
         if (_isDisposed || _notificationStreamController.isClosed) return;
 
-        try {
-          final notificationsResponse = NotificationsResponse.fromJson(response.data);
-          _lastNotifications = notificationsResponse.notifications;
-          _nextPageUrl = response.data['next'];
-          _hasMoreData = _nextPageUrl != null;
+        _lastNotifications = freshList;
+        _hasMoreData = notificationsResponse.hasMore;
+        _currentPage = notificationsResponse.page;
 
-          if (!_notificationStreamController.isClosed) {
-            _notificationStreamController.add(_lastNotifications);
-          }
-        } catch (parseError) {
-          if (kDebugMode) {
-            print('❌ Error parsing notifications: $parseError');
-            print('Response structure: ${response.data.keys}');
-            if (response.data['notifications'] != null) {
-              print('First notification: ${response.data['notifications'][0]}');
-            }
-          }
-          rethrow;
+        unreadNotificationCount.value = _lastNotifications
+            .where((n) => !n.isRead)
+            .length;
+
+        if (!_notificationStreamController.isClosed) {
+          _notificationStreamController.add(
+            List<NotificationItem>.from(_lastNotifications),
+          );
         }
       } else {
-        throw Exception('Failed to load notifications: ${response.data['message']}');
+        debugPrint('⚠️ Results array is null in response');
       }
     } catch (e, stackTrace) {
       if (kDebugMode) {
@@ -216,25 +276,50 @@ class NotificationState extends State<Notifications>
   }
 
   Future<void> _loadMoreNotifications() async {
-    if (_isLoadingMore || !_hasMoreData || _nextPageUrl == null) return;
+    if (_isLoadingMore || !_hasMoreData) return;
 
     setState(() => _isLoadingMore = true);
 
     try {
       final headers = await _getAuthHeaders();
+      final nextPage = _currentPage + 1;
+
       final response = await _dio.get(
-        _nextPageUrl!,
+        '${ApiConstants.notifications}?page=$nextPage',
         options: Options(headers: headers),
       );
 
-      if (response.data['status'] == 'success') {
-        final notificationsResponse = NotificationsResponse.fromJson(response.data);
-        _lastNotifications.addAll(notificationsResponse.notifications);
-        _nextPageUrl = response.data['next'];
-        _hasMoreData = _nextPageUrl != null;
+      if (response.data['results'] != null) {
+        final notificationsResponse = NotificationsResponse.fromJson(
+          response.data,
+        );
+
+        // Create a NEW list so StreamBuilder detects the change.
+        final List<NotificationItem> merged = [
+          ..._lastNotifications,
+          ...notificationsResponse.results,
+        ];
+
+        _lastNotifications = merged;
+        _hasMoreData = notificationsResponse.hasMore;
+        _currentPage = notificationsResponse.page;
+
+        // Persist merged list.
+        await _saveNotificationsToCache(merged, {
+          'count': merged.length,
+          'unread_count': merged.where((n) => !n.isRead).length,
+          'page': _currentPage,
+          'has_more': _hasMoreData,
+        });
+
+        unreadNotificationCount.value = _lastNotifications
+            .where((n) => !n.isRead)
+            .length;
 
         if (!_notificationStreamController.isClosed) {
-          _notificationStreamController.add(_lastNotifications);
+          _notificationStreamController.add(
+            List<NotificationItem>.from(_lastNotifications),
+          );
         }
       }
     } catch (e) {
@@ -291,7 +376,6 @@ class NotificationState extends State<Notifications>
     final accessToken = await SharedPrefService.getToken();
     var body = {'action': 'accept'};
     try {
-      if (kDebugMode) print('Accepting request: ${ApiConstants.acceptRequest}/$requestId');
       final response = await _dio.put(
         '${ApiConstants.acceptRequest}/$requestId',
         options: Options(
@@ -322,6 +406,25 @@ class NotificationState extends State<Notifications>
   }
 
   // ── Helpers ───────────────────────────────────────────────────────────────
+
+  String _getTimeCategory(DateTime date) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final yesterday = today.subtract(const Duration(days: 1));
+    final itemDate = DateTime(date.year, date.month, date.day);
+
+    if (itemDate == today || itemDate.isAfter(today)) {
+      return "Today";
+    } else if (itemDate == yesterday) {
+      return "Yesterday";
+    } else if (today.difference(itemDate).inDays <= 7) {
+      return "Last 7 days";
+    } else if (today.difference(itemDate).inDays <= 30) {
+      return "Last 30 days";
+    } else {
+      return "Older";
+    }
+  }
 
   String formatDateTime(String utcTime) {
     final date = DateTime.parse(utcTime).toLocal();
@@ -368,6 +471,11 @@ class NotificationState extends State<Notifications>
         return 'commented on your post';
       case 'VOTE':
         return 'voted on your poll';
+      case 'FRIEND_REQUEST':
+        return 'sent you a chase request';
+      case 'NEW_GROUP_ADDED':
+        final groupName = notification.meta?.groupName ?? 'the group';
+        return 'added you to the group $groupName.';
       default:
         return 'sent you a notification';
     }
@@ -396,13 +504,34 @@ class NotificationState extends State<Notifications>
     return name.trim()[0].toUpperCase();
   }
 
+  Color _getNotificationLineColor(String type) {
+    switch (type.toUpperCase()) {
+      case 'LIKE':
+        return const Color(0xFFFEA65B);
+      case 'COMMENT':
+        return const Color(0xFF30AB98);
+      case 'FOLLOW':
+        return const Color(0xFFF59E0B);
+      case 'FRIEND_REQUEST':
+        return const Color(0xFF7569D6);
+      case 'NEW_GROUP_ADDED':
+        return const Color(0xFF25282D);
+      default:
+        return const Color(0xFF9B3046);
+    }
+  }
+
   // ── Lifecycle ─────────────────────────────────────────────────────────────
 
   @override
   void initState() {
     super.initState();
     _isDisposed = false;
-    _tabController = TabController(length: 2, vsync: this);
+
+    final userProvider = Provider.of<UserProvider>(context, listen: false);
+    final isPrivate = userProvider.privacy_status ?? false;
+    final tabCount = isPrivate ? 3 : 2;
+    _tabController = TabController(length: tabCount, vsync: this);
 
     _tabController.addListener(() {
       if (_tabController.index == 0 && !_tabController.indexIsChanging) {
@@ -415,7 +544,9 @@ class NotificationState extends State<Notifications>
 
     _loadNotificationsFromCache().then((_) => fetchNotifications());
 
-    friendRequestsFuture = _loadFriendRequestsFromCache().then((cachedRequests) {
+    friendRequestsFuture = _loadFriendRequestsFromCache().then((
+      cachedRequests,
+    ) {
       getFriendRequests();
       return cachedRequests;
     });
@@ -424,7 +555,6 @@ class NotificationState extends State<Notifications>
     _refreshTimer = Timer.periodic(const Duration(seconds: 30), (timer) {
       if (!_isLoadingFromNetwork) fetchNotifications();
     });
-    // ✅ No connectivity listener — ConnectivityOverlay handles UI globally
   }
 
   @override
@@ -439,117 +569,72 @@ class NotificationState extends State<Notifications>
     super.dispose();
   }
 
-  // ── Build ─────────────────────────────────────────────────────────────────
-
   @override
   Widget build(BuildContext context) {
-    Provider.of<UserProvider>(context);
+    final userProvider = Provider.of<UserProvider>(context);
+    final isPrivate = userProvider.privacy_status ?? false;
 
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.background,
-      body: Padding(
-        padding: EdgeInsets.symmetric(horizontal: 12.w),
-        child: Column(
-          children: [
-            TabBar(
+      appBar: CommonAppBar(title: AppLocalizations.of(context)!.notifications),
+      body: Column(
+        children: [
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: 12.w),
+            child: TabBar(
               controller: _tabController,
               indicatorColor: Theme.of(context).colorScheme.primary,
               indicatorSize: TabBarIndicatorSize.tab,
-              labelColor: Theme.of(context).colorScheme.primary,
-              labelStyle: const TextStyle(fontWeight: FontWeight.w500),
+              labelColor: Theme.of(context).colorScheme.onBackground,
+              labelStyle: AppTextStyles.bodyText.copyWith(
+                fontSize: 15,
+                fontWeight: FontWeight.w500,
+              ),
               dividerColor: Colors.transparent,
               indicator: FadeUnderlineTabIndicator(),
               overlayColor: const WidgetStatePropertyAll(Colors.transparent),
-              unselectedLabelColor: Theme.of(context).colorScheme.onBackground,
+              unselectedLabelColor: const Color(0XFF8E8E8E),
               tabs: [
                 Tab(text: AppLocalizations.of(context)!.all),
                 Tab(text: AppLocalizations.of(context)!.poll),
+                if (isPrivate) Tab(text: AppLocalizations.of(context)!.request),
               ],
             ),
-            Expanded(
-              child: TabBarView(
-                
-                controller: _tabController,
-                children: [
-                  // ── All Notifications Tab ────────────────────────────
-                  RefreshIndicator(
-                    onRefresh: () async {
-                      _hasMoreData = true;
-                      _nextPageUrl = null;
-                      await fetchNotifications();
-                    },
-                    child: StreamBuilder<List<NotificationItem>>(
-                      stream: _notificationStreamController.stream,
-                      initialData: _lastNotifications.isNotEmpty
-                          ? _lastNotifications
-                          : null,
-                      builder: (context, snapshot) {
-                        if (snapshot.connectionState == ConnectionState.waiting &&
-                            (!snapshot.hasData ||
-                                snapshot.data == null ||
-                                snapshot.data!.isEmpty)) {
-                          return Center(
-                            child: Loader(
-                              color: Theme.of(context).colorScheme.primary,
-                            ),
-                          );
-                        }
+          ),
+          Expanded(
+            child: TabBarView(
+              controller: _tabController,
+              children: [
+                RefreshIndicator(
+                  onRefresh: () async {
+                    _hasMoreData = true;
+                    _currentPage = 1;
+                    _lastNotifications = [];
+                    await fetchNotifications();
+                  },
+                  child: StreamBuilder<List<NotificationItem>>(
+                    stream: _notificationStreamController.stream,
+                    initialData:
+                        _isLoadingFromNetwork && _lastNotifications.isEmpty
+                        ? null
+                        : _lastNotifications,
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting &&
+                          !snapshot.hasData) {
+                        return Center(
+                          child: Loader(
+                            color: Theme.of(context).colorScheme.primary,
+                          ),
+                        );
+                      }
 
-                        if (snapshot.hasData && snapshot.data!.isNotEmpty) {
-                          final notifications = snapshot.data!;
-                          return ListView.builder(
-                            controller: _allNotificationsScrollController,
-                            itemCount:
-                                notifications.length + (_hasMoreData ? 1 : 0),
-                            itemBuilder: (context, index) {
-                              if (index == notifications.length) {
-                                return Center(
-                                  child: Padding(
-                                    padding: EdgeInsets.all(16.h),
-                                    child: _isLoadingMore
-                                        ? Loader(
-                                            color: Theme.of(
-                                              context,
-                                            ).colorScheme.primary,
-                                          )
-                                        : const SizedBox.shrink(),
-                                  ),
-                                );
-                              }
+                      if (snapshot.hasError && !snapshot.hasData) {
+                        return _buildErrorWidget();
+                      }
 
-                              final notification = notifications[index];
-                              final post = notification.post;
-                              return _buildNotificationTile(
-                                notification: notification,
-                                post: post,
-                              );
-                            },
-                          );
-                        } else if (snapshot.connectionState ==
-                            ConnectionState.waiting) {
-                          return Center(
-                            child: Loader(
-                              color: Theme.of(context).colorScheme.primary,
-                            ),
-                          );
-                        } else if (snapshot.hasError &&
-                            (!snapshot.hasData ||
-                                snapshot.data == null ||
-                                snapshot.data!.isEmpty)) {
-                          return Center(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                const Text('Error loading notifications'),
-                                SizedBox(height: 16.h),
-                                ElevatedButton(
-                                  onPressed: fetchNotifications,
-                                  child: const Text('Retry'),
-                                ),
-                              ],
-                            ),
-                          );
-                        } else {
+                      if (snapshot.hasData) {
+                        final notifications = snapshot.data!;
+                        if (notifications.isEmpty) {
                           return Center(
                             child: Text(
                               'No notifications available',
@@ -557,238 +642,837 @@ class NotificationState extends State<Notifications>
                             ),
                           );
                         }
-                      },
-                    ),
-                  ),
+                        return ListView.builder(
+                          controller: _allNotificationsScrollController,
+                          itemCount:
+                              notifications.length + (_hasMoreData ? 1 : 0),
+                          itemBuilder: (context, index) {
+                            if (index == notifications.length) {
+                              return Center(
+                                child: Padding(
+                                  padding: EdgeInsets.all(16.h),
+                                  child: _isLoadingMore
+                                      ? Loader(
+                                          color: Theme.of(
+                                            context,
+                                          ).colorScheme.primary,
+                                        )
+                                      : const SizedBox.shrink(),
+                                ),
+                              );
+                            }
 
-                  // ── Poll Notifications Tab ───────────────────────────
-                  RefreshIndicator(
-                    onRefresh: () async {
-                      _hasMoreData = true;
-                      _nextPageUrl = null;
-                      await fetchNotifications();
-                    },
-                    child: StreamBuilder<List<NotificationItem>>(
-                      stream: _notificationStreamController.stream,
-                      initialData: _lastNotifications.isNotEmpty
-                          ? _lastNotifications
-                          : null,
-                      builder: (context, snapshot) {
-                        if (snapshot.connectionState == ConnectionState.waiting &&
-                            (!snapshot.hasData ||
-                                snapshot.data == null ||
-                                snapshot.data!.isEmpty)) {
-                          return Center(
-                            child: Loader(
-                              color: Theme.of(context).colorScheme.primary,
-                            ),
-                          );
-                        }
+                            final notification = notifications[index];
+                            final post = notification.post;
 
-                        if (snapshot.hasData && snapshot.data!.isNotEmpty) {
-                          final voteNotifications = snapshot.data!
-                              .where((n) => n.type == 'VOTE')
-                              .toList();
+                            final DateTime date = DateTime.parse(
+                              notification.createdAt.toString(),
+                            ).toLocal();
+                            final String category = _getTimeCategory(date);
 
-                          if (voteNotifications.isEmpty) {
-                            return Center(
-                              child: Text(
-                                'No vote notifications available',
-                                style: CustomTextStyles.lblSecondryText(context),
-                              ),
+                            bool showHeader = false;
+                            if (index == 0) {
+                              showHeader = true;
+                            } else {
+                              final prevNotification = notifications[index - 1];
+                              final DateTime prevDate = DateTime.parse(
+                                prevNotification.createdAt.toString(),
+                              ).toLocal();
+                              final String prevCategory = _getTimeCategory(
+                                prevDate,
+                              );
+                              if (category != prevCategory) {
+                                showHeader = true;
+                              }
+                            }
+
+                            return Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                if (showHeader)
+                                  Padding(
+                                    padding: EdgeInsets.fromLTRB(
+                                      12.w,
+                                      5.h,
+                                      12.w,
+                                      5.h,
+                                    ),
+                                    child: Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Text(
+                                          category,
+                                          style: TextStyle(
+                                            fontSize: 12.sp,
+                                            fontWeight: FontWeight.w600,
+                                            color: Theme.of(
+                                              context,
+                                            ).colorScheme.onBackground,
+                                          ),
+                                        ),
+                                        if (index == 0)
+                                          GestureDetector(
+                                            onTap: () =>
+                                                showClearAllNotificationsDiolog(
+                                                  context,
+                                                  () {
+                                                    Navigator.pop(context);
+                                                    _clearAllNotifications();
+                                                  },
+                                                ),
+                                            child: Text(
+                                              'Clear all',
+                                              style: TextStyle(
+                                                color: Theme.of(
+                                                  context,
+                                                ).colorScheme.primary,
+                                                fontWeight: FontWeight.w600,
+                                                fontSize: 12.sp,
+                                              ),
+                                            ),
+                                          ),
+                                      ],
+                                    ),
+                                  ),
+                                _buildNotificationTile(
+                                  notification: notification,
+                                  post: post,
+                                ),
+                              ],
                             );
-                          }
+                          },
+                        );
+                      }
+                      return const SizedBox.shrink();
+                    },
+                  ),
+                ),
 
-                          return ListView.builder(
-                            controller: _pollNotificationsScrollController,
-                            itemCount:
-                                voteNotifications.length +
-                                (_hasMoreData ? 1 : 0),
-                            itemBuilder: (context, index) {
-                              if (index == voteNotifications.length) {
-                                return Center(
-                                  child: Padding(
-                                    padding: EdgeInsets.all(16.h),
-                                    child: _isLoadingMore
-                                        ? Loader(
-                                            color: Theme.of(
-                                              context,
-                                            ).colorScheme.primary,
-                                          )
-                                        : const SizedBox.shrink(),
-                                  ),
-                                );
-                              }
+                // ── Poll Notifications Tab ───────────────────────────
+                RefreshIndicator(
+                  onRefresh: () async {
+                    _hasMoreData = true;
+                    _nextPageUrl = null;
+                    await fetchNotifications();
+                  },
+                  child: StreamBuilder<List<NotificationItem>>(
+                    stream: _notificationStreamController.stream,
+                    initialData:
+                        _isLoadingFromNetwork && _lastNotifications.isEmpty
+                        ? null
+                        : _lastNotifications,
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting &&
+                          !snapshot.hasData) {
+                        return Center(
+                          child: Loader(
+                            color: Theme.of(context).colorScheme.primary,
+                          ),
+                        );
+                      }
 
-                              final notification = voteNotifications[index];
-                              final post = notification.post;
-                              return _buildNotificationTile(
-                                notification: notification,
-                                post: post,
-                              );
-                            },
-                          );
-                        } else if (snapshot.connectionState ==
-                            ConnectionState.waiting) {
-                          return Center(
-                            child: Loader(
-                              color: Theme.of(context).colorScheme.primary,
-                            ),
-                          );
-                        } else if (snapshot.hasError &&
-                            (!snapshot.hasData ||
-                                snapshot.data == null ||
-                                snapshot.data!.isEmpty)) {
-                          return Center(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                const Text('Error loading notifications'),
-                                SizedBox(height: 16.h),
-                                ElevatedButton(
-                                  onPressed: fetchNotifications,
-                                  child: const Text('Retry'),
-                                ),
-                              ],
-                            ),
-                          );
-                        } else {
+                      if (snapshot.hasError && !snapshot.hasData) {
+                        return _buildErrorWidget();
+                      }
+
+                      if (snapshot.hasData) {
+                        final voteNotifications = snapshot.data!
+                            .where((n) => n.type == 'VOTE')
+                            .toList();
+
+                        if (voteNotifications.isEmpty) {
                           return Center(
                             child: Text(
-                              'No notifications available',
+                              'No vote notifications available',
                               style: CustomTextStyles.lblSecondryText(context),
                             ),
                           );
                         }
-                      },
+
+                        return ListView.builder(
+                          controller: _pollNotificationsScrollController,
+                          itemCount:
+                              voteNotifications.length + (_hasMoreData ? 1 : 0),
+                          itemBuilder: (context, index) {
+                            if (index == voteNotifications.length) {
+                              return Center(
+                                child: Padding(
+                                  padding: EdgeInsets.all(16.h),
+                                  child: _isLoadingMore
+                                      ? Loader(
+                                          color: Theme.of(
+                                            context,
+                                          ).colorScheme.primary,
+                                        )
+                                      : const SizedBox.shrink(),
+                                ),
+                              );
+                            }
+
+                            final notification = voteNotifications[index];
+
+                            final DateTime date = DateTime.parse(
+                              notification.createdAt.toString(),
+                            ).toLocal();
+                            final String category = _getTimeCategory(date);
+
+                            bool showHeader = false;
+                            if (index == 0) {
+                              showHeader = true;
+                            } else {
+                              final prevNotification =
+                                  voteNotifications[index - 1];
+                              final DateTime prevDate = DateTime.parse(
+                                prevNotification.createdAt.toString(),
+                              ).toLocal();
+                              if (_getTimeCategory(prevDate) != category) {
+                                showHeader = true;
+                              }
+                            }
+
+                            return Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                if (showHeader)
+                                  Padding(
+                                    padding: EdgeInsets.fromLTRB(
+                                      12.w,
+                                      5.h,
+                                      12.w,
+                                      5.h,
+                                    ),
+                                    child: Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Text(
+                                          category,
+                                          style: TextStyle(
+                                            fontSize: 12.sp,
+                                            fontWeight: FontWeight.w600,
+                                            color: Theme.of(
+                                              context,
+                                            ).colorScheme.onBackground,
+                                          ),
+                                        ),
+                                        if (index == 0)
+                                          GestureDetector(
+                                            onTap: () =>
+                                                showClearAllNotificationsDiolog(
+                                                  context,
+                                                  () {
+                                                    Navigator.pop(context);
+                                                    _clearAllNotifications();
+                                                  },
+                                                ),
+                                            child: Text(
+                                              'Clear all',
+                                              style: TextStyle(
+                                                color: Theme.of(
+                                                  context,
+                                                ).colorScheme.primary,
+                                                fontWeight: FontWeight.w600,
+                                                fontSize: 12.sp,
+                                              ),
+                                            ),
+                                          ),
+                                      ],
+                                    ),
+                                  ),
+                                // Use the rich PollVoteNotificationTile for VOTE
+                                if (notification.type.toUpperCase() == 'VOTE')
+                                  Dismissible(
+                                    key: Key(notification.id),
+                                    direction: DismissDirection.endToStart,
+                                    background: Container(
+                                      color: const Color(0xFFCA382D),
+                                      alignment: Alignment.centerRight,
+                                      padding: EdgeInsets.symmetric(
+                                        horizontal: 20.w,
+                                      ),
+                                      child: const Icon(
+                                        Icons.delete,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                    confirmDismiss: (direction) async {
+                                      final bool? result =
+                                          await showDeleteNotificationsDiolog(
+                                            context,
+                                          );
+                                      return result ?? false;
+                                    },
+                                    onDismissed: (direction) {
+                                      _deleteNotification(notification);
+                                    },
+                                    child: PollVoteNotificationTile(
+                                      key: ValueKey(notification.id),
+                                      notification: notification,
+                                      getUserImage: getUserImage,
+                                      timeAgo: notification.timeAgo.isNotEmpty
+                                          ? notification.timeAgo
+                                          : formatDateTime(
+                                              notification.createdAt.toString(),
+                                            ),
+                                      onTap: () {
+                                        if (!notification.isRead) {
+                                          _markAsRead(notification);
+                                        }
+                                        final post = notification.post;
+                                        if (post != null) {
+                                          navigationPush(
+                                            context,
+                                            NotificationDetails(
+                                              postId: post.postId,
+                                            ),
+                                          );
+                                        }
+                                      },
+                                    ),
+                                  )
+                                else
+                                  _buildNotificationTile(
+                                    notification: notification,
+                                    post: notification.post,
+                                    showVoteIcon: false,
+                                  ),
+                              ],
+                            );
+                          },
+                        );
+                      }
+                      return const SizedBox.shrink();
+                    },
+                  ),
+                ),
+
+                if (isPrivate) _buildRequestTab(),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRequestTab() {
+    return RefreshIndicator(
+      onRefresh: () async {
+        _hasMoreData = true;
+        _currentPage = 1;
+        _lastNotifications = [];
+        await fetchNotifications();
+      },
+      child: StreamBuilder<List<NotificationItem>>(
+        stream: _notificationStreamController.stream,
+        initialData: _isLoadingFromNetwork && _lastNotifications.isEmpty
+            ? null
+            : _lastNotifications,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting &&
+              !snapshot.hasData) {
+            return Center(
+              child: Loader(color: Theme.of(context).colorScheme.primary),
+            );
+          }
+
+          if (snapshot.hasError && !snapshot.hasData) {
+            return _buildErrorWidget();
+          }
+
+          if (snapshot.hasData) {
+            final requestNotifications = snapshot.data!
+                .where((n) => n.type.toUpperCase() == 'FRIEND_REQUEST')
+                .toList();
+
+            if (requestNotifications.isEmpty) {
+              return Center(
+                child: Text(
+                  'No chase requests',
+                  style: CustomTextStyles.lblSecondryText(context),
+                ),
+              );
+            }
+
+            return ListView.builder(
+              itemCount: requestNotifications.length,
+              itemBuilder: (context, index) {
+                final notification = requestNotifications[index];
+                return _buildTileWithHeader(
+                  notification: notification,
+                  list: requestNotifications,
+                  index: index,
+                );
+              },
+            );
+          }
+          return const SizedBox.shrink();
+        },
+      ),
+    );
+  }
+
+  Widget _buildTileWithHeader({
+    required NotificationItem notification,
+    required List<NotificationItem> list,
+    required int index,
+  }) {
+    final DateTime date = DateTime.parse(
+      notification.createdAt.toString(),
+    ).toLocal();
+    final String category = _getTimeCategory(date);
+
+    bool showHeader = false;
+    if (index == 0) {
+      showHeader = true;
+    } else {
+      final prevDate = DateTime.parse(
+        list[index - 1].createdAt.toString(),
+      ).toLocal();
+      if (_getTimeCategory(prevDate) != category) showHeader = true;
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (showHeader)
+          Padding(
+            padding: EdgeInsets.fromLTRB(12.w, 5.h, 12.w, 5.h),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  category,
+                  style: TextStyle(
+                    fontSize: 12.sp,
+                    fontWeight: FontWeight.w600,
+                    color: Theme.of(context).colorScheme.onBackground,
+                  ),
+                ),
+                if (index == 0)
+                  GestureDetector(
+                    onTap: () => showClearAllNotificationsDiolog(context, () {
+                      Navigator.pop(context);
+                      _clearAllNotifications();
+                    }),
+                    child: Text(
+                      'Clear all',
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.primary,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 12.sp,
+                      ),
                     ),
                   ),
-                ],
-              ),
+              ],
             ),
-          ],
+          ),
+        _buildNotificationTile(
+          notification: notification,
+          post: notification.post,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildErrorWidget() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Text('Error loading notifications'),
+          SizedBox(height: 16.h),
+          ElevatedButton(
+            onPressed: fetchNotifications,
+            child: const Text('Retry'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildNotificationTile({
+    required NotificationItem notification,
+    required dynamic post,
+    bool showVoteIcon = true,
+  }) {
+    final isFriendRequest = notification.type.toUpperCase() == 'FRIEND_REQUEST';
+
+    return Dismissible(
+      key: Key(notification.id),
+      direction: DismissDirection.endToStart,
+      background: Container(
+        color: const Color(0xFFCA382D),
+        alignment: Alignment.centerRight,
+        padding: EdgeInsets.symmetric(horizontal: 20.w),
+        child: const Icon(Icons.delete, color: Colors.white),
+      ),
+      confirmDismiss: (direction) async {
+        final bool? result = await showDeleteNotificationsDiolog(context);
+        return result ?? false;
+      },
+      onDismissed: (direction) {
+        _deleteNotification(notification);
+      },
+      child: GestureDetector(
+        onTap: () {
+          if (!notification.isRead) {
+            _markAsRead(notification);
+          }
+
+          if (isFriendRequest ||
+              notification.type.toUpperCase() == 'NEW_GROUP_ADDED') {
+            return;
+          }
+          if (post != null) {
+            navigationPush(context, NotificationDetails(postId: post.postId));
+          } else if (notification.type.toUpperCase() == 'FOLLOW') {
+            navigationPush(
+              context,
+              PublicProfile(userId: notification.actor.userId),
+            );
+          } else {
+            // ScaffoldMessenger.of(
+            //   context,
+            // ).showSnackBar(const SnackBar(content: Text('Post not available')));
+          }
+        },
+        child: Container(
+          padding: EdgeInsets.symmetric(vertical: 8.h, horizontal: 12.w),
+          decoration: BoxDecoration(
+            color: !notification.isRead
+                ? const Color(0xFFB3B2B2).withOpacity(0.1)
+                : Colors.transparent,
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (!notification.isRead)
+                Container(
+                  width: 2.w,
+                  height: 34.w,
+                  margin: EdgeInsets.only(right: 5.w),
+                  decoration: BoxDecoration(
+                    color: _getNotificationLineColor(notification.type),
+                    borderRadius: BorderRadius.circular(2.w),
+                  ),
+                )
+              else
+                SizedBox(width: 7.w),
+              GestureDetector(
+                onTap: () {
+                  navigationPush(
+                    context,
+                    PublicProfile(userId: notification.actor.userId),
+                  );
+                },
+                child: Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    (notification.actor.avatarUrl != null &&
+                            notification.actor.avatarUrl!.isNotEmpty)
+                        ? CircleAvatar(
+                            backgroundImage: MemoryImage(
+                              getUserImage(notification.actor.avatarUrl)!,
+                            ),
+                            radius: 17.w,
+                            onBackgroundImageError: (exception, stackTrace) {
+                              if (kDebugMode) {
+                                debugPrint('Error loading avatar: $exception');
+                              }
+                            },
+                          )
+                        : CircleAvatar(
+                            radius: 16.5.w,
+                            backgroundColor: Theme.of(
+                              context,
+                            ).colorScheme.primary.withOpacity(0.15),
+                            child: Text(
+                              getInitial(notification.actor.name),
+                              style: TextStyle(
+                                fontSize: 14.sp,
+                                fontWeight: FontWeight.w600,
+                                color: Theme.of(context).colorScheme.primary,
+                              ),
+                            ),
+                          ),
+                    if (notification.type.toUpperCase() == 'LIKE')
+                      Positioned(
+                        bottom: -3.h,
+                        right: -4.w,
+                        child: AppIcons.like(),
+                      ),
+                    if (notification.type.toUpperCase() == 'COMMENT')
+                      Positioned(
+                        bottom: -3.h,
+                        right: -4.w,
+                        child: AppIcons.icCommnet(),
+                      ),
+                    if (showVoteIcon &&
+                        notification.type.toUpperCase() == 'VOTE')
+                      Positioned(
+                        bottom: -1.h,
+                        right: -2.w,
+                        child: AppIcons.icVote(),
+                      ),
+                  ],
+                ),
+              ),
+              SizedBox(width: 8.w),
+
+              // ── Message + time ───────────────────────────────────────────
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    RichText(
+                      text: TextSpan(
+                        style: AppTextStyles.cardTitle.copyWith(
+                          color: Theme.of(context).colorScheme.onBackground,
+                          fontWeight: FontWeight.w500,
+                          fontSize: 14.5,
+                        ),
+                        children: <TextSpan>[
+                          TextSpan(
+                            text: notification.actor.name,
+                            style: AppTextStyles.bodyText.copyWith(
+                              color: Theme.of(context).colorScheme.onBackground,
+                              fontWeight: FontWeight.w600,
+                              fontSize: 14.5,
+                            ),
+                          ),
+                          TextSpan(
+                            text: ' ${getNotificationMessage(notification)}',
+                            style: AppTextStyles.bodyText.copyWith(
+                              color: Theme.of(context).colorScheme.onBackground,
+                              fontWeight: FontWeight.w500,
+                              fontSize: 14.5,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    SizedBox(height: 2.h),
+                    Text(
+                      formatDateTime(notification.createdAt.toString()),
+                      style: AppTextStyles.subText.copyWith(
+                        color: const Color(0xFF2c2c2c).withOpacity(0.7),
+                      ),
+                    ),
+
+                    if (isFriendRequest) ...[
+                      SizedBox(height: 8.h),
+                      FriendRequestButtons(
+                        notification: notification,
+                        onApprove: () => _handleFriendRequest(
+                          notification: notification,
+                          action: 'accept',
+                        ),
+                        onReject: () => _handleFriendRequest(
+                          notification: notification,
+                          action: 'reject',
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+
+              if (!isFriendRequest &&
+                  notification.post != null &&
+                  notification.post!.imageUrl != null &&
+                  notification.post!.imageUrl!.isNotEmpty)
+                Container(
+                  width: 35.w,
+                  height: 38.h,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(AppRadius.button),
+                    image: DecorationImage(
+                      image: NetworkImage(notification.post!.imageUrl!),
+                      fit: BoxFit.cover,
+                    ),
+                  ),
+                ),
+
+              if (notification.type.toUpperCase() == 'FOLLOW' ||
+                  notification.type.toUpperCase() == 'NEW_GROUP_ADDED')
+                GestureDetector(
+                  onTap: () {
+                    if (!notification.isRead) {
+                      _markAsRead(notification);
+                    }
+                    if (notification.type.toUpperCase() == 'FOLLOW') {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => ChangeNotifierProvider(
+                            create: (_) => PrivateChatProvider(),
+                            child: PrivateChatScreen(
+                              memberName: notification.actor.name,
+                              profileUrl: notification.actor.avatarUrl,
+                              userId: notification.actor.userId,
+                              chatId: notification.meta?.chatId,
+                            ),
+                          ),
+                        ),
+                      );
+                    } else {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => ChangeNotifierProvider(
+                            create: (_) => GroupChatProvider(),
+                            child: GroupChatScreen(
+                              groupName:
+                                  notification.meta?.groupName ??
+                                  notification.title,
+                              chatId: notification.meta?.chatId,
+                            ),
+                          ),
+                        ),
+                      );
+                    }
+                  },
+                  child: Container(
+                    height: 30.h,
+                    width: 75.w,
+                    margin: EdgeInsets.only(left: 5.w),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(AppRadius.button),
+                      border: Border.all(
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.outline.withOpacity(0.7),
+                      ),
+                    ),
+                    child: Center(
+                      child: Text(
+                        'Message',
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.onBackground,
+                          fontSize: 10.sp,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  // ── Shared notification tile ──────────────────────────────────────────────
-
-  Widget _buildNotificationTile({
+  Future<void> _handleFriendRequest({
     required NotificationItem notification,
-    required dynamic post,
-  }) {
-    return GestureDetector(
-      onTap: () {
-        if (post != null) {
-          navigationPush(context, NotificationDetails(postId: post.postId));
-        } else if (notification.type == 'FOLLOW') {
-          navigationPush(
-            context,
-            PublicProfile(userId: notification.actor.userId),
-          );
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Post not available')),
-          );
+    required String action,
+  }) async {
+    if (!notification.isRead) {
+      _markAsRead(notification);
+    }
+    final senderId = notification.meta?.senderId;
+    if (senderId == null) return;
+
+    try {
+      final headers = await _getAuthHeaders();
+      await _dio.put(
+        '${ApiConstants.acceptRequest}/$senderId',
+        data: {'action': action},
+        options: Options(headers: headers),
+      );
+
+      setState(() {
+        _lastNotifications.removeWhere((n) => n.id == notification.id);
+      });
+      _notificationStreamController.add(_lastNotifications);
+    } catch (e) {
+      if (kDebugMode) print('Error handling friend request: $e');
+      showToast(message: 'Failed. Please try again.');
+    }
+  }
+
+  Future<void> _markAsRead(NotificationItem notification) async {
+    if (notification.isRead) return;
+
+    // Optimistic UI Update
+    setState(() {
+      final index = _lastNotifications.indexWhere(
+        (n) => n.id == notification.id,
+      );
+      if (index != -1) {
+        _lastNotifications[index] = notification.copyWith(isRead: true);
+        _notificationStreamController.add(_lastNotifications);
+
+        if (unreadNotificationCount.value > 0) {
+          unreadNotificationCount.value -= 1;
         }
-      },
-      child: Container(
-        margin: EdgeInsets.fromLTRB(0, 5.h, 0, 0),
-        padding: EdgeInsets.fromLTRB(0, 5.h, 0, 5.h),
-        color: Colors.transparent,
-        child: Row(
-          children: [
-            (notification.actor.avatarUrl != null &&
-                    notification.actor.avatarUrl!.isNotEmpty)
-                ? CircleAvatar(
-                    backgroundImage: MemoryImage(
-                      getUserImage(notification.actor.avatarUrl)!,
-                    ),
-                    radius: 17.w,
-                    onBackgroundImageError: (exception, stackTrace) {
-                      if (kDebugMode) print('Error loading avatar: $exception');
-                    },
-                  )
-                : CircleAvatar(
-                    radius: 17.w,
-                    backgroundColor: Theme.of(context)
-                        .colorScheme
-                        .primary
-                        .withOpacity(0.15),
-                    child: Text(
-                      getInitial(notification.actor.name),
-                      style: TextStyle(
-                        fontSize: 14.sp,
-                        fontWeight: FontWeight.w600,
-                        color: Theme.of(context).colorScheme.primary,
-                      ),
-                    ),
-                  ),
-            SizedBox(width: 8.w),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  RichText(
-                    text: TextSpan(
-                      style: CustomTextStyles.lblPrimaryText(context),
-                      children: <TextSpan>[
-                        TextSpan(
-                          text: notification.actor.name,
-                          style: TextStyle(
-                            color: Theme.of(context).colorScheme.onBackground,
-                            fontSize: 12.2.sp,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        TextSpan(
-                          text: ' ${getNotificationMessage(notification)}',
-                          style: TextStyle(
-                            fontSize: 12.sp,
-                            fontWeight: FontWeight.w400,
-                            color: Theme.of(context).colorScheme.onBackground,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  SizedBox(height: 2.h),
-                  Text(
-                    formatDateTime(notification.createdAt.toString()),
-                    style: TextStyle(
-                      fontSize: 9.sp,
-                      color: Theme.of(context)
-                          .colorScheme
-                          .onSurface
-                          .withOpacity(0.6),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            if (post != null && post.imageUrl.isNotEmpty)
-              Container(
-                width: 35.w,
-                height: 30.h,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(8.r),
-                  image: DecorationImage(
-                    image: NetworkImage(
-                      '${ApiConfig.baseUrlImage}${post.imageUrl}',
-                    ),
-                    fit: BoxFit.cover,
-                    onError: (exception, stackTrace) {
-                      if (kDebugMode) {
-                        print('Error loading post image: $exception');
-                      }
-                    },
-                  ),
-                ),
-              ),
-          ],
-        ),
-      ),
-    );
+      }
+    });
+
+    try {
+      await ApiService().markNotificationRead(notification.id);
+    } catch (e) {
+      if (kDebugMode) print('Error marking notification as read: $e');
+      // Revert optimistic update on failure
+      if (mounted) {
+        setState(() {
+          final index = _lastNotifications.indexWhere(
+            (n) => n.id == notification.id,
+          );
+          if (index != -1) {
+            _lastNotifications[index] = notification.copyWith(isRead: false);
+            _notificationStreamController.add(_lastNotifications);
+            unreadNotificationCount.value += 1;
+          }
+        });
+      }
+    }
+  }
+
+  Future<void> _clearAllNotifications() async {
+    // Optimistic UI update
+    setState(() {
+      _lastNotifications.clear();
+      _notificationStreamController.add(_lastNotifications);
+      unreadNotificationCount.value = 0;
+    });
+
+    try {
+      final success = await ApiService().clearAllNotifications();
+      if (!success) {
+        fetchNotifications();
+        showToast(message: 'Failed to clear notifications');
+      }
+    } catch (e) {
+      if (kDebugMode) print('Error clearing notifications: $e');
+      fetchNotifications();
+      showToast(message: 'Error clearing notifications');
+    }
+  }
+
+  Future<void> _deleteNotification(NotificationItem notification) async {
+    // Optimistic UI update
+    setState(() {
+      _lastNotifications.removeWhere((n) => n.id == notification.id);
+      _notificationStreamController.add(_lastNotifications);
+      if (!notification.isRead && unreadNotificationCount.value > 0) {
+        unreadNotificationCount.value -= 1;
+      }
+    });
+
+    try {
+      final success = await ApiService().deleteNotification(notification.id);
+      if (!success) {
+        fetchNotifications();
+        showToast(message: 'Failed to delete notification');
+      }
+    } catch (e) {
+      if (kDebugMode) print('Error deleting notification: $e');
+      fetchNotifications();
+      showToast(message: 'Error deleting notification');
+    }
   }
 }

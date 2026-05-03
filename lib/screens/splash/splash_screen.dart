@@ -13,7 +13,8 @@ import '../../../data/token/shared_preferences.dart';
 import '../../../provider/user_provider.dart';
 import '../../gen/assets.gen.dart';
 import '../../mixin/utility_mixins.dart';
-import '../auth/login/login_import.dart';
+import '../auth/onboarding/onboarding_screen.dart';
+import '../auth/social/social_login_screen.dart';
 import '../home/home_imports.dart';
 import '../home/settings/security/biometric/biometric_screen.dart';
 import '../home/settings/security/biometric/biometric_service.dart';
@@ -24,10 +25,10 @@ class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
 
   @override
-  _SplashScreenState createState() => _SplashScreenState();
+  SplashScreenState createState() => SplashScreenState();
 }
 
-class _SplashScreenState extends State<SplashScreen>
+class SplashScreenState extends State<SplashScreen>
     with SingleTickerProviderStateMixin, UtilityMixin {
   late AnimationController _controller;
   late Animation<double> _logoAnimation;
@@ -75,72 +76,80 @@ class _SplashScreenState extends State<SplashScreen>
     });
   }
 
-  /// ✅ Core initialization logic moved from main.dart
   Future<Widget> _initializeApp() async {
     final bool isUserLoggedIn = await _isLoggedIn();
 
-    if (!isUserLoggedIn) {
-      return const LoginScreen();
-    }
-
-    try {
-      if (mounted) {
-        final userProvider = Provider.of<UserProvider>(context, listen: false);
-        await userProvider.loadUserData();
+    // ── Already logged in → skip onboarding & login
+    if (isUserLoggedIn) {
+      try {
+        if (mounted) {
+          final userProvider = Provider.of<UserProvider>(
+            context,
+            listen: false,
+          );
+          await userProvider.loadUserData();
+        }
+      } catch (e) {
+        return const SocialLoginScreen();
       }
-    } catch (e) {
-      return const LoginScreen();
-    }
 
+      final notificationRouter = NotificationRouter();
+      Widget? notificationDestination;
+      if (notificationRouter.hasPendingNotification()) {
+        notificationDestination = await notificationRouter.resolveDestination();
+      }
 
-    // existing notification + biometric logic...
-    final notificationRouter = NotificationRouter();
-    Widget? notificationDestination;
-    if (notificationRouter.hasPendingNotification()) {
-      notificationDestination = await notificationRouter.resolveDestination();
-    }
+      final bool isBiometricEnabled =
+          await BiometricService.isBiometricEnabled();
+      if (!isBiometricEnabled) {
+        return HomeScreen(
+          initialIndex: 0,
+          pendingDestination: notificationDestination,
+        );
+      }
 
-    final bool isBiometricEnabled = await BiometricService.isBiometricEnabled();
-    if (!isBiometricEnabled) {
+      final bool isPinSecurityEnabled = await PinService.isPinSecurityEnabled();
+      final bool isFingerprintEnabled =
+          await BiometricService.isFingerprintEnabled();
+
+      if (isPinSecurityEnabled) {
+        final bool isPinSet = await PinService.isPinSet();
+        if (isPinSet) {
+          return PinGateScreen(
+            destination: HomeScreen(
+              initialIndex: 0,
+              pendingDestination: notificationDestination,
+            ),
+          );
+        }
+      }
+
+      if (isFingerprintEnabled) {
+        final bool isBiometricAvailable =
+            await BiometricService.isBiometricAvailable();
+        if (isBiometricAvailable) {
+          return BiometricGateScreen(
+            destination: HomeScreen(
+              initialIndex: 0,
+              pendingDestination: notificationDestination,
+            ),
+          );
+        }
+      }
+
       return HomeScreen(
         initialIndex: 0,
         pendingDestination: notificationDestination,
       );
     }
 
-    final bool isPinSecurityEnabled = await PinService.isPinSecurityEnabled();
-    final bool isFingerprintEnabled =
-        await BiometricService.isFingerprintEnabled();
-
-    if (isPinSecurityEnabled) {
-      final bool isPinSet = await PinService.isPinSet();
-      if (isPinSet) {
-        return PinGateScreen(
-          destination: HomeScreen(
-            initialIndex: 0,
-            pendingDestination: notificationDestination,
-          ),
-        );
-      }
+    // ── Not logged in → check onboarding
+    final bool onboardingSeen = await SharedPrefService.isOnboardingSeen();
+    if (!onboardingSeen) {
+      return const OnboardingScreen();
     }
 
-    if (isFingerprintEnabled) {
-      final bool isBiometricAvailable =
-          await BiometricService.isBiometricAvailable();
-      if (isBiometricAvailable) {
-        return BiometricGateScreen(
-          destination: HomeScreen(
-            initialIndex: 0,
-            pendingDestination: notificationDestination,
-          ),
-        );
-      }
-    }
-
-    return HomeScreen(
-      initialIndex: 0,
-      pendingDestination: notificationDestination,
-    );
+    return const SocialLoginScreen();
   }
 
   Future<bool> _isLoggedIn() async {

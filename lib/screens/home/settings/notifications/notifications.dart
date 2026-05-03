@@ -6,6 +6,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../../../core/constants/app_colors.dart';
 import '../../../../languages/l10n/generated/app_localizations.dart';
+import '../../../../widgets/appbar/common_appbar.dart';
 import '../../../../widgets/custom_text_styles.dart';
 import '../../../../widgets/dialog/custom_diolog.dart';
 
@@ -28,21 +29,12 @@ class _NotificationsSettingsState extends State<NotificationsSettings> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor:  Theme.of(context).colorScheme.background,
-      appBar: AppBar(
-        automaticallyImplyLeading: false,
-        toolbarHeight: 25.h,
-        leading: GestureDetector(
-          onTap: () => Navigator.pop(context),
-          child: const Icon(Icons.arrow_back_ios),
-        ),
-        title: Text(
-          AppLocalizations.of(context)!.notifications,
-          style: CustomTextStyles.appBarTitleText(context),
-        ),
-        centerTitle: true,
-        backgroundColor: Theme.of(context).colorScheme.background,
+      backgroundColor: Theme.of(context).colorScheme.background,
+      appBar: CommonAppBar(
+        title: AppLocalizations.of(context)!.notifications,
+        showBackButton: true,
       ),
+
       body: Padding(
         padding: EdgeInsets.symmetric(horizontal: 12.w),
         child: Column(

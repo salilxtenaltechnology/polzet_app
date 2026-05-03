@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../core/constants/app_radius.dart';
+import '../../core/themes/app_text_styles.dart';
 import '../../languages/l10n/generated/app_localizations.dart';
 
 class LeaveGroupDialog extends StatelessWidget {
@@ -25,7 +26,7 @@ class LeaveGroupDialog extends StatelessWidget {
         children: [
           Text(
            AppLocalizations.of(context)!.leavegroup,
-            style: TextStyle(
+            style: AppTextStyles.subText.copyWith(
               color: Theme.of(context).colorScheme.onBackground,
               fontSize: 11.3.sp,
               fontWeight: FontWeight.w600,
@@ -34,7 +35,7 @@ class LeaveGroupDialog extends StatelessWidget {
           SizedBox(height: 8.h),
           Text(
            AppLocalizations.of(context)!.areyousureyouwanttoleavethisgroup,
-            style: TextStyle(
+            style: AppTextStyles.subText.copyWith(
               color: Theme.of(context).colorScheme.onBackground,
               fontSize: 11.sp,
               fontWeight: FontWeight.w400,
@@ -48,7 +49,7 @@ class LeaveGroupDialog extends StatelessWidget {
                 onTap: () => Navigator.of(context).pop(),
                 child: Text(
                   AppLocalizations.of(context)!.close.toUpperCase(),
-                  style: TextStyle(
+                  style: AppTextStyles.subText.copyWith(
                     fontSize: 11.5.sp,
                     color: Theme.of(context).colorScheme.onBackground,
                     fontWeight: FontWeight.w500,
@@ -60,7 +61,7 @@ class LeaveGroupDialog extends StatelessWidget {
                 onTap: onPressed,
                 child: Text(
                 AppLocalizations.of(context)!.yesleave,
-                  style: TextStyle(
+                  style: AppTextStyles.subText.copyWith(
                     fontSize: 11.5.sp,
                      color: Theme.of(context).colorScheme.error,
                     fontWeight: FontWeight.w500,

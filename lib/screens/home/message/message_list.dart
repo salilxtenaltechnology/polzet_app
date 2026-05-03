@@ -10,14 +10,17 @@ import 'package:provider/provider.dart';
 
 import '../../../../core/constants/app_colors.dart';
 import '../../../api/services/api_service.dart';
+import '../../../core/constants/app_constants.dart';
+import '../../../core/constants/app_radius.dart';
 import '../../../languages/l10n/generated/app_localizations.dart';
 import '../../../mixin/utility_mixins.dart';
 import '../../../provider/group_chat_provider.dart';
 import '../../../provider/private_chat_provider.dart';
 import '../../../provider/user_provider.dart';
 import '../../../widgets/base64/image_convert.dart';
-import '../../../widgets/custom_text_styles.dart';
+import '../../../core/themes/app_text_styles.dart';
 import '../../../widgets/loader.dart';
+import '../../../widgets/tabbar/indicatore_animation.dart';
 import 'chat/group/group_chat_screen.dart';
 import 'chat/private/private_chat_screen.dart';
 
@@ -28,27 +31,43 @@ class MessageList extends StatefulWidget {
   State<MessageList> createState() => MessageListState();
 }
 
-class MessageListState extends State<MessageList> with UtilityMixin {
+class MessageListState extends State<MessageList>
+    with UtilityMixin, SingleTickerProviderStateMixin {
   final _apiServices = ApiService();
   final TextEditingController _searchController = TextEditingController();
 
-  // ── Static cache ──────────────────────────────────────────────────────────
+  late final TabController _tabController;
+
   static List<Map<String, dynamic>> _staticChats = [];
   static final Map<String, Uint8List> _staticImageCache = {};
   static bool _everFetched = false;
+  static final ValueNotifier<int> unreadMessageCount = ValueNotifier<int>(0);
 
-  // ── Local state ───────────────────────────────────────────────────────────
-  final _streamController =
+  static final StreamController<List<Map<String, dynamic>>>
+  _globalStreamController =
       StreamController<List<Map<String, dynamic>>>.broadcast();
 
-  String _searchQuery = '';
-  Timer? _pollingTimer;
+  static Timer? _globalPollingTimer;
 
-  // ── Filtered view of _staticChats ─────────────────────────────────────────
+  String _searchQuery = '';
+
+  // ── Tab filtering ─────────────────────────────────────────────────────────
+
+  List<Map<String, dynamic>> _filterByTab(List<Map<String, dynamic>> chats) {
+    if (_tabController.index == 0) {
+      return chats
+          .where((c) => c['chat_type']?.toString() == 'private')
+          .toList();
+    } else {
+      return chats.where((c) => c['chat_type']?.toString() == 'group').toList();
+    }
+  }
+
   List<Map<String, dynamic>> _applyFilter(List<Map<String, dynamic>> chats) {
+    final tabFiltered = _filterByTab(chats);
     final q = _searchQuery.trim().toLowerCase();
-    if (q.isEmpty) return chats;
-    return chats.where((chat) {
+    if (q.isEmpty) return tabFiltered;
+    return tabFiltered.where((chat) {
       final title = _chatTitle(chat).toLowerCase();
       final last = _lastMessage(chat).toLowerCase();
       return title.contains(q) || last.contains(q);
@@ -57,8 +76,7 @@ class MessageListState extends State<MessageList> with UtilityMixin {
 
   void _onSearchChanged(String value) {
     setState(() => _searchQuery = value);
-    // Re-emit current cached chats so StreamBuilder rebuilds with filter applied
-    _streamController.add(_staticChats);
+    _globalStreamController.add(_staticChats);
   }
 
   void _clearSearch() {
@@ -66,7 +84,6 @@ class MessageListState extends State<MessageList> with UtilityMixin {
     _onSearchChanged('');
   }
 
-  // ── Image cache ───────────────────────────────────────────────────────────
   Uint8List? _getCachedImage(String? avatarUrl) {
     if (avatarUrl == null || avatarUrl.trim().isEmpty) return null;
     if (_staticImageCache.containsKey(avatarUrl)) {
@@ -81,46 +98,65 @@ class MessageListState extends State<MessageList> with UtilityMixin {
   void initState() {
     super.initState();
 
+    _tabController = TabController(length: 2, vsync: this)
+      ..addListener(() => setState(() {})); // rebuild on tab switch
+
     if (_staticChats.isNotEmpty) {
-      _streamController.add(_staticChats);
+      _globalStreamController.add(_staticChats);
     }
 
-    _fetchAndPush();
-
-    _pollingTimer = Timer.periodic(
-      const Duration(seconds: 15),
-      (_) => _fetchAndPush(),
-    );
+    startGlobalPolling();
   }
 
   @override
   void dispose() {
-    _pollingTimer?.cancel();
-    _streamController.close();
     _searchController.dispose();
+    _tabController.dispose();
     super.dispose();
   }
 
-  Future<void> _fetchAndPush() async {
+  static void startGlobalPolling() {
+    if (_globalPollingTimer != null) return;
+    _fetchAndPushGlobally();
+    _globalPollingTimer = Timer.periodic(
+      const Duration(seconds: 15),
+      (_) => _fetchAndPushGlobally(),
+    );
+  }
+
+  static void stopGlobalPolling() {
+    _globalPollingTimer?.cancel();
+    _globalPollingTimer = null;
+  }
+
+  static Future<void> _fetchAndPushGlobally() async {
     try {
-      final chats = await _apiServices.getChatList();
-      if (!mounted) return;
-
+      final chats = await ApiService().getChatList();
       _everFetched = true;
-
       if (_listsAreDifferent(_staticChats, chats)) {
         _staticChats = chats;
-        _streamController.add(_staticChats);
+        _updateUnreadCount();
+        _globalStreamController.add(_staticChats);
       } else if (_staticChats.isEmpty) {
-        _streamController.add(_staticChats);
+        _updateUnreadCount();
+        _globalStreamController.add(_staticChats);
       }
     } catch (_) {
-      if (!mounted) return;
-      _streamController.add(_staticChats);
+      _updateUnreadCount();
+      _globalStreamController.add(_staticChats);
     }
   }
 
-  bool _listsAreDifferent(
+  static void _updateUnreadCount() {
+    int unreadChatCount = 0;
+    for (var chat in _staticChats) {
+      final unread = (chat['unread_count'] as int?) ?? 0;
+      if (unread > 0) unreadChatCount++;
+    }
+    unreadMessageCount.value = unreadChatCount;
+  }
+
+  static bool _listsAreDifferent(
     List<Map<String, dynamic>> a,
     List<Map<String, dynamic>> b,
   ) {
@@ -135,7 +171,6 @@ class MessageListState extends State<MessageList> with UtilityMixin {
     return false;
   }
 
-  // ── Helpers ───────────────────────────────────────────────────────────────
   String _chatTitle(Map<String, dynamic> chat) {
     if (chat['title'] != null && (chat['title'] as String).trim().isNotEmpty) {
       return chat['title'] as String;
@@ -237,6 +272,16 @@ class MessageListState extends State<MessageList> with UtilityMixin {
   int _unreadCount(Map<String, dynamic> chat) =>
       (chat['unread_count'] as int?) ?? 0;
 
+  String _formatUnreadCountText(int unread) {
+    if (unread > 30) return '30+ new messages';
+    if (unread > 25) return '25+ new messages';
+    if (unread > 20) return '20+ new messages';
+    if (unread > 15) return '15+ new messages';
+    if (unread > 10) return '10+ new messages';
+    if (unread > 5) return '5+ new messages';
+    return '$unread new messages';
+  }
+
   bool _isOtherMemberBlocked(Map<String, dynamic> chat) {
     final currentUserId = Provider.of<UserProvider>(
       context,
@@ -269,7 +314,6 @@ class MessageListState extends State<MessageList> with UtilityMixin {
     return null;
   }
 
-  // ── Open chat ─────────────────────────────────────────────────────────────
   Future<void> _openChat(
     Map<String, dynamic> chat,
     String title,
@@ -282,7 +326,8 @@ class MessageListState extends State<MessageList> with UtilityMixin {
       final index = _staticChats.indexWhere((c) => c['id'] == chatId);
       if (index != -1) {
         _staticChats[index] = {..._staticChats[index], 'unread_count': 0};
-        _streamController.add(_staticChats);
+        _updateUnreadCount();
+        _globalStreamController.add(_staticChats);
         _apiServices.markChatAsRead(chatId: chatId);
       }
     }
@@ -308,7 +353,6 @@ class MessageListState extends State<MessageList> with UtilityMixin {
         context,
         listen: false,
       ).username;
-
       await Navigator.push(
         context,
         MaterialPageRoute(
@@ -332,38 +376,28 @@ class MessageListState extends State<MessageList> with UtilityMixin {
       );
     }
 
-    _fetchAndPush();
+    _fetchAndPushGlobally();
   }
 
-  // ── Search bar widget ─────────────────────────────────────────────────────
   Widget _buildSearchBar() {
     return Container(
-      height: 33.h,
+      height: AppConstants.searchbarHeight.h,
       width: double.infinity,
       margin: EdgeInsets.symmetric(vertical: 7.h, horizontal: 10.w),
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.primaryContainer,
-        borderRadius: BorderRadius.circular(12.r),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x1C000000),
-            blurRadius: 8,
-            spreadRadius: 1,
-          ),
-        ],
+        borderRadius: BorderRadius.circular(AppRadius.button),
+        boxShadow: const [AppConstants.cardShadow],
       ),
       child: TextField(
         controller: _searchController,
         decoration: InputDecoration(
-          contentPadding: EdgeInsets.only(
-            right: 12.w,
-            left: 12.w,
-            top: 10.h,
-          ),
+          contentPadding: EdgeInsets.only(right: 12.w, left: 12.w, top: 10.h),
           hintText: AppLocalizations.of(context)!.searchusers,
-          hintStyle: CustomTextStyles.lblPrimaryHintText(context),
+          hintStyle: AppTextStyles.bodyText.copyWith(
+            color: Theme.of(context).colorScheme.onBackground.withOpacity(0.5),
+          ),
           border: InputBorder.none,
-          // Show clear button when text is present, search icon when empty
           suffixIcon: _searchQuery.trim().isNotEmpty
               ? GestureDetector(
                   onTap: _clearSearch,
@@ -380,204 +414,282 @@ class MessageListState extends State<MessageList> with UtilityMixin {
                 ),
           enabledBorder: OutlineInputBorder(
             borderSide: BorderSide(
-              color:
-                  Theme.of(context).colorScheme.onBackground.withOpacity(0.1),
+              color: Theme.of(
+                context,
+              ).colorScheme.onBackground.withOpacity(0.1),
             ),
-            borderRadius: BorderRadius.circular(13.r),
+            borderRadius: BorderRadius.circular(AppRadius.button),
           ),
           focusedBorder: OutlineInputBorder(
             borderSide: const BorderSide(
               color: AppColors.primaryColor,
               width: 0.7,
             ),
-            borderRadius: BorderRadius.circular(13.r),
+            borderRadius: BorderRadius.circular(AppRadius.button),
           ),
         ),
-        style: TextStyle(
+        style: AppTextStyles.bodyText.copyWith(
           color: Theme.of(context).colorScheme.onBackground,
-          fontSize: 13.sp,
-          fontWeight: FontWeight.w400,
         ),
         onChanged: _onSearchChanged,
       ),
     );
   }
 
-  // ── Build ─────────────────────────────────────────────────────────────────
+  Widget _buildTabLabel(String label, int unreadCount) {
+    return Tab(
+      child: Stack(
+        clipBehavior: Clip.none,
+
+        children: [
+          Text(label),
+          if (unreadCount > 0) ...[
+            Positioned(
+              right: -18,
+              top: -3,
+              child: Container(
+                width: 20,
+                height: 20,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFB82B53),
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: Theme.of(context).colorScheme.background,
+                    width: 1.5,
+                  ),
+                ),
+                child: Center(
+                  child: Text(
+                    unreadCount.toString(),
+                    style: AppTextStyles.subText.copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w500,
+                      fontSize: 9,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  // ── Shared list builder used by both tabs ─────────────────────────────────
+
+  Widget _buildChatList(List<Map<String, dynamic>> chats) {
+    return RefreshIndicator(
+      onRefresh: _fetchAndPushGlobally,
+      child: ListView.builder(
+        padding: EdgeInsets.zero,
+        itemCount: chats.length,
+        itemBuilder: (context, i) {
+          final chat = chats[i];
+          final avatarUrl = _avatarUrl(chat);
+          final imageBytes = _getCachedImage(avatarUrl);
+          final title = _chatTitle(chat);
+          final unread = _unreadCount(chat);
+
+          return ListTile(
+            onTap: () => _openChat(chat, title, avatarUrl),
+            contentPadding: EdgeInsets.symmetric(horizontal: 10.w),
+            leading: Stack(
+              children: [
+                CircleAvatar(
+                  radius: 20.r,
+                  backgroundColor: chat['chat_type'] == 'group'
+                      ? Colors.blueGrey[600]
+                      : Colors.grey[700],
+                  backgroundImage: imageBytes != null
+                      ? MemoryImage(imageBytes)
+                      : null,
+                  child: imageBytes == null
+                      ? Text(
+                          title.isNotEmpty ? title[0].toUpperCase() : '?',
+                          style: AppTextStyles.subText.copyWith(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        )
+                      : null,
+                ),
+                if (chat['chat_type'] == 'private' &&
+                    _isOtherMemberOnline(chat))
+                  Positioned(
+                    bottom: 0,
+                    right: 0,
+                    child: Container(
+                      width: 10.w,
+                      height: 10.h,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF4CAF50),
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: Theme.of(context).colorScheme.background,
+                          width: 1.8,
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+            title: Text(
+              title,
+              style: AppTextStyles.cardTitle.copyWith(
+                color: Theme.of(context).colorScheme.onBackground,
+                fontSize: 12.sp,
+              ),
+            ),
+            subtitle: Row(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.baseline,
+              textBaseline: TextBaseline.alphabetic,
+              children: [
+                Flexible(
+                  child: Text(
+                    unread > 1
+                        ? _formatUnreadCountText(unread)
+                        : _lastMessage(chat),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTextStyles.subText.copyWith(
+                      color: unread > 0
+                          ? Theme.of(context).colorScheme.onBackground
+                          : Theme.of(
+                              context,
+                            ).colorScheme.onBackground.withOpacity(0.6),
+                      fontWeight: unread > 0
+                          ? FontWeight.w600
+                          : FontWeight.normal,
+                      fontSize: 13,
+                    ),
+                  ),
+                ),
+                Text(
+                  '  · ${_formattedTime(chat)}',
+                  style: AppTextStyles.subText.copyWith(
+                    color: const Color(0XFF999999),
+                    fontSize: 11,
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildTabBody(List<Map<String, dynamic>> allChats) {
+    final chats = _applyFilter(allChats);
+
+    if (allChats.isEmpty) {
+      return Center(
+        child: Text(
+          AppLocalizations.of(context)!.nochaseyet,
+          style: AppTextStyles.subText.copyWith(
+            color: Theme.of(context).colorScheme.onBackground.withOpacity(0.6),
+          ),
+        ),
+      );
+    }
+
+    if (chats.isEmpty && _searchQuery.trim().isNotEmpty) {
+      return Center(
+        child: Text(
+          '${AppLocalizations.of(context)!.searchusers} "$_searchQuery"',
+          style: AppTextStyles.subText.copyWith(
+            color: Theme.of(context).colorScheme.onBackground.withOpacity(0.6),
+          ),
+        ),
+      );
+    }
+
+    if (chats.isEmpty) {
+      final label = _tabController.index == 0
+          ? 'No chats yet'
+          : 'No groups yet';
+      return Center(
+        child: Text(
+          label,
+          style: AppTextStyles.subText.copyWith(
+            color: Theme.of(context).colorScheme.onBackground.withOpacity(0.6),
+          ),
+        ),
+      );
+    }
+
+    return _buildChatList(chats);
+  }
+
+  int get _unreadChatsCount {
+    return _staticChats
+        .where(
+          (c) =>
+              c['chat_type']?.toString() == 'private' &&
+              ((c['unread_count'] as int?) ?? 0) > 0,
+        )
+        .length;
+  }
+
+  int get _unreadGroupsCount {
+    return _staticChats
+        .where(
+          (c) =>
+              c['chat_type']?.toString() == 'group' &&
+              ((c['unread_count'] as int?) ?? 0) > 0,
+        )
+        .length;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.background,
       body: StreamBuilder<List<Map<String, dynamic>>>(
-        stream: _streamController.stream,
+        stream: _globalStreamController.stream,
         initialData: _staticChats,
         builder: (context, snapshot) {
           final allChats = snapshot.data ?? [];
 
-          // Cold launch spinner
           if (allChats.isEmpty && !_everFetched) {
             return Center(
               child: Loader(color: Theme.of(context).colorScheme.primary),
             );
           }
 
-          // Apply search filter
-          final chats = _applyFilter(allChats);
-
           return Column(
             children: [
-              // ── Search bar ───────────────────────────────────────────────
-              _buildSearchBar(),
+              // _buildSearchBar(),
 
-              // ── Chat list ────────────────────────────────────────────────
-              Expanded(
-                child: allChats.isEmpty
-                    ? Center(
-                        child: Text(
-                          AppLocalizations.of(context)!.nochaseyet,
-                          style: CustomTextStyles.lblSecondryText(context),
-                        ),
-                      )
-                    : chats.isEmpty
-                        ? Center(
-                            child: Text(
-                              // "No results for '<query>'"
-                              '${AppLocalizations.of(context)!.searchusers} "$_searchQuery"',
-                              style:
-                                  CustomTextStyles.lblSecondryText(context),
-                            ),
-                          )
-                        : RefreshIndicator(
-                            onRefresh: _fetchAndPush,
-                            child: ListView.builder(
-                              padding:
-                                  EdgeInsets.symmetric(horizontal: 10.w),
-                              itemCount: chats.length,
-                              itemBuilder: (context, i) {
-                                final chat = chats[i];
-                                final avatarUrl = _avatarUrl(chat);
-                                final imageBytes =
-                                    _getCachedImage(avatarUrl);
-                                final title = _chatTitle(chat);
-                                final unread = _unreadCount(chat);
-
-                                return ListTile(
-                                  onTap: () =>
-                                      _openChat(chat, title, avatarUrl),
-                                  contentPadding: EdgeInsets.zero,
-                                  leading: Stack(
-                                    children: [
-                                      CircleAvatar(
-                                        radius: 24,
-                                        backgroundColor:
-                                            chat['chat_type'] == 'group'
-                                                ? Colors.blueGrey[600]
-                                                : Colors.grey[700],
-                                        backgroundImage: imageBytes != null
-                                            ? MemoryImage(imageBytes)
-                                            : null,
-                                        child: imageBytes == null
-                                            ? Text(
-                                                title.isNotEmpty
-                                                    ? title[0].toUpperCase()
-                                                    : '?',
-                                                style: const TextStyle(
-                                                  color: Colors.white,
-                                                  fontWeight: FontWeight.w600,
-                                                ),
-                                              )
-                                            : null,
-                                      ),
-                                      if (chat['chat_type'] == 'private' &&
-                                          _isOtherMemberOnline(chat))
-                                        Positioned(
-                                          bottom: 0,
-                                          right: 0,
-                                          child: Container(
-                                            width: 10.w,
-                                            height: 10.h,
-                                            decoration: BoxDecoration(
-                                              color:
-                                                  const Color(0xFF4CAF50),
-                                              shape: BoxShape.circle,
-                                              border: Border.all(
-                                                color: Theme.of(context)
-                                                    .colorScheme
-                                                    .background,
-                                                width: 1.8,
-                                              ),
-                                            ),
-                                          ),
-                                        ),
-                                    ],
-                                  ),
-                                  title: Text(
-                                    title,
-                                    style: TextStyle(
-                                      color: Theme.of(context)
-                                          .colorScheme
-                                          .onBackground,
-                                      fontSize: 11.sp,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                  subtitle: Text(
-                                    _lastMessage(chat),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: TextStyle(
-                                      color: unread > 0
-                                          ? Theme.of(context)
-                                              .colorScheme
-                                              .onBackground
-                                          : Theme.of(context)
-                                              .colorScheme
-                                              .onBackground
-                                              .withOpacity(0.6),
-                                      fontSize: 10.8.sp,
-                                      fontWeight: unread > 0
-                                          ? FontWeight.w600
-                                          : FontWeight.normal,
-                                    ),
-                                  ),
-                                  trailing: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.end,
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.center,
-                                    children: [
-                                      Text(
-                                        _formattedTime(chat),
-                                        style: TextStyle(
-                                          fontSize: 8.5.sp,
-                                          color: const Color(0XFF999999),
-                                        ),
-                                      ),
-                                      if (unread > 0) ...[
-                                        const SizedBox(height: 8),
-                                        Container(
-                                          padding:
-                                              const EdgeInsets.all(5).w,
-                                          decoration: const BoxDecoration(
-                                            color: AppColors.primaryColor,
-                                            shape: BoxShape.circle,
-                                          ),
-                                          child: Text(
-                                            '$unread',
-                                            style: TextStyle(
-                                              fontSize: 8.sp,
-                                              color: Colors.white,
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ],
-                                  ),
-                                );
-                              },
-                            ),
-                          ),
+              // ── Tab bar ───────────────────────────────────────────────
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: 12.w),
+                child: TabBar(
+                  controller: _tabController,
+                  indicatorColor: Theme.of(context).colorScheme.primary,
+                  indicatorSize: TabBarIndicatorSize.tab,
+                  labelColor: Theme.of(context).colorScheme.onBackground,
+                  labelStyle: AppTextStyles.bodyText.copyWith(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w500,
+                  ),
+                  dividerColor: Colors.transparent,
+                  indicator: FadeUnderlineTabIndicator(),
+                  overlayColor: const WidgetStatePropertyAll(
+                    Colors.transparent,
+                  ),
+                  unselectedLabelColor: const Color(0XFF8E8E8E),
+                  tabs: [
+                    _buildTabLabel('Chats', _unreadChatsCount),
+                    _buildTabLabel('Groups', _unreadGroupsCount),
+                  ],
+                ),
               ),
+
+              // ── Tab content ───────────────────────────────────────────
+              Expanded(child: _buildTabBody(allChats)),
             ],
           );
         },

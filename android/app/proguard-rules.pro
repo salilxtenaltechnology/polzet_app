@@ -72,6 +72,10 @@
 -keep class com.google.android.gms.common.** { *; }
 -keep class io.flutter.plugins.googlesignin.** { *; }
 
+# ✅ Android Credential Manager (Required for google_sign_in 7+)
+-keep class androidx.credentials.** { *; }
+-dontwarn androidx.credentials.**
+
 # ✅ WebSocket (if chat uses WebSocket connection)
 -keep class okhttp3.WebSocket { *; }
 -keep class okhttp3.WebSocketListener { *; }

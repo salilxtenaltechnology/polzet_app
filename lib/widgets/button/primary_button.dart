@@ -4,7 +4,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../../core/constants/app_colors.dart';
 import '../../core/constants/app_radius.dart';
-import '../custom_text_styles.dart';
+import '../../core/themes/app_text_styles.dart';
 import '../loader.dart';
 
 class PrimaryButton extends StatelessWidget {
@@ -41,7 +41,13 @@ class PrimaryButton extends StatelessWidget {
         child: Center(
           child: isLoading
               ? Loader(color: Colors.white)
-              : Text(title, style: CustomTextStyles.btnPrimaryText),
+              : Text(
+                  title,
+                  style: AppTextStyles.bodyText.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
         ),
       ),
     );

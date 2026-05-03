@@ -5,8 +5,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../../../core/constants/app_colors.dart';
 import '../../../../languages/l10n/generated/app_localizations.dart';
-import '../../../../widgets/button/back_button.dart';
-import '../../../../widgets/custom_text_styles.dart';
+import '../../../../widgets/appbar/common_appbar.dart';
 
 class TermsAndConditions extends StatefulWidget {
   const TermsAndConditions({super.key});
@@ -44,17 +43,11 @@ class TermsState extends State<TermsAndConditions> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.background,
-      appBar: AppBar(
-        automaticallyImplyLeading: false,
-        leading: const PrimaryBackButton(),
-        title: Text(
-          AppLocalizations.of(context)!.termsandconditions,
-          style: CustomTextStyles.appBarTitleText(context),
-        ),
-        centerTitle: true,
-        backgroundColor: Theme.of(context).colorScheme.background,
-        surfaceTintColor: Theme.of(context).colorScheme.background,
+      appBar: CommonAppBar(
+        title: AppLocalizations.of(context)!.termsandconditions,
+        showBackButton: true,
       ),
+
       body: ListView(
         padding: EdgeInsets.fromLTRB(12.w, 0, 12.w, 12.h),
         children: [

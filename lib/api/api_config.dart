@@ -25,3 +25,7 @@ class ApiConfig {
     return 'https://$domain';
   }
 }
+
+
+// https://testbackend.polzet.in
+// https://prodbackend.polzet.in

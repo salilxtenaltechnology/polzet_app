@@ -141,6 +141,11 @@ class NotificationService {
         break;
       case 'VOTE':
         title = notificationData['title'] ?? data['title'] ?? 'New Vote';
+        final String? preview = notificationData['message_preview']?.toString() ??
+                                data['message_preview']?.toString();
+        if (preview != null && preview.isNotEmpty) {
+          body = preview;
+        }
         break;
       case 'LIKE':
         title = notificationData['title'] ?? data['title'] ?? 'New Like';
@@ -767,6 +772,11 @@ class NotificationPayload {
       case 'VOTE':
         title =
             notificationData['title'] ?? message.data['title'] ?? 'New Vote';
+        final String? preview = notificationData['message_preview']?.toString() ??
+                                message.data['message_preview']?.toString();
+        if (preview != null && preview.isNotEmpty) {
+          body = preview;
+        }
         break;
 
       case 'LIKE':
@@ -839,6 +849,11 @@ class NotificationPayload {
 
       case 'VOTE':
         title = notificationData['title'] ?? data['title'] ?? 'New Vote';
+        final String? preview = notificationData['message_preview']?.toString() ??
+                                data['message_preview']?.toString();
+        if (preview != null && preview.isNotEmpty) {
+          body = preview;
+        }
         break;
 
       case 'LIKE':

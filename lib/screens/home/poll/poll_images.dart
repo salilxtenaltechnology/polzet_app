@@ -12,7 +12,7 @@ import '../../../core/constants/app_colors.dart';
 import '../../../data/token/shared_preferences.dart';
 import '../../../gen/assets.gen.dart';
 import '../../../languages/l10n/generated/app_localizations.dart';
-import '../../../widgets/button/back_button.dart';
+import '../../../widgets/appbar/common_appbar.dart';
 import '../../../widgets/button/primary_button.dart';
 import '../../../widgets/custom_text_styles.dart';
 import '../../../widgets/dotted_border/dotted_border.dart';
@@ -206,17 +206,8 @@ class _PollImagesState extends State<PollImages> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.background,
-      appBar: AppBar(
-        automaticallyImplyLeading: false,
-        leading: const PrimaryBackButton(),
-        centerTitle: true,
-        title: Text(
-          AppLocalizations.of(context)!.addnewpollimage,
-          style: CustomTextStyles.appBarTitleText(context),
-        ),
-        backgroundColor: Theme.of(context).colorScheme.background,
-        surfaceTintColor: Theme.of(context).colorScheme.background,
-        toolbarHeight: 25.h,
+      appBar: CommonAppBar(
+        title: AppLocalizations.of(context)!.addnewpollimage,
       ),
       body: ListView(
         padding: EdgeInsets.symmetric(horizontal: 12.w),

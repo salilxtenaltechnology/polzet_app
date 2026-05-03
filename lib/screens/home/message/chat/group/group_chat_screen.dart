@@ -88,7 +88,7 @@ class GroupChatScreenState extends State<GroupChatScreen>
   void _onScroll() {
     if (!_scrollController.hasClients) return;
     final currentScroll = _scrollController.position.pixels;
-    
+
     final wasAtBottom = _isAtBottom;
     _isAtBottom = currentScroll < 100;
 
@@ -98,6 +98,7 @@ class GroupChatScreenState extends State<GroupChatScreen>
 
     if (_isAtBottom && _unreadCount > 0) {
       setState(() => _unreadCount = 0);
+      context.read<GroupChatProvider>().markAsRead();
     }
 
     _updateFloatingDate();
@@ -144,7 +145,7 @@ class GroupChatScreenState extends State<GroupChatScreen>
       if (_scrollController.hasClients &&
           _scrollController.position.hasContentDimensions) {
         if (_scrollController.position.maxScrollExtent > 0) {
-           isScreenCovered = true;
+          isScreenCovered = true;
         }
       }
 
@@ -211,7 +212,8 @@ class GroupChatScreenState extends State<GroupChatScreen>
     WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
   }
 
-  String _formatTime(DateTime dt) => DateFormat('h:mm a').format(dt).toLowerCase();
+  String _formatTime(DateTime dt) =>
+      DateFormat('h:mm a').format(dt).toLowerCase();
 
   bool _isSameDay(DateTime d1, DateTime d2) {
     return d1.year == d2.year && d1.month == d2.month && d1.day == d2.day;
@@ -257,10 +259,13 @@ class GroupChatScreenState extends State<GroupChatScreen>
         : '?';
 
     return Align(
-      alignment: message.isSentByMe ? Alignment.centerRight : Alignment.centerLeft,
+      alignment: message.isSentByMe
+          ? Alignment.centerRight
+          : Alignment.centerLeft,
       child: Row(
-        mainAxisAlignment:
-            message.isSentByMe ? MainAxisAlignment.end : MainAxisAlignment.start,
+        mainAxisAlignment: message.isSentByMe
+            ? MainAxisAlignment.end
+            : MainAxisAlignment.start,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (!message.isSentByMe) ...[
@@ -270,8 +275,9 @@ class GroupChatScreenState extends State<GroupChatScreen>
               child: CircleAvatar(
                 radius: 12.r,
                 backgroundColor: const Color(0xFFEEEEEE),
-                backgroundImage:
-                    avatarBytes != null ? MemoryImage(avatarBytes) : null,
+                backgroundImage: avatarBytes != null
+                    ? MemoryImage(avatarBytes)
+                    : null,
                 child: avatarBytes == null
                     ? Text(
                         initial,
@@ -412,6 +418,7 @@ class GroupChatScreenState extends State<GroupChatScreen>
         onTap: () {
           _scrollToBottom();
           setState(() => _unreadCount = 0);
+          context.read<GroupChatProvider>().markAsRead();
         },
         child: Container(
           padding: EdgeInsets.all(6.w),
@@ -465,7 +472,8 @@ class GroupChatScreenState extends State<GroupChatScreen>
 
     // We count members based on memberPresence since there's no static members list in the provider
     // Or we could read from widget.chat if available.
-    final memberCount = widget.chat?['members']?.length ?? provider.memberPresence.length;
+    final memberCount =
+        widget.chat?['members']?.length ?? provider.memberPresence.length;
     final initial = title.isNotEmpty ? title[0].toUpperCase() : '?';
 
     return Scaffold(
@@ -482,7 +490,9 @@ class GroupChatScreenState extends State<GroupChatScreen>
             CircleAvatar(
               radius: 18.r,
               backgroundColor: const Color(0XFFEEEEEE),
-              backgroundImage: imageBytes != null ? MemoryImage(imageBytes) : null,
+              backgroundImage: imageBytes != null
+                  ? MemoryImage(imageBytes)
+                  : null,
               child: imageBytes == null
                   ? Text(
                       initial,
@@ -548,23 +558,39 @@ class GroupChatScreenState extends State<GroupChatScreen>
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
                                     (() {
-                                      final onlineCount = prov.memberPresence.values
-                                          .where((m) => m.isOnline && m.userId != prov.currentUserId)
+                                      int otherOnlineCount = prov
+                                          .memberPresence
+                                          .values
+                                          .where(
+                                            (m) =>
+                                                m.isOnline &&
+                                                m.userId != prov.currentUserId,
+                                          )
                                           .length;
-                                      if (onlineCount > 0) {
+
+                                      int totalOnline = otherOnlineCount;
+
+                                      String memberText =
+                                          '$memberCount ${memberCount == 1 ? AppLocalizations.of(context)!.member : AppLocalizations.of(context)!.members}';
+
+                                      if (otherOnlineCount > 0) {
                                         return Text(
-                                          '$onlineCount online',
+                                          '$totalOnline online',
                                           style: TextStyle(
                                             color: Colors.green,
                                             fontSize: 9.5.sp,
                                             fontWeight: FontWeight.w300,
                                           ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
                                         );
                                       } else {
                                         return ConstrainedBox(
-                                          constraints: BoxConstraints(maxWidth: 200.w),
+                                          constraints: BoxConstraints(
+                                            maxWidth: 200.w,
+                                          ),
                                           child: Text(
-                                            '$memberCount ${memberCount == 1 ? AppLocalizations.of(context)!.member : AppLocalizations.of(context)!.members}',
+                                            memberText,
                                             style: TextStyle(
                                               color: const Color(0XFF8593A8),
                                               fontSize: 9.5.sp,
@@ -608,13 +634,18 @@ class GroupChatScreenState extends State<GroupChatScreen>
                   initialData: context.read<GroupChatProvider>().messages,
                   builder: (context, snapshot) {
                     final messages = snapshot.data ?? [];
-                    final isLoading = context.read<GroupChatProvider>().isLoadingHistory;
+                    final isLoading = context
+                        .read<GroupChatProvider>()
+                        .isLoadingHistory;
 
                     if (messages.length > _previousMessageCount) {
                       if (_previousMessageCount == 0) {
                         WidgetsBinding.instance.addPostFrameCallback((_) {
-                          if (_isAtBottom || (messages.isNotEmpty && messages.last.isSentByMe)) {
+                          if (_isAtBottom ||
+                              (messages.isNotEmpty &&
+                                  messages.last.isSentByMe)) {
                             _scrollToBottom();
+                            context.read<GroupChatProvider>().markAsRead();
                           }
                         });
                       } else {
@@ -623,17 +654,20 @@ class GroupChatScreenState extends State<GroupChatScreen>
                           final m = messages[i];
                           if (_previousLastMessage != null &&
                               m.text == _previousLastMessage!.text &&
-                              m.created_at == _previousLastMessage!.created_at) {
+                              m.created_at ==
+                                  _previousLastMessage!.created_at) {
                             break;
                           }
                           newAppendedCount++;
                         }
 
-                        if (newAppendedCount > 0 && newAppendedCount < messages.length) {
+                        if (newAppendedCount > 0 &&
+                            newAppendedCount < messages.length) {
                           final lastIsMe = messages.last.isSentByMe;
                           WidgetsBinding.instance.addPostFrameCallback((_) {
                             if (_isAtBottom || lastIsMe) {
                               _scrollToBottom();
+                              context.read<GroupChatProvider>().markAsRead();
                             } else {
                               setState(() => _unreadCount += newAppendedCount);
                             }
@@ -643,16 +677,21 @@ class GroupChatScreenState extends State<GroupChatScreen>
                     }
 
                     _previousMessageCount = messages.length;
-                    _previousLastMessage = messages.isNotEmpty ? messages.last : null;
+                    _previousLastMessage = messages.isNotEmpty
+                        ? messages.last
+                        : null;
 
                     WidgetsBinding.instance.addPostFrameCallback((_) {
                       if (!mounted) return;
                       _updateFloatingDate();
 
                       if (_scrollController.hasClients) {
-                        final maxScroll = _scrollController.position.maxScrollExtent;
+                        final maxScroll =
+                            _scrollController.position.maxScrollExtent;
                         if (maxScroll <= 50 &&
-                            !context.read<GroupChatProvider>().isLoadingHistory) {
+                            !context
+                                .read<GroupChatProvider>()
+                                .isLoadingHistory) {
                           context.read<GroupChatProvider>().fetchMoreHistory();
                         }
                       }
@@ -661,7 +700,9 @@ class GroupChatScreenState extends State<GroupChatScreen>
                     if (messages.isEmpty && !isLoading) {
                       return Center(
                         child: Text(
-                          AppLocalizations.of(context)?.nomessagesyetstarttheconversation ??
+                          AppLocalizations.of(
+                                context,
+                              )?.nomessagesyetstarttheconversation ??
                               'No messages yet...',
                           textAlign: TextAlign.center,
                           style: TextStyle(
@@ -701,17 +742,24 @@ class GroupChatScreenState extends State<GroupChatScreen>
                         if (showHeader) {
                           final dateStr = _getDateSeparator(message.created_at);
                           if (!_headerKeys.containsKey(dateStr)) {
-                            _headerKeys[dateStr] = GlobalKey(debugLabel: dateStr);
+                            _headerKeys[dateStr] = GlobalKey(
+                              debugLabel: dateStr,
+                            );
                           }
 
-                          bool hideInlineDate = isAbsoluteOldestMessage &&
+                          bool hideInlineDate =
+                              isAbsoluteOldestMessage &&
                               context.read<GroupChatProvider>().hasMoreHistory;
 
                           if (hideInlineDate) {
                             return Column(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                SizedBox(key: _headerKeys[dateStr], height: 0, width: 0),
+                                SizedBox(
+                                  key: _headerKeys[dateStr],
+                                  height: 0,
+                                  width: 0,
+                                ),
                                 _buildMessageBubble(ctx, message),
                               ],
                             );
@@ -723,8 +771,10 @@ class GroupChatScreenState extends State<GroupChatScreen>
                               Container(
                                 key: _headerKeys[dateStr],
                                 margin: EdgeInsets.symmetric(vertical: 10.h),
-                                padding:
-                                    EdgeInsets.symmetric(horizontal: 10.w, vertical: 3.h),
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: 10.w,
+                                  vertical: 3.h,
+                                ),
                                 decoration: BoxDecoration(
                                   color: const Color(0xFFF2F2F2),
                                   borderRadius: BorderRadius.circular(5.r),
@@ -734,10 +784,9 @@ class GroupChatScreenState extends State<GroupChatScreen>
                                   style: TextStyle(
                                     fontSize: 9.sp,
                                     fontWeight: FontWeight.w500,
-                                    color: Theme.of(context)
-                                        .colorScheme
-                                        .onBackground
-                                        .withOpacity(0.6),
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onBackground.withOpacity(0.6),
                                   ),
                                 ),
                               ),
@@ -760,7 +809,10 @@ class GroupChatScreenState extends State<GroupChatScreen>
                     child: Center(
                       child: Container(
                         margin: EdgeInsets.symmetric(vertical: 10.h),
-                        padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 3.h),
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 10.w,
+                          vertical: 3.h,
+                        ),
                         decoration: BoxDecoration(
                           color: const Color(0xFFF2F2F2),
                           borderRadius: BorderRadius.circular(5.r),
@@ -770,10 +822,9 @@ class GroupChatScreenState extends State<GroupChatScreen>
                           style: TextStyle(
                             fontSize: 9.sp,
                             fontWeight: FontWeight.w500,
-                            color: Theme.of(context)
-                                .colorScheme
-                                .onBackground
-                                .withOpacity(0.6),
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onBackground.withOpacity(0.6),
                           ),
                         ),
                       ),
@@ -796,10 +847,12 @@ class GroupChatScreenState extends State<GroupChatScreen>
                 Expanded(
                   child: TextField(
                     controller: _messageController,
-                    onChanged: (_) => context.read<GroupChatProvider>().onUserTyping(),
+                    onChanged: (_) =>
+                        context.read<GroupChatProvider>().onUserTyping(),
                     decoration: InputDecoration(
                       border: InputBorder.none,
-                      hintText: AppLocalizations.of(context)?.message ?? 'Message',
+                      hintText:
+                          AppLocalizations.of(context)?.message ?? 'Message',
                       hintStyle: TextStyle(
                         color: const Color(0XFF8593A8),
                         fontSize: 11.5.sp,

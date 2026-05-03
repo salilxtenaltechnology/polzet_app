@@ -1,8 +1,12 @@
+// ignore_for_file: deprecated_member_use
+
 import 'dart:io';
 
+import 'package:feather_icons/feather_icons.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:image_cropper/image_cropper.dart';
-import 'package:polzet_app/languages/l10n/generated/app_localizations.dart';
+import 'package:polzet_app/core/themes/app_text_styles.dart';
 import 'package:wechat_assets_picker/wechat_assets_picker.dart';
 import 'package:wechat_camera_picker/wechat_camera_picker.dart';
 
@@ -34,26 +38,37 @@ class ImagePickerService {
       ),
       builder: (context) => SafeArea(
         child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 20),
+          padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              if (allowCamera)
-                ListTile(
-                  leading: const Icon(
-                    Icons.camera_alt,
-                    color: AppColors.primaryColor,
+              // Handle bar
+              Container(
+                width: 40,
+                height: 4,
+                margin: const EdgeInsets.only(bottom: 20),
+                decoration: BoxDecoration(
+                  color: Colors.grey.withOpacity(0.3),
+                  borderRadius: BorderRadius.circular(100),
+                ),
+              ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  _buildSourceItem(
+                    context: context,
+                    icon: FeatherIcons.camera,
+                    label: 'Camera',
+                    onTap: () => Navigator.pop(context, 'camera'),
                   ),
-                  title: Text(AppLocalizations.of(context)!.takephoto),
-                  onTap: () => Navigator.pop(context, 'camera'),
-                ),
-              ListTile(
-                leading: const Icon(
-                  Icons.photo_library,
-                  color: AppColors.primaryColor,
-                ),
-                title: Text(AppLocalizations.of(context)!.choosefromgallery),
-                onTap: () => Navigator.pop(context, 'gallery'),
+                  SizedBox(width: 40.w),
+                  _buildSourceItem(
+                    context: context,
+                    icon: FeatherIcons.image,
+                    label: 'Gallery',
+                    onTap: () => Navigator.pop(context, 'gallery'),
+                  ),
+                ],
               ),
             ],
           ),
@@ -114,4 +129,38 @@ class ImagePickerService {
     }
     return null;
   }
+}
+
+Widget _buildSourceItem({
+  required BuildContext context,
+  required IconData icon,
+  required String label,
+  required VoidCallback onTap,
+}) {
+  return Column(
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      GestureDetector(
+        onTap: onTap,
+        child: Container(
+          height: 58,
+          width: 58,
+          decoration: const BoxDecoration(
+            shape: BoxShape.circle,
+            color: AppColors.primaryColor,
+          ),
+          child: Icon(icon, color: Colors.white, size: 24),
+        ),
+      ),
+      const SizedBox(height: 12),
+      Text(
+        label,
+        style: AppTextStyles.subText.copyWith(
+          fontSize: 13.5,
+          fontWeight: FontWeight.w500,
+          color: Theme.of(context).colorScheme.onBackground,
+        ),
+      ),
+    ],
+  );
 }

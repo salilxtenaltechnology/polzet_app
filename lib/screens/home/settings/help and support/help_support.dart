@@ -6,7 +6,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../languages/l10n/generated/app_localizations.dart';
 import '../../../../mixin/utility_mixins.dart';
-import '../../../../widgets/button/back_button.dart';
+import '../../../../widgets/appbar/common_appbar.dart';
 import '../../../../widgets/custom_text_styles.dart';
 
 class HelpSupport extends StatefulWidget {
@@ -41,18 +41,11 @@ class HelpSupportState extends State<HelpSupport> with UtilityMixin {
     );
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.background,
-      appBar: AppBar(
-        automaticallyImplyLeading: false,
-        leading: const PrimaryBackButton(),
-        title: Text(
-          AppLocalizations.of(context)!.supportandabout,
-          style: CustomTextStyles.appBarTitleText(context),
-        ),
-        centerTitle: true,
-        backgroundColor: Theme.of(context).colorScheme.background,
-        surfaceTintColor: Theme.of(context).colorScheme.background,
-        toolbarHeight: 25.h,
+       appBar: CommonAppBar(
+        title: AppLocalizations.of(context)!.supportandabout,
+        showBackButton: true,
       ),
+     
       body: ListView(
         padding: EdgeInsets.fromLTRB(12.w, 10.h, 12.w, 12.h),
         children: [

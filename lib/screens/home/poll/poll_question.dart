@@ -9,7 +9,7 @@ import '../../../api/app_api.dart';
 import '../../../data/token/shared_preferences.dart';
 import '../../../languages/l10n/generated/app_localizations.dart';
 import '../../../mixin/utility_mixins.dart';
-import '../../../widgets/button/back_button.dart';
+import '../../../widgets/appbar/common_appbar.dart';
 import '../../../widgets/button/primary_button.dart';
 import '../../../widgets/custom_text_styles.dart';
 import '../../../widgets/show_toast.dart';
@@ -309,17 +309,8 @@ class _PollQuestionState extends State<PollQuestion> with UtilityMixin {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.background,
-      appBar: AppBar(
-        automaticallyImplyLeading: false,
-        leading: const PrimaryBackButton(),
-        centerTitle: true,
-        title: Text(
-          AppLocalizations.of(context)!.addnewpollanswer,
-          style: CustomTextStyles.appBarTitleText(context),
-        ),
-        backgroundColor: Theme.of(context).colorScheme.background,
-        surfaceTintColor: Theme.of(context).colorScheme.background,
-        toolbarHeight: 25.h,
+      appBar: CommonAppBar(
+        title: AppLocalizations.of(context)!.addnewpollanswer,
       ),
       body: SingleChildScrollView(
         padding: EdgeInsets.symmetric(horizontal: 12.w),

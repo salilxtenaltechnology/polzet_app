@@ -9,7 +9,7 @@ import '../../../core/constants/app_radius.dart';
 import '../../../languages/l10n/generated/app_localizations.dart';
 import '../../../models/like/like_uers_model.dart';
 import '../../base64/image_convert.dart';
-import '../../custom_text_styles.dart';
+import '../../../core/themes/app_text_styles.dart';
 import '../../loader.dart';
 
 class LikedUsersBottomSheet extends StatefulWidget {
@@ -117,7 +117,7 @@ class _LikedUsersBottomSheetState extends State<LikedUsersBottomSheet> {
             child: Center(
               child: Text(
                 AppLocalizations.of(context)!.likes,
-                style: CustomTextStyles.bottomsheetTitleTextStyle(context),
+                style: AppTextStyles.sectionHeading.copyWith(color: Theme.of(context).colorScheme.onBackground),
               ),
             ),
           ),
@@ -147,7 +147,7 @@ class _LikedUsersBottomSheetState extends State<LikedUsersBottomSheet> {
                   top: 10.h,
                 ),
                 hintText: AppLocalizations.of(context)!.searchusers,
-                hintStyle: CustomTextStyles.lblPrimaryHintText(context),
+                hintStyle: AppTextStyles.bodyText.copyWith(color: Theme.of(context).colorScheme.onBackground.withOpacity(0.5)),
                 border: InputBorder.none,
                 suffixIcon: Icon(
                   FeatherIcons.search,
@@ -170,10 +170,8 @@ class _LikedUsersBottomSheetState extends State<LikedUsersBottomSheet> {
                   borderRadius: BorderRadius.circular(13.r),
                 ),
               ),
-              style: TextStyle(
+              style: AppTextStyles.bodyText.copyWith(
                 color: Theme.of(context).colorScheme.onBackground,
-                fontSize: 13.sp,
-                fontWeight: FontWeight.w400,
               ),
               onChanged: (value) {
                 _filterUsers(value);
@@ -193,8 +191,7 @@ class _LikedUsersBottomSheetState extends State<LikedUsersBottomSheet> {
                       _searchController.text.trim().isEmpty
                           ? AppLocalizations.of(context)!.nolikesthispost
                           : AppLocalizations.of(context)!.nousersfound,
-                      style: TextStyle(
-                        fontSize: 12.sp,
+                      style: AppTextStyles.subText.copyWith(
                         color: Theme.of(
                           context,
                         ).colorScheme.onSurface.withOpacity(0.6),
@@ -233,8 +230,7 @@ class _LikedUsersBottomSheetState extends State<LikedUsersBottomSheet> {
                                           user.profileImage!.isEmpty
                                       ? Text(
                                           user.firstLetter,
-                                          style: TextStyle(
-                                            fontSize: 13.sp,
+                                          style: AppTextStyles.cardTitle.copyWith(
                                             fontWeight: FontWeight.w600,
                                             color: Theme.of(
                                               context,
@@ -268,8 +264,7 @@ class _LikedUsersBottomSheetState extends State<LikedUsersBottomSheet> {
                             SizedBox(width: 7.w),
                             Text(
                               user.username,
-                              style: TextStyle(
-                                fontSize: 11.sp,
+                              style: AppTextStyles.bodyText.copyWith(
                                 color: Theme.of(
                                   context,
                                 ).colorScheme.onBackground,

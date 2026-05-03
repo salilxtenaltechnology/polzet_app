@@ -6,13 +6,13 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../../../api/services/api_service.dart';
 import '../../../../core/constants/app_radius.dart';
+import '../../../../core/themes/app_text_styles.dart';
 import '../../../../languages/l10n/generated/app_localizations.dart';
 import '../../../../mixin/utility_mixins.dart';
 import '../../../../models/poll/poll_results_model.dart';
 import '../../../../models/voters/top_voters_model.dart';
 import '../../../../models/voters/things_voter_tile.dart';
 import '../../../../models/voters/things_voters_models.dart';
-import '../../../custom_text_styles.dart';
 import '../../../shimmer/things_voter_tile_shimmer.dart';
 
 class ThingsVotersBottomSheet extends StatefulWidget {
@@ -130,7 +130,7 @@ class _ThingsVotersBottomSheetState extends State<ThingsVotersBottomSheet>
             child: Center(
               child: Text(
                 AppLocalizations.of(context)!.voters,
-                style: CustomTextStyles.bottomsheetTitleTextStyle(context),
+                style: AppTextStyles.sectionHeading.copyWith(color: Theme.of(context).colorScheme.onBackground),
               ),
             ),
           ),
@@ -140,8 +140,7 @@ class _ThingsVotersBottomSheetState extends State<ThingsVotersBottomSheet>
             padding: EdgeInsets.fromLTRB(12.w, 7.h, 12.w, 12.h),
             child: Text(
               'Q. ${widget.pollQuestion}',
-              style: TextStyle(
-                fontSize: 11.3.sp,
+              style: AppTextStyles.bodyText.copyWith(
                 fontWeight: FontWeight.w600,
                 color: Theme.of(context).colorScheme.onBackground,
               ),
@@ -171,8 +170,7 @@ class _ThingsVotersBottomSheetState extends State<ThingsVotersBottomSheet>
                           Expanded(
                             child: Text(
                               option.text,
-                              style: TextStyle(
-                                fontSize: 11.4.sp,
+                              style: AppTextStyles.bodyText.copyWith(
                                 fontWeight: FontWeight.w600,
                                 color: const Color.fromARGB(255, 89, 89, 89),
                               ),
@@ -185,8 +183,7 @@ class _ThingsVotersBottomSheetState extends State<ThingsVotersBottomSheet>
                               children: [
                                 Text(
                                   '$rank1Count',
-                                  style: TextStyle(
-                                    fontSize: 10.sp,
+                                  style: AppTextStyles.subText.copyWith(
                                     fontWeight: FontWeight.w600,
                                     color: Theme.of(
                                       context,
@@ -245,8 +242,7 @@ class _ThingsVotersBottomSheetState extends State<ThingsVotersBottomSheet>
                             SizedBox(width: 6.w),
                             Text(
                               'Failed to load',
-                              style: TextStyle(
-                                fontSize: 10.sp,
+                              style: AppTextStyles.subText.copyWith(
                                 color: Theme.of(
                                   context,
                                 ).colorScheme.onSurface.withOpacity(0.4),
@@ -263,8 +259,7 @@ class _ThingsVotersBottomSheetState extends State<ThingsVotersBottomSheet>
                               },
                               child: Text(
                                 'Retry',
-                                style: TextStyle(
-                                  fontSize: 10.sp,
+                                style: AppTextStyles.subText.copyWith(
                                   color: Theme.of(context).colorScheme.primary,
                                   fontWeight: FontWeight.w600,
                                 ),
@@ -281,8 +276,7 @@ class _ThingsVotersBottomSheetState extends State<ThingsVotersBottomSheet>
                         ),
                         child: Text(
                           'No votes yet',
-                          style: TextStyle(
-                            fontSize: 10.5.sp,
+                          style: AppTextStyles.subText.copyWith(
                             color: Theme.of(
                               context,
                             ).colorScheme.onSurface.withOpacity(0.4),

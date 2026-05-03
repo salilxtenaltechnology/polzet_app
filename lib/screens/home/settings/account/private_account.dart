@@ -10,6 +10,7 @@ import '../../../../api/app_api.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../data/token/shared_preferences.dart';
 import '../../../../languages/l10n/generated/app_localizations.dart';
+import '../../../../widgets/appbar/common_appbar.dart';
 import '../../../../widgets/custom_text_styles.dart';
 import '../../../../widgets/loader.dart';
 
@@ -138,21 +139,11 @@ class _PrivateAccountState extends State<PrivateAccount> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.background,
-      appBar: AppBar(
-        automaticallyImplyLeading: false,
-        toolbarHeight: 25.h,
-        leading: GestureDetector(
-          onTap: () => Navigator.pop(context),
-          child: const Icon(Icons.arrow_back_ios),
-        ),
-        title: Text(
-        AppLocalizations.of(context)!.accountprivacy,
-          style: CustomTextStyles.appBarTitleText(context),
-        ),
-        centerTitle: true,
-        backgroundColor: Theme.of(context).colorScheme.background,
-        surfaceTintColor: Theme.of(context).colorScheme.background,
+      appBar: CommonAppBar(
+        title: AppLocalizations.of(context)!.accountprivacy,
+        showBackButton: true,
       ),
+
       body: isLoading
           ? Center(child: Loader(color: Theme.of(context).colorScheme.primary))
           : Stack(
@@ -172,7 +163,9 @@ class _PrivateAccountState extends State<PrivateAccount> {
                       ),
                       SizedBox(height: 5.h),
                       Text(
-                         AppLocalizations.of(context)!.whenyourpolzetaccountispublic,
+                        AppLocalizations.of(
+                          context,
+                        )!.whenyourpolzetaccountispublic,
                         style: TextStyle(
                           color: Theme.of(
                             context,
@@ -183,7 +176,9 @@ class _PrivateAccountState extends State<PrivateAccount> {
                       ),
                       SizedBox(height: 5.h),
                       Text(
-                          AppLocalizations.of(context)!.whenyourpolzetaccountisprivate,
+                        AppLocalizations.of(
+                          context,
+                        )!.whenyourpolzetaccountisprivate,
                         style: TextStyle(
                           color: Theme.of(
                             context,

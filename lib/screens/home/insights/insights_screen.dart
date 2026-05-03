@@ -10,7 +10,7 @@ import '../../../gen/assets.gen.dart';
 import '../../../languages/l10n/generated/app_localizations.dart';
 import '../../../models/insights/insights_model.dart';
 import '../../../widgets/custom_card.dart';
-import '../../../widgets/custom_text_styles.dart';
+import '../../../core/themes/app_text_styles.dart';
 import '../../../widgets/dialog/custom_diolog.dart';
 import '../../../widgets/loader.dart';
 
@@ -55,28 +55,13 @@ class _InsightsScreenState extends State<InsightsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.background,
-      appBar: AppBar(
-        leading: GestureDetector(
-          onTap: () => Navigator.pop(context),
-          child: const Icon(Icons.arrow_back_ios),
-        ),
-        backgroundColor: Theme.of(context).colorScheme.background,
-        surfaceTintColor: Theme.of(context).colorScheme.background,
-        elevation: 0,
-        centerTitle: true,
-        automaticallyImplyLeading: false,
-        toolbarHeight: 25.h,
-        title: Text(
-          AppLocalizations.of(context)!.insights,
-          style: CustomTextStyles.appBarTitleText(context),
-        ),
-      ),
+     // appBar: CommonAppBar(title: AppLocalizations.of(context)!.insights),
+
       body: _loading
           ? Center(child: Loader(color: Theme.of(context).colorScheme.primary))
           : ListView(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               children: [
-                // ── Total Views ──────────────────────────────────────────
                 CustomCard(
                   widget: Row(
                     children: [
@@ -84,7 +69,7 @@ class _InsightsScreenState extends State<InsightsScreen> {
                       SizedBox(width: 7.w),
                       Text(
                         AppLocalizations.of(context)!.totalviews,
-                        style: TextStyle(
+                        style: AppTextStyles.subText.copyWith(
                           color: Theme.of(context).colorScheme.onBackground,
                           fontSize: 11.sp,
                           fontWeight: FontWeight.w500,
@@ -93,7 +78,7 @@ class _InsightsScreenState extends State<InsightsScreen> {
                       const Spacer(),
                       Text(
                         insightsModel?.totalViews.toString() ?? '0',
-                        style: TextStyle(
+                        style: AppTextStyles.subText.copyWith(
                           color: Theme.of(context).colorScheme.onBackground,
                           fontSize: 11.sp,
                           fontWeight: FontWeight.bold,
@@ -102,7 +87,7 @@ class _InsightsScreenState extends State<InsightsScreen> {
                     ],
                   ),
                 ),
-                SizedBox(height: 10.h),
+                SizedBox(height: 12.h),
 
                 // ── Chasers (Vibe) ───────────────────────────────────────
                 CustomCard(
@@ -112,7 +97,7 @@ class _InsightsScreenState extends State<InsightsScreen> {
                       SizedBox(width: 7.w),
                       Text(
                         AppLocalizations.of(context)!.vibe,
-                        style: TextStyle(
+                        style: AppTextStyles.subText.copyWith(
                           color: Theme.of(context).colorScheme.onBackground,
                           fontSize: 11.sp,
                           fontWeight: FontWeight.w500,
@@ -121,7 +106,7 @@ class _InsightsScreenState extends State<InsightsScreen> {
                       const Spacer(),
                       Text(
                         insightsModel?.chasers.toString() ?? '0',
-                        style: TextStyle(
+                        style: AppTextStyles.subText.copyWith(
                           color: Theme.of(context).colorScheme.onBackground,
                           fontSize: 11.sp,
                           fontWeight: FontWeight.bold,
@@ -130,7 +115,7 @@ class _InsightsScreenState extends State<InsightsScreen> {
                     ],
                   ),
                 ),
-                SizedBox(height: 7.h),
+                SizedBox(height: 12.h),
 
                 // ── Polls Created ────────────────────────────────────────
                 CustomCard(
@@ -140,7 +125,7 @@ class _InsightsScreenState extends State<InsightsScreen> {
                       SizedBox(width: 7.w),
                       Text(
                         AppLocalizations.of(context)!.pollcreated,
-                        style: TextStyle(
+                        style: AppTextStyles.subText.copyWith(
                           color: Theme.of(context).colorScheme.onBackground,
                           fontSize: 11.sp,
                           fontWeight: FontWeight.w500,
@@ -149,7 +134,7 @@ class _InsightsScreenState extends State<InsightsScreen> {
                       const Spacer(),
                       Text(
                         insightsModel?.pollsCreated.toString() ?? '0',
-                        style: TextStyle(
+                        style: AppTextStyles.subText.copyWith(
                           color: Theme.of(context).colorScheme.onBackground,
                           fontSize: 11.sp,
                           fontWeight: FontWeight.bold,
@@ -158,9 +143,8 @@ class _InsightsScreenState extends State<InsightsScreen> {
                     ],
                   ),
                 ),
-                SizedBox(height: 10.h),
+                SizedBox(height: 15.h),
 
-                // ── Line Chart ───────────────────────────────────────────
                 if (insightsModel != null && insightsModel!.recent.isNotEmpty)
                   CustomCard(
                     widget: Column(
@@ -168,13 +152,13 @@ class _InsightsScreenState extends State<InsightsScreen> {
                       children: [
                         Text(
                           AppLocalizations.of(context)!.weeklyviews,
-                          style: TextStyle(
+                          style: AppTextStyles.subText.copyWith(
                             color: Theme.of(context).colorScheme.onBackground,
                             fontSize: 11.sp,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
-                        SizedBox(height: 12.h),
+                        SizedBox(height: 15.h),
                         SizedBox(
                           height: 180.h,
                           child: LineChart(
@@ -212,7 +196,9 @@ class _InsightsScreenState extends State<InsightsScreen> {
                                     reservedSize: 28,
                                     getTitlesWidget: (v, _) => Text(
                                       v.toInt().toString(),
-                                      style: TextStyle(fontSize: 9.sp),
+                                      style: AppTextStyles.subText.copyWith(
+                                        fontSize: 9.sp,
+                                      ),
                                     ),
                                   ),
                                 ),
@@ -233,7 +219,9 @@ class _InsightsScreenState extends State<InsightsScreen> {
                                           // Shows "W1", "W2" … to save space
                                           insightsModel!.recent[i].label
                                               .replaceAll('Week ', 'W'),
-                                          style: TextStyle(fontSize: 9.sp),
+                                          style: AppTextStyles.subText.copyWith(
+                                            fontSize: 9.sp,
+                                          ),
                                         ),
                                       );
                                     },
@@ -282,7 +270,7 @@ class _InsightsScreenState extends State<InsightsScreen> {
                                     final i = s.x.toInt();
                                     return LineTooltipItem(
                                       '${insightsModel!.recent[i].label}\n${s.y.toInt()} views',
-                                      const TextStyle(
+                                      AppTextStyles.subText.copyWith(
                                         color: Colors.white,
                                         fontSize: 11,
                                       ),
@@ -315,7 +303,7 @@ class _InsightsScreenState extends State<InsightsScreen> {
                       Text(
                         AppLocalizations.of(context)!.insightsareavailable,
                         textAlign: TextAlign.center,
-                        style: TextStyle(
+                        style: AppTextStyles.subText.copyWith(
                           color: Theme.of(context).colorScheme.onBackground,
                           fontSize: 12.sp,
                           fontWeight: FontWeight.w600,
@@ -325,7 +313,7 @@ class _InsightsScreenState extends State<InsightsScreen> {
                       Text(
                         AppLocalizations.of(context)!.trackpollvotesreactions,
                         textAlign: TextAlign.center,
-                        style: TextStyle(
+                        style: AppTextStyles.subText.copyWith(
                           color: Theme.of(context).colorScheme.onBackground,
                           fontSize: 12.sp,
                           fontWeight: FontWeight.w500,
@@ -361,7 +349,7 @@ class _InsightsScreenState extends State<InsightsScreen> {
                               AppLocalizations.of(
                                 context,
                               )!.switchtobusinessaccount,
-                              style: TextStyle(
+                              style: AppTextStyles.subText.copyWith(
                                 fontSize: 11.sp,
                                 color: Colors.white,
                                 fontWeight: FontWeight.bold,

@@ -5,6 +5,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../../core/constants/app_colors.dart';
 import '../../core/constants/app_radius.dart';
+import '../../core/themes/app_text_styles.dart';
 import '../../gen/assets.gen.dart';
 import '../../languages/l10n/generated/app_localizations.dart';
 import '../../mixin/utility_mixins.dart';
@@ -68,17 +69,16 @@ class NewPollBottomsheet extends StatelessWidget with UtilityMixin {
                       child: Assets.images.thingsIcon.image(
                         color: Colors.white,
                       ),
-                      // Icon(
-                      //   Icons.description_outlined,
-                      //   size: 23.spMax,
-                      //   color: Colors.white,
-                      // ),
                     ),
                   ),
                   SizedBox(height: 5.h),
                   Text(
                     AppLocalizations.of(context)!.answer,
-                    style: CustomTextStyles.lblSecondryText(context),
+                   style: AppTextStyles.subText.copyWith(
+          fontSize: 13.5,
+          fontWeight: FontWeight.w500,
+          color: Theme.of(context).colorScheme.onBackground,
+        ),
                   ),
                 ],
               ),
@@ -104,7 +104,11 @@ class NewPollBottomsheet extends StatelessWidget with UtilityMixin {
                   SizedBox(height: 5.h),
                   Text(
                     AppLocalizations.of(context)!.image,
-                    style: CustomTextStyles.lblSecondryText(context),
+                   style: AppTextStyles.subText.copyWith(
+          fontSize: 13.5,
+          fontWeight: FontWeight.w500,
+          color: Theme.of(context).colorScheme.onBackground,
+        ),
                   ),
                 ],
               ),

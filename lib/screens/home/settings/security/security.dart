@@ -11,6 +11,7 @@ import '../../../../api/services/api_service.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../languages/l10n/generated/app_localizations.dart';
 import '../../../../mixin/utility_mixins.dart';
+import '../../../../widgets/appbar/common_appbar.dart';
 import '../../../../widgets/custom_text_styles.dart';
 import '../../../../widgets/dialog/pin_security_diolog.dart';
 import '../../../../widgets/loader.dart';
@@ -144,7 +145,6 @@ class SecurityState extends State<Security> with UtilityMixin {
     }
 
     if (value) {
-      // ✅ Disable fingerprint when enabling PIN
       if (_isFingerprint) {
         setState(() => _isFingerprint = false);
         await BiometricService.saveFingerprintEnabled(false);
@@ -204,7 +204,6 @@ class SecurityState extends State<Security> with UtilityMixin {
     }
 
     if (value) {
-      // ✅ Disable PIN when enabling Fingerprint
       if (_isPinSecurity) {
         setState(() => _isPinSecurity = false);
         await PinService.setPinSecurityEnabled(false);
@@ -256,7 +255,6 @@ class SecurityState extends State<Security> with UtilityMixin {
     );
   }
 
-  /// Show option to change existing PIN
   void _showChangePinOption() async {
     final shouldChange = await showDisablePINDiolog(
       context,
@@ -280,7 +278,6 @@ class SecurityState extends State<Security> with UtilityMixin {
     }
   }
 
-  /// Format date for display
   String _formatDate(DateTime date) {
     return '${date.day}/${date.month}/${date.year}';
   }
@@ -289,13 +286,10 @@ class SecurityState extends State<Security> with UtilityMixin {
     setState(() => _isLoading = true);
 
     try {
-      // Save all settings
       await BiometricService.saveBiometricEnabled(_isSecurity);
-      // await PinService.setPinSecurityEnabled(_isPinSecurity);
       await BiometricService.saveFingerprintEnabled(_isFingerprint);
 
-      //showToast(message: 'Security settings saved successfully');
-      // Navigate back or to next screen
+     
     } catch (e) {
       _showErrorSnackBar('Error saving settings: $e');
     } finally {
@@ -391,9 +385,7 @@ class SecurityState extends State<Security> with UtilityMixin {
 
     if (!mounted) return;
 
-    // Check if password update was successful (empty string means success)
     if (result.isEmpty) {
-      // Clear all password controllers on success
       setState(() {
         _currentPasswordController.clear();
         _newPasswordController.clear();
@@ -431,21 +423,11 @@ class SecurityState extends State<Security> with UtilityMixin {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.background,
-      appBar: AppBar(
-        automaticallyImplyLeading: false,
-        toolbarHeight: 25.h,
-        leading: GestureDetector(
-          onTap: () => Navigator.pop(context),
-          child: const Icon(Icons.arrow_back_ios),
-        ),
-        title: Text(
-          AppLocalizations.of(context)!.security,
-          style: CustomTextStyles.appBarTitleText(context),
-        ),
-        centerTitle: true,
-        backgroundColor: Theme.of(context).colorScheme.background,
-        surfaceTintColor: Theme.of(context).colorScheme.background,
+       appBar: CommonAppBar(
+        title: AppLocalizations.of(context)!.security,
+        showBackButton: true,
       ),
+    
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : ListView(

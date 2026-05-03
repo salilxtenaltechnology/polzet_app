@@ -11,15 +11,13 @@ import '../../../../../core/constants/app_radius.dart';
 import '../../../../../languages/l10n/generated/app_localizations.dart';
 import '../../../../../models/like/like_uers_model.dart';
 import '../../../../../models/posts/user_post_model.dart';
+import '../../../../../widgets/appbar/common_appbar.dart';
 import '../../../../../widgets/base64/image_convert.dart';
-import '../../../../../widgets/button/back_button.dart';
-import '../../../../../widgets/custom_text_styles.dart';
 import '../../../../../widgets/dialog/custom_diolog.dart';
 import '../../../../../widgets/loader.dart';
 import '../../../../../widgets/show_toast.dart';
 import '../../../../../core/utils/bottomsheet_util.dart';
 import '../../../../../core/utils/like_util.dart';
-
 
 class ThingsPostsList extends StatefulWidget {
   String? username;
@@ -149,18 +147,8 @@ class QuestionsPostsListState extends State<ThingsPostsList> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.background,
-      appBar: AppBar(
-        automaticallyImplyLeading: false,
-        leading: const PrimaryBackButton(),
-        centerTitle: true,
-        title: Text(
-          AppLocalizations.of(context)!.pollthings,
-          style: CustomTextStyles.appBarTitleText(context),
-        ),
-        backgroundColor: Theme.of(context).colorScheme.background,
-        surfaceTintColor: Theme.of(context).colorScheme.background,
-        toolbarHeight: 25.h,
-      ),
+      appBar: CommonAppBar(title: AppLocalizations.of(context)!.pollthings),
+
       body: isLoading && isInitialLoad
           ? Center(child: Loader(color: Theme.of(context).colorScheme.primary))
           : errorMessage != null && postsPolls.isEmpty
@@ -213,7 +201,6 @@ class QuestionsPostsListState extends State<ThingsPostsList> {
     );
   }
 }
-
 
 class _PollPostCard extends StatefulWidget {
   const _PollPostCard({
@@ -268,7 +255,6 @@ class _PollPostCardState extends State<_PollPostCard> {
     }
   }
 
-
   bool _areAllOptionsSelected(UserPollQuestion poll) {
     final key = poll.id.toString();
     final selected = selectedOptions[key];
@@ -298,7 +284,6 @@ class _PollPostCardState extends State<_PollPostCard> {
     });
   }
 
-  
   Future<void> _submitPollVotes(UserPollQuestion poll) async {
     final pollKey = poll.id.toString();
     if (pollVotingStates[pollKey] == true) return;
@@ -380,7 +365,6 @@ class _PollPostCardState extends State<_PollPostCard> {
     }
   }
 
-
   Future<void> _fetchLikedUsers() async {
     try {
       final users = await ApiService().fetchLikedUsers(widget.post.id);
@@ -430,7 +414,6 @@ class _PollPostCardState extends State<_PollPostCard> {
     if (count < 1000000) return '${(count / 1000).toStringAsFixed(1)}K';
     return '${(count / 1000000).toStringAsFixed(1)}M';
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -783,7 +766,7 @@ class _PollPostCardState extends State<_PollPostCard> {
                 ),
               ),
             Padding(
-             padding: EdgeInsets.fromLTRB(8.w, 3.h, 8.w, 0),
+              padding: EdgeInsets.fromLTRB(8.w, 3.h, 8.w, 0),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [

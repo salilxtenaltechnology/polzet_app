@@ -23,6 +23,8 @@ class HomeScreenState extends State<HomeScreen> with UtilityMixin {
     pageIndex = widget.initialIndex;
     _loadCachedUserData();
     _initializeDeepLinking();
+    MessageListState.startGlobalPolling();
+    NotificationState.startGlobalPolling();
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       NotificationService().initialize();
@@ -34,7 +36,7 @@ class HomeScreenState extends State<HomeScreen> with UtilityMixin {
         ).push(MaterialPageRoute(builder: (_) => widget.pendingDestination!));
         NotificationRouter().clear();
       } else if (NotificationRouter().hasPendingNotification()) {
-        debugPrint('🚀 HomeScreen: Found pending notification in Router');
+        // debugPrint('🚀 HomeScreen: Found pending notification in Router');
         NotificationRouter().handlePendingNotification(context);
       }
     });
@@ -42,6 +44,8 @@ class HomeScreenState extends State<HomeScreen> with UtilityMixin {
 
   @override
   void dispose() {
+    MessageListState.stopGlobalPolling();
+    NotificationState.stopGlobalPolling();
     DeepLinkService().dispose();
     super.dispose();
   }
@@ -49,9 +53,6 @@ class HomeScreenState extends State<HomeScreen> with UtilityMixin {
   void _initializeDeepLinking() {
     DeepLinkService().initialize(
       onPostLinkReceived: (username, postId) {
-        debugPrint(
-          '🔗 Deep link inside Home - Username: $username, PostId: $postId',
-        );
         _navigateToPostDetail(username, postId);
       },
     );
@@ -88,7 +89,7 @@ class HomeScreenState extends State<HomeScreen> with UtilityMixin {
     const Dashboard(),
     const MessageList(),
     const PollPop(),
-    const Notifications(),
+    const InsightsScreen(),
     const UserProfile(),
   ];
 
@@ -178,18 +179,15 @@ class HomeScreenState extends State<HomeScreen> with UtilityMixin {
               backgroundColor: Theme.of(context).colorScheme.background,
               surfaceTintColor: Theme.of(context).colorScheme.background,
               automaticallyImplyLeading: false,
-              toolbarHeight: 38.h,
+              toolbarHeight: 42.h,
               title: pageIndex == 0
                   ? Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
                           AppLocalizations.of(context)!.hello,
-                          style: GoogleFonts.poppins(
+                          style: AppTextStyles.cardTitle.copyWith(
                             color: Theme.of(context).colorScheme.primary,
-                            fontSize: 15.sp,
-                            fontWeight: FontWeight.w600,
-                            letterSpacing: 0.5,
                           ),
                         ),
                         Row(
@@ -199,13 +197,11 @@ class HomeScreenState extends State<HomeScreen> with UtilityMixin {
                               userProvider.isLoading
                                   ? firstname ?? ''
                                   : (userProvider.firstName ?? ''),
-                              style: GoogleFonts.poppins(
+                              style: AppTextStyles.bodyText.copyWith(
                                 color: Theme.of(
                                   context,
                                 ).colorScheme.onBackground,
-                                fontSize: 12.sp,
-                                fontWeight: FontWeight.w500,
-                                letterSpacing: 0.2,
+                                fontWeight: FontWeight.w600,
                               ),
                             ),
                             SizedBox(width: 5.w),
@@ -215,13 +211,11 @@ class HomeScreenState extends State<HomeScreen> with UtilityMixin {
                                   : ((userProvider.lastName ?? '').isNotEmpty
                                         ? "${userProvider.lastName} 👋"
                                         : " "),
-                              style: GoogleFonts.poppins(
+                              style: AppTextStyles.bodyText.copyWith(
                                 color: Theme.of(
                                   context,
                                 ).colorScheme.onBackground,
-                                fontSize: 12.sp,
-                                fontWeight: FontWeight.w500,
-                                letterSpacing: 0.2,
+                                fontWeight: FontWeight.w600,
                               ),
                             ),
                           ],
@@ -235,26 +229,34 @@ class HomeScreenState extends State<HomeScreen> with UtilityMixin {
                     )
                   : pageIndex == 3
                   ? Text(
-                      AppLocalizations.of(context)!.notifications,
+                      AppLocalizations.of(context)!.insights,
                       style: AppTextStyles.pageTitleTextStyle(context),
                     )
                   : null,
-              centerTitle: pageIndex == 2 ? false : true,
+              // centerTitle: pageIndex == 2 ? false : true,
+              centerTitle: false,
               actions: [
-                // if (pageIndex == 0)
-                //   AppIcons(
-                //     onTap: () {
-                //     ConnectivityOverlay.showTestSheet(context, 'server');
-                //       showModalBottomSheet(
-                //         context: context,
-                //         isScrollControlled: true, // ← required for tall sheets
-                //         backgroundColor: Colors.transparent,
-                //         builder: (_) => const FeedbackBottomsheet(),
-                //       );
-                //     },
-                //     icon: Icons.feedback,
-                //   ),
-                // SizedBox(width: 9.w),
+                if (pageIndex == 0)
+                  // AppIcons(
+                  //   onTap: () {
+                  //   ConnectivityOverlay.showTestSheet(context, 'server');
+                  //     showModalBottomSheet(
+                  //       context: context,
+                  //       isScrollControlled: true, // ← required for tall sheets
+                  //       backgroundColor: Colors.transparent,
+                  //       builder: (_) => const FeedbackBottomsheet(),
+                  //     );
+                  //   },
+                  //   icon: Icons.feedback,
+                  // ),
+                  // if (pageIndex == 0)
+                  AppIcons(
+                    onTap: () {
+                      navigationPush(context, const FlowScreen());
+                    },
+                    icon: Icons.person,
+                  ),
+                SizedBox(width: 9.w),
                 if (pageIndex == 0)
                   AppIcons(
                     onTap: () =>
@@ -263,10 +265,55 @@ class HomeScreenState extends State<HomeScreen> with UtilityMixin {
                   ),
                 SizedBox(width: 9.w),
                 if (pageIndex == 0)
-                  AppIcons(
-                    onTap: () =>
-                        navigationPush(context, const InsightsScreen()),
-                    icon: FeatherIcons.barChart2,
+                  ValueListenableBuilder<int>(
+                    valueListenable: NotificationState.unreadNotificationCount,
+                    builder: (context, unreadCount, _) {
+                      return GestureDetector(
+                        onTap: () {
+                          navigationPush(context, const Notifications());
+                        },
+                        child: Stack(
+                          clipBehavior: Clip.none,
+                          children: [
+                            AppIcons(
+                              onTap: () {
+                                navigationPush(context, const Notifications());
+                              },
+                              icon: FeatherIcons.bell,
+                            ),
+                            if (unreadCount > 0)
+                              Positioned(
+                                top: -8,
+                                right: -7,
+                                child: Container(
+                                  width: 20,
+                                  height: 20,
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFB82B53),
+                                    shape: BoxShape.circle,
+                                    border: Border.all(
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.background,
+                                      width: 1.5,
+                                    ),
+                                  ),
+                                  child: Center(
+                                    child: Text(
+                                      unreadCount.toString(),
+                                      style: AppTextStyles.subText.copyWith(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.w500,
+                                        fontSize: 9,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
+                      );
+                    },
                   ),
                 SizedBox(width: 8.w),
                 if (pageIndex == 1)
@@ -287,15 +334,26 @@ class HomeScreenState extends State<HomeScreen> with UtilityMixin {
               ],
             ),
       body: SafeArea(child: screens[pageIndex]),
-      bottomNavigationBar: CustomBottomNavigationBar(
-        index: pageIndex,
-        bottomNavigationKey: bottomNavigationKey,
-        onTap: (i) {
-          // Skip index 2 — it's reserved for the FAB, not a tab
-          if (i != 2) setState(() => pageIndex = i);
+      bottomNavigationBar: ValueListenableBuilder<int>(
+        valueListenable: NotificationState.unreadNotificationCount,
+        builder: (context, unreadNotificationCount, _) {
+          return ValueListenableBuilder<int>(
+            valueListenable: MessageListState.unreadMessageCount,
+            builder: (context, unreadMessageCount, _) {
+              return CustomBottomNavigationBar(
+                index: pageIndex,
+                bottomNavigationKey: bottomNavigationKey,
+                onTap: (i) {
+                  if (i != 2) setState(() => pageIndex = i);
+                },
+                notificationCount: unreadNotificationCount,
+                messageCount: unreadMessageCount,
+                onAddTap: () =>
+                    BottomSheetUtils.showNewPollBottomSheet(context),
+              );
+            },
+          );
         },
-        notificationCount: 0,
-        onAddTap: () => BottomSheetUtils.showNewPollBottomSheet(context),
       ),
     );
   }

@@ -63,6 +63,7 @@ dependencies:
   screenshot: ^3.0.0
   image: ^4.8.0
   photo_view: ^0.15.0
+  google_sign_in_android: ^7.2.10
 
 dev_dependencies:
   flutter_test:
@@ -99,3 +100,10 @@ flutter:
           weight: 600
         - asset: assets/fonts/Inter-Bold.ttf
           weight: 700
+
+    - family: Flexing
+      fonts:
+        - asset: assets/fonts/flexing-bold.ttf
+          weight: 700
+        
+  

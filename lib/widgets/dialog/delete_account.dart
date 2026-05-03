@@ -4,7 +4,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../core/constants/app_radius.dart';
 import '../../languages/l10n/generated/app_localizations.dart';
-import '../custom_text_styles.dart';
+import '../../core/themes/app_text_styles.dart';
 
 class DeleteAccountDioloig extends StatelessWidget {
   const DeleteAccountDioloig({super.key, required this.onPressed});
@@ -26,12 +26,12 @@ class DeleteAccountDioloig extends StatelessWidget {
         children: [
           Text(
            AppLocalizations.of(context)!.deleteaccount,
-            style: CustomTextStyles.appBarTitleText(context),
+            style: AppTextStyles.pageTitleTextStyle(context).copyWith(fontSize: 22, fontWeight: FontWeight.w500),
           ),
           SizedBox(height: 8.h),
           Text(
            AppLocalizations.of(context)!.areyousureyouwanttodeleteyouraccount,
-            style: CustomTextStyles.lblPrimaryText(context),
+            style: AppTextStyles.bodyText.copyWith(color: Theme.of(context).colorScheme.onBackground),
           ),
           SizedBox(height: 10.h),
           Row(
@@ -41,7 +41,7 @@ class DeleteAccountDioloig extends StatelessWidget {
                 onTap: () => Navigator.of(context).pop(),
                 child: Text(
                   AppLocalizations.of(context)!.close.toUpperCase(),
-                  style: TextStyle(
+                  style: AppTextStyles.subText.copyWith(
                     fontSize: 12.sp,
                     color: Theme.of(context).colorScheme.onBackground,
                     fontWeight: FontWeight.w500,
@@ -53,7 +53,7 @@ class DeleteAccountDioloig extends StatelessWidget {
                 onTap: onPressed,
                 child: Text(
                  AppLocalizations.of(context)!.yesdelete,
-                  style: TextStyle(
+                  style: AppTextStyles.subText.copyWith(
                     fontSize: 12.sp,
                       color: Theme.of(context).colorScheme.error,
                     fontWeight: FontWeight.w500,

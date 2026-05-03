@@ -1,4 +1,5 @@
 // ignore_for_file: must_be_immutable, deprecated_member_use
+import 'package:feather_icons/feather_icons.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
@@ -12,6 +13,7 @@ class CustomBottomNavigationBar extends StatelessWidget {
     required this.bottomNavigationKey,
     required this.onTap,
     this.notificationCount = 0,
+    this.messageCount = 0,
     this.onAddTap,
   });
 
@@ -19,6 +21,7 @@ class CustomBottomNavigationBar extends StatelessWidget {
   GlobalKey bottomNavigationKey = GlobalKey();
   final ValueChanged<int> onTap;
   final int notificationCount;
+  final int messageCount;
   final VoidCallback? onAddTap;
 
   static const Color _fabColor = Color(0xFF7D1F3A);
@@ -60,10 +63,11 @@ class CustomBottomNavigationBar extends StatelessWidget {
                     onTap: () => onTap(0),
                     size: 24.sp,
                   ),
-                  _NavItemPng(
+                  _NavItemPngWithBadge(
                     activeImage: Assets.images.activeMessage,
                     inactiveImage: Assets.images.inactiveMessage,
                     isActive: index == 1,
+                    badgeCount: messageCount,
                     onTap: () => onTap(1),
                     size: 22.sp,
                   ),
@@ -98,13 +102,19 @@ class CustomBottomNavigationBar extends StatelessWidget {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
-                  _NavItemPngWithBadge(
-                    activeImage: Assets.images.activeBell,
-                    inactiveImage: Assets.images.inactiveBell,
+                  // _NavItemPngWithBadge(
+                  //   activeImage: Assets.images.activeBell,
+                  //   inactiveImage: Assets.images.inactiveBell,
+                  //   isActive: index == 3,
+                  //   badgeCount: notificationCount,
+                  //   onTap: () => onTap(3),
+                  //   size: 21.7.sp,
+                  // ),
+                  _NavItemIcon(
+                    icon: FeatherIcons.barChart2,
                     isActive: index == 3,
-                    badgeCount: notificationCount,
                     onTap: () => onTap(3),
-                    size: 21.7.sp,
+                    size: 24.sp,
                   ),
                   _NavItemPng(
                     activeImage: Assets.images.activeUser,
@@ -152,9 +162,10 @@ class _NavItemPng extends StatelessWidget {
         curve: Curves.easeInOut,
         padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 5.h),
         decoration: BoxDecoration(
-          color: isActive
-              ? Theme.of(context).primaryColor.withOpacity(0.1)
-              : Colors.transparent,
+          color: Colors.transparent,
+          // color: isActive
+          //     ? Theme.of(context).primaryColor.withOpacity(0.1)
+          //     : Colors.transparent,
           borderRadius: BorderRadius.circular(20.r),
         ),
         child: (isActive ? activeImage : inactiveImage).image(
@@ -188,6 +199,7 @@ class _NavItemPngWithBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final bg = Theme.of(context).colorScheme.tertiaryContainer;
     final color = isActive
         ? AppColors.primaryColor
         : Theme.of(context).colorScheme.onSurface.withOpacity(0.6);
@@ -200,9 +212,10 @@ class _NavItemPngWithBadge extends StatelessWidget {
         curve: Curves.easeInOut,
         padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 4.h),
         decoration: BoxDecoration(
-          color: isActive
-              ? AppColors.primaryColor.withOpacity(0.18)
-              : Colors.transparent,
+          color: Colors.transparent,
+          // color: isActive
+          //     ? AppColors.primaryColor.withOpacity(0.18)
+          //     : Colors.transparent,
           borderRadius: BorderRadius.circular(20.r),
         ),
         child: Stack(
@@ -215,34 +228,62 @@ class _NavItemPngWithBadge extends StatelessWidget {
               color: color,
               colorBlendMode: BlendMode.srcIn,
             ),
-            if (badgeCount > 0)
-              Positioned(
-                top: -3,
-                right: -4,
+            Positioned(
+              top: -2,
+              right: -2,
+              child: AnimatedScale(
+                scale: badgeCount > 0 ? 1.0 : 0.0,
+                duration: const Duration(milliseconds: 300),
+                curve: Curves.easeOutBack,
                 child: Container(
-                  padding: EdgeInsets.all(2.sp),
-                  constraints: BoxConstraints(
-                    minWidth: 14.sp,
-                    minHeight: 14.sp,
-                  ),
-                  decoration: const BoxDecoration(
-                    color: Color(0xFF7D1F3A),
+                  width: 11.sp,
+                  height: 11.sp,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFB82B53),
                     shape: BoxShape.circle,
-                  ),
-                  child: Center(
-                    child: Text(
-                      badgeCount > 9 ? '9+' : '$badgeCount',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 7.sp,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
+                    border: Border.all(color: bg, width: 2),
                   ),
                 ),
               ),
+            ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _NavItemIcon extends StatelessWidget {
+  const _NavItemIcon({
+    required this.icon,
+    required this.isActive,
+    required this.onTap,
+    required this.size,
+  });
+
+  final IconData icon;
+  final bool isActive;
+  final VoidCallback onTap;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = isActive
+        ? AppColors.primaryColor
+        : Theme.of(context).colorScheme.onSurface.withOpacity(0.5);
+
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 250),
+        curve: Curves.easeInOut,
+        padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 5.h),
+        decoration: BoxDecoration(
+          color: Colors.transparent,
+          borderRadius: BorderRadius.circular(20.r),
+        ),
+        child: Icon(icon, color: color, size: size),
       ),
     );
   }

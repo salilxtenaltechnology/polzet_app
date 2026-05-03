@@ -1,4 +1,5 @@
 {
     "cmake.sourceDirectory": "/Users/pratik.patadiyaicloud/Documents/GitHub/polzet_app/linux",
-    "sarif-viewer.connectToGithubCodeScanning": "off"
+    "sarif-viewer.connectToGithubCodeScanning": "off",
+    "java.configuration.updateBuildConfiguration": "interactive"
 }

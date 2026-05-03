@@ -1,913 +1,879 @@
+// // ignore_for_file: deprecated_member_use, unused_field, unrelated_type_equality_checks
+
+// import 'dart:async';
+// import 'dart:convert';
+
+// import 'package:dio/dio.dart';
+// import 'package:flutter/foundation.dart';
 // import 'package:flutter/material.dart';
+// import 'package:flutter_screenutil/flutter_screenutil.dart';
+// import 'package:polzet_app/screens/home/profile/public/public_profile.dart';
+// import 'package:provider/provider.dart';
+// import 'package:shared_preferences/shared_preferences.dart';
 
-// // ─────────────────────────────────────────────
-// // APP COLORS
-// // ─────────────────────────────────────────────
-// class AppColors {
-//   AppColors._();
+// import '../../../../api/app_api.dart';
+// import '../../../../data/token/shared_preferences.dart';
+// import '../../../../provider/user_provider.dart';
+// import '../../../api/api_config.dart';
+// import '../../../languages/l10n/generated/app_localizations.dart';
+// import '../../../mixin/utility_mixins.dart';
+// import '../../../models/notifications/notification_model.dart';
+// import '../../../models/request/incoming_request.dart';
+// import '../../../models/user/user_model.dart';
+// import '../../../widgets/custom_text_styles.dart';
+// import '../../../widgets/loader.dart';
+// import '../../../widgets/show_toast.dart';
+// import '../../../widgets/tabbar/indicatore_animation.dart';
+// import 'notification_details.dart';
 
-//   static const Color primaryColor = Color(0xFF9B3046);
-
-//   // Light Mode
-//   static const Color lightBackgroundColor = Color(0xFFFDFDFD);
-//   static const Color lightPrimaryCardColor = Color(0xFFFFFFFF);
-//   static const Color lightHeadingColor = Color(0xFF111111);
-//   static const Color lightBodyTextColor = Color(0xFF595959);
-//   static const Color lightSubheadingColor = Color(0xFF2C2C2C);
-//   static const Color lightSubTextColor = Color(0xFF8E8E8E);
-//   static const Color lightDividerColor = Color(0xFFE6E6E6);
-//   static const Color lightStrokeColor = Color(0xFFDDDDDD);
-//   static const Color lightPlaceholderColor = Color(0xFFB3B3B3);
-
-//   // Dark Mode
-//   static const Color darkBackgroundColor = Color(0xFF0F0F10);
-//   static const Color darkPrimaryCardColor = Color(0xFF151F25);
-//   static const Color darkHeadingColor = Color(0xFFF5F5F5);
-//   static const Color darkBodyTextColor = Color(0xFFBFBFBF);
-//   static const Color darkSubheadingColor = Color(0xFFE9E9E9);
-//   static const Color darkSubTextColor = Color(0xFFF2F2F2);
-//   static const Color darkDividerColor = Color(0xFFF8F8F8);
-//   static const Color darkStrokeColor = Color(0xFF3C3C3C);
-//   static const Color darkPlaceholderColor = Color(0xFFE7E7E7);
-// }
-
-// // ─────────────────────────────────────────────
-// // APP TEXT STYLES  (Inter, size hierarchy)
-// // ─────────────────────────────────────────────
-// class AppTextStyles {
-//   AppTextStyles._();
-
-//   static TextStyle h1({required Color color}) => TextStyle(
-//         fontFamily: 'Inter',
-//         fontSize: 22,
-//         fontWeight: FontWeight.w700,
-//         color: color,
-//         height: 1.3,
-//       );
-
-//   static TextStyle h2({required Color color}) => TextStyle(
-//         fontFamily: 'Inter',
-//         fontSize: 18,
-//         fontWeight: FontWeight.w600,
-//         color: color,
-//         height: 1.35,
-//       );
-
-//   static TextStyle h3({required Color color}) => TextStyle(
-//         fontFamily: 'Inter',
-//         fontSize: 16,
-//         fontWeight: FontWeight.w600,
-//         color: color,
-//         height: 1.4,
-//       );
-
-//   static TextStyle body({required Color color}) => TextStyle(
-//         fontFamily: 'Inter',
-//         fontSize: 14,
-//         fontWeight: FontWeight.w400,
-//         color: color,
-//         height: 1.5,
-//       );
-
-//   static TextStyle subtext({required Color color}) => TextStyle(
-//         fontFamily: 'Inter',
-//         fontSize: 12,
-//         fontWeight: FontWeight.w400,
-//         color: color,
-//         height: 1.45,
-//       );
-// }
-
-// // ─────────────────────────────────────────────
-// // SPACING TOKENS
-// // ─────────────────────────────────────────────
-// class AppSpacing {
-//   AppSpacing._();
-
-//   static const double textSpacing = 8;
-//   static const double cardPadding = 16;
-//   static const double cardGap = 16;
-//   static const double sectionSpacing = 24;
-//   static const double screenPadding = 16;
-// }
-
-// // ─────────────────────────────────────────────
-// // ENTRY POINT
-// // ─────────────────────────────────────────────
-// void main() => runApp(const DesignSystemApp());
-
-// class DesignSystemApp extends StatefulWidget {
-//   const DesignSystemApp({super.key});
+// class Notifications extends StatefulWidget {
+//   const Notifications({super.key});
 
 //   @override
-//   State<DesignSystemApp> createState() => _DesignSystemAppState();
-// }
-
-// class _DesignSystemAppState extends State<DesignSystemApp> {
-//   bool _isDark = false;
-
-//   @override
-//   Widget build(BuildContext context) {
-//     return MaterialApp(
-//       debugShowCheckedModeBanner: false,
-//       title: 'Design System Demo',
-//       themeMode: _isDark ? ThemeMode.dark : ThemeMode.light,
-//       theme: ThemeData(
-//         brightness: Brightness.light,
-//         scaffoldBackgroundColor: AppColors.lightBackgroundColor,
-//         fontFamily: 'Inter',
-//       ),
-//       darkTheme: ThemeData(
-//         brightness: Brightness.dark,
-//         scaffoldBackgroundColor: AppColors.darkBackgroundColor,
-//         fontFamily: 'Inter',
-//       ),
-//       home: DesignDemoScreen(
-//         isDark: _isDark,
-//         onToggle: () => setState(() => _isDark = !_isDark),
-//       ),
-//     );
+//   State<StatefulWidget> createState() {
+//     return NotificationState();
 //   }
 // }
 
-// // ─────────────────────────────────────────────
-// // DEMO SCREEN
-// // ─────────────────────────────────────────────
-// class DesignDemoScreen extends StatelessWidget {
-//   final bool isDark;
-//   final VoidCallback onToggle;
+// class NotificationState extends State<Notifications>
+//     with SingleTickerProviderStateMixin, UtilityMixin {
+//   late TabController _tabController;
+//   late Future<List<IncomingData>> friendRequestsFuture;
 
-//   const DesignDemoScreen({
-//     super.key,
-//     required this.isDark,
-//     required this.onToggle,
-//   });
+//   final _dio = Dio();
+//   UserModel? userModel;
+//   List<dynamic> incoming = [];
+//   bool _isDisposed = false;
 
-//   // Resolved tokens based on mode
-//   Color get bg =>
-//       isDark ? AppColors.darkBackgroundColor : AppColors.lightBackgroundColor;
-//   Color get card =>
-//       isDark ? AppColors.darkPrimaryCardColor : AppColors.lightPrimaryCardColor;
-//   Color get heading =>
-//       isDark ? AppColors.darkHeadingColor : AppColors.lightHeadingColor;
-//   Color get subheading =>
-//       isDark ? AppColors.darkSubheadingColor : AppColors.lightSubheadingColor;
-//   Color get bodyText =>
-//       isDark ? AppColors.darkBodyTextColor : AppColors.lightBodyTextColor;
-//   Color get subText =>
-//       isDark ? AppColors.darkSubTextColor : AppColors.lightSubTextColor;
-//   Color get divider =>
-//       isDark ? AppColors.darkDividerColor : AppColors.lightDividerColor;
-//   Color get stroke =>
-//       isDark ? AppColors.darkStrokeColor : AppColors.lightStrokeColor;
-//   Color get placeholder =>
-//       isDark ? AppColors.darkPlaceholderColor : AppColors.lightPlaceholderColor;
+//   // Cache keys
+//   static const String _notificationsCacheKey = 'cached_notifications';
+//   static const String _friendRequestsCacheKey = 'cached_friend_requests';
+
+//   // Stream controller for notifications
+//   final StreamController<List<NotificationItem>> _notificationStreamController =
+//       StreamController<List<NotificationItem>>.broadcast();
+
+//   Timer? _refreshTimer;
+//   bool _isLoadingFromNetwork = false;
+
+//   final Map<String, Uint8List> _imageCache = {};
+//   List<NotificationItem> _lastNotifications = [];
+
+//   // Pagination variables
+//   bool _isLoadingMore = false;
+//   bool _hasMoreData = true;
+//   String? _nextPageUrl;
+//   final ScrollController _allNotificationsScrollController = ScrollController();
+//   final ScrollController _pollNotificationsScrollController = ScrollController();
+
+//   // ── Auth headers ──────────────────────────────────────────────────────────
+
+//   Future<Map<String, String>> _getAuthHeaders() async {
+//     final accessToken = await SharedPrefService.getToken();
+//     return {
+//       'Authorization': 'Bearer ${accessToken ?? ''}',
+//       'Content-Type': 'application/json',
+//       'Accept': 'application/json',
+//     };
+//   }
+
+//   // ── Cache ─────────────────────────────────────────────────────────────────
+
+//   Future<void> _loadNotificationsFromCache() async {
+//     if (_isDisposed) return;
+
+//     try {
+//       final prefs = await SharedPreferences.getInstance();
+//       final cachedData = prefs.getString(_notificationsCacheKey);
+
+//       if (_isDisposed) return;
+
+//       if (cachedData != null && cachedData.isNotEmpty) {
+//         final Map<String, dynamic> jsonData = json.decode(cachedData);
+
+//         if (jsonData.containsKey('notifications') &&
+//             jsonData['notifications'] != null) {
+//           final notificationsResponse = NotificationsResponse.fromJson(jsonData);
+//           _lastNotifications = notificationsResponse.notifications;
+
+//           if (!_isDisposed && !_notificationStreamController.isClosed) {
+//             _notificationStreamController.add(_lastNotifications);
+//           }
+
+//           // if (kDebugMode) {
+//           //   print('Loaded ${notificationsResponse.notifications.length} notifications from cache');
+//           // }
+//         }
+//       }
+//     } catch (e) {
+//       if (kDebugMode) print('Error loading notifications from cache: $e');
+//       if (!_isDisposed) {
+//         final prefs = await SharedPreferences.getInstance();
+//         await prefs.remove(_notificationsCacheKey);
+//       }
+//     }
+//   }
+
+//   Future<void> _saveNotificationsToCache(Map<String, dynamic> responseData) async {
+//     try {
+//       final prefs = await SharedPreferences.getInstance();
+//       await prefs.setString(_notificationsCacheKey, json.encode(responseData));
+//     } catch (e) {
+//       if (kDebugMode) print('Error saving notifications to cache: $e');
+//     }
+//   }
+
+//   Future<List<IncomingData>> _loadFriendRequestsFromCache() async {
+//     try {
+//       final prefs = await SharedPreferences.getInstance();
+//       final cachedData = prefs.getString(_friendRequestsCacheKey);
+
+//       if (cachedData != null) {
+//         final List<dynamic> jsonData = json.decode(cachedData);
+//         incoming = jsonData;
+//         final requests = jsonData.map((e) => IncomingData.fromJson(e)).toList();
+//         // if (kDebugMode) print('Loaded ${requests.length} friend requests from cache');
+//         return requests;
+//       }
+//     } catch (e) {
+//       if (kDebugMode) print('Error loading friend requests from cache: $e');
+//     }
+//     return [];
+//   }
+
+//   Future<void> _saveFriendRequestsToCache(List<dynamic> requests) async {
+//     try {
+//       final prefs = await SharedPreferences.getInstance();
+//       await prefs.setString(_friendRequestsCacheKey, json.encode(requests));
+//       // if (kDebugMode) print('Friend requests saved to cache');
+//     } catch (e) {
+//       if (kDebugMode) print('Error saving friend requests to cache: $e');
+//     }
+//   }
+
+//   // ── Network fetches ───────────────────────────────────────────────────────
+
+//   Future<void> fetchNotifications({bool showLoader = false}) async {
+//     if (_isDisposed || !mounted) return;
+//     if (_isLoadingFromNetwork) return;
+
+//     _isLoadingFromNetwork = true;
+
+//     try {
+//       final headers = await _getAuthHeaders();
+//       final response = await _dio.get(
+//         ApiConstants.notifications,
+//         options: Options(headers: headers),
+//       );
+
+//       if (_isDisposed || !mounted) return;
+
+//       if (response.data['status'] == 'success') {
+//         if (response.data['notifications'] == null) {
+//           debugPrint('⚠️ Notifications array is null in response');
+//           return;
+//         }
+
+//         await _saveNotificationsToCache(response.data);
+
+//         if (_isDisposed || _notificationStreamController.isClosed) return;
+
+//         try {
+//           final notificationsResponse = NotificationsResponse.fromJson(response.data);
+//           _lastNotifications = notificationsResponse.notifications;
+//           _nextPageUrl = response.data['next'];
+//           _hasMoreData = _nextPageUrl != null;
+
+//           if (!_notificationStreamController.isClosed) {
+//             _notificationStreamController.add(_lastNotifications);
+//           }
+//         } catch (parseError) {
+//           if (kDebugMode) {
+//             print('❌ Error parsing notifications: $parseError');
+//             print('Response structure: ${response.data.keys}');
+//             if (response.data['notifications'] != null) {
+//               print('First notification: ${response.data['notifications'][0]}');
+//             }
+//           }
+//           rethrow;
+//         }
+//       } else {
+//         throw Exception('Failed to load notifications: ${response.data['message']}');
+//       }
+//     } catch (e, stackTrace) {
+//       if (kDebugMode) {
+//         print('❌ Error fetching notifications: $e');
+//         print('Stack trace: $stackTrace');
+//       }
+//       if (!_isDisposed &&
+//           !_notificationStreamController.isClosed &&
+//           _notificationStreamController.hasListener) {
+//         _notificationStreamController.addError(e);
+//       }
+//     } finally {
+//       if (!_isDisposed) _isLoadingFromNetwork = false;
+//     }
+//   }
+
+//   Future<void> _loadMoreNotifications() async {
+//     if (_isLoadingMore || !_hasMoreData || _nextPageUrl == null) return;
+
+//     setState(() => _isLoadingMore = true);
+
+//     try {
+//       final headers = await _getAuthHeaders();
+//       final response = await _dio.get(
+//         _nextPageUrl!,
+//         options: Options(headers: headers),
+//       );
+
+//       if (response.data['status'] == 'success') {
+//         final notificationsResponse = NotificationsResponse.fromJson(response.data);
+//         _lastNotifications.addAll(notificationsResponse.notifications);
+//         _nextPageUrl = response.data['next'];
+//         _hasMoreData = _nextPageUrl != null;
+
+//         if (!_notificationStreamController.isClosed) {
+//           _notificationStreamController.add(_lastNotifications);
+//         }
+//       }
+//     } catch (e) {
+//       if (kDebugMode) print('❌ Error loading more notifications: $e');
+//     } finally {
+//       if (mounted) setState(() => _isLoadingMore = false);
+//     }
+//   }
+
+//   // ── Scroll listeners ──────────────────────────────────────────────────────
+
+//   void _onAllNotificationsScroll() {
+//     if (_allNotificationsScrollController.position.pixels >=
+//             _allNotificationsScrollController.position.maxScrollExtent * 0.8 &&
+//         !_isLoadingMore &&
+//         _hasMoreData) {
+//       _loadMoreNotifications();
+//     }
+//   }
+
+//   void _onPollNotificationsScroll() {
+//     if (_pollNotificationsScrollController.position.pixels >=
+//             _pollNotificationsScrollController.position.maxScrollExtent * 0.8 &&
+//         !_isLoadingMore &&
+//         _hasMoreData) {
+//       _loadMoreNotifications();
+//     }
+//   }
+
+//   // ── Friend requests ───────────────────────────────────────────────────────
+
+//   Future<List<IncomingData>> getFriendRequests() async {
+//     final accessToken = await SharedPrefService.getToken();
+//     try {
+//       final response = await _dio.get(
+//         ApiConstants.friendRequest,
+//         options: Options(headers: {'Authorization': 'Bearer $accessToken'}),
+//       );
+
+//       if (response.data['status'] == 'success') {
+//         incoming = response.data['data']['incoming'];
+//         await _saveFriendRequestsToCache(incoming);
+//         return incoming.map((e) => IncomingData.fromJson(e)).toList();
+//       } else {
+//         throw Exception('Failed to load data');
+//       }
+//     } catch (e) {
+//       if (kDebugMode) print('Error fetching data: $e');
+//       return await _loadFriendRequestsFromCache();
+//     }
+//   }
+
+//   Future<void> acceptRequest(int requestId) async {
+//     final accessToken = await SharedPrefService.getToken();
+//     var body = {'action': 'accept'};
+//     try {
+//       if (kDebugMode) print('Accepting request: ${ApiConstants.acceptRequest}/$requestId');
+//       final response = await _dio.put(
+//         '${ApiConstants.acceptRequest}/$requestId',
+//         options: Options(
+//           headers: {'Authorization': 'Bearer $accessToken'},
+//           validateStatus: (status) => status! < 500,
+//         ),
+//         data: body,
+//       );
+
+//       if (kDebugMode) print(response);
+
+//       if (response.statusCode == 200 && response.data['status'] == 'success') {
+//         showToast(message: 'Friend request accepted successfully!');
+//         setState(() {
+//           incoming.removeWhere(
+//             (request) => request['id'].toString() == requestId.toString(),
+//           );
+//           _saveFriendRequestsToCache(incoming);
+//           friendRequestsFuture = getFriendRequests();
+//         });
+//       } else {
+//         throw Exception('Failed to accept request');
+//       }
+//     } catch (e) {
+//       if (kDebugMode) print('Error accepting request: $e');
+//       showToast(message: 'Failed to accept request try again!');
+//     }
+//   }
+
+//   // ── Helpers ───────────────────────────────────────────────────────────────
+
+//   String _getTimeCategory(DateTime date) {
+//     final now = DateTime.now();
+//     final today = DateTime(now.year, now.month, now.day);
+//     final yesterday = today.subtract(const Duration(days: 1));
+//     final itemDate = DateTime(date.year, date.month, date.day);
+
+//     if (itemDate == today || itemDate.isAfter(today)) {
+//       return "Today";
+//     } else if (itemDate == yesterday) {
+//       return "Yesterday";
+//     } else if (today.difference(itemDate).inDays <= 7) {
+//       return "Last 7 days";
+//     } else if (today.difference(itemDate).inDays <= 30) {
+//       return "Last 30 days";
+//     } else {
+//       return "Older";
+//     }
+//   }
+
+//   String formatDateTime(String utcTime) {
+//     final date = DateTime.parse(utcTime).toLocal();
+//     final now = DateTime.now();
+//     final difference = now.difference(date);
+
+//     if (difference.inSeconds < 60) return '${difference.inSeconds}s';
+//     if (difference.inMinutes < 60) {
+//       final m = difference.inMinutes;
+//       return m == 1 ? '1m ago' : '${m}m ago';
+//     }
+//     if (difference.inHours < 24) {
+//       final h = difference.inHours;
+//       return h == 1 ? '1h ago' : '${h}h ago';
+//     }
+//     if (difference.inDays < 7) {
+//       final d = difference.inDays;
+//       return d == 1 ? '1d ago' : '${d}d ago';
+//     }
+//     if (difference.inDays < 30) {
+//       final w = (difference.inDays / 7).floor();
+//       return w == 1 ? '1w ago' : '${w}w ago';
+//     }
+//     if (difference.inDays < 365) {
+//       final mo = (difference.inDays / 30).floor();
+//       return mo == 1 ? '1mo ago' : '${mo}mo ago';
+//     }
+//     final y = (difference.inDays / 365).floor();
+//     return y == 1 ? '1y ago' : '${y}y ago';
+//   }
+
+//   String getNotificationMessage(NotificationItem notification) {
+//     switch (notification.type.toUpperCase()) {
+//       case 'FOLLOW':
+//         return 'started chasing you';
+//       case 'LIKE':
+//         return 'liked your post';
+//       case 'COMMENT':
+//         final message = notification.message ?? '';
+//         if (message.contains('commented on your post: ')) {
+//           final commentText = message.split('commented on your post: ').last;
+//           return 'commented on your post: $commentText';
+//         }
+//         return 'commented on your post';
+//       case 'VOTE':
+//         return 'voted on your poll';
+//       default:
+//         return 'sent you a notification';
+//     }
+//   }
+
+//   Uint8List? getUserImage(String? imageUrl) {
+//     if (imageUrl == null || imageUrl.isEmpty) return null;
+//     if (_imageCache.containsKey(imageUrl)) return _imageCache[imageUrl];
+
+//     try {
+//       final base64Data = imageUrl.replaceFirst(
+//         RegExp(r'data:image/[^;]+;base64,'),
+//         '',
+//       );
+//       final decoded = base64Decode(base64Data);
+//       _imageCache[imageUrl] = decoded;
+//       return decoded;
+//     } catch (e) {
+//       if (kDebugMode) print('Error decoding image: $e');
+//       return null;
+//     }
+//   }
+
+//   String getInitial(String name) {
+//     if (name.isEmpty) return '?';
+//     return name.trim()[0].toUpperCase();
+//   }
+
+//   // ── Lifecycle ─────────────────────────────────────────────────────────────
+
+//   @override
+//   void initState() {
+//     super.initState();
+//     _isDisposed = false;
+//     _tabController = TabController(length: 2, vsync: this);
+
+//     _tabController.addListener(() {
+//       if (_tabController.index == 0 && !_tabController.indexIsChanging) {
+//         if (!_isLoadingFromNetwork) fetchNotifications();
+//       }
+//     });
+
+//     _allNotificationsScrollController.addListener(_onAllNotificationsScroll);
+//     _pollNotificationsScrollController.addListener(_onPollNotificationsScroll);
+
+//     _loadNotificationsFromCache().then((_) => fetchNotifications());
+
+//     friendRequestsFuture = _loadFriendRequestsFromCache().then((cachedRequests) {
+//       getFriendRequests();
+//       return cachedRequests;
+//     });
+
+//     // Periodic silent refresh every 30s
+//     _refreshTimer = Timer.periodic(const Duration(seconds: 30), (timer) {
+//       if (!_isLoadingFromNetwork) fetchNotifications();
+//     });
+//     // ✅ No connectivity listener — ConnectivityOverlay handles UI globally
+//   }
+
+//   @override
+//   void dispose() {
+//     _isDisposed = true;
+//     _tabController.dispose();
+//     _notificationStreamController.close();
+//     _refreshTimer?.cancel();
+//     _imageCache.clear();
+//     _allNotificationsScrollController.dispose();
+//     _pollNotificationsScrollController.dispose();
+//     super.dispose();
+//   }
+
+//   // ── Build ─────────────────────────────────────────────────────────────────
 
 //   @override
 //   Widget build(BuildContext context) {
+//     Provider.of<UserProvider>(context);
+
 //     return Scaffold(
-//       backgroundColor: bg,
-//       body: SafeArea(
-//         child: SingleChildScrollView(
-//           padding: const EdgeInsets.all(AppSpacing.screenPadding),
-//           child: Column(
-//             crossAxisAlignment: CrossAxisAlignment.start,
-//             children: [
-//               // ── Top Bar ──────────────────────────────
-//               _TopBar(
-//                 isDark: isDark,
-//                 onToggle: onToggle,
-//                 headingColor: heading,
-//                 subTextColor: subText,
-//               ),
-
-//               const SizedBox(height: AppSpacing.sectionSpacing),
-
-//               // ── Section: Typography ──────────────────
-//               _SectionLabel(label: 'Typography', color: subText),
-//               const SizedBox(height: AppSpacing.textSpacing),
-//               _TypographyCard(
-//                 card: card,
-//                 stroke: stroke,
-//                 heading: heading,
-//                 subheading: subheading,
-//                 bodyText: bodyText,
-//                 subText: subText,
-//               ),
-
-//               const SizedBox(height: AppSpacing.sectionSpacing),
-
-//               // ── Section: Color Palette ───────────────
-//               _SectionLabel(label: 'Color Palette', color: subText),
-//               const SizedBox(height: AppSpacing.textSpacing),
-//               _ColorPaletteCard(
-//                 card: card,
-//                 stroke: stroke,
-//                 subText: subText,
-//                 isDark: isDark,
-//               ),
-
-//               const SizedBox(height: AppSpacing.sectionSpacing),
-
-//               // ── Section: UI Components ───────────────
-//               _SectionLabel(label: 'UI Components', color: subText),
-//               const SizedBox(height: AppSpacing.textSpacing),
-//               _ButtonsRow(),
-
-//               const SizedBox(height: AppSpacing.cardGap),
-//               _InputField(
-//                 card: card,
-//                 stroke: stroke,
-//                 placeholder: placeholder,
-//                 bodyText: bodyText,
-//               ),
-
-//               const SizedBox(height: AppSpacing.sectionSpacing),
-
-//               // ── Section: Article Cards ───────────────
-//               _SectionLabel(label: 'Article Cards', color: subText),
-//               const SizedBox(height: AppSpacing.textSpacing),
-//               _ArticleCard(
-//                 card: card,
-//                 stroke: stroke,
-//                 heading: heading,
-//                 bodyText: bodyText,
-//                 subText: subText,
-//                 divider: divider,
-//               ),
-//               const SizedBox(height: AppSpacing.cardGap),
-//               _ArticleCard(
-//                 card: card,
-//                 stroke: stroke,
-//                 heading: heading,
-//                 bodyText: bodyText,
-//                 subText: subText,
-//                 divider: divider,
-//                 isSecond: true,
-//               ),
-
-//               const SizedBox(height: AppSpacing.sectionSpacing),
-
-//               // ── Section: Stat Cards ──────────────────
-//               _SectionLabel(label: 'Stat Cards', color: subText),
-//               const SizedBox(height: AppSpacing.textSpacing),
-//               _StatCardsRow(
-//                 card: card,
-//                 stroke: stroke,
-//                 heading: heading,
-//                 bodyText: bodyText,
-//                 subText: subText,
-//               ),
-
-//               const SizedBox(height: AppSpacing.sectionSpacing),
-
-//               // ── Section: Spacing Tokens ───────────────
-//               _SectionLabel(label: 'Spacing Tokens', color: subText),
-//               const SizedBox(height: AppSpacing.textSpacing),
-//               _SpacingCard(
-//                 card: card,
-//                 stroke: stroke,
-//                 heading: heading,
-//                 bodyText: bodyText,
-//                 subText: subText,
-//                 divider: divider,
-//               ),
-
-//               const SizedBox(height: 32),
-//             ],
-//           ),
-//         ),
-//       ),
-//     );
-//   }
-// }
-
-// // ─────────────────────────────────────────────
-// // WIDGETS
-// // ─────────────────────────────────────────────
-
-// class _TopBar extends StatelessWidget {
-//   final bool isDark;
-//   final VoidCallback onToggle;
-//   final Color headingColor;
-//   final Color subTextColor;
-
-//   const _TopBar({
-//     required this.isDark,
-//     required this.onToggle,
-//     required this.headingColor,
-//     required this.subTextColor,
-//   });
-
-//   @override
-//   Widget build(BuildContext context) {
-//     return Row(
-//       mainAxisAlignment: MainAxisAlignment.spaceBetween,
-//       children: [
-//         Column(
-//           crossAxisAlignment: CrossAxisAlignment.start,
+//       backgroundColor: Theme.of(context).colorScheme.background,
+//       body: Padding(
+//         padding: EdgeInsets.symmetric(horizontal: 12.w),
+//         child: Column(
 //           children: [
-//             Text('Design System',
-//                 style: AppTextStyles.h1(color: headingColor)),
-//             const SizedBox(height: 4),
-//             Text('Inter · Light & Dark Mode',
-//                 style: AppTextStyles.subtext(color: subTextColor)),
-//           ],
-//         ),
-//         GestureDetector(
-//           onTap: onToggle,
-//           child: Container(
-//             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-//             decoration: BoxDecoration(
-//               color: AppColors.primaryColor,
-//               borderRadius: BorderRadius.circular(20),
-//             ),
-//             child: Row(
-//               children: [
-//                 Icon(
-//                   isDark ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
-//                   size: 14,
-//                   color: Colors.white,
-//                 ),
-//                 const SizedBox(width: 6),
-//                 Text(
-//                   isDark ? 'Light' : 'Dark',
-//                   style: AppTextStyles.subtext(color: Colors.white)
-//                       .copyWith(fontWeight: FontWeight.w600),
-//                 ),
+//             TabBar(
+//               controller: _tabController,
+//               indicatorColor: Theme.of(context).colorScheme.primary,
+//               indicatorSize: TabBarIndicatorSize.tab,
+//               labelColor: Theme.of(context).colorScheme.primary,
+//               labelStyle: const TextStyle(fontWeight: FontWeight.w500),
+//               dividerColor: Colors.transparent,
+//               indicator: FadeUnderlineTabIndicator(),
+//               overlayColor: const WidgetStatePropertyAll(Colors.transparent),
+//               unselectedLabelColor: Theme.of(context).colorScheme.onBackground,
+//               tabs: [
+//                 Tab(text: AppLocalizations.of(context)!.all),
+//                 Tab(text: AppLocalizations.of(context)!.poll),
 //               ],
 //             ),
-//           ),
-//         ),
-//       ],
-//     );
-//   }
-// }
-
-// class _SectionLabel extends StatelessWidget {
-//   final String label;
-//   final Color color;
-//   const _SectionLabel({required this.label, required this.color});
-
-//   @override
-//   Widget build(BuildContext context) {
-//     return Text(
-//       label.toUpperCase(),
-//       style: TextStyle(
-//         fontFamily: 'Inter',
-//         fontSize: 11,
-//         fontWeight: FontWeight.w600,
-//         letterSpacing: 1.2,
-//         color: color,
-//       ),
-//     );
-//   }
-// }
-
-// // ── Typography Card ──────────────────────────
-// class _TypographyCard extends StatelessWidget {
-//   final Color card, stroke, heading, subheading, bodyText, subText;
-//   const _TypographyCard({
-//     required this.card,
-//     required this.stroke,
-//     required this.heading,
-//     required this.subheading,
-//     required this.bodyText,
-//     required this.subText,
-//   });
-
-//   @override
-//   Widget build(BuildContext context) {
-//     final rows = [
-//       ('H1 — 22px Bold', AppTextStyles.h1(color: heading), 'FontWeight.w700'),
-//       ('H2 — 18px SemiBold', AppTextStyles.h2(color: subheading),
-//           'FontWeight.w600'),
-//       ('H3 — 16px SemiBold', AppTextStyles.h3(color: subheading),
-//           'FontWeight.w600'),
-//       ('Body — 14px Regular', AppTextStyles.body(color: bodyText),
-//           'FontWeight.w400'),
-//       ('Subtext — 12px Regular', AppTextStyles.subtext(color: subText),
-//           'FontWeight.w400'),
-//     ];
-
-//     return _BaseCard(
-//       card: card,
-//       stroke: stroke,
-//       child: Column(
-//         children: rows.asMap().entries.map((e) {
-//           final i = e.key;
-//           final (label, style, weight) = e.value;
-//           return Column(
-//             crossAxisAlignment: CrossAxisAlignment.start,
-//             children: [
-//               if (i != 0) const SizedBox(height: 12),
-//               Text(label, style: style),
-//               const SizedBox(height: 2),
-//               Text(weight,
-//                   style: AppTextStyles.subtext(
-//                       color: AppColors.primaryColor.withOpacity(0.8))
-//                     ..copyWith()),
-//               if (i != rows.length - 1)
-//                 Padding(
-//                   padding: const EdgeInsets.only(top: 12),
-//                   child: Divider(color: stroke, height: 1),
-//                 ),
-//             ],
-//           );
-//         }).toList(),
-//       ),
-//     );
-//   }
-// }
-
-// // ── Color Palette Card ────────────────────────
-// class _ColorPaletteCard extends StatelessWidget {
-//   final Color card, stroke, subText;
-//   final bool isDark;
-//   const _ColorPaletteCard({
-//     required this.card,
-//     required this.stroke,
-//     required this.subText,
-//     required this.isDark,
-//   });
-
-//   @override
-//   Widget build(BuildContext context) {
-//     final swatches = isDark
-//         ? [
-//             ('Background', AppColors.darkBackgroundColor),
-//             ('Card', AppColors.darkPrimaryCardColor),
-//             ('Heading', AppColors.darkHeadingColor),
-//             ('Body Text', AppColors.darkBodyTextColor),
-//             ('Subheading', AppColors.darkSubheadingColor),
-//             ('Subtext', AppColors.darkSubTextColor),
-//             ('Stroke', AppColors.darkStrokeColor),
-//             ('Placeholder', AppColors.darkPlaceholderColor),
-//           ]
-//         : [
-//             ('Background', AppColors.lightBackgroundColor),
-//             ('Card', AppColors.lightPrimaryCardColor),
-//             ('Heading', AppColors.lightHeadingColor),
-//             ('Body Text', AppColors.lightBodyTextColor),
-//             ('Subheading', AppColors.lightSubheadingColor),
-//             ('Subtext', AppColors.lightSubTextColor),
-//             ('Stroke', AppColors.lightStrokeColor),
-//             ('Placeholder', AppColors.lightPlaceholderColor),
-//           ];
-
-//     // Always show primary
-//     return _BaseCard(
-//       card: card,
-//       stroke: stroke,
-//       child: Column(
-//         crossAxisAlignment: CrossAxisAlignment.start,
-//         children: [
-//           // Primary
-//           Row(
-//             children: [
-//               Container(
-//                 width: 40,
-//                 height: 40,
-//                 decoration: BoxDecoration(
-//                   color: AppColors.primaryColor,
-//                   borderRadius: BorderRadius.circular(8),
-//                 ),
-//               ),
-//               const SizedBox(width: 12),
-//               Column(
-//                 crossAxisAlignment: CrossAxisAlignment.start,
+//             Expanded(
+//               child: TabBarView(
+                
+//                 controller: _tabController,
 //                 children: [
-//                   Text('Primary',
-//                       style: AppTextStyles.body(color: subText)
-//                           .copyWith(fontWeight: FontWeight.w600)),
-//                   Text('#9B3046',
-//                       style: AppTextStyles.subtext(color: subText)),
+//                   // ── All Notifications Tab ────────────────────────────
+//                   RefreshIndicator(
+//                     onRefresh: () async {
+//                       _hasMoreData = true;
+//                       _nextPageUrl = null;
+//                       await fetchNotifications();
+//                     },
+//                     child: StreamBuilder<List<NotificationItem>>(
+//                       stream: _notificationStreamController.stream,
+//                       initialData: _lastNotifications.isNotEmpty
+//                           ? _lastNotifications
+//                           : null,
+//                       builder: (context, snapshot) {
+//                         if (snapshot.connectionState == ConnectionState.waiting &&
+//                             (!snapshot.hasData ||
+//                                 snapshot.data == null ||
+//                                 snapshot.data!.isEmpty)) {
+//                           return Center(
+//                             child: Loader(
+//                               color: Theme.of(context).colorScheme.primary,
+//                             ),
+//                           );
+//                         }
+
+//                         if (snapshot.hasData && snapshot.data!.isNotEmpty) {
+//                           final notifications = snapshot.data!;
+//                           return ListView.builder(
+//                             controller: _allNotificationsScrollController,
+//                             itemCount:
+//                                 notifications.length + (_hasMoreData ? 1 : 0),
+//                             itemBuilder: (context, index) {
+//                               if (index == notifications.length) {
+//                                 return Center(
+//                                   child: Padding(
+//                                     padding: EdgeInsets.all(16.h),
+//                                     child: _isLoadingMore
+//                                         ? Loader(
+//                                             color: Theme.of(
+//                                               context,
+//                                             ).colorScheme.primary,
+//                                           )
+//                                         : const SizedBox.shrink(),
+//                                   ),
+//                                 );
+//                               }
+
+//                               final notification = notifications[index];
+//                               final post = notification.post;
+                              
+//                               final DateTime date = DateTime.parse(notification.createdAt.toString()).toLocal();
+//                               final String category = _getTimeCategory(date);
+                              
+//                               bool showHeader = false;
+//                               if (index == 0) {
+//                                 showHeader = true;
+//                               } else {
+//                                 final prevNotification = notifications[index - 1];
+//                                 final DateTime prevDate = DateTime.parse(prevNotification.createdAt.toString()).toLocal();
+//                                 final String prevCategory = _getTimeCategory(prevDate);
+//                                 if (category != prevCategory) {
+//                                   showHeader = true;
+//                                 }
+//                               }
+
+//                               return Column(
+//                                 crossAxisAlignment: CrossAxisAlignment.start,
+//                                 children: [
+//                                   if (showHeader)
+//                                     Padding(
+//                                       padding: EdgeInsets.fromLTRB(0, 16.h, 0, 8.h),
+//                                       child: Text(
+//                                         category,
+//                                         style: TextStyle(
+//                                           fontSize: 16.sp,
+//                                           fontWeight: FontWeight.w700,
+//                                           color: Theme.of(context).colorScheme.onBackground,
+//                                         ),
+//                                       ),
+//                                     ),
+//                                   _buildNotificationTile(
+//                                     notification: notification,
+//                                     post: post,
+//                                   ),
+//                                 ],
+//                               );
+//                             },
+//                           );
+//                         } else if (snapshot.connectionState ==
+//                             ConnectionState.waiting) {
+//                           return Center(
+//                             child: Loader(
+//                               color: Theme.of(context).colorScheme.primary,
+//                             ),
+//                           );
+//                         } else if (snapshot.hasError &&
+//                             (!snapshot.hasData ||
+//                                 snapshot.data == null ||
+//                                 snapshot.data!.isEmpty)) {
+//                           return Center(
+//                             child: Column(
+//                               mainAxisAlignment: MainAxisAlignment.center,
+//                               children: [
+//                                 const Text('Error loading notifications'),
+//                                 SizedBox(height: 16.h),
+//                                 ElevatedButton(
+//                                   onPressed: fetchNotifications,
+//                                   child: const Text('Retry'),
+//                                 ),
+//                               ],
+//                             ),
+//                           );
+//                         } else {
+//                           return Center(
+//                             child: Text(
+//                               'No notifications available',
+//                               style: CustomTextStyles.lblSecondryText(context),
+//                             ),
+//                           );
+//                         }
+//                       },
+//                     ),
+//                   ),
+
+//                   // ── Poll Notifications Tab ───────────────────────────
+//                   RefreshIndicator(
+//                     onRefresh: () async {
+//                       _hasMoreData = true;
+//                       _nextPageUrl = null;
+//                       await fetchNotifications();
+//                     },
+//                     child: StreamBuilder<List<NotificationItem>>(
+//                       stream: _notificationStreamController.stream,
+//                       initialData: _lastNotifications.isNotEmpty
+//                           ? _lastNotifications
+//                           : null,
+//                       builder: (context, snapshot) {
+//                         if (snapshot.connectionState == ConnectionState.waiting &&
+//                             (!snapshot.hasData ||
+//                                 snapshot.data == null ||
+//                                 snapshot.data!.isEmpty)) {
+//                           return Center(
+//                             child: Loader(
+//                               color: Theme.of(context).colorScheme.primary,
+//                             ),
+//                           );
+//                         }
+
+//                         if (snapshot.hasData && snapshot.data!.isNotEmpty) {
+//                           final voteNotifications = snapshot.data!
+//                               .where((n) => n.type == 'VOTE')
+//                               .toList();
+
+//                           if (voteNotifications.isEmpty) {
+//                             return Center(
+//                               child: Text(
+//                                 'No vote notifications available',
+//                                 style: CustomTextStyles.lblSecondryText(context),
+//                               ),
+//                             );
+//                           }
+
+//                           return ListView.builder(
+//                             controller: _pollNotificationsScrollController,
+//                             itemCount:
+//                                 voteNotifications.length +
+//                                 (_hasMoreData ? 1 : 0),
+//                             itemBuilder: (context, index) {
+//                               if (index == voteNotifications.length) {
+//                                 return Center(
+//                                   child: Padding(
+//                                     padding: EdgeInsets.all(16.h),
+//                                     child: _isLoadingMore
+//                                         ? Loader(
+//                                             color: Theme.of(
+//                                               context,
+//                                             ).colorScheme.primary,
+//                                           )
+//                                         : const SizedBox.shrink(),
+//                                   ),
+//                                 );
+//                               }
+
+//                               final notification = voteNotifications[index];
+//                               final post = notification.post;
+
+//                               final DateTime date = DateTime.parse(notification.createdAt.toString()).toLocal();
+//                               final String category = _getTimeCategory(date);
+                              
+//                               bool showHeader = false;
+//                               if (index == 0) {
+//                                 showHeader = true;
+//                               } else {
+//                                 final prevNotification = voteNotifications[index - 1];
+//                                 final DateTime prevDate = DateTime.parse(prevNotification.createdAt.toString()).toLocal();
+//                                 final String prevCategory = _getTimeCategory(prevDate);
+//                                 if (category != prevCategory) {
+//                                   showHeader = true;
+//                                 }
+//                               }
+
+//                               return Column(
+//                                 crossAxisAlignment: CrossAxisAlignment.start,
+//                                 children: [
+//                                   if (showHeader)
+//                                     Padding(
+//                                       padding: EdgeInsets.fromLTRB(0, 16.h, 0, 8.h),
+//                                       child: Text(
+//                                         category,
+//                                         style: TextStyle(
+//                                           fontSize: 16.sp,
+//                                           fontWeight: FontWeight.w700,
+//                                           color: Theme.of(context).colorScheme.onBackground,
+//                                         ),
+//                                       ),
+//                                     ),
+//                                   _buildNotificationTile(
+//                                     notification: notification,
+//                                     post: post,
+//                                   ),
+//                                 ],
+//                               );
+//                             },
+//                           );
+//                         } else if (snapshot.connectionState ==
+//                             ConnectionState.waiting) {
+//                           return Center(
+//                             child: Loader(
+//                               color: Theme.of(context).colorScheme.primary,
+//                             ),
+//                           );
+//                         } else if (snapshot.hasError &&
+//                             (!snapshot.hasData ||
+//                                 snapshot.data == null ||
+//                                 snapshot.data!.isEmpty)) {
+//                           return Center(
+//                             child: Column(
+//                               mainAxisAlignment: MainAxisAlignment.center,
+//                               children: [
+//                                 const Text('Error loading notifications'),
+//                                 SizedBox(height: 16.h),
+//                                 ElevatedButton(
+//                                   onPressed: fetchNotifications,
+//                                   child: const Text('Retry'),
+//                                 ),
+//                               ],
+//                             ),
+//                           );
+//                         } else {
+//                           return Center(
+//                             child: Text(
+//                               'No notifications available',
+//                               style: CustomTextStyles.lblSecondryText(context),
+//                             ),
+//                           );
+//                         }
+//                       },
+//                     ),
+//                   ),
 //                 ],
 //               ),
-//               const Spacer(),
-//               Container(
-//                 padding:
-//                     const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-//                 decoration: BoxDecoration(
-//                   color: AppColors.primaryColor.withOpacity(0.12),
-//                   borderRadius: BorderRadius.circular(4),
-//                 ),
-//                 child: Text('Brand',
-//                     style: AppTextStyles.subtext(
-//                         color: AppColors.primaryColor)),
-//               ),
-//             ],
-//           ),
-//           const SizedBox(height: 16),
-//           Divider(color: stroke, height: 1),
-//           const SizedBox(height: 16),
-//           // Grid
-//           Wrap(
-//             spacing: 10,
-//             runSpacing: 10,
-//             children: swatches.map((s) {
-//               final (name, color) = s;
-//               final hexStr =
-//                   '#${color.value.toRadixString(16).substring(2).toUpperCase()}';
-//               final isLight = ThemeData.estimateBrightnessForColor(color) ==
-//                   Brightness.light;
-//               final onColor = isLight ? Colors.black87 : Colors.white;
-//               return Container(
-//                 width: (MediaQuery.of(context).size.width - 32 - 16 - 10) / 2,
-//                 padding: const EdgeInsets.all(10),
-//                 decoration: BoxDecoration(
-//                   color: color,
-//                   borderRadius: BorderRadius.circular(8),
-//                   border: Border.all(color: stroke, width: 0.5),
-//                 ),
-//                 child: Column(
-//                   crossAxisAlignment: CrossAxisAlignment.start,
-//                   children: [
-//                     Text(name,
-//                         style: TextStyle(
-//                           fontFamily: 'Inter',
-//                           fontSize: 11,
-//                           fontWeight: FontWeight.w600,
-//                           color: onColor.withOpacity(0.75),
-//                         )),
-//                     const SizedBox(height: 2),
-//                     Text(hexStr,
-//                         style: TextStyle(
-//                           fontFamily: 'Inter',
-//                           fontSize: 10,
-//                           color: onColor.withOpacity(0.5),
-//                         )),
-//                   ],
-//                 ),
-//               );
-//             }).toList(),
-//           ),
-//         ],
-//       ),
-//     );
-//   }
-// }
-
-// // ── Buttons ───────────────────────────────────
-// class _ButtonsRow extends StatelessWidget {
-//   @override
-//   Widget build(BuildContext context) {
-//     return Row(
-//       children: [
-//         Expanded(
-//           child: ElevatedButton(
-//             style: ElevatedButton.styleFrom(
-//               backgroundColor: AppColors.primaryColor,
-//               foregroundColor: Colors.white,
-//               padding: const EdgeInsets.symmetric(vertical: 14),
-//               shape: RoundedRectangleBorder(
-//                 borderRadius: BorderRadius.circular(10),
-//               ),
-//               elevation: 0,
 //             ),
-//             onPressed: () {},
-//             child: Text('Primary',
-//                 style: AppTextStyles.body(color: Colors.white)
-//                     .copyWith(fontWeight: FontWeight.w600)),
-//           ),
+//           ],
 //         ),
-//         const SizedBox(width: AppSpacing.cardGap),
-//         Expanded(
-//           child: OutlinedButton(
-//             style: OutlinedButton.styleFrom(
-//               foregroundColor: AppColors.primaryColor,
-//               side: const BorderSide(color: AppColors.primaryColor),
-//               padding: const EdgeInsets.symmetric(vertical: 14),
-//               shape: RoundedRectangleBorder(
-//                 borderRadius: BorderRadius.circular(10),
-//               ),
-//             ),
-//             onPressed: () {},
-//             child: Text('Outline',
-//                 style: AppTextStyles.body(color: AppColors.primaryColor)
-//                     .copyWith(fontWeight: FontWeight.w600)),
-//           ),
-//         ),
-//       ],
-//     );
-//   }
-// }
-
-// // ── Input Field ───────────────────────────────
-// class _InputField extends StatelessWidget {
-//   final Color card, stroke, placeholder, bodyText;
-//   const _InputField({
-//     required this.card,
-//     required this.stroke,
-//     required this.placeholder,
-//     required this.bodyText,
-//   });
-
-//   @override
-//   Widget build(BuildContext context) {
-//     return Container(
-//       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
-//       decoration: BoxDecoration(
-//         color: card,
-//         borderRadius: BorderRadius.circular(10),
-//         border: Border.all(color: stroke),
-//       ),
-//       child: Row(
-//         children: [
-//           Icon(Icons.search_rounded, size: 18, color: placeholder),
-//           const SizedBox(width: 10),
-//           Text('Search anything…',
-//               style: AppTextStyles.body(color: placeholder)),
-//         ],
 //       ),
 //     );
 //   }
-// }
 
-// // ── Article Card ──────────────────────────────
-// class _ArticleCard extends StatelessWidget {
-//   final Color card, stroke, heading, bodyText, subText, divider;
-//   final bool isSecond;
-//   const _ArticleCard({
-//     required this.card,
-//     required this.stroke,
-//     required this.heading,
-//     required this.bodyText,
-//     required this.subText,
-//     required this.divider,
-//     this.isSecond = false,
-//   });
+//   // ── Shared notification tile ──────────────────────────────────────────────
 
-//   @override
-//   Widget build(BuildContext context) {
-//     return _BaseCard(
-//       card: card,
-//       stroke: stroke,
-//       child: Row(
-//         crossAxisAlignment: CrossAxisAlignment.start,
-//         children: [
-//           Container(
-//             width: 72,
-//             height: 72,
-//             decoration: BoxDecoration(
-//               color: isSecond
-//                   ? AppColors.primaryColor.withOpacity(0.12)
-//                   : AppColors.primaryColor.withOpacity(0.18),
-//               borderRadius: BorderRadius.circular(8),
-//             ),
-//             child: Icon(
-//               isSecond
-//                   ? Icons.bar_chart_rounded
-//                   : Icons.auto_stories_rounded,
-//               color: AppColors.primaryColor,
-//               size: 28,
-//             ),
-//           ),
-//           const SizedBox(width: AppSpacing.cardPadding),
-//           Expanded(
-//             child: Column(
-//               crossAxisAlignment: CrossAxisAlignment.start,
-//               children: [
-//                 Row(
-//                   children: [
-//                     Expanded(
-//                       child: Text(
-//                         isSecond
-//                             ? 'Market Analysis Report'
-//                             : 'Getting Started with Design Systems',
-//                         style: AppTextStyles.h3(color: heading),
-//                         maxLines: 2,
-//                         overflow: TextOverflow.ellipsis,
+//   Widget _buildNotificationTile({
+//     required NotificationItem notification,
+//     required dynamic post,
+//   }) {
+//     return GestureDetector(
+//       onTap: () {
+//         if (post != null) {
+//           navigationPush(context, NotificationDetails(postId: post.postId));
+//         } else if (notification.type == 'FOLLOW') {
+//           navigationPush(
+//             context,
+//             PublicProfile(userId: notification.actor.userId),
+//           );
+//         } else {
+//           ScaffoldMessenger.of(context).showSnackBar(
+//             const SnackBar(content: Text('Post not available')),
+//           );
+//         }
+//       },
+//       child: Container(
+//         margin: EdgeInsets.fromLTRB(0, 5.h, 0, 0),
+//         padding: EdgeInsets.fromLTRB(0, 5.h, 0, 5.h),
+//         color: Colors.transparent,
+//         child: Row(
+//           children: [
+//             (notification.actor.avatarUrl != null &&
+//                     notification.actor.avatarUrl!.isNotEmpty)
+//                 ? CircleAvatar(
+//                     backgroundImage: MemoryImage(
+//                       getUserImage(notification.actor.avatarUrl)!,
+//                     ),
+//                     radius: 17.w,
+//                     onBackgroundImageError: (exception, stackTrace) {
+//                       if (kDebugMode) print('Error loading avatar: $exception');
+//                     },
+//                   )
+//                 : CircleAvatar(
+//                     radius: 17.w,
+//                     backgroundColor: Theme.of(context)
+//                         .colorScheme
+//                         .primary
+//                         .withOpacity(0.15),
+//                     child: Text(
+//                       getInitial(notification.actor.name),
+//                       style: TextStyle(
+//                         fontSize: 14.sp,
+//                         fontWeight: FontWeight.w600,
+//                         color: Theme.of(context).colorScheme.primary,
 //                       ),
 //                     ),
-//                   ],
-//                 ),
-//                 const SizedBox(height: AppSpacing.textSpacing),
-//                 Text(
-//                   isSecond
-//                       ? 'Deep dive into Q3 metrics and how design consistency drives growth.'
-//                       : 'Learn how to build scalable and consistent UI components from scratch.',
-//                   style: AppTextStyles.body(color: bodyText),
-//                   maxLines: 2,
-//                   overflow: TextOverflow.ellipsis,
-//                 ),
-//                 const SizedBox(height: AppSpacing.textSpacing),
-//                 Row(
-//                   children: [
-//                     Text(
-//                       isSecond ? '5 min read' : '8 min read',
-//                       style: AppTextStyles.subtext(color: subText),
-//                     ),
-//                     const SizedBox(width: 8),
-//                     Container(
-//                         width: 3,
-//                         height: 3,
-//                         decoration: BoxDecoration(
-//                           color: subText,
-//                           shape: BoxShape.circle,
-//                         )),
-//                     const SizedBox(width: 8),
-//                     Text(
-//                       isSecond ? 'Apr 10, 2025' : 'Apr 14, 2025',
-//                       style: AppTextStyles.subtext(color: subText),
-//                     ),
-//                     const Spacer(),
-//                     Container(
-//                       padding: const EdgeInsets.symmetric(
-//                           horizontal: 8, vertical: 3),
-//                       decoration: BoxDecoration(
-//                         color: AppColors.primaryColor.withOpacity(0.1),
-//                         borderRadius: BorderRadius.circular(4),
-//                       ),
-//                       child: Text(
-//                         isSecond ? 'Finance' : 'Design',
-//                         style: AppTextStyles.subtext(
-//                             color: AppColors.primaryColor),
-//                       ),
-//                     ),
-//                   ],
-//                 ),
-//               ],
-//             ),
-//           ),
-//         ],
-//       ),
-//     );
-//   }
-// }
-
-// // ── Stat Cards Row ────────────────────────────
-// class _StatCardsRow extends StatelessWidget {
-//   final Color card, stroke, heading, bodyText, subText;
-//   const _StatCardsRow({
-//     required this.card,
-//     required this.stroke,
-//     required this.heading,
-//     required this.bodyText,
-//     required this.subText,
-//   });
-
-//   @override
-//   Widget build(BuildContext context) {
-//     final stats = [
-//       (Icons.people_alt_rounded, '12.4K', 'Total Users', '+8.2%'),
-//       (Icons.trending_up_rounded, '\$4.8K', 'Revenue', '+14.5%'),
-//       (Icons.star_rounded, '4.9', 'Rating', '+0.3'),
-//     ];
-//     return Row(
-//       children: stats.asMap().entries.map((e) {
-//         final i = e.key;
-//         final (icon, value, label, change) = e.value;
-//         return Expanded(
-//           child: Padding(
-//             padding: EdgeInsets.only(left: i == 0 ? 0 : 8),
-//             child: Container(
-//               padding: const EdgeInsets.all(AppSpacing.cardPadding),
-//               decoration: BoxDecoration(
-//                 color: card,
-//                 borderRadius: BorderRadius.circular(12),
-//                 border: Border.all(color: stroke),
-//               ),
+//                   ),
+//             SizedBox(width: 8.w),
+//             Expanded(
 //               child: Column(
 //                 crossAxisAlignment: CrossAxisAlignment.start,
 //                 children: [
-//                   Container(
-//                     width: 36,
-//                     height: 36,
-//                     decoration: BoxDecoration(
-//                       color: AppColors.primaryColor.withOpacity(0.1),
-//                       borderRadius: BorderRadius.circular(8),
+//                   RichText(
+//                     text: TextSpan(
+//                       style: CustomTextStyles.lblPrimaryText(context),
+//                       children: <TextSpan>[
+//                         TextSpan(
+//                           text: notification.actor.name,
+//                           style: TextStyle(
+//                             color: Theme.of(context).colorScheme.onBackground,
+//                             fontSize: 12.2.sp,
+//                             fontWeight: FontWeight.w600,
+//                           ),
+//                         ),
+//                         TextSpan(
+//                           text: ' ${getNotificationMessage(notification)}',
+//                           style: TextStyle(
+//                             fontSize: 12.sp,
+//                             fontWeight: FontWeight.w400,
+//                             color: Theme.of(context).colorScheme.onBackground,
+//                           ),
+//                         ),
+//                       ],
 //                     ),
-//                     child: Icon(icon,
-//                         size: 18, color: AppColors.primaryColor),
 //                   ),
-//                   const SizedBox(height: 12),
-//                   Text(value, style: AppTextStyles.h2(color: heading)),
-//                   const SizedBox(height: 2),
-//                   Text(label,
-//                       style: AppTextStyles.subtext(color: subText)),
-//                   const SizedBox(height: 6),
-//                   Row(
-//                     children: [
-//                       const Icon(Icons.arrow_upward_rounded,
-//                           size: 11, color: Color(0xFF2A9D5C)),
-//                       const SizedBox(width: 2),
-//                       Text(change,
-//                           style: AppTextStyles.subtext(
-//                               color: const Color(0xFF2A9D5C))),
-//                     ],
+//                   SizedBox(height: 2.h),
+//                   Text(
+//                     formatDateTime(notification.createdAt.toString()),
+//                     style: TextStyle(
+//                       fontSize: 9.sp,
+//                       color: Theme.of(context)
+//                           .colorScheme
+//                           .onSurface
+//                           .withOpacity(0.6),
+//                     ),
 //                   ),
 //                 ],
 //               ),
 //             ),
-//           ),
-//         );
-//       }).toList(),
-//     );
-//   }
-// }
-
-// // ── Spacing Tokens Card ───────────────────────
-// class _SpacingCard extends StatelessWidget {
-//   final Color card, stroke, heading, bodyText, subText, divider;
-//   const _SpacingCard({
-//     required this.card,
-//     required this.stroke,
-//     required this.heading,
-//     required this.bodyText,
-//     required this.subText,
-//     required this.divider,
-//   });
-
-//   @override
-//   Widget build(BuildContext context) {
-//     final tokens = [
-//       ('Text Spacing', '8px', AppSpacing.textSpacing),
-//       ('Card Padding', '16px', AppSpacing.cardPadding),
-//       ('Card Gap', '16px', AppSpacing.cardGap),
-//       ('Section Spacing', '24px', AppSpacing.sectionSpacing),
-//       ('Screen Padding', '16px', AppSpacing.screenPadding),
-//     ];
-
-//     return _BaseCard(
-//       card: card,
-//       stroke: stroke,
-//       child: Column(
-//         children: tokens.asMap().entries.map((e) {
-//           final i = e.key;
-//           final (name, value, size) = e.value;
-//           return Column(
-//             children: [
-//               if (i != 0) Padding(
-//                 padding: const EdgeInsets.symmetric(vertical: 10),
-//                 child: Divider(color: divider, height: 1),
-//               ),
-//               if (i == 0) const SizedBox(height: 0),
-//               Row(
-//                 children: [
-//                   Expanded(
-//                     child: Column(
-//                       crossAxisAlignment: CrossAxisAlignment.start,
-//                       children: [
-//                         Text(name,
-//                             style: AppTextStyles.body(color: heading)
-//                                 .copyWith(fontWeight: FontWeight.w500)),
-//                         Text(value,
-//                             style: AppTextStyles.subtext(color: subText)),
-//                       ],
+//             if (post != null && post.imageUrl.isNotEmpty)
+//               Container(
+//                 width: 35.w,
+//                 height: 30.h,
+//                 decoration: BoxDecoration(
+//                   borderRadius: BorderRadius.circular(8.r),
+//                   image: DecorationImage(
+//                     image: NetworkImage(
+//                       '${ApiConfig.baseUrlImage}${post.imageUrl}',
 //                     ),
+//                     fit: BoxFit.cover,
+//                     onError: (exception, stackTrace) {
+//                       if (kDebugMode) {
+//                         print('Error loading post image: $exception');
+//                       }
+//                     },
 //                   ),
-//                   Container(
-//                     height: 10,
-//                     width: size * 2.5,
-//                     decoration: BoxDecoration(
-//                       color: AppColors.primaryColor.withOpacity(0.2),
-//                       borderRadius: BorderRadius.circular(2),
-//                     ),
-//                     child: Align(
-//                       alignment: Alignment.centerLeft,
-//                       child: Container(
-//                         height: 10,
-//                         width: size,
-//                         decoration: BoxDecoration(
-//                           color: AppColors.primaryColor,
-//                           borderRadius: BorderRadius.circular(2),
-//                         ),
-//                       ),
-//                     ),
-//                   ),
-//                 ],
+//                 ),
 //               ),
-//               if (i == tokens.length - 1) const SizedBox(height: 0),
-//             ],
-//           );
-//         }).toList(),
+//           ],
+//         ),
 //       ),
-//     );
-//   }
-// }
-
-// // ── Base Card ─────────────────────────────────
-// class _BaseCard extends StatelessWidget {
-//   final Color card, stroke;
-//   final Widget child;
-//   const _BaseCard({
-//     required this.card,
-//     required this.stroke,
-//     required this.child,
-//   });
-
-//   @override
-//   Widget build(BuildContext context) {
-//     return Container(
-//       width: double.infinity,
-//       padding: const EdgeInsets.all(AppSpacing.cardPadding),
-//       decoration: BoxDecoration(
-//         color: card,
-//         borderRadius: BorderRadius.circular(12),
-//         border: Border.all(color: stroke),
-//       ),
-//       child: child,
 //     );
 //   }
 // }

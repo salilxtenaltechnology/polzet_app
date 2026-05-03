@@ -98,14 +98,18 @@ class ProfileState extends State<UserProfile>
     Uint8List? profileBytes = _cachedProfileImageBytes;
     Uint8List? coverBytes = _cachedCoverImageBytes;
 
-    if (profileRaw != null && profileRaw.isNotEmpty && profileRaw != _cachedProfileImage) {
+    if (profileRaw != null &&
+        profileRaw.isNotEmpty &&
+        profileRaw != _cachedProfileImage) {
       profileBytes = decodeBase64Image(profileRaw);
       _cache.profileImageRaw = profileRaw;
       _cache.profileImageBytes = profileBytes;
       needsUpdate = true;
     }
-    
-    if (coverRaw != null && coverRaw.isNotEmpty && coverRaw != _cachedCoverImage) {
+
+    if (coverRaw != null &&
+        coverRaw.isNotEmpty &&
+        coverRaw != _cachedCoverImage) {
       coverBytes = decodeBase64Image(coverRaw);
       _cache.coverImageRaw = coverRaw;
       _cache.coverImageBytes = coverBytes;
@@ -286,14 +290,22 @@ class ProfileState extends State<UserProfile>
         userProvider.username!.isNotEmpty) {
       _loadPostsWithCache(userProvider.username)
           .then((posts) {
-            if (mounted) setState(() { _postsFuture = Future.value(posts); });
+            if (mounted) {
+              setState(() {
+                _postsFuture = Future.value(posts);
+              });
+            }
           })
           .catchError((e) {
             if (kDebugMode) print('Silent refresh posts error: $e');
           });
 
       _loadPollPostsWithCache(userProvider.username).then((data) {
-        if (mounted) setState(() { _pollPostsFuture = Future.value(data); });
+        if (mounted) {
+          setState(() {
+            _pollPostsFuture = Future.value(data);
+          });
+        }
       });
     }
   }
@@ -306,17 +318,33 @@ class ProfileState extends State<UserProfile>
     await Future.wait([
       _loadProfileSilently(),
       _loadChaseWithCache().then((data) {
-        if (mounted) setState(() { getChase = Future.value(data); });
+        if (mounted) {
+          setState(() {
+            getChase = Future.value(data);
+          });
+        }
       }),
       _loadRechaseWithCache().then((data) {
-        if (mounted) setState(() { getRechase = Future.value(data); });
+        if (mounted) {
+          setState(() {
+            getRechase = Future.value(data);
+          });
+        }
       }),
       if (userProvider.username != null && userProvider.username!.isNotEmpty)
         _loadPostsWithCache(userProvider.username).then((data) {
-          if (mounted) setState(() { _postsFuture = Future.value(data); });
+          if (mounted) {
+            setState(() {
+              _postsFuture = Future.value(data);
+            });
+          }
         }),
       _loadPollPostsWithCache(userProvider.username).then((data) {
-        if (mounted) setState(() { _pollPostsFuture = Future.value(data); });
+        if (mounted) {
+          setState(() {
+            _pollPostsFuture = Future.value(data);
+          });
+        }
       }),
     ]);
   }
@@ -366,8 +394,8 @@ class ProfileState extends State<UserProfile>
                 padding: EdgeInsets.all(8.w),
                 decoration: BoxDecoration(
                   image: _cachedCoverImageBytes == null
-                      ?  DecorationImage(
-                          image: AssetImage(Assets.images.defaultCover.path), 
+                      ? DecorationImage(
+                          image: AssetImage(Assets.images.defaultCover.path),
                           fit: BoxFit.fill,
                         )
                       : DecorationImage(
@@ -404,67 +432,70 @@ class ProfileState extends State<UserProfile>
                     ),
                     Align(
                       alignment: Alignment.bottomCenter,
-                      child: Container(
-                        width: double.infinity,
-                        height: 60.h,
-                        padding: EdgeInsets.all(8.w),
-                        child: Row(
-                          children: [
-                            Container(
-                              height: 50.h,
-                              width: 50.h,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                border: Border.all(
-                                  color: Colors.white,
-                                  width: 1.5.w,
-                                ),
-                                image: _cachedProfileImageBytes == null
-                                    ?  DecorationImage(
-                                        image: AssetImage(
-                                          Assets.images.icUser.path,
-                                        ),
-                                        fit: BoxFit.fill,
-                                      )
-                                    : DecorationImage(
-                                        image: MemoryImage(
-                                          _cachedProfileImageBytes!,
-                                        ),
-                                        fit: BoxFit.cover,
-                                      ),
-                              ),
-                            ),
-                            SizedBox(width: 10.w),
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
+                      child:
+                          Container(
+                            width: double.infinity,
+                            height: 60.h,
+                            padding: EdgeInsets.all(8.w),
+                            child: Row(
                               children: [
-                                Text(
-                                  userProvider.isLoading
-                                      ? '-'
-                                      : userProvider.username ?? '-',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 14.sp,
+                                Container(
+                                  height: 50.h,
+                                  width: 50.h,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    border: Border.all(
+                                      color: Colors.white,
+                                      width: 1.5.w,
+                                    ),
+                                    image: _cachedProfileImageBytes == null
+                                        ? DecorationImage(
+                                            image: AssetImage(
+                                              Assets.images.icUser.path,
+                                            ),
+                                            fit: BoxFit.fill,
+                                          )
+                                        : DecorationImage(
+                                            image: MemoryImage(
+                                              _cachedProfileImageBytes!,
+                                            ),
+                                            fit: BoxFit.cover,
+                                          ),
                                   ),
                                 ),
-                                SizedBox(height: 2.h),
-                                Text(
-                                  userProvider.isLoading
-                                      ? '-'
-                                      : userProvider.bio ?? '-',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 11.sp,
-                                  ),
+                                SizedBox(width: 10.w),
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      userProvider.isLoading
+                                          ? '-'
+                                          : userProvider.username ?? '-',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 14.sp,
+                                      ),
+                                    ),
+                                    SizedBox(height: 2.h),
+                                    Text(
+                                      userProvider.isLoading
+                                          ? '-'
+                                          : userProvider.bio ?? '-',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 11.sp,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ],
                             ),
-                          ],
-                        ),
-                      ).asGlass(
-                        tintColor: Colors.black,
-                        clipBorderRadius: BorderRadius.circular( AppRadius.card),
-                      ),
+                          ).asGlass(
+                            tintColor: Colors.black,
+                            clipBorderRadius: BorderRadius.circular(
+                              AppRadius.card,
+                            ),
+                          ),
                     ),
                   ],
                 ),
@@ -498,6 +529,8 @@ class ProfileState extends State<UserProfile>
                                       ?.toString() ??
                                   '0'),
                               initialIndex: 0,
+                              chaseList: userProvider.chase_list,
+                              rechaseList: userProvider.rechase_list,
                             ),
                           ),
                           topMargin: 10.h,
@@ -522,6 +555,8 @@ class ProfileState extends State<UserProfile>
                                       ?.toString() ??
                                   '0'),
                               initialIndex: 1,
+                              chaseList: userProvider.chase_list,
+                              rechaseList: userProvider.rechase_list,
                             ),
                           ),
                           topMargin: 5.h,
@@ -547,6 +582,8 @@ class ProfileState extends State<UserProfile>
                                 followerCount:
                                     userProvider.followers_count ?? '0',
                                 initialIndex: 0,
+                                chaseList: userProvider.chase_list,
+                                rechaseList: userProvider.rechase_list,
                               ),
                             );
                             if (mounted) {
@@ -562,7 +599,9 @@ class ProfileState extends State<UserProfile>
                           future: getChase,
                           initialData: _cachedFollowers,
                           builder: (context, snapshot) {
-                            final users = snapshot.hasData ? snapshot.data! : _cachedFollowers;
+                            final users = snapshot.hasData
+                                ? snapshot.data!
+                                : _cachedFollowers;
                             if (isInitialLoad &&
                                 snapshot.connectionState ==
                                     ConnectionState.waiting &&
@@ -590,6 +629,8 @@ class ProfileState extends State<UserProfile>
                               followerCount:
                                   userProvider.followers_count ?? '0',
                               initialIndex: 1,
+                              chaseList: userProvider.chase_list,
+                              rechaseList: userProvider.rechase_list,
                             ),
                           ),
                         ),
@@ -598,7 +639,9 @@ class ProfileState extends State<UserProfile>
                           future: getRechase,
                           initialData: _cachedFollowing,
                           builder: (context, snapshot) {
-                            final users = snapshot.hasData ? snapshot.data! : _cachedFollowing;
+                            final users = snapshot.hasData
+                                ? snapshot.data!
+                                : _cachedFollowing;
                             if (isInitialLoad &&
                                 snapshot.connectionState ==
                                     ConnectionState.waiting &&
@@ -639,7 +682,7 @@ class ProfileState extends State<UserProfile>
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
                     pollThingsTile(
-                      Assets.images.poll.path, 
+                      Assets.images.poll.path,
                       _totalImagePostsCount.toString(),
                       Icons.image,
                       () => navigationPush(
@@ -659,7 +702,7 @@ class ProfileState extends State<UserProfile>
                       ),
                     ),
                     pollThingsTile(
-                      Assets.images.things.path, 
+                      Assets.images.things.path,
                       _totalTextPostsCount.toString(),
                       Icons.image,
                       () => navigationPush(
@@ -716,7 +759,9 @@ class ProfileState extends State<UserProfile>
                   future: _postsFuture,
                   initialData: _cachedPosts,
                   builder: (context, snapshot) {
-                    final posts = snapshot.hasData ? snapshot.data! : _cachedPosts;
+                    final posts = snapshot.hasData
+                        ? snapshot.data!
+                        : _cachedPosts;
 
                     if (isInitialLoad &&
                         snapshot.connectionState == ConnectionState.waiting &&
@@ -794,7 +839,9 @@ class ProfileState extends State<UserProfile>
                 future: _pollPostsFuture,
                 initialData: _cachedTextPolls,
                 builder: (context, snapshot) {
-                  final postsWithTextPolls = snapshot.hasData ? snapshot.data! : _cachedTextPolls;
+                  final postsWithTextPolls = snapshot.hasData
+                      ? snapshot.data!
+                      : _cachedTextPolls;
 
                   if (isInitialLoad &&
                       snapshot.connectionState == ConnectionState.waiting &&
@@ -1052,10 +1099,9 @@ class ProfileState extends State<UserProfile>
                   Text(
                     AppLocalizations.of(context)!.createsomethingcool,
                     style: TextStyle(
-                      color: Theme.of(context)
-                          .colorScheme
-                          .onBackground
-                          .withOpacity(0.6),
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.onBackground.withOpacity(0.6),
                       fontSize: 11.sp,
                       fontWeight: FontWeight.w500,
                     ),
@@ -1092,10 +1138,9 @@ class ProfileState extends State<UserProfile>
                   Text(
                     AppLocalizations.of(context)!.createsomethingcool,
                     style: TextStyle(
-                      color: Theme.of(context)
-                          .colorScheme
-                          .onBackground
-                          .withOpacity(0.6),
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.onBackground.withOpacity(0.6),
                       fontSize: 11.sp,
                       fontWeight: FontWeight.w500,
                     ),
@@ -1277,9 +1322,8 @@ class ProfileState extends State<UserProfile>
                   final index = entry.key;
                   final imageData = entry.value;
                   final alignment = alignments[index];
-                  final imageWidth =
-                      ((availableWidth * 0.7) - (index * 8.0))
-                          .clamp(60.w, double.infinity);
+                  final imageWidth = ((availableWidth * 0.7) - (index * 8.0))
+                      .clamp(60.w, double.infinity);
 
                   return Align(
                     alignment: alignment,
@@ -1300,7 +1344,9 @@ class ProfileState extends State<UserProfile>
                           height: double.infinity,
                           errorBuilder: (_, __, ___) => Container(
                             decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(AppRadius.button),
+                              borderRadius: BorderRadius.circular(
+                                AppRadius.button,
+                              ),
                               color: Colors.grey[200],
                             ),
                             child: Icon(
@@ -1313,7 +1359,9 @@ class ProfileState extends State<UserProfile>
                             if (progress == null) return child;
                             return Container(
                               decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(AppRadius.button),
+                                borderRadius: BorderRadius.circular(
+                                  AppRadius.button,
+                                ),
                                 color: Colors.grey[200],
                               ),
                               child: Center(

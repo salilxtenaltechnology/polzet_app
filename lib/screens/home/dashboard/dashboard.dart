@@ -387,19 +387,16 @@ class DashboardState extends State<Dashboard> with UtilityMixin {
                         children: [
                           Text(
                             AppLocalizations.of(context)!.improveyourprofile,
-                            style: TextStyle(
+                            style: AppTextStyles.subText.copyWith(
                               color: Theme.of(context).colorScheme.onBackground,
                               fontWeight: FontWeight.w600,
-                              fontSize: 11.sp,
                             ),
                           ),
                           SizedBox(height: 6.h),
                           Text(
                             '$completion%',
-                            style: TextStyle(
+                            style: AppTextStyles.sectionHeading.copyWith(
                               color: AppColors.primaryColor,
-                              fontWeight: FontWeight.w700,
-                              fontSize: 18.sp,
                             ),
                           ),
                           SizedBox(height: 8.h),
@@ -430,10 +427,9 @@ class DashboardState extends State<Dashboard> with UtilityMixin {
                                   AppLocalizations.of(
                                     context,
                                   )!.completeprofilesetup,
-                                  style: TextStyle(
+                                  style: AppTextStyles.subText.copyWith(
                                     color: Colors.white,
                                     fontWeight: FontWeight.w600,
-                                    fontSize: 11.sp,
                                   ),
                                 ),
                               ),
@@ -463,10 +459,9 @@ class DashboardState extends State<Dashboard> with UtilityMixin {
                       children: [
                         Text(
                           AppLocalizations.of(context)!.peopleyoumayknow,
-                          style: TextStyle(
+                          style: AppTextStyles.subText.copyWith(
                             color: Theme.of(context).colorScheme.onBackground,
                             fontWeight: FontWeight.w700,
-                            fontSize: 11.2.sp,
                           ),
                         ),
                         GestureDetector(
@@ -474,10 +469,9 @@ class DashboardState extends State<Dashboard> with UtilityMixin {
                               navigationPush(context, const SuggestionUsers()),
                           child: Text(
                             '${AppLocalizations.of(context)!.seeall} >',
-                            style: TextStyle(
+                            style: AppTextStyles.subText.copyWith(
                               color: Theme.of(context).colorScheme.primary,
                               fontWeight: FontWeight.w700,
-                              fontSize: 10.5.sp,
                             ),
                           ),
                         ),

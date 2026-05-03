@@ -44,18 +44,11 @@ class _LanguagesState extends State<Languages> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.background,
-      appBar: AppBar(
-        automaticallyImplyLeading: false,
-        toolbarHeight: 25.h,
-        leading: const PrimaryBackButton(),
-        title: Text(
-          AppLocalizations.of(context)!.language,
-          style: CustomTextStyles.appBarTitleText(context),
-        ),
-        centerTitle: true,
-        backgroundColor: Theme.of(context).colorScheme.background,
-        surfaceTintColor: Theme.of(context).colorScheme.background,
+      appBar: CommonAppBar(
+        title: AppLocalizations.of(context)!.language,
+        showBackButton: true,
       ),
+
       body: Padding(
         padding: EdgeInsets.symmetric(horizontal: 12.w),
         child: Column(

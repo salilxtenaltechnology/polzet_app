@@ -67,6 +67,9 @@ class _PrivateChatScreenState extends State<PrivateChatScreen>
     _scrollController.addListener(_onScroll);
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (widget.userId != null) {
+        provider.setMemberUserId(widget.userId!);
+      }
       provider.init(
         memberName: widget.memberName,
         profileUrl: widget.profileUrl,
@@ -107,6 +110,7 @@ class _PrivateChatScreenState extends State<PrivateChatScreen>
 
     if (_isAtBottom && _unreadCount > 0) {
       setState(() => _unreadCount = 0);
+      context.read<PrivateChatProvider>().markAsRead();
     }
 
     _updateFloatingDate();
@@ -153,7 +157,7 @@ class _PrivateChatScreenState extends State<PrivateChatScreen>
       if (_scrollController.hasClients &&
           _scrollController.position.hasContentDimensions) {
         if (_scrollController.position.maxScrollExtent > 0) {
-           isScreenCovered = true;
+          isScreenCovered = true;
         }
       }
 
@@ -210,7 +214,6 @@ class _PrivateChatScreenState extends State<PrivateChatScreen>
     context.read<PrivateChatProvider>().stopTyping();
     context.read<PrivateChatProvider>().sendMessage(text);
     _messageController.clear();
-    // Always scroll to bottom when YOU send a message
     WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
   }
 
@@ -238,7 +241,7 @@ class _PrivateChatScreenState extends State<PrivateChatScreen>
     }
   }
 
-  // ── Message status icon (pending / failed / sent) ──────────────────────────
+  // ── Message status icon (pending / failed / sent / read) ──────────────────────────
   Widget _buildMessageStatus(ChatMessage message) {
     if (!message.isSentByMe) return const SizedBox.shrink();
 
@@ -247,6 +250,9 @@ class _PrivateChatScreenState extends State<PrivateChatScreen>
     }
     if (message.isPending) {
       return Icon(Icons.check, size: 11.sp, color: Colors.white54);
+    }
+    if (message.isRead) {
+      return Icon(Icons.done_all, size: 11.sp, color: Colors.blue);
     }
     // Sent (delivered)
     return Icon(Icons.done_all, size: 11.sp, color: Colors.white70);
@@ -341,6 +347,7 @@ class _PrivateChatScreenState extends State<PrivateChatScreen>
         onTap: () {
           _scrollToBottom();
           setState(() => _unreadCount = 0);
+          context.read<PrivateChatProvider>().markAsRead();
         },
         child: Container(
           padding: EdgeInsets.all(6.w),
@@ -602,6 +609,7 @@ class _PrivateChatScreenState extends State<PrivateChatScreen>
                               (messages.isNotEmpty &&
                                   messages.last.isSentByMe)) {
                             _scrollToBottom();
+                            context.read<PrivateChatProvider>().markAsRead();
                           }
                         });
                       } else {
@@ -626,6 +634,7 @@ class _PrivateChatScreenState extends State<PrivateChatScreen>
                           WidgetsBinding.instance.addPostFrameCallback((_) {
                             if (_isAtBottom || lastIsMe) {
                               _scrollToBottom();
+                              context.read<PrivateChatProvider>().markAsRead();
                             } else {
                               setState(() => _unreadCount += newAppendedCount);
                             }
@@ -662,8 +671,9 @@ class _PrivateChatScreenState extends State<PrivateChatScreen>
                       return Center(
                         child: Text(
                           AppLocalizations.of(
-                            context,
-                          )?.nomessagesyetstarttheconversation ?? 'No messages yet...',
+                                context,
+                              )?.nomessagesyetstarttheconversation ??
+                              'No messages yet...',
                           textAlign: TextAlign.center,
                           style: TextStyle(
                             color: const Color(0XFF8593A8),
@@ -699,7 +709,7 @@ class _PrivateChatScreenState extends State<PrivateChatScreen>
                           );
                         }
 
-                          if (showHeader) {
+                        if (showHeader) {
                           final dateStr = _getDateSeparator(message.created_at);
                           if (!_headerKeys.containsKey(dateStr)) {
                             _headerKeys[dateStr] = GlobalKey(
@@ -707,8 +717,11 @@ class _PrivateChatScreenState extends State<PrivateChatScreen>
                             );
                           }
 
-                          bool hideInlineDate = isAbsoluteOldestMessage &&
-                              context.read<PrivateChatProvider>().hasMoreHistory;
+                          bool hideInlineDate =
+                              isAbsoluteOldestMessage &&
+                              context
+                                  .read<PrivateChatProvider>()
+                                  .hasMoreHistory;
 
                           if (hideInlineDate) {
                             return Column(
@@ -816,7 +829,8 @@ class _PrivateChatScreenState extends State<PrivateChatScreen>
                         context.read<PrivateChatProvider>().onUserTyping(),
                     decoration: InputDecoration(
                       border: InputBorder.none,
-                      hintText: AppLocalizations.of(context)?.message ?? 'Message',
+                      hintText:
+                          AppLocalizations.of(context)?.message ?? 'Message',
                       hintStyle: TextStyle(
                         color: const Color(0XFF8593A8),
                         fontSize: 11.5.sp,

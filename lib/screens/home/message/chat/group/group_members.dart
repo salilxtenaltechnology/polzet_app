@@ -5,13 +5,15 @@ import 'package:feather_icons/feather_icons.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:polzet_app/core/constants/app_colors.dart';
-import 'package:polzet_app/widgets/custom_card.dart';
 import 'package:polzet_app/widgets/show_toast.dart';
 import 'package:provider/provider.dart';
 
+import '../../../../../core/constants/app_constants.dart';
+import '../../../../../core/constants/app_radius.dart';
 import '../../../../../languages/l10n/generated/app_localizations.dart';
 import '../../../../../provider/group_chat_provider.dart';
 import '../../../../../provider/user_provider.dart';
+import '../../../../../widgets/appbar/common_appbar.dart';
 import '../../../../../widgets/custom_text_styles.dart';
 import '../../../../../core/utils/bottomsheet_util.dart';
 
@@ -53,9 +55,7 @@ class _GroupMembersState extends State<GroupMembers> {
       Map<String, dynamic>.from(member['user'] as Map? ?? {});
 
   /// Deduplicates members by user id
-  List<Map<String, dynamic>> _deduplicated(
-    List<Map<String, dynamic>> source,
-  ) {
+  List<Map<String, dynamic>> _deduplicated(List<Map<String, dynamic>> source) {
     final seen = <int>{};
     final result = <Map<String, dynamic>>[];
     for (final m in source) {
@@ -87,13 +87,11 @@ class _GroupMembersState extends State<GroupMembers> {
   Future<void> _removeMember(int userId, String username) async {
     final provider = context.read<GroupChatProvider>();
 
-    // ✅ Optimistic remove
     provider.removeMemberOptimistically(userId);
 
     final success = await provider.removeMember(userId);
 
     if (mounted && !success) {
-      // ✅ Rollback on failure
       await provider.refreshChatData();
       showToast(message: 'Failed to remove $username');
     } else if (mounted && success) {
@@ -104,13 +102,11 @@ class _GroupMembersState extends State<GroupMembers> {
   Future<void> _makeAdmin(int userId, String username) async {
     final provider = context.read<GroupChatProvider>();
 
-    // ✅ Optimistic update
     provider.updateMemberAdminStatus(userId, true);
 
     final success = await provider.makeAdmin(userId);
 
     if (mounted && !success) {
-      // ✅ Rollback on failure
       provider.updateMemberAdminStatus(userId, false);
       showToast(message: 'Failed to make $username admin');
     } else if (mounted && success) {
@@ -123,10 +119,9 @@ class _GroupMembersState extends State<GroupMembers> {
 
     final provider = context.read<GroupChatProvider>();
 
-    final existingIds = _deduplicated(provider.members)
-        .map((m) => _user(m)['id'] as int?)
-        .whereType<int>()
-        .toSet();
+    final existingIds = _deduplicated(
+      provider.members,
+    ).map((m) => _user(m)['id'] as int?).whereType<int>().toSet();
 
     final result = await BottomSheetUtils.showAddMembersBottomSheet(
       context: context,
@@ -148,13 +143,11 @@ class _GroupMembersState extends State<GroupMembers> {
       return;
     }
 
-    // ✅ Optimistic add
     provider.addMembersOptimistically(newUsers);
 
     final success = await provider.addGroupMembers(newIds.toList(), newUsers);
 
     if (!success && mounted) {
-      // ✅ Rollback on failure
       provider.rollbackOptimisticMembers(newIds);
       showToast(message: 'Failed to add members');
     } else if (success && mounted) {
@@ -166,8 +159,8 @@ class _GroupMembersState extends State<GroupMembers> {
     showModalBottomSheet(
       context: context,
       backgroundColor: Theme.of(context).colorScheme.background,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20.r)),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.modal)),
       ),
       builder: (_) => Padding(
         padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 20.h),
@@ -196,7 +189,6 @@ class _GroupMembersState extends State<GroupMembers> {
             ),
             SizedBox(height: 5.h),
 
-            // ✅ Only show Make Admin if not already admin
             if (!isAdmin) ...[
               GestureDetector(
                 onTap: () {
@@ -271,20 +263,9 @@ class _GroupMembersState extends State<GroupMembers> {
 
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.background,
-      appBar: AppBar(
-        automaticallyImplyLeading: false,
-        leading: GestureDetector(
-          onTap: () => Navigator.pop(context),
-          child: const Icon(Icons.arrow_back_ios),
-        ),
-        title: Text(
-          AppLocalizations.of(context)!.members,
-          style: CustomTextStyles.appBarTitleText(context),
-        ),
-        centerTitle: true,
-        backgroundColor: Theme.of(context).colorScheme.background,
-        surfaceTintColor: Theme.of(context).colorScheme.background,
-        toolbarHeight: 25.h,
+      appBar: CommonAppBar(
+        title: AppLocalizations.of(context)!.members,
+        showBackButton: true,
         actions: [
           Padding(
             padding: EdgeInsets.only(right: 12.w),
@@ -301,24 +282,18 @@ class _GroupMembersState extends State<GroupMembers> {
           ),
         ],
       ),
+
       body: Padding(
         padding: EdgeInsets.symmetric(horizontal: 12.w),
         child: Column(
           children: [
-            // ── Search bar ─────────────────────────────────────────────────
             Container(
               margin: EdgeInsets.only(top: 10.h),
-              height: 34.h,
+              height: AppConstants.searchbarHeight.h,
               decoration: BoxDecoration(
                 color: Theme.of(context).colorScheme.background,
-                borderRadius: BorderRadius.circular(15.r),
-                boxShadow: const [
-                  BoxShadow(
-                    color: Colors.black12,
-                    blurRadius: 10,
-                    spreadRadius: 3,
-                  ),
-                ],
+                borderRadius: BorderRadius.circular(AppRadius.button),
+                boxShadow: const [AppConstants.cardShadow],
               ),
               child: TextField(
                 controller: _searchController,
@@ -338,19 +313,18 @@ class _GroupMembersState extends State<GroupMembers> {
                   ),
                   enabledBorder: OutlineInputBorder(
                     borderSide: BorderSide(
-                      color: Theme.of(context)
-                          .colorScheme
-                          .onBackground
-                          .withOpacity(0.1),
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.onBackground.withOpacity(0.1),
                     ),
-                    borderRadius: BorderRadius.circular(15.r),
+                    borderRadius: BorderRadius.circular(AppRadius.button),
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderSide: const BorderSide(
                       color: AppColors.primaryColor,
                       width: 0.7,
                     ),
-                    borderRadius: BorderRadius.circular(15.r),
+                    borderRadius: BorderRadius.circular(AppRadius.button),
                   ),
                 ),
                 style: TextStyle(
@@ -369,10 +343,9 @@ class _GroupMembersState extends State<GroupMembers> {
                       child: Text(
                         'No members found',
                         style: TextStyle(
-                          color: Theme.of(context)
-                              .colorScheme
-                              .onBackground
-                              .withOpacity(0.4),
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onBackground.withOpacity(0.4),
                           fontSize: 11.sp,
                         ),
                       ),
@@ -384,30 +357,55 @@ class _GroupMembersState extends State<GroupMembers> {
                         final user = _user(member);
 
                         final int? memberId = user['id'] as int?;
-                        final String username = user['username']?.toString() ?? '';
-                        final String? profileImage = user['profile_image']?.toString();
+                        final String username =
+                            user['username']?.toString() ?? '';
+                        final String? profileImage = user['profile_image']
+                            ?.toString();
 
-                        // ✅ Use provider.isAdmin — always reflects latest state
                         final bool isAdmin = memberId != null
                             ? provider.isAdmin(memberId)
                             : false;
 
-                        final int? currentUserId =
-                            context.read<UserProvider>().userId;
+                        final int? currentUserId = context
+                            .read<UserProvider>()
+                            .userId;
                         final bool isSelf = memberId == currentUserId;
 
                         return Padding(
                           padding: EdgeInsets.only(bottom: 10.h),
                           child: GestureDetector(
                             onTap: isCurrentUserAdmin && !isSelf
-                                ? () => _showOptions(memberId!, username, isAdmin)
+                                ? () =>
+                                      _showOptions(memberId!, username, isAdmin)
                                 : null,
-                            child: CustomCard(
-                              widget: Row(
+                            child: Container(
+                              height: 40.h,
+                              width: double.infinity,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 4,
+                              ),
+                              margin: const EdgeInsets.only(bottom: 5),
+                              decoration: BoxDecoration(
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.primaryContainer,
+                                borderRadius: BorderRadius.circular(
+                                  AppRadius.card,
+                                ),
+                                boxShadow: const [
+                                  BoxShadow(
+                                    color: Color(0x13000000),
+                                    blurRadius: 5,
+                                    spreadRadius: 1,
+                                  ),
+                                ],
+                              ),
+                              child: Row(
                                 children: [
                                   // ── Avatar ───────────────────────────────
                                   CircleAvatar(
-                                    radius: 18,
+                                    radius: 13.r,
                                     backgroundImage: profileImage != null
                                         ? MemoryImage(
                                             base64Decode(
@@ -427,9 +425,9 @@ class _GroupMembersState extends State<GroupMembers> {
                                                 ? username[0].toUpperCase()
                                                 : '?',
                                             style: TextStyle(
-                                              color: Theme.of(context)
-                                                  .colorScheme
-                                                  .primary,
+                                              color: Theme.of(
+                                                context,
+                                              ).colorScheme.primary,
                                               fontSize: 14.5.sp,
                                               fontWeight: FontWeight.w500,
                                             ),
@@ -443,9 +441,9 @@ class _GroupMembersState extends State<GroupMembers> {
                                     child: Text(
                                       username,
                                       style: TextStyle(
-                                        color: Theme.of(context)
-                                            .colorScheme
-                                            .onBackground,
+                                        color: Theme.of(
+                                          context,
+                                        ).colorScheme.onBackground,
                                         fontSize: 11.2.sp,
                                         fontWeight: FontWeight.w400,
                                       ),

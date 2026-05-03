@@ -1,19 +1,23 @@
 // ignore_for_file: non_constant_identifier_names
 class ChatMessage {
+    final int? id;
   final String text;
   final DateTime created_at;
   final bool isSentByMe;
   final bool isPending;
   final bool isFailed;
+  final bool isRead;
   final String? senderUsername;
   final String? senderProfileImage;
 
   const ChatMessage({
+     this.id,
     required this.text,
     required this.created_at,
     required this.isSentByMe,
     this.isPending = false,
     this.isFailed = false,
+    this.isRead = false,
     this.senderUsername,
     this.senderProfileImage,
   });
@@ -25,6 +29,7 @@ class ChatMessage {
       'isSentByMe': isSentByMe,
       'isPending': isPending,
       'isFailed': isFailed,
+      'isRead': isRead,
       'senderUsername': senderUsername,
       'senderProfileImage': senderProfileImage,
     };
@@ -37,6 +42,7 @@ class ChatMessage {
       isSentByMe: json['isSentByMe'] as bool? ?? false,
       isPending: json['isPending'] as bool? ?? false,
       isFailed: json['isFailed'] as bool? ?? false,
+      isRead: json['isRead'] as bool? ?? false,
       senderUsername: json['senderUsername'] as String?,
       senderProfileImage: json['senderProfileImage'] as String?,
     );
@@ -74,6 +80,7 @@ class MessageItem {
   final MessageSender sender;
   final String message;
   final DateTime created_at;
+  final bool isRead;
 
   MessageItem({
     required this.id,
@@ -81,6 +88,7 @@ class MessageItem {
     required this.sender,
     required this.message,
     required this.created_at,
+    this.isRead = false,
   });
 
   factory MessageItem.fromJson(Map<String, dynamic> json) {
@@ -91,7 +99,8 @@ class MessageItem {
         json['sender'] as Map<String, dynamic>? ?? {},
       ),
       message: json['message']?.toString() ?? json['text']?.toString() ?? '',
-     created_at: DateTime.parse(json['created_at']).toLocal(),
+      created_at: DateTime.parse(json['created_at']).toLocal(),
+      isRead: json['is_read'] as bool? ?? false,
     );
   }
 

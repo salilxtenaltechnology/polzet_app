@@ -15,8 +15,8 @@ class AppIcons extends StatelessWidget {
       onTap: onTap,
       child: Icon(
         icon,
-        size: 18.5.spMax,
-        color: Theme.of(context).colorScheme.onBackground,
+        size: 19.5.spMax,
+        color: const Color(0XFF2C2C2C)
       ),
     );
   }

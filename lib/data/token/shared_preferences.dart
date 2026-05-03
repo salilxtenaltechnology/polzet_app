@@ -9,6 +9,7 @@ class SharedPrefService {
   static const String _userId = 'user_id';
   static const String _firstName = 'first_name';
   static const String _email = 'email';
+  static const String _onBoarding = 'onboarding_seen';
 
   static const String _lastName = 'last_name';
   static const String _username = 'username';
@@ -17,6 +18,17 @@ class SharedPrefService {
   // Mirrors TokenStorage class — fast access without async for already-loaded tokens
   static String? _cachedAccessToken;
   static String? _cachedRefreshToken;
+
+  // Set onBoarding key
+  static Future<bool> isOnboardingSeen() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_onBoarding) ?? false;
+  }
+
+  static Future<void> setOnboardingSeen() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_onBoarding, true);
+  }
 
   /// Set access token in both memory cache and SharedPreferences
   static Future<void> setToken(String token) async {
@@ -220,11 +232,3 @@ class SharedPrefService {
     }
   }
 }
-
-/* Valid from: Wed Dec 24 21:26:21 IST 2025 until: Sun May 11 21:26:21 IST 2053
-Certificate fingerprints:
-         SHA1: 12:9B:DC:4E:F9:D5:93:C7:24:5F:EB:33:56:D6:F0:50:3D:8A:1B:76
-         SHA256: 74:4F:D3:83:31:A9:72:EB:7A:57:55:52:52:73:DC:D0:87:8A:0A:0B:0E:C7:5D:F4:E0:D5:2F:C9:0A:7E:0D:89
-Signature algorithm name: SHA384withRSA
-Subject Public Key Algorithm: 2048-bit RSA key
-Version: 3 */

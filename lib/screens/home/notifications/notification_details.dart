@@ -18,7 +18,7 @@ import '../../../provider/user_provider.dart';
 import '../../../widgets/base64/image_convert.dart';
 import '../../../widgets/button/back_button.dart';
 import '../../../widgets/card/things/poll_question_card.dart';
-import '../../../widgets/custom_text_styles.dart';
+import '../../../core/themes/app_text_styles.dart';
 import '../../../widgets/show_toast.dart';
 import '../../../core/utils/bottomsheet_util.dart';
 import '../profile/posts/popup/image_grid.dart';
@@ -325,7 +325,7 @@ class _NotificationDetailsState extends State<NotificationDetails> {
         automaticallyImplyLeading: false,
         leading: const PrimaryBackButton(),
         centerTitle: true,
-        title: Text('Post', style: CustomTextStyles.appBarTitleText(context)),
+        title: Text('Post', style: AppTextStyles.pageTitleTextStyle(context)),
         backgroundColor: Theme.of(context).colorScheme.background,
         surfaceTintColor: Theme.of(context).colorScheme.background,
         toolbarHeight: 25.h,
@@ -343,8 +343,7 @@ class _NotificationDetailsState extends State<NotificationDetails> {
                   SizedBox(height: 12.h),
                   Text(
                     'Loading post...',
-                    style: TextStyle(
-                      fontSize: 11.sp,
+                    style: AppTextStyles.subText.copyWith(
                       color: Theme.of(
                         context,
                       ).colorScheme.onSurface.withOpacity(0.6),
@@ -372,8 +371,7 @@ class _NotificationDetailsState extends State<NotificationDetails> {
                     SizedBox(height: 16.h),
                     Text(
                       'Unable to Load Post',
-                      style: TextStyle(
-                        fontSize: 18.sp,
+                      style: AppTextStyles.sectionHeading.copyWith(
                         fontWeight: FontWeight.w700,
                       ),
                     ),
@@ -382,8 +380,7 @@ class _NotificationDetailsState extends State<NotificationDetails> {
                       error.contains('Exception:')
                           ? error.replaceFirst('Exception:', '').trim()
                           : 'Something went wrong. Please try again.',
-                      style: TextStyle(
-                        fontSize: 14.sp,
+                      style: AppTextStyles.bodyText.copyWith(
                         color: Theme.of(
                           context,
                         ).colorScheme.onSurface.withOpacity(0.6),
@@ -444,15 +441,14 @@ class _NotificationDetailsState extends State<NotificationDetails> {
                   SizedBox(height: 16.h),
                   Text(
                     'Post Not Found',
-                    style: TextStyle(
-                      fontSize: 18.sp,
+                    style: AppTextStyles.sectionHeading.copyWith(
                       fontWeight: FontWeight.w700,
                     ),
                   ),
                   SizedBox(height: 8.h),
                   Text(
                     'This post may have been deleted',
-                    style: TextStyle(fontSize: 14.sp, color: Colors.grey[600]),
+                    style: AppTextStyles.bodyText.copyWith(color: Colors.grey[600]),
                   ),
                   SizedBox(height: 24.h),
                   ElevatedButton(
@@ -547,8 +543,7 @@ class _NotificationDetailsState extends State<NotificationDetails> {
                                           ? userProvider.username![0]
                                                 .toUpperCase()
                                           : '',
-                                      style: TextStyle(
-                                        fontSize: 15.sp,
+                                      style: AppTextStyles.cardTitle.copyWith(
                                         fontWeight: FontWeight.w600,
                                         color: Theme.of(
                                           context,
@@ -563,8 +558,7 @@ class _NotificationDetailsState extends State<NotificationDetails> {
                               children: [
                                 Text(
                                   userProvider.username ?? '',
-                                  style: TextStyle(
-                                    fontSize: 11.sp,
+                                  style: AppTextStyles.cardTitle.copyWith(
                                     fontWeight: FontWeight.w600,
                                     color: Theme.of(
                                       context,
@@ -573,8 +567,7 @@ class _NotificationDetailsState extends State<NotificationDetails> {
                                 ),
                                 Text(
                                   'Placed a post',
-                                  style: TextStyle(
-                                    fontSize: 8.8.sp,
+                                  style: AppTextStyles.subText.copyWith(
                                     color: Theme.of(
                                       context,
                                     ).colorScheme.onSurface.withOpacity(0.7),
@@ -590,9 +583,8 @@ class _NotificationDetailsState extends State<NotificationDetails> {
                         // Post content
                         Text(
                           post.description,
-                          style: TextStyle(
+                          style: AppTextStyles.bodyText.copyWith(
                             color: Theme.of(context).colorScheme.onBackground,
-                            fontSize: 11.sp,
                             fontWeight: FontWeight.w500,
                           ),
                         ),
@@ -649,8 +641,7 @@ class _NotificationDetailsState extends State<NotificationDetails> {
                                             likesCount,
                                           )
                                         : '',
-                                    style: TextStyle(
-                                      fontSize: 10.8.sp,
+                                    style: AppTextStyles.subText.copyWith(
                                       fontWeight: FontWeight.w500,
                                       color: Theme.of(
                                         context,
@@ -676,8 +667,7 @@ class _NotificationDetailsState extends State<NotificationDetails> {
                                     commentsCount > 0
                                         ? _getCommentsCountText(commentsCount)
                                         : '',
-                                    style: TextStyle(
-                                      fontSize: 10.8.sp,
+                                    style: AppTextStyles.subText.copyWith(
                                       fontWeight: FontWeight.w500,
                                       color: Theme.of(
                                         context,

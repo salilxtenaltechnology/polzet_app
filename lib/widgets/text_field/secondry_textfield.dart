@@ -25,10 +25,11 @@ class SecondryTextfield extends StatelessWidget {
     return TextField(
       controller: controller,
       keyboardType: TextInputType.multiline,
-      maxLines: null,
+      maxLines: 1,
       onChanged: onChanged,
       style: CustomTextStyles.lblPrimaryText(context),
       decoration: InputDecoration(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
         hintText: hintText,
         hintStyle: CustomTextStyles.lblSecondryHintText(context),
         suffixIcon: suffixIcon,

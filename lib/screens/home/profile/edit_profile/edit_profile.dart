@@ -19,7 +19,7 @@ import '../../../../languages/l10n/generated/app_localizations.dart';
 import '../../../../mixin/utility_mixins.dart';
 import '../../../../models/user/user_profile_model.dart';
 import '../../../../provider/user_provider.dart';
-import '../../../../widgets/button/back_button.dart';
+import '../../../../widgets/appbar/common_appbar.dart';
 import '../../../../widgets/custom_text_styles.dart';
 import '../../../../widgets/dialog/custom_diolog.dart';
 import '../../../../widgets/loader.dart';
@@ -429,18 +429,7 @@ class _EditProfileState extends State<EditProfile> with UtilityMixin {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.background,
-      appBar: AppBar(
-        automaticallyImplyLeading: false,
-        toolbarHeight: 25.h,
-        leading: const PrimaryBackButton(),
-        title: Text(
-          AppLocalizations.of(context)!.editprofile,
-          style: CustomTextStyles.appBarTitleText(context),
-        ),
-        centerTitle: true,
-        backgroundColor: Theme.of(context).colorScheme.background,
-        surfaceTintColor: Theme.of(context).colorScheme.background,
-      ),
+      appBar: CommonAppBar(title: AppLocalizations.of(context)!.editprofile),
       body: _isLoading
           ? Center(
               child: Loader(color: Theme.of(context).colorScheme.primary),

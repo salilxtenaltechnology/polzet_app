@@ -29,6 +29,15 @@ class AppIcons {
   static Widget outlineHeart({double size = 24, Color? color, Key? key}) =>
       _img(Assets.images.heart, size: size, color: color, key: key);
 
+  static Widget like({double size = 19, Color? color, Key? key}) =>
+      _img(Assets.images.typeLike, size: size, color: color, key: key);
+
+  static Widget icCommnet({double size = 19, Color? color, Key? key}) =>
+      _img(Assets.images.icMessage, size: size, color: color, key: key);
+
+  static Widget icVote({double size = 14.5, Color? color, Key? key}) =>
+      _img(Assets.images.icVote, size: size, color: color, key: key);
+
   static Widget commnetBox({double size = 24, Color? color, Key? key}) =>
       _img(Assets.images.comments, size: size, color: color, key: key);
 

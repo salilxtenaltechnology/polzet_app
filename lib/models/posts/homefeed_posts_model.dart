@@ -157,7 +157,8 @@ class HomeFeedLikeUser {
     return HomeFeedLikeUser(
       id: _parseToInt(json['id'] ?? json['user_id']),
       username: _parseToString(json['username'] ?? json['name']),
-      profileImage: json['profile_image']?.toString() ?? 
+      profileImage: json['profile_picture_url']?.toString() ??
+                    json['profile_image']?.toString() ??
                     json['avatar_url']?.toString(),
     );
   }
@@ -348,7 +349,7 @@ class HomeFeedPollOption {
       score: _parseToInt(json['score']),
       percentage: _parseToDouble(json['percentage']),
       userList: _parseList<HomeFeedLikeUser>(
-        json['user_list'],
+        json['voters'] ?? json['user_list'],
         (item) => HomeFeedLikeUser.fromJson(item),
       ),
     );

@@ -13,9 +13,10 @@ import 'package:polzet_app/widgets/show_toast.dart';
 
 import '../../../api/services/api_service.dart';
 import '../../../api/services/image/image_picker_service.dart';
+import '../../../core/constants/app_radius.dart';
 import '../../../mixin/utility_mixins.dart';
+import '../../../widgets/appbar/common_appbar.dart';
 import '../../../widgets/base64/image_convert.dart';
-import '../../../widgets/button/back_button.dart';
 import '../../../widgets/button/primary_button.dart';
 import '../../../widgets/custom_card.dart';
 import '../../../widgets/custom_text_styles.dart';
@@ -49,7 +50,6 @@ class _CreateGroupState extends State<CreateGroup> with UtilityMixin {
     super.dispose();
   }
 
-
   Future<void> _openAddMember() async {
     final result = await Navigator.push<Map<String, dynamic>>(
       context,
@@ -65,7 +65,6 @@ class _CreateGroupState extends State<CreateGroup> with UtilityMixin {
       _selectedUsers = List<Map<String, dynamic>>.from(result['users'] as List);
     });
   }
-
 
   Future<void> _pickGroupImage() async {
     final file = await ImagePickerService.pickImage(context: context);
@@ -104,8 +103,6 @@ class _CreateGroupState extends State<CreateGroup> with UtilityMixin {
         members: _selectedIds.toList(),
       );
 
-     
-
       if (result['success'] == true) {
         if (mounted) Navigator.pop(context, result['chat_id']);
       } else {
@@ -131,21 +128,13 @@ class _CreateGroupState extends State<CreateGroup> with UtilityMixin {
       (user['avatar'] ?? user['profile_picture_url'] ?? user['image'])
           ?.toString();
 
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.background,
-      appBar: AppBar(
-        automaticallyImplyLeading: false,
-        leading: const PrimaryBackButton(),
-        title: Text(
-          AppLocalizations.of(context)!.creategroup,
-          style: CustomTextStyles.appBarTitleText(context),
-        ),
-        centerTitle: true,
-        backgroundColor: Theme.of(context).colorScheme.background,
-        toolbarHeight: 25.h,
+      appBar: CommonAppBar(
+        title: AppLocalizations.of(context)!.creategroup,
+        showBackButton: true,
       ),
       body: Padding(
         padding: const EdgeInsets.all(12).w,
@@ -181,11 +170,11 @@ class _CreateGroupState extends State<CreateGroup> with UtilityMixin {
                         child: _selectedImage == null
                             ? Center(
                                 child: Icon(
-                                  Icons.group_rounded, 
+                                  Icons.group_rounded,
                                   size: 36.sp,
                                   color: Theme.of(
-                              context,
-                            ).colorScheme.onBackground.withOpacity(0.14),
+                                    context,
+                                  ).colorScheme.onBackground.withOpacity(0.14),
                                 ),
                               )
                             : null,
@@ -267,7 +256,7 @@ class _CreateGroupState extends State<CreateGroup> with UtilityMixin {
                 width: double.infinity,
                 decoration: BoxDecoration(
                   color: const Color(0xFFFDEEF0),
-                  borderRadius: BorderRadius.circular(10.r),
+                  borderRadius: BorderRadius.circular(AppRadius.small),
                 ),
                 child: Center(
                   child: Text(

@@ -36,6 +36,7 @@ class ApiConstants {
   static String markAsRead = "$baseUrl/chats";
   static String searchUsers = "$baseUrl/users";
   static String globalSearch = "$baseUrl/global_search";
+  static String recentSearch = "$baseUrl/search/recent";
   static String enhancedTrendingHashtags =
       "$baseUrl/trending/hashtags/enhanced";
   static String blockUser = "$baseUrl/users/block";
@@ -52,6 +53,12 @@ class ApiConstants {
   static String suggestionUsers = "$baseUrl/users/suggestions";
   static String pollOnThings = "$baseUrl/posts";
   static String notifications = "$baseUrl/notifications";
+  static String unreadNotificationCount = "$baseUrl/notifications/unread_count";
+  static String markNotificationRead = "$baseUrl/notifications/mark_read";
+  static String markAllNotificationsRead =
+      "$baseUrl/notifications/mark_all_read";
+  static String clearAllNotifications = "$baseUrl/notifications/clear_all";
+  static String deleteNotification = "$baseUrl/notifications";
   static String likePost = "$baseUrl/posts";
   static String topVoters = "$baseUrl/polls";
   static String privacyPolicy = "$baseUrl/privacy_status";

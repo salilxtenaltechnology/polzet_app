@@ -13,6 +13,7 @@ import '../../../api/services/like/like_service.dart';
 import '../../../api/services/share/share_service.dart';
 import '../../../core/constants/app_icons.dart';
 import '../../../core/constants/app_radius.dart';
+import '../../../core/themes/app_text_styles.dart';
 import '../../../mixin/utility_mixins.dart';
 import '../../../models/posts/homefeed_posts_model.dart';
 import '../../../provider/user_provider.dart';
@@ -22,7 +23,8 @@ import '../../../core/utils/like_util.dart';
 import '../dashboard/dashboard_import.dart';
 import '../home_imports.dart';
 import '../profile/public/public_profile.dart';
-import 'all_image_popup.dart.dart';
+import '../rank/image/image_ranking.dart';
+import '../rank/result/image/image_result_screen.dart';
 
 class HomeFeedPostCard extends StatefulWidget {
   final HomeFeedPost post;
@@ -61,13 +63,8 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
   bool _isLocalChased = false;
   Uint8List? _profileImageBytes;
 
-  // ── Cached percentages: optionId → percentage ──────────────────────────────
-  // Written ONLY by _fetchAndApplyPollResults — never from model data.
-  // This is the single source of truth for what is rendered.
   final Map<int, double> _cachedPercentages = {};
 
-  // ── Animation-done flags: optionId → true once first animation completes ───
-  // When true, begin == end so scrolling never re-triggers fill from 0.
   final Map<int, bool> _animationDone = {};
 
   int getSelectionNumber(int imageNumber) {
@@ -98,7 +95,6 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
         .toList();
   }
 
-  // ── initState ───────────────────────────────────────────────────────────────
   @override
   void initState() {
     super.initState();
@@ -120,8 +116,6 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
       pollTotalVotes[poll.id.toString()] = poll.totalVotes;
     }
 
-    // For already-voted polls: fetch real percentages from getPollResults.
-    // Model percentages (HomeFeedPollOption.percentage) are NEVER used.
     final alreadyVotedPolls = widget.post.polls
         .where((p) => p.isPolledByCurrentUser)
         .toList();
@@ -134,8 +128,6 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
       });
     }
   }
-
-  // ── Like ────────────────────────────────────────────────────────────────────
 
   Future<void> _toggleLike() async {
     if (isLikeLoading) return;
@@ -224,8 +216,6 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
     );
   }
 
-  // ── Poll helpers ─────────────────────────────────────────────────────────────
-
   bool _hasImageOptions(HomeFeedPoll poll) =>
       poll.options.any((o) => o.image != null);
 
@@ -235,25 +225,58 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
   List<PollOptionImage> _getPollImages(HomeFeedPoll poll) =>
       poll.options.where((o) => o.image != null).map((o) => o.image!).toList();
 
-  void _showAllImagesGrid(List<PollOptionImage> images, HomeFeedPoll poll) {
-    Navigator.of(context)
-        .push(
-          MaterialPageRoute(
-            builder: (_) => AllImagesPopup(
-              images: poll.options,
-              postId: widget.post.id,
-              pollId: poll.id,
-              onImageTap: (_) {},
-              isPolledByCurrentUser: poll.isPolledByCurrentUser,
-            ),
-          ),
-        )
-        .then((result) {
-          if (result == true) setState(() {});
-        });
-  }
+  // void _showAllImagesGrid(List<PollOptionImage> images, HomeFeedPoll poll) {
+  //   Navigator.of(context)
+  //       .push(
+  //         MaterialPageRoute(
+  //           builder: (_) => AllImagesPopup(
+  //             images: poll.options,
+  //             postId: widget.post.id,
+  //             pollId: poll.id,
+  //             onImageTap: (_) {},
+  //             isPolledByCurrentUser: poll.isPolledByCurrentUser,
+  //           ),
+  //         ),
+  //       )
+  //       .then((result) {
+  //         if (result == true) setState(() {});
+  //       });
+  // }
 
-  // ── Submit vote ──────────────────────────────────────────────────────────────
+  void _showAllImagesGrid(
+    List<PollOptionImage> images,
+    HomeFeedPost post,
+    HomeFeedPoll poll,
+  ) {
+    if (poll.isPolledByCurrentUser) {
+      // ── Already voted → show results
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) =>
+              ImageResultScreen(user: post.user, poll: poll, post: post),
+        ),
+      );
+    } else {
+      Navigator.of(context)
+          .push(
+            MaterialPageRoute(
+              builder: (_) => ImageRanking(
+                user: post.user,
+                poll: poll,
+                post: post,
+                question: poll.question,
+                images: poll.options,
+                createdAt: post.createdAt,
+                postId: post.id,
+                pollId: poll.id,
+              ),
+            ),
+          )
+          .then((result) {
+            if (result == true) setState(() {});
+          });
+    }
+  }
 
   Future<void> _submitPollVotes(HomeFeedPoll poll) async {
     final pollKey = poll.id.toString();
@@ -330,7 +353,6 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
     }
   }
 
-  // ── Core: fetch getPollResults → write _cachedPercentages ───────────────────
   Future<void> _fetchAndApplyPollResults(HomeFeedPoll poll) async {
     try {
       final Map<String, dynamic> response = await ApiService().getPollResults(
@@ -364,9 +386,7 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
           final double pct = (r['percentage'] as num?)?.toDouble() ?? 0.0;
           final int rank1Count = r['rank_1_count'] as int? ?? 0;
 
-          // Store into cache — only source of truth for rendering
           _cachedPercentages[optionId] = pct;
-          // Reset done-flag so animation plays once with the new value
           _animationDone[optionId] = false;
 
           for (final option in poll.options) {
@@ -408,8 +428,6 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
     }
   }
 
-  // ── Build ────────────────────────────────────────────────────────────────────
-
   @override
   Widget build(BuildContext context) {
     final bool hasPolls = widget.post.polls.isNotEmpty;
@@ -438,7 +456,6 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // ── Header ───────────────────────────────────────────────────
                 Row(
                   children: [
                     GestureDetector(
@@ -477,9 +494,7 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
                                 widget.post.user.profileImage!.isEmpty
                             ? Text(
                                 widget.post.user.firstLetter,
-                                style: TextStyle(
-                                  fontSize: 15.sp,
-                                  fontWeight: FontWeight.w600,
+                                style: AppTextStyles.cardTitle.copyWith(
                                   color: Theme.of(context).colorScheme.primary,
                                 ),
                               )
@@ -492,20 +507,17 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
                       children: [
                         Text(
                           widget.post.user.username,
-                          style: TextStyle(
-                            fontSize: 11.sp,
+                          style: AppTextStyles.subText.copyWith(
                             fontWeight: FontWeight.w600,
                             color: Theme.of(context).colorScheme.onBackground,
                           ),
                         ),
                         Text(
                           'Placed a post',
-                          style: TextStyle(
-                            fontSize: 8.8.sp,
+                          style: AppTextStyles.subText.copyWith(
                             color: Theme.of(
                               context,
                             ).colorScheme.onSurface.withOpacity(0.6),
-                            fontWeight: FontWeight.w500,
                           ),
                         ),
                       ],
@@ -553,9 +565,7 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
                           ),
                           child: Text(
                             _isLocalChased ? 'Chased' : 'Chase',
-                            style: TextStyle(
-                              fontSize: 9.sp,
-                              fontWeight: FontWeight.w500,
+                            style: AppTextStyles.subText.copyWith(
                               color: _isLocalChased
                                   ? Colors.white
                                   : Theme.of(context).colorScheme.primary,
@@ -595,9 +605,7 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
                             likesCount > 0
                                 ? LikeService.getLikesCountText(likesCount)
                                 : '',
-                            style: TextStyle(
-                              fontSize: 10.5.sp,
-                              fontWeight: FontWeight.w500,
+                            style: AppTextStyles.subText.copyWith(
                               color: Theme.of(
                                 context,
                               ).colorScheme.onSurface.withOpacity(0.8),
@@ -619,9 +627,7 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
                           SizedBox(width: 3.w),
                           Text(
                             commentsCount > 0 ? '$commentsCount' : '',
-                            style: TextStyle(
-                              fontSize: 12.sp,
-                              fontWeight: FontWeight.w500,
+                            style: AppTextStyles.subText.copyWith(
                               color: Theme.of(
                                 context,
                               ).colorScheme.onSurface.withOpacity(0.8),
@@ -696,9 +702,8 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
                   SizedBox(height: 5.h),
                   Text(
                     poll.question,
-                    style: TextStyle(
+                    style: AppTextStyles.bodyText.copyWith(
                       color: Theme.of(context).colorScheme.onBackground,
-                      fontSize: 10.7.sp,
                       fontWeight: FontWeight.w500,
                     ),
                   ),
@@ -707,7 +712,7 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
                   margin: EdgeInsets.only(top: 8.h),
                   height: 150.h,
                   width: double.infinity,
-                  child: _buildImagesStack(images, poll),
+                  child: _buildImagesStack(images, widget.post, poll),
                 ),
                 SizedBox(height: 5.h),
               ],
@@ -721,7 +726,11 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
     return widgets;
   }
 
-  Widget _buildImagesStack(List<PollOptionImage> images, HomeFeedPoll poll) {
+  Widget _buildImagesStack(
+    List<PollOptionImage> images,
+    HomeFeedPost post,
+    HomeFeedPoll poll,
+  ) {
     List<Alignment> getAlignments(int n) {
       switch (n) {
         case 1:
@@ -750,7 +759,7 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
         final w = constraints.maxWidth;
         final h = constraints.maxHeight;
         return GestureDetector(
-          onTap: () => _showAllImagesGrid(images, poll),
+          onTap: () => _showAllImagesGrid(images, post, poll),
           child: SizedBox(
             height: h,
             width: w,
@@ -837,9 +846,8 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
         SizedBox(height: 5.h),
         Text(
           poll.question,
-          style: TextStyle(
+          style: AppTextStyles.bodyText.copyWith(
             color: Theme.of(context).colorScheme.onBackground,
-            fontSize: 10.7.sp,
             fontWeight: FontWeight.w500,
           ),
         ),
@@ -919,9 +927,8 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
                 onTap: () => _showThingsPostVotersBottomSheet(poll),
                 child: Text(
                   'View votes',
-                  style: TextStyle(
+                  style: AppTextStyles.subText.copyWith(
                     color: Theme.of(context).colorScheme.primary,
-                    fontSize: 10.sp,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
@@ -1031,19 +1038,17 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
               ),
 
             Padding(
-              padding: EdgeInsets.fromLTRB(8.w, 3.h, 8.w, 0),
+              padding: EdgeInsets.fromLTRB(8.w, 5.h, 8.w, 0),
               child: Row(
                 children: [
                   Expanded(
                     child: Text(
                       option.text ?? '',
-                      style: TextStyle(
+                      style: AppTextStyles.subText.copyWith(
                         color: Theme.of(context).colorScheme.onBackground,
-                        fontSize: 10.5.sp,
                         fontWeight: isSelected && !hasUserPolled
                             ? FontWeight.w600
                             : FontWeight.w500,
-                        letterSpacing: 0.2,
                       ),
                     ),
                   ),
@@ -1056,11 +1061,10 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
                       tween: IntTween(begin: intTweenBegin, end: pctRounded),
                       builder: (_, value, __) => Text(
                         '$value%',
-                        style: TextStyle(
+                        style: AppTextStyles.subText.copyWith(
                           color: Theme.of(
                             context,
                           ).colorScheme.onBackground.withOpacity(0.6),
-                          fontSize: 10.2.sp,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
@@ -1068,9 +1072,8 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
                   ] else if (isSelected)
                     Text(
                       '$selectionNumber',
-                      style: TextStyle(
+                      style: AppTextStyles.subText.copyWith(
                         color: Theme.of(context).colorScheme.primary,
-                        fontSize: 11.5.sp,
                         fontWeight: FontWeight.bold,
                       ),
                     ),

@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../languages/l10n/generated/app_localizations.dart';
-import '../custom_text_styles.dart';
+import '../../core/themes/app_text_styles.dart';
 
 class LogoutDialog extends StatelessWidget {
   const LogoutDialog({super.key, required this.onPressed});
@@ -25,12 +25,16 @@ class LogoutDialog extends StatelessWidget {
         children: [
           Text(
             AppLocalizations.of(context)!.logout,
-            style: CustomTextStyles.appBarTitleText(context),
+            style: AppTextStyles.pageTitleTextStyle(
+              context,
+            ).copyWith(fontSize: 18, fontWeight: FontWeight.w500),
           ),
           SizedBox(height: 8.h),
           Text(
             AppLocalizations.of(context)!.areyousurewanttologout,
-            style: CustomTextStyles.lblPrimaryText(context),
+            style: AppTextStyles.bodyText.copyWith(
+              color: Theme.of(context).colorScheme.onBackground,
+            ),
           ),
           SizedBox(height: 10.h),
           Row(
@@ -40,7 +44,7 @@ class LogoutDialog extends StatelessWidget {
                 onTap: () => Navigator.of(context).pop(),
                 child: Text(
                   AppLocalizations.of(context)!.close.toUpperCase(),
-                  style: TextStyle(
+                  style: AppTextStyles.subText.copyWith(
                     fontSize: 12.sp,
                     color: Theme.of(context).colorScheme.onBackground,
                     fontWeight: FontWeight.w500,
@@ -52,9 +56,9 @@ class LogoutDialog extends StatelessWidget {
                 onTap: onPressed,
                 child: Text(
                   AppLocalizations.of(context)!.logout.toUpperCase(),
-                  style: TextStyle(
+                  style: AppTextStyles.subText.copyWith(
                     fontSize: 12.sp,
-                     color: Theme.of(context).colorScheme.error,
+                    color: Theme.of(context).colorScheme.error,
                     fontWeight: FontWeight.w500,
                   ),
                 ),

@@ -91,4 +91,10 @@ dependencies {
     implementation("com.google.android.play:app-update-ktx:2.1.0")
     implementation("com.google.android.play:review-ktx:2.0.1")
     implementation("com.google.android.play:feature-delivery:2.1.0")
+    implementation("com.google.android.gms:play-services-auth:21.2.0")
+    
+    // ✅ Credential Manager - use double quotes
+    implementation("androidx.credentials:credentials:1.3.0")
+    implementation("androidx.credentials:credentials-play-services-auth:1.3.0")
+    implementation("com.google.android.libraries.identity.googleid:googleid:1.1.1")
 }

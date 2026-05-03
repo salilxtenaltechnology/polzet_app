@@ -8,10 +8,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:polzet_app/screens/home/profile/public/public_profile.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../../api/services/api_service.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../mixin/utility_mixins.dart';
 import '../../../models/global search/global_search_model.dart';
+import '../../../models/global search/recent_search.dart';
 import '../../../widgets/custom_text_styles.dart';
 import '../../../widgets/tabbar/indicatore_animation.dart';
 import 'posts/hashtag_posts_list.dart';
@@ -58,12 +60,21 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen>
 
   static const _tabs = ['Top', 'Accounts', 'Posts', 'Photos', 'Tags', 'Places'];
 
+  List<RecentSearchModel> _recentSearches = [];
+  List<String> _removedSearchIds = [];
+
   // ── Lifecycle ─────────────────────────────────────────────────────────────
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: _tabs.length, vsync: this);
+
+    _focusNode.addListener(() {
+      if (mounted) setState(() {});
+    });
+
+    _fetchRecentSearches();
 
     // Mirror every stream event into _snapshot so non-StreamBuilder
     // widgets (tab bar visibility etc.) stay in sync.
@@ -83,7 +94,6 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen>
       WidgetsBinding.instance.addPostFrameCallback((_) => _fetchDefault());
     }
 
-    // Auto-refresh every 60 s while the screen is open.
     _autoRefreshTimer = Timer.periodic(
       const Duration(seconds: 60),
       (_) => _silentRefresh(),
@@ -102,6 +112,48 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen>
 
   // ── Fetch helpers ─────────────────────────────────────────────────────────
 
+  Future<void> _fetchRecentSearches() async {
+    try {
+      final response = await ApiService().getRecentSearch();
+      final prefs = await SharedPreferences.getInstance();
+      _removedSearchIds = prefs.getStringList('removed_recent_searches') ?? [];
+      
+      if (mounted) {
+        setState(() {
+          _recentSearches = response.data
+              .where((item) => !_removedSearchIds.contains(item.id))
+              .toList();
+        });
+      }
+    } catch (e) {
+      debugPrint('Error fetching recent searches: $e');
+    }
+  }
+
+  Future<void> _removeRecentSearch(String id) async {
+    setState(() {
+      _recentSearches.removeWhere((item) => item.id == id);
+      if (!_removedSearchIds.contains(id)) {
+        _removedSearchIds.add(id);
+      }
+    });
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setStringList('removed_recent_searches', _removedSearchIds);
+  }
+
+  Future<void> _clearAllRecentSearches() async {
+    setState(() {
+      for (var item in _recentSearches) {
+        if (!_removedSearchIds.contains(item.id)) {
+          _removedSearchIds.add(item.id);
+        }
+      }
+      _recentSearches.clear();
+    });
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setStringList('removed_recent_searches', _removedSearchIds);
+  }
+
   /// First-open fetch — shows shimmer, then pushes result to stream.
   Future<void> _fetchDefault() async {
     try {
@@ -115,8 +167,6 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen>
     }
   }
 
-  /// Silent background refresh — NO spinner, NO setState for loading.
-  /// Pushes fresh data straight to the stream; StreamBuilder reacts instantly.
   Future<void> _silentRefresh() async {
     // Only refresh if user hasn't typed a query.
     if (_searchController.text.trim().isNotEmpty) return;
@@ -128,8 +178,8 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen>
     } catch (_) {}
   }
 
-  /// Called on every keystroke. Shows spinner in Top tab during active query.
   void _onSearchChanged(String query) {
+    if (mounted) setState(() {});
     _debounce?.cancel();
     _debounce = Timer(
       query.trim().isEmpty
@@ -142,7 +192,6 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen>
   /// Search for an explicit query — pushes result to stream.
   Future<void> _doSearch(String query) async {
     if (query.isEmpty) {
-      // Restore cached default when user clears the field.
       if (_cachedDefaultResult != null) {
         _searchStream.add(_cachedDefaultResult!);
       } else {
@@ -150,8 +199,7 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen>
       }
       return;
     }
-
-    // Show "Searching…" in Top tab only (setState is tiny — just _loading).
+    
     if (mounted) setState(() => _loading = true);
     try {
       final result = await ApiService().globalSearch(query);
@@ -204,11 +252,13 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen>
             _buildSearchBar(),
             // Tab bar is driven by _snapshot so it appears as soon as
             // the first stream event arrives.
-            if (_snapshot != null) _buildTabBar(),
+            if (_snapshot != null && !(_focusNode.hasFocus && _searchController.text.isEmpty)) _buildTabBar(),
             Expanded(
               // StreamBuilder wraps the entire body so every push to
               // _searchStream triggers a silent, flicker-free rebuild.
-              child: StreamBuilder<GlobalSearchModel?>(
+              child: (_focusNode.hasFocus && _searchController.text.isEmpty)
+                  ? _buildRecentSearchesList()
+                  : StreamBuilder<GlobalSearchModel?>(
                 stream: _searchStream.stream,
                 initialData: _cachedDefaultResult,
                 builder: (context, snap) {
@@ -263,6 +313,7 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen>
               ),
               child: TextField(
                 controller: _searchController,
+                focusNode: _focusNode,
                 autofocus: false,
                 style: TextStyle(
                   color: Theme.of(context).colorScheme.onBackground,
@@ -321,6 +372,73 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen>
       dividerColor: Colors.transparent,
       unselectedLabelColor: Theme.of(context).colorScheme.onBackground,
       tabs: _tabs.map((t) => Tab(text: t)).toList(),
+    );
+  }
+
+  // ── Recent Searches ────────────────────────────────────────────────────────
+
+  Widget _buildRecentSearchesList() {
+    if (_recentSearches.isEmpty) {
+      return Center(
+        child: Text(
+          'No recent searches',
+          style: TextStyle(color: _textSecondary, fontSize: 13.sp),
+        ),
+      );
+    }
+    return ListView.builder(
+      itemCount: _recentSearches.length + 1,
+      itemBuilder: (context, index) {
+        if (index == 0) {
+          return Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Recent Searches',
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onBackground,
+                    fontSize: 14.sp,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                GestureDetector(
+                  onTap: _clearAllRecentSearches,
+                  child: Text(
+                    'Clear all',
+                    style: TextStyle(
+                      color: AppColors.primaryColor,
+                      fontSize: 12.sp,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          );
+        }
+        final item = _recentSearches[index - 1];
+        return ListTile(
+          leading: const Icon(Icons.history, color: _textSecondary),
+          title: Text(
+            item.value,
+            style: TextStyle(
+              color: Theme.of(context).colorScheme.onBackground,
+              fontSize: 13.sp,
+            ),
+          ),
+          trailing: IconButton(
+            icon: const Icon(Icons.close, color: _textSecondary, size: 18),
+            onPressed: () => _removeRecentSearch(item.id),
+          ),
+          onTap: () {
+            _searchController.text = item.value;
+            _focusNode.unfocus();
+            _onSearchChanged(item.value);
+          },
+        );
+      },
     );
   }
 

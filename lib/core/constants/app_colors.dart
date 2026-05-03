@@ -11,7 +11,7 @@ class AppColors {
   static const Color lightSecondaryContainer = Color(0xFFF5F6F7);
   static const Color lightTertiaryContainer = Color(0xFFEEF0F2);
   static const Color lightSurfaceColor = Color(0xFFFFFFFF);
-  static const Color lightHeadingColor = Color(0xFF111111);
+  static const Color lightHeadingColor = Color(0xFF2C2C2C);
   static const Color lightBodyTextColor = Color(0xFF595959);
   static const Color lightSubheadingColor = Color(0xFF2C2C2C);
   static const Color lightSubTextColor = Color(0xFF8E8E8E);

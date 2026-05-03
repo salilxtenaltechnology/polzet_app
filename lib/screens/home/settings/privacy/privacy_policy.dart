@@ -5,8 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 
 import '../../../../core/constants/app_colors.dart';
 import '../../../../languages/l10n/generated/app_localizations.dart';
-import '../../../../widgets/button/back_button.dart';
-import '../../../../widgets/custom_text_styles.dart';
+import '../../../../widgets/appbar/common_appbar.dart';
 
 class PrivacyPolicy extends StatefulWidget {
   const PrivacyPolicy({super.key});
@@ -50,18 +49,11 @@ class PrivacyState extends State<PrivacyPolicy> {
     );
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.background,
-      appBar: AppBar(
-        automaticallyImplyLeading: false,
-        toolbarHeight: 25.h,
-        leading: const PrimaryBackButton(),
-        title: Text(
-          AppLocalizations.of(context)!.privacypolicy,
-          style: CustomTextStyles.appBarTitleText(context),
-        ),
-        centerTitle: true,
-        backgroundColor: Theme.of(context).colorScheme.background,
-        surfaceTintColor: Theme.of(context).colorScheme.background,
+      appBar: CommonAppBar(
+        title: AppLocalizations.of(context)!.privacypolicy,
+        showBackButton: true,
       ),
+     
       body: ListView(
         padding: EdgeInsets.fromLTRB(12.w, 10.h, 12.w, 12.h),
         children: [

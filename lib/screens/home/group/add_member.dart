@@ -7,10 +7,13 @@ import 'package:polzet_app/widgets/loader.dart';
 
 import '../../../api/services/api_service.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../core/constants/app_constants.dart';
+import '../../../core/constants/app_radius.dart';
+import '../../../core/themes/app_text_styles.dart';
 import '../../../languages/l10n/generated/app_localizations.dart';
 import '../../../mixin/utility_mixins.dart';
+import '../../../widgets/appbar/common_appbar.dart';
 import '../../../widgets/base64/image_convert.dart';
-import '../../../widgets/custom_card.dart';
 import '../../../widgets/custom_text_styles.dart';
 
 class AddMember extends StatefulWidget {
@@ -109,20 +112,9 @@ class AddMemberState extends State<AddMember> with UtilityMixin {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.background,
-      appBar: AppBar(
-        automaticallyImplyLeading: false,
-        leading: GestureDetector(
-          onTap: () => Navigator.pop(context),
-          child: const Icon(Icons.arrow_back_ios),
-        ),
-        title: Text(
-          AppLocalizations.of(context)!.addmemberstogroup,
-          style: CustomTextStyles.appBarTitleText(context),
-        ),
-        centerTitle: true,
-        backgroundColor: Theme.of(context).colorScheme.background,
-        surfaceTintColor: Theme.of(context).colorScheme.background,
-        toolbarHeight: 25.h,
+      appBar: CommonAppBar(
+        title: AppLocalizations.of(context)!.addmemberstogroup,
+        showBackButton: true,
       ),
       body: Padding(
         padding: EdgeInsets.symmetric(horizontal: 12.w),
@@ -130,18 +122,12 @@ class AddMemberState extends State<AddMember> with UtilityMixin {
           children: [
             Container(
               margin: EdgeInsets.only(top: 10.h),
-              height: 34.h,
+              height: AppConstants.searchbarHeight.h,
               width: double.infinity,
               decoration: BoxDecoration(
                 color: Theme.of(context).colorScheme.background,
-                borderRadius: BorderRadius.circular(15.r),
-                boxShadow: const [
-                  BoxShadow(
-                    color: Colors.black12,
-                    blurRadius: 10,
-                    spreadRadius: 3,
-                  ),
-                ],
+                borderRadius: BorderRadius.circular(AppRadius.button),
+                boxShadow: const [AppConstants.cardShadow],
               ),
               child: TextField(
                 controller: _searchController,
@@ -165,14 +151,14 @@ class AddMemberState extends State<AddMember> with UtilityMixin {
                         context,
                       ).colorScheme.onBackground.withOpacity(0.1),
                     ),
-                    borderRadius: BorderRadius.circular(15.r),
+                    borderRadius: BorderRadius.circular(AppRadius.button),
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderSide: const BorderSide(
                       color: AppColors.primaryColor,
                       width: 0.7,
                     ),
-                    borderRadius: BorderRadius.circular(15.r),
+                    borderRadius: BorderRadius.circular(AppRadius.button),
                   ),
                 ),
                 style: TextStyle(
@@ -201,14 +187,17 @@ class AddMemberState extends State<AddMember> with UtilityMixin {
               color: _selectedIds.isEmpty
                   ? AppColors.primaryColor.withOpacity(0.4)
                   : AppColors.primaryColor,
-              borderRadius: BorderRadius.circular(50.r),
+              borderRadius: AppRadius.buttonRadius,
             ),
             child: Center(
               child: Text(
                 _selectedIds.isEmpty
                     ? AppLocalizations.of(context)!.add
                     : '${AppLocalizations.of(context)!.addmemberstogroup} (${_selectedIds.length})',
-                style: CustomTextStyles.btnPrimaryText,
+                style: AppTextStyles.bodyText.copyWith(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w500,
+                ),
               ),
             ),
           ),
@@ -255,8 +244,23 @@ class AddMemberState extends State<AddMember> with UtilityMixin {
 
         return GestureDetector(
           onTap: () => _toggleMember(id),
-          child: CustomCard(
-            widget: Row(
+          child: Container(
+            height: 40.h,
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            margin: const EdgeInsets.only(bottom: 5),
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.primaryContainer,
+              borderRadius: BorderRadius.circular(AppRadius.card),
+              boxShadow: const [
+                BoxShadow(
+                  color: Color(0x13000000),
+                  blurRadius: 5,
+                  spreadRadius: 1,
+                ),
+              ],
+            ),
+            child: Row(
               children: [
                 Builder(
                   builder: (_) {
@@ -267,7 +271,7 @@ class AddMemberState extends State<AddMember> with UtilityMixin {
                         ? _userName(user).trim()[0].toUpperCase()
                         : '?';
                     return CircleAvatar(
-                      radius: 15.r,
+                      radius: 13.r,
                       backgroundImage: imageBytes != null
                           ? MemoryImage(imageBytes)
                           : null,
@@ -278,9 +282,9 @@ class AddMemberState extends State<AddMember> with UtilityMixin {
                           ? Text(
                               initial,
                               style: TextStyle(
-                                fontSize: 12.sp,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.white,
+                                fontSize: 13.sp,
+                                fontWeight: FontWeight.w500,
+                                color: Theme.of(context).primaryColor,
                               ),
                             )
                           : null,
@@ -291,18 +295,16 @@ class AddMemberState extends State<AddMember> with UtilityMixin {
                 Expanded(
                   child: Text(
                     _userName(user),
-                    style: TextStyle(
+                    style: AppTextStyles.bodyText.copyWith(
                       color: Theme.of(context).colorScheme.onBackground,
-                      fontSize: 12.sp,
-                      fontWeight: FontWeight.w400,
                     ),
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
                 AnimatedContainer(
                   duration: const Duration(milliseconds: 180),
-                  height: 22.sp,
-                  width: 22.sp,
+                  height: 20.sp,
+                  width: 20.sp,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     color: isSelected
@@ -318,7 +320,7 @@ class AddMemberState extends State<AddMember> with UtilityMixin {
                     ),
                   ),
                   child: isSelected
-                      ? Icon(Icons.check, size: 14.sp, color: Colors.white)
+                      ? Icon(Icons.check, size: 12.sp, color: Colors.white)
                       : null,
                 ),
               ],

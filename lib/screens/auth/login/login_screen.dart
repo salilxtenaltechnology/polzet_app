@@ -9,17 +9,15 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> with UtilityMixin {
-  final TextEditingController _userEmailController =
-      TextEditingController(); // Used for both email and username
-  final TextEditingController _passwordController =
-      TextEditingController(); // Test@1234 - username : patadiya505
+  final TextEditingController _userEmailController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _mobileNumberController = TextEditingController();
   final ApiService apiService = ApiService();
 
   bool _isLoading = false;
   bool _isChecked = false;
   bool _isPasswordHidden = true;
-  bool _isLoginEmail = true; // This now means 'email or username'
+  bool _isLoginEmail = true;
   bool _isLoginNumber = false;
   String? _countryCode;
   String _errorText = '';
@@ -312,7 +310,10 @@ class _LoginScreenState extends State<LoginScreen> with UtilityMixin {
           if (_errorText.isNotEmpty)
             Padding(
               padding: EdgeInsets.only(top: 7.h),
-              child: Text(_errorText, style: CustomTextStyles.msgErrorText(context)),
+              child: Text(
+                _errorText,
+                style: CustomTextStyles.msgErrorText(context),
+              ),
             ),
           SizedBox(height: 10.h),
         ],
@@ -434,7 +435,7 @@ class _LoginScreenState extends State<LoginScreen> with UtilityMixin {
         ),
         GestureDetector(
           onTap: () {
-            navigationPush(context, const RegisterEmailVerification(email: ''));
+            //navigationPush(context, const RegisterEmailVerification(email: ''));
           },
           child: Text(
             AppStrings.lblSignup,

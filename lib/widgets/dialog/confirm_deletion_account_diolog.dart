@@ -7,7 +7,7 @@ import 'package:provider/provider.dart';
 import '../../core/constants/app_radius.dart';
 import '../../languages/l10n/generated/app_localizations.dart';
 import '../../provider/user_provider.dart';
-import '../custom_text_styles.dart';
+import '../../core/themes/app_text_styles.dart';
 import '../show_toast.dart';
 import '../text_field/primary_textfield.dart';
 
@@ -43,7 +43,7 @@ class _ConfirmDeletionAccountDioloigState
       padding: EdgeInsets.fromLTRB(15.w, 12.h, 15.w, 12.h),
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.secondaryContainer,
-        borderRadius:  AppRadius.cardRadius,
+        borderRadius: AppRadius.cardRadius,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -51,13 +51,15 @@ class _ConfirmDeletionAccountDioloigState
         children: [
           Text(
             AppLocalizations.of(context)!.confirmaccountdeletion,
-            style: CustomTextStyles.appBarTitleText(context),
+            style: AppTextStyles.pageTitleTextStyle(context).copyWith(fontSize: 22, fontWeight: FontWeight.w500),
           ),
           SizedBox(height: 10.h),
           Text(
-            AppLocalizations.of(context)!.enteryourpasswordtopermentlydeleteyouraccount,
+            AppLocalizations.of(
+              context,
+            )!.enteryourpasswordtopermentlydeleteyouraccount,
             textAlign: TextAlign.center,
-            style: TextStyle(
+            style: AppTextStyles.subText.copyWith(
               color: const Color(0xB0757575),
               fontSize: 11.sp,
               fontWeight: FontWeight.w400,
@@ -82,7 +84,7 @@ class _ConfirmDeletionAccountDioloigState
             controller: confirmPasswordController,
             isPassword: _isPasswordHidden,
             keyboardType: TextInputType.text,
-            labelText:   AppLocalizations.of(context)!.confirmpassword,
+            labelText: AppLocalizations.of(context)!.confirmpassword,
             prefixIcon: Icon(
               FeatherIcons.lock,
               size: 17,
@@ -113,7 +115,7 @@ class _ConfirmDeletionAccountDioloigState
                 onTap: () => Navigator.of(context).pop(),
                 child: Text(
                   AppLocalizations.of(context)!.close.toUpperCase(),
-                  style: TextStyle(
+                  style: AppTextStyles.subText.copyWith(
                     fontSize: 12.sp,
                     color: Theme.of(context).colorScheme.onBackground,
                     fontWeight: FontWeight.w500,
@@ -131,10 +133,10 @@ class _ConfirmDeletionAccountDioloigState
                   widget.onPressed?.call(password);
                 },
                 child: Text(
-                    AppLocalizations.of(context)!.yesdelete,
-                  style: TextStyle(
+                  AppLocalizations.of(context)!.yesdelete,
+                  style: AppTextStyles.subText.copyWith(
                     fontSize: 12.sp,
-                      color: Theme.of(context).colorScheme.error,
+                    color: Theme.of(context).colorScheme.error,
                     fontWeight: FontWeight.w500,
                   ),
                 ),

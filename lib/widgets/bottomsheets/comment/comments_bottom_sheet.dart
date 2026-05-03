@@ -8,7 +8,7 @@ import 'package:polzet_app/widgets/base64/image_convert.dart';
 import '../../../../models/comment/comment.dart';
 import '../../../api/services/comment/comment_service.dart';
 import '../../../core/constants/app_radius.dart';
-import '../../custom_text_styles.dart';
+import '../../../core/themes/app_text_styles.dart';
 import '../../dialog/custom_diolog.dart';
 import '../../loader.dart';
 
@@ -162,7 +162,9 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
       child: Center(
         child: Text(
           AppLocalizations.of(context)!.comments,
-          style: CustomTextStyles.bottomsheetTitleTextStyle(context),
+          style: AppTextStyles.sectionHeading.copyWith(
+            color: Theme.of(context).colorScheme.onBackground,
+          ),
         ),
       ),
     );
@@ -188,8 +190,7 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
             SizedBox(height: 10.h),
             Text(
               AppLocalizations.of(context)!.nocommentsyet,
-              style: TextStyle(
-                fontSize: 12.sp,
+              style: AppTextStyles.subText.copyWith(
                 color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
                 fontWeight: FontWeight.w500,
               ),
@@ -197,8 +198,7 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
             SizedBox(height: 5.h),
             Text(
               AppLocalizations.of(context)!.bethefirsttocomment,
-              style: TextStyle(
-                fontSize: 11.sp,
+              style: AppTextStyles.subText.copyWith(
                 color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5),
               ),
             ),
@@ -247,8 +247,7 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
                     comment.user.isNotEmpty
                         ? comment.user[0].toUpperCase()
                         : 'U',
-                    style: TextStyle(
-                      fontSize: 13.sp,
+                    style: AppTextStyles.cardTitle.copyWith(
                       fontWeight: FontWeight.w600,
                       color: Theme.of(context).colorScheme.primary,
                     ),
@@ -269,8 +268,7 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
                         children: [
                           Text(
                             comment.user,
-                            style: TextStyle(
-                              fontSize: 10.2.sp,
+                            style: AppTextStyles.subText.copyWith(
                               color: Theme.of(context).colorScheme.onBackground,
                               fontWeight: FontWeight.w600,
                             ),
@@ -279,8 +277,7 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
                             padding: EdgeInsets.only(left: 4.w),
                             child: Text(
                               ' • ',
-                              style: TextStyle(
-                                fontSize: 11.sp,
+                              style: AppTextStyles.subText.copyWith(
                                 fontWeight: FontWeight.w600,
                                 color: Theme.of(
                                   context,
@@ -290,8 +287,7 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
                           ),
                           Text(
                             _formatTime(comment.createdAt),
-                            style: TextStyle(
-                              fontSize: 9.7.sp,
+                            style: AppTextStyles.subText.copyWith(
                               color: Theme.of(
                                 context,
                               ).colorScheme.onSurface.withOpacity(0.7),
@@ -335,8 +331,7 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
                           ? _buildEditCommentField(comment)
                           : Text(
                               comment.text,
-                              style: TextStyle(
-                                fontSize: 9.9.sp,
+                              style: AppTextStyles.subText.copyWith(
                                 color: Theme.of(
                                   context,
                                 ).colorScheme.onBackground,
@@ -360,12 +355,11 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
           controller: _editCommentController,
           autofocus: true,
           maxLines: null,
-          style: TextStyle(fontSize: 13.sp),
+          style: AppTextStyles.bodyText,
           decoration: InputDecoration(
             border: InputBorder.none,
             hintText: AppLocalizations.of(context)!.editcomments,
-            hintStyle: TextStyle(
-              fontSize: 12.sp,
+            hintStyle: AppTextStyles.subText.copyWith(
               color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
             ),
           ),
@@ -383,8 +377,7 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
               },
               child: Text(
                 AppLocalizations.of(context)!.cancel,
-                style: TextStyle(
-                  fontSize: 11.sp,
+                style: AppTextStyles.subText.copyWith(
                   color: Theme.of(
                     context,
                   ).colorScheme.onSurface.withOpacity(0.6),
@@ -395,7 +388,7 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
               onPressed: () => _editComment(comment.id),
               child: Text(
                 AppLocalizations.of(context)!.save,
-                style: TextStyle(fontSize: 11.sp, fontWeight: FontWeight.w600),
+                style: AppTextStyles.subText.copyWith(fontWeight: FontWeight.w600),
               ),
             ),
           ],
@@ -425,15 +418,14 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
                 controller: _commentController,
                 decoration: InputDecoration(
                   hintText: AppLocalizations.of(context)!.whatdoyouthinkforthis,
-                  hintStyle: TextStyle(
-                    fontSize: 11.5.sp,
+                  hintStyle: AppTextStyles.subText.copyWith(
                     color: Theme.of(
                       context,
                     ).colorScheme.onSurface.withOpacity(0.6),
                   ),
                   border: InputBorder.none,
                 ),
-                style: TextStyle(fontSize: 13.sp),
+                style: AppTextStyles.bodyText,
                 maxLines: null,
                 textCapitalization: TextCapitalization.sentences,
               ),

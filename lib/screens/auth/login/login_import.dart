@@ -18,6 +18,5 @@ import '../../../widgets/country_code/custom_country_code.dart';
 import '../../../widgets/custom_card.dart';
 import '../../../widgets/custom_text_styles.dart';
 import '../../../widgets/text_field/primary_textfield.dart';
-import '../email verify/email_verify_import.dart';
 import '../forgot password/forgot_password_import.dart';
 part 'login_screen.dart';

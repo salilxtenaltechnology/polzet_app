@@ -13,8 +13,7 @@ import '../../../../core/constants/app_colors.dart';
 import '../../../../data/token/shared_preferences.dart';
 import '../../../../languages/l10n/generated/app_localizations.dart';
 import '../../../../provider/user_provider.dart';
-import '../../../../widgets/button/back_button.dart';
-import '../../../../widgets/custom_text_styles.dart';
+import '../../../../widgets/appbar/common_appbar.dart';
 
 class FeedbackScreen extends StatefulWidget {
   const FeedbackScreen({super.key});
@@ -76,37 +75,37 @@ class _FeedbackScreenState extends State<FeedbackScreen>
   }
 
   // ── Pick Screenshot ───────────────────────────────────────
- Future<void> _pickScreenshot() async {
-  setState(() => _isPickingImage = true);
-  try {
-    final picker = ImagePicker();
-    final XFile? picked = await picker.pickImage(
-      source: ImageSource.gallery,
-      imageQuality: 85,
-    );
-    if (!mounted) return;
-    if (picked == null) return;
+  Future<void> _pickScreenshot() async {
+    setState(() => _isPickingImage = true);
+    try {
+      final picker = ImagePicker();
+      final XFile? picked = await picker.pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 85,
+      );
+      if (!mounted) return;
+      if (picked == null) return;
 
-    final file = File(picked.path);
-    final int sizeInBytes = await file.length();
-    if (!mounted) return;
+      final file = File(picked.path);
+      final int sizeInBytes = await file.length();
+      if (!mounted) return;
 
-    if (sizeInBytes > 3 * 1024 * 1024) {
-      showToast(message: 'Screenshot must be under 3 MB');
-      return;
+      if (sizeInBytes > 3 * 1024 * 1024) {
+        showToast(message: 'Screenshot must be under 3 MB');
+        return;
+      }
+
+      if (!mounted) return;
+      setState(() {
+        _screenshotFile = file;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      showToast(message: 'Failed to pick image');
+    } finally {
+      if (mounted) setState(() => _isPickingImage = false);
     }
-
-    if (!mounted) return;
-    setState(() {
-      _screenshotFile = file;   // ✅ just store the File
-    });
-  } catch (e) {
-    if (!mounted) return;
-    showToast(message: 'Failed to pick image');
-  } finally {
-    if (mounted) setState(() => _isPickingImage = false);
   }
-}
 
   void _removeScreenshot() {
     setState(() {
@@ -114,7 +113,6 @@ class _FeedbackScreenState extends State<FeedbackScreen>
     });
   }
 
-  // ── Get device info ───────────────────────────────────────
   Map<String, String> _getDeviceInfo() {
     final view = WidgetsBinding.instance.platformDispatcher.views.first;
     final w = view.physicalSize.width.toInt();
@@ -127,7 +125,6 @@ class _FeedbackScreenState extends State<FeedbackScreen>
     };
   }
 
-  // ── Submit ────────────────────────────────────────────────
   Future<void> _submitFeedback() async {
     final userProvider = Provider.of<UserProvider>(context, listen: false);
     final String email = (userProvider.email?.isNotEmpty == true)
@@ -144,8 +141,6 @@ class _FeedbackScreenState extends State<FeedbackScreen>
       return;
     }
 
-    // Capture context-dependent values BEFORE any await
-
     setState(() => isSubmitting = true);
     HapticFeedback.mediumImpact();
 
@@ -161,7 +156,7 @@ class _FeedbackScreenState extends State<FeedbackScreen>
         deviceInfo: deviceInfo,
       );
 
-      if (!mounted) return; // ← guard after await
+      if (!mounted) return;
 
       if (result['status'] == true) {
         final issueId = result['data']?['issue_id'] as String? ?? '';
@@ -178,10 +173,10 @@ class _FeedbackScreenState extends State<FeedbackScreen>
         showToast(message: 'Something went wrong.');
       }
     } catch (e) {
-      if (!mounted) return; // ← guard after await in catch
+      if (!mounted) return;
       showToast(message: e.toString());
     } finally {
-      if (mounted) setState(() => isSubmitting = false); // ← guard in finally
+      if (mounted) setState(() => isSubmitting = false);
     }
   }
 
@@ -207,18 +202,11 @@ class _FeedbackScreenState extends State<FeedbackScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.background,
-      appBar: AppBar(
-        automaticallyImplyLeading: false,
-        toolbarHeight: 25.h,
-        leading: const PrimaryBackButton(),
-        title: Text(
-          AppLocalizations.of(context)!.sharefeedback,
-          style: CustomTextStyles.appBarTitleText(context),
-        ),
-        centerTitle: true,
-        backgroundColor: Theme.of(context).colorScheme.background,
-        surfaceTintColor: Theme.of(context).colorScheme.background,
+      appBar: CommonAppBar(
+        title: AppLocalizations.of(context)!.sharefeedback,
+        showBackButton: true,
       ),
+
       body: FadeTransition(
         opacity: _fadeAnimation,
         child: CustomScrollView(

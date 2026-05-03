@@ -15,6 +15,7 @@ import 'package:http/http.dart' as http;
 import '../../data/token/shared_preferences.dart';
 import '../../mixin/utility_mixins.dart';
 import '../../models/global search/global_search_model.dart';
+import '../../models/global search/recent_search.dart';
 import '../../models/insights/insights_model.dart';
 import '../../models/like/like_uers_model.dart';
 import '../../models/message/message_model.dart';
@@ -189,7 +190,7 @@ class ApiService with UtilityMixin {
 
   Future socialLogin(String googleToken) async {
     try {
-      // debugPrint('📤 socialLogin token: $googleToken');
+     debugPrint('📤 socialLogin token: $googleToken');
 
       final response = await _dio.post(
         ApiConstants.socialAuth,
@@ -364,13 +365,12 @@ class ApiService with UtilityMixin {
     try {
       final response = await _dio.post(
         ApiConstants.setPassword,
-        // options: Options(headers: {'Authorization': 'Bearer $googleToken'}),
         options: Options(headers: await _getAuthHeaders()),
         data: {'password': password},
       );
 
       if (response.statusCode == 200 || response.statusCode == 201) {
-        return ''; // ✅ empty = success
+        return ''; 
       }
 
       return response.data['message'] ?? 'Failed to set password';
@@ -444,6 +444,77 @@ class ApiService with UtilityMixin {
       return {'success': false, 'message': message};
     } catch (e) {
       return {'success': false, 'message': 'An error occurred: $e'};
+    }
+  }
+
+  // ==================== NOTIFICATIONS ====================
+
+  Future<int> getUnreadNotificationCount() async {
+    try {
+      final response = await _dio.get(
+        ApiConstants.unreadNotificationCount,
+        options: Options(headers: await _getAuthHeaders()),
+      );
+
+      if (response.statusCode == 200 && response.data['status'] == 'success') {
+        return response.data['unread_count'] as int;
+      }
+      return 0;
+    } on DioException catch (e) {
+      debugPrint('Error fetching unread notification count: $e');
+      return 0;
+    }
+  }
+
+  Future<bool> markNotificationRead(String notificationId) async {
+    try {
+      final response = await _dio.post(
+        ApiConstants.markNotificationRead,
+        data: {'id': notificationId},
+        options: Options(headers: await _getAuthHeaders()),
+      );
+
+      if (response.statusCode == 200 && response.data['success'] == true) {
+        return true;
+      }
+      return false;
+    } on DioException catch (e) {
+      debugPrint('Error marking notification as read: $e');
+      return false;
+    }
+  }
+
+  Future<bool> deleteNotification(String notificationId) async {
+    try {
+      final response = await _dio.delete(
+        '${ApiConstants.deleteNotification}/$notificationId/delete',
+        options: Options(headers: await _getAuthHeaders()),
+      );
+
+      if (response.statusCode == 200 && response.data['success'] == true) {
+        return true;
+      }
+      return false;
+    } on DioException catch (e) {
+      debugPrint('Error deleting notification: $e');
+      return false;
+    }
+  }
+
+  Future<bool> clearAllNotifications() async {
+    try {
+      final response = await _dio.post(
+        ApiConstants.clearAllNotifications,
+        options: Options(headers: await _getAuthHeaders()),
+      );
+
+      if (response.statusCode == 200 && response.data['success'] == true) {
+        return true;
+      }
+      return false;
+    } on DioException catch (e) {
+      debugPrint('Error clearing all notifications: $e');
+      return false;
     }
   }
 
@@ -669,7 +740,6 @@ class ApiService with UtilityMixin {
       if (response.statusCode == 200) {
         final data = response.data;
 
-        // Handle "success" wrapper unique to this API if present
         if (data is Map &&
             data.containsKey('status') &&
             data['status'] == 'success') {
@@ -677,10 +747,7 @@ class ApiService with UtilityMixin {
           return UserPostModel.fromJson(postData);
         }
 
-        // Check if data is wrapped or direct
         final postData = data['data'] ?? data;
-
-        // If results list is returned (sometimes single resource endpoints return a list of 1)
         if (postData is List && postData.isNotEmpty) {
           return UserPostModel.fromJson(postData.first);
         } else if (postData is Map<String, dynamic>) {
@@ -697,7 +764,6 @@ class ApiService with UtilityMixin {
       debugPrint('❌ Response Data: ${e.response?.data}');
 
       if (e.response?.statusCode == 404) {
-        // Return null instead of throwing, let UI handle it
         return null;
       }
       rethrow;
@@ -1043,6 +1109,23 @@ class ApiService with UtilityMixin {
     } on DioException catch (e) {
       _handleDioError(e, defaultMessage: 'Failed to perform search');
       return null;
+    }
+  }
+
+  Future<RecentSearchResponse> getRecentSearch() async {
+    try {
+      final response = await _dio.get(
+        ApiConstants.recentSearch,
+        options: Options(headers: await _getAuthHeaders()),
+      );
+
+      if (response.statusCode == 200) {
+        final jsonData = response.data as Map<String, dynamic>;
+        return RecentSearchResponse.fromJson(jsonData);
+      }
+      throw Exception('Failed to load recent search: ${response.statusCode}');
+    } on DioException catch (e) {
+      throw Exception('Error fetching recent search: $e');
     }
   }
 

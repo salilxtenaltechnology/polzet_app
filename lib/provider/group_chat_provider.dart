@@ -455,7 +455,7 @@ class GroupChatProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final url = '$_wsBaseUrl/ws/chats/$_chatId/presence/?token=$token';
+      final url = '$_wsBaseUrl/ws/chat/group/$_chatId/?token=$token';
 
       _presenceChannel = WebSocketChannel.connect(Uri.parse(url));
       final presenceChannel = _presenceChannel;
@@ -498,7 +498,7 @@ class GroupChatProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final url = '$_wsBaseUrl/ws/chat/$_chatId/?token=$token';
+      final url = '$_wsBaseUrl/ws/chat/group/$_chatId/?token=$token';
       debugPrint('🔌 [Group] Connecting Message WS: $url');
 
       _messageChannel = WebSocketChannel.connect(Uri.parse(url));
@@ -555,44 +555,88 @@ class GroupChatProvider extends ChangeNotifier {
     try {
       final data = jsonDecode(raw as String) as Map<String, dynamic>;
       final String type = data['type']?.toString() ?? '';
+      final int? userId = data['user_id'] as int?;
 
+      // ── presence_update (server broadcast for all members) ──────────────
+      if (type == 'presence_update') {
+        if (userId == null) return;
+
+        // ✅ Skip own presence
+        if (userId == _currentUserId) {
+          debugPrint('👤 [Group] Skipping own presence_update');
+          return;
+        }
+
+        _upsertMemberOnline(
+          userId: userId,
+          username: data['username']?.toString(),
+          isOnline: data['is_online'] == true,
+        );
+        return;
+      }
+
+      // ── USER_JOINED / USER_LEFT (legacy fallback) ───────────────────────
       if (type == 'USER_JOINED_CHAT' || type == 'USER_LEFT_CHAT') {
-        final int? userId = data['user_id'] as int?;
-        if (userId != null && userId != _currentUserId) {
-          _upsertMemberOnline(
-            userId: userId,
-            username: data['username']?.toString(),
-            isOnline: type == 'USER_JOINED_CHAT',
-          );
-        }
+        if (userId == null || userId == _currentUserId) return;
+        _upsertMemberOnline(
+          userId: userId,
+          username: data['username']?.toString(),
+          isOnline: type == 'USER_JOINED_CHAT',
+        );
         return;
       }
 
+      // ── user_status (legacy fallback) ───────────────────────────────────
       if (type == 'user_status') {
-        final int? userId = data['user_id'] as int?;
-        final String memberStatus = data['status']?.toString() ?? '';
-        if (userId != null && userId != _currentUserId) {
-          _upsertMemberOnline(
-            userId: userId,
-            username: data['username']?.toString(),
-            isOnline: memberStatus == 'online',
-          );
-        }
+        if (userId == null || userId == _currentUserId) return;
+        _upsertMemberOnline(
+          userId: userId,
+          username: data['username']?.toString(),
+          isOnline: data['status']?.toString() == 'online',
+        );
         return;
       }
 
-      if (data['action'] == 'typing') {
-        final int? userId = data['user_id'] as int?;
-        final bool isTyping = data['is_typing'] == true;
-        if (userId != null && userId != _currentUserId) {
-          _upsertMemberTyping(
-            userId: userId,
-            username: data['username']?.toString(),
-            isTyping: isTyping,
-          );
-        }
+      // ── typing_status (server broadcast) ───────────────────────────────
+      if (type == 'typing_status') {
+        if (userId == null || userId == _currentUserId) return;
+        _upsertMemberTyping(
+          userId: userId,
+          username: data['username']?.toString(),
+          isTyping: data['is_typing'] == true,
+        );
         return;
       }
+
+      // ── typing_start / typing_stop (action echo) ────────────────────────
+      if (type == 'typing_start' || type == 'typing_stop') {
+        if (userId == null || userId == _currentUserId) return;
+        _upsertMemberTyping(
+          userId: userId,
+          username: data['username']?.toString(),
+          isTyping: type == 'typing_start',
+        );
+        return;
+      }
+
+      // ── old action-based typing (legacy) ────────────────────────────────
+      if (data['action'] == 'typing') {
+        if (userId == null || userId == _currentUserId) return;
+        _upsertMemberTyping(
+          userId: userId,
+          username: data['username']?.toString(),
+          isTyping: data['is_typing'] == true,
+        );
+        return;
+      }
+
+      // ── incoming message routed through presence socket ──────────────────
+      if (type == 'new_message' || type == 'chat_message') {
+        _onMessageReceived(raw);
+        return;
+      }
+
+      debugPrint('⚠️ [Group] Unhandled presence type: $type');
     } catch (e) {
       debugPrint('❌ [Group] Error parsing presence message: $e');
     }
@@ -661,23 +705,22 @@ class GroupChatProvider extends ChangeNotifier {
       final data = jsonDecode(raw as String) as Map<String, dynamic>;
       final String type = data['type']?.toString() ?? '';
 
-      if (type == 'read_receipt') {
-        debugPrint(
-          '📖 [Group] Read receipt — chat: ${data['chat_id']}, '
-          'user: ${data['user_id']}, at: ${data['read_at']}',
-        );
-        return;
-      }
+      if (type == 'read_receipt') return;
 
-      if (type == 'chat_message') {
+      // ✅ Accept both "new_message" and legacy "chat_message"
+      if (type == 'new_message' || type == 'chat_message') {
         final msgMap = data['message'] as Map<String, dynamic>?;
-        if (msgMap == null) {
-          debugPrint('⚠️ [Group] chat_message received but "message" is null');
-          return;
-        }
+        if (msgMap == null) return;
 
+        final int? serverId = msgMap['id'] as int?;
         final String text = msgMap['text']?.toString() ?? '';
         if (text.isEmpty) return;
+
+        // ✅ Deduplicate by server message id
+        if (serverId != null && _messages.any((m) => m.id == serverId)) {
+          debugPrint('⚠️ [Group] Duplicate message ignored: id=$serverId');
+          return;
+        }
 
         String? senderUsername;
         String? senderProfileImage;
@@ -690,19 +733,22 @@ class GroupChatProvider extends ChangeNotifier {
           senderUserId = sender['id'] as int?;
         }
 
+        // ✅ Use sender id (not username) to detect own messages — more reliable
         final bool isSentByMe =
-            _currentUsername != null && senderUsername == _currentUsername;
+            _currentUserId != null && senderUserId == _currentUserId;
 
         final DateTime serverTimestamp =
             DateTime.tryParse(msgMap['created_at']?.toString() ?? '') ??
             DateTime.now();
 
+        // ✅ Confirm pending optimistic message
         if (isSentByMe) {
           final pendingIndex = _messages.lastIndexWhere(
             (m) => m.isSentByMe && m.isPending && m.text == text,
           );
           if (pendingIndex != -1) {
             _messages[pendingIndex] = ChatMessage(
+              id: serverId,
               text: text,
               created_at: serverTimestamp,
               isSentByMe: true,
@@ -718,6 +764,7 @@ class GroupChatProvider extends ChangeNotifier {
 
         _messages.add(
           ChatMessage(
+            id: serverId,
             text: text,
             created_at: serverTimestamp,
             isSentByMe: isSentByMe,
@@ -727,7 +774,8 @@ class GroupChatProvider extends ChangeNotifier {
           ),
         );
 
-        if (senderUserId != null) {
+        // Clear typing for sender when message arrives
+        if (senderUserId != null && senderUserId != _currentUserId) {
           _upsertMemberTyping(
             userId: senderUserId,
             username: senderUsername ?? 'User $senderUserId',
@@ -746,23 +794,38 @@ class GroupChatProvider extends ChangeNotifier {
     }
   }
 
-  void sendTyping(bool isTyping) {
+  void sendTypingStart() {
     final presence = _presenceChannel;
     if (presence == null || !_isPresenceConnected) return;
-    presence.sink.add(jsonEncode({'action': 'typing', 'is_typing': isTyping}));
-  }
-
-  void onUserTyping() {
-    sendTyping(true);
-    _typingTimer?.cancel();
-    _typingTimer = Timer(const Duration(seconds: 2), () {
-      sendTyping(false);
-    });
+    presence.sink.add(jsonEncode({'action': 'typing_start'}));
   }
 
   void stopTyping() {
+    final presence = _presenceChannel;
+    if (presence == null || !_isPresenceConnected) return;
+    presence.sink.add(jsonEncode({'action': 'typing_stop'}));
+     _typingTimer?.cancel();
+    sendTypingStop();
+  }
+
+  void markAsRead() {
+    final presence = _presenceChannel;
+    if (presence == null || !_isPresenceConnected) return;
+    presence.sink.add(jsonEncode({'action': 'mark_read'}));
+  }
+
+  void sendTypingStop() {
+    final presence = _presenceChannel;
+    if (presence == null || !_isPresenceConnected) return;
+    presence.sink.add(jsonEncode({'action': 'typing_stop'}));
+  }
+
+  void onUserTyping() {
+    sendTypingStart();
     _typingTimer?.cancel();
-    sendTyping(false);
+    _typingTimer = Timer(const Duration(seconds: 2), () {
+      sendTypingStop();
+    });
   }
 
   void _handlePresenceDisconnection() {

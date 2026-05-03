@@ -12,7 +12,28 @@
           "package_name": "com.polzet_app"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "470797111076-3ejifq8gb73kll5orsj9t1urh25qedki.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.polzet_app",
+            "certificate_hash": "129bdc4ef9d593c7245feb3356d6f0503d8a1b76"
+          }
+        },
+        {
+          "client_id": "470797111076-jv1nr29ro0349aerhg79so8rpa5u4k96.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.polzet_app",
+            "certificate_hash": "682d55f7e6e313ca286a96e04ec6bdb1fbe659ae"
+          }
+        },
+        {
+          "client_id": "53424915324-6jgqsatmm1o2uslhl1hd326ss483fb8n.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyB6ISjRSx1wFRu8rJVWEruGhhcUaUpv0H4"
@@ -20,7 +41,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "53424915324-6jgqsatmm1o2uslhl1hd326ss483fb8n.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }

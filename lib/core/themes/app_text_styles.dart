@@ -1,20 +1,21 @@
 // ignore_for_file: deprecated_member_use
 
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class AppTextStyles {
   // H-1 — Display / Page Title
   static TextStyle pageTitleTextStyle(BuildContext context) => TextStyle(
     fontFamily: 'Inter',
-    fontWeight: FontWeight.w700, // Bold
-    fontSize: 22,
+    fontWeight: FontWeight.w600, // Bold
+    fontSize: 18.sp,
     height: 30 / 22, // line height 30px
     letterSpacing: 0,
     color: Theme.of(context).colorScheme.onBackground,
   );
 
   // H-2 — Section Heading
-  static const h2 = TextStyle(
+  static const sectionHeading = TextStyle(
     fontFamily: 'Inter',
     fontWeight: FontWeight.w600, // SemiBold
     fontSize: 18,
@@ -23,7 +24,7 @@ class AppTextStyles {
   );
 
   // H-3 — Sub-section Heading
-  static const h3 = TextStyle(
+  static const subSectionHeading = TextStyle(
     fontFamily: 'Inter',
     fontWeight: FontWeight.w600, // SemiBold
     fontSize: 16,
@@ -32,7 +33,7 @@ class AppTextStyles {
   );
 
   // H-4 — Card Title
-  static const h4 = TextStyle(
+  static const cardTitle = TextStyle(
     fontFamily: 'Inter',
     fontWeight: FontWeight.w500, // Medium
     fontSize: 15,
@@ -41,7 +42,7 @@ class AppTextStyles {
   );
 
   // H-5 — Body
-  static const h5 = TextStyle(
+  static const bodyText = TextStyle(
     fontFamily: 'Inter',
     fontWeight: FontWeight.w400, // Regular
     fontSize: 14,
@@ -50,7 +51,7 @@ class AppTextStyles {
   );
 
   // H-6 — Subtext
-  static const h6 = TextStyle(
+  static const subText = TextStyle(
     fontFamily: 'Inter',
     fontWeight: FontWeight.w400, // Regular
     fontSize: 12,

@@ -29,6 +29,7 @@ class AppThemes {
       onBackground: AppColors.lightHeadingColor,
 
       // Borders / Dividers
+      
       outline: AppColors.lightStrokeColor,
       outlineVariant: AppColors.lightDividerColor,
 

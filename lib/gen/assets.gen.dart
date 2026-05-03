@@ -11,6 +11,34 @@
 
 import 'package:flutter/widgets.dart';
 
+class $AssetsFontsGen {
+  const $AssetsFontsGen();
+
+  /// File path: assets/fonts/Inter-Bold.ttf
+  String get interBold => 'assets/fonts/Inter-Bold.ttf';
+
+  /// File path: assets/fonts/Inter-Medium.ttf
+  String get interMedium => 'assets/fonts/Inter-Medium.ttf';
+
+  /// File path: assets/fonts/Inter-Regular.ttf
+  String get interRegular => 'assets/fonts/Inter-Regular.ttf';
+
+  /// File path: assets/fonts/Inter-SemiBold.ttf
+  String get interSemiBold => 'assets/fonts/Inter-SemiBold.ttf';
+
+  /// File path: assets/fonts/flexing-bold.ttf
+  String get flexingBold => 'assets/fonts/flexing-bold.ttf';
+
+  /// List of all assets
+  List<String> get values => [
+    interBold,
+    interMedium,
+    interRegular,
+    interSemiBold,
+    flexingBold,
+  ];
+}
+
 class $AssetsImagesGen {
   const $AssetsImagesGen();
 
@@ -68,8 +96,16 @@ class $AssetsImagesGen {
   AssetGenImage get filledHeart =>
       const AssetGenImage('assets/images/filled_heart.png');
 
+  /// File path: assets/images/firstOnBoard.png
+  AssetGenImage get firstOnBoard =>
+      const AssetGenImage('assets/images/firstOnBoard.png');
+
   /// File path: assets/images/forward.png
   AssetGenImage get forward => const AssetGenImage('assets/images/forward.png');
+
+  /// File path: assets/images/google_maps_location_qr.png
+  AssetGenImage get googleMapsLocationQr =>
+      const AssetGenImage('assets/images/google_maps_location_qr.png');
 
   /// File path: assets/images/heart.png
   AssetGenImage get heart => const AssetGenImage('assets/images/heart.png');
@@ -82,6 +118,10 @@ class $AssetsImagesGen {
   AssetGenImage get icAddUser =>
       const AssetGenImage('assets/images/ic_add_user.png');
 
+  /// File path: assets/images/ic_avatar.png
+  AssetGenImage get icAvatar =>
+      const AssetGenImage('assets/images/ic_avatar.png');
+
   /// File path: assets/images/ic_facebook.png
   AssetGenImage get icFacebook =>
       const AssetGenImage('assets/images/ic_facebook.png');
@@ -89,6 +129,10 @@ class $AssetsImagesGen {
   /// File path: assets/images/ic_google.png
   AssetGenImage get icGoogle =>
       const AssetGenImage('assets/images/ic_google.png');
+
+  /// File path: assets/images/ic_message.png
+  AssetGenImage get icMessage =>
+      const AssetGenImage('assets/images/ic_message.png');
 
   /// File path: assets/images/ic_poll.png
   AssetGenImage get icPoll => const AssetGenImage('assets/images/ic_poll.png');
@@ -103,6 +147,9 @@ class $AssetsImagesGen {
   /// File path: assets/images/ic_users.png
   AssetGenImage get icUsers =>
       const AssetGenImage('assets/images/ic_users.png');
+
+  /// File path: assets/images/ic_vote.png
+  AssetGenImage get icVote => const AssetGenImage('assets/images/ic_vote.png');
 
   /// File path: assets/images/image_icon.png
   AssetGenImage get imageIcon =>
@@ -139,6 +186,10 @@ class $AssetsImagesGen {
   /// File path: assets/images/progress_indicator.json
   String get progressIndicator => 'assets/images/progress_indicator.json';
 
+  /// File path: assets/images/secondOnBoard.png
+  AssetGenImage get secondOnBoard =>
+      const AssetGenImage('assets/images/secondOnBoard.png');
+
   /// File path: assets/images/server.png
   AssetGenImage get server => const AssetGenImage('assets/images/server.png');
 
@@ -151,6 +202,14 @@ class $AssetsImagesGen {
   /// File path: assets/images/things_icon.png
   AssetGenImage get thingsIcon =>
       const AssetGenImage('assets/images/things_icon.png');
+
+  /// File path: assets/images/thirdOnBoard.png
+  AssetGenImage get thirdOnBoard =>
+      const AssetGenImage('assets/images/thirdOnBoard.png');
+
+  /// File path: assets/images/type_like.png
+  AssetGenImage get typeLike =>
+      const AssetGenImage('assets/images/type_like.png');
 
   /// List of all assets
   List<dynamic> get values => [
@@ -168,16 +227,21 @@ class $AssetsImagesGen {
     currentUser,
     defaultCover,
     filledHeart,
+    firstOnBoard,
     forward,
+    googleMapsLocationQr,
     heart,
     icActivePoll,
     icAddUser,
+    icAvatar,
     icFacebook,
     icGoogle,
+    icMessage,
     icPoll,
     icSplash,
     icUser,
     icUsers,
+    icVote,
     imageIcon,
     inactiveBell,
     inactiveHome,
@@ -188,16 +252,20 @@ class $AssetsImagesGen {
     lostConnection,
     poll,
     progressIndicator,
+    secondOnBoard,
     server,
     share,
     things,
     thingsIcon,
+    thirdOnBoard,
+    typeLike,
   ];
 }
 
 class Assets {
   const Assets._();
 
+  static const $AssetsFontsGen fonts = $AssetsFontsGen();
   static const $AssetsImagesGen images = $AssetsImagesGen();
 }
 

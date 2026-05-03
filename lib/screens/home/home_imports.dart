@@ -5,7 +5,6 @@ import 'package:curved_navigation_bar/curved_navigation_bar.dart';
 import 'package:feather_icons/feather_icons.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -14,6 +13,7 @@ import '../../core/navigation/notification_router.dart';
 import '../../core/themes/app_text_styles.dart';
 import '../../data/token/shared_preferences.dart';
 import '../../api/services/link/deeplink_generator_service.dart';
+import '../flow/flow_screens.dart';
 import 'search/posts/single_post_details.dart';
 import '../../gen/assets.gen.dart';
 import '../../languages/l10n/generated/app_localizations.dart';

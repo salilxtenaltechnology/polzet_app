@@ -67,7 +67,7 @@ class SettingsState extends State<Settings>
           context.read<UserProvider>().clearUserData();
         }
 
-        clearStackAndAddScreen(context, const LoginScreen());
+        clearStackAndAddScreen(context, const SocialLoginScreen());
         showToast(message: 'Logged out successfully');
       } else {
         showToast(message: 'Token expired');
@@ -124,17 +124,8 @@ class SettingsState extends State<Settings>
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.background,
       resizeToAvoidBottomInset: false,
-      appBar: AppBar(
-        automaticallyImplyLeading: false,
-        toolbarHeight: 25.h,
-        leading: const PrimaryBackButton(),
-        title: Text(
-          AppLocalizations.of(context)!.settings,
-          style: CustomTextStyles.appBarTitleText(context),
-        ),
-        centerTitle: true,
-        backgroundColor: Theme.of(context).colorScheme.background,
-      ),
+      appBar: CommonAppBar(title: AppLocalizations.of(context)!.settings),
+
       body: SingleChildScrollView(
         padding: EdgeInsets.symmetric(horizontal: 12.w),
         child: Column(
