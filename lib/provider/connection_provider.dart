@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 
 enum ConnectionStatus { unknown, online, offline, serverDown }
+
 class ServerMonitor {
   static final StreamController<bool> _serverDownController =
       StreamController<bool>.broadcast();
@@ -39,21 +40,31 @@ class ConnectivityProvider extends ChangeNotifier {
     });
   }
 
-  Future<void> _check() async {
-    final hasInternet = await _checkInternet();
+  bool _isChecking = false;
 
-    if (!hasInternet) {
-      _updateStatus(ConnectionStatus.offline);
-    } else {
-      final serverReachable = await _checkServer();
-      _updateStatus(
-        serverReachable ? ConnectionStatus.online : ConnectionStatus.serverDown,
-      );
-    }
+  Future<void> _check({bool isManualRetry = false}) async {
+    if (_isChecking) return;
+    _isChecking = true;
 
-    if (!_isInitialized) {
-      _isInitialized = true;
-      notifyListeners();
+    try {
+      final hasInternet = await _checkInternet();
+
+      if (!hasInternet) {
+        _updateStatus(ConnectionStatus.offline);
+      } else {
+        // If we have internet, assume online.
+        // Server down should only be triggered by API interceptors, not by polling google.com.
+        if (_status != ConnectionStatus.serverDown || isManualRetry) {
+          _updateStatus(ConnectionStatus.online);
+        }
+      }
+
+      if (!_isInitialized) {
+        _isInitialized = true;
+        notifyListeners();
+      }
+    } finally {
+      _isChecking = false;
     }
   }
 
@@ -61,22 +72,15 @@ class ConnectivityProvider extends ChangeNotifier {
     try {
       final result = await InternetAddress.lookup(
         'google.com',
-      ).timeout(const Duration(seconds: 4));
+      ).timeout(const Duration(seconds: 10));
       return result.isNotEmpty && result.first.rawAddress.isNotEmpty;
-    } catch (_) {
-      return false;
-    }
-  }
-
-  Future<bool> _checkServer() async {
-    try {
-      final socket = await Socket.connect(
-        'google.com',
-        443,
-        timeout: const Duration(seconds: 4),
-      );
-      socket.destroy();
+    } on TimeoutException catch (_) {
+      // If it times out, the network is likely just slow.
+      // We return true to prevent the "No Internet" bottom sheet from showing.
       return true;
+    } on SocketException catch (_) {
+      // Socket exception indicates actual lack of connection or DNS failure.
+      return false;
     } catch (_) {
       return false;
     }
@@ -100,7 +104,7 @@ class ConnectivityProvider extends ChangeNotifier {
     _pollingTimer = Timer.periodic(Duration(seconds: seconds), (_) => _check());
   }
 
-  Future<void> retryNow() async => _check();
+  Future<void> retryNow() async => _check(isManualRetry: true);
 
   @override
   void dispose() {

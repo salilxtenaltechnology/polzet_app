@@ -3,20 +3,21 @@
 import 'package:feather_icons/feather_icons.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:provider/provider.dart';
 
 import '../../../../../api/services/api_service.dart';
 import '../../../../../core/constants/app_colors.dart';
-import '../../../../../core/constants/app_constants.dart';
 import '../../../../../core/constants/app_radius.dart';
 import '../../../../../core/themes/app_text_styles.dart';
 import '../../../../../languages/l10n/generated/app_localizations.dart';
 import '../../../../../mixin/utility_mixins.dart';
+import '../../../../../provider/user_provider.dart';
 import '../../../../../widgets/appbar/common_appbar.dart';
 import '../../../../../widgets/base64/image_convert.dart';
-import '../../../../../widgets/custom_text_styles.dart';
+import '../../../../../widgets/button/chase/toggle_chase_button.dart';
 import '../../../../../widgets/loader.dart';
 import '../../../../../widgets/tabbar/indicatore_animation.dart';
-import '../public_profile.dart';
+import '../public_profile_screen.dart';
 
 class PublicChaseList extends StatefulWidget {
   final int userId;
@@ -51,8 +52,8 @@ class _PublicChaseListState extends State<PublicChaseList>
 
   bool _isLoadingChase = false;
   bool _isLoadingRechase = false;
-  int _chaseCount = 0;
-  int _rechaseCount = 0;
+  // int _chaseCount = 0;
+  // int _rechaseCount = 0;
 
   @override
   void initState() {
@@ -70,8 +71,12 @@ class _PublicChaseListState extends State<PublicChaseList>
       return {
         'user_id': e.userId,
         'username': e.username,
+        'first_name': e.firstName,
+        'last_name': e.lastName,
         'avatar_url': e.avatarUrl,
         'is_online': e.isOnline ?? false,
+        'follow_status': e.followStatus,
+        'is_private': e.isPrivate ?? false,
       };
     }).toList();
 
@@ -79,8 +84,12 @@ class _PublicChaseListState extends State<PublicChaseList>
       return {
         'user_id': e.userId,
         'username': e.username,
+        'first_name': e.firstName,
+        'last_name': e.lastName,
         'avatar_url': e.avatarUrl,
         'is_online': e.isOnline ?? false,
+        'follow_status': e.followStatus,
+        'is_private': e.isPrivate ?? false,
       };
     }).toList();
 
@@ -89,25 +98,42 @@ class _PublicChaseListState extends State<PublicChaseList>
       _rechaseList = rechase;
       _filteredChaseList = chase;
       _filteredRechaseList = rechase;
-      _chaseCount = chase.length;
-      _rechaseCount = rechase.length;
+      // _chaseCount = chase.length;
+      // _rechaseCount = rechase.length;
     });
   }
 
   void _filterList(String query) {
+    final q = query.toLowerCase().trim();
     setState(() {
-      if (query.isEmpty) {
+      if (q.isEmpty) {
         _filteredChaseList = _chaseList;
         _filteredRechaseList = _rechaseList;
       } else {
         _filteredChaseList = _chaseList.where((user) {
-          final name = (user['username'] ?? '').toString().toLowerCase();
-          return name.contains(query.toLowerCase());
+          final username = (user['username'] as String?)?.toLowerCase() ?? '';
+          final firstName =
+              (user['first_name'] as String?)?.toLowerCase() ?? '';
+          final lastName = (user['last_name'] as String?)?.toLowerCase() ?? '';
+          final fullName = '$firstName $lastName'.trim();
+
+          return username.contains(q) ||
+              firstName.contains(q) ||
+              lastName.contains(q) ||
+              fullName.contains(q);
         }).toList();
 
         _filteredRechaseList = _rechaseList.where((user) {
-          final name = (user['username'] ?? '').toString().toLowerCase();
-          return name.contains(query.toLowerCase());
+          final username = (user['username'] as String?)?.toLowerCase() ?? '';
+          final firstName =
+              (user['first_name'] as String?)?.toLowerCase() ?? '';
+          final lastName = (user['last_name'] as String?)?.toLowerCase() ?? '';
+          final fullName = '$firstName $lastName'.trim();
+
+          return username.contains(q) ||
+              firstName.contains(q) ||
+              lastName.contains(q) ||
+              fullName.contains(q);
         }).toList();
       }
     });
@@ -149,22 +175,26 @@ class _PublicChaseListState extends State<PublicChaseList>
               dividerColor: Colors.transparent,
               unselectedLabelColor: Theme.of(context).colorScheme.onBackground,
               tabs: [
-                Tab(text: '$_chaseCount ${AppLocalizations.of(context)!.vibe}'),
                 Tab(
                   text:
-                      '$_rechaseCount ${AppLocalizations.of(context)!.revibe}',
+                      //  '$_chaseCount ${AppLocalizations.of(context)!.vibe}'
+                      AppLocalizations.of(context)!.vibe,
+                ),
+                Tab(
+                  text:
+                      // '$_rechaseCount ${AppLocalizations.of(context)!.revibe}',
+                      AppLocalizations.of(context)!.revibe,
                 ),
               ],
             ),
           ),
           Container(
-            height: AppConstants.searchbarHeight.h,
+            height: 43,
             width: double.infinity,
             margin: EdgeInsets.symmetric(vertical: 10.h, horizontal: 15.w),
             decoration: BoxDecoration(
               color: Theme.of(context).colorScheme.primaryContainer,
               borderRadius: BorderRadius.circular(AppRadius.button),
-              boxShadow: const [AppConstants.cardShadow],
             ),
             child: TextField(
               controller: _searchController,
@@ -175,12 +205,16 @@ class _PublicChaseListState extends State<PublicChaseList>
                   top: 10.h,
                 ),
                 hintText: AppLocalizations.of(context)!.searchusers,
-                hintStyle: CustomTextStyles.lblPrimaryHintText(context),
+                hintStyle: AppTextStyles.bodyText.copyWith(
+                  color: const Color(0XFF898989),
+                  fontWeight: FontWeight.w400,
+                  fontSize: 13.5,
+                ),
                 border: InputBorder.none,
-                suffixIcon: Icon(
+                prefixIcon: Icon(
                   FeatherIcons.search,
                   size: 17.spMax,
-                  color: Theme.of(context).colorScheme.onBackground,
+                  color: const Color(0XFF898989),
                 ),
                 enabledBorder: OutlineInputBorder(
                   borderSide: BorderSide(
@@ -188,20 +222,20 @@ class _PublicChaseListState extends State<PublicChaseList>
                       context,
                     ).colorScheme.onBackground.withOpacity(0.1),
                   ),
-                  borderRadius: BorderRadius.circular(AppRadius.button),
+                  borderRadius: BorderRadius.circular(9),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderSide: const BorderSide(
                     color: AppColors.primaryColor,
                     width: 0.7,
                   ),
-                  borderRadius: BorderRadius.circular(AppRadius.button),
+                  borderRadius: BorderRadius.circular(9),
                 ),
               ),
-              style: TextStyle(
+              style: AppTextStyles.bodyText.copyWith(
                 color: Theme.of(context).colorScheme.onBackground,
-                fontSize: 13.sp,
                 fontWeight: FontWeight.w400,
+                fontSize: 13.5,
               ),
               onChanged: _filterList,
             ),
@@ -250,40 +284,107 @@ class _PublicChaseListState extends State<PublicChaseList>
     );
   }
 
+  String _chaseLabel(String status) {
+    switch (status) {
+      case 'following':
+        return 'Chasing';
+      case 'followers':
+        return 'Chase Back';
+      case 'requested':
+        return 'Requested';
+      default:
+        return 'Chase';
+    }
+  }
+
   Widget _buildUserTile(Map<String, dynamic> user) {
-    final userName = user['username'] ?? 'Unknown User';
+    final userProvider = Provider.of<UserProvider>(context, listen: false);
+    final firstName = user['first_name'] ?? 'Polzet';
+    final lastName = user['last_name'] ?? 'User';
+    final userName = user['username'] ?? 'polzet_user';
     final avatarUrl = user['avatar_url'];
     final isOnline = user['is_online'] as bool? ?? false;
+    final followStatus = user['follow_status'] ?? 'none';
+    final isPrivate = user['is_private'] == true;
 
     return GestureDetector(
       onTap: () {
-        navigationPush(context, PublicProfile(userId: user['user_id']));
+        navigationPush(context, PublicProfileScreen(userId: user['user_id']));
       },
       child: Container(
-        height: 40.h,
+        height: 60,
         width: double.infinity,
-        padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
+        padding: const EdgeInsets.symmetric(horizontal: 10),
         margin: EdgeInsets.only(bottom: 10.h),
         decoration: BoxDecoration(
           color: Theme.of(context).colorScheme.primaryContainer,
           borderRadius: BorderRadius.circular(AppRadius.card),
-          boxShadow: const [
-            BoxShadow(color: Color(0x1C000000), blurRadius: 5, spreadRadius: 1),
-          ],
+          border: Border.all(color: const Color(0XFFEFEFEF), width: 1),
+          boxShadow: const [BoxShadow(color: Color(0x06000000), blurRadius: 2)],
         ),
         child: Row(
           children: [
             _buildAvatar(userName, avatarUrl, isOnline),
             const SizedBox(width: 5),
             Expanded(
-              child: Text(
-                userName,
-                style: AppTextStyles.bodyText.copyWith(
-                  color: Theme.of(context).colorScheme.onBackground,
-                ),
-                overflow: TextOverflow.ellipsis,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  if ('$firstName $lastName'.trim().isNotEmpty) ...[
+                    Text(
+                      '$userName',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppTextStyles.bodyText.copyWith(
+                        color: const Color(0XFF595959),
+                        fontSize: 14.5,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    Text(
+                      '$firstName $lastName'.trim(),
+                      style: AppTextStyles.bodyText.copyWith(
+                        fontSize: 12.5,
+                        color: const Color(0XFF8E8E8E),
+                        fontWeight: FontWeight.w500,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ] else ...[
+                    Text(
+                      '$userName',
+                      style: AppTextStyles.bodyText.copyWith(
+                        color: const Color(0XFF595959),
+                        fontSize: 14.5,
+                        fontWeight: FontWeight.w500,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    Text(
+                      '$userName',
+                      style: AppTextStyles.bodyText.copyWith(
+                        fontSize: 12.5,
+                        color: const Color(0XFF8E8E8E),
+                        fontWeight: FontWeight.w500,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ],
               ),
             ),
+            if (userProvider.userId != user['user_id'])
+              ToggleChaseButton(
+                username: userName,
+                userId: user['user_id'],
+                followStatus: followStatus,
+                apiService: apiService,
+                isPrivate: isPrivate,
+              ),
           ],
         ),
       ),
@@ -296,8 +397,8 @@ class _PublicChaseListState extends State<PublicChaseList>
       clipBehavior: Clip.none,
       children: [
         Container(
-          height: 28.h,
-          width: 28.w,
+          height: 35.h,
+          width: 35.w,
           margin: EdgeInsets.only(right: 5.w),
           decoration: BoxDecoration(
             shape: BoxShape.circle,
@@ -345,7 +446,7 @@ class _PublicChaseListState extends State<PublicChaseList>
       child: Text(
         initial,
         style: TextStyle(
-          fontSize: 13,
+          fontSize: 17,
           fontWeight: FontWeight.w500,
           color: Theme.of(context).primaryColor,
         ),

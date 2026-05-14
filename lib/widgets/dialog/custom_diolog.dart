@@ -7,7 +7,6 @@ import 'package:lottie/lottie.dart';
 import '../../gen/assets.gen.dart';
 import 'block_user_diolog.dart';
 import 'business/switch_business_acc_diolog.dart';
-import 'clear_search_history_diolog.dart';
 import 'confirm_deletion_account_diolog.dart';
 import 'crop_image_diolog.dart';
 import 'delete_account.dart';
@@ -20,6 +19,7 @@ import 'logout_dialog.dart';
 import 'notifications/clear_all_notifications_diolog.dart';
 import 'notifications/delete_notifications_diolog.dart';
 import 'notifications_diolog.dart';
+import 'pin_security_diolog.dart';
 import 'report_chat_diolog.dart';
 
 // loading diolog
@@ -63,9 +63,9 @@ Future<bool?> cropImageDiolog(BuildContext context) {
 }
 
 // crop image diolog
-void searchHistoryDiolog(BuildContext context, VoidCallback onTap) {
-  diologanimation(context, ClearSearchHistoryDiolog(onPressed: onTap));
-}
+// void searchHistoryDiolog(BuildContext context, VoidCallback onTap) {
+//   diologanimation(context, ClearSearchHistoryDiolog(onPressed: onTap));
+// }
 
 // delete comment diolog
 void showDeleteCommentDiolog(BuildContext context, VoidCallback onTap) {
@@ -116,4 +116,21 @@ showDeleteGroupDiolog(BuildContext context, VoidCallback onTap) {
 // delete group diolog
 showReportChatDiolog(BuildContext context, VoidCallback onTap) {
   diologanimation(context, ReportChatDiolog(onPressed: onTap));
+}
+
+// PIN security diolog
+showPinSecurityDiolog(
+  BuildContext context,
+  String titile,
+  String diologMessage,
+  VoidCallback onTap,
+) {
+  diologanimation(
+    context,
+    PinSecurityDiolog(
+      title: titile,
+      diologMessage: diologMessage,
+      onPressed: onTap,
+    ),
+  );
 }

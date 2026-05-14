@@ -79,7 +79,7 @@ class ApiErrorWidget extends StatelessWidget {
                 ),
               ),
             ),
-          ]
+          ],
         ],
       ),
     );

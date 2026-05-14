@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:provider/provider.dart';
 
 import '../../../../../api/services/api_service.dart';
 import '../../../../../api/services/like/like_service.dart';
@@ -11,6 +12,7 @@ import '../../../../../core/constants/app_radius.dart';
 import '../../../../../languages/l10n/generated/app_localizations.dart';
 import '../../../../../models/like/like_uers_model.dart';
 import '../../../../../models/posts/user_post_model.dart';
+import '../../../../../provider/user_provider.dart';
 import '../../../../../widgets/appbar/common_appbar.dart';
 import '../../../../../widgets/base64/image_convert.dart';
 import '../../../../../widgets/dialog/custom_diolog.dart';
@@ -18,6 +20,8 @@ import '../../../../../widgets/loader.dart';
 import '../../../../../widgets/show_toast.dart';
 import '../../../../../core/utils/bottomsheet_util.dart';
 import '../../../../../core/utils/like_util.dart';
+import '../../../home feed/rank/result/things/things_result_screen.dart';
+import '../../rank/things/user_things_ranking.dart';
 
 class ThingsPostsList extends StatefulWidget {
   String? username;
@@ -143,6 +147,42 @@ class QuestionsPostsListState extends State<ThingsPostsList> {
     );
   }
 
+  void _handlePostTap(UserPostModel post) {
+    if (post.polls.isEmpty) return;
+    final poll = post.polls.first;
+
+    if (post.is_polled_by_current_user) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => ThingsResultScreen(
+            username: widget.username ?? '',
+            postId: post.id,
+          ),
+        ),
+      );
+    } else {
+      final userProvider = Provider.of<UserProvider>(context, listen: false);
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => UserThingsRanking(
+            firstName: userProvider.firstName,
+            lastName: userProvider.lastName,
+            profileImage: userProvider.profile_picture,
+            post: post,
+            poll: poll,
+          ),
+        ),
+      ).then((result) {
+        if (result == true) {
+          setState(() {});
+          loadPosts();
+        }
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -186,6 +226,7 @@ class QuestionsPostsListState extends State<ThingsPostsList> {
                 itemBuilder: (context, index) {
                   final post = postsPolls[index];
                   return _PollPostCard(
+                    onPostTap: () => _handlePostTap(post),
                     key: ValueKey(post.id),
                     post: post,
                     username: widget.username,
@@ -209,6 +250,7 @@ class _PollPostCard extends StatefulWidget {
     required this.onDelete,
     required this.onCommentsIconTap,
     required this.onViewVotesTap,
+    required this.onPostTap,
     this.username,
     this.profileImage,
   });
@@ -219,6 +261,7 @@ class _PollPostCard extends StatefulWidget {
   final Function(int postId) onDelete;
   final VoidCallback onCommentsIconTap;
   final Function(UserPollQuestion poll, int postId) onViewVotesTap;
+  final VoidCallback onPostTap;
 
   @override
   State<_PollPostCard> createState() => _PollPostCardState();
@@ -419,54 +462,58 @@ class _PollPostCardState extends State<_PollPostCard> {
   Widget build(BuildContext context) {
     return Padding(
       padding: EdgeInsets.only(bottom: 15.h),
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(10).w,
-        decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.primaryContainer,
-          borderRadius: BorderRadius.circular(10.r),
-          boxShadow: const [
-            BoxShadow(color: Colors.black12, blurRadius: 5, spreadRadius: 2),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            ...widget.post.polls.map((p) => _buildPollBlock(p)),
-            _buildInteractionRow(),
-            if (likesCount > 0 && likedUsers.isNotEmpty)
-              GestureDetector(
-                onTap: () => BottomSheetUtils.showLikedUsersBottomSheet(
-                  context: context,
-                  postId: widget.post.id,
-                ),
-                child: Row(
-                  children: [
-                    LikeUtils.buildLikeAvatarsStack(
-                      context,
-                      likedUsers,
-                      avatarSize: 15,
-                    ),
-                    SizedBox(width: 5.w),
-                    Expanded(
-                      child: SizedBox(
-                        height: 20.h,
-                        child: Align(
-                          alignment: Alignment.centerLeft,
-                          child: RichText(
-                            overflow: TextOverflow.ellipsis,
-                            text: LikeUtils.buildLikedByRichText(
-                              context,
-                              likedUsers,
+      child: GestureDetector(
+        onTap: widget.onPostTap,
+
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(10).w,
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.primaryContainer,
+            borderRadius: BorderRadius.circular(10.r),
+            boxShadow: const [
+              BoxShadow(color: Colors.black12, blurRadius: 5, spreadRadius: 2),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              ...widget.post.polls.map((p) => _buildPollBlock(p)),
+              _buildInteractionRow(),
+              if (likesCount > 0 && likedUsers.isNotEmpty)
+                GestureDetector(
+                  onTap: () => BottomSheetUtils.showLikedUsersBottomSheet(
+                    context: context,
+                    postId: widget.post.id,
+                  ),
+                  child: Row(
+                    children: [
+                      LikeUtils.buildLikeAvatarsStack(
+                        context,
+                        likedUsers,
+                        avatarSize: 15,
+                      ),
+                      SizedBox(width: 5.w),
+                      Expanded(
+                        child: SizedBox(
+                          height: 20.h,
+                          child: Align(
+                            alignment: Alignment.centerLeft,
+                            child: RichText(
+                              overflow: TextOverflow.ellipsis,
+                              text: LikeUtils.buildLikedByRichText(
+                                context,
+                                likedUsers,
+                              ),
                             ),
                           ),
                         ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-          ],
+            ],
+          ),
         ),
       ),
     );

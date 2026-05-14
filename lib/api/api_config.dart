@@ -1,12 +1,12 @@
 class ApiConfig {
-  static const bool useHttps = true; 
+  static const bool useHttps = true;
 
   // prodbackend.polzet.in :  For Produation
   // testbackend.polzet.in : For Test
   // www.polzet.com : Official Domain
 
   static String domainUrl =
-      'prodbackend.polzet.in'; // Change this to your backend domain
+      'testbackend.polzet.in'; // Change this to your backend domain
 
   static String get baseUrl {
     const protocol = useHttps ? 'https' : 'http';
@@ -29,3 +29,5 @@ class ApiConfig {
 
 // https://testbackend.polzet.in
 // https://prodbackend.polzet.in
+
+// dart run build_runner build

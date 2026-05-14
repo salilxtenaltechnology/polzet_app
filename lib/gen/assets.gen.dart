@@ -77,6 +77,10 @@ class $AssetsImagesGen {
   /// File path: assets/images/bg.png
   AssetGenImage get bg => const AssetGenImage('assets/images/bg.png');
 
+  /// File path: assets/images/celebration.png
+  AssetGenImage get celebration =>
+      const AssetGenImage('assets/images/celebration.png');
+
   /// File path: assets/images/comments.png
   AssetGenImage get comments =>
       const AssetGenImage('assets/images/comments.png');
@@ -110,6 +114,10 @@ class $AssetsImagesGen {
   /// File path: assets/images/heart.png
   AssetGenImage get heart => const AssetGenImage('assets/images/heart.png');
 
+  /// File path: assets/images/ic_accountPrivacy.png
+  AssetGenImage get icAccountPrivacy =>
+      const AssetGenImage('assets/images/ic_accountPrivacy.png');
+
   /// File path: assets/images/ic_active_poll.png
   AssetGenImage get icActivePoll =>
       const AssetGenImage('assets/images/ic_active_poll.png');
@@ -122,24 +130,56 @@ class $AssetsImagesGen {
   AssetGenImage get icAvatar =>
       const AssetGenImage('assets/images/ic_avatar.png');
 
+  /// File path: assets/images/ic_block_account.png
+  AssetGenImage get icBlockAccount =>
+      const AssetGenImage('assets/images/ic_block_account.png');
+
+  /// File path: assets/images/ic_darkmode.png
+  AssetGenImage get icDarkmode =>
+      const AssetGenImage('assets/images/ic_darkmode.png');
+
   /// File path: assets/images/ic_facebook.png
   AssetGenImage get icFacebook =>
       const AssetGenImage('assets/images/ic_facebook.png');
+
+  /// File path: assets/images/ic_feedback.png
+  AssetGenImage get icFeedback =>
+      const AssetGenImage('assets/images/ic_feedback.png');
 
   /// File path: assets/images/ic_google.png
   AssetGenImage get icGoogle =>
       const AssetGenImage('assets/images/ic_google.png');
 
+  /// File path: assets/images/ic_help_support.png
+  AssetGenImage get icHelpSupport =>
+      const AssetGenImage('assets/images/ic_help_support.png');
+
+  /// File path: assets/images/ic_language.png
+  AssetGenImage get icLanguage =>
+      const AssetGenImage('assets/images/ic_language.png');
+
   /// File path: assets/images/ic_message.png
   AssetGenImage get icMessage =>
       const AssetGenImage('assets/images/ic_message.png');
 
+  /// File path: assets/images/ic_notifications.png
+  AssetGenImage get icNotifications =>
+      const AssetGenImage('assets/images/ic_notifications.png');
+
   /// File path: assets/images/ic_poll.png
   AssetGenImage get icPoll => const AssetGenImage('assets/images/ic_poll.png');
+
+  /// File path: assets/images/ic_security.png
+  AssetGenImage get icSecurity =>
+      const AssetGenImage('assets/images/ic_security.png');
 
   /// File path: assets/images/ic_splash.png
   AssetGenImage get icSplash =>
       const AssetGenImage('assets/images/ic_splash.png');
+
+  /// File path: assets/images/ic_terms_conditions.png
+  AssetGenImage get icTermsConditions =>
+      const AssetGenImage('assets/images/ic_terms_conditions.png');
 
   /// File path: assets/images/ic_user.png
   AssetGenImage get icUser => const AssetGenImage('assets/images/ic_user.png');
@@ -180,6 +220,53 @@ class $AssetsImagesGen {
   /// File path: assets/images/lost_connection.json
   String get lostConnection => 'assets/images/lost_connection.json';
 
+  /// File path: assets/images/no_chase.png
+  AssetGenImage get noChase =>
+      const AssetGenImage('assets/images/no_chase.png');
+
+  /// File path: assets/images/no_comments.png
+  AssetGenImage get noComments =>
+      const AssetGenImage('assets/images/no_comments.png');
+
+  /// File path: assets/images/no_image_poll.png
+  AssetGenImage get noImagePoll =>
+      const AssetGenImage('assets/images/no_image_poll.png');
+
+  /// File path: assets/images/no_like.png
+  AssetGenImage get noLike => const AssetGenImage('assets/images/no_like.png');
+
+  /// File path: assets/images/no_message.png
+  AssetGenImage get noMessage =>
+      const AssetGenImage('assets/images/no_message.png');
+
+  /// File path: assets/images/no_notifications.png
+  AssetGenImage get noNotifications =>
+      const AssetGenImage('assets/images/no_notifications.png');
+
+  /// File path: assets/images/no_rechase.png
+  AssetGenImage get noRechase =>
+      const AssetGenImage('assets/images/no_rechase.png');
+
+  /// File path: assets/images/no_saved_post.png
+  AssetGenImage get noSavedPost =>
+      const AssetGenImage('assets/images/no_saved_post.png');
+
+  /// File path: assets/images/no_search_found.png
+  AssetGenImage get noSearchFound =>
+      const AssetGenImage('assets/images/no_search_found.png');
+
+  /// File path: assets/images/no_things_post.png
+  AssetGenImage get noThingsPost =>
+      const AssetGenImage('assets/images/no_things_post.png');
+
+  /// File path: assets/images/no_users_found.png
+  AssetGenImage get noUsersFound =>
+      const AssetGenImage('assets/images/no_users_found.png');
+
+  /// File path: assets/images/no_votes.png
+  AssetGenImage get noVotes =>
+      const AssetGenImage('assets/images/no_votes.png');
+
   /// File path: assets/images/poll.png
   AssetGenImage get poll => const AssetGenImage('assets/images/poll.png');
 
@@ -195,6 +282,10 @@ class $AssetsImagesGen {
 
   /// File path: assets/images/share.png
   AssetGenImage get share => const AssetGenImage('assets/images/share.png');
+
+  /// File path: assets/images/something_went_wrong.png
+  AssetGenImage get somethingWentWrong =>
+      const AssetGenImage('assets/images/something_went_wrong.png');
 
   /// File path: assets/images/things.png
   AssetGenImage get things => const AssetGenImage('assets/images/things.png');
@@ -222,6 +313,7 @@ class $AssetsImagesGen {
     addImage,
     addUsers,
     bg,
+    celebration,
     comments,
     connected,
     currentUser,
@@ -231,14 +323,23 @@ class $AssetsImagesGen {
     forward,
     googleMapsLocationQr,
     heart,
+    icAccountPrivacy,
     icActivePoll,
     icAddUser,
     icAvatar,
+    icBlockAccount,
+    icDarkmode,
     icFacebook,
+    icFeedback,
     icGoogle,
+    icHelpSupport,
+    icLanguage,
     icMessage,
+    icNotifications,
     icPoll,
+    icSecurity,
     icSplash,
+    icTermsConditions,
     icUser,
     icUsers,
     icVote,
@@ -250,11 +351,24 @@ class $AssetsImagesGen {
     insights,
     loading,
     lostConnection,
+    noChase,
+    noComments,
+    noImagePoll,
+    noLike,
+    noMessage,
+    noNotifications,
+    noRechase,
+    noSavedPost,
+    noSearchFound,
+    noThingsPost,
+    noUsersFound,
+    noVotes,
     poll,
     progressIndicator,
     secondOnBoard,
     server,
     share,
+    somethingWentWrong,
     things,
     thingsIcon,
     thirdOnBoard,

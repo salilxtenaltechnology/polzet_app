@@ -1,8 +1,9 @@
 // ignore_for_file: deprecated_member_use
 
 import 'package:flutter/material.dart';
-import 'package:polzet_app/widgets/show_toast.dart';
 import 'package:share_plus/share_plus.dart';
+import '../../../core/utils/bottomsheet_util.dart';
+import '../../../widgets/show_toast.dart';
 import '../link/deeplink_generator_service.dart';
 
 class ShareService {
@@ -19,29 +20,11 @@ class ShareService {
       final username = usernameOverride ?? post.user?.username ?? 'user';
       final postId = post.id?.toString() ?? '0';
       final link = DeepLinkService.generatePostLink(username, postId);
-      final shareText = '$link\n';
-
-      // Safely get RenderBox — can be null on non-iPad or inside slivers
-      RenderBox? box;
-      try {
-        box = context.findRenderObject() as RenderBox?;
-      } catch (_) {
-        box = null; // RenderSliverList or other non-box render object
-      }
-
-      final result = await Share.share(
-        shareText,
-        subject: 'Post from @$username',
-        sharePositionOrigin: box != null
-            ? box.localToGlobal(Offset.zero) & box.size
-            : null,
+      BottomSheetUtils.showShareBottomSheet(
+        context: context,
+        shareLink: link,
+        username: username,
       );
-
-      if (result.status == ShareResultStatus.success) {
-        debugPrint('Post shared successfully: $link');
-      } else if (result.status == ShareResultStatus.dismissed) {
-        debugPrint('Share dismissed by user');
-      }
     } catch (e) {
       debugPrint('Error sharing post: $e');
       if (context.mounted) {

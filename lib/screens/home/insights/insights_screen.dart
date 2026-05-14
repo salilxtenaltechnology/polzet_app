@@ -4,6 +4,9 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:lottie/lottie.dart';
+import 'package:provider/provider.dart';
+
+import '../../../provider/user_provider.dart';
 
 import '../../../api/services/api_service.dart';
 import '../../../gen/assets.gen.dart';
@@ -29,18 +32,27 @@ class _InsightsScreenState extends State<InsightsScreen> {
   @override
   void initState() {
     super.initState();
+    final userProvider = Provider.of<UserProvider>(context, listen: false);
+    if (userProvider.cachedInsightsData != null) {
+      insightsModel = userProvider.cachedInsightsData;
+      _loading = false;
+    }
     _fetchData();
   }
 
   Future<void> _fetchData() async {
     try {
       final data = await _apiService.getInsightsData();
-      setState(() {
-        insightsModel = data;
-        _loading = false;
-      });
+      if (mounted) {
+        final userProvider = Provider.of<UserProvider>(context, listen: false);
+        userProvider.cachedInsightsData = data;
+        setState(() {
+          insightsModel = data;
+          _loading = false;
+        });
+      }
     } catch (_) {
-      setState(() => _loading = false);
+      if (mounted) setState(() => _loading = false);
     }
   }
 
@@ -55,8 +67,8 @@ class _InsightsScreenState extends State<InsightsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.background,
-     // appBar: CommonAppBar(title: AppLocalizations.of(context)!.insights),
 
+      // appBar: CommonAppBar(title: AppLocalizations.of(context)!.insights),
       body: _loading
           ? Center(child: Loader(color: Theme.of(context).colorScheme.primary))
           : ListView(

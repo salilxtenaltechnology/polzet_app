@@ -13,10 +13,10 @@ import '../../../../languages/l10n/generated/app_localizations.dart';
 import '../../../../mixin/utility_mixins.dart';
 import '../../../../widgets/appbar/common_appbar.dart';
 import '../../../../widgets/custom_text_styles.dart';
-import '../../../../widgets/dialog/pin_security_diolog.dart';
+import '../../../../widgets/dialog/custom_diolog.dart';
 import '../../../../widgets/loader.dart';
 import '../../../../widgets/show_toast.dart';
-import '../../../auth/forgot password/forgot_password_import.dart';
+import '../../../auth/forgot password/new_forgot_password_screen.dart';
 import 'biometric/biometric_service.dart';
 import 'pin/pin_status.dart';
 import 'pin/set_pin_screen.dart';
@@ -173,18 +173,18 @@ class SecurityState extends State<Security> with UtilityMixin {
         }
       }
     } else {
-      final shouldDisable = await showDisablePINDiolog(
+      showPinSecurityDiolog(
         context,
         AppLocalizations.of(context)!.disablepinsecurity,
         AppLocalizations.of(context)!.areyousurewanttodisablepinsecurity,
+        () async {
+          Navigator.of(context).pop(); // close dialog
+          setState(() => _isPinSecurity = false);
+          await PinService.setPinSecurityEnabled(false);
+          _saveSettings();
+          showToast(message: 'PIN security disabled');
+        },
       );
-
-      if (shouldDisable) {
-        setState(() => _isPinSecurity = false);
-        await PinService.setPinSecurityEnabled(false);
-        _saveSettings();
-        showToast(message: 'PIN security disabled');
-      }
     }
   }
 
@@ -249,33 +249,31 @@ class SecurityState extends State<Security> with UtilityMixin {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
-        backgroundColor: Colors.red,
+        backgroundColor: Theme.of(context).colorScheme.error,
         duration: const Duration(seconds: 3),
       ),
     );
   }
 
   void _showChangePinOption() async {
-    final shouldChange = await showDisablePINDiolog(
+    showPinSecurityDiolog(
       context,
       'Change PIN',
       'Do you want to change your current PIN?',
-    );
-
-    if (shouldChange) {
-      final result = await Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => const SetPinScreen(
-            isSettingNewPin: false, // Changing existing PIN
+      () async {
+        Navigator.of(context).pop(); // close dialog
+        final result = await Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => const SetPinScreen(isSettingNewPin: false),
           ),
-        ),
-      );
+        );
 
-      if (result == true) {
-        showToast(message: 'PIN changed successfully');
-      }
-    }
+        if (result == true) {
+          showToast(message: 'PIN changed successfully');
+        }
+      },
+    );
   }
 
   String _formatDate(DateTime date) {
@@ -288,8 +286,6 @@ class SecurityState extends State<Security> with UtilityMixin {
     try {
       await BiometricService.saveBiometricEnabled(_isSecurity);
       await BiometricService.saveFingerprintEnabled(_isFingerprint);
-
-     
     } catch (e) {
       _showErrorSnackBar('Error saving settings: $e');
     } finally {
@@ -423,11 +419,11 @@ class SecurityState extends State<Security> with UtilityMixin {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.background,
-       appBar: CommonAppBar(
+      appBar: CommonAppBar(
         title: AppLocalizations.of(context)!.security,
         showBackButton: true,
       ),
-    
+
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : ListView(
@@ -638,7 +634,10 @@ class SecurityState extends State<Security> with UtilityMixin {
                   children: [
                     GestureDetector(
                       onTap: () {
-                        navigationPush(context, const ForgotPasswordScreen());
+                        navigationPush(
+                          context,
+                          const NewForgotPasswordScreen(),
+                        );
                       },
                       child: Text(
                         AppLocalizations.of(context)!.forgotyourpassword,

@@ -11,7 +11,7 @@ import '../../../mixin/utility_mixins.dart';
 import '../../../widgets/button/google/google_button.dart';
 import '../../home/settings/privacy/privacy_policy.dart';
 import '../../home/settings/terms and policy/terms_and_conditions.dart';
-import 'email_login.dart';
+import '../login/email_login.dart';
 
 class SocialLoginScreen extends StatefulWidget {
   const SocialLoginScreen({super.key});

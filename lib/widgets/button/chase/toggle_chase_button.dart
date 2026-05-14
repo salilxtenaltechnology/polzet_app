@@ -1,23 +1,26 @@
 // ignore_for_file: deprecated_member_use
 
 import 'package:flutter/material.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../../api/services/api_service.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_radius.dart';
+import '../../../core/themes/app_text_styles.dart';
 
 class ToggleChaseButton extends StatefulWidget {
   final String username;
   final int userId;
   final String followStatus;
   final ApiService apiService;
+  final bool isPrivate;
 
-  const ToggleChaseButton({super.key, 
+  const ToggleChaseButton({
+    super.key,
     required this.username,
     required this.userId,
     required this.followStatus,
     required this.apiService,
+    this.isPrivate = false,
   });
 
   @override
@@ -26,11 +29,14 @@ class ToggleChaseButton extends StatefulWidget {
 
 class _ChaseButtonState extends State<ToggleChaseButton> {
   late String _followStatus;
+  late String _originalServerStatus;
+  bool _isProcessing = false;
 
   @override
   void initState() {
     super.initState();
     _followStatus = widget.followStatus;
+    _originalServerStatus = widget.followStatus;
   }
 
   @override
@@ -38,54 +44,116 @@ class _ChaseButtonState extends State<ToggleChaseButton> {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.followStatus != widget.followStatus) {
       _followStatus = widget.followStatus;
+      _originalServerStatus = widget.followStatus;
     }
   }
 
-  /// "following" → "Chasing"
-  /// "follower"  → "Chase Back"
-  /// ""          → "Chase"
   String get _buttonLabel {
     switch (_followStatus) {
       case 'following':
+      case 'both':
         return 'Chasing';
+      case 'followers':
       case 'follower':
         return 'Chase Back';
+      case 'requested':
+      case 'pending':
+        return 'Requested';
       default:
         return 'Chase';
     }
   }
 
-  bool get _isFollowing => _followStatus == 'following';
+  bool get isFollowing =>
+      _followStatus == 'following' ||
+      _followStatus == 'both' ||
+      _followStatus == 'requested' ||
+      _followStatus == 'pending';
 
   Future<void> _toggleFollow() async {
-    final wasFollowing = _isFollowing;
-    final previousStatus = _followStatus;
+    if (_isProcessing) return;
 
-    // Optimistic update
+    final currentStatus = _followStatus;
+
     setState(() {
-      _followStatus = wasFollowing ? 'follower' : 'following';
+      _isProcessing = true;
     });
 
     try {
-      if (wasFollowing) {
+      if (currentStatus == 'requested' || currentStatus == 'pending') {
+        final revertStatus =
+            _originalServerStatus == 'requested' ||
+                _originalServerStatus == 'pending'
+            ? 'none'
+            : _originalServerStatus;
+
+        setState(() {
+          _followStatus = revertStatus;
+        });
+
+        final success = await widget.apiService.cancelFriendRequest(
+          widget.userId,
+        );
+
+        if (!success && mounted) {
+          setState(() => _followStatus = currentStatus);
+        }
+      } else if (isFollowing) {
+        // Unfriend
+        final nextStatus =
+            (_originalServerStatus == 'both' ||
+                _originalServerStatus == 'followers' ||
+                _originalServerStatus == 'follower')
+            ? 'followers'
+            : 'none';
+
+        setState(() {
+          _followStatus = nextStatus;
+        });
+
         final response = await widget.apiService.unfriend(widget.userId);
-        if (response['status'] != 'success' && mounted) {
-          setState(() => _followStatus = previousStatus);
-          // showToast(message: 'Failed to unfollow');
+
+        if (response['status'] == 'success') {
+          _originalServerStatus = nextStatus;
+        } else if (mounted) {
+          setState(() => _followStatus = currentStatus);
         }
       } else {
+        // Send friend request
+        final nextStatus = widget.isPrivate
+            ? 'requested'
+            : ((_originalServerStatus == 'followers' ||
+                    _originalServerStatus == 'follower')
+                ? 'both'
+                : 'following');
+
+        setState(() {
+          _followStatus = nextStatus;
+        });
+
         final success = await widget.apiService.sendFriendRequest(
           widget.username,
         );
+
+        if (success) {
+          if (nextStatus != 'requested') {
+            _originalServerStatus = nextStatus;
+          }
+        }
+
         if (!success && mounted) {
-          setState(() => _followStatus = previousStatus);
-          // showToast(message: 'Failed to send friend request');
+          setState(() => _followStatus = currentStatus);
         }
       }
     } catch (e) {
-      if (mounted) setState(() => _followStatus = previousStatus);
-     // showToast(message: 'Error: ${e.toString()}');
+      if (mounted) setState(() => _followStatus = currentStatus);
       debugPrint('Error toggling follow: $e');
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isProcessing = false;
+        });
+      }
     }
   }
 
@@ -94,29 +162,30 @@ class _ChaseButtonState extends State<ToggleChaseButton> {
     return GestureDetector(
       onTap: _toggleFollow,
       child: Container(
-        width: 80.w,
-        margin: EdgeInsets.fromLTRB(3.w, 4.h, 0, 4.h),
+        height: 32,
+        width: 100,
+        margin: const EdgeInsets.only(left: 10),
         decoration: BoxDecoration(
-          color: _isFollowing
+          color: isFollowing
               ? Theme.of(context).colorScheme.primaryContainer
               : AppColors.primaryColor,
           borderRadius: BorderRadius.circular(AppRadius.button),
-          border: Border.all(
-            color: _isFollowing
-                ? const Color(0xFFD9D9D9)
-                : AppColors.primaryColor,
-            width: 1,
-          ),
+          border: isFollowing
+              ? Border.all(
+                  color: Theme.of(context).colorScheme.primary.withOpacity(0.8),
+                  width: 1,
+                )
+              : null,
         ),
         child: Center(
           child: Text(
             _buttonLabel,
-            style: TextStyle(
-              color: _isFollowing
-                  ? Theme.of(context).colorScheme.onBackground
+            style: AppTextStyles.subText.copyWith(
+              fontSize: 13,
+              color: isFollowing
+                  ? Theme.of(context).colorScheme.primary
                   : Colors.white,
-              fontSize: 12,
-              fontWeight: FontWeight.w400,
+              fontWeight: FontWeight.w500,
             ),
           ),
         ),

@@ -5,6 +5,7 @@ import 'dart:typed_data';
 import 'package:feather_icons/feather_icons.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:provider/provider.dart';
 
 import '../../../../../api/api_config.dart';
 import '../../../../../api/services/api_service.dart';
@@ -15,6 +16,7 @@ import '../../../../../core/constants/app_radius.dart';
 import '../../../../../languages/l10n/generated/app_localizations.dart';
 import '../../../../../models/like/like_uers_model.dart';
 import '../../../../../models/posts/user_post_model.dart';
+import '../../../../../provider/user_provider.dart';
 import '../../../../../widgets/appbar/common_appbar.dart';
 import '../../../../../widgets/base64/image_convert.dart';
 import '../../../../../widgets/dialog/custom_diolog.dart';
@@ -22,7 +24,8 @@ import '../../../../../widgets/loader.dart';
 import '../../../../../widgets/show_toast.dart';
 import '../../../../../core/utils/bottomsheet_util.dart';
 import '../../../../../core/utils/like_util.dart';
-import '../popup/image_grid.dart';
+import '../../../home feed/rank/result/image/image_result_screen.dart';
+import '../../rank/image/user_image_ranking.dart';
 
 class ImagePostsList extends StatefulWidget {
   String? username;
@@ -141,26 +144,38 @@ class _ImagePostsListState extends State<ImagePostsList> {
     int postId,
     UserPollQuestion poll,
     bool isPolledByCurrentUser,
+    UserPostModel post, // ← add this
   ) {
-    Navigator.of(context)
-        .push(
-          MaterialPageRoute(
-            builder: (context) => ShowImagesPopup(
-              images: poll.options ?? [],
-              postId: postId,
-              pollId: poll.id,
-              onImageTap: (index) {},
-              isPolledByCurrentUser: isPolledByCurrentUser,
+    if (isPolledByCurrentUser) {
+      // Already voted → show results
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) =>
+              ImageResultScreen(username: post.user, postId: post.id),
+        ),
+      );
+    } else {
+      // Not yet voted → go to ranking screen
+      final userProvider = Provider.of<UserProvider>(context, listen: false);
+      Navigator.of(context)
+          .push(
+            MaterialPageRoute(
+              builder: (_) => UserImageRanking(
+                firstName: userProvider.firstName,
+                lastName: userProvider.lastName,
+                profileImage: userProvider.profile_picture,
+                post: post,
+                poll: poll,
+              ),
             ),
-          ),
-        )
-        .then((result) {
-          if (result == true) {
-            setState(() {
+          )
+          .then((result) {
+            if (result == true) {
+              setState(() {});
               _loadPosts();
-            });
-          }
-        });
+            }
+          });
+    }
   }
 
   Future<void> _toggleLike(int postId) async {
@@ -572,7 +587,6 @@ class _ImagePostsListState extends State<ImagePostsList> {
     List<UserPollQuestion> polls,
     bool isPolledByCurrentUser,
   ) {
-    // Extract images from poll options
     List<PollOptionImage> validImages = [];
     UserPollQuestion? firstPollWithImages;
 
@@ -626,6 +640,7 @@ class _ImagePostsListState extends State<ImagePostsList> {
             postId,
             firstPollWithImages!,
             isPolledByCurrentUser,
+            cachedPosts!.firstWhere((p) => p.id == postId),
           ),
           child: SizedBox(
             height: imageHeight,

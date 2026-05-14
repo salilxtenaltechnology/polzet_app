@@ -10,6 +10,7 @@ import '../../widgets/bottomsheets/voters/images/image_post_voters_bottom_sheet.
 import '../../widgets/bottomsheets/voters/homefeed/homefeed_things_voters.dart';
 import '../../widgets/bottomsheets/voters/things/current_user_things_voters.dart';
 import '../../widgets/bottomsheets/voters/things/public_user_things_voters.dart';
+import '../../widgets/bottomsheets/share/share_bottom_sheet.dart';
 
 class BottomSheetUtils {
 
@@ -124,6 +125,22 @@ class BottomSheetUtils {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (_) => AddMemberBottomSheet(alreadySelected: alreadySelected),
+    );
+  }
+
+  static void showShareBottomSheet({
+    required BuildContext context,
+    required String shareLink,
+    required String username,
+  }) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => ShareBottomSheet(
+        shareLink: shareLink,
+        username: username,
+      ),
     );
   }
 }

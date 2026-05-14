@@ -13,9 +13,11 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../api/services/api_service.dart';
 import '../../core/constants/app_colors.dart';
 import '../../provider/user_provider.dart';
+import '../flow/flow_screens.dart';
 
 class TermsAcceptance extends StatefulWidget {
-  const TermsAcceptance({super.key});
+  final bool isNewUser;
+  const TermsAcceptance({super.key, this.isNewUser = false});
 
   @override
   State<TermsAcceptance> createState() => _TermsAcceptanceScreenState();
@@ -86,7 +88,11 @@ class _TermsAcceptanceScreenState extends State<TermsAcceptance>
           context,
           listen: false,
         ).setPrivacyStatus(true);
-        navigationPushReplacement(context, const HomeScreen(initialIndex: 0));
+        if (widget.isNewUser) {
+          navigationPushReplacement(context, const FlowScreen());
+        } else {
+          navigationPushReplacement(context, const HomeScreen(initialIndex: 0));
+        }
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(result['message'] ?? 'Something went wrong')),

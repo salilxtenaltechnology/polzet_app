@@ -18,7 +18,6 @@ class ConnectionErrorScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return SizedBox(
       height: MediaQuery.of(context).size.height,

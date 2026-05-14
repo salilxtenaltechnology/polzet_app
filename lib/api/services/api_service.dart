@@ -29,6 +29,7 @@ import '../../models/voters/top_voters_model.dart';
 import '../../provider/connection_provider.dart';
 import '../../provider/user_provider.dart';
 import '../../screens/home/home_imports.dart';
+import '../../screens/terms_acceptance/terms_acceptance.dart';
 import '../../widgets/show_toast.dart';
 import '../api_config.dart';
 import '../app_api.dart';
@@ -148,11 +149,29 @@ class ApiService with UtilityMixin {
       final response = await _dio.post(
         ApiConstants.login,
         data: {'username_or_email': email_username, 'password': password},
+        options: Options(
+          headers: {'Content-Type': 'application/json'},
+          responseType: ResponseType.json,
+        ),
       );
 
       if (response.statusCode == 200) {
-        final accessToken = response.data['access_token'] ?? '';
-        final refreshToken = response.data['refresh_token'] ?? '';
+        debugPrint('response.data type: ${response.data.runtimeType}');
+        debugPrint('response.data: ${response.data}');
+        Map<String, dynamic> data;
+        if (response.data is String) {
+          data = jsonDecode(response.data as String) as Map<String, dynamic>;
+        } else {
+          data = response.data as Map<String, dynamic>;
+        }
+        final accessToken = data['access_token'] ?? '';
+        final refreshToken = data['refresh_token'] ?? '';
+        final dynamic isNewUserRaw = data['is_new_user'];
+        final bool isNewUser =
+            isNewUserRaw == true || isNewUserRaw == 'true' || isNewUserRaw == 1;
+
+        debugPrint('isNewUserRaw: $isNewUserRaw (${isNewUserRaw.runtimeType})');
+        debugPrint('isNewUser resolved: $isNewUser');
 
         await SharedPrefService.setToken(accessToken);
         await SharedPrefService.setRefreshToken(refreshToken);
@@ -168,12 +187,17 @@ class ApiService with UtilityMixin {
 
         if (context.mounted) {
           Provider.of<UserProvider>(context, listen: false);
+
+          final Widget destination = isNewUser
+              ? const TermsAcceptance(isNewUser: true)
+              : const HomeScreen(initialIndex: 0);
+
           Navigator.pushAndRemoveUntil(
             context,
             PageTransition(
               type: PageTransitionType.fade,
               duration: const Duration(milliseconds: 200),
-              child: const HomeScreen(),
+              child: destination,
             ),
             (route) => false,
           );
@@ -190,7 +214,7 @@ class ApiService with UtilityMixin {
 
   Future socialLogin(String googleToken) async {
     try {
-     debugPrint('📤 socialLogin token: $googleToken');
+      debugPrint('📤 socialLogin token: $googleToken');
 
       final response = await _dio.post(
         ApiConstants.socialAuth,
@@ -207,6 +231,301 @@ class ApiService with UtilityMixin {
     } catch (e) {
       debugPrint('❌ Unexpected error: $e');
       rethrow;
+    }
+  }
+
+  /// POST /check_username/
+  Future<Map<String, dynamic>> checkUsername({required String username}) async {
+    try {
+      final response = await _dio.post(
+        ApiConstants.checkUsername,
+        data: {'username': username},
+        options: Options(
+          headers: {'Content-Type': 'application/json'},
+          responseType: ResponseType.json,
+          validateStatus: (status) => status != null && status < 500,
+        ),
+      );
+
+      final data = response.data is Map
+          ? response.data as Map<String, dynamic>
+          : {};
+
+      final available =
+          (data['data']?['available'] ?? data['available']) == true;
+      final message =
+          data['data']?['message']?.toString() ??
+          data['message']?.toString() ??
+          '';
+
+      return {'available': available, 'message': message};
+    } on DioException catch (e) {
+      return {
+        'available': false,
+        'message':
+            e.response?.data?['message']?.toString() ??
+            'Failed to check username',
+      };
+    } catch (e) {
+      return {'available': false, 'message': 'Something went wrong'};
+    }
+  }
+
+  // Send OTP - Email
+  Future<Map<String, dynamic>> sendEmailOtp({required String email}) async {
+    try {
+      final response = await _dio.post(
+        ApiConstants.emailOtp,
+        data: {'email': email},
+      );
+      debugPrint('sendEmailOtp response: ${response.data}');
+      return response.data as Map<String, dynamic>;
+    } on DioException catch (e) {
+      debugPrint(
+        'sendEmailOtp error: ${e.response?.statusCode} ${e.response?.data}',
+      );
+      rethrow;
+    }
+  }
+
+  // Send OTP - Mobile
+  Future<Map<String, dynamic>> sendMobileOtp({
+    required String phoneNumber,
+    required String countryCode,
+  }) async {
+    try {
+      final response = await _dio.post(
+        ApiConstants.mobileOtp,
+        data: {'phone_number': phoneNumber, 'country_code': countryCode},
+      );
+      debugPrint('sendMobileOtp response: ${response.data}');
+      return response.data as Map<String, dynamic>;
+    } on DioException catch (e) {
+      debugPrint(
+        'sendMobileOtp error: ${e.response?.statusCode} ${e.response?.data}',
+      );
+      rethrow;
+    }
+  }
+
+  // Verify Email OTP
+  Future<Map<String, dynamic>> verifyEmailOtp({
+    required String email,
+    required String otp,
+  }) async {
+    try {
+      final response = await _dio.post(
+        ApiConstants.verifyEmailOtp, // /validate_otp
+        data: {'email': email, 'otp': otp},
+      );
+      debugPrint('verifyEmailOtp response: ${response.data}');
+      return response.data as Map<String, dynamic>;
+    } on DioException catch (e) {
+      debugPrint(
+        'verifyEmailOtp error: ${e.response?.statusCode} ${e.response?.data}',
+      );
+      rethrow;
+    }
+  }
+
+  // Verify Mobile OTP
+  Future<Map<String, dynamic>> verifyMobileOtp({
+    required String phoneNumber,
+    required String countryCode,
+    required String otp,
+  }) async {
+    try {
+      final response = await _dio.post(
+        ApiConstants.verifyMobileOtp,
+        data: {
+          'phone_number': phoneNumber,
+          'country_code': countryCode,
+          'otp': otp,
+        },
+      );
+      debugPrint('verifyMobileOtp response: ${response.data}');
+      return response.data as Map<String, dynamic>;
+    } on DioException catch (e) {
+      debugPrint(
+        'verifyMobileOtp error: ${e.response?.statusCode} ${e.response?.data}',
+      );
+      rethrow;
+    }
+  }
+
+  /// [identifier] — email address or phone number
+  Future<Map<String, dynamic>> forgotPasswordSendOtp({
+    required String identifier,
+  }) async {
+    try {
+      final response = await _dio.post(
+        ApiConstants.forgotPasswordEmail,
+        data: {'identifier': identifier},
+        options: Options(
+          headers: {'Content-Type': 'application/json'},
+          responseType: ResponseType.json,
+          // Don't throw on 4xx — we handle status manually
+          validateStatus: (status) => status != null && status < 500,
+        ),
+      );
+
+      final data = response.data is Map
+          ? response.data as Map<String, dynamic>
+          : {};
+
+      if (data['status'] == 'success') {
+        return {
+          'success': true,
+          'message': data['message'] ?? 'OTP sent successfully',
+        };
+      } else {
+        final errors = data['errors'];
+        String errorMessage = data['message'] ?? 'Something went wrong';
+
+        // Extract first error from errors.identifier array if present
+        if (errors is Map && errors['identifier'] is List) {
+          final identifierErrors = errors['identifier'] as List;
+          if (identifierErrors.isNotEmpty) {
+            errorMessage = identifierErrors.first.toString();
+          }
+        }
+
+        return {'success': false, 'message': errorMessage};
+      }
+    } on DioException catch (e) {
+      final data = e.response?.data;
+      final errors = data is Map ? data['errors'] : null;
+
+      String errorMessage = 'Something went wrong';
+
+      if (errors is Map && errors['identifier'] is List) {
+        final identifierErrors = errors['identifier'] as List;
+        if (identifierErrors.isNotEmpty) {
+          errorMessage = identifierErrors.first.toString();
+        }
+      } else if (data is Map && data['message'] != null) {
+        errorMessage = data['message'].toString();
+      } else {
+        errorMessage = e.message ?? 'Connection error';
+      }
+
+      return {'success': false, 'message': errorMessage};
+    } catch (e) {
+      return {'success': false, 'message': 'Unexpected error: ${e.toString()}'};
+    }
+  }
+
+  /// [identifier] — email or phone number
+  /// [otp] — 6-digit OTP
+  Future<Map<String, dynamic>> forgotPasswordVerifyOtp({
+    required String identifier,
+    required String otp,
+  }) async {
+    try {
+      final response = await _dio.post(
+        ApiConstants.forgotPasswordVerify,
+        data: {'identifier': identifier, 'otp': otp},
+        options: Options(
+          headers: {'Content-Type': 'application/json'},
+          responseType: ResponseType.json,
+          validateStatus: (status) => status != null && status < 500,
+        ),
+      );
+
+      final data = response.data is Map
+          ? response.data as Map<String, dynamic>
+          : {};
+
+      if (data['status'] == 'success') {
+        final resetToken = data['data']?['reset_token'] ?? '';
+        return {
+          'success': true,
+          'reset_token': resetToken,
+          'message': data['message'] ?? 'OTP verified successfully',
+        };
+      } else {
+        final errors = data['errors'];
+        String errorMessage = data['message'] ?? 'Verification failed';
+
+        if (errors is Map && errors['non_field_errors'] is List) {
+          final list = errors['non_field_errors'] as List;
+          if (list.isNotEmpty) errorMessage = list.first.toString();
+        }
+
+        return {'success': false, 'message': errorMessage};
+      }
+    } on DioException catch (e) {
+      final data = e.response?.data;
+      String errorMessage = 'Something went wrong';
+
+      if (data is Map) {
+        final errors = data['errors'];
+        if (errors is Map && errors['non_field_errors'] is List) {
+          final list = errors['non_field_errors'] as List;
+          if (list.isNotEmpty) errorMessage = list.first.toString();
+        } else {
+          errorMessage = data['message']?.toString() ?? errorMessage;
+        }
+      }
+
+      return {'success': false, 'message': errorMessage};
+    } catch (e) {
+      return {'success': false, 'message': 'Unexpected error: ${e.toString()}'};
+    }
+  }
+
+  /// POST /forgot_new_password
+  /// [resetToken] — token received from OTP verify step
+  /// [newPassword] — user's new password
+  Future<Map<String, dynamic>> forgotNewPassword({
+    required String resetToken,
+    required String newPassword,
+  }) async {
+    try {
+      final response = await _dio.post(
+        ApiConstants.forgotNewPassword,
+        data: {'reset_token': resetToken, 'new_password': newPassword},
+        options: Options(
+          headers: {'Content-Type': 'application/json'},
+          responseType: ResponseType.json,
+          validateStatus: (status) => status != null && status < 500,
+        ),
+      );
+
+      final data = response.data is Map
+          ? response.data as Map<String, dynamic>
+          : {};
+
+      if (data['status'] == 'success') {
+        return {
+          'success': true,
+          'message':
+              data['data']?.toString() ?? 'Password updated successfully',
+        };
+      } else {
+        final errors = data['errors'];
+        final errorMessage = (errors != null && errors.toString().isNotEmpty)
+            ? errors.toString()
+            : data['message']?.toString() ?? 'Failed to update password';
+
+        return {'success': false, 'message': errorMessage};
+      }
+    } on DioException catch (e) {
+      final data = e.response?.data;
+      String errorMessage = 'Something went wrong';
+
+      if (data is Map) {
+        final errors = data['errors'];
+        errorMessage = (errors != null && errors.toString().isNotEmpty)
+            ? errors.toString()
+            : data['message']?.toString() ?? errorMessage;
+      } else {
+        errorMessage = e.message ?? errorMessage;
+      }
+
+      return {'success': false, 'message': errorMessage};
+    } catch (e) {
+      return {'success': false, 'message': 'Unexpected error: ${e.toString()}'};
     }
   }
 
@@ -235,6 +554,7 @@ class ApiService with UtilityMixin {
       };
     }
   }
+
   // ==================== USER PROFILE ====================
 
   Future<Map<String, dynamic>?> fetchUserData() async {
@@ -309,8 +629,30 @@ class ApiService with UtilityMixin {
         showToast(message: 'Username updated successfully!');
         return '';
       }
+
+      // Since validateStatus allows < 500, we handle 4xx here
+      if (response.data != null) {
+        final data = response.data;
+        if (data is Map && data['message'] != null) {
+          return data['message'].toString();
+        } else if (data is String) {
+          try {
+            final decoded = jsonDecode(data);
+            if (decoded is Map && decoded['message'] != null) {
+              return decoded['message'].toString();
+            }
+          } catch (_) {}
+        }
+      }
+
       return 'Failed to update username';
     } on DioException catch (e) {
+      if (e.response?.data != null) {
+        final data = e.response!.data;
+        // handles both Map and already-decoded cases
+        final message = data is Map ? data['message']?.toString() : null;
+        if (message != null && message.isNotEmpty) return message;
+      }
       return _handleDioError(e, defaultMessage: 'Failed to update username');
     }
   }
@@ -370,7 +712,7 @@ class ApiService with UtilityMixin {
       );
 
       if (response.statusCode == 200 || response.statusCode == 201) {
-        return ''; 
+        return '';
       }
 
       return response.data['message'] ?? 'Failed to set password';
@@ -609,7 +951,8 @@ class ApiService with UtilityMixin {
   }
 
   static Future<HomeFeedResponse> fetchHomeFeedPosts({
-    String? url,
+    int? page,
+    String? snapshot,
     bool isPagination = false,
   }) async {
     // // ✅ Test simulation — auto-removed in release builds
@@ -636,8 +979,14 @@ class ApiService with UtilityMixin {
 
     try {
       final accessToken = await SharedPrefService.getToken();
+
+      final Map<String, dynamic> queryParams = {};
+      if (page != null) queryParams['page'] = page;
+      if (snapshot != null) queryParams['snapshot'] = snapshot;
+
       final response = await _dio.get(
-        url ?? ApiConstants.homeFeed,
+        ApiConstants.homeFeed,
+        queryParameters: queryParams.isNotEmpty ? queryParams : null,
         options: Options(
           headers: {
             'Authorization': 'Bearer $accessToken',
@@ -877,7 +1226,6 @@ class ApiService with UtilityMixin {
       );
 
       if (response.statusCode == 200) {
-        // Dio automatically parses JSON, no need for json.decode
         final data = response.data;
         final List<dynamic> results = data['results'] ?? [];
 
@@ -1159,6 +1507,35 @@ class ApiService with UtilityMixin {
     } on DioException catch (e) {
       debugPrint('Error sending friend request: $e');
       return false;
+    }
+  }
+
+  Future<bool> cancelFriendRequest(int userId) async {
+    try {
+      final response = await _dio.post(
+        ApiConstants.cancelRequest,
+        data: FormData.fromMap({'user_id': userId}),
+        options: Options(headers: await _getAuthHeaders()),
+      );
+
+      if (response.statusCode == 200) {
+        final data = response.data;
+        return data['status'] == 'success';
+      }
+
+      return false;
+    } on DioException catch (e) {
+      final statusCode = e.response?.statusCode;
+      final message = e.response?.data?['message'] ?? 'Unknown error';
+
+      if (statusCode == 404) {
+        // "No pending friend request found."
+        throw Exception(message);
+      }
+
+      throw Exception('Cancel friend request failed: $message');
+    } catch (e) {
+      throw Exception('Unexpected error: $e');
     }
   }
 

@@ -3,6 +3,7 @@
 class SinglePostModel {
   final int id;
   final String user;
+  final String profileImage;
   final String description;
   final String createdAt;
   final List<SinglePostPoll> polls;
@@ -10,6 +11,7 @@ class SinglePostModel {
   const SinglePostModel({
     required this.id,
     required this.user,
+    required this.profileImage,
     required this.description,
     required this.createdAt,
     required this.polls,
@@ -19,6 +21,7 @@ class SinglePostModel {
     return SinglePostModel(
       id: json['id'] as int,
       user: json['user'] as String? ?? '',
+      profileImage: json['profile_image'] as String? ?? '',
       description: json['description'] as String? ?? '',
       createdAt: json['created_at'] as String? ?? '',
       polls:
@@ -32,6 +35,7 @@ class SinglePostModel {
   Map<String, dynamic> toJson() => {
     'id': id,
     'user': user,
+    'profile_image' : profileImage,
     'description': description,
     'created_at': createdAt,
     'polls': polls.map((e) => e.toJson()).toList(),

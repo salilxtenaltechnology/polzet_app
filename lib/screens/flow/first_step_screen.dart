@@ -4,21 +4,23 @@ import 'package:feather_icons/feather_icons.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
+import '../../api/services/api_service.dart';
 import '../../api/services/image/image_picker_service.dart';
-import '../../core/themes/app_text_styles.dart';
 import '../../gen/assets.gen.dart';
 import 'flow_scaffold.dart';
 
 class FirstStepScreen extends StatefulWidget {
-  final VoidCallback onContinue;
+  final void Function(String name, File image) onContinue;
   final VoidCallback onSkip;
   final VoidCallback? onBack;
+  final File? initialImage; // ← accept saved image
 
   const FirstStepScreen({
     super.key,
     required this.onContinue,
     required this.onSkip,
     required this.onBack,
+    this.initialImage,
   });
 
   @override
@@ -28,20 +30,20 @@ class FirstStepScreen extends StatefulWidget {
 class _FirstStepScreenState extends State<FirstStepScreen> {
   final _nameController = TextEditingController();
   File? _profileImage;
+  bool _isLoading = false;
+  String? _errorMessage;
 
-  static const _kDark = Color(0xFF1A1A1A);
-
-  // ── Validation: both name and image required
-  bool get _canContinue =>
-      _nameController.text.trim().isNotEmpty && _profileImage != null;
+  bool get _canContinue => _profileImage != null;
 
   @override
   void initState() {
     super.initState();
-    _nameController.addListener(() => setState(() {})); // rebuild on every keystroke
+    _profileImage = widget.initialImage; // ← restore on back navigation
+    _nameController.addListener(() => setState(() {}));
   }
 
   Future<void> _pickImage() async {
+    if (_isLoading) return;
     try {
       final File? pickedFile = await ImagePickerService.pickImage(
         context: context,
@@ -49,10 +51,37 @@ class _FirstStepScreenState extends State<FirstStepScreen> {
       );
       if (pickedFile != null) {
         final File? croppedFile = await ImagePickerService.cropImage(pickedFile);
-        setState(() => _profileImage = croppedFile ?? pickedFile);
+        setState(() {
+          _profileImage = croppedFile ?? pickedFile; // ← replaces old image
+          _errorMessage = null;
+        });
       }
     } catch (e) {
       if (kDebugMode) print('Error picking image: $e');
+    }
+  }
+
+  Future<void> _handleContinue() async {
+    if (!_canContinue || _isLoading) return;
+
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final error = await ApiService().uploadProfileImage(_profileImage!);
+
+      if (!mounted) return;
+
+      if (error.isNotEmpty) {
+        setState(() => _errorMessage = error);
+        return;
+      }
+
+      widget.onContinue('', _profileImage!);
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -70,16 +99,19 @@ class _FirstStepScreenState extends State<FirstStepScreen> {
       onBack: widget.onBack,
       title: "Let's set up your profile",
       subtitle: 'Add a photo and your name so people can recognize you',
-      primaryLabel: 'Continue',
-      onPrimary: _canContinue ? widget.onContinue : null, // ← disabled until valid
+      primaryLabel: _isLoading ? 'Uploading...' : 'Continue',
+      onPrimary: (_canContinue && !_isLoading) ? _handleContinue : null,
       onSkip: widget.onSkip,
       body: Column(
         children: [
+
+          // ── Avatar with loading overlay inside ──
           GestureDetector(
-            onTap: _pickImage,
+            onTap: _isLoading ? null : _pickImage,
             child: Stack(
               clipBehavior: Clip.none,
               children: [
+                // Avatar circle
                 Container(
                   width: 96,
                   height: 96,
@@ -94,51 +126,64 @@ class _FirstStepScreenState extends State<FirstStepScreen> {
                     ),
                   ),
                 ),
-                Positioned(
-                  bottom: 0,
-                  right: 0,
-                  child: Container(
-                    width: 30,
-                    height: 30,
+
+                // Loading overlay inside the circle
+                if (_isLoading)
+                  Container(
+                    width: 96,
+                    height: 96,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: Theme.of(context).colorScheme.primary,
-                      border: Border.all(color: Colors.white, width: 1.2),
+                      color: Colors.black.withOpacity(0.45),
                     ),
-                    child: const Icon(FeatherIcons.camera, size: 15, color: Colors.white),
+                    child: const Center(
+                      child: SizedBox(
+                        width: 28,
+                        height: 28,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2.5,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
                   ),
-                ),
+
+                // Camera badge — hide while loading
+                if (!_isLoading)
+                  Positioned(
+                    bottom: 0,
+                    right: 0,
+                    child: Container(
+                      width: 30,
+                      height: 30,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Theme.of(context).colorScheme.primary,
+                        border: Border.all(color: Colors.white, width: 1.2),
+                      ),
+                      child: const Icon(
+                        FeatherIcons.camera,
+                        size: 15,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
               ],
             ),
           ),
 
           const SizedBox(height: 32),
 
-          TextField(
-            controller: _nameController,
-            style: const TextStyle(fontSize: 14.5, color: _kDark),
-            decoration: InputDecoration(
-              hintText: 'Enter your name',
-              hintStyle: AppTextStyles.subText.copyWith(
-                fontSize: 14.5,
-                color: const Color(0xFFAAAAAA),
+          // ── Error message ──
+          if (_errorMessage != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 12),
+              child: Text(
+                _errorMessage!,
+                style: const TextStyle(color: Colors.red, fontSize: 13),
+                textAlign: TextAlign.center,
               ),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: Color(0xFFDDDDDD), width: 1),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(
-                  color: Theme.of(context).colorScheme.primary,
-                  width: 1,
-                ),
-              ),
-              filled: true,
-              fillColor: Colors.white,
             ),
-          ),
         ],
       ),
     );

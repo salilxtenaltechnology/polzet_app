@@ -9,6 +9,7 @@ import '../../../../models/comment/comment.dart';
 import '../../../api/services/comment/comment_service.dart';
 import '../../../core/constants/app_radius.dart';
 import '../../../core/themes/app_text_styles.dart';
+import '../../../gen/assets.gen.dart';
 import '../../dialog/custom_diolog.dart';
 import '../../loader.dart';
 
@@ -178,31 +179,42 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
     }
 
     if (comments.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.chat_bubble_outline,
-              size: 40.sp,
-              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.4),
-            ),
-            SizedBox(height: 10.h),
-            Text(
-              AppLocalizations.of(context)!.nocommentsyet,
-              style: AppTextStyles.subText.copyWith(
-                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
-                fontWeight: FontWeight.w500,
+      return SizedBox(
+        width: double.infinity,
+        height: 0.55.sh,
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Image.asset(
+                Assets.images.noComments.path,
+                height: 0.22.sh,
+                width: 0.22.sh,
+                fit: BoxFit.contain,
               ),
-            ),
-            SizedBox(height: 5.h),
-            Text(
-              AppLocalizations.of(context)!.bethefirsttocomment,
-              style: AppTextStyles.subText.copyWith(
-                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5),
+              const SizedBox(height: 15),
+              Text(
+                'No comments yet',
+                textAlign: TextAlign.center,
+                style: AppTextStyles.sectionHeading.copyWith(
+                  fontSize: 18.5,
+                  color: Theme.of(context).colorScheme.onBackground,
+                  fontWeight: FontWeight.w600,
+                  height: 1.4,
+                ),
               ),
-            ),
-          ],
+              const SizedBox(height: 10),
+              Text(
+                'Be the first to start the conversation.',
+                textAlign: TextAlign.center,
+                style: AppTextStyles.bodyText.copyWith(
+                  fontSize: 13,
+                  color: const Color(0xFF595959),
+                  height: 1.4,
+                ),
+              ),
+            ],
+          ),
         ),
       );
     }
@@ -388,7 +400,9 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
               onPressed: () => _editComment(comment.id),
               child: Text(
                 AppLocalizations.of(context)!.save,
-                style: AppTextStyles.subText.copyWith(fontWeight: FontWeight.w600),
+                style: AppTextStyles.subText.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ),
           ],

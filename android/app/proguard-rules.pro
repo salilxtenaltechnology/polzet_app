@@ -55,12 +55,14 @@
 -keep class com.google.firebase.iid.** { *; }
 
 # ✅ Share Plus Plugin
+-keep class dev.fluttercommunity.plus.share.** { *; }
 -keep class io.flutter.plugins.share.** { *; }
 -keep class androidx.core.content.FileProvider { *; }
 
-# ✅ App Links / Deep Linking
+# ✅ App Links / URL Launcher
 -keep class io.flutter.plugins.urllauncher.** { *; }
 -keep class com.llfbandit.app_links.** { *; }
+-keep class androidx.browser.customtabs.** { *; }
 
 # ✅ Custom MainActivity & Method Channels
 -keep class com.polzet_app.MainActivity { *; }

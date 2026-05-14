@@ -8,14 +8,15 @@ import 'package:polzet_app/widgets/loader.dart';
 
 import '../../../api/services/api_service.dart';
 import '../../../core/constants/app_radius.dart';
+import '../../../core/themes/app_text_styles.dart';
 import '../../../languages/l10n/generated/app_localizations.dart';
 import '../../../mixin/utility_mixins.dart';
 import '../../../models/user/suggestionsb users/suggestions_users_model.dart';
 import '../../../widgets/button/back_button.dart';
 import '../../../widgets/custom_text_styles.dart';
-import '../profile/public/public_profile.dart';
 
 import '../../../widgets/error/api_error_widget.dart';
+import '../profile/public/public_profile_screen.dart';
 
 class SuggestionUsers extends StatefulWidget {
   const SuggestionUsers({super.key});
@@ -62,22 +63,22 @@ class _SuggestionUsersState extends State<SuggestionUsers> with UtilityMixin {
           if (users.isEmpty) return const SizedBox.shrink();
 
           return ListView.builder(
+            padding: EdgeInsets.only(top: 10.h),
             itemCount: users.length,
             itemBuilder: (context, i) {
               final user = users[i];
 
               ImageProvider buildAvatar() {
                 if (user.avatar.startsWith('data:image')) {
-                  final base64Str = user.avatar.split(',').last;
-                  return MemoryImage(base64Decode(base64Str));
+                  return MemoryImage(base64Decode(user.avatar.split(',').last));
                 }
                 return NetworkImage(user.avatar);
               }
 
               return Container(
-                height: 40.h,
+                height: 60,
                 width: double.infinity,
-                padding: EdgeInsets.symmetric(horizontal: 10.w),
+                padding: const EdgeInsets.symmetric(horizontal: 10),
                 margin: EdgeInsets.only(
                   bottom: 7.h,
                   right: 10.w,
@@ -87,12 +88,9 @@ class _SuggestionUsersState extends State<SuggestionUsers> with UtilityMixin {
                 decoration: BoxDecoration(
                   color: Theme.of(context).colorScheme.primaryContainer,
                   borderRadius: BorderRadius.circular(AppRadius.card),
+                  border: Border.all(color: const Color(0XFFEFEFEF), width: 1),
                   boxShadow: const [
-                    BoxShadow(
-                      color: Color(0x1C000000),
-                      blurRadius: 5,
-                      spreadRadius: 1,
-                    ),
+                    BoxShadow(color: Color(0x06000000), blurRadius: 2),
                   ],
                 ),
                 child: Row(
@@ -100,13 +98,33 @@ class _SuggestionUsersState extends State<SuggestionUsers> with UtilityMixin {
                   children: [
                     GestureDetector(
                       onTap: () {
-                        navigationPush(context, PublicProfile(userId: user.id));
+                        navigationPush(
+                          context,
+                          PublicProfileScreen(userId: user.id),
+                        );
                       },
-                      child: CircleAvatar(
-                        radius: 20,
-                        backgroundImage: buildAvatar(),
-                        backgroundColor: Colors.grey.shade200,
-                      ),
+                      child: user.avatar.isNotEmpty
+                          ? CircleAvatar(
+                              radius: 20,
+                              backgroundImage: buildAvatar(),
+                              backgroundColor: Colors.grey.shade200,
+                            )
+                          : CircleAvatar(
+                              radius: 20,
+                              backgroundColor: Theme.of(
+                                context,
+                              ).colorScheme.primary.withOpacity(0.1),
+                              child: Text(
+                                user.username.isNotEmpty
+                                    ? user.username[0].toUpperCase()
+                                    : '?',
+                                style: TextStyle(
+                                  fontSize: 15.sp,
+                                  fontWeight: FontWeight.w600,
+                                  color: Theme.of(context).colorScheme.primary,
+                                ),
+                              ),
+                            ),
                     ),
                     SizedBox(width: 5.w),
                     Expanded(
@@ -118,17 +136,17 @@ class _SuggestionUsersState extends State<SuggestionUsers> with UtilityMixin {
                             user.name,
                             overflow: TextOverflow.ellipsis,
                             maxLines: 1,
-                            style: TextStyle(
+                            style: AppTextStyles.bodyText.copyWith(
                               color: Theme.of(context).colorScheme.onBackground,
-                              fontSize: 10.8.sp,
-                              fontWeight: FontWeight.w400,
+                              fontSize: 14.5,
+                              fontWeight: FontWeight.w500,
                             ),
                           ),
                           Text(
                             '+${user.mutualFriends.toString()} Mutuals',
-                            style: TextStyle(
-                              color: Colors.grey,
-                              fontSize: 9.5.sp,
+                            style: AppTextStyles.bodyText.copyWith(
+                              fontSize: 12.5,
+                              color: const Color(0XFF8E8E8E),
                               fontWeight: FontWeight.w500,
                             ),
                           ),
@@ -170,8 +188,8 @@ class _SuggestionUsersState extends State<SuggestionUsers> with UtilityMixin {
                             }
                           },
                           child: AnimatedContainer(
-                            duration: const Duration(milliseconds: 250),
-                            height: 24.h,
+                            duration: const Duration(milliseconds: 200),
+                            height: 32,
                             width: 80.w,
                             margin: EdgeInsets.only(left: 10.w),
                             decoration: BoxDecoration(
@@ -194,7 +212,7 @@ class _SuggestionUsersState extends State<SuggestionUsers> with UtilityMixin {
                                   SizedBox(width: 3.w),
                                 ],
                                 Text(
-                                  isChased ? 'Chased' : 'Chase',
+                                  isChased ? 'Chasing' : 'Chase',
                                   style: TextStyle(
                                     color: Colors.white,
                                     fontSize: 10.8.sp,

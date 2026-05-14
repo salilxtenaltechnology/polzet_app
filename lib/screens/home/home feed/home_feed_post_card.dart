@@ -1,6 +1,7 @@
 // ignore_for_file: deprecated_member_use, unused_local_variable, must_be_immutable, unused_element, avoid_function_literals_in_foreach_calls, dead_code, non_constant_identifier_names
 
 import 'dart:math';
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -22,9 +23,11 @@ import '../../../core/utils/bottomsheet_util.dart';
 import '../../../core/utils/like_util.dart';
 import '../dashboard/dashboard_import.dart';
 import '../home_imports.dart';
-import '../profile/public/public_profile.dart';
-import '../rank/image/image_ranking.dart';
-import '../rank/result/image/image_result_screen.dart';
+import '../profile/public/public_profile_screen.dart';
+import 'rank/image/homefeed_image_ranking.dart';
+import 'rank/result/image/image_result_screen.dart';
+import 'rank/result/things/things_result_screen.dart';
+import 'rank/things/homefeed_things_ranking.dart';
 
 class HomeFeedPostCard extends StatefulWidget {
   final HomeFeedPost post;
@@ -66,34 +69,6 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
   final Map<int, double> _cachedPercentages = {};
 
   final Map<int, bool> _animationDone = {};
-
-  int getSelectionNumber(int imageNumber) {
-    int index = selectionOrder.indexOf(imageNumber);
-    return index == -1 ? 0 : index + 1;
-  }
-
-  bool isImageSelected(int imageNumber) => selectionOrder.contains(imageNumber);
-
-  bool get areAllImagesSelected =>
-      randomImageIndices.isNotEmpty &&
-      selectionOrder.length == randomImageIndices.length;
-
-  List<int> get selectedImageIndices {
-    List<int> indices = [];
-    selectionOrder.forEach((number) {
-      if (number <= randomImageIndices.length) {
-        indices.add(randomImageIndices[number - 1]);
-      }
-    });
-    return indices;
-  }
-
-  List<int> get unselectedImageIndices {
-    Set<int> selectedSet = selectedImageIndices.toSet();
-    return randomImageIndices
-        .where((index) => !selectedSet.contains(index))
-        .toList();
-  }
 
   @override
   void initState() {
@@ -253,14 +228,14 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
       Navigator.of(context).push(
         MaterialPageRoute(
           builder: (_) =>
-              ImageResultScreen(user: post.user, poll: poll, post: post),
+              ImageResultScreen(username: post.user.username, postId: post.id),
         ),
       );
     } else {
       Navigator.of(context)
           .push(
             MaterialPageRoute(
-              builder: (_) => ImageRanking(
+              builder: (_) => HomefeedImageRanking(
                 user: post.user,
                 poll: poll,
                 post: post,
@@ -428,6 +403,21 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
     }
   }
 
+  String _timeAgo(DateTime dt) {
+    try {
+      final diff = DateTime.now().difference(dt.toLocal());
+      if (diff.inSeconds < 60) return 'Just now';
+      if (diff.inMinutes < 60) return '${diff.inMinutes} min ago';
+      if (diff.inHours < 24) return '${diff.inHours} h ago';
+      if (diff.inDays < 7) return '${diff.inDays} d ago';
+      if (diff.inDays < 30) return '${(diff.inDays / 7).floor()} w ago';
+      if (diff.inDays < 365) return '${(diff.inDays / 30).floor()} mo ago';
+      return '${(diff.inDays / 365).floor()} y ago';
+    } catch (_) {
+      return '';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final bool hasPolls = widget.post.polls.isNotEmpty;
@@ -439,24 +429,21 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
       children: [
         Container(
           margin: EdgeInsets.only(bottom: 15.h),
-          padding: EdgeInsets.only(top: 10.h, bottom: 10.h),
+          padding: EdgeInsets.only(bottom: 10.h),
           decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.primaryContainer,
-            borderRadius: BorderRadius.circular(8.r),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(isDarkMode ? 0.3 : 0.05),
-                blurRadius: 8,
-                spreadRadius: 2,
-              ),
+            color: Theme.of(context).colorScheme.background,
+            borderRadius: BorderRadius.circular(AppRadius.card),
+            border: Border.all(color: const Color(0xFFEFEFEF), width: 1),
+            boxShadow: const [
+              BoxShadow(color: Color(0x06000000), blurRadius: 2),
             ],
           ),
-          child: Padding(
-            padding: EdgeInsets.only(right: 10.w, left: 10.w),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: EdgeInsets.fromLTRB(10.w, 10.h, 10.w, 0),
+                child: Row(
                   children: [
                     GestureDetector(
                       onTap: () {
@@ -475,14 +462,20 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
                                 ?.setPage(4);
                           }
                         } else {
+                          // navigationPush(
+                          //   context,
+                          //   PublicProfile(userId: widget.post.user.userid),
+                          // );
                           navigationPush(
                             context,
-                            PublicProfile(userId: widget.post.user.userid),
+                            PublicProfileScreen(
+                              userId: widget.post.user.userid,
+                            ),
                           );
                         }
                       },
                       child: CircleAvatar(
-                        radius: 17,
+                        radius: 18,
                         backgroundColor: Theme.of(
                           context,
                         ).colorScheme.primary.withOpacity(0.15),
@@ -507,18 +500,30 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
                       children: [
                         Text(
                           widget.post.user.username,
-                          style: AppTextStyles.subText.copyWith(
-                            fontWeight: FontWeight.w600,
-                            color: Theme.of(context).colorScheme.onBackground,
+                          style: AppTextStyles.sectionHeading.copyWith(
+                            color: const Color(0XFF2C2C2C),
+                            fontSize: 14,
                           ),
                         ),
-                        Text(
-                          'Placed a post',
-                          style: AppTextStyles.subText.copyWith(
-                            color: Theme.of(
-                              context,
-                            ).colorScheme.onSurface.withOpacity(0.6),
-                          ),
+                        Row(
+                          children: [
+                            Text(
+                              'Placed a post',
+                              style: AppTextStyles.bodyText.copyWith(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500,
+                                color: const Color(0XFF595959),
+                              ),
+                            ),
+                            Text(
+                              '  • ${_timeAgo(DateTime.parse(widget.post.createdAt))}',
+                              style: AppTextStyles.subText.copyWith(
+                                color: const Color(0xFF727272),
+                                fontWeight: FontWeight.w400,
+                                fontSize: 11.5,
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     ),
@@ -548,38 +553,45 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
                           }
                         },
                         child: AnimatedContainer(
-                          duration: const Duration(milliseconds: 250),
-                          padding: EdgeInsets.symmetric(
-                            horizontal: 8.w,
-                            vertical: 2.h,
+                          duration: const Duration(milliseconds: 200),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 15,
+                            vertical: 4.5,
                           ),
                           decoration: BoxDecoration(
                             color: _isLocalChased
-                                ? Theme.of(context).colorScheme.primary
-                                : Colors.transparent,
+                                ? Colors.transparent
+                                : Theme.of(context).colorScheme.primary,
                             border: Border.all(
                               color: Theme.of(context).colorScheme.primary,
                               width: 1.2,
                             ),
-                            borderRadius: BorderRadius.circular(6.r),
+                            borderRadius: BorderRadius.circular(
+                              AppRadius.button,
+                            ),
                           ),
                           child: Text(
                             _isLocalChased ? 'Chased' : 'Chase',
                             style: AppTextStyles.subText.copyWith(
+                              fontSize: 12.5,
                               color: _isLocalChased
-                                  ? Colors.white
-                                  : Theme.of(context).colorScheme.primary,
+                                  ? Theme.of(context).colorScheme.primary
+                                  : Colors.white,
                             ),
                           ),
                         ),
                       ),
                   ],
                 ),
+              ),
+              const Divider(color: Color(0xFFDCDCDC)),
 
-                if (hasPolls) ..._buildPollContent(),
+              if (hasPolls) ..._buildPollContent(),
 
-                /*──── Actions ────*/
-                Row(
+              /*──── Actions ────*/
+              Padding(
+                padding: EdgeInsets.fromLTRB(10.w, 0, 10.w, 0.h),
+                child: Row(
                   children: [
                     GestureDetector(
                       onTap: _toggleLike,
@@ -648,10 +660,13 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
                     ),
                   ],
                 ),
+              ),
 
-                viewLikes.isEmpty
-                    ? const SizedBox.shrink()
-                    : GestureDetector(
+              viewLikes.isEmpty
+                  ? const SizedBox.shrink()
+                  : Padding(
+                      padding: EdgeInsets.fromLTRB(10.w, 3.h, 10.w, 0),
+                      child: GestureDetector(
                         onTap: _showLikedUsersBottomSheet,
                         child: Row(
                           crossAxisAlignment: CrossAxisAlignment.center,
@@ -680,8 +695,8 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
                           ],
                         ),
                       ),
-              ],
-            ),
+                    ),
+            ],
           ),
         ),
       ],
@@ -695,27 +710,30 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
         final images = _getPollImages(poll);
         if (images.isNotEmpty) {
           widgets.add(
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (poll.question.isNotEmpty) ...[
-                  SizedBox(height: 5.h),
-                  Text(
-                    poll.question,
-                    style: AppTextStyles.bodyText.copyWith(
-                      color: Theme.of(context).colorScheme.onBackground,
-                      fontWeight: FontWeight.w500,
+            Padding(
+              padding: EdgeInsets.fromLTRB(10.w, 0, 10.w, 0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (poll.question.isNotEmpty) ...[
+                    SizedBox(height: 5.h),
+                    Text(
+                      poll.question,
+                      style: AppTextStyles.bodyText.copyWith(
+                        color: Theme.of(context).colorScheme.onBackground,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
+                  ],
+                  Container(
+                    margin: const EdgeInsets.only(top: 12),
+                    height: 150.h,
+                    width: double.infinity,
+                    child: _buildImagesStack(images, widget.post, poll),
                   ),
+                  SizedBox(height: 5.h),
                 ],
-                Container(
-                  margin: EdgeInsets.only(top: 8.h),
-                  height: 150.h,
-                  width: double.infinity,
-                  child: _buildImagesStack(images, widget.post, poll),
-                ),
-                SizedBox(height: 5.h),
-              ],
+              ),
             ),
           );
         }
@@ -731,84 +749,111 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
     HomeFeedPost post,
     HomeFeedPoll poll,
   ) {
-    List<Alignment> getAlignments(int n) {
-      switch (n) {
-        case 1:
-          return [Alignment.center];
-        case 2:
-          return [Alignment.centerLeft, Alignment.centerRight];
-        case 3:
-          return [
-            Alignment.centerLeft,
-            Alignment.center,
-            Alignment.centerRight,
-          ];
-        default:
-          return [
-            Alignment.centerLeft,
-            Alignment.center,
-            Alignment.centerRight,
-            Alignment.centerRight,
-          ];
-      }
-    }
+    final displayImages = images.take(4).toList();
+    final n = displayImages.length;
+    final hasUserPolled = poll.isPolledByCurrentUser;
 
-    final alignments = getAlignments(images.length);
     return LayoutBuilder(
       builder: (context, constraints) {
         final w = constraints.maxWidth;
         final h = constraints.maxHeight;
+
+        final cardWidth = n == 1 ? w : w * 0.55;
+        final spacing = n > 1 ? (w - cardWidth) / (n - 1) : 0.0;
+
         return GestureDetector(
           onTap: () => _showAllImagesGrid(images, post, poll),
           child: SizedBox(
             height: h,
             width: w,
             child: Stack(
-              children: images
+              children: displayImages
                   .asMap()
                   .entries
                   .map<Widget>((entry) {
                     final i = entry.key;
                     final img = entry.value;
-                    double imgW = (w * 0.7) - (i * 8.0);
-                    imgW = imgW < 60.w ? 60.w : imgW;
-                    return Align(
-                      alignment: alignments[i],
+
+                    Widget imageWidget = Image.network(
+                      '${ApiConfig.baseUrlImage}${img.url}',
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => Icon(
+                        Icons.image_not_supported,
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.onSurface.withOpacity(0.6),
+                        size: 30,
+                      ),
+                      loadingBuilder: (_, child, progress) {
+                        if (progress == null) return child;
+                        return Center(
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            value: progress.expectedTotalBytes != null
+                                ? progress.cumulativeBytesLoaded /
+                                      progress.expectedTotalBytes!
+                                : null,
+                          ),
+                        );
+                      },
+                    );
+
+                    if (i > 0) {
+                      imageWidget = ImageFiltered(
+                        imageFilter: ImageFilter.blur(sigmaX: 2.0, sigmaY: 2.0),
+                        child: imageWidget,
+                      );
+                    }
+
+                    return Positioned(
+                      left: i * spacing,
+                      top: 0,
+                      bottom: 0,
+                      width: cardWidth,
                       child: Container(
-                        margin: EdgeInsets.symmetric(horizontal: 3.w),
-                        width: imgW,
-                        height: 150.h,
                         decoration: BoxDecoration(
                           border: Border.all(
-                            color: Theme.of(context).colorScheme.surface,
+                            color: const Color(0xFFDDDDDD),
                             width: 1,
                           ),
                           borderRadius: BorderRadius.circular(AppRadius.button),
                         ),
                         child: ClipRRect(
                           borderRadius: BorderRadius.circular(AppRadius.button),
-                          child: Image.network(
-                            '${ApiConfig.baseUrlImage}${img.url}',
-                            fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) => Icon(
-                              Icons.image_not_supported,
-                              color: Theme.of(
-                                context,
-                              ).colorScheme.onSurface.withOpacity(0.6),
-                              size: 30,
-                            ),
-                            loadingBuilder: (_, child, progress) {
-                              if (progress == null) return child;
-                              return Center(
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  value: progress.expectedTotalBytes != null
-                                      ? progress.cumulativeBytesLoaded /
-                                            progress.expectedTotalBytes!
-                                      : null,
+                          child: Stack(
+                            fit: StackFit.expand,
+                            children: [
+                              imageWidget,
+                              if (hasUserPolled)
+                                Positioned(
+                                  top: 8,
+                                  right: 8,
+                                  child: Container(
+                                    height: 28,
+                                    width: 28,
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.primary,
+                                      border: Border.all(
+                                        color: Colors.white,
+                                        width: 1,
+                                      ),
+                                    ),
+                                    child: Center(
+                                      child: Text(
+                                        '${i + 1}',
+                                        style: AppTextStyles.subText.copyWith(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w600,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
                                 ),
-                              );
-                            },
+                            ],
                           ),
                         ),
                       ),
@@ -834,137 +879,82 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
         .toList();
     if (validOptions.isEmpty) return const SizedBox.shrink();
 
-    final pollKey = poll.id.toString();
-    final areAllOptionsSelected = _areAllPollOptionsSelected(poll);
-    final isVoting = pollVotingStates[pollKey] ?? false;
-    final displayVotes = pollTotalVotes[pollKey] ?? poll.totalVotes;
     final hasUserPolled = poll.isPolledByCurrentUser;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SizedBox(height: 5.h),
-        Text(
-          poll.question,
-          style: AppTextStyles.bodyText.copyWith(
-            color: Theme.of(context).colorScheme.onBackground,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-        SizedBox(height: 7.h),
-
-        ...poll.options.asMap().entries.map((entry) {
-          if (entry.value.text == null || entry.value.text!.isEmpty) {
-            return const SizedBox.shrink();
-          }
-          return _buildPollOption(
-            entry.value,
-            displayVotes,
+    return GestureDetector(
+      onTap: () {
+        if (poll.isPolledByCurrentUser) {
+          navigationPush(
             context,
-            entry.key,
-            poll,
-            showPercentage: hasUserPolled,
+            ThingsResultScreen(username: post.user.username, postId: post.id),
           );
-        }),
-
-        AnimatedSwitcher(
-          duration: const Duration(milliseconds: 300),
-          transitionBuilder: (child, animation) => ScaleTransition(
-            scale: animation,
-            child: FadeTransition(opacity: animation, child: child),
-          ),
-          child: !hasUserPolled && areAllOptionsSelected
-              ? GestureDetector(
-                  onTap: isVoting ? null : () => _submitPollVotes(poll),
-                  child: Center(
-                    key: ValueKey("analytics_${poll.id}"),
-                    child: Container(
-                      margin: EdgeInsets.only(top: 10.h),
-                      height: 45.h,
-                      width: 45.w,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        gradient: const LinearGradient(
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                          colors: [Color(0xFFCF4B73), Color(0xFFC76294)],
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Theme.of(
-                              context,
-                            ).colorScheme.onBackground.withOpacity(0.3),
-                            blurRadius: 5,
-                          ),
-                        ],
-                      ),
-                      child: isVoting
-                          ? Padding(
-                              padding: EdgeInsets.all(12.w),
-                              child: const CircularProgressIndicator(
-                                strokeWidth: 2,
-                                valueColor: AlwaysStoppedAnimation<Color>(
-                                  Colors.white,
-                                ),
-                              ),
-                            )
-                          : Icon(
-                              Icons.stacked_bar_chart,
-                              color: Colors.white,
-                              size: 20.spMax,
-                            ),
-                    ),
-                  ),
-                )
-              : const SizedBox.shrink(),
-        ),
-
-        if (hasUserPolled)
-          Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              GestureDetector(
-                onTap: () => _showThingsPostVotersBottomSheet(poll),
-                child: Text(
-                  'View votes',
-                  style: AppTextStyles.subText.copyWith(
-                    color: Theme.of(context).colorScheme.primary,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
+        } else {
+          navigationPush(
+            context,
+            HomefeedThingsRanking(post: post, user: post.user, poll: poll),
+          ).then((result) {
+            if (result == true) setState(() {});
+          });
+        }
+      },
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SizedBox(height: 5.h),
+            Text(
+              poll.question,
+              style: AppTextStyles.bodyText.copyWith(
+                color: Theme.of(context).colorScheme.onBackground,
+                fontWeight: FontWeight.w500,
               ),
-            ],
-          ),
-      ],
+            ),
+            const SizedBox(height: 12),
+
+            ...poll.options.asMap().entries.map((entry) {
+              if (entry.value.text == null || entry.value.text!.isEmpty) {
+                return const SizedBox.shrink();
+              }
+              return _buildPollOption(
+                entry.value,
+
+                context,
+                entry.key,
+                poll,
+                showPercentage: hasUserPolled,
+              );
+            }),
+            // if (hasUserPolled)
+            //   Row(
+            //     mainAxisAlignment: MainAxisAlignment.end,
+            //     children: [
+            //       GestureDetector(
+            //         onTap: () => _showThingsPostVotersBottomSheet(poll),
+            //         child: Text(
+            //           'View votes',
+            //           style: AppTextStyles.subText.copyWith(
+            //             color: Theme.of(context).colorScheme.primary,
+            //             fontWeight: FontWeight.w700,
+            //           ),
+            //         ),
+            //       ),
+            //     ],
+            //   ),
+          ],
+        ),
+      ),
     );
-  }
-
-  bool _areAllPollOptionsSelected(HomeFeedPoll poll) {
-    final pollKey = poll.id.toString();
-    if (!selectedOptions.containsKey(pollKey)) return false;
-    final validCount = poll.options
-        .where((o) => o.text != null && o.text!.isNotEmpty)
-        .length;
-    return selectedOptions[pollKey]!.length == validCount;
-  }
-
-  int? _getSelectionNumber(String pollKey, int optionIndex) {
-    final selected = selectedOptions[pollKey];
-    if (selected == null || !selected.contains(optionIndex)) return null;
-    return selected.indexOf(optionIndex) + 1;
   }
 
   Widget _buildPollOption(
     HomeFeedPollOption option,
-    int totalVotes,
     BuildContext context,
     int optionIndex,
     HomeFeedPoll poll, {
     bool showPercentage = false,
   }) {
     final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    final pollKey = poll.id.toString();
-    final hasUserPolled = poll.isPolledByCurrentUser;
 
     final double cachedPct = _cachedPercentages[option.id] ?? 0.0;
     final int pctRounded = cachedPct.round();
@@ -973,113 +963,56 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
     final double tweenBegin = alreadyAnimated ? cachedPct / 100 : 0.0;
     final int intTweenBegin = alreadyAnimated ? pctRounded : 0;
 
-    final bool isSelected =
-        selectedOptions.containsKey(pollKey) &&
-        selectedOptions[pollKey]!.contains(optionIndex);
-    final int? selectionNumber = _getSelectionNumber(pollKey, optionIndex);
+    final hasUserPolled = poll.isPolledByCurrentUser;
 
-    return GestureDetector(
-      onTap: hasUserPolled
-          ? null
-          : () {
-              setState(() {
-                selectedOptions.putIfAbsent(pollKey, () => []);
-                if (selectedOptions[pollKey]!.contains(optionIndex)) {
-                  selectedOptions[pollKey]!.remove(optionIndex);
-                } else {
-                  selectedOptions[pollKey]!.add(optionIndex);
-                }
-              });
-            },
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 250),
-        curve: Curves.easeInOut,
-        margin: EdgeInsets.only(bottom: 10.h),
-        height: 27.h,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(AppRadius.button),
-          color: isDarkMode ? const Color(0xFF242831) : const Color(0xFFF5F6F7),
-          border: Border.all(
-            color: isSelected && !hasUserPolled
-                ? Theme.of(context).colorScheme.primary.withOpacity(0.5)
-                : isDarkMode
-                ? const Color(0xFF30353D)
-                : const Color(0xFFE8E8E8),
-            width: isSelected && !hasUserPolled ? 1.2 : 1,
-          ),
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 250),
+      curve: Curves.easeInOut,
+      margin: EdgeInsets.only(bottom: 10.h),
+      height: 40,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(AppRadius.card),
+        color: hasUserPolled
+            ? (isDarkMode ? const Color(0xFF2A2228) : const Color(0xFFFCF9F9))
+            : (isDarkMode ? const Color(0xFF242831) : Colors.white),
+        border: Border.all(
+          color: isDarkMode ? const Color(0xFF30353D) : const Color(0xFFEFEFEF),
+          width: 1,
         ),
-        child: Stack(
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        child: Row(
           children: [
-            if (showPercentage && pctRounded > 0)
-              Positioned.fill(
-                child: TweenAnimationBuilder<double>(
-                  key: ValueKey('bar_${option.id}_$pctRounded'),
-                  duration: const Duration(milliseconds: 800),
-                  curve: Curves.easeOutCubic,
-                  tween: Tween<double>(begin: tweenBegin, end: cachedPct / 100),
-                  onEnd: () {
-                    if (mounted) {
-                      setState(() => _animationDone[option.id] = true);
-                    }
-                  },
-                  builder: (_, value, __) => FractionallySizedBox(
-                    alignment: Alignment.centerLeft,
-                    widthFactor: value,
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: isDarkMode
-                            ? const Color(0xFF30353D)
-                            : const Color(0xFFE8E8E8),
-                        borderRadius: BorderRadius.circular(AppRadius.button),
-                      ),
+            Expanded(
+              child: Text(
+                option.text ?? '',
+                style: AppTextStyles.subText.copyWith(
+                  color: const Color(0xFF2C2C2C),
+                  fontSize: 14,
+                  fontWeight: FontWeight.w400,
+                ),
+              ),
+            ),
+            if (hasUserPolled)
+              Container(
+                height: 28,
+                width: 28,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+                child: Center(
+                  child: Text(
+                    '${optionIndex + 1}',
+                    style: AppTextStyles.subText.copyWith(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
                     ),
                   ),
                 ),
               ),
-
-            Padding(
-              padding: EdgeInsets.fromLTRB(8.w, 5.h, 8.w, 0),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      option.text ?? '',
-                      style: AppTextStyles.subText.copyWith(
-                        color: Theme.of(context).colorScheme.onBackground,
-                        fontWeight: isSelected && !hasUserPolled
-                            ? FontWeight.w600
-                            : FontWeight.w500,
-                      ),
-                    ),
-                  ),
-                  SizedBox(width: 6.w),
-                  if (showPercentage) ...[
-                    TweenAnimationBuilder<int>(
-                      key: ValueKey('pct_${option.id}_$pctRounded'),
-                      duration: const Duration(milliseconds: 700),
-                      curve: Curves.easeOut,
-                      tween: IntTween(begin: intTweenBegin, end: pctRounded),
-                      builder: (_, value, __) => Text(
-                        '$value%',
-                        style: AppTextStyles.subText.copyWith(
-                          color: Theme.of(
-                            context,
-                          ).colorScheme.onBackground.withOpacity(0.6),
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  ] else if (isSelected)
-                    Text(
-                      '$selectionNumber',
-                      style: AppTextStyles.subText.copyWith(
-                        color: Theme.of(context).colorScheme.primary,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                ],
-              ),
-            ),
           ],
         ),
       ),

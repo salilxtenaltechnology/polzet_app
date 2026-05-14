@@ -1,22 +1,26 @@
 import 'package:flutter/material.dart';
+
 class HomeFeedResponse {
   final int count;
-  final String? next;
-  final String? previous;
+  final int? page;
+  final bool? hasMore;
+  final String? snapshot;
   final List<HomeFeedPost> results;
 
   HomeFeedResponse({
     required this.count,
-    this.next,
-    this.previous,
+    this.page,
+    this.hasMore,
+    this.snapshot,
     required this.results,
   });
 
   factory HomeFeedResponse.fromJson(Map<String, dynamic> json) {
     return HomeFeedResponse(
       count: json['count'] ?? 0,
-      next: json['next']?.toString(),
-      previous: json['previous']?.toString(),
+      page: json['page'] as int?,
+      hasMore: json['has_more'] as bool?,
+      snapshot: json['snapshot']?.toString(),
       results:
           (json['results'] as List<dynamic>?)
               ?.map(
@@ -30,12 +34,14 @@ class HomeFeedResponse {
   Map<String, dynamic> toJson() {
     return {
       'count': count,
-      'next': next,
-      'previous': previous,
+      'page': page,
+      'has_more': hasMore,
+      'snapshot': snapshot,
       'results': results.map((post) => post.toJson()).toList(),
     };
   }
 }
+
 class HomeFeedPost {
   final int id;
   final HomeFeedUser user;
@@ -80,7 +86,7 @@ class HomeFeedPost {
           json['view_likes'] ?? json['likes'],
           (item) => HomeFeedLikeUser.fromJson(item),
         ),
-        followingStatus:_parseToString(json['following_status'])
+        followingStatus: _parseToString(json['following_status']),
       );
     } catch (e) {
       debugPrint('Error parsing HomeFeedPost: $e');
@@ -157,18 +163,15 @@ class HomeFeedLikeUser {
     return HomeFeedLikeUser(
       id: _parseToInt(json['id'] ?? json['user_id']),
       username: _parseToString(json['username'] ?? json['name']),
-      profileImage: json['profile_picture_url']?.toString() ??
-                    json['profile_image']?.toString() ??
-                    json['avatar_url']?.toString(),
+      profileImage:
+          json['profile_picture_url']?.toString() ??
+          json['profile_image']?.toString() ??
+          json['avatar_url']?.toString(),
     );
   }
 
   Map<String, dynamic> toJson() {
-    return {
-      'id': id,
-      'username': username,
-      'profile_image': profileImage,
-    };
+    return {'id': id, 'username': username, 'profile_image': profileImage};
   }
 
   static int _parseToInt(dynamic value) {
@@ -186,6 +189,8 @@ class HomeFeedLikeUser {
 
 class HomeFeedUser {
   final int userid;
+  final String? firstName;
+  final String? lastName;
   final String username;
   final String? profileImage;
   final String? location;
@@ -193,6 +198,8 @@ class HomeFeedUser {
   HomeFeedUser({
     required this.userid,
     required this.username,
+    required this.firstName,
+    required this.lastName,
     this.profileImage,
     this.location,
   });
@@ -205,6 +212,8 @@ class HomeFeedUser {
   factory HomeFeedUser.fromJson(Map<String, dynamic> json) {
     return HomeFeedUser(
       userid: _parseToInt(json['userid']),
+      firstName: _parseToString(json['first_name']),
+      lastName: _parseToString(json['last_name']),
       username: _parseToString(json['username']),
       profileImage: json['profile_image']?.toString(),
       location: json['location']?.toString(),
@@ -214,6 +223,8 @@ class HomeFeedUser {
   Map<String, dynamic> toJson() {
     return {
       'userid': userid,
+      'first_name': firstName,
+      'last_name': lastName,
       'username': username,
       'profile_image': profileImage,
       'location': location,
@@ -322,8 +333,8 @@ class HomeFeedPollOption {
   final int voteCount;
   final int score;
   double percentage;
-  int rank1Count; 
-  int? rankPosition;    
+  int rank1Count;
+  int? rankPosition;
   final List<HomeFeedLikeUser> userList;
 
   HomeFeedPollOption({
@@ -333,8 +344,8 @@ class HomeFeedPollOption {
     required this.voteCount,
     required this.score,
     required this.percentage,
-     this.rank1Count = 0, 
-     this.rankPosition, 
+    this.rank1Count = 0,
+    this.rankPosition,
     required this.userList,
   });
 

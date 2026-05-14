@@ -1,7 +1,4 @@
-// post_images_model.dart
-
 // ignore_for_file: non_constant_identifier_names
-
 class UserPostResponse {
   final int count;
   final String? next;
@@ -51,7 +48,7 @@ class UserPostModel {
   final List<Comment> comments;
   final int likesCount;
   final bool isLiked;
-  final bool is_polled_by_current_user;
+  bool is_polled_by_current_user;
 
   UserPostModel({
     required this.id,

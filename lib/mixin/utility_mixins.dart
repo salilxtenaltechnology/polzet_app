@@ -9,8 +9,8 @@ mixin UtilityMixin {
     );
   }
 
-  void navigationPush(BuildContext context, Widget screen) {
-    Navigator.push(
+  Future<dynamic> navigationPush(BuildContext context, Widget screen) {
+    return Navigator.push(
       context,
       PageTransition(
         type: PageTransitionType.fade,
@@ -20,8 +20,8 @@ mixin UtilityMixin {
     );
   }
 
-  void navigationPushReplacement(BuildContext context, Widget screen) {
-    Navigator.pushReplacement(
+  Future<dynamic> navigationPushReplacement(BuildContext context, Widget screen) {
+    return Navigator.pushReplacement(
       context,
       PageTransition(
         type: PageTransitionType.fade,

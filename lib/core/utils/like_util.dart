@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:polzet_app/core/themes/app_text_styles.dart';
 
 import '../../widgets/base64/image_convert.dart';
 
@@ -27,16 +28,16 @@ class LikeUtils {
       return const TextSpan(text: '');
     }
 
-    final baseStyle = TextStyle(
-      fontSize: 10.sp,
-      color: Theme.of(context).colorScheme.onSurface.withOpacity(0.8),
+    final baseStyle = AppTextStyles.subText.copyWith(
+      fontSize: 12,
+      color: const Color(0XFF8E8E8E),
       fontWeight: FontWeight.w400,
     );
 
-    final boldStyle = TextStyle(
-      fontSize: 10.sp,
-      color: Theme.of(context).colorScheme.onBackground,
-      fontWeight: FontWeight.w600,
+    final boldStyle = AppTextStyles.subText.copyWith(
+      fontSize: 12.5,
+      color: const Color(0XFF2C2C2C),
+      fontWeight: FontWeight.w500,
     );
 
     if (likeUsers.length == 1) {
@@ -81,7 +82,7 @@ class LikeUtils {
     double avatarSize = 16,
   }) {
     final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    
+
     return SizedBox(
       height: avatarSize.h,
       width: (viewLikes.take(maxDisplay).length * (avatarSize * 0.65) + 7).w,
@@ -95,7 +96,7 @@ class LikeUtils {
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   border: Border.all(
-                    color: isDarkMode 
+                    color: isDarkMode
                         ? Theme.of(context).colorScheme.primaryContainer
                         : Colors.white,
                     width: 2,

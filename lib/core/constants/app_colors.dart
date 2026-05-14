@@ -18,7 +18,7 @@ class AppColors {
   static const Color lightDividerColor = Color(0xFFE6E6E6);
   static const Color lightStrokeColor = Color(0xFFDDDDDD);
   static const Color lightPlaceholderColor = Color(0xFFB3B3B3);
-  static const Color lightErrorColor = Color(0xFFEF4444);
+  static const Color lightErrorColor = Color(0xFFDC2626);
 
   /*--- DARK MODE ---*/
   static const Color darkBackgroundColor = Color(0xFF0F0F10);

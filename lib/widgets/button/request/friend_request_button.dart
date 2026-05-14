@@ -49,7 +49,7 @@ class _FriendRequestButtonsState extends State<FriendRequestButtons> {
                 'Approve',
                 style: TextStyle(
                   color: Colors.white,
-                  fontSize: 10.sp,
+                  fontSize: 11.sp,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -77,7 +77,7 @@ class _FriendRequestButtonsState extends State<FriendRequestButtons> {
                 'Reject',
                 style: TextStyle(
                   color: Theme.of(context).colorScheme.onBackground,
-                  fontSize: 10.2.sp,
+                  fontSize: 11.sp,
                   fontWeight: FontWeight.w500,
                 ),
               ),

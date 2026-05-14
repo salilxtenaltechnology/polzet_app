@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../../screens/home/home_imports.dart';
 import '../../screens/home/notifications/notification_details.dart';
-import '../../screens/home/profile/public/public_profile.dart';
+import '../../screens/home/profile/public/public_profile_screen.dart';
 
 // PROFESSIONAL: Centralized notification routing service
 class NotificationRouter {
@@ -81,7 +81,7 @@ class NotificationRouter {
         debugPrint('   👤 Follow notification - userId: $userId');
 
         if (userId > 0) {
-          return PublicProfile(userId: userId);
+          return PublicProfileScreen(userId: userId);
         } else {
           debugPrint('❌ Invalid sender_id: ${data['sender_id']}');
           debugPrint('   Available keys: ${data.keys.toList()}');
@@ -171,7 +171,7 @@ class NotificationRouter {
     if (userId > 0) {
       Navigator.of(
         context,
-      ).push(MaterialPageRoute(builder: (_) => PublicProfile(userId: userId)));
+      ).push(MaterialPageRoute(builder: (_) => PublicProfileScreen(userId: userId)));
     } else {
       _navigateToNotificationsTab(context);
     }

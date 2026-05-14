@@ -7,7 +7,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:polzet_app/screens/home/profile/public/public_profile.dart';
+import 'package:polzet_app/gen/assets.gen.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -27,13 +27,13 @@ import '../../../models/request/incoming_request.dart';
 import '../../../models/user/user_model.dart';
 import '../../../widgets/appbar/common_appbar.dart';
 import '../../../widgets/button/request/friend_request_button.dart';
-import '../../../widgets/custom_text_styles.dart';
 import '../../../widgets/dialog/custom_diolog.dart';
 import '../../../widgets/loader.dart';
 import '../../../widgets/show_toast.dart';
 import '../../../widgets/tabbar/indicatore_animation.dart';
 import '../message/chat/group/group_chat_screen.dart';
 import '../message/chat/private/private_chat_screen.dart';
+import '../profile/public/public_profile_screen.dart';
 import 'notification_details.dart';
 import 'poll_vote_notification_tile.dart';
 
@@ -64,6 +64,7 @@ class NotificationState extends State<Notifications>
     0,
   );
   static Timer? _globalPollingTimer;
+  static List<NotificationItem> globalCachedNotifications = [];
 
   static void startGlobalPolling() {
     if (_globalPollingTimer != null) return;
@@ -97,7 +98,10 @@ class NotificationState extends State<Notifications>
         final notificationsResponse = NotificationsResponse.fromJson(
           response.data,
         );
-        int unreadCount = notificationsResponse.results
+        globalCachedNotifications = List<NotificationItem>.from(
+          notificationsResponse.results,
+        );
+        int unreadCount = globalCachedNotifications
             .where((n) => !n.isRead)
             .length;
         unreadNotificationCount.value = unreadCount;
@@ -112,7 +116,9 @@ class NotificationState extends State<Notifications>
   final StreamController<List<NotificationItem>> _notificationStreamController =
       StreamController<List<NotificationItem>>.broadcast();
 
-  List<NotificationItem> _lastNotifications = [];
+  late List<NotificationItem> _lastNotifications = List.from(
+    globalCachedNotifications,
+  );
 
   final Map<String, Uint8List> _imageCache = {};
   final ScrollController _allNotificationsScrollController = ScrollController();
@@ -138,6 +144,8 @@ class NotificationState extends State<Notifications>
   Future<void> _loadNotificationsFromCache() async {
     if (_isDisposed) return;
     try {
+      if (_lastNotifications.isNotEmpty) return;
+
       final prefs = await SharedPreferences.getInstance();
       final cachedData = prefs.getString(_notificationsCacheKey);
       if (_isDisposed) return;
@@ -245,6 +253,7 @@ class NotificationState extends State<Notifications>
         if (_isDisposed || _notificationStreamController.isClosed) return;
 
         _lastNotifications = freshList;
+        globalCachedNotifications = List.from(freshList);
         _hasMoreData = notificationsResponse.hasMore;
         _currentPage = notificationsResponse.page;
 
@@ -301,6 +310,7 @@ class NotificationState extends State<Notifications>
         ];
 
         _lastNotifications = merged;
+        globalCachedNotifications = List.from(merged);
         _hasMoreData = notificationsResponse.hasMore;
         _currentPage = notificationsResponse.page;
 
@@ -635,10 +645,50 @@ class NotificationState extends State<Notifications>
                       if (snapshot.hasData) {
                         final notifications = snapshot.data!;
                         if (notifications.isEmpty) {
-                          return Center(
-                            child: Text(
-                              'No notifications available',
-                              style: CustomTextStyles.lblSecondryText(context),
+                          return SizedBox(
+                            width: double.infinity,
+                            height: 0.75.sh,
+                            child: Center(
+                              child: Padding(
+                                padding: EdgeInsets.symmetric(horizontal: 32.w),
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  crossAxisAlignment: CrossAxisAlignment.center,
+                                  children: [
+                                    Image.asset(
+                                      Assets.images.noNotifications.path,
+                                      height: 0.22.sh,
+                                      width: 0.22.sh,
+                                      fit: BoxFit.contain,
+                                    ),
+
+                                    const SizedBox(height: 15),
+                                    Text(
+                                      'No notifications yet',
+                                      textAlign: TextAlign.center,
+                                      style: AppTextStyles.sectionHeading
+                                          .copyWith(
+                                            fontSize: 18.5,
+                                            color: Theme.of(
+                                              context,
+                                            ).colorScheme.onBackground,
+                                            fontWeight: FontWeight.w600,
+                                            height: 1.4,
+                                          ),
+                                    ),
+                                    const SizedBox(height: 10),
+                                    Text(
+                                      'Likes, comments, and updates will appear here.',
+                                      textAlign: TextAlign.center,
+                                      style: AppTextStyles.bodyText.copyWith(
+                                        fontSize: 13,
+                                        color: const Color(0xFF595959),
+                                        height: 1.4,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
                             ),
                           );
                         }
@@ -782,10 +832,49 @@ class NotificationState extends State<Notifications>
                             .toList();
 
                         if (voteNotifications.isEmpty) {
-                          return Center(
-                            child: Text(
-                              'No vote notifications available',
-                              style: CustomTextStyles.lblSecondryText(context),
+                          return SizedBox(
+                            width: double.infinity,
+                            height: 0.75.sh,
+                            child: Center(
+                              child: Padding(
+                                padding: EdgeInsets.symmetric(horizontal: 32.w),
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  crossAxisAlignment: CrossAxisAlignment.center,
+                                  children: [
+                                    Image.asset(
+                                      Assets.images.noNotifications.path,
+                                      height: 0.22.sh,
+                                      width: 0.22.sh,
+                                      fit: BoxFit.contain,
+                                    ),
+                                    const SizedBox(height: 15),
+                                    Text(
+                                      'No notifications yet',
+                                      textAlign: TextAlign.center,
+                                      style: AppTextStyles.sectionHeading
+                                          .copyWith(
+                                            fontSize: 18.5,
+                                            color: Theme.of(
+                                              context,
+                                            ).colorScheme.onBackground,
+                                            fontWeight: FontWeight.w600,
+                                            height: 1.4,
+                                          ),
+                                    ),
+                                    const SizedBox(height: 10),
+                                    Text(
+                                      'Votes updates will appear here.',
+                                      textAlign: TextAlign.center,
+                                      style: AppTextStyles.bodyText.copyWith(
+                                        fontSize: 13,
+                                        color: const Color(0xFF595959),
+                                        height: 1.4,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
                             ),
                           );
                         }
@@ -987,10 +1076,46 @@ class NotificationState extends State<Notifications>
                 .toList();
 
             if (requestNotifications.isEmpty) {
-              return Center(
-                child: Text(
-                  'No chase requests',
-                  style: CustomTextStyles.lblSecondryText(context),
+              return SizedBox(
+                width: double.infinity,
+                height: 0.75.sh,
+                child: Center(
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 32.w),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Image.asset(
+                          Assets.images.noNotifications.path,
+                          height: 0.22.sh,
+                          width: 0.22.sh,
+                          fit: BoxFit.contain,
+                        ),
+                        const SizedBox(height: 15),
+                        Text(
+                          'No notifications yet',
+                          textAlign: TextAlign.center,
+                          style: AppTextStyles.sectionHeading.copyWith(
+                            fontSize: 18.5,
+                            color: Theme.of(context).colorScheme.onBackground,
+                            fontWeight: FontWeight.w600,
+                            height: 1.4,
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        Text(
+                          'Chase requests updates will appear here.',
+                          textAlign: TextAlign.center,
+                          style: AppTextStyles.bodyText.copyWith(
+                            fontSize: 13,
+                            color: const Color(0xFF595959),
+                            height: 1.4,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
               );
             }
@@ -1130,7 +1255,7 @@ class NotificationState extends State<Notifications>
           } else if (notification.type.toUpperCase() == 'FOLLOW') {
             navigationPush(
               context,
-              PublicProfile(userId: notification.actor.userId),
+              PublicProfileScreen(userId: notification.actor.userId),
             );
           } else {
             // ScaffoldMessenger.of(
@@ -1164,7 +1289,7 @@ class NotificationState extends State<Notifications>
                 onTap: () {
                   navigationPush(
                     context,
-                    PublicProfile(userId: notification.actor.userId),
+                    PublicProfileScreen(userId: notification.actor.userId),
                   );
                 },
                 child: Stack(
@@ -1336,7 +1461,7 @@ class NotificationState extends State<Notifications>
                   },
                   child: Container(
                     height: 30.h,
-                    width: 75.w,
+                    width: 80.w,
                     margin: EdgeInsets.only(left: 5.w),
                     decoration: BoxDecoration(
                       color: Colors.white,
@@ -1352,7 +1477,7 @@ class NotificationState extends State<Notifications>
                         'Message',
                         style: TextStyle(
                           color: Theme.of(context).colorScheme.onBackground,
-                          fontSize: 10.sp,
+                          fontSize: 11.sp,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
@@ -1373,13 +1498,13 @@ class NotificationState extends State<Notifications>
     if (!notification.isRead) {
       _markAsRead(notification);
     }
-    final senderId = notification.meta?.senderId;
-    if (senderId == null) return;
+    final requestId = notification.meta?.requestId;
+    if (requestId == null) return;
 
     try {
       final headers = await _getAuthHeaders();
       await _dio.put(
-        '${ApiConstants.acceptRequest}/$senderId',
+        '${ApiConstants.acceptRequest}/$requestId',
         data: {'action': action},
         options: Options(headers: headers),
       );

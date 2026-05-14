@@ -11,9 +11,9 @@ class PrimaryBackButton extends StatelessWidget {
       onTap: () {
         Navigator.pop(context);
       },
-      child: const Icon(
+      child:  Icon(
         Icons.arrow_back_ios,
-        color:  Color(0xFF111111),
+        color: Theme.of(context).colorScheme.onBackground,
         size: 24,
       ),
     );

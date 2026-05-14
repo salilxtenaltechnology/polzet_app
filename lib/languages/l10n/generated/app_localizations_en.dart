@@ -91,7 +91,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'You are about to unlock powerful analytics and features. Confirm to proceed.';
 
   @override
-  String get upgrade => 'UPGRADE';
+  String get upgrade => 'Upgrade';
 
   @override
   String get totalviews => 'Total Views';
@@ -385,7 +385,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get cancel => 'Cancel';
 
   @override
-  String get confirm => 'CONFIRM';
+  String get confirm => 'Confirm';
 
   @override
   String get delete => 'Delete';
@@ -756,7 +756,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get confirmdelete => 'CONFIRM, DELETE';
 
   @override
-  String get yesdelete => 'YES, DELETE';
+  String get yesdelete => 'Yes, Delete';
 
   @override
   String get confirmaccountdeletion => 'Confirm Account Deletion';
@@ -1626,7 +1626,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'Are you sure you want to leave this group?';
 
   @override
-  String get yesleave => 'YES, LEAVE';
+  String get yesleave => 'Yes, Leave';
 
   @override
   String get member => 'member';
@@ -1686,7 +1686,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get reportchat => 'Report chat';
 
   @override
-  String get yesreport => 'YES, REPORT';
+  String get yesreport => 'Yes, Report';
 
   @override
   String get allimages => 'All images';

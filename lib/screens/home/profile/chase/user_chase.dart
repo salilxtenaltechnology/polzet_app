@@ -6,24 +6,22 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../../../api/services/api_service.dart';
 import '../../../../core/constants/app_colors.dart';
-import '../../../../core/constants/app_constants.dart';
 import '../../../../core/constants/app_radius.dart';
 import '../../../../core/themes/app_text_styles.dart';
+import '../../../../gen/assets.gen.dart';
 import '../../../../languages/l10n/generated/app_localizations.dart';
 import '../../../../mixin/utility_mixins.dart';
 import '../../../../widgets/appbar/common_appbar.dart';
 import '../../../../widgets/base64/image_convert.dart';
 import '../../../../widgets/button/chase/toggle_chase_button.dart';
-import '../../../../widgets/custom_text_styles.dart';
 import '../../../../widgets/tabbar/indicatore_animation.dart';
-import '../public/public_profile.dart';
+import '../public/public_profile_screen.dart';
 
 class UserChase extends StatefulWidget {
   final String username;
   final int initialIndex;
   final String followerCount;
   final String followingCount;
-  // ✅ Pass lists directly from UserProvider
   final List<Map<String, dynamic>> chaseList;
   final List<Map<String, dynamic>> rechaseList;
 
@@ -54,15 +52,15 @@ class _UserChaseState extends State<UserChase>
   List<Map<String, dynamic>> _filteredFollowers = [];
   List<Map<String, dynamic>> _filteredFollowing = [];
 
-  int _followerCount = 0;
-  int _followingCount = 0;
+  // int _followerCount = 0;
+  // int _followingCount = 0;
 
   @override
   void initState() {
     super.initState();
 
-    _followerCount = int.tryParse(widget.followerCount) ?? 0;
-    _followingCount = int.tryParse(widget.followingCount) ?? 0;
+    // _followerCount = int.tryParse(widget.followerCount) ?? 0;
+    // _followingCount = int.tryParse(widget.followingCount) ?? 0;
 
     _tabController = TabController(
       length: 2,
@@ -75,8 +73,8 @@ class _UserChaseState extends State<UserChase>
     _filteredFollowers = widget.chaseList;
     _filteredFollowing = widget.rechaseList;
 
-    _followerCount = _allFollowers.length;
-    _followingCount = _allFollowing.length;
+    // _followerCount = _allFollowers.length;
+    // _followingCount = _allFollowing.length;
   }
 
   void _filterUsers(String query) {
@@ -89,12 +87,28 @@ class _UserChaseState extends State<UserChase>
       } else {
         _filteredFollowers = _allFollowers.where((user) {
           final username = (user['username'] as String?)?.toLowerCase() ?? '';
-          return username.contains(_searchQuery);
+          final firstName =
+              (user['first_name'] as String?)?.toLowerCase() ?? '';
+          final lastName = (user['last_name'] as String?)?.toLowerCase() ?? '';
+          final fullName = '$firstName $lastName'.trim();
+
+          return username.contains(_searchQuery) ||
+              firstName.contains(_searchQuery) ||
+              lastName.contains(_searchQuery) ||
+              fullName.contains(_searchQuery);
         }).toList();
 
         _filteredFollowing = _allFollowing.where((user) {
           final username = (user['username'] as String?)?.toLowerCase() ?? '';
-          return username.contains(_searchQuery);
+          final firstName =
+              (user['first_name'] as String?)?.toLowerCase() ?? '';
+          final lastName = (user['last_name'] as String?)?.toLowerCase() ?? '';
+          final fullName = '$firstName $lastName'.trim();
+
+          return username.contains(_searchQuery) ||
+              firstName.contains(_searchQuery) ||
+              lastName.contains(_searchQuery) ||
+              fullName.contains(_searchQuery);
         }).toList();
       }
     });
@@ -108,72 +122,93 @@ class _UserChaseState extends State<UserChase>
   }
 
   Widget _buildEmptyState({
-    required IconData icon,
+    required String image,
+    required String title,
     required String message,
-    String? subtitle,
   }) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            icon,
-            size: 40.sp,
-            color: Theme.of(context).colorScheme.onBackground.withOpacity(0.3),
-          ),
-          SizedBox(height: 12.h),
-          Text(
-            message,
-            style: TextStyle(
-              fontSize: 15.5.sp,
-              fontWeight: FontWeight.w500,
-              color: Theme.of(context).colorScheme.onBackground,
-            ),
-          ),
-          if (subtitle != null) ...[
-            SizedBox(height: 5.h),
-            Text(
-              subtitle,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 12.sp,
-                color: Theme.of(
-                  context,
-                ).colorScheme.onBackground.withOpacity(0.6),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return SizedBox(
+          height: constraints.maxHeight,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Transform.translate(
+                offset: const Offset(0, -60),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Image.asset(
+                      image,
+                      height: 0.22.sh,
+                      width: 0.22.sh,
+                      fit: BoxFit.contain,
+                    ),
+                    const SizedBox(height: 14),
+                    Text(
+                      title,
+                      textAlign: TextAlign.center,
+                      style: AppTextStyles.sectionHeading.copyWith(
+                        fontSize: 18.5,
+                        color: Theme.of(context).colorScheme.onBackground,
+                        fontWeight: FontWeight.w600,
+                        height: 1.4,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 32),
+                      child: Text(
+                        message,
+                        textAlign: TextAlign.center,
+                        style: AppTextStyles.bodyText.copyWith(
+                          fontSize: 13,
+                          color: const Color(0xFF595959),
+                          height: 1.4,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
-          ],
-        ],
-      ),
+            ],
+          ),
+        );
+      },
     );
   }
 
   Widget _buildUserListItem({required Map<String, dynamic> user}) {
     final profilePic = user['avatar_url'] as String?;
+    final firstName = user['first_name'] ?? 'Polzet';
+    final lastName = user['last_name'] ?? 'User';
     final username = user['username'] as String? ?? '';
     final firstLetter = username.isNotEmpty ? username[0].toUpperCase() : '?';
     final userId = user['user_id'] as int;
     final followStatus = user['follow_status'] as String? ?? '';
+    final isPrivate = user['is_private'] == true;
 
     return Container(
-      height: 40.h,
+      height: 60,
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 10),
       margin: EdgeInsets.only(bottom: 7.h, right: 10.w, left: 10.w, top: 5.h),
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.primaryContainer,
         borderRadius: BorderRadius.circular(AppRadius.card),
-        boxShadow: const [
-          BoxShadow(color: Color(0x13000000), blurRadius: 5, spreadRadius: 1),
-        ],
+        border: Border.all(color: const Color(0XFFEFEFEF), width: 1),
+        boxShadow: const [BoxShadow(color: Color(0x06000000), blurRadius: 2)],
       ),
       child: GestureDetector(
-        onTap: () => navigationPush(context, PublicProfile(userId: userId)),
+        onTap: () =>
+            navigationPush(context, PublicProfileScreen(userId: userId)),
         child: Row(
+          mainAxisAlignment: MainAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             Container(
-              height: 28.h,
-              width: 28.w,
+              height: 35.h,
+              width: 35.w,
               margin: EdgeInsets.only(right: 5.w),
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
@@ -195,7 +230,7 @@ class _UserChaseState extends State<UserChase>
                       child: Text(
                         firstLetter,
                         style: TextStyle(
-                          fontSize: 13.sp,
+                          fontSize: 17,
                           fontWeight: FontWeight.w500,
                           color: Theme.of(context).primaryColor,
                         ),
@@ -206,12 +241,54 @@ class _UserChaseState extends State<UserChase>
             const SizedBox(width: 5),
             // Username
             Expanded(
-              child: Text(
-                username,
-                style: AppTextStyles.bodyText.copyWith(
-                  color: Theme.of(context).colorScheme.onBackground,
-                ),
-                overflow: TextOverflow.ellipsis,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  if ('$firstName $lastName'.trim().isNotEmpty) ...[
+                    Text(
+                      username,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppTextStyles.bodyText.copyWith(
+                        color: const Color(0XFF595959),
+                        fontSize: 14.5,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    Text(
+                      '$firstName $lastName'.trim(),
+                      style: AppTextStyles.bodyText.copyWith(
+                        fontSize: 12.5,
+                        color: const Color(0XFF8E8E8E),
+                        fontWeight: FontWeight.w500,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ] else ...[
+                    Text(
+                      username,
+                      style: AppTextStyles.bodyText.copyWith(
+                        color: const Color(0XFF595959),
+                        fontSize: 14.5,
+                        fontWeight: FontWeight.w500,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    Text(
+                      username,
+                      style: AppTextStyles.bodyText.copyWith(
+                        fontSize: 12.5,
+                        color: const Color(0XFF8E8E8E),
+                        fontWeight: FontWeight.w500,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ],
               ),
             ),
             ToggleChaseButton(
@@ -219,6 +296,7 @@ class _UserChaseState extends State<UserChase>
               userId: userId,
               followStatus: followStatus,
               apiService: apiService,
+              isPrivate: isPrivate,
             ),
           ],
         ),
@@ -257,24 +335,25 @@ class _UserChaseState extends State<UserChase>
               tabs: [
                 Tab(
                   text:
-                      '$_followerCount  ${AppLocalizations.of(context)!.vibe}',
+                      // '$_followerCount  ${AppLocalizations.of(context)!.vibe}',
+                      AppLocalizations.of(context)!.vibe,
                 ),
                 Tab(
                   text:
-                      '$_followingCount ${AppLocalizations.of(context)!.revibe}',
+                      // '$_followingCount ${AppLocalizations.of(context)!.revibe}',
+                      AppLocalizations.of(context)!.revibe,
                 ),
               ],
             ),
           ),
           // Search bar
           Container(
-            height: AppConstants.searchbarHeight.h,
+            height: 43,
             width: double.infinity,
             margin: EdgeInsets.symmetric(vertical: 7.h, horizontal: 10.w),
             decoration: BoxDecoration(
               color: Theme.of(context).colorScheme.primaryContainer,
               borderRadius: BorderRadius.circular(AppRadius.button),
-              boxShadow: const [AppConstants.cardShadow],
             ),
             child: TextField(
               controller: _searchController,
@@ -285,12 +364,16 @@ class _UserChaseState extends State<UserChase>
                   top: 10.h,
                 ),
                 hintText: AppLocalizations.of(context)!.searchusers,
-                hintStyle: CustomTextStyles.lblPrimaryHintText(context),
+                hintStyle: AppTextStyles.bodyText.copyWith(
+                  color: const Color(0XFF898989),
+                  fontWeight: FontWeight.w400,
+                  fontSize: 13.5,
+                ),
                 border: InputBorder.none,
-                suffixIcon: Icon(
+                prefixIcon: Icon(
                   FeatherIcons.search,
                   size: 17.spMax,
-                  color: Theme.of(context).colorScheme.onBackground,
+                  color: const Color(0XFF898989),
                 ),
                 enabledBorder: OutlineInputBorder(
                   borderSide: BorderSide(
@@ -298,20 +381,20 @@ class _UserChaseState extends State<UserChase>
                       context,
                     ).colorScheme.onBackground.withOpacity(0.1),
                   ),
-                  borderRadius: BorderRadius.circular(AppRadius.button),
+                  borderRadius: BorderRadius.circular(9),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderSide: const BorderSide(
                     color: AppColors.primaryColor,
                     width: 0.7,
                   ),
-                  borderRadius: BorderRadius.circular(AppRadius.button),
+                  borderRadius: BorderRadius.circular(9),
                 ),
               ),
-              style: TextStyle(
+              style: AppTextStyles.bodyText.copyWith(
                 color: Theme.of(context).colorScheme.onBackground,
-                fontSize: 13.sp,
                 fontWeight: FontWeight.w400,
+                fontSize: 13.5,
               ),
               onChanged: _filterUsers,
             ),
@@ -321,54 +404,45 @@ class _UserChaseState extends State<UserChase>
             child: TabBarView(
               controller: _tabController,
               children: [
-                // ── Followers (Chase / Vibe) tab ──
-                Padding(
-                  padding: EdgeInsets.only(top: 5.h, left: 2.5.w, right: 2.5.w),
-                  child: _filteredFollowers.isEmpty
-                      ? _buildEmptyState(
-                          icon: FeatherIcons.users,
-                          message: _searchQuery.isEmpty
-                              ? AppLocalizations.of(context)!.nochaseyet
-                              : AppLocalizations.of(context)!.nousersfound,
-                          subtitle: _searchQuery.isEmpty
-                              ? AppLocalizations.of(
-                                  context,
-                                )!.whenpeoplechasechaseyoutheywillappearhere
-                              : AppLocalizations.of(
-                                  context,
-                                )!.trysearchingwithadifferent,
-                        )
-                      : ListView.builder(
-                          itemCount: _filteredFollowers.length,
-                          itemBuilder: (context, index) => _buildUserListItem(
-                            user: _filteredFollowers[index],
-                          ),
-                        ),
-                ),
-                // ── Following (Re-chase / Revibe) tab ──
-                Padding(
-                  padding: EdgeInsets.only(top: 5.h, left: 2.5.w, right: 2.5.w),
-                  child: _filteredFollowing.isEmpty
-                      ? _buildEmptyState(
-                          icon: FeatherIcons.userPlus,
-                          message: _searchQuery.isEmpty
-                              ? AppLocalizations.of(context)!.norechaseyet
-                              : AppLocalizations.of(context)!.nousersfound,
-                          subtitle: _searchQuery.isEmpty
-                              ? AppLocalizations.of(
-                                  context,
-                                )!.startrechasepeopletoseethemhere
-                              : AppLocalizations.of(
-                                  context,
-                                )!.trysearchingwithadifferent,
-                        )
-                      : ListView.builder(
-                          itemCount: _filteredFollowing.length,
-                          itemBuilder: (context, index) => _buildUserListItem(
-                            user: _filteredFollowing[index],
-                          ),
-                        ),
-                ),
+                // ── Followers (Chase) tab ──
+                _filteredFollowers.isEmpty
+                    ? _buildEmptyState(
+                        image: Assets.images.noChase.path,
+                        title: _searchQuery.isEmpty
+                            ? AppLocalizations.of(context)!.nochaseyet
+                            : AppLocalizations.of(context)!.nousersfound,
+                        message: _searchQuery.isEmpty
+                            ? AppLocalizations.of(
+                                context,
+                              )!.whenpeoplechasechaseyoutheywillappearhere
+                            : AppLocalizations.of(
+                                context,
+                              )!.trysearchingwithadifferent,
+                      )
+                    : ListView.builder(
+                        itemCount: _filteredFollowers.length,
+                        itemBuilder: (context, index) =>
+                            _buildUserListItem(user: _filteredFollowers[index]),
+                      ),
+
+                // ── Following (Rechase) tab ──
+                _filteredFollowing.isEmpty
+                    ? _buildEmptyState(
+                        image: Assets.images.noRechase.path,
+                        title: _searchQuery.isEmpty
+                            ? AppLocalizations.of(context)!.norechaseyet
+                            : AppLocalizations.of(context)!.nousersfound,
+                        message: _searchQuery.isEmpty
+                            ? 'Stay active and share polls to build your community'
+                            : AppLocalizations.of(
+                                context,
+                              )!.trysearchingwithadifferent,
+                      )
+                    : ListView.builder(
+                        itemCount: _filteredFollowing.length,
+                        itemBuilder: (context, index) =>
+                            _buildUserListItem(user: _filteredFollowing[index]),
+                      ),
               ],
             ),
           ),

@@ -17,12 +17,12 @@ import 'firebase_options.dart';
 import 'languages/l10n/generated/app_localizations.dart';
 import 'provider/connection_provider.dart';
 import 'provider/private_chat_provider.dart';
-import 'provider/public_profile_provider.dart';
+
 import 'provider/user_provider.dart';
 import 'screens/home/home_imports.dart';
 import 'screens/home/message/chat/private/private_chat_screen.dart';
 import 'screens/home/notifications/notification_details.dart';
-import 'screens/home/profile/public/public_profile.dart';
+import 'screens/home/profile/public/public_profile_screen.dart';
 import 'screens/splash/splash_screen.dart';
 
 // ✅ Background message handler
@@ -77,7 +77,6 @@ void main() async {
         ChangeNotifierProvider(create: (_) => ConnectivityProvider()),
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
         ChangeNotifierProvider(create: (_) => UserProvider()),
-        ChangeNotifierProvider(create: (_) => PublicProfileProvider()),
         ChangeNotifierProvider(create: (_) => PrivateChatProvider()),
       ],
       child: const MyApp(),
@@ -282,7 +281,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     } else if (type == 'follow') {
       final userId = _parseToInt(data['sender_id']);
       if (userId > 0) {
-        destination = PublicProfile(userId: userId);
+        destination = PublicProfileScreen(userId: userId);
       } else {
         debugPrint('❌ Invalid or missing sender_id for type: $type');
       }

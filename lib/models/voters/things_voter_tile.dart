@@ -5,9 +5,9 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:polzet_app/screens/home/profile/public/public_profile.dart';
 
 import '../../mixin/utility_mixins.dart';
+import '../../screens/home/profile/public/public_profile_screen.dart';
 import '../../widgets/base64/image_convert.dart';
 import 'things_voters_models.dart';
 
@@ -20,41 +20,40 @@ class ThingsVoterTile extends StatelessWidget with UtilityMixin {
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
       child: GestureDetector(
-        onTap: () => navigationPush(context, PublicProfile(userId: voter.id)),
+        onTap: () =>
+            navigationPush(context, PublicProfileScreen(userId: voter.id)),
         child: Row(
           children: [
             CircleAvatar(
               radius: 16.r,
-              backgroundColor:
-                  Theme.of(context).colorScheme.primary.withOpacity(0.15),
+              backgroundColor: Theme.of(
+                context,
+              ).colorScheme.primary.withOpacity(0.15),
               backgroundImage:
                   voter.profileImage != null && voter.profileImage!.isNotEmpty
-                      ? (voter.profileImage!.startsWith('data:image')
-                            ? MemoryImage(
-                                    base64Decode(
-                                      voter.profileImage!.split(',').last,
-                                    ),
-                                  )
-                                  as ImageProvider
-                            : voter.profileImage!.startsWith('http')
-                            ? NetworkImage(voter.profileImage!)
-                            : MemoryImage(
-                                getProfileImage(voter.profileImage)!,
-                              ))
-                      : null,
-              child:
-                  voter.profileImage == null || voter.profileImage!.isEmpty
-                      ? Text(
-                          voter.username.isNotEmpty
-                              ? voter.username[0].toUpperCase()
-                              : '?',
-                          style: TextStyle(
-                            fontSize: 14.sp,
-                            fontWeight: FontWeight.w600,
-                            color: Theme.of(context).colorScheme.primary,
-                          ),
-                        )
-                      : null,
+                  ? (voter.profileImage!.startsWith('data:image')
+                        ? MemoryImage(
+                                base64Decode(
+                                  voter.profileImage!.split(',').last,
+                                ),
+                              )
+                              as ImageProvider
+                        : voter.profileImage!.startsWith('http')
+                        ? NetworkImage(voter.profileImage!)
+                        : MemoryImage(getProfileImage(voter.profileImage)!))
+                  : null,
+              child: voter.profileImage == null || voter.profileImage!.isEmpty
+                  ? Text(
+                      voter.username.isNotEmpty
+                          ? voter.username[0].toUpperCase()
+                          : '?',
+                      style: TextStyle(
+                        fontSize: 14.sp,
+                        fontWeight: FontWeight.w600,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                    )
+                  : null,
             ),
             SizedBox(width: 8.w),
             Column(

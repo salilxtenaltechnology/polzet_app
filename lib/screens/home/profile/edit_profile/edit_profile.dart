@@ -7,7 +7,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:polzet_app/screens/home/settings/settings_import.dart';
+import 'package:polzet_app/screens/home/profile/edit_profile/new_edit_profile.dart';
 import 'package:provider/provider.dart';
 
 import '../../../../api/app_api.dart';
@@ -505,7 +505,7 @@ class _EditProfileState extends State<EditProfile> with UtilityMixin {
                   padding: EdgeInsets.symmetric(horizontal: 12.w),
                   child: GestureDetector(
                     onTap: () {
-                      navigationPush(context, const Settings());
+                      navigationPush(context, const NewEditProfile());
                     },
                     child: Container(
                       width: double.infinity,

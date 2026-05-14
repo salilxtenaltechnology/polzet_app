@@ -5,6 +5,8 @@ import 'dart:convert';
 import 'dart:typed_data';
 import '../api/services/api_service.dart';
 import '../data/token/shared_preferences.dart';
+import '../models/insights/insights_model.dart';
+import '../models/posts/user_post_model.dart';
 import '../models/user/user_model.dart';
 
 class UserProvider with ChangeNotifier {
@@ -59,6 +61,67 @@ class UserProvider with ChangeNotifier {
   bool _isInitialLoadComplete = false;
   bool get isInitialLoadComplete => _isInitialLoadComplete;
 
+  // ─── Profile Posts Cache ──────────────────────────────────────
+  Map<String, List<UserPostModel>> cachedThingsPostsMap = {};
+  Map<String, List<UserPostModel>> cachedImagesPostsMap = {};
+  Map<String, int> cachedTotalPollsCountMap = {};
+
+  Future<void> prefetchUserPosts() async {
+    if (username == null || username!.isEmpty) return;
+    final currentUsername = username!;
+
+    if (cachedThingsPostsMap.containsKey(currentUsername) &&
+        cachedImagesPostsMap.containsKey(currentUsername)) {
+      return; // Already cached
+    }
+
+    try {
+      final things = await apiService.fetchOnlyPollPosts(currentUsername);
+      cachedThingsPostsMap[currentUsername] = things.where((post) {
+        if (post.polls.isEmpty) return false;
+        return post.polls.every(
+          (poll) =>
+              poll.options != null &&
+              poll.options!.every(
+                (o) => o.text != null && o.text!.isNotEmpty,
+              ),
+        );
+      }).toList();
+    } catch (e) {
+      debugPrint('Error prefetching things posts: $e');
+    }
+
+    try {
+      final images = await apiService.fetchPostsImages(currentUsername);
+      cachedImagesPostsMap[currentUsername] = images.where((post) {
+        return post.polls.any(
+          (poll) => poll.options?.any((o) => o.image != null) ?? false,
+        );
+      }).toList();
+    } catch (e) {
+      debugPrint('Error prefetching image posts: $e');
+    }
+
+    cachedTotalPollsCountMap[currentUsername] =
+        (cachedThingsPostsMap[currentUsername]?.length ?? 0) +
+        (cachedImagesPostsMap[currentUsername]?.length ?? 0);
+
+    notifyListeners();
+  }
+
+  // ─── Insights Cache ───────────────────────────────────────────
+  InsightsModel? cachedInsightsData;
+
+  Future<void> prefetchInsightsData() async {
+    if (cachedInsightsData != null) return;
+    try {
+      cachedInsightsData = await apiService.getInsightsData();
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Error prefetching insights: $e');
+    }
+  }
+
   UserProvider();
 
   // ─── Load User Data ───────────────────────────────────────────
@@ -73,6 +136,8 @@ class UserProvider with ChangeNotifier {
       _isInitialLoadComplete = true;
       isLoading = false;
       notifyListeners();
+      prefetchUserPosts();
+      prefetchInsightsData();
     } catch (e) {
       debugPrint('❌ UserProvider: Error loading user data: $e');
       _clearUserFields();
@@ -91,6 +156,8 @@ class UserProvider with ChangeNotifier {
       _isInitialLoadComplete = true;
       if (isLoading) isLoading = false;
       notifyListeners();
+      prefetchUserPosts();
+      prefetchInsightsData();
     } catch (e) {
       debugPrint("❌ UserProvider: Error loading user data silently: $e");
     }
@@ -292,6 +359,10 @@ class UserProvider with ChangeNotifier {
     counts = null;
     chase_list = [];
     rechase_list = [];
+    cachedThingsPostsMap.clear();
+    cachedImagesPostsMap.clear();
+    cachedTotalPollsCountMap.clear();
+    cachedInsightsData = null;
   }
 
   // ─── Image Decoders ───────────────────────────────────────────

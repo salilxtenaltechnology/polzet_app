@@ -21,7 +21,8 @@ import '../../../widgets/card/things/poll_question_card.dart';
 import '../../../core/themes/app_text_styles.dart';
 import '../../../widgets/show_toast.dart';
 import '../../../core/utils/bottomsheet_util.dart';
-import '../profile/posts/popup/image_grid.dart';
+import '../home feed/rank/result/image/image_result_screen.dart';
+import '../profile/rank/image/user_image_ranking.dart';
 
 class NotificationDetails extends StatefulWidget {
   final int postId;
@@ -295,27 +296,41 @@ class _NotificationDetailsState extends State<NotificationDetails> {
     int postId,
     UserPollQuestion poll,
     bool isPolledByCurrentUser,
+    UserPostModel post,
   ) {
-    Navigator.of(context)
-        .push(
-          MaterialPageRoute(
-            builder: (context) => ShowImagesPopup(
-              images: poll.options ?? [],
-              postId: postId,
-              pollId: poll.id,
-              onImageTap: (index) {},
-              isPolledByCurrentUser: isPolledByCurrentUser,
-            ),
+    if (isPolledByCurrentUser) {
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => ImageResultScreen(
+          
+            username: post.user,
+            postId: post.id,
           ),
-        )
-        .then((result) {
-          if (result == true) {
-            setState(() {
-              _postFuture = _initializeAndLoadPost();
-            });
-          }
-        });
-  }
+        ),
+      );
+    } else {
+      final userProvider = Provider.of<UserProvider>(context, listen: false);
+      Navigator.of(context)
+          .push(
+            MaterialPageRoute(
+              builder: (_) => UserImageRanking(
+                firstName: userProvider.firstName,
+                lastName: userProvider.lastName,
+                profileImage: userProvider.profile_picture,
+                post: post,
+                poll: poll,
+              ),
+            ),
+          )
+          .then((result) {
+            if (result == true) {
+              setState(() {
+                _postFuture = _initializeAndLoadPost();
+              });
+            }
+          });
+    }
+  } // ← this closing brace was missing
 
   @override
   Widget build(BuildContext context) {
@@ -448,7 +463,9 @@ class _NotificationDetailsState extends State<NotificationDetails> {
                   SizedBox(height: 8.h),
                   Text(
                     'This post may have been deleted',
-                    style: AppTextStyles.bodyText.copyWith(color: Colors.grey[600]),
+                    style: AppTextStyles.bodyText.copyWith(
+                      color: Colors.grey[600],
+                    ),
                   ),
                   SizedBox(height: 24.h),
                   ElevatedButton(
@@ -795,11 +812,16 @@ class _NotificationDetailsState extends State<NotificationDetails> {
         double imageHeight = 150.h;
 
         return GestureDetector(
-          onTap: () => _showAllImagesGrid(
-            postId,
-            firstPollWithImages!,
-            isPolledByCurrentUser,
-          ),
+          onTap: () {
+            if (currentPost != null) {
+              _showAllImagesGrid(
+                postId,
+                firstPollWithImages!,
+                isPolledByCurrentUser,
+                currentPost!,
+              );
+            }
+          },
           child: SizedBox(
             height: imageHeight,
             width: availableWidth,

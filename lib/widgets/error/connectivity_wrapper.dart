@@ -69,30 +69,41 @@ class _ConnectivityWrapperState extends State<ConnectivityWrapper>
     if (_isChecking) return;
     setState(() => _isChecking = true);
 
+    bool hasInternet = false;
     try {
       final result = await InternetAddress.lookup(
         'google.com',
-      ).timeout(const Duration(seconds: 3));
+      ).timeout(const Duration(seconds: 10));
 
       if (result.isNotEmpty && result[0].rawAddress.isNotEmpty) {
-        _retryTimer?.cancel();
-        if (mounted) {
-          final wasOffline = !_hasInternet;
-          setState(() {
-            _hasInternet = true;
-            _isChecking = false;
-            _isConnected = true;
-          });
-
-          if (wasOffline && !_isFirstCheck) {
-            _bannerShownOnce = false;
-            _showTopBanner(isConnected: true);
-            widget.onReconnect?.call();
-          }
-          _isFirstCheck = false;
-        }
+        hasInternet = true;
       }
+    } on TimeoutException catch (_) {
+      hasInternet = true; // Slow network, don't show offline screen
+    } on SocketException catch (_) {
+      hasInternet = false;
     } catch (_) {
+      hasInternet = false;
+    }
+
+    if (hasInternet) {
+      _retryTimer?.cancel();
+      if (mounted) {
+        final wasOffline = !_hasInternet;
+        setState(() {
+          _hasInternet = true;
+          _isChecking = false;
+          _isConnected = true;
+        });
+
+        if (wasOffline && !_isFirstCheck) {
+          _bannerShownOnce = false;
+          _showTopBanner(isConnected: true);
+          widget.onReconnect?.call();
+        }
+        _isFirstCheck = false;
+      }
+    } else {
       if (mounted) {
         final wasOnline = _hasInternet;
         setState(() {

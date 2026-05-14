@@ -1,19 +1,16 @@
-// ✅ Add this as a separate widget outside Dashboard class
 // ignore_for_file: deprecated_member_use
-
 import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:polzet_app/core/themes/app_text_styles.dart';
 
 import '../../../api/services/api_service.dart';
 import '../../../core/constants/app_radius.dart';
 import '../../../mixin/utility_mixins.dart';
 import '../../../models/user/suggestionsb users/suggestions_users_model.dart';
 import '../../../widgets/shimmer/suggestion_users_shimmer.dart';
-import '../profile/public/public_profile.dart';
-
 import '../../../widgets/error/api_error_widget.dart';
+import '../profile/public/public_profile_screen.dart';
 
 class PeopleYouMayKnowSection extends StatefulWidget {
   final Future<UserSuggestionsModel> suggestionsFuture;
@@ -36,8 +33,6 @@ class _PeopleYouMayKnowSectionState extends State<PeopleYouMayKnowSection>
     with UtilityMixin {
   @override
   Widget build(BuildContext context) {
-    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
-
     return FutureBuilder<UserSuggestionsModel>(
       future: widget.suggestionsFuture,
       builder: (context, snapshot) {
@@ -74,7 +69,7 @@ class _PeopleYouMayKnowSectionState extends State<PeopleYouMayKnowSection>
             (MediaQuery.of(context).size.width - 16 * 2 - 12) / 2;
 
         return SizedBox(
-          height: 210,
+          height: 245,
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
             physics: const ClampingScrollPhysics(),
@@ -103,15 +98,13 @@ class _PeopleYouMayKnowSectionState extends State<PeopleYouMayKnowSection>
                     ),
                     decoration: BoxDecoration(
                       color: Theme.of(context).colorScheme.primaryContainer,
-                      borderRadius: BorderRadius.circular(AppRadius.button),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(
-                            isDarkMode ? 0.3 : 0.05,
-                          ),
-                          blurRadius: 8,
-                          spreadRadius: 2,
-                        ),
+                      borderRadius: BorderRadius.circular(AppRadius.card),
+                      border: Border.all(
+                        color: const Color(0xFFEFEFEF),
+                        width: 1,
+                      ),
+                      boxShadow: const [
+                        BoxShadow(color: Color(0x06000000), blurRadius: 2),
                       ],
                     ),
                     child: Column(
@@ -120,50 +113,58 @@ class _PeopleYouMayKnowSectionState extends State<PeopleYouMayKnowSection>
                         GestureDetector(
                           onTap: () => navigationPush(
                             context,
-                            PublicProfile(userId: user.id),
+                            PublicProfileScreen(userId: user.id),
                           ),
-                          child: CircleAvatar(
-                            radius: 23,
-                            backgroundImage: buildAvatar(),
-                            backgroundColor: Colors.grey.shade200,
-                          ),
+                          child: user.avatar.isNotEmpty
+                              ? CircleAvatar(
+                                  radius: 50,
+                                  backgroundImage: buildAvatar(),
+                                  backgroundColor: Colors.grey.shade200,
+                                )
+                              : CircleAvatar(
+                                  radius: 50,
+                                  backgroundColor: Theme.of(
+                                    context,
+                                  ).colorScheme.primary.withOpacity(0.1),
+                                  child: Text(
+                                    user.username.isNotEmpty
+                                        ? user.username[0].toUpperCase()
+                                        : '?',
+                                    style: TextStyle(
+                                      fontSize: 30.sp,
+                                      fontWeight: FontWeight.w600,
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.primary,
+                                    ),
+                                  ),
+                                ),
                         ),
-                        const SizedBox(height: 3),
+                        const SizedBox(height: 5),
                         Text(
                           user.name,
                           textAlign: TextAlign.center,
                           overflow: TextOverflow.ellipsis,
                           maxLines: 1,
-                          style: TextStyle(
+                          style: AppTextStyles.bodyText.copyWith(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
                             color: Theme.of(context).colorScheme.onBackground,
-                            fontSize: 10.3.sp,
-                            fontWeight: FontWeight.w500,
                           ),
                         ),
                         const SizedBox(height: 3),
-                        Text(
-                          user.role,
-                          textAlign: TextAlign.center,
-                          overflow: TextOverflow.ellipsis,
-                          maxLines: 1,
-                          style: const TextStyle(
-                            color: Color.fromARGB(255, 180, 179, 179),
-                            fontSize: 10.3,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                        const SizedBox(height: 5),
                         Text(
                           '+${user.mutualFriends} Mutuals',
                           textAlign: TextAlign.center,
                           overflow: TextOverflow.ellipsis,
                           maxLines: 1,
-                          style: TextStyle(
-                            color: Theme.of(context).colorScheme.onBackground,
-                            fontSize: 10.sp,
-                            fontWeight: FontWeight.w500,
+                          style: AppTextStyles.subText.copyWith(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w400,
+                            color: const Color(0XFF8E8E8E),
                           ),
                         ),
+
                         GestureDetector(
                           onTap: () async {
                             if (isChased) {
@@ -194,8 +195,8 @@ class _PeopleYouMayKnowSectionState extends State<PeopleYouMayKnowSection>
                           },
                           child: AnimatedContainer(
                             duration: const Duration(milliseconds: 250),
-                            margin: const EdgeInsets.only(top: 12),
-                            height: 25.h,
+                            margin: const EdgeInsets.only(top: 15),
+                            height: 32,
                             width: double.infinity,
                             decoration: BoxDecoration(
                               color: isChased
@@ -217,7 +218,7 @@ class _PeopleYouMayKnowSectionState extends State<PeopleYouMayKnowSection>
                                   const SizedBox(width: 3),
                                 ],
                                 Text(
-                                  isChased ? 'Chased' : 'Chase',
+                                  isChased ? 'Chasing' : 'Chase',
                                   style: TextStyle(
                                     color: Colors.white,
                                     fontSize: 10.8.sp,

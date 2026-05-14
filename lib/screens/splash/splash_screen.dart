@@ -118,7 +118,7 @@ class SplashScreenState extends State<SplashScreen>
           return PinGateScreen(
             destination: HomeScreen(
               initialIndex: 0,
-              pendingDestination: notificationDestination,
+              pendingDestination: notificationDestination, 
             ),
           );
         }

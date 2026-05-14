@@ -3,30 +3,35 @@
 import 'dart:typed_data';
 import 'dart:convert';
 
+final Map<String, Uint8List> _imageCache = {};
+
 Uint8List? getConvertImage(image) {
   if (image == null || image.isEmpty) return null;
   try {
     final str = image as String;
-    final idx = str.indexOf('base64,');
-    if (idx != -1) {
-      return base64Decode(str.substring(idx + 7));
+    if (_imageCache.containsKey(str)) {
+      return _imageCache[str];
     }
-    return base64Decode(str);
+
+    final idx = str.indexOf('base64,');
+    final Uint8List decoded;
+    if (idx != -1) {
+      decoded = base64Decode(str.substring(idx + 7));
+    } else {
+      decoded = base64Decode(str);
+    }
+
+    // Keep cache size bounded to prevent memory leaks
+    if (_imageCache.length > 100) {
+      _imageCache.clear();
+    }
+    _imageCache[str] = decoded;
+    return decoded;
   } catch (e) {
     return null;
   }
 }
 
 Uint8List? getProfileImage(profilePicture) {
-  if (profilePicture == null || profilePicture.isEmpty) return null;
-  try {
-    final str = profilePicture as String;
-    final idx = str.indexOf('base64,');
-    if (idx != -1) {
-      return base64Decode(str.substring(idx + 7));
-    }
-    return base64Decode(str);
-  } catch (e) {
-    return null;
-  }
+  return getConvertImage(profilePicture);
 }

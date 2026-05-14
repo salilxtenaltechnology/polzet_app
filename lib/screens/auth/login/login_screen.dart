@@ -406,7 +406,7 @@ class _LoginScreenState extends State<LoginScreen> with UtilityMixin {
         ),
         GestureDetector(
           onTap: () {
-            navigationPush(context, const ForgotPasswordScreen());
+            navigationPush(context, const NewForgotPasswordScreen());
           },
           child: Text(
             AppStrings.lblForgotPassword,

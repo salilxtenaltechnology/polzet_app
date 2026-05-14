@@ -197,7 +197,7 @@ class _PollVoteNotificationTileState extends State<PollVoteNotificationTile>
           children: [
             // ── Header ─────────────────────────────────────────────────
             Material(
-              color:Theme.of(context).colorScheme.surface,
+              color: Theme.of(context).colorScheme.surface,
               child: InkWell(
                 onTap: _toggleExpand,
                 child: Padding(
@@ -334,7 +334,7 @@ class _PollVoteNotificationTileState extends State<PollVoteNotificationTile>
           TextButton(
             onPressed: () {
               setState(() => _fetchFailed = false);
-              _fetchPollDetails(forceRefresh: true); 
+              _fetchPollDetails(forceRefresh: true);
             },
             child: const Text('Retry'),
           ),
@@ -454,6 +454,10 @@ class _PollVoteNotificationTileState extends State<PollVoteNotificationTile>
     SinglePostPoll poll,
     int totalVotes,
   ) {
+    final double maxPercentage = poll.options
+        .map((o) => o.percentage)
+        .reduce((a, b) => a > b ? a : b);
+
     return GestureDetector(
       onTap: () {
         final int? postId = widget.notification.meta?.postId;
@@ -478,7 +482,12 @@ class _PollVoteNotificationTileState extends State<PollVoteNotificationTile>
             SizedBox(height: 12.h),
           ],
           ...poll.options.map(
-            (o) => _buildTextOptionRow(context, o, totalVotes),
+            (o) => _buildTextOptionRow(
+              context,
+              o,
+              totalVotes,
+              o.percentage == maxPercentage,
+            ),
           ),
         ],
       ),
@@ -489,13 +498,14 @@ class _PollVoteNotificationTileState extends State<PollVoteNotificationTile>
     BuildContext context,
     SinglePostPollOption option,
     int totalVotes,
+    bool isHighest,
   ) {
     final int voteCount = int.tryParse(option.voteCount) ?? 0;
     double percentage = option.percentage;
     if (percentage == 0.0 && totalVotes > 0 && voteCount > 0) {
       percentage = (voteCount / totalVotes) * 100;
     }
-    final double fillValue = (percentage / 100.0).clamp(0.0, 1.0);
+    // final double fillValue = (percentage / 100.0).clamp(0.0, 1.0);
 
     return Padding(
       padding: EdgeInsets.only(bottom: 12.h),
@@ -509,61 +519,68 @@ class _PollVoteNotificationTileState extends State<PollVoteNotificationTile>
               Expanded(
                 child: Text(
                   option.text ?? 'Option',
+
                   style: AppTextStyles.bodyText.copyWith(
-                    color: Theme.of(context).colorScheme.onBackground,
-                    fontWeight: FontWeight.w500,
-                    fontSize: 12.sp,
+                    color: const Color(0XFF595959),
+                    fontWeight: FontWeight.w400,
+                    fontSize: 15,
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
-              SizedBox(width: 8.w),
-              Text(
-                '${percentage.toStringAsFixed(0)}%',
-                style: AppTextStyles.bodyText.copyWith(
-                  color: Theme.of(context).colorScheme.onBackground,
-                  fontWeight: FontWeight.w700,
-                  fontSize: 12.sp,
-                ),
-              ),
-            ],
-          ),
-          SizedBox(height: 8.h),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Expanded(
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(10.r),
-                  child: LinearProgressIndicator(
-                    value: fillValue,
-                    minHeight: 7.h,
-                    backgroundColor: Theme.of(
-                      context,
-                    ).colorScheme.outline.withOpacity(0.2),
-                    valueColor: AlwaysStoppedAnimation<Color>(
-                      Theme.of(context).colorScheme.primary,
-                    ),
-                  ),
-                ),
-              ),
-              SizedBox(width: 10.w),
+              const SizedBox(width: 12),
               SizedBox(
-                width: 60.w,
+                width: 47,
                 child: Text(
-                  '$voteCount votes',
-                  textAlign: TextAlign.right,
-                  style: AppTextStyles.subText.copyWith(
-                    color: Theme.of(
-                      context,
-                    ).colorScheme.onBackground.withOpacity(0.5),
-                    fontSize: 11.sp,
+                  '${percentage.toStringAsFixed(0)}%',
+                  textAlign: TextAlign.left,
+                  style: AppTextStyles.bodyText.copyWith(
+                    color: isHighest
+                        ? Theme.of(context).colorScheme.primary
+                        : Theme.of(context).colorScheme.onBackground,
+                    fontWeight: FontWeight.w500,
+                    fontSize: 15,
                   ),
                 ),
               ),
             ],
           ),
+          //  SizedBox(height: 8.h),
+          // Row(
+          //   crossAxisAlignment: CrossAxisAlignment.center,
+          //   children: [
+          //     Expanded(
+          //       child: ClipRRect(
+          //         borderRadius: BorderRadius.circular(10.r),
+          //         child: LinearProgressIndicator(
+          //           value: fillValue,
+          //           minHeight: 7.h,
+          //           backgroundColor: Theme.of(
+          //             context,
+          //           ).colorScheme.outline.withOpacity(0.2),
+          //           valueColor: AlwaysStoppedAnimation<Color>(
+          //             Theme.of(context).colorScheme.primary,
+          //           ),
+          //         ),
+          //       ),
+          //     ),
+          //     SizedBox(width: 10.w),
+          //     SizedBox(
+          //       width: 60.w,
+          //       child: Text(
+          //         '$voteCount votes',
+          //         textAlign: TextAlign.right,
+          //         style: AppTextStyles.subText.copyWith(
+          //           color: Theme.of(
+          //             context,
+          //           ).colorScheme.onBackground.withOpacity(0.5),
+          //           fontSize: 11.sp,
+          //         ),
+          //       ),
+          //     ),
+          //   ],
+          // ),
         ],
       ),
     );
@@ -663,8 +680,8 @@ class _PollVoteNotificationTileState extends State<PollVoteNotificationTile>
                                   ),
                                   BackdropFilter(
                                     filter: ImageFilter.blur(
-                                      sigmaX: 2.5,
-                                      sigmaY: 2.5,
+                                      sigmaX: 1.5,
+                                      sigmaY: 1.5,
                                     ),
                                     child: Container(color: Colors.transparent),
                                   ),

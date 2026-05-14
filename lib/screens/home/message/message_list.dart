@@ -12,6 +12,7 @@ import '../../../../core/constants/app_colors.dart';
 import '../../../api/services/api_service.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/constants/app_radius.dart';
+import '../../../gen/assets.gen.dart';
 import '../../../languages/l10n/generated/app_localizations.dart';
 import '../../../mixin/utility_mixins.dart';
 import '../../../provider/group_chat_provider.dart';
@@ -51,20 +52,13 @@ class MessageListState extends State<MessageList>
 
   String _searchQuery = '';
 
-  // ── Tab filtering ─────────────────────────────────────────────────────────
-
-  List<Map<String, dynamic>> _filterByTab(List<Map<String, dynamic>> chats) {
-    if (_tabController.index == 0) {
-      return chats
-          .where((c) => c['chat_type']?.toString() == 'private')
-          .toList();
-    } else {
-      return chats.where((c) => c['chat_type']?.toString() == 'group').toList();
-    }
-  }
-
-  List<Map<String, dynamic>> _applyFilter(List<Map<String, dynamic>> chats) {
-    final tabFiltered = _filterByTab(chats);
+  List<Map<String, dynamic>> _applyFilter(
+    List<Map<String, dynamic>> chats,
+    String chatType,
+  ) {
+    final tabFiltered = chats
+        .where((c) => c['chat_type']?.toString() == chatType)
+        .toList();
     final q = _searchQuery.trim().toLowerCase();
     if (q.isEmpty) return tabFiltered;
     return tabFiltered.where((chat) {
@@ -98,8 +92,7 @@ class MessageListState extends State<MessageList>
   void initState() {
     super.initState();
 
-    _tabController = TabController(length: 2, vsync: this)
-      ..addListener(() => setState(() {})); // rebuild on tab switch
+    _tabController = TabController(length: 2, vsync: this);
 
     if (_staticChats.isNotEmpty) {
       _globalStreamController.add(_staticChats);
@@ -375,7 +368,6 @@ class MessageListState extends State<MessageList>
         ),
       );
     }
-
     _fetchAndPushGlobally();
   }
 
@@ -475,8 +467,6 @@ class MessageListState extends State<MessageList>
       ),
     );
   }
-
-  // ── Shared list builder used by both tabs ─────────────────────────────────
 
   Widget _buildChatList(List<Map<String, dynamic>> chats) {
     return RefreshIndicator(
@@ -581,15 +571,49 @@ class MessageListState extends State<MessageList>
     );
   }
 
-  Widget _buildTabBody(List<Map<String, dynamic>> allChats) {
-    final chats = _applyFilter(allChats);
+  Widget _buildTabBody(List<Map<String, dynamic>> allChats, String chatType) {
+    final chats = _applyFilter(allChats, chatType);
 
     if (allChats.isEmpty) {
-      return Center(
-        child: Text(
-          AppLocalizations.of(context)!.nochaseyet,
-          style: AppTextStyles.subText.copyWith(
-            color: Theme.of(context).colorScheme.onBackground.withOpacity(0.6),
+      return SizedBox(
+        width: double.infinity,
+        // height: 0.5.sh,
+        child: Center(
+          child: Padding(
+            padding: EdgeInsets.symmetric(horizontal: 32.w),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Image.asset(
+                  Assets.images.noMessage.path,
+                  height: 0.22.sh,
+                  width: 0.22.sh,
+                  fit: BoxFit.contain,
+                ),
+                const SizedBox(height: 15),
+                Text(
+                  'No messages yet',
+                  textAlign: TextAlign.center,
+                  style: AppTextStyles.sectionHeading.copyWith(
+                    fontSize: 18.5,
+                    color: Theme.of(context).colorScheme.onBackground,
+                    fontWeight: FontWeight.w600,
+                    height: 1.4,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  'Start chatting by sharing polls or reacting\nto conversations.',
+                  textAlign: TextAlign.center,
+                  style: AppTextStyles.bodyText.copyWith(
+                    fontSize: 13,
+                    color: const Color(0xFF595959),
+                    height: 1.4,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       );
@@ -607,14 +631,48 @@ class MessageListState extends State<MessageList>
     }
 
     if (chats.isEmpty) {
-      final label = _tabController.index == 0
-          ? 'No chats yet'
-          : 'No groups yet';
-      return Center(
-        child: Text(
-          label,
-          style: AppTextStyles.subText.copyWith(
-            color: Theme.of(context).colorScheme.onBackground.withOpacity(0.6),
+      // final label = _tabController.index == 0
+      //     ? 'No chats yet'
+      //     : 'No groups yet';
+      return SizedBox(
+        width: double.infinity,
+        // height: 0.5.sh,
+        child: Center(
+          child: Padding(
+            padding: EdgeInsets.symmetric(horizontal: 32.w),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Image.asset(
+                  Assets.images.noMessage.path,
+                  height: 0.22.sh,
+                  width: 0.22.sh,
+                  fit: BoxFit.contain,
+                ),
+                const SizedBox(height: 15),
+                Text(
+                  'No messages yet',
+                  textAlign: TextAlign.center,
+                  style: AppTextStyles.sectionHeading.copyWith(
+                    fontSize: 18.5,
+                    color: Theme.of(context).colorScheme.onBackground,
+                    fontWeight: FontWeight.w600,
+                    height: 1.4,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  'Start chatting by sharing polls or reacting\nto conversations.',
+                  textAlign: TextAlign.center,
+                  style: AppTextStyles.bodyText.copyWith(
+                    fontSize: 13,
+                    color: const Color(0xFF595959),
+                    height: 1.4,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       );
@@ -662,8 +720,6 @@ class MessageListState extends State<MessageList>
           return Column(
             children: [
               // _buildSearchBar(),
-
-              // ── Tab bar ───────────────────────────────────────────────
               Padding(
                 padding: EdgeInsets.symmetric(horizontal: 12.w),
                 child: TabBar(
@@ -689,7 +745,15 @@ class MessageListState extends State<MessageList>
               ),
 
               // ── Tab content ───────────────────────────────────────────
-              Expanded(child: _buildTabBody(allChats)),
+              Expanded(
+                child: TabBarView(
+                  controller: _tabController,
+                  children: [
+                    _buildTabBody(allChats, 'private'),
+                    _buildTabBody(allChats, 'group'),
+                  ],
+                ),
+              ),
             ],
           );
         },

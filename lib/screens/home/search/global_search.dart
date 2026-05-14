@@ -7,15 +7,17 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:polzet_app/screens/home/profile/public/public_profile.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../api/services/api_service.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../core/themes/app_text_styles.dart';
+import '../../../gen/assets.gen.dart';
 import '../../../mixin/utility_mixins.dart';
 import '../../../models/global search/global_search_model.dart';
 import '../../../models/global search/recent_search.dart';
 import '../../../widgets/custom_text_styles.dart';
 import '../../../widgets/tabbar/indicatore_animation.dart';
+import '../profile/public/public_profile_screen.dart';
 import 'posts/hashtag_posts_list.dart';
 import 'posts/single_post_details.dart';
 
@@ -117,7 +119,7 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen>
       final response = await ApiService().getRecentSearch();
       final prefs = await SharedPreferences.getInstance();
       _removedSearchIds = prefs.getStringList('removed_recent_searches') ?? [];
-      
+
       if (mounted) {
         setState(() {
           _recentSearches = response.data
@@ -199,7 +201,7 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen>
       }
       return;
     }
-    
+
     if (mounted) setState(() => _loading = true);
     try {
       final result = await ApiService().globalSearch(query);
@@ -252,36 +254,40 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen>
             _buildSearchBar(),
             // Tab bar is driven by _snapshot so it appears as soon as
             // the first stream event arrives.
-            if (_snapshot != null && !(_focusNode.hasFocus && _searchController.text.isEmpty)) _buildTabBar(),
+            if (_snapshot != null &&
+                !(_focusNode.hasFocus && _searchController.text.isEmpty))
+              _buildTabBar(),
             Expanded(
               // StreamBuilder wraps the entire body so every push to
               // _searchStream triggers a silent, flicker-free rebuild.
               child: (_focusNode.hasFocus && _searchController.text.isEmpty)
                   ? _buildRecentSearchesList()
                   : StreamBuilder<GlobalSearchModel?>(
-                stream: _searchStream.stream,
-                initialData: _cachedDefaultResult,
-                builder: (context, snap) {
-                  // First open, no cache — shimmer
-                  if (_loading && snap.data == null) return _buildShimmer();
+                      stream: _searchStream.stream,
+                      initialData: _cachedDefaultResult,
+                      builder: (context, snap) {
+                        // First open, no cache — shimmer
+                        if (_loading && snap.data == null) {
+                          return _buildShimmer();
+                        }
 
-                  // API error before any data — fallback prompt
-                  if (snap.data == null) return _buildSearchPrompt();
+                        // API error before any data — fallback prompt
+                        if (snap.data == null) return _buildSearchPrompt();
 
-                  final data = snap.data!.data;
-                  return TabBarView(
-                    controller: _tabController,
-                    children: [
-                      _buildTopTab(data.accounts),
-                      _buildAccountsList(data.accounts),
-                      _buildPostsList(data.posts),
-                      _buildPhotosList(data.photos),
-                      _buildHashtagsList(data.hashtags),
-                      _buildPlacesList(context),
-                    ],
-                  );
-                },
-              ),
+                        final data = snap.data!.data;
+                        return TabBarView(
+                          controller: _tabController,
+                          children: [
+                            _buildTopTab(data.accounts),
+                            _buildAccountsList(data.accounts),
+                            _buildPostsList(data.posts),
+                            _buildPhotosList(data.photos),
+                            _buildHashtagsList(data.hashtags),
+                            _buildPlacesList(context),
+                          ],
+                        );
+                      },
+                    ),
             ),
           ],
         ),
@@ -535,28 +541,35 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen>
     if (!hasResults) {
       return Center(
         child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(
-              Icons.search_off_rounded,
-              color: _textSecondary,
-              size: 38,
+            Image.asset(
+              Assets.images.noSearchFound.path,
+              height: 0.22.sh,
+              width: 0.22.sh,
+              fit: BoxFit.contain,
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 15),
             Text(
               'Not found "$query"',
-              style: TextStyle(
-                fontSize: 13.sp,
-                fontWeight: FontWeight.w600,
+              textAlign: TextAlign.center,
+              style: AppTextStyles.sectionHeading.copyWith(
+                fontSize: 15.5,
                 color: Theme.of(context).colorScheme.onBackground,
+                fontWeight: FontWeight.w600,
+                height: 1.4,
               ),
-              textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 4),
+            const SizedBox(height: 10),
             Text(
-              'Try searching for accounts, posts or hashtags',
-              style: TextStyle(fontSize: 11.sp, color: _textSecondary),
+              'Try another keyword or explore trending polls.',
               textAlign: TextAlign.center,
+              style: AppTextStyles.bodyText.copyWith(
+                fontSize: 13,
+                color: const Color(0xFF595959),
+                height: 1.4,
+              ),
             ),
           ],
         ),
@@ -662,16 +675,37 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen>
 
   // ── Per-tab empty state ────────────────────────────────────────────────────
 
-  Widget _buildTabEmpty(String label, IconData icon) {
+  Widget _buildTabEmpty(String label, String message) {
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, color: _textSecondary, size: 40),
-          const SizedBox(height: 12),
+          Image.asset(
+            Assets.images.noSearchFound.path,
+            height: 0.22.sh,
+            width: 0.22.sh,
+            fit: BoxFit.contain,
+          ),
+          const SizedBox(height: 10),
           Text(
             'No $label found',
-            style: const TextStyle(color: _textSecondary, fontSize: 15),
+            textAlign: TextAlign.center,
+            style: AppTextStyles.sectionHeading.copyWith(
+              fontSize: 15.5,
+              color: Theme.of(context).colorScheme.onBackground,
+              fontWeight: FontWeight.w600,
+              height: 1.4,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            message,
+            textAlign: TextAlign.center,
+            style: AppTextStyles.bodyText.copyWith(
+              fontSize: 13,
+              color: const Color(0xFF595959),
+              height: 1.4,
+            ),
           ),
         ],
       ),
@@ -692,7 +726,10 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen>
 
   Widget _buildAccountsList(List<SearchAccount> accounts) {
     if (accounts.isEmpty) {
-      return _buildTabEmpty('accounts', Icons.person_search_rounded);
+      return _buildTabEmpty(
+        'accounts',
+        'Try searching with a different username or keyword.',
+      );
     }
     return ListView.builder(
       itemCount: accounts.length,
@@ -703,7 +740,7 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen>
   Widget _buildAccountTile(SearchAccount acc) {
     final avatar = _avatarProvider(acc.profileImage);
     return GestureDetector(
-      onTap: () => navigationPush(context, PublicProfile(userId: acc.id)),
+      onTap: () => navigationPush(context, PublicProfileScreen(userId: acc.id)),
       child: ListTile(
         contentPadding: EdgeInsets.symmetric(horizontal: 12.w),
         minVerticalPadding: 0,
@@ -761,7 +798,12 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen>
   // ── Posts tab ──────────────────────────────────────────────────────────────
 
   Widget _buildPostsList(List<SearchPost> posts) {
-    if (posts.isEmpty) return _buildTabEmpty('posts', Icons.article_outlined);
+    if (posts.isEmpty) {
+      return _buildTabEmpty(
+        'posts',
+        'Explore trending conversations or try another search.',
+      );
+    }
     return ListView.builder(
       itemCount: posts.length,
       itemBuilder: (_, i) => _buildPostTile(posts[i]),
@@ -871,7 +913,7 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen>
 
   Widget _buildPhotosList(List<SearchPhoto> photos) {
     if (photos.isEmpty) {
-      return _buildTabEmpty('photos', Icons.photo_library_outlined);
+      return _buildTabEmpty('photos', 'We couldn’t find any matching photos.');
     }
     return GridView.builder(
       padding: const EdgeInsets.all(4),
@@ -918,7 +960,7 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen>
   // ── Hashtags tab ───────────────────────────────────────────────────────────
 
   Widget _buildHashtagsList(List<SearchHashtag> hashtags) {
-    if (hashtags.isEmpty) return _buildTabEmpty('hashtags', Icons.tag_rounded);
+    if (hashtags.isEmpty) return _buildTabEmpty('tags', 'Try searching for another topic or keyword.');
     return ListView.builder(
       itemCount: hashtags.length,
       itemBuilder: (_, i) => _buildHashtagTile(hashtags[i]),

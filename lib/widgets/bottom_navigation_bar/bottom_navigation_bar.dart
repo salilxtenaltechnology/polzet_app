@@ -2,6 +2,8 @@
 import 'package:feather_icons/feather_icons.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:polzet_app/core/themes/app_text_styles.dart';
+import 'package:showcaseview/showcaseview.dart';
 
 import '../../../core/constants/app_colors.dart';
 import '../../gen/assets.gen.dart';
@@ -15,6 +17,8 @@ class CustomBottomNavigationBar extends StatelessWidget {
     this.notificationCount = 0,
     this.messageCount = 0,
     this.onAddTap,
+    this.addFabShowcaseKey,
+    this.insightsShowcaseKey,
   });
 
   final int index;
@@ -23,8 +27,8 @@ class CustomBottomNavigationBar extends StatelessWidget {
   final int notificationCount;
   final int messageCount;
   final VoidCallback? onAddTap;
-
-  static const Color _fabColor = Color(0xFF7D1F3A);
+  final GlobalKey? addFabShowcaseKey;
+  final GlobalKey? insightsShowcaseKey;
 
   @override
   Widget build(BuildContext context) {
@@ -76,26 +80,19 @@ class CustomBottomNavigationBar extends StatelessWidget {
             ),
 
             // Center: Embedded FAB
-            GestureDetector(
-              onTap: onAddTap,
-              child: Container(
-                width: 38.w,
-                height: 38.w,
-                margin: EdgeInsets.symmetric(horizontal: 8.w),
-                decoration: BoxDecoration(
-                  color: _fabColor,
-                  shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Theme.of(context).colorScheme.primaryContainer,
-                      blurRadius: 6,
-                      offset: const Offset(0, 3),
-                    ),
-                  ],
+            if (addFabShowcaseKey != null)
+              Showcase(
+                key: addFabShowcaseKey!,
+                description: 'Tap to create new poll things and images.',
+                descTextStyle: AppTextStyles.bodyText.copyWith(
+                  color: Theme.of(context).colorScheme.onBackground,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
                 ),
-                child: Icon(Icons.add, color: Colors.white, size: 24.sp),
-              ),
-            ),
+                child: _buildFab(context),
+              )
+            else
+              _buildFab(context),
 
             // Right: Bell + Profile
             Expanded(
@@ -110,12 +107,29 @@ class CustomBottomNavigationBar extends StatelessWidget {
                   //   onTap: () => onTap(3),
                   //   size: 21.7.sp,
                   // ),
-                  _NavItemIcon(
-                    icon: FeatherIcons.barChart2,
-                    isActive: index == 3,
-                    onTap: () => onTap(3),
-                    size: 24.sp,
-                  ),
+                  if (insightsShowcaseKey != null)
+                    Showcase(
+                      key: insightsShowcaseKey!,
+                      description: 'Tap to see profile insights',
+                      descTextStyle: AppTextStyles.bodyText.copyWith(
+                        color: Theme.of(context).colorScheme.onBackground,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      ),
+                      child: _NavItemIcon(
+                        icon: FeatherIcons.barChart2,
+                        isActive: index == 3,
+                        onTap: () => onTap(3),
+                        size: 24.sp,
+                      ),
+                    )
+                  else
+                    _NavItemIcon(
+                      icon: FeatherIcons.barChart2,
+                      isActive: index == 3,
+                      onTap: () => onTap(3),
+                      size: 24.sp,
+                    ),
                   _NavItemPng(
                     activeImage: Assets.images.activeUser,
                     inactiveImage: Assets.images.inactiveUser,
@@ -128,6 +142,29 @@ class CustomBottomNavigationBar extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildFab(BuildContext context) {
+    return GestureDetector(
+      onTap: onAddTap,
+      child: Container(
+        width: 38.w,
+        height: 38.w,
+        margin: EdgeInsets.symmetric(horizontal: 8.w),
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.primary,
+          shape: BoxShape.circle,
+          boxShadow: [
+            BoxShadow(
+              color: Theme.of(context).colorScheme.primaryContainer,
+              blurRadius: 6,
+              offset: const Offset(0, 3),
+            ),
+          ],
+        ),
+        child: Icon(Icons.add, color: Colors.white, size: 24.sp),
       ),
     );
   }

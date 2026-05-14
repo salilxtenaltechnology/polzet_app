@@ -22,11 +22,17 @@ class PublicProfileProvider extends ChangeNotifier {
   String? get error => _error;
 
   /// Fetches public user profile by userId
-  Future<void> fetchPublicUserProfile(int userId) async {
-    _isLoading = true;
-    _error = null;
-    _errorType = ProfileErrorType.none;
-    notifyListeners();
+  Future<void> fetchPublicUserProfile(int userId, {bool isRefresh = false}) async {
+    if (_userProfile != null && _userProfile!.id != userId) {
+      _userProfile = null;
+      _profileResponse = null;
+    }
+    if (!isRefresh) {
+      _isLoading = true;
+      _error = null;
+      _errorType = ProfileErrorType.none;
+      notifyListeners();
+    }
 
     try {
       final response = await ApiService.getUserPublicProfile(userId);

@@ -267,7 +267,7 @@ abstract class AppLocalizations {
   /// No description provided for @upgrade.
   ///
   /// In en, this message translates to:
-  /// **'UPGRADE'**
+  /// **'Upgrade'**
   String get upgrade;
 
   /// No description provided for @totalviews.
@@ -837,7 +837,7 @@ abstract class AppLocalizations {
   /// No description provided for @confirm.
   ///
   /// In en, this message translates to:
-  /// **'CONFIRM'**
+  /// **'Confirm'**
   String get confirm;
 
   /// No description provided for @delete.
@@ -1557,7 +1557,7 @@ abstract class AppLocalizations {
   /// No description provided for @yesdelete.
   ///
   /// In en, this message translates to:
-  /// **'YES, DELETE'**
+  /// **'Yes, Delete'**
   String get yesdelete;
 
   /// No description provided for @confirmaccountdeletion.
@@ -3045,7 +3045,7 @@ abstract class AppLocalizations {
   /// No description provided for @yesleave.
   ///
   /// In en, this message translates to:
-  /// **'YES, LEAVE'**
+  /// **'Yes, Leave'**
   String get yesleave;
 
   /// No description provided for @member.
@@ -3159,7 +3159,7 @@ abstract class AppLocalizations {
   /// No description provided for @yesreport.
   ///
   /// In en, this message translates to:
-  /// **'YES, REPORT'**
+  /// **'Yes, Report'**
   String get yesreport;
 
   /// No description provided for @allimages.

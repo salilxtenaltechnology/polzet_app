@@ -67,7 +67,7 @@ class _EmailVerificationScreenState extends State<EmailVerifyPin>
 
     try {
       final response = await http.post(
-        Uri.parse(ApiConstants.emailVerify), // Change API for email verify
+        Uri.parse(ApiConstants.emailOtp), // Change API for email verify
         body: body,
       );
 
@@ -106,7 +106,7 @@ class _EmailVerificationScreenState extends State<EmailVerifyPin>
 
     try {
       final response = await http.post(
-        Uri.parse(ApiConstants.validateOtp),
+        Uri.parse(ApiConstants.verifyEmailOtp),
         body: body,
       );
 

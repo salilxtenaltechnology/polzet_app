@@ -2,10 +2,10 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:polzet_app/core/themes/app_text_styles.dart';
 
 import '../../core/constants/app_radius.dart';
 import '../../models/country/country_model.dart';
-import '../custom_text_styles.dart';
 import '../text_field/secondry_textfield.dart';
 
 class CountryPickerBottomSheet extends StatefulWidget {
@@ -99,17 +99,16 @@ class _CountryPickerBottomSheetState extends State<CountryPickerBottomSheet> {
                   ),
                   title: Text(
                     country.name,
-                    style: CustomTextStyles.lblPrimaryText(context),
+                    style: AppTextStyles.bodyText.copyWith(
+                      color: const Color(0XFF111111)
+                    )
                   ),
                   trailing: Text(
                     country.dialCode,
-                    style: TextStyle(
-                      color: Theme.of(
-                        context,
-                      ).colorScheme.onBackground.withOpacity(0.5),
-                      fontSize: 11.5.sp,
-                      fontWeight: FontWeight.w500,
-                    ),
+                    style: AppTextStyles.bodyText.copyWith(
+                      color: const Color(0XFF595959), 
+                      fontSize: 13.5
+                    )
                   ),
                   selected: isSelected,
                   selectedTileColor: Theme.of(

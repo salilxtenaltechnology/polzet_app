@@ -244,64 +244,96 @@ class PostsData {
 
 class ChaseUser {
   final int userId;
+  final String firstName;
+  final String lastName;
   final String username;
   final String? avatarUrl;
   final bool isOnline;
+  final String followStatus;
+  final bool isPrivate;
 
   ChaseUser({
     required this.userId,
+    required this.firstName,
+    required this.lastName,
     required this.username,
     this.avatarUrl,
     required this.isOnline,
+    required this.followStatus,
+    required this.isPrivate,
   });
 
   factory ChaseUser.fromJson(Map<String, dynamic> json) {
     return ChaseUser(
       userId: json['user_id'] ?? 0,
+      firstName: json['first_name'] ?? '',
+      lastName: json['last_name'] ?? '',
       username: json['username'] ?? '',
       avatarUrl: json['avatar_url'],
       isOnline: json['is_online'] ?? false,
+      followStatus: json['follow_status'] ?? '',
+      isPrivate: json['is_private'] ?? false,
     );
   }
 
   Map<String, dynamic> toJson() {
     return {
       'user_id': userId,
+      'first_name': firstName,
+      'last_name': lastName,
       'username': username,
       'avatar_url': avatarUrl,
       'is_online': isOnline,
+      'follow_status': followStatus,
+      'is_private': isPrivate,
     };
   }
 }
 
 class RechaseUser {
   final int userId;
+  final String firstName;
+  final String lastName;
   final String username;
   final String? avatarUrl;
   final bool isOnline;
+  final String followStatus;
+  final bool isPrivate;
 
   RechaseUser({
     required this.userId,
+    required this.firstName,
+    required this.lastName,
     required this.username,
     this.avatarUrl,
     required this.isOnline,
+    required this.followStatus,
+    required this.isPrivate,
   });
 
   factory RechaseUser.fromJson(Map<String, dynamic> json) {
     return RechaseUser(
       userId: json['user_id'] ?? 0,
+      firstName: json['first_name'] ?? '',
+      lastName: json['last_name'] ?? '',
       username: json['username'] ?? '',
       avatarUrl: json['avatar_url'],
       isOnline: json['is_online'] ?? false,
+      followStatus: json['follow_status'] ?? '',
+      isPrivate: json['is_private'] ?? false,
     );
   }
 
   Map<String, dynamic> toJson() {
     return {
       'user_id': userId,
+      'first_name': firstName,
+      'last_name': lastName,
       'username': username,
       'avatar_url': avatarUrl,
       'is_online': isOnline,
+      'follow_status': followStatus,
+      'is_private': isPrivate,
     };
   }
 }
@@ -316,7 +348,7 @@ class PublicPost {
   final List<dynamic> comments;
   final int likesCount;
   final bool isLiked;
-  final bool is_polled_by_current_user;
+  bool is_polled_by_current_user;
 
   PublicPost({
     required this.id,

@@ -8,6 +8,7 @@ import 'package:page_transition/page_transition.dart';
 
 import '../../../data/token/shared_preferences.dart';
 import '../../../screens/home/home_imports.dart';
+import '../../../screens/terms_acceptance/terms_acceptance.dart';
 import '../api_service.dart';
 import '../fcm/fcm_service.dart';
 import '../notification/notification_services.dart';
@@ -95,6 +96,9 @@ class GoogleAuthService {
       final String accessToken = data['access_token'];
       final String refreshToken = data['refresh_token'];
       final Map<String, dynamic> user = data['user'];
+      
+      final dynamic isNewUserRaw = data['is_new_user'] ?? user['is_new_user'];
+      final bool isNewUser = isNewUserRaw == true || isNewUserRaw == 'true';
 
       await SharedPrefService.setToken(accessToken);
       await SharedPrefService.setRefreshToken(refreshToken);
@@ -113,12 +117,16 @@ class GoogleAuthService {
       onLoadingDone();
 
       if (context.mounted) {
+        final Widget destination = isNewUser
+            ? const TermsAcceptance(isNewUser: true)
+            : const HomeScreen(initialIndex: 0);
+
         Navigator.pushAndRemoveUntil(
           context,
           PageTransition(
             type: PageTransitionType.fade,
             duration: const Duration(milliseconds: 200),
-            child: const HomeScreen(initialIndex: 0),
+            child: destination,
           ),
           (route) => false,
         );
