@@ -3,11 +3,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:feather_icons/feather_icons.dart';
-import 'package:icons_plus/icons_plus.dart';
+import 'package:polzet_app/core/constants/feather_icons_compat.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../../../core/themes/app_text_colors.dart';
 import '../../../core/themes/app_text_styles.dart';
 import '../../../core/constants/app_radius.dart';
+import '../../../languages/l10n/generated/app_localizations.dart';
 import '../../../widgets/show_toast.dart';
 import '../../../api/services/api_service.dart';
 import '../../../widgets/base64/image_convert.dart';
@@ -16,11 +17,15 @@ import '../../loader.dart';
 class ShareBottomSheet extends StatefulWidget {
   final String shareLink;
   final String username;
+  final String postId;
+  final Function(int newCount)? onShareSuccess;
 
   const ShareBottomSheet({
     super.key,
     required this.shareLink,
     required this.username,
+    required this.postId,
+    this.onShareSuccess,
   });
 
   @override
@@ -29,8 +34,12 @@ class ShareBottomSheet extends StatefulWidget {
 
 class _ShareBottomSheetState extends State<ShareBottomSheet> {
   final TextEditingController _searchController = TextEditingController();
+  final TextEditingController _messageController = TextEditingController();
 
   final ApiService _apiServices = ApiService();
+  final Set<dynamic> _selectedUserIds = {};
+  bool _isSending = false;
+
   List<Map<String, dynamic>> _allUsers = [];
   List<Map<String, dynamic>> _filteredUsers = [];
   bool _isLoadingUsers = true;
@@ -49,12 +58,12 @@ class _ShareBottomSheetState extends State<ShareBottomSheet> {
         _apiServices.getFollowingList(),
       ]);
 
-      final seen = <int>{};
+      final seen = <dynamic>{};
       final merged = <Map<String, dynamic>>[];
 
       for (final user in [...results[0], ...results[1]]) {
         final id = user['id'];
-        if (id is int && seen.add(id)) merged.add(user);
+        if (id != null && seen.add(id)) merged.add(user);
       }
 
       if (mounted) {
@@ -92,7 +101,7 @@ class _ShareBottomSheetState extends State<ShareBottomSheet> {
 
   Future<void> _shareToWhatsApp() async {
     final text = Uri.encodeComponent(
-      'Check out this post from @${widget.username}: ${widget.shareLink}',
+      widget.shareLink,
     );
 
     // Try deep link first (opens WhatsApp directly)
@@ -180,248 +189,455 @@ class _ShareBottomSheetState extends State<ShareBottomSheet> {
 
   Future<void> _copyLink() async {
     await Clipboard.setData(ClipboardData(text: widget.shareLink));
-    showToast(message: 'Link copied to clipboard');
+    showToast(message: 'Link copied');
     if (mounted) Navigator.pop(context);
+  }
+
+  Future<void> _sendToSelectedUsers() async {
+    if (_selectedUserIds.isEmpty) return;
+    setState(() => _isSending = true);
+
+    try {
+      final text = _messageController.text.trim();
+      final msg = text.isEmpty ? 'Check out this post!' : text;
+
+      bool anySuccess = false;
+      for (final userId in _selectedUserIds) {
+        final chatResponse = await _apiServices.createPrivateChatId(
+          withUserId: userId,
+        );
+
+        final chatId = int.tryParse(chatResponse['id']?.toString() ?? '');
+        if (chatId != null) {
+          final shareResponse = await _apiServices.sharePostMessage(
+            chatId: chatId,
+            sharedPostId: widget.postId,
+            message: msg,
+          );
+
+          if (shareResponse['status'] == 'success') {
+            anySuccess = true;
+            final newCount = await _apiServices.addShareCount(
+              postId: widget.postId,
+            );
+            if (newCount != null && widget.onShareSuccess != null) {
+              widget.onShareSuccess!(newCount);
+            }
+          }
+        }
+      }
+
+      if (anySuccess) {
+        showToast(message: 'Post sent');
+      } else {
+        showToast(message: 'Failed to share post');
+      }
+
+      if (mounted) Navigator.pop(context);
+    } catch (e) {
+      showToast(message: 'Failed to share post');
+    } finally {
+      if (mounted) {
+        setState(() => _isSending = false);
+      }
+    }
   }
 
   @override
   void dispose() {
     _searchController.dispose();
+    _messageController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height: 0.8.sh,
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final txt = AppTextColors.of(context);
+    return Padding(
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom,
       ),
-      child: Column(
-        children: [
-          // Drag Handle
-          const SizedBox(height: 10),
-          Center(
-            child: Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: Colors.grey.shade300,
-                borderRadius: BorderRadius.circular(10),
-              ),
-            ),
+      child: Container(
+        height: 0.8.sh,
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.tertiaryContainer,
+          borderRadius: const BorderRadius.only(
+            topLeft: Radius.circular(AppRadius.modal),
+            topRight: Radius.circular(AppRadius.modal),
           ),
-          const SizedBox(height: 15),
-
-          // Search Bar
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 15),
-            child: Container(
-              height: 45,
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.primaryContainer,
-                borderRadius: BorderRadius.circular(AppRadius.button),
-                border: Border.all(
-                  color: Theme.of(
-                    context,
-                  ).colorScheme.onSurface.withOpacity(0.1),
+        ),
+        child: Column(
+          children: [
+            // Drag Handle
+            const SizedBox(height: 10),
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: const Color(0XFF767676),
+                  borderRadius: BorderRadius.circular(10),
                 ),
               ),
-              child: TextField(
-                controller: _searchController,
-                decoration: InputDecoration(
-                  hintText: 'Search',
-                  hintStyle: AppTextStyles.bodyText.copyWith(
-                    color: const Color(0XFF898989),
+            ),
+            const SizedBox(height: 15),
+
+            // Search Bar
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 15),
+              child: Container(
+                height: 45,
+                decoration: BoxDecoration(
+                  color: isDarkMode ? const Color(0xFF1F1F23) : Colors.white,
+                  borderRadius: BorderRadius.circular(AppRadius.button),
+                  border: Border.all(
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.onSurface.withOpacity(0.1),
+                  ),
+                ),
+                child: TextField(
+                  controller: _searchController,
+                  decoration: InputDecoration(
+                    hintText: AppLocalizations.of(context)!.searchusers,
+                    hintStyle: AppTextStyles.bodyText.copyWith(
+                      color: const Color(0XFF898989),
+                      fontSize: 14.5,
+                    ),
+                    prefixIcon: const Icon(
+                      FeatherIcons.search,
+                      size: 18,
+                      color: Color(0XFF898989),
+                    ),
+                    border: InputBorder.none,
+                    contentPadding: const EdgeInsets.only(top: 10, bottom: 10),
+                  ),
+                  style: AppTextStyles.bodyText.copyWith(
+                    color: Theme.of(context).colorScheme.onSurface,
                     fontSize: 14.5,
                   ),
-                  prefixIcon: const Icon(
-                    FeatherIcons.search,
-                    size: 18,
-                    color: Color(0XFF898989),
-                  ),
-                  border: InputBorder.none,
-                  contentPadding: const EdgeInsets.only(top: 10, bottom: 10),
-                ),
-                style: AppTextStyles.bodyText.copyWith(
-                  color: Theme.of(context).colorScheme.onSurface,
-                  fontSize: 14.5,
                 ),
               ),
             ),
-          ),
-          const SizedBox(height: 20),
+            const SizedBox(height: 20),
 
-          // Users Grid
-          Expanded(
-            child: _isLoadingUsers
-                ? Center(
-                    child: Loader(
-                      color: Theme.of(context).colorScheme.primary,
+            // Users Grid
+            Expanded(
+              child: _isLoadingUsers
+                  ? Center(
+                      child: Loader(
+                        color: Theme.of(context).colorScheme.onPrimary,
+                      ),
+                    )
+                  : _filteredUsers.isEmpty
+                  ? Center(
+                      child: Text(
+                        AppLocalizations.of(context)!.nousersfound,
+                        style: AppTextStyles.bodyText.copyWith(
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onSurface.withOpacity(0.5),
+                        ),
+                      ),
+                    )
+                  : GridView.builder(
+                      padding: const EdgeInsets.symmetric(horizontal: 15),
+                      gridDelegate:
+                          const SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 4,
+                            mainAxisSpacing: 15,
+                            crossAxisSpacing: 10,
+                            childAspectRatio: 0.8,
+                          ),
+                      itemCount: _filteredUsers.length,
+                      itemBuilder: (context, index) {
+                        final user = _filteredUsers[index];
+                        final avatarUrl = _userAvatar(user);
+                        final name = _userName(user);
+
+                        final isSelected = _selectedUserIds.contains(
+                          user['id'],
+                        );
+
+                        return GestureDetector(
+                          onTap: () {
+                            setState(() {
+                              final userId = user['id'];
+                              if (isSelected) {
+                                _selectedUserIds.remove(userId);
+                              } else {
+                                _selectedUserIds.add(userId);
+                              }
+                            });
+                          },
+                          child: Column(
+                            children: [
+                              Stack(
+                                children: [
+                                  Builder(
+                                    builder: (_) {
+                                      final imageBytes = avatarUrl != null
+                                          ? getProfileImage(avatarUrl)
+                                          : null;
+                                      final initial = name.isNotEmpty
+                                          ? name[0].toUpperCase()
+                                          : '?';
+
+                                      return Container(
+                                        height: 60,
+                                        width: 60,
+                                        decoration: BoxDecoration(
+                                          shape: BoxShape.circle,
+                                          color: imageBytes == null
+                                              ? (isDarkMode
+                                                    ? const Color(0xFF343434)
+                                                    : Theme.of(context)
+                                                          .colorScheme
+                                                          .primary
+                                                          .withOpacity(0.1))
+                                              : null,
+                                          image: imageBytes != null
+                                              ? DecorationImage(
+                                                  image: MemoryImage(
+                                                    imageBytes,
+                                                  ),
+                                                  fit: BoxFit.cover,
+                                                )
+                                              : null,
+                                          border: Border.all(
+                                            color: Theme.of(context)
+                                                .colorScheme
+                                                .onSurface
+                                                .withOpacity(0.05),
+                                          ),
+                                        ),
+                                        child: imageBytes == null
+                                            ? Center(
+                                                child: Text(
+                                                  initial,
+                                                  style: TextStyle(
+                                                    color: Theme.of(
+                                                      context,
+                                                    ).colorScheme.onPrimary,
+                                                    fontWeight: FontWeight.w500,
+                                                    fontSize: 24,
+                                                  ),
+                                                ),
+                                              )
+                                            : null,
+                                      );
+                                    },
+                                  ),
+                                  if (isSelected)
+                                    Positioned(
+                                      bottom: 0,
+                                      right: 0,
+                                      child: Container(
+                                        decoration: BoxDecoration(
+                                          color: Theme.of(
+                                            context,
+                                          ).colorScheme.primary,
+                                          shape: BoxShape.circle,
+                                          border: Border.all(
+                                            color: Theme.of(
+                                              context,
+                                            ).colorScheme.background,
+                                            width: 1.5,
+                                          ),
+                                        ),
+                                        padding: const EdgeInsets.all(4),
+                                        child: const Icon(
+                                          Icons.check,
+                                          color: Colors.white,
+                                          size: 12,
+                                        ),
+                                      ),
+                                    ),
+                                ],
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                name,
+                                style: AppTextStyles.bodyText.copyWith(
+                                  fontSize: 12.5,
+                                  fontWeight: FontWeight.w400,
+                                  color: txt.title,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                textAlign: TextAlign.center,
+                              ),
+                            ],
+                          ),
+                        );
+                      },
                     ),
-                  )
-                : _filteredUsers.isEmpty
-                ? Center(
-                    child: Text(
-                      'No users found',
+            ),
+
+            // Divider
+            Divider(
+              color: Theme.of(context).colorScheme.outlineVariant,
+              height: 1,
+            ),
+
+            if (_selectedUserIds.isEmpty)
+              // Share Options
+              Padding(
+                padding: EdgeInsets.only(
+                  top: 5.h,
+                  bottom: 15.h,
+                  left: 20,
+                  right: 20,
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildShareOption(
+                      iconWidget: const Icon(
+                        FontAwesomeIcons.whatsapp,
+                        color: Color(0xFF25D366),
+                        size: 32,
+                      ),
+                      label: 'Whatsapp',
+                      onTap: _shareToWhatsApp,
+                    ),
+                    _buildShareOption(
+                      iconWidget: const Icon(
+                        FontAwesomeIcons.instagram,
+                        color: Color(0xFFE1306C),
+                        size: 32,
+                      ),
+                      label: 'Instagram',
+                      onTap: _shareToInstagram,
+                    ),
+                    _buildShareOption(
+                      iconWidget: Image.asset(
+                        'assets/images/ic_google.png',
+                        height: 30,
+                        width: 30,
+                      ),
+                      label: 'Gmail',
+                      onTap: _shareToGmail,
+                    ),
+                    _buildShareOption(
+                      iconWidget: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: isDarkMode
+                              ? const Color(0xFF343434)
+                              : Theme.of(
+                                  context,
+                                ).colorScheme.primary.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Icon(
+                          FeatherIcons.link,
+                          color: Theme.of(context).colorScheme.onPrimary,
+                          size: 20,
+                        ),
+                      ),
+                      label: 'Copy link',
+                      onTap: _copyLink,
+                    ),
+                  ],
+                ),
+              )
+            else
+              // Send Message Area
+              Padding(
+                padding: EdgeInsets.only(
+                  top: 15.h,
+                  bottom: 30.h,
+                  left: 20,
+                  right: 20,
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextField(
+                      controller: _messageController,
+                      decoration: InputDecoration(
+                        hintText: 'Write a message.....',
+                        hintStyle: AppTextStyles.bodyText.copyWith(
+                          color: const Color(0XFF898989),
+                          fontSize: 14.5,
+                        ),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(AppRadius.button),
+                          borderSide: BorderSide(
+                            color: isDarkMode
+                                ? Theme.of(context).colorScheme.outline
+                                : const Color(0XFFE5E5E5),
+                          ),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(AppRadius.button),
+                          borderSide:  BorderSide(
+                            color:  isDarkMode
+                                ? Theme.of(context).colorScheme.outline
+                                : const Color(0XFFE5E5E5),
+                          ),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(AppRadius.button),
+                          borderSide: BorderSide(
+                            color: Theme.of(context).colorScheme.primary,
+                          ),
+                        ),
+                        filled: true,
+                        fillColor: Colors.transparent,
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 15,
+                          vertical: 12,
+                        ),
+                      ),
                       style: AppTextStyles.bodyText.copyWith(
-                        color: Theme.of(
-                          context,
-                        ).colorScheme.onSurface.withOpacity(0.5),
+                        color: Theme.of(context).colorScheme.onSurface,
+                        fontSize: 14.5,
                       ),
                     ),
-                  )
-                : GridView.builder(
-                    padding: const EdgeInsets.symmetric(horizontal: 15),
-                    gridDelegate:
-                        const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 4,
-                          mainAxisSpacing: 15,
-                          crossAxisSpacing: 10,
-                          childAspectRatio: 0.8,
-                        ),
-                    itemCount: _filteredUsers.length,
-                    itemBuilder: (context, index) {
-                      final user = _filteredUsers[index];
-                      final avatarUrl = _userAvatar(user);
-                      final name = _userName(user);
-
-                      return GestureDetector(
-                        onTap: () {
-                          // Handle sharing directly to a specific user via app chat if implemented
-                        },
-                        child: Column(
-                          children: [
-                            Builder(
-                              builder: (_) {
-                                final imageBytes = avatarUrl != null
-                                    ? getProfileImage(avatarUrl)
-                                    : null;
-                                final initial = name.isNotEmpty
-                                    ? name[0].toUpperCase()
-                                    : '?';
-
-                                return Container(
-                                  height: 60,
-                                  width: 60,
-                                  decoration: BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    color: imageBytes == null
-                                        ? Theme.of(
-                                            context,
-                                          ).colorScheme.primary.withOpacity(0.1)
-                                        : null,
-                                    image: imageBytes != null
-                                        ? DecorationImage(
-                                            image: MemoryImage(imageBytes),
-                                            fit: BoxFit.cover,
-                                          )
-                                        : null,
-                                    border: Border.all(
-                                      color: Theme.of(
-                                        context,
-                                      ).colorScheme.onSurface.withOpacity(0.05),
-                                    ),
-                                  ),
-                                  child: imageBytes == null
-                                      ? Center(
-                                          child: Text(
-                                            initial,
-                                            style: TextStyle(
-                                              color: Theme.of(
-                                                context,
-                                              ).colorScheme.primary,
-                                              fontWeight: FontWeight.bold,
-                                              fontSize: 24,
-                                            ),
-                                          ),
-                                        )
-                                      : null,
-                                );
-                              },
+                    const SizedBox(height: 15),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 48,
+                      child: ElevatedButton(
+                        onPressed: _isSending ? null : _sendToSelectedUsers,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Theme.of(
+                            context,
+                          ).colorScheme.primary,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(
+                              AppRadius.button,
                             ),
-                            const SizedBox(height: 8),
-                            Text(
-                              name,
-                              style: AppTextStyles.bodyText.copyWith(
-                                fontSize: 12.5,
-                                fontWeight: FontWeight.w400,
-                                color: const Color(0xFF2C2C2C),
+                          ),
+                          elevation: 0,
+                        ),
+                        child: _isSending
+                            ? const SizedBox(
+                                height: 20,
+                                width: 20,
+                                child: CircularProgressIndicator(
+                                  color: Colors.white,
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : Text(
+                                'Send',
+                                style: AppTextStyles.bodyText.copyWith(
+                                  color: Colors.white,
+                                  fontSize: 16,
+                                ),
                               ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              textAlign: TextAlign.center,
-                            ),
-                          ],
-                        ),
-                      );
-                    },
-                  ),
-          ),
-
-          // Divider
-          Divider(color: Colors.grey.shade200, height: 1),
-
-          // Share Options
-          Padding(
-            padding: EdgeInsets.only(
-              top: 5.h,
-              bottom: 15.h,
-              left: 20,
-              right: 20,
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildShareOption(
-                  iconWidget: const Icon(
-                    FontAwesome.whatsapp_brand,
-                    color: Color(0xFF25D366),
-                    size: 32,
-                  ),
-                  label: 'Whatsapp',
-                  onTap: _shareToWhatsApp,
-                ),
-                _buildShareOption(
-                  iconWidget: const Icon(
-                    FontAwesome.instagram_brand,
-                    color: Color(0xFFE1306C),
-                    size: 32,
-                  ),
-                  label: 'Instagram',
-                  onTap: _shareToInstagram,
-                ),
-                _buildShareOption(
-                  iconWidget: Image.asset(
-                    'assets/images/ic_google.png',
-                    height: 30,
-                    width: 30,
-                  ),
-                  label: 'Gmail',
-                  onTap: _shareToGmail,
-                ),
-                _buildShareOption(
-                  iconWidget: Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: const Color(0x1A9B3046),
-                      borderRadius: BorderRadius.circular(8),
+                      ),
                     ),
-                    child: Icon(
-                      FeatherIcons.link,
-                      color: Theme.of(context).colorScheme.primary,
-                      size: 20,
-                    ),
-                  ),
-                  label: 'Copy link',
-                  onTap: _copyLink,
+                  ],
                 ),
-              ],
-            ),
-          ),
-        ],
+              ),
+          ],
+        ),
       ),
     );
   }
@@ -431,6 +647,7 @@ class _ShareBottomSheetState extends State<ShareBottomSheet> {
     required String label,
     required VoidCallback onTap,
   }) {
+    final txt = AppTextColors.of(context);
     return GestureDetector(
       onTap: onTap,
       child: Column(
@@ -450,7 +667,7 @@ class _ShareBottomSheetState extends State<ShareBottomSheet> {
             style: AppTextStyles.bodyText.copyWith(
               fontSize: 12.5,
               fontWeight: FontWeight.w400,
-              color: const Color(0xFF2C2C2C),
+              color: txt.title,
             ),
           ),
         ],

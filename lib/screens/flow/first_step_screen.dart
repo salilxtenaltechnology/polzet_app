@@ -1,12 +1,15 @@
+// ignore_for_file: deprecated_member_use
+
 import 'dart:io';
 
-import 'package:feather_icons/feather_icons.dart';
+import 'package:polzet_app/core/constants/feather_icons_compat.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../../api/services/api_service.dart';
 import '../../api/services/image/image_picker_service.dart';
 import '../../gen/assets.gen.dart';
+import '../../widgets/loader.dart';
 import 'flow_scaffold.dart';
 
 class FirstStepScreen extends StatefulWidget {
@@ -50,7 +53,9 @@ class _FirstStepScreenState extends State<FirstStepScreen> {
         allowCamera: true,
       );
       if (pickedFile != null) {
-        final File? croppedFile = await ImagePickerService.cropImage(pickedFile);
+        final File? croppedFile = await ImagePickerService.cropImage(
+          pickedFile,
+        );
         setState(() {
           _profileImage = croppedFile ?? pickedFile; // ← replaces old image
           _errorMessage = null;
@@ -104,7 +109,6 @@ class _FirstStepScreenState extends State<FirstStepScreen> {
       onSkip: widget.onSkip,
       body: Column(
         children: [
-
           // ── Avatar with loading overlay inside ──
           GestureDetector(
             onTap: _isLoading ? null : _pickImage,
@@ -136,14 +140,11 @@ class _FirstStepScreenState extends State<FirstStepScreen> {
                       shape: BoxShape.circle,
                       color: Colors.black.withOpacity(0.45),
                     ),
-                    child: const Center(
+                    child: Center(
                       child: SizedBox(
                         width: 28,
                         height: 28,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2.5,
-                          color: Colors.white,
-                        ),
+                        child: Loader(color: Colors.white),
                       ),
                     ),
                   ),
@@ -159,7 +160,10 @@ class _FirstStepScreenState extends State<FirstStepScreen> {
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         color: Theme.of(context).colorScheme.primary,
-                        border: Border.all(color: Colors.white, width: 1.2),
+                        border: Border.all(
+                          color: Theme.of(context).colorScheme.background,
+                          width: 1.2,
+                        ),
                       ),
                       child: const Icon(
                         FeatherIcons.camera,

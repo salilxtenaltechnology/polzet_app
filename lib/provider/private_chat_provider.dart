@@ -236,6 +236,7 @@ class PrivateChatProvider extends ChangeNotifier {
               isSentByMe: _currentUsername != null
                   ? item.isSentBy(_currentUsername)
                   : false,
+              sharedPost: item.sharedPost,
             ),
           )
           .toList()
@@ -292,6 +293,7 @@ class PrivateChatProvider extends ChangeNotifier {
               isSentByMe: _currentUsername != null
                   ? item.isSentBy(_currentUsername)
                   : false,
+              sharedPost: item.sharedPost,
             ),
           )
           .toList();
@@ -336,6 +338,7 @@ class PrivateChatProvider extends ChangeNotifier {
               created_at: item.created_at,
               isRead: item.isRead,
               isSentByMe: item.isSentBy(_currentUsername),
+              sharedPost: item.sharedPost,
             ),
           )
           .toList();
@@ -480,7 +483,9 @@ class PrivateChatProvider extends ChangeNotifier {
   try {
     final data = jsonDecode(raw as String) as Map<String, dynamic>;
     final String type = data['type']?.toString() ?? '';
-    final int? userId = data['user_id'] as int?;
+    final int? userId = data['user_id'] is int
+        ? data['user_id'] as int
+        : int.tryParse(data['user_id']?.toString() ?? '');
 
     if (type == 'presence_update') {
       if (userId == null) return;
@@ -570,7 +575,9 @@ class PrivateChatProvider extends ChangeNotifier {
         final msgMap = data['message'] as Map<String, dynamic>?;
         if (msgMap == null) return;
 
-        final int? serverId = msgMap['id'] as int?;
+        final int? serverId = msgMap['id'] is int
+            ? msgMap['id'] as int
+            : int.tryParse(msgMap['id']?.toString() ?? '');
         final String text = msgMap['text']?.toString() ?? '';
         if (text.isEmpty) return;
 
@@ -580,11 +587,12 @@ class PrivateChatProvider extends ChangeNotifier {
           return;
         }
 
-        String? senderUsername;
         int? senderId;
         if (msgMap['sender'] is Map) {
-          senderUsername = (msgMap['sender'] as Map)['username']?.toString();
-          senderId = (msgMap['sender'] as Map)['id'] as int?;
+          final dynamic rawSenderId = (msgMap['sender'] as Map)['id'];
+          senderId = rawSenderId is int
+              ? rawSenderId
+              : int.tryParse(rawSenderId?.toString() ?? '');
         }
 
         final bool isSentByMe =
@@ -620,6 +628,7 @@ class PrivateChatProvider extends ChangeNotifier {
             created_at: serverTimestamp,
             isSentByMe: isSentByMe,
             isPending: false,
+            sharedPost: msgMap['shared_post'] as Map<String, dynamic>?,
           ),
         );
         _saveCachedMessages();

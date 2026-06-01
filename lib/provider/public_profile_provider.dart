@@ -6,6 +6,21 @@ import '../models/public/public_profile_model.dart';
 enum ProfileErrorType { noInternet, serverError, unknown, none }
 
 class PublicProfileProvider extends ChangeNotifier {
+  bool _isDisposed = false;
+
+  @override
+  void dispose() {
+    _isDisposed = true;
+    super.dispose();
+  }
+
+  @override
+  void notifyListeners() {
+    if (!_isDisposed) {
+      super.notifyListeners();
+    }
+  }
+
   PublicProfileModel? _profileResponse;
   ProfileData? _userProfile;
   bool _isLoading = false;
@@ -22,7 +37,10 @@ class PublicProfileProvider extends ChangeNotifier {
   String? get error => _error;
 
   /// Fetches public user profile by userId
-  Future<void> fetchPublicUserProfile(int userId, {bool isRefresh = false}) async {
+  Future<void> fetchPublicUserProfile(
+    dynamic userId, {
+    bool isRefresh = false,
+  }) async {
     if (_userProfile != null && _userProfile!.id != userId) {
       _userProfile = null;
       _profileResponse = null;
@@ -105,7 +123,7 @@ class PublicProfileProvider extends ChangeNotifier {
     }
   }
 
-  Future<Map<String, dynamic>> unfriend(int userId) async {
+  Future<Map<String, dynamic>> unfriend(dynamic userId) async {
     try {
       final apiService = ApiService();
       final response = await apiService.unfriend(userId);

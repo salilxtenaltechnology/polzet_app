@@ -4,7 +4,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-import 'package:page_transition/page_transition.dart';
+import 'package:polzet_app/core/constants/feather_icons_compat.dart';
 
 import '../../../data/token/shared_preferences.dart';
 import '../../../screens/home/home_imports.dart';
@@ -14,8 +14,8 @@ import '../fcm/fcm_service.dart';
 import '../notification/notification_services.dart';
 
 class GoogleAuthService {
-  static const String _serverClientId =
-      '53424915324-6jgqsatmm1o2uslhl1hd326ss483fb8n.apps.googleusercontent.com';
+ static const String _serverClientId =
+    '470797111076-oq07ifq4rpgben72r6ikg0b7faorf06k.apps.googleusercontent.com';
 
   static final GoogleSignIn _googleSignIn = GoogleSignIn.instance;
   static StreamSubscription<GoogleSignInAuthenticationEvent>? _authSub;
@@ -49,7 +49,7 @@ class GoogleAuthService {
     required Function() onLoadingDone,
   }) async {
     try {
-      final GoogleSignInAuthentication auth = user.authentication;
+final GoogleSignInAuthentication auth = user.authentication;
       final String? idToken = auth.idToken;
 
       if (idToken == null) {
@@ -59,6 +59,13 @@ class GoogleAuthService {
 
       await SharedPrefService.setString('jwt_google_token', idToken);
       debugPrint('✅ Google idToken saved');
+      if (kDebugMode) {
+        // ignore: avoid_print
+        print('🔑 FULL GOOGLE TOKEN:');
+        final pattern = RegExp('.{1,800}');
+        // ignore: avoid_print
+        pattern.allMatches(idToken).forEach((match) => print(match.group(0)));
+      }
 
       await _socialLoginAPI(
         idToken: idToken,
@@ -88,15 +95,17 @@ class GoogleAuthService {
 
       final String? status = response['status'];
       if (status != 'success') {
-        onError(response['message'] ?? 'Login failed');
+        onError(response['message']);
         return;
       }
 
-      final data = response['data'] as Map<String, dynamic>;
+      final data = Map<String, dynamic>.from(response['data'] as Map);
       final String accessToken = data['access_token'];
       final String refreshToken = data['refresh_token'];
-      final Map<String, dynamic> user = data['user'];
-      
+      final Map<String, dynamic> user = data['user'] != null
+          ? Map<String, dynamic>.from(data['user'] as Map)
+          : {};
+
       final dynamic isNewUserRaw = data['is_new_user'] ?? user['is_new_user'];
       final bool isNewUser = isNewUserRaw == true || isNewUserRaw == 'true';
 

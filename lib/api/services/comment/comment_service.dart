@@ -10,8 +10,8 @@ class CommentsService {
   CommentsService._internal();
 
   // Fetch comments for any post
-  Future<List<Comment>> fetchComments({
-    required int postId,
+  Future<List<Comments>> fetchComments({
+    required dynamic postId,
     VoidCallback? onUpdate,
   }) async {
     try {
@@ -19,12 +19,8 @@ class CommentsService {
 
       if (response['success'] == true && response['data'] != null) {
         final data = response['data'];
-
-        if (data['results'] != null && data['results'] is List) {
-          return (data['results'] as List)
-              .map((json) => Comment.fromJson(json))
-              .toList();
-        }
+        final commentsModel = CommentsModel.fromJson(data);
+        return commentsModel.results;
       } else {
         if (response['message'] != null) {
           showToast(message: response['message']);
@@ -39,8 +35,8 @@ class CommentsService {
   }
 
   // Post a new comment
-  Future<Comment?> postComment({
-    required int postId,
+  Future<Comments?> postComment({
+    required dynamic postId,
     required String text,
   }) async {
     if (text.trim().isEmpty) return null;
@@ -52,7 +48,7 @@ class CommentsService {
       );
 
       if (response['success'] == true && response['data'] != null) {
-        return Comment.fromJson(response['data']);
+        return Comments.fromJson(response['data']);
       } else {
         showToast(message: response['message'] ?? 'Failed to post comment');
       }
@@ -65,7 +61,7 @@ class CommentsService {
   }
 
   // Edit a comment
-  Future<Comment?> editComment({
+  Future<Comments?> editComment({
     required int commentId,
     required String text,
   }) async {
@@ -78,7 +74,7 @@ class CommentsService {
       );
 
       if (response['success'] == true && response['data'] != null) {
-        return Comment.fromJson(response['data']);
+        return Comments.fromJson(response['data']);
       } else {
         showToast(message: response['message'] ?? 'Failed to edit comment');
       }

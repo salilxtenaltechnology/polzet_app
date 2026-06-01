@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../../core/constants/app_radius.dart';
+import '../../../core/themes/app_text_colors.dart';
 import '../../../core/themes/app_text_styles.dart';
 import '../../../languages/l10n/generated/app_localizations.dart';
 
@@ -13,6 +14,7 @@ class ClearAllNotificationsDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+     final txt = AppTextColors.of(context);
     return Container(
       width: 330,
       decoration: BoxDecoration(
@@ -20,7 +22,7 @@ class ClearAllNotificationsDialog extends StatelessWidget {
         borderRadius: AppRadius.cardRadius,
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
           Padding(
@@ -29,25 +31,32 @@ class ClearAllNotificationsDialog extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Clear all notifications',
+                    AppLocalizations.of(context)!.clearallnotifications,
+               
                   style: AppTextStyles.cardTitle.copyWith(
-                    fontSize: 15.sp,
-                    fontWeight: FontWeight.bold,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
                     color: Theme.of(context).colorScheme.onBackground,
                   ),
                 ),
                 SizedBox(height: 8.h),
                 Text(
-                  'Are you sure you want to clear all notifications?',
-                  style: AppTextStyles.bodyText.copyWith(
-                    color: Theme.of(context).colorScheme.onBackground,
-                    fontSize: 13.sp,
+                    AppLocalizations.of(context)!.areyousureyouwanttoclearallnotifications,
+                 
+                   style: AppTextStyles.bodyText.copyWith(
+                    color: txt.body,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w400,
                   ),
                 ),
               ],
             ),
           ),
-          const Divider(height: 1, thickness: 1, color: Color(0XFFDCDCDC)),
+          Divider(
+            height: 0.7,
+            thickness: 0.7,
+            color: Theme.of(context).colorScheme.outlineVariant,
+          ),
 
           IntrinsicHeight(
             child: Row(
@@ -66,8 +75,8 @@ class ClearAllNotificationsDialog extends StatelessWidget {
                       child: Text(
                         AppLocalizations.of(context)!.cancel,
                         textAlign: TextAlign.center,
-                        style: AppTextStyles.subText.copyWith(
-                          fontSize: 13.5.sp,
+                         style: AppTextStyles.subText.copyWith(
+                          fontSize: 14,
                           color: const Color(0XFF898989),
                           fontWeight: FontWeight.w400,
                         ),
@@ -77,10 +86,10 @@ class ClearAllNotificationsDialog extends StatelessWidget {
                 ),
 
                 // Vertical divider
-                const VerticalDivider(
-                  width: 1,
-                  thickness: 1,
-                  color: Color(0XFFDCDCDC),
+                 VerticalDivider(
+                  width: 0.7,
+                  thickness: 0.7,
+                  color: Theme.of(context).colorScheme.outlineVariant,
                 ),
 
                 // Log out button
@@ -95,11 +104,11 @@ class ClearAllNotificationsDialog extends StatelessWidget {
                         ),
                       ),
                       child: Text(
-                        'Yes, clear all',
+                         AppLocalizations.of(context)!.yesclearall,
                         textAlign: TextAlign.center,
-                        style: AppTextStyles.subText.copyWith(
-                          fontSize: 13.5.sp,
-                          color: const Color(0XFFE5484D),
+                       style: AppTextStyles.subText.copyWith(
+                          fontSize: 14,
+                          color: Theme.of(context).colorScheme.error,
                           fontWeight: FontWeight.w500,
                         ),
                       ),

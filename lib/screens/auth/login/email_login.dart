@@ -1,3 +1,5 @@
+// ignore_for_file: deprecated_member_use
+
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
@@ -6,6 +8,7 @@ import 'package:flutter/material.dart';
 
 import '../../../api/services/api_service.dart';
 import '../../../api/services/google/google_auth_service.dart';
+import '../../../core/themes/app_text_colors.dart';
 import '../../../core/themes/app_text_styles.dart';
 import '../../../data/token/shared_preferences.dart';
 import '../../../main.dart';
@@ -27,7 +30,6 @@ class _EmailLoginScreenState extends State<EmailLoginScreen> with UtilityMixin {
   bool _isEmailTab = true;
   bool _obscurePassword = true;
   bool _rememberMe = false;
-  final bool _agreeTerms = false;
   bool _isLoading = false;
   bool _isGoogleLoading = false;
 
@@ -39,9 +41,30 @@ class _EmailLoginScreenState extends State<EmailLoginScreen> with UtilityMixin {
   String _passwordError = '';
   String _errorMessage = '';
 
+  Future<void> _loadSavedCredentials() async {
+    final rememberMe = await SharedPrefService.getString('remember_me') == 'true';
+    if (rememberMe) {
+      final savedEmail = await SharedPrefService.getString('saved_email') ?? '';
+      final savedMobile = await SharedPrefService.getString('saved_mobile') ?? '';
+      final savedPassword = await SharedPrefService.getString('saved_password') ?? '';
+      final savedIsEmailTab = await SharedPrefService.getString('saved_is_email_tab') != 'false';
+
+      if (mounted) {
+        setState(() {
+          _rememberMe = true;
+          _emailController.text = savedEmail;
+          _mobileController.text = savedMobile;
+          _passwordController.text = savedPassword;
+          _isEmailTab = savedIsEmailTab;
+        });
+      }
+    }
+  }
+
   @override
   void initState() {
     super.initState();
+    _loadSavedCredentials();
     GoogleAuthService.initialize(
       onSignIn: (user) => GoogleAuthService.fetchTokenAndLogin(
         user: user,
@@ -105,18 +128,10 @@ class _EmailLoginScreenState extends State<EmailLoginScreen> with UtilityMixin {
     }
 
     final password = _passwordController.text.trim();
-    if (password.isEmpty) {
-      setState(() => _passwordError = 'Please enter your password');
-      isValid = false;
-    } else if (!RegExp(
-      r'^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$',
-    ).hasMatch(password)) {
-      setState(
-        () => _passwordError =
-            'Min 8 chars with a letter, number & special character',
-      );
-      isValid = false;
-    }
+   if (password.isEmpty) {
+  setState(() => _passwordError = 'Please enter your password');
+  isValid = false;
+}
 
     return isValid;
   }
@@ -135,6 +150,33 @@ class _EmailLoginScreenState extends State<EmailLoginScreen> with UtilityMixin {
         email_username: loginValue,
         password: _passwordController.text.trim(),
         context: context,
+        onError: (passErr, emailOrMobileErr) {
+          if (mounted) {
+            setState(() {
+              if (passErr != null) {
+                _passwordError = passErr;
+              }
+              if (emailOrMobileErr != null) {
+                _emailOrMobileError = emailOrMobileErr;
+              }
+            });
+          }
+        },
+        onSuccess: () async {
+          if (_rememberMe) {
+            await SharedPrefService.setString('remember_me', 'true');
+            await SharedPrefService.setString('saved_email', _emailController.text.trim());
+            await SharedPrefService.setString('saved_mobile', _mobileController.text.trim());
+            await SharedPrefService.setString('saved_password', _passwordController.text.trim());
+            await SharedPrefService.setString('saved_is_email_tab', _isEmailTab.toString());
+          } else {
+            await SharedPrefService.removeKey('remember_me');
+            await SharedPrefService.removeKey('saved_email');
+            await SharedPrefService.removeKey('saved_mobile');
+            await SharedPrefService.removeKey('saved_password');
+            await SharedPrefService.removeKey('saved_is_email_tab');
+          }
+        },
       );
 
       final savedLang = await SharedPrefService.getLanguage();
@@ -161,8 +203,10 @@ class _EmailLoginScreenState extends State<EmailLoginScreen> with UtilityMixin {
 
   @override
   Widget build(BuildContext context) {
+    final txt = AppTextColors.of(context);
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
-      backgroundColor: Theme.of(context).colorScheme.surface,
+      backgroundColor: Theme.of(context).colorScheme.background,
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 24.0),
@@ -176,7 +220,8 @@ class _EmailLoginScreenState extends State<EmailLoginScreen> with UtilityMixin {
                 'Continue with Email',
                 style: AppTextStyles.subSectionHeading.copyWith(
                   fontSize: 23,
-                  color: const Color(0xFF111111),
+                  fontWeight: FontWeight.w600,
+                  color: Theme.of(context).colorScheme.onBackground,
                 ),
               ),
 
@@ -203,7 +248,7 @@ class _EmailLoginScreenState extends State<EmailLoginScreen> with UtilityMixin {
                       _emailOrMobileError,
                       style: AppTextStyles.bodyText.copyWith(
                         fontSize: 12,
-                        color: Theme.of(context).colorScheme.primary,
+                        color: Theme.of(context).colorScheme.error,
                       ),
                     ),
                   ),
@@ -215,6 +260,17 @@ class _EmailLoginScreenState extends State<EmailLoginScreen> with UtilityMixin {
                   hint: 'Mobile number here',
                   keyboardType: TextInputType.phone,
                 ),
+                if (_emailOrMobileError.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 5),
+                    child: Text(
+                      _emailOrMobileError,
+                      style: AppTextStyles.bodyText.copyWith(
+                        fontSize: 12,
+                        color: Theme.of(context).colorScheme.error,
+                      ),
+                    ),
+                  ),
               ],
 
               const SizedBox(height: 20),
@@ -229,7 +285,7 @@ class _EmailLoginScreenState extends State<EmailLoginScreen> with UtilityMixin {
                     _passwordError,
                     style: AppTextStyles.bodyText.copyWith(
                       fontSize: 12,
-                      color: Colors.red,
+                      color: Theme.of(context).colorScheme.error,
                     ),
                   ),
                 ),
@@ -251,22 +307,28 @@ class _EmailLoginScreenState extends State<EmailLoginScreen> with UtilityMixin {
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(4),
                           ),
-                          side: const BorderSide(
-                            color: Color(0xFFDDDDDD),
-                            width: 1.5,
+                          side: BorderSide(
+                            color: isDarkMode
+                                ? Colors.white.withOpacity(0.6)
+                                : const Color(0xFFDDDDDD),
+                            width: 1.1,
                           ),
                           activeColor: Theme.of(context).colorScheme.primary,
+                          checkColor: Colors.white,
                           materialTapTargetSize:
                               MaterialTapTargetSize.shrinkWrap,
+                          visualDensity: VisualDensity.compact,
                         ),
                       ),
                       const SizedBox(width: 8),
                       Text(
                         'Remember me',
                         style: AppTextStyles.bodyText.copyWith(
-                          fontSize: 13,
+                          fontSize: 12.5,
                           fontWeight: FontWeight.w400,
-                          color: const Color(0xFF404040),
+                          color: isDarkMode
+                              ? txt.muted
+                              : const Color(0xFF404040),
                         ),
                       ),
                     ],
@@ -278,8 +340,8 @@ class _EmailLoginScreenState extends State<EmailLoginScreen> with UtilityMixin {
                     child: Text(
                       'Forgot Password?',
                       style: AppTextStyles.bodyText.copyWith(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w400,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
                         color: Theme.of(context).colorScheme.primary,
                       ),
                     ),
@@ -331,7 +393,7 @@ class _EmailLoginScreenState extends State<EmailLoginScreen> with UtilityMixin {
                   text: TextSpan(
                     style: AppTextStyles.bodyText.copyWith(
                       fontSize: 14.5,
-                      color: const Color(0xFF8A8A8A),
+                      color: txt.muted
                     ),
                     children: [
                       const TextSpan(text: "Don't have an account? "),
@@ -357,30 +419,30 @@ class _EmailLoginScreenState extends State<EmailLoginScreen> with UtilityMixin {
               const SizedBox(height: 16),
 
               // OR Divider
-              const Row(
+              Row(
                 children: [
                   Expanded(
                     child: Divider(
-                      color: Color(0xFFE5E7EB),
+                      color: Theme.of(context).colorScheme.outlineVariant,
                       thickness: 1,
                       indent: 50,
                       endIndent: 5,
                     ),
                   ),
                   Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 14),
+                    padding: const EdgeInsets.symmetric(horizontal: 14),
                     child: Text(
                       'or',
                       style: TextStyle(
                         fontSize: 13,
-                        color: Color(0xFF9E9E9E),
+                        color: txt.muted,
                         fontWeight: FontWeight.w400,
                       ),
                     ),
                   ),
                   Expanded(
                     child: Divider(
-                      color: Color(0xFFE5E7EB),
+                      color: Theme.of(context).colorScheme.outlineVariant,
                       thickness: 1,
                       indent: 5,
                       endIndent: 50,
@@ -487,9 +549,12 @@ class _EmailLoginScreenState extends State<EmailLoginScreen> with UtilityMixin {
     return Container(
       height: 45,
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).colorScheme.primaryContainer,
         borderRadius: BorderRadius.circular(13),
-        border: Border.all(color: const Color(0xFFDDDDDD), width: 1.2),
+        border: Border.all(
+          color: Theme.of(context).colorScheme.outline,
+          width: 1,
+        ),
       ),
       child: Row(
         children: [
@@ -547,7 +612,6 @@ class _EmailLoginScreenState extends State<EmailLoginScreen> with UtilityMixin {
                 alignment: Alignment.center,
                 child: Text(
                   'Mobile Login',
-
                   style: AppTextStyles.cardTitle.copyWith(
                     fontSize: 14.5,
                     fontWeight: FontWeight.w500,
@@ -565,12 +629,13 @@ class _EmailLoginScreenState extends State<EmailLoginScreen> with UtilityMixin {
   }
 
   Widget _buildFieldLabel(String label) {
+    final txt = AppTextColors.of(context);
     return Text(
       label,
       style: AppTextStyles.cardTitle.copyWith(
         fontSize: 14.5,
         fontWeight: FontWeight.w400,
-        color: const Color(0xFF2C2C2C),
+        color: txt.title,
       ),
     );
   }
@@ -580,54 +645,74 @@ class _EmailLoginScreenState extends State<EmailLoginScreen> with UtilityMixin {
     required String hint,
     TextInputType keyboardType = TextInputType.text,
   }) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     return SizedBox(
       height: 48,
       child: TextField(
         controller: controller,
         keyboardType: keyboardType,
-        style: const TextStyle(fontSize: 14.5, color: Color(0xFF404040)),
+        cursorColor: Theme.of(context).colorScheme.onPrimary.withOpacity(0.8),
+        cursorWidth: 1.5,
+        style: AppTextStyles.subText.copyWith(
+          fontSize: 15,
+          color: Theme.of(context).colorScheme.onBackground,
+          fontWeight: FontWeight.w400,
+        ),
         decoration: InputDecoration(
           hintText: hint,
           hintStyle: AppTextStyles.subText.copyWith(
             fontSize: 14.5,
-            color: const Color(0xFFB3B3B3),
+            color: isDarkMode
+                ? const Color(0XFFB3B3B3)
+                : const Color(0XFF898989),
             fontWeight: FontWeight.w400,
           ),
-
           contentPadding: const EdgeInsets.symmetric(
             horizontal: 16,
             vertical: 16,
           ),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(color: Color(0xFFDDDDDD), width: 1),
+            borderSide: BorderSide(
+              color: isDarkMode
+                  ? Theme.of(context).colorScheme.outline
+                  : const Color(0xFFDDDDDD),
+              width: 1,
+            ),
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
             borderSide: BorderSide(
-              color: Theme.of(context).colorScheme.primary,
-              width: 1,
+              color: Theme.of(context).colorScheme.onPrimary.withOpacity(0.7),
+              width: 0.7,
             ),
           ),
-          filled: true,
-          fillColor: Colors.white,
         ),
       ),
     );
   }
 
   Widget _buildPasswordField() {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     return SizedBox(
       height: 48,
       child: TextField(
         controller: _passwordController,
         obscureText: _obscurePassword,
-        style: const TextStyle(fontSize: 14.5, color: Color(0xFF404040)),
+        cursorColor: Theme.of(context).colorScheme.onPrimary.withOpacity(0.8),
+        cursorWidth: 1.5,
+        style: AppTextStyles.subText.copyWith(
+          fontSize: 15,
+          color: Theme.of(context).colorScheme.onBackground,
+          fontWeight: FontWeight.w400,
+        ),
         decoration: InputDecoration(
           hintText: 'Enter password',
           hintStyle: AppTextStyles.subText.copyWith(
             fontSize: 14.5,
-            color: const Color(0xFFB3B3B3),
+           color: isDarkMode
+                ? const Color(0XFFB3B3B3)
+                : const Color(0XFF898989),
             fontWeight: FontWeight.w400,
           ),
           contentPadding: const EdgeInsets.symmetric(
@@ -638,25 +723,28 @@ class _EmailLoginScreenState extends State<EmailLoginScreen> with UtilityMixin {
             onTap: () => setState(() => _obscurePassword = !_obscurePassword),
             child: Icon(
               _obscurePassword
-                  ? Icons.remove_red_eye_outlined
-                  : Icons.visibility_off_outlined,
+                  ? Icons.visibility_off_outlined
+                  : Icons.visibility_outlined,
               color: const Color(0xFF8E8E8E),
               size: 22,
             ),
           ),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(color: Color(0xFFDDDDDD), width: 1),
+            borderSide: BorderSide(
+              color: isDarkMode
+                  ? Theme.of(context).colorScheme.outline
+                  : const Color(0xFFDDDDDD),
+              width: 1,
+            ),
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
             borderSide: BorderSide(
-              color: Theme.of(context).colorScheme.primary,
-              width: 1,
+              color: Theme.of(context).colorScheme.onPrimary.withOpacity(0.7),
+              width: 0.7,
             ),
           ),
-          filled: true,
-          fillColor: Colors.white,
         ),
       ),
     );

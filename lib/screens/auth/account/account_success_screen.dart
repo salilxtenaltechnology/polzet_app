@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:polzet_app/gen/assets.gen.dart';
 
 import '../../../api/services/api_service.dart';
+import '../../../core/themes/app_text_colors.dart';
 import '../../../core/themes/app_text_styles.dart';
 
 class AccountSuccessScreen extends StatefulWidget {
@@ -183,6 +184,7 @@ class _AccountSuccessScreenState extends State<AccountSuccessScreen>
 
   @override
   Widget build(BuildContext context) {
+    final txt = AppTextColors.of(context);
     final size = MediaQuery.of(context).size;
 
     return Scaffold(
@@ -244,7 +246,7 @@ class _AccountSuccessScreenState extends State<AccountSuccessScreen>
                     style: AppTextStyles.subSectionHeading.copyWith(
                       fontSize: 25,
                       fontWeight: FontWeight.w700,
-                      color: const Color(0xFF111111),
+                      color: Theme.of(context).colorScheme.onBackground,
                       height: 1.3,
                     ),
                   ),
@@ -266,7 +268,7 @@ class _AccountSuccessScreenState extends State<AccountSuccessScreen>
                     textAlign: TextAlign.center,
                     style: AppTextStyles.subText.copyWith(
                       fontSize: 14,
-                      color: const Color(0xFF595959),
+                      color: txt.body,
                     ),
                   ),
                 ),

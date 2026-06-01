@@ -1,32 +1,25 @@
-// lib/features/profile/edit_profile.dart
-
-// ignore_for_file: prefer_final_fields, unused_field, deprecated_member_use
+// ignore_for_file: unused_element, deprecated_member_use
 
 import 'dart:io';
-import 'package:dio/dio.dart';
+
+import 'package:polzet_app/core/constants/feather_icons_compat.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:polzet_app/screens/home/profile/edit_profile/new_edit_profile.dart';
+import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
-import '../../../../api/app_api.dart';
 import '../../../../api/services/api_service.dart';
 import '../../../../api/services/image/image_picker_service.dart';
-import '../../../../core/constants/app_colors.dart';
-import '../../../../data/token/shared_preferences.dart';
+import '../../../../core/constants/app_radius.dart';
+import '../../../../gen/assets.gen.dart';
 import '../../../../languages/l10n/generated/app_localizations.dart';
-import '../../../../mixin/utility_mixins.dart';
-import '../../../../models/user/user_profile_model.dart';
+import '../../../../models/country/country_model.dart';
 import '../../../../provider/user_provider.dart';
 import '../../../../widgets/appbar/common_appbar.dart';
-import '../../../../widgets/custom_text_styles.dart';
+import '../../../../widgets/country_code/code_bottomsheet.dart';
 import '../../../../widgets/dialog/custom_diolog.dart';
-import '../../../../widgets/loader.dart';
-import '../../../../widgets/profile/profile_form_section.dart';
-import '../../../../widgets/profile/profile_header_section.dart';
-import '../../../../widgets/show_toast.dart';
-import 'set_password.dart';
+import '../../../../core/themes/app_text_styles.dart';
+import '../../../../widgets/base64/image_convert.dart';
 
 class EditProfile extends StatefulWidget {
   const EditProfile({super.key});
@@ -35,208 +28,131 @@ class EditProfile extends StatefulWidget {
   State<EditProfile> createState() => _EditProfileState();
 }
 
-class _EditProfileState extends State<EditProfile> with UtilityMixin {
-  // =====================
-  // Controllers & Models
-  // =====================
-  final _formControllers = FormControllers();
-  final ApiService _apiService = ApiService();
+class _EditProfileState extends State<EditProfile> {
+  // ── Controllers ────────────────────────────────────────────────────────────
+  final TextEditingController _firstNameController = TextEditingController();
+  final TextEditingController _lastNameController = TextEditingController();
+  final TextEditingController _usernameController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _phoneController = TextEditingController();
 
-  // Initial and current state
-  UserProfileModel? _initialProfile;
-  String _selectedGender = 'Other';
-  String? _countryCode = '91';
-
-  // Error messages
-  String _usernameErrorText = '';
-  String? currentPasswordErrorText;
-  String? newPasswordErrorText;
-  String? confirmPasswordErrorText;
-
-  // Images
-  File? _coverImage;
-  File? _profileImage;
-  Uint8List? _cachedProfileImage;
-  Uint8List? _cachedCoverImage;
-
-  // Loading states
-  bool _isLoading = false;
-  bool _isSaveProfile = false;
-  bool _isSaveUsername = false;
-  bool _isUploadingCover = false;
+  // ── State ──────────────────────────────────────────────────────────────────
   bool _isUploadingProfile = false;
+  bool _obscurePassword = true;
+  bool _isSaving = false;
+  DateTime? _dob;
+  bool _hasChanges = false;
 
-  // Change tracking
-  bool _showUpdateProfileButton = false;
-  bool _showUpdateUsernameButton = false;
+  String _selectedGender = 'Other';
+  String _originalFirstName = '';
+  String _originalLastName = '';
+  String _originalUsername = '';
+  String _originalDob = '';
+  String _originalGender = '';
 
-  // Set Password
-  bool _hasGoogleAuth = false;
-  bool _hasLocalPassword = false;
+  String _firstNameErrorText = '';
+  String _lastNameErrorText = '';
+  String _usernameErrorText = '';
 
-  // =====================
-  // Lifecycle Methods
-  // =====================
+  final List<String> _genderOptions = ['Male', 'Female', 'Other'];
+
+  Country _selectedCountry = Country(
+    name: 'India',
+    code: 'IN',
+    dialCode: '+91',
+    flag: '🇮🇳',
+  );
   @override
   void initState() {
     super.initState();
-    _loadUserProfile();
+    _loadUserData();
     _setupListeners();
+  }
+
+  void _setupListeners() {
+    _firstNameController.addListener(_onFieldChanged);
+    _lastNameController.addListener(_onFieldChanged);
+    _usernameController.addListener(_onFieldChanged);
+  }
+
+  void _onFieldChanged() {
+    bool needsStateUpdate = false;
+    if (_usernameErrorText.isNotEmpty) {
+      _usernameErrorText = '';
+      needsStateUpdate = true;
+    }
+    if (_firstNameErrorText.isNotEmpty) {
+      _firstNameErrorText = '';
+      needsStateUpdate = true;
+    }
+    if (_lastNameErrorText.isNotEmpty) {
+      _lastNameErrorText = '';
+      needsStateUpdate = true;
+    }
+
+    if (needsStateUpdate) {
+      setState(() {});
+    }
+
+    _checkChanges();
+  }
+
+  void _checkChanges() {
+    final dobStr = _dob != null ? DateFormat('yyyy-MM-dd').format(_dob!) : '';
+    final hasChanges =
+        _firstNameController.text != _originalFirstName ||
+        _lastNameController.text != _originalLastName ||
+        _usernameController.text != _originalUsername ||
+        dobStr != _originalDob ||
+        _selectedGender != _originalGender;
+
+    if (_hasChanges != hasChanges) {
+      setState(() {
+        _hasChanges = hasChanges;
+      });
+    }
+  }
+
+  void _loadUserData() {
+    final userProvider = Provider.of<UserProvider>(context, listen: false);
+    _firstNameController.text = userProvider.firstName ?? '';
+    _lastNameController.text = userProvider.lastName ?? '';
+    _usernameController.text = userProvider.username ?? '';
+    _emailController.text = userProvider.email ?? '';
+    _phoneController.text = userProvider.mobile_number ?? '';
+    _dob = userProvider.dob != null ? DateTime.parse(userProvider.dob!) : null;
+    final rawGender = userProvider.gender ?? 'Other';
+    _selectedGender = _genderOptions.firstWhere(
+      (g) => g.toLowerCase() == rawGender.toLowerCase(),
+      orElse: () => 'Other',
+    );
+
+    _originalFirstName = _firstNameController.text;
+    _originalLastName = _lastNameController.text;
+    _originalUsername = _usernameController.text;
+    _originalDob = _dob != null ? DateFormat('yyyy-MM-dd').format(_dob!) : '';
+    _originalGender = _selectedGender;
   }
 
   @override
   void dispose() {
-    _formControllers.dispose();
+    _firstNameController.dispose();
+    _lastNameController.dispose();
+    _usernameController.dispose();
+    _passwordController.dispose();
+    _emailController.dispose();
+    _phoneController.dispose();
     super.dispose();
   }
 
-  // =====================
-  // Data Loading
-  // =====================
-  Future<void> _loadUserProfile() async {
-    setState(() => _isLoading = true);
-
-    try {
-      final accessToken = await SharedPrefService.getToken();
-      final response = await Dio().get(
-        ApiConstants.userProfile,
-        options: Options(
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer $accessToken',
-          },
-        ),
-      );
-
-      if (response.statusCode == 200 && mounted) {
-        final profile = UserProfileModel.fromJson(response.data);
-        final userProvider = Provider.of<UserProvider>(context, listen: false);
-
-        setState(() {
-          _initialProfile = profile;
-          _selectedGender = _getDisplayGender(profile.gender);
-          _countryCode = profile.countryCode;
-          _formControllers.populateFromProfile(profile);
-
-          _hasGoogleAuth = response.data['has_google_auth'] ?? false;
-          _hasLocalPassword = response.data['has_local_password'] ?? false;
-
-          // Cache images
-          _cachedProfileImage = userProvider.getProfileImage(
-            profile.profilePictureUrl,
-          );
-          _cachedCoverImage = userProvider.getCoverImage(profile.coverPhotoUrl);
-        });
-      }
-    } catch (e) {
-      if (kDebugMode) print('Error loading profile: $e');
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
-    }
-  }
-
-  // =====================
-  // Setup Listeners
-  // =====================
-  void _setupListeners() {
-    _formControllers.firstName.addListener(_checkProfileChanges);
-    _formControllers.lastName.addListener(_checkProfileChanges);
-    _formControllers.bio.addListener(_checkProfileChanges);
-    _formControllers.dob.addListener(_checkProfileChanges);
-    _formControllers.username.addListener(_checkUsernameChanges);
-  }
-
-  void _checkProfileChanges() {
-    if (_initialProfile == null || _isLoading) return;
-
-    setState(() {
-      _showUpdateProfileButton =
-          _formControllers.firstName.text != _initialProfile!.firstName ||
-          _formControllers.lastName.text != _initialProfile!.lastName ||
-          _formControllers.bio.text != _initialProfile!.bio ||
-          _formControllers.dob.text != (_initialProfile!.dob ?? '') ||
-          _selectedGender != _getDisplayGender(_initialProfile!.gender);
-    });
-  }
-
-  void _checkUsernameChanges() {
-    if (_initialProfile == null || _isLoading) return;
-
-    setState(() {
-      _showUpdateUsernameButton =
-          _formControllers.username.text != _initialProfile!.username;
-    });
-  }
-
-  // =====================
-  // Update Methods
-  // =====================
-  Future<void> _updateProfile() async {
-    setState(() => _isSaveProfile = true);
-
-    final errorMessage = await _apiService.updateProfile(
-      firstName: _formControllers.firstName.text.trim(),
-      lastName: _formControllers.lastName.text.trim(),
-      bio: _formControllers.bio.text.trim(),
-      dob: _formControllers.dob.text,
-      gender: _selectedGender.toLowerCase(),
-    );
-
-    if (!mounted) return;
-
-    if (errorMessage.isEmpty) {
-      // Success - update initial values
-      _initialProfile = _initialProfile?.copyWith(
-        firstName: _formControllers.firstName.text.trim(),
-        lastName: _formControllers.lastName.text.trim(),
-        bio: _formControllers.bio.text.trim(),
-        dob: _formControllers.dob.text,
-        gender: _selectedGender.toLowerCase(),
-      );
-
-      setState(() => _showUpdateProfileButton = false);
-      showToast(message: 'Profile updated successfully');
-    }
-
-    setState(() => _isSaveProfile = false);
-  }
-
-  Future<void> _updateUsername() async {
-    final username = _formControllers.username.text.trim();
-
-    if (username.isEmpty) {
-      setState(() => _usernameErrorText = 'Username is required');
-      return;
-    }
-
-    setState(() => _isSaveUsername = true);
-
-    final errorMessage = await _apiService.updateUsername(
-      newUsername: username,
-    );
-
-    if (!mounted) return;
-
-    setState(() {
-      _usernameErrorText = errorMessage;
-      if (errorMessage.isEmpty) {
-        _initialProfile = _initialProfile?.copyWith(username: username);
-        _showUpdateUsernameButton = false;
-        showToast(message: 'Username updated successfully');
-      }
-      _isSaveUsername = false;
-    });
-  }
-
-  // =====================
-  // Image Picking
-  // =====================
+  // ── Profile photo ──────────────────────────────────────────────────────────
   Future<void> _pickProfilePhoto() async {
     try {
       final file = await ImagePickerService.pickImage(context: context);
       if (file == null || !mounted) return;
 
-      final shouldCrop = await _showCropDialog();
+      final shouldCrop = await cropImageDiolog(context);
       if (!mounted) return;
 
       File finalFile = file;
@@ -246,417 +162,579 @@ class _EditProfileState extends State<EditProfile> with UtilityMixin {
       }
 
       if (!mounted) return;
+      setState(() => _isUploadingProfile = true);
 
-      setState(() {
-        _profileImage = finalFile;
-        _isUploadingProfile = true;
-      });
-
-      await _uploadProfilePhoto(finalFile);
-    } catch (e) {
-      if (kDebugMode) debugPrint('Error picking profile photo: $e');
-      if (mounted) {
-        setState(() {
-          _isUploadingProfile = false;
-          _profileImage = null;
-        });
-        showToast(message: 'Failed to select photo');
-      }
-    }
-  }
-
-  Future<void> _pickCoverPhoto() async {
-    try {
-      final file = await ImagePickerService.pickImage(context: context);
-      if (file == null || !mounted) return;
-
-      final shouldCrop = await _showCropDialog();
-      if (!mounted) return;
-
-      File finalFile = file;
-      if (shouldCrop == true) {
-        final croppedFile = await ImagePickerService.cropImage(file);
-        if (croppedFile != null) finalFile = croppedFile;
-      }
+      final result = await ApiService().uploadProfileImage(finalFile);
 
       if (!mounted) return;
-
-      setState(() {
-        _coverImage = finalFile;
-        _isUploadingCover = true;
-      });
-
-      await _uploadCoverPhoto(finalFile);
-    } catch (e) {
-      if (kDebugMode) debugPrint('Error picking cover photo: $e');
-      if (mounted) {
-        setState(() {
-          _isUploadingCover = false;
-          _coverImage = null;
-        });
-        showToast(message: 'Failed to select photo');
+      if (result.isEmpty) {
+        final userProvider = Provider.of<UserProvider>(context, listen: false);
+        await userProvider.loadUserData();
       }
-    }
-  }
-
-  // show crop diolog
-  Future<bool?> _showCropDialog() {
-    return cropImageDiolog(context);
-  }
-
-  // =====================
-  // Upload Methods
-  // =====================
-  Future<void> _uploadProfilePhoto(File file) async {
-    try {
-      final result = await _apiService.uploadProfileImage(file);
-
-      if (!mounted) return;
 
       setState(() => _isUploadingProfile = false);
-
-      if (result.isEmpty) {
-        // showToast(message: 'Profile photo uploaded successfully!');
-        await _refreshUserData();
-      } else {
-        showToast(message: result);
-        setState(() => _profileImage = null);
-      }
     } catch (e) {
-      if (kDebugMode) print('Error uploading profile photo: $e');
-      if (mounted) {
-        setState(() {
-          _isUploadingProfile = false;
-          _profileImage = null;
-        });
-        showToast(message: 'Upload failed');
-      }
+      if (kDebugMode) debugPrint('Error picking profile photo: $e');
+      if (mounted) setState(() => _isUploadingProfile = false);
     }
   }
 
-  Future<void> _uploadCoverPhoto(File file) async {
-    try {
-      final result = await _apiService.uploadCoverPhoto(file);
+  // ── Save ───────────────────────────────────────────────────────────────────
+  Future<void> _save() async {
+    bool hasError = false;
+    setState(() {
+      _firstNameErrorText = '';
+      _lastNameErrorText = '';
+      _usernameErrorText = '';
+    });
 
-      if (!mounted) return;
+    final firstName = _firstNameController.text.trim();
+    final lastName = _lastNameController.text.trim();
+    final username = _usernameController.text.trim();
 
-      setState(() => _isUploadingCover = false);
+    if (firstName.isEmpty) {
+      setState(() => _firstNameErrorText = 'First name is required');
+      hasError = true;
+    }
+    if (lastName.isEmpty) {
+      setState(() => _lastNameErrorText = 'Last name is required');
+      hasError = true;
+    }
+    if (username.isEmpty) {
+      setState(() => _usernameErrorText = 'Username is required');
+      hasError = true;
+    }
 
-      if (result.isEmpty) {
-        //showToast(message: 'Cover photo uploaded successfully!');
-        await _refreshUserData();
+    if (hasError) return;
+
+    setState(() => _isSaving = true);
+
+    bool profileUpdated = false;
+    bool usernameUpdated = false;
+
+    final dobStr = _dob != null ? DateFormat('yyyy-MM-dd').format(_dob!) : '';
+
+    if (firstName != _originalFirstName ||
+        lastName != _originalLastName ||
+        dobStr != _originalDob ||
+        _selectedGender != _originalGender) {
+      final bioStr =
+          Provider.of<UserProvider>(context, listen: false).bio ?? '';
+      final profileError = await ApiService().updateProfile(
+        firstName: firstName,
+        lastName: lastName,
+        bio: bioStr,
+        dob: dobStr,
+        gender: _selectedGender.toLowerCase(),
+      );
+
+      if (profileError.isEmpty) {
+        profileUpdated = true;
+        _originalFirstName = firstName;
+        _originalLastName = lastName;
+        _originalDob = dobStr;
+        _originalGender = _selectedGender;
+      }
+    }
+
+    if (username != _originalUsername) {
+      final usernameError = await ApiService().updateUsername(
+        newUsername: username,
+      );
+
+      if (usernameError.isNotEmpty) {
+        // ← must be isNotEmpty, not isEmpty
+        if (mounted) {
+          setState(() => _usernameErrorText = usernameError);
+        }
+        setState(() => _isSaving = false);
+        return;
       } else {
-        showToast(message: result);
-        setState(() => _coverImage = null);
+        if (mounted) {
+          setState(() {
+            usernameUpdated = true;
+            _originalUsername = username;
+            _usernameErrorText = usernameError;
+          });
+        }
       }
-    } catch (e) {
-      if (kDebugMode) print('Error uploading cover photo: $e');
-      if (mounted) {
-        setState(() {
-          _isUploadingCover = false;
-          _coverImage = null;
-        });
-        showToast(message: 'Upload failed');
-      }
+    }
+
+    if (!mounted) return;
+
+    setState(() {
+      _isSaving = false;
+    });
+
+    _checkChanges();
+
+    if (profileUpdated || usernameUpdated) {
+      final userProvider = Provider.of<UserProvider>(context, listen: false);
+      await userProvider.loadUserData();
     }
   }
 
-  Future<void> _refreshUserData() async {
-    final userProvider = Provider.of<UserProvider>(context, listen: false);
-    await userProvider.loadUserData();
-
-    if (mounted) {
-      setState(() {
-        _cachedProfileImage = userProvider.getProfileImage(
-          userProvider.profile_picture,
-        );
-        _cachedCoverImage = userProvider.getCoverImage(
-          userProvider.cover_photo,
-        );
-        _profileImage = null;
-        _coverImage = null;
-      });
-    }
-  }
-
-  // =====================
-  // Date Picker
-  // =====================
-  Future<void> _selectDate() async {
-    final pickedDate = await showDatePicker(
+  // ── Country picker ─────────────────────────────────────────────────────────
+  void _showCountryPicker() {
+    showModalBottomSheet(
       context: context,
-      initialDate: DateTime.now(),
-      firstDate: DateTime(1900),
-      lastDate: DateTime.now(),
-      builder: (context, child) {
-        return Theme(
-          data: ThemeData(
-            colorScheme: const ColorScheme.light(
-              primary: AppColors.primaryColor,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => CountryPickerBottomSheet(
+        selectedCountry: _selectedCountry,
+        onCountrySelected: (country) {
+          setState(() => _selectedCountry = country);
+          Navigator.pop(context);
+        },
+      ),
+    );
+  }
+
+  Future<void> _pickDob() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: DateTime(2000),
+      firstDate: DateTime(1920),
+      lastDate: DateTime.now().subtract(const Duration(days: 365 * 13)),
+      helpText: 'Select date of birth',
+      builder: (context, child) => Theme(
+        data: Theme.of(context).copyWith(
+          colorScheme: Theme.of(context).colorScheme.copyWith(
+            primary: Theme.of(context).colorScheme.primary,
+          ),
+        ),
+        child: child!,
+      ),
+    );
+    if (picked != null) {
+      setState(() {
+        _dob = picked;
+      });
+      _checkChanges();
+    }
+  }
+
+  // ── Shared widgets ─────────────────────────────────────────────────────────
+
+  Widget _buildFieldLabel(String label) {
+    return Text(
+      label,
+      style: AppTextStyles.cardTitle.copyWith(
+        fontSize: 14.5,
+        fontWeight: FontWeight.w500,
+        color: const Color(0xFF898989),
+      ),
+    );
+  }
+
+  Widget _buildTextField({
+    required TextEditingController controller,
+    required String hint,
+    TextInputType keyboardType = TextInputType.text,
+    String errorText = '',
+  }) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          height: 48,
+          child: TextField(
+            controller: controller,
+            keyboardType: keyboardType,
+            style: AppTextStyles.subText.copyWith(
+              fontSize: 15,
+              color: Theme.of(context).colorScheme.onBackground,
+              fontWeight: FontWeight.w400,
+            ),
+            decoration: InputDecoration(
+              hintText: hint,
+              hintStyle: AppTextStyles.subText.copyWith(
+                fontSize: 14.5,
+                color: const Color(0XFF898989),
+                fontWeight: FontWeight.w400,
+              ),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 16,
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(AppRadius.card),
+                borderSide: BorderSide(
+                  color: Theme.of(context).colorScheme.outline,
+                  width: 1.5,
+                ),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(
+                  color: errorText.isNotEmpty
+                      ? Theme.of(context).colorScheme.error
+                      : (isDarkMode
+                            ? Colors.white.withValues(alpha: 0.3)
+                            : Theme.of(context).colorScheme.primary),
+                  width: 1,
+                ),
+              ),
             ),
           ),
-          child: child!,
-        );
-      },
+        ),
+        if (errorText.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.only(top: 4, left: 4),
+            child: Text(
+              errorText,
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.error,
+                fontSize: 12,
+              ),
+            ),
+          ),
+      ],
     );
-
-    if (pickedDate != null && mounted) {
-      setState(() {
-        _formControllers.dob.text =
-            "${pickedDate.year}-${pickedDate.month.toString().padLeft(2, '0')}-${pickedDate.day.toString().padLeft(2, '0')}";
-      });
-    }
   }
 
-  // =====================
-  // Helper Methods
-  // =====================
-  String _getDisplayGender(String storedGender) {
-    switch (storedGender.toLowerCase()) {
-      case 'male':
-        return 'Male';
-      case 'female':
-        return 'Female';
-      default:
-        return 'Other';
-    }
+  Widget _buildPasswordField() {
+    return SizedBox(
+      height: 48,
+      child: TextField(
+        controller: _passwordController,
+        obscureText: _obscurePassword,
+        style: AppTextStyles.subText.copyWith(
+          fontSize: 15.3,
+          color: Theme.of(context).colorScheme.onBackground,
+          fontWeight: FontWeight.w400,
+        ),
+        decoration: InputDecoration(
+          hintText: 'Enter password',
+          hintStyle: AppTextStyles.subText.copyWith(
+            fontSize: 14.5,
+            color: const Color(0xFFB3B3B3),
+            fontWeight: FontWeight.w400,
+          ),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 16,
+          ),
+          suffixIcon: GestureDetector(
+            onTap: () => setState(() => _obscurePassword = !_obscurePassword),
+            child: Icon(
+              _obscurePassword
+                  ? Icons.remove_red_eye_outlined
+                  : Icons.visibility_off_outlined,
+              color: const Color(0xFF8E8E8E),
+              size: 22,
+            ),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(color: Color(0xFFDDDDDD), width: 1),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(
+              color: Theme.of(context).colorScheme.primary,
+              width: 1,
+            ),
+          ),
+          filled: true,
+          fillColor: Colors.white,
+        ),
+      ),
+    );
   }
 
-  // =====================
-  // UI Build
-  // =====================
+  Widget _buildCountryCodeButton() {
+    return GestureDetector(
+      onTap: _showCountryPicker,
+      child: Container(
+        height: 48,
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.background,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: Theme.of(context).colorScheme.outline,
+            width: 1.5,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(_selectedCountry.flag, style: const TextStyle(fontSize: 18)),
+            const SizedBox(width: 4),
+            Text(
+              _selectedCountry.dialCode,
+              style: AppTextStyles.subText.copyWith(
+                fontSize: 15,
+                color: Theme.of(context).colorScheme.onBackground,
+                fontWeight: FontWeight.w400,
+              ),
+            ),
+            const SizedBox(width: 4),
+            const Icon(
+              Icons.keyboard_arrow_down_rounded,
+              size: 18,
+              color: Color(0xFF8A8A8A),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ── Avatar ─────────────────────────────────────────────────────────────────
+
+  Widget _buildAvatar() {
+    final userProvider = Provider.of<UserProvider>(context);
+    final profileUrl = userProvider.profile_picture;
+    final imageBytes = profileUrl != null ? getProfileImage(profileUrl) : null;
+
+    return Center(
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          CircleAvatar(
+            radius: 50,
+            backgroundColor: Colors.grey[200],
+            backgroundImage: imageBytes != null
+                ? MemoryImage(imageBytes)
+                : AssetImage(Assets.images.icAvatar.path) as ImageProvider,
+            child: _isUploadingProfile
+                ? Container(
+                    width: 100,
+                    height: 100,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Colors.black.withOpacity(0.35),
+                    ),
+                    child: const Center(
+                      child: SizedBox(
+                        width: 28,
+                        height: 28,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2.5,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  )
+                : null,
+          ),
+          Positioned(
+            bottom: 0,
+            right: 0,
+            child: GestureDetector(
+              onTap: _isUploadingProfile ? null : _pickProfilePhoto,
+              child: Container(
+                width: 28,
+                height: 28,
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.primary,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: Theme.of(context).colorScheme.background, width: 1.5),
+                ),
+                child: Icon(
+                  FeatherIcons.camera,
+                  size: 14,
+                  color: Colors.white.withOpacity(0.9),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildGenderField() {
+    return Container(
+      height: 48,
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.background,
+        borderRadius: BorderRadius.circular(AppRadius.card),
+        border: Border.all(
+          color: Theme.of(context).colorScheme.outline,
+          width: 1.5,
+        ),
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<String>(
+          value: _selectedGender,
+          dropdownColor: Theme.of(context).colorScheme.tertiaryContainer,
+          isExpanded: true,
+          style: AppTextStyles.bodyText.copyWith(
+            fontSize: 14.5,
+            color: Theme.of(context).colorScheme.onBackground,
+            fontWeight: FontWeight.w500,
+          ),
+          icon: const Icon(
+            Icons.keyboard_arrow_down_rounded,
+            size: 20,
+            color: Color(0xFF8A8A8A),
+          ),
+          items: _genderOptions.map((gender) {
+            return DropdownMenuItem<String>(
+              value: gender,
+              child: Text(
+                gender,
+                style: AppTextStyles.subText.copyWith(
+                  fontSize: 15,
+                  color: Theme.of(context).colorScheme.onBackground,
+                  fontWeight: FontWeight.w400,
+                ),
+              ),
+            );
+          }).toList(),
+          onChanged: (String? newValue) {
+            if (newValue != null) {
+              setState(() => _selectedGender = newValue);
+              _checkChanges();
+            }
+          },
+          iconEnabledColor: const Color(0XFF898989),
+        ),
+      ),
+    );
+  }
+
+  // ── Build ──────────────────────────────────────────────────────────────────
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.background,
-      appBar: CommonAppBar(title: AppLocalizations.of(context)!.editprofile),
-      body: _isLoading
-          ? Center(
-              child: Loader(color: Theme.of(context).colorScheme.primary),
-            ) //const ProfileSimmer()
-          : ListView(
-              children: [
-                // Profile Header with images
-                ProfileHeaderSection(
-                  cachedProfileImage: _cachedProfileImage,
-                  cachedCoverImage: _cachedCoverImage,
-                  profileImage: _profileImage,
-                  coverImage: _coverImage,
-                  isUploadingProfile: _isUploadingProfile,
-                  isUploadingCover: _isUploadingCover,
-                  onPickProfile: _pickProfilePhoto,
-                  onPickCover: _pickCoverPhoto,
+      appBar: CommonAppBar(
+        title: AppLocalizations.of(context)!.editprofile,
+        actions: [
+          _isSaving
+              ? const Padding(
+                  padding: EdgeInsets.only(right: 16),
+                  child: Center(
+                    child: SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                  ),
+                )
+              : _hasChanges
+              ? IconButton(onPressed: _save, icon: const Icon(Icons.check))
+              : const SizedBox(),
+        ],
+      ),
+      body: ListView(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+        children: [
+          // ── Avatar ──────────────────────────────────────────────────────
+          _buildAvatar(),
+          const SizedBox(height: 28),
+
+          // ── First Name ──────────────────────────────────────────────────
+          _buildFieldLabel(AppLocalizations.of(context)!.firstname),
+          const SizedBox(height: 6),
+          _buildTextField(
+            controller: _firstNameController,
+            hint: AppLocalizations.of(context)!.enterfirstname,
+            errorText: _firstNameErrorText,
+          ),
+          const SizedBox(height: 16),
+
+          // ── Last Name ───────────────────────────────────────────────────
+          _buildFieldLabel(AppLocalizations.of(context)!.lastname),
+          const SizedBox(height: 6),
+          _buildTextField(
+            controller: _lastNameController,
+            hint: AppLocalizations.of(context)!.enterlastname,
+            errorText: _lastNameErrorText,
+          ),
+          const SizedBox(height: 16),
+
+          // ── Username ────────────────────────────────────────────────────
+          _buildFieldLabel(AppLocalizations.of(context)!.username),
+          const SizedBox(height: 6),
+          _buildTextField(
+            controller: _usernameController,
+            hint: AppLocalizations.of(context)!.enterusername,
+            errorText: _usernameErrorText,
+          ),
+          const SizedBox(height: 16),
+
+          // ── Email ───────────────────────────────────────────────────────
+          _buildFieldLabel(AppLocalizations.of(context)!.email),
+          const SizedBox(height: 6),
+          _buildTextField(
+            controller: _emailController,
+            hint: 'Enter email address',
+            keyboardType: TextInputType.emailAddress,
+          ),
+          const SizedBox(height: 16),
+
+          // ── Phone ───────────────────────────────────────────────────────
+          _buildFieldLabel(AppLocalizations.of(context)!.phonenumber),
+          const SizedBox(height: 6),
+          Row(
+            children: [
+              _buildCountryCodeButton(),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _buildTextField(
+                  controller: _phoneController,
+                  hint: AppLocalizations.of(context)!.enteryourphonenumber,
+                  keyboardType: TextInputType.phone,
                 ),
-
-                SizedBox(height: 20.h),
-
-                // Profile Form
-                ProfileFormSection(
-                  firstNameController: _formControllers.firstName,
-                  lastNameController: _formControllers.lastName,
-                  usernameController: _formControllers.username,
-                  dobController: _formControllers.dob,
-                  bioController: _formControllers.bio,
-                  emailController: _formControllers.email,
-                  phoneNumberController: _formControllers.phoneNumber,
-                  selectedGender: _selectedGender,
-                  countryCode: _countryCode,
-                  usernameErrorText: _usernameErrorText,
-                  onDateSelect: _selectDate,
-                  onGenderChanged: (gender) {
-                    setState(() => _selectedGender = gender);
-                    _checkProfileChanges();
-                  },
-                  onCountryCodeChanged: (code) {
-                    setState(() => _countryCode = code);
-                  },
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          _buildFieldLabel(AppLocalizations.of(context)!.dateofbirth),
+          const SizedBox(height: 6),
+          GestureDetector(
+            onTap: _pickDob,
+            child: Container(
+              height: 48,
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.background,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: Theme.of(context).colorScheme.outline,
+                  width: 1.5,
                 ),
-
-                // Save Button
-                if (_showUpdateProfileButton || _showUpdateUsernameButton)
-                  Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 12.w),
-                    child: GestureDetector(
-                      onTap: () {
-                        if (_showUpdateUsernameButton) _updateUsername();
-                        if (_showUpdateProfileButton) _updateProfile();
-                      },
-                      child: Container(
-                        height: 30.h,
-                        width: double.infinity,
-                        margin: EdgeInsets.only(top: 10.h),
-                        decoration: BoxDecoration(
-                          color: AppColors.primaryColor,
-                          borderRadius: BorderRadius.circular(50.r),
-                        ),
-                        child: Center(
-                          child: (_isSaveProfile || _isSaveUsername)
-                              ? Loader(color: Colors.white)
-                              : Text(
-                                  AppLocalizations.of(context)!.savechanges,
-                                  style: CustomTextStyles.btnPrimaryText,
-                                ),
-                        ),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      _dob != null
+                          ? DateFormat('dd MMM yyyy').format(_dob!)
+                          : AppLocalizations.of(context)!.selectyourdateofbirth,
+                      style: TextStyle(
+                        fontSize: 14.5,
+                        color: _dob != null
+                            ? Theme.of(context).colorScheme.onBackground
+                            : const Color(0xFFB3B3B3),
+                        fontWeight: FontWeight.w400,
                       ),
                     ),
                   ),
-                SizedBox(height: 12.h),
-                Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 12.w),
-                  child: GestureDetector(
-                    onTap: () {
-                      navigationPush(context, const NewEditProfile());
-                    },
-                    child: Container(
-                      width: double.infinity,
-                      padding: EdgeInsets.symmetric(
-                        horizontal: 12.w,
-                        vertical: 7.h,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Theme.of(context).colorScheme.primaryContainer,
-                        borderRadius: BorderRadius.circular(12.r),
-                        border: Border.all(
-                          color: AppColors.primaryColor.withOpacity(0.3),
-                          width: 1,
-                        ),
-                      ),
-                      child: Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                              color: AppColors.primaryColor.withOpacity(0.1),
-                              shape: BoxShape.circle,
-                            ),
-                            child: const Icon(
-                              Icons.settings,
-                              color: AppColors.primaryColor,
-                              size: 20,
-                            ),
-                          ),
-                          SizedBox(width: 12.w),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  AppLocalizations.of(context)!.moresettings,
-                                  style: TextStyle(
-                                    color: Theme.of(
-                                      context,
-                                    ).colorScheme.onBackground,
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 12.sp,
-                                  ),
-                                ),
-                                SizedBox(height: 2.h),
-                                Text(
-                                  '${AppLocalizations.of(context)!.darkmode},${AppLocalizations.of(context)!.security},${AppLocalizations.of(context)!.privacypolicy},${AppLocalizations.of(context)!.blockedaccounts}...',
-                                  style: TextStyle(
-                                    color: Theme.of(
-                                      context,
-                                    ).colorScheme.onBackground.withOpacity(0.5),
-                                    fontSize: 10.sp,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          Icon(
-                            Icons.arrow_forward_ios,
-                            color: AppColors.primaryColor,
-                            size: 14.sp,
-                          ),
-                        ],
-                      ),
-                    ),
+                  const Icon(
+                    Icons.calendar_today_outlined,
+                    size: 18,
+                    color: Color(0xFFB3B3B3),
                   ),
-                ),
-
-                SizedBox(height: 12.h),
-                if (_hasGoogleAuth && !_hasLocalPassword)
-                  Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 12.w),
-                    child: GestureDetector(
-                      onTap: () {
-                        navigationPush(context, const SetPasswordScreen());
-                      },
-                      child: Container(
-                        width: double.infinity,
-                        padding: EdgeInsets.symmetric(
-                          horizontal: 16.w,
-                          vertical: 14.h,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Theme.of(context).colorScheme.primaryContainer,
-                          borderRadius: BorderRadius.circular(12.r),
-                          border: Border.all(
-                            color: AppColors.primaryColor.withOpacity(0.3),
-                            width: 1,
-                          ),
-                        ),
-                        child: Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(8),
-                              decoration: BoxDecoration(
-                                color: AppColors.primaryColor.withOpacity(0.1),
-                                shape: BoxShape.circle,
-                              ),
-                              child: const Icon(
-                                Icons.lock_outline,
-                                color: AppColors.primaryColor,
-                                size: 20,
-                              ),
-                            ),
-                            SizedBox(width: 12.w),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    AppLocalizations.of(
-                                      context,
-                                    )!.setaccountpassword,
-                                    style: TextStyle(
-                                      color: Theme.of(
-                                        context,
-                                      ).colorScheme.onBackground,
-                                      fontWeight: FontWeight.w600,
-                                      fontSize: 12.sp,
-                                    ),
-                                  ),
-                                  SizedBox(height: 2.h),
-                                  Text(
-                                    AppLocalizations.of(
-                                      context,
-                                    )!.addapasswordtosigninwithoutgoogle,
-                                    style: TextStyle(
-                                      color: Theme.of(context)
-                                          .colorScheme
-                                          .onBackground
-                                          .withOpacity(0.5),
-                                      fontSize: 10.sp,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            Icon(
-                              Icons.arrow_forward_ios,
-                              color: AppColors.primaryColor,
-                              size: 14.sp,
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-
-                SizedBox(height: 30.h),
-              ],
+                ],
+              ),
             ),
+          ),
+          const SizedBox(height: 16),
+          _buildFieldLabel(AppLocalizations.of(context)!.gender),
+          const SizedBox(height: 6),
+          _buildGenderField(),
+        ],
+      ),
     );
   }
 }

@@ -7,7 +7,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' hide MultipartFile, Response;
-import 'package:page_transition/page_transition.dart';
+import 'package:polzet_app/core/constants/feather_icons_compat.dart';
 import 'package:provider/provider.dart';
 import 'package:path/path.dart' as path;
 import 'package:http/http.dart' as http;
@@ -19,6 +19,7 @@ import '../../models/global search/recent_search.dart';
 import '../../models/insights/insights_model.dart';
 import '../../models/like/like_uers_model.dart';
 import '../../models/message/message_model.dart';
+import '../../models/poll/poll_results_model.dart';
 import '../../models/posts/homefeed_posts_model.dart';
 import '../../models/posts/single_post_model.dart';
 import '../../models/posts/user_post_model.dart';
@@ -63,6 +64,7 @@ class ApiService with UtilityMixin {
 
   static final Dio _dio = Dio(
     BaseOptions(
+      baseUrl: ApiConfig.baseUrl,
       connectTimeout: const Duration(seconds: 60),
       receiveTimeout: const Duration(seconds: 60),
       validateStatus: (status) => status != null && status < 500,
@@ -144,6 +146,8 @@ class ApiService with UtilityMixin {
     required String email_username,
     required String password,
     required BuildContext context,
+    void Function(String? passwordError, String? emailOrMobileError)? onError,
+    VoidCallback? onSuccess,
   }) async {
     try {
       final response = await _dio.post(
@@ -203,31 +207,123 @@ class ApiService with UtilityMixin {
           );
         }
 
+        if (onSuccess != null) {
+          onSuccess();
+        }
+
         showToast(message: 'Login successful!');
       } else if (response.statusCode == 400) {
-        showToast(message: 'Error: ${response.data['message']}');
+        final data = response.data;
+        String? passErr;
+        String? emailOrMobileErr;
+        if (data is Map) {
+          final errors = data['errors'];
+          if (errors is Map) {
+            final pErr = errors['password'];
+            if (pErr is List && pErr.isNotEmpty) {
+              passErr = pErr.first.toString();
+            } else if (pErr is String) {
+              passErr = pErr;
+            }
+
+            final uErr = errors['username_or_email'];
+            if (uErr is List && uErr.isNotEmpty) {
+              emailOrMobileErr = uErr.first.toString();
+            } else if (uErr is String) {
+              emailOrMobileErr = uErr;
+            }
+          }
+        }
+        if (onError != null) {
+          onError(passErr, emailOrMobileErr);
+        }
+        // showToast(message: 'Error: ${response.data['message']}');
       }
     } on DioException catch (e) {
-      showToast(message: _handleDioError(e, defaultMessage: 'Login failed'));
+      String? passErr;
+      String? emailOrMobileErr;
+      if (e.response != null && e.response?.data != null) {
+        var data = e.response?.data;
+        if (data is String) {
+          try {
+            data = jsonDecode(data);
+          } catch (_) {}
+        }
+        if (data is Map) {
+          final errors = data['errors'];
+          if (errors is Map) {
+            final pErr = errors['password'];
+            if (pErr is List && pErr.isNotEmpty) {
+              passErr = pErr.first.toString();
+            } else if (pErr is String) {
+              passErr = pErr;
+            }
+
+            final uErr = errors['username_or_email'];
+            if (uErr is List && uErr.isNotEmpty) {
+              emailOrMobileErr = uErr.first.toString();
+            } else if (uErr is String) {
+              emailOrMobileErr = uErr;
+            }
+          }
+        }
+      }
+      if (onError != null) {
+        onError(passErr, emailOrMobileErr);
+      }
+      // showToast(message: _handleDioError(e, defaultMessage: 'Login failed'));
     }
   }
 
   Future socialLogin(String googleToken) async {
     try {
-      debugPrint('📤 socialLogin token: $googleToken');
+    //  debugPrint('📤 socialLogin token: $googleToken');
 
       final response = await _dio.post(
         ApiConstants.socialAuth,
-        data: {'provider': 'google', 'id_token': googleToken},
+        data: FormData.fromMap({  // ← Change this
+        'provider': 'google',
+        'id_token': googleToken,
+      }),
       );
 
       if (response.statusCode == 200 || response.statusCode == 201) {
-        return response.data;
+        final responseData = response.data;
+        if (responseData is String) {
+          return jsonDecode(responseData);
+        }
+        return responseData;
       }
 
       throw Exception('Unexpected status code: ${response.statusCode}');
     } on DioException catch (e) {
-      throw Exception(e.response?.data?['message'] ?? 'Social login failed');
+      debugPrint('❌ socialLogin DioException: ${e.message}');
+      debugPrint('❌ socialLogin DioException response data: ${e.response?.data}');
+      debugPrint('❌ socialLogin DioException response statusCode: ${e.response?.statusCode}');
+
+      String errorMessage = 'Social login failed';
+      if (e.response?.data != null) {
+        final errorData = e.response!.data;
+        if (errorData is Map) {
+          errorMessage = errorData['message']?.toString() ??
+              errorData['detail']?.toString() ??
+              errorData['error']?.toString() ??
+              errorMessage;
+        } else if (errorData is String) {
+          try {
+            final decoded = jsonDecode(errorData);
+            if (decoded is Map) {
+              errorMessage = decoded['message']?.toString() ??
+                  decoded['detail']?.toString() ??
+                  decoded['error']?.toString() ??
+                  errorMessage;
+            }
+          } catch (_) {}
+        }
+      } else {
+        errorMessage = e.message ?? errorMessage;
+      }
+      throw Exception(errorMessage);
     } catch (e) {
       debugPrint('❌ Unexpected error: $e');
       rethrow;
@@ -572,7 +668,7 @@ class ApiService with UtilityMixin {
 
       return response.statusCode == 200 ? response.data : null;
     } on DioException catch (e) {
-      debugPrint('Error fetching user data: ${e.message}');
+      debugPrint('Error fetching current user data: ${e.message}');
       return null;
     }
   }
@@ -657,8 +753,7 @@ class ApiService with UtilityMixin {
     }
   }
 
-  // Note: Implemented POST Method User Update Password
-  Future<String> updatePassword({
+  Future<String> changePassword({
     required String currentPassword,
     required String newPassword,
     required String confirmNewPassword,
@@ -680,20 +775,95 @@ class ApiService with UtilityMixin {
         options: Options(headers: await _getAuthHeaders()),
       );
 
-      if (response.statusCode == 200) {
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final data = response.data;
+        if (data is Map && data['status'] == 'error') {
+          // It's an error disguised as a 200
+          final errors = data['errors'];
+          String? curErr, newErr, conErr;
+          if (errors is Map) {
+            String? extract(String key) {
+              if (errors[key] is List && (errors[key] as List).isNotEmpty) {
+                return (errors[key] as List).first.toString();
+              } else if (errors[key] is String) {
+                return errors[key].toString();
+              }
+              return null;
+            }
+
+            curErr = extract('current_password');
+            newErr = extract('new_password');
+            conErr = extract('confirm_new_password');
+          }
+          onError(curErr, newErr, conErr);
+          return data['message']?.toString() ?? 'Failed to update password';
+        }
+
         showToast(message: 'Password updated successfully!');
         return '';
       }
+
+      if (response.statusCode == 400) {
+        final data = response.data;
+        if (data is Map && data['status'] == 'error') {
+          final errors = data['errors'];
+          String? curErr, newErr, conErr;
+          if (errors is Map) {
+            String? extract(String key) {
+              if (errors[key] is List && (errors[key] as List).isNotEmpty) {
+                return (errors[key] as List).first.toString();
+              } else if (errors[key] is String) {
+                return errors[key].toString();
+              }
+              return null;
+            }
+
+            curErr = extract('current_password');
+            newErr = extract('new_password');
+            conErr = extract('confirm_new_password');
+          }
+          onError(curErr, newErr, conErr);
+          return data['message']?.toString() ?? 'Failed to update password';
+        }
+      }
+
       return 'Failed to update password';
     } on DioException catch (e) {
-      if (e.response?.statusCode == 400) {
-        final errors = e.response?.data['errors'];
-        onError(
-          errors?['current_password']?.first,
-          errors?['new_password']?.first,
-          errors?['confirm_new_password']?.first,
-        );
-        return errors.toString();
+      if (e.response != null && e.response?.data != null) {
+        var data = e.response?.data;
+        if (data is String) {
+          try {
+            data = jsonDecode(data);
+          } catch (_) {}
+        }
+
+        String? curErr;
+        String? newErr;
+        String? conErr;
+
+        if (data is Map) {
+          final errors = data['errors'];
+          if (errors is Map) {
+            String? extract(String key) {
+              if (errors[key] is List && (errors[key] as List).isNotEmpty) {
+                return (errors[key] as List).first.toString();
+              } else if (errors[key] is String) {
+                return errors[key].toString();
+              }
+              return null;
+            }
+
+            curErr = extract('current_password');
+            newErr = extract('new_password');
+            conErr = extract('confirm_new_password');
+          }
+        }
+
+        onError(curErr, newErr, conErr);
+
+        return data is Map && data['message'] != null
+            ? data['message'].toString()
+            : 'Failed to update password';
       }
       return _handleDioError(e, defaultMessage: 'Failed to update password');
     }
@@ -955,28 +1125,6 @@ class ApiService with UtilityMixin {
     String? snapshot,
     bool isPagination = false,
   }) async {
-    // // ✅ Test simulation — auto-removed in release builds
-    // assert(() {
-    //   if (simulateError) {
-    //     switch (simulateErrorType) {
-    //       case 'no_internet':
-    //         throw const SocketException('Simulated no internet');
-    //       case 'server':
-    //         throw DioException(
-    //           requestOptions: RequestOptions(path: ''),
-    //           response: Response(
-    //             requestOptions: RequestOptions(path: ''),
-    //             statusCode: 500,
-    //           ),
-    //           type: DioExceptionType.badResponse,
-    //         );
-    //       case 'timeout':
-    //         throw TimeoutException('Simulated timeout');
-    //     }
-    //   }
-    //   return true;
-    // }());
-
     try {
       final accessToken = await SharedPrefService.getToken();
 
@@ -1007,7 +1155,7 @@ class ApiService with UtilityMixin {
     }
   }
 
-  Future<SinglePostModel> getSinglePost(String username, int postId) async {
+  Future<SinglePostModel> getSinglePost(String username, dynamic postId) async {
     try {
       final response = await _dio.get(
         '${ApiConstants.singlePost}/$username/$postId/',
@@ -1070,7 +1218,7 @@ class ApiService with UtilityMixin {
     return filteredPosts;
   }
 
-  Future<UserPostModel?> fetchSinglePost(int postId) async {
+  Future<UserPostModel?> fetchSinglePost(dynamic postId) async {
     try {
       final accessToken = await SharedPrefService.getToken();
       final url = '${ApiConstants.userPosts}/$postId';
@@ -1218,7 +1366,7 @@ class ApiService with UtilityMixin {
     }
   }
 
-  Future<List<LikeUser>> fetchLikedUsers(int postId) async {
+  Future<List<LikeUser>> fetchLikedUsers(dynamic postId) async {
     try {
       final response = await _dio.get(
         '${ApiConstants.likePost}/$postId/likes',
@@ -1288,8 +1436,20 @@ class ApiService with UtilityMixin {
     }
   }
 
+  Future<PollResultResponse> getPollResults(dynamic postId) async {
+    try {
+      final response = await _dio.get(
+        '${ApiConstants.baseUrl}/posts/$postId/poll_results',
+        options: Options(headers: await _getAuthHeaders()),
+      );
+      return PollResultResponse.fromJson(response.data);
+    } on DioException catch (e) {
+      throw _handleDioError(e);
+    }
+  }
+
   /// Delete user post
-  Future<bool> userDeletePost(int postId) async {
+  Future<bool> userDeletePost(dynamic postId) async {
     try {
       final response = await _dio.delete(
         '${ApiConstants.deletePost}/$postId/delete',
@@ -1313,21 +1473,26 @@ class ApiService with UtilityMixin {
       );
 
       if (response.statusCode == 200) {
-        final data = response.data;
-
-        // If data is directly a list
-        if (data is List) {
-          return List<Map<String, dynamic>>.from(data);
+        final dynamic responseData;
+        if (response.data is String) {
+          responseData = json.decode(response.data as String);
+        } else {
+          responseData = response.data;
         }
 
-        // If data is a map, try to extract the list
-        if (data is Map<String, dynamic>) {
+        // If responseData is directly a list
+        if (responseData is List) {
+          return responseData.map((e) => Map<String, dynamic>.from(e as Map)).toList();
+        }
+
+        // If responseData is a map, try to extract the list
+        if (responseData is Map) {
           // Try different possible keys
-          final list = data['data'] ?? data['followers'] ?? data['results'];
+          final list = responseData['data'] ?? responseData['followers'] ?? responseData['results'];
 
           // Ensure it's actually a list before converting
           if (list is List) {
-            return List<Map<String, dynamic>>.from(list);
+            return list.map((e) => Map<String, dynamic>.from(e as Map)).toList();
           }
         }
       }
@@ -1350,21 +1515,26 @@ class ApiService with UtilityMixin {
       );
 
       if (response.statusCode == 200) {
-        final data = response.data;
-
-        // If data is directly a list
-        if (data is List) {
-          return List<Map<String, dynamic>>.from(data);
+        final dynamic responseData;
+        if (response.data is String) {
+          responseData = json.decode(response.data as String);
+        } else {
+          responseData = response.data;
         }
 
-        // If data is a map, try to extract the list
-        if (data is Map<String, dynamic>) {
+        // If responseData is directly a list
+        if (responseData is List) {
+          return responseData.map((e) => Map<String, dynamic>.from(e as Map)).toList();
+        }
+
+        // If responseData is a map, try to extract the list
+        if (responseData is Map) {
           // Try different possible keys
-          final list = data['data'] ?? data['following'] ?? data['results'];
+          final list = responseData['data'] ?? responseData['following'] ?? responseData['results'];
 
           // Ensure it's actually a list before converting
           if (list is List) {
-            return List<Map<String, dynamic>>.from(list);
+            return list.map((e) => Map<String, dynamic>.from(e as Map)).toList();
           }
         }
       }
@@ -1380,7 +1550,7 @@ class ApiService with UtilityMixin {
 
   /// Get connections list
   Future<Map<String, dynamic>> getConnectionsList({
-    required int userId,
+    required dynamic userId,
     String? type,
   }) async {
     try {
@@ -1416,14 +1586,14 @@ class ApiService with UtilityMixin {
   }
 
   // Unfriend users
-  Future<Map<String, dynamic>> unfriend(int userId) async {
+  Future<Map<String, dynamic>> unfriend(dynamic userId) async {
     try {
       final url = Uri.parse('${ApiConfig.baseUrl}/users/unfriend');
 
       final response = await http.post(
         url,
         headers: await _getAuthHeaders(),
-        body: jsonEncode({'user_id': userId}),
+        body: jsonEncode({'user_id': userId?.toString()}),
       );
 
       if (response.statusCode == 200) {
@@ -1510,11 +1680,11 @@ class ApiService with UtilityMixin {
     }
   }
 
-  Future<bool> cancelFriendRequest(int userId) async {
+  Future<bool> cancelFriendRequest(dynamic userId) async {
     try {
       final response = await _dio.post(
         ApiConstants.cancelRequest,
-        data: FormData.fromMap({'user_id': userId}),
+        data: FormData.fromMap({'user_id': userId?.toString()}),
         options: Options(headers: await _getAuthHeaders()),
       );
 
@@ -1571,11 +1741,11 @@ class ApiService with UtilityMixin {
   }
 
   // Block users
-  Future<Map<String, dynamic>> blockUser(int userId) async {
+  Future<Map<String, dynamic>> blockUser(dynamic userId) async {
     try {
       final response = await _dio.post(
         ApiConstants.blockUser,
-        data: {'user_id': userId},
+        data: {'user_id': userId?.toString()},
         options: Options(headers: await _getAuthHeaders()),
       );
       return response.data;
@@ -1588,11 +1758,11 @@ class ApiService with UtilityMixin {
   }
 
   // Unblock users
-  Future<Map<String, dynamic>> unblockUser(int userId) async {
+  Future<Map<String, dynamic>> unblockUser(dynamic userId) async {
     try {
       final response = await _dio.post(
         ApiConstants.unBlockUser,
-        data: {'user_id': userId},
+        data: {'user_id': userId?.toString()},
         options: Options(headers: await _getAuthHeaders()),
       );
       return response.data;
@@ -1628,19 +1798,22 @@ class ApiService with UtilityMixin {
   Future<Map<String, dynamic>> createGroup({
     required String title,
     required String profileImage,
-    required List<int> members,
+    required List<dynamic> members,
   }) async {
     try {
       final body = {
         'title': title,
-        'profile_image': 'data:image/jpeg;base64,$profileImage',
+        if (profileImage.isNotEmpty)
+          'profile_image': 'data:image/jpeg;base64,$profileImage',
         'members': members,
       };
 
       debugPrint('=== CREATE GROUP REQUEST ===');
       debugPrint('title: $title');
       debugPrint('profile_image length: ${profileImage.length}');
-      debugPrint('profile_image preview: ${profileImage.substring(0, 50)}...');
+      if (profileImage.isNotEmpty) {
+        debugPrint('profile_image preview: ${profileImage.substring(0, profileImage.length > 50 ? 50 : profileImage.length)}...');
+      }
       debugPrint('members: $members');
       debugPrint('============================');
 
@@ -1755,7 +1928,7 @@ class ApiService with UtilityMixin {
   // add member
   Future<Map<String, dynamic>> addGroupChatMembers({
     required int groupChatId,
-    required List<int> members,
+    required List<dynamic> members,
   }) async {
     try {
       final response = await _dio.post(
@@ -1764,8 +1937,15 @@ class ApiService with UtilityMixin {
         options: Options(headers: await _getAuthHeaders()),
       );
 
+      final dynamic responseData;
+      if (response.data is String) {
+        responseData = json.decode(response.data as String);
+      } else {
+        responseData = response.data;
+      }
+
       if (response.statusCode == 200) {
-        final data = response.data as Map<String, dynamic>;
+        final data = responseData as Map<String, dynamic>;
         return {
           'success': true,
           'message': data['message'],
@@ -1784,15 +1964,23 @@ class ApiService with UtilityMixin {
   // remove group member
   Future<Map<String, dynamic>> removeMember({
     required int chatId,
-    required int userId,
+    required dynamic userId,
   }) async {
     try {
       final response = await _dio.post(
         '${ApiConstants.removeMember}/$chatId/remove_member',
-        data: {'user_id': userId},
+        data: {'user_id': userId?.toString()},
         options: Options(headers: await _getAuthHeaders()),
       );
-      return {'success': true, 'message': response.data['message']};
+
+      final dynamic responseData;
+      if (response.data is String) {
+        responseData = json.decode(response.data as String);
+      } else {
+        responseData = response.data;
+      }
+
+      return {'success': true, 'message': responseData['message']};
     } catch (e) {
       return {'success': false, 'message': 'Failed to remove member'};
     }
@@ -1833,12 +2021,12 @@ class ApiService with UtilityMixin {
   // Make admin group member
   Future<Map<String, dynamic>> makeAdmin({
     required int chatId,
-    required int userId,
+    required dynamic userId,
   }) async {
     try {
       final response = await _dio.post(
-        '/chats/group/$chatId/make_admin',
-        data: {'user_id': userId},
+        '${ApiConstants.baseUrl}/chats/group/$chatId/make_admin',
+        data: {'user_id': userId?.toString()},
         options: Options(headers: await _getAuthHeaders()),
       );
 
@@ -1846,7 +2034,14 @@ class ApiService with UtilityMixin {
         'Make admin response: ${response.statusCode} ${response.data}',
       );
 
-      return response.data as Map<String, dynamic>;
+      final dynamic responseData;
+      if (response.data is String) {
+        responseData = json.decode(response.data as String);
+      } else {
+        responseData = response.data;
+      }
+
+      return responseData as Map<String, dynamic>;
     } on DioException catch (e) {
       return {
         'success': false,
@@ -1860,10 +2055,68 @@ class ApiService with UtilityMixin {
   Future<Map<String, dynamic>> getGroupChatInfo({required int chatId}) async {
     try {
       final response = await _dio.get(
-        '/chats/group/$chatId/info',
+        '${ApiConstants.baseUrl}/chats/group/$chatId/info',
         options: Options(headers: await _getAuthHeaders()),
       );
-      return response.data as Map<String, dynamic>;
+
+      final dynamic responseData;
+      if (response.data is String) {
+        responseData = json.decode(response.data as String);
+      } else {
+        responseData = response.data;
+      }
+
+      if (responseData is Map) {
+        final Map<String, dynamic> normalized = Map<String, dynamic>.from(responseData);
+
+        // Normalize group details keys to match UI expectations
+        normalized['id'] ??= int.tryParse(normalized['uuid']?.toString() ?? '') ?? normalized['id'];
+        normalized['profile_url'] ??= normalized['group_picture_url']?.toString();
+        normalized['group_picture_url'] ??= normalized['profile_url'];
+
+        // Normalize admins to have 'id' key
+        final List<dynamic> admins = normalized['admins'] as List<dynamic>? ?? [];
+        final List<Map<String, dynamic>> normalizedAdmins = [];
+        final Set<String> adminUuids = {};
+
+        for (final admin in admins) {
+          if (admin is Map) {
+            final String uuid = (admin['uuid'] ?? admin['id'] ?? '').toString();
+            adminUuids.add(uuid);
+            normalizedAdmins.add({
+              'id': uuid,
+              'username': admin['username']?.toString() ?? '',
+              'profile_picture_url': admin['profile_picture_url']?.toString(),
+            });
+          }
+        }
+        normalized['admins'] = normalizedAdmins;
+
+        // Normalize members to nested structure: { 'is_admin': bool, 'user': { 'id', 'username', 'profile_image' } }
+        final List<dynamic> members = normalized['members'] as List<dynamic>? ?? [];
+        final List<Map<String, dynamic>> normalizedMembers = [];
+
+        for (final member in members) {
+          if (member is Map) {
+            final String uuid = (member['uuid'] ?? member['id'] ?? '').toString();
+            final bool isAdmin = adminUuids.contains(uuid);
+
+            normalizedMembers.add({
+              'is_admin': isAdmin,
+              'user': {
+                'id': uuid,
+                'username': member['username']?.toString() ?? '',
+                'profile_image': member['profile_picture_url']?.toString() ?? member['profile_image']?.toString(),
+              }
+            });
+          }
+        }
+        normalized['members'] = normalizedMembers;
+
+        return normalized;
+      }
+
+      return responseData as Map<String, dynamic>;
     } on DioException catch (e) {
       throw _handleDioError(e);
     }
@@ -1894,6 +2147,35 @@ class ApiService with UtilityMixin {
     }
   }
 
+  Future<Map<String, dynamic>> createPrivateChatId({
+    required dynamic withUserId,
+  }) async {
+    try {
+      final response = await _dio.post(
+        '${ApiConstants.baseUrl}/chats/private',
+        data: {'with_user_id': withUserId},
+        options: Options(headers: await _getAuthHeaders()),
+      );
+
+      debugPrint(
+        '✅ createPrivateChat Id [${response.statusCode}]: ${response.data}',
+      );
+
+      return response.data['data'] as Map<String, dynamic>;
+    } on DioException catch (e) {
+      debugPrint(
+        '❌ createPrivateChat DioException: '
+        'status=${e.response?.statusCode} '
+        'body=${e.response?.data} '
+        'msg=${e.message}',
+      );
+      rethrow;
+    } catch (e) {
+      debugPrint('❌ createPrivateChat unexpected error: $e');
+      rethrow;
+    }
+  }
+
   Future<void> sendMessage({required int chatId, required String text}) async {
     try {
       debugPrint('📤 Sending message to server — chatId: $chatId, text: $text');
@@ -1921,10 +2203,71 @@ class ApiService with UtilityMixin {
     }
   }
 
+  Future<Map<String, dynamic>> sharePostMessage({
+    required int chatId,
+    required String sharedPostId,
+    required String message,
+  }) async {
+    try {
+      debugPrint(
+        '📤 Sharing post — chatId: $chatId, '
+        'sharedPostId: $sharedPostId, text: $message',
+      );
+
+      final response = await _dio.post(
+        '${ApiConstants.baseUrl}/chats/$chatId/messages',
+        data: {'text': message, 'shared_post_id': sharedPostId},
+        options: Options(headers: await _getAuthHeaders()),
+      );
+
+      if (response.statusCode == 201 && response.data['status'] == 'success') {
+        return response.data as Map<String, dynamic>;
+      }
+      return {'status': 'error', 'message': 'Failed to share post'};
+    } on DioException catch (e) {
+      debugPrint(
+        '❌ sharePostMessage DioException: '
+        'status=${e.response?.statusCode} '
+        'body=${e.response?.data} '
+        'msg=${e.message}',
+      );
+      rethrow;
+    } catch (e) {
+      debugPrint('❌ sharePostMessage unexpected error: $e');
+      rethrow;
+    }
+  }
+
+  Future<int?> addShareCount({required dynamic postId}) async {
+    try {
+      final response = await _dio.post(
+        '${ApiConstants.baseUrl}/posts/$postId/share',
+        options: Options(headers: await _getAuthHeaders()),
+      );
+
+      if (response.statusCode == 200 && response.data['status'] == 'success') {
+        final newShareCount = response.data['data']['new_share_count'] as int;
+        return newShareCount;
+      }
+      return null;
+    } on DioException catch (e) {
+      debugPrint(
+        '❌ addShareCount DioException: '
+        'status=${e.response?.statusCode} '
+        'body=${e.response?.data} '
+        'msg=${e.message}',
+      );
+      rethrow;
+    } catch (e) {
+      debugPrint('❌ addShareCount unexpected error: $e');
+      rethrow;
+    }
+  }
+
   // ==================== PUBLIC PROFILES ====================
 
   /// Get user public profile
-  static Future<PublicProfileModel> getUserPublicProfile(int userId) async {
+  static Future<PublicProfileModel> getUserPublicProfile(dynamic userId) async {
     try {
       final accessToken = await SharedPrefService.getToken();
       final response = await _dio.get(
@@ -1952,7 +2295,7 @@ class ApiService with UtilityMixin {
   }
 
   // Note: Implemented GET Method User Public Profile Posts
-  Future<PublicProfileModel?> getPublicProfilePosts(int userId) async {
+  Future<PublicProfileModel?> getPublicProfilePosts(dynamic userId) async {
     try {
       final response = await _dio.get(
         '${ApiConstants.userPosts}/users/$userId/profile',
@@ -1976,7 +2319,7 @@ class ApiService with UtilityMixin {
   }
 
   /// Fetch posts with images
-  Future<List<PublicPost>> fetchPostsWithImages(int userId) async {
+  Future<List<PublicPost>> fetchPostsWithImages(dynamic userId) async {
     try {
       final response = await _dio.get(
         '${ApiConstants.publicProfile}/$userId/profile',
@@ -2002,7 +2345,7 @@ class ApiService with UtilityMixin {
   }
 
   /// Fetch public posts with polls
-  Future<List<PublicPost>> fetchPublicPostsPolls(int userId) async {
+  Future<List<PublicPost>> fetchPublicPostsPolls(dynamic userId) async {
     try {
       final response = await _dio.get(
         '${ApiConstants.publicProfile}/$userId/profile',
@@ -2031,7 +2374,7 @@ class ApiService with UtilityMixin {
   // ==================== INTERACTIONS ====================
 
   /// Toggle post like
-  static Future<Map<String, dynamic>> togglePostLike(int postId) async {
+  static Future<Map<String, dynamic>> togglePostLike(dynamic postId) async {
     try {
       final accessToken = await SharedPrefService.getToken();
       if (accessToken == null || accessToken.isEmpty) {
@@ -2070,7 +2413,7 @@ class ApiService with UtilityMixin {
   }
 
   /// Get post likes
-  static Future<Map<String, dynamic>> getPostLikes(int postId) async {
+  static Future<Map<String, dynamic>> getPostLikes(dynamic postId) async {
     try {
       final accessToken = await SharedPrefService.getToken();
       if (accessToken == null || accessToken.isEmpty) {
@@ -2100,7 +2443,7 @@ class ApiService with UtilityMixin {
   // ==================== COMMENTS ====================
 
   // Note: Implemented GET Method - Get Post Comments
-  static Future<Map<String, dynamic>> getPostComments(int postId) async {
+  static Future<Map<String, dynamic>> getPostComments(dynamic postId) async {
     try {
       final accessToken = await SharedPrefService.getToken();
 
@@ -2172,7 +2515,7 @@ class ApiService with UtilityMixin {
 
   // Note: Implemented POST Method - Create Comment
   static Future<Map<String, dynamic>> createComment({
-    required int postId,
+    required dynamic postId,
     required String text,
   }) async {
     try {
@@ -2382,7 +2725,7 @@ class ApiService with UtilityMixin {
   }
 
   static Future<Map<String, dynamic>> voteOnPollMultiple({
-    required int postId,
+    required dynamic postId,
     required List<Map<String, int>> votes,
   }) async {
     try {
@@ -2403,6 +2746,8 @@ class ApiService with UtilityMixin {
           },
         ),
       );
+
+      debugPrint("Image vote : $response");
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         return {
@@ -2452,30 +2797,6 @@ class ApiService with UtilityMixin {
       return {'success': false, 'message': 'An unexpected error occurred'};
     }
   }
-
-  Future<Map<String, dynamic>> getPollResults(int postId) async {
-    try {
-      final accessToken = await SharedPrefService.getToken();
-
-      final response = await http.get(
-        Uri.parse('${ApiConstants.baseUrl}/posts/$postId/poll_results'),
-        headers: {
-          'Authorization': 'Bearer $accessToken',
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-      );
-
-      if (response.statusCode == 200) {
-        return json.decode(response.body);
-      } else {
-        throw Exception('Failed to load poll results: ${response.statusCode}');
-      }
-    } catch (e) {
-      throw Exception('Error fetching poll results: $e');
-    }
-  }
-
   // ==================== INSIGHTS ====================
 
   Future<InsightsModel> getInsightsData() async {
@@ -2484,7 +2805,10 @@ class ApiService with UtilityMixin {
         ApiConstants.insights,
         options: Options(headers: await _getAuthHeaders()),
       );
-      return InsightsModel.fromJson(response.data);
+      if (response.data is Map<String, dynamic>) {
+        return InsightsModel.fromJson(response.data as Map<String, dynamic>);
+      }
+      return InsightsModel.fromJson(null);
     } on DioException catch (e) {
       throw Exception('Failed to load insights data: ${e.message}');
     }

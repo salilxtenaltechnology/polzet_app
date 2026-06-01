@@ -17,7 +17,7 @@ class DashboardState extends State<Dashboard> with UtilityMixin {
   bool isInitialLoad = true;
   String? errorMessage;
 
-  final Set<int> _chasedUserIds = {};
+  final Set<dynamic> _chasedUserIds = {};
   bool _isLoadingMore = false;
   bool _hasMoreData = true;
   int? _nextPage;
@@ -79,6 +79,7 @@ class DashboardState extends State<Dashboard> with UtilityMixin {
         _hasMoreData = response.hasMore ?? false;
         _isLoadingMore = false;
       });
+      _updateGloballyChasedUsers();
       _postsStreamController.add(List.from(posts));
     } catch (e) {
       debugPrint('Error loading more posts: $e');
@@ -134,6 +135,7 @@ class DashboardState extends State<Dashboard> with UtilityMixin {
             posts = cachedPosts;
             isInitialLoad = false;
           });
+          _updateGloballyChasedUsers();
           _postsStreamController.add(posts);
         }
       }
@@ -173,6 +175,7 @@ class DashboardState extends State<Dashboard> with UtilityMixin {
           errorMessage = null;
         });
 
+        _updateGloballyChasedUsers();
         _savePostsToCache(posts);
         _postsStreamController.add(List.from(posts));
       }
@@ -227,7 +230,7 @@ class DashboardState extends State<Dashboard> with UtilityMixin {
   }
 
   void _mergePostsData(List<HomeFeedPost> fetchedPosts) {
-    Map<int, HomeFeedPost> fetchedPostsMap = {
+    Map<String, HomeFeedPost> fetchedPostsMap = {
       for (var post in fetchedPosts) post.id: post,
     };
 
@@ -272,6 +275,14 @@ class DashboardState extends State<Dashboard> with UtilityMixin {
     _postsStreamController.add(List.from(posts));
   }
 
+  void _updateGloballyChasedUsers() {
+    for (var post in posts) {
+      if (post.followingStatus != 'none') {
+        HomeFeedPostCard.globallyChasedUserStates[post.user.userid] = 'hidden';
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -281,9 +292,11 @@ class DashboardState extends State<Dashboard> with UtilityMixin {
   }
 
   Widget _buildBody() {
+    final txt = AppTextColors.of(context);
+
     if (isLoading && isInitialLoad) {
       return Center(
-        child: Loader(color: Theme.of(context).colorScheme.primary),
+        child: Loader(color: Theme.of(context).colorScheme.onPrimary),
       );
     }
 
@@ -315,6 +328,7 @@ class DashboardState extends State<Dashboard> with UtilityMixin {
 
     return RefreshIndicator(
       onRefresh: fetchHomeFeed,
+      color: Theme.of(context).colorScheme.onPrimary,
       child: StreamBuilder<List<HomeFeedPost>>(
         stream: _postsStreamController.stream,
         initialData: posts,
@@ -322,7 +336,7 @@ class DashboardState extends State<Dashboard> with UtilityMixin {
           if (snapshot.connectionState == ConnectionState.waiting &&
               posts.isEmpty) {
             return Center(
-              child: Loader(color: Theme.of(context).colorScheme.primary),
+              child: Loader(color: Theme.of(context).colorScheme.onPrimary),
             );
           }
 
@@ -339,7 +353,7 @@ class DashboardState extends State<Dashboard> with UtilityMixin {
 
           return ListView.builder(
             controller: _scrollController,
-            padding: EdgeInsets.all(10.w),
+            padding: const EdgeInsets.fromLTRB(10, 10, 10, 70).w,
             itemCount: currentPosts.length + (_hasMoreData ? 1 : 0),
             itemBuilder: (context, index) {
               if (index == currentPosts.length) {
@@ -347,7 +361,7 @@ class DashboardState extends State<Dashboard> with UtilityMixin {
                   child: Padding(
                     padding: EdgeInsets.symmetric(vertical: 16.h),
                     child: _isLoadingMore
-                        ? Loader(color: Theme.of(context).colorScheme.primary)
+                        ? Loader(color: Theme.of(context).colorScheme.onPrimary)
                         : const SizedBox.shrink(),
                   ),
                 );
@@ -376,15 +390,13 @@ class DashboardState extends State<Dashboard> with UtilityMixin {
                       padding: const EdgeInsets.all(12).w,
                       decoration: BoxDecoration(
                         color: Theme.of(context).colorScheme.primaryContainer,
-                        borderRadius: BorderRadius.circular(8.r),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(
-                              isDarkMode ? 0.3 : 0.05,
-                            ),
-                            blurRadius: 8,
-                            spreadRadius: 2,
-                          ),
+                        borderRadius: BorderRadius.circular(AppRadius.card),
+                        border: Border.all(
+                          color: Theme.of(context).colorScheme.outline,
+                          width: 1,
+                        ),
+                        boxShadow: const [
+                          BoxShadow(color: Color(0x06000000), blurRadius: 2),
                         ],
                       ),
                       child: Column(
@@ -393,7 +405,7 @@ class DashboardState extends State<Dashboard> with UtilityMixin {
                           Text(
                             AppLocalizations.of(context)!.improveyourprofile,
                             style: AppTextStyles.subText.copyWith(
-                              color: const Color(0xff2C2C2C),
+                              color: txt.title,
                               fontSize: 15,
                               fontWeight: FontWeight.w700,
                             ),
@@ -422,7 +434,7 @@ class DashboardState extends State<Dashboard> with UtilityMixin {
                           SizedBox(height: 14.h),
                           GestureDetector(
                             onTap: () =>
-                                navigationPush(context, const NewEditProfile()),
+                                navigationPush(context, const EditProfile()),
                             child: Container(
                               width: double.infinity,
                               height: 40,
@@ -469,19 +481,21 @@ class DashboardState extends State<Dashboard> with UtilityMixin {
                         Text(
                           'Suggested for you',
                           style: AppTextStyles.subText.copyWith(
-                            color: const Color(0xff2C2C2C),
+                            color: txt.title,
                             fontSize: 15,
                             fontWeight: FontWeight.w700,
                           ),
                         ),
                         GestureDetector(
-                          onTap: () =>
-                              navigationPush(context, const SuggestionUsers()),
+                          onTap: () => navigationPush(
+                            context,
+                            const SuggestedUsersList(),
+                          ),
                           child: Text(
                             AppLocalizations.of(context)!.seeall,
                             style: AppTextStyles.subText.copyWith(
                               fontSize: 12,
-                              color: Theme.of(context).colorScheme.primary,
+                              color: Theme.of(context).colorScheme.onPrimary,
                               fontWeight: FontWeight.w400,
                             ),
                           ),
@@ -489,7 +503,7 @@ class DashboardState extends State<Dashboard> with UtilityMixin {
                       ],
                     ),
                     const SizedBox(height: 5),
-                    PeopleYouMayKnowSection(
+                    SuggestedUsers(
                       key: const ValueKey('suggestions'),
                       suggestionsFuture: _suggestionsFuture,
                       chasedUserIds: _chasedUserIds,

@@ -2,19 +2,20 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:feather_icons/feather_icons.dart';
+import 'package:polzet_app/core/constants/feather_icons_compat.dart';
 import 'package:polzet_app/languages/l10n/generated/app_localizations.dart';
 import 'package:polzet_app/widgets/base64/image_convert.dart';
 import '../../../../models/comment/comment.dart';
 import '../../../api/services/comment/comment_service.dart';
 import '../../../core/constants/app_radius.dart';
+import '../../../core/themes/app_text_colors.dart';
 import '../../../core/themes/app_text_styles.dart';
 import '../../../gen/assets.gen.dart';
 import '../../dialog/custom_diolog.dart';
 import '../../loader.dart';
 
 class CommentsBottomSheet extends StatefulWidget {
-  final int postId;
+  final String postId;
   final String? currentUsername;
   final ValueChanged<int>? onCommentsCountChanged;
 
@@ -32,7 +33,7 @@ class CommentsBottomSheet extends StatefulWidget {
 class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
   final CommentsService _commentsService = CommentsService();
   final TextEditingController _commentController = TextEditingController();
-  List<Comment> comments = [];
+  List<Comments> comments = [];
   bool isLoading = false;
   bool isSending = false;
   int? editingCommentId;
@@ -41,6 +42,7 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
   @override
   void initState() {
     super.initState();
+    debugPrint("POST_ID : ${widget.postId}");
     _loadComments();
   }
 
@@ -109,22 +111,16 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
   }
 
   Future<void> _deleteComment(int commentId) async {
-    bool confirmed = false;
-
-    showDeleteCommentDiolog(context, () {
-      confirmed = true;
+    showDeleteCommentDiolog(context, () async {
       Navigator.pop(context);
+      final success = await _commentsService.deleteComment(commentId);
+      if (success) {
+        setState(() {
+          comments.removeWhere((c) => c.id == commentId);
+        });
+        widget.onCommentsCountChanged?.call(comments.length);
+      }
     });
-
-    if (!confirmed) return;
-
-    final success = await _commentsService.deleteComment(commentId);
-    if (success) {
-      setState(() {
-        comments.removeWhere((c) => c.id == commentId);
-      });
-      widget.onCommentsCountChanged?.call(comments.length);
-    }
   }
 
   @override
@@ -132,7 +128,7 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
     return Container(
       height: MediaQuery.of(context).size.height * 0.75,
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
+        color: Theme.of(context).colorScheme.tertiaryContainer,
         borderRadius: const BorderRadius.only(
           topLeft: Radius.circular(AppRadius.modal),
           topRight: Radius.circular(AppRadius.modal),
@@ -172,6 +168,8 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
   }
 
   Widget _buildCommentsList() {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final txt = AppTextColors.of(context);
     if (isLoading) {
       return Center(
         child: Loader(color: Theme.of(context).colorScheme.primary),
@@ -186,30 +184,34 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Image.asset(
-                Assets.images.noComments.path,
-                height: 0.22.sh,
-                width: 0.22.sh,
-                fit: BoxFit.contain,
-              ),
-              const SizedBox(height: 15),
+              isDarkMode
+                  ? const SizedBox()
+                  : Padding(
+                      padding: const EdgeInsets.only(bottom: 15),
+                      child: Image.asset(
+                        Assets.images.noComments.path,
+                        height: 0.22.sh,
+                        width: 0.22.sh,
+                        fit: BoxFit.contain,
+                      ),
+                    ),
               Text(
-                'No comments yet',
+                AppLocalizations.of(context)!.nocommentsyet,
                 textAlign: TextAlign.center,
                 style: AppTextStyles.sectionHeading.copyWith(
                   fontSize: 18.5,
-                  color: Theme.of(context).colorScheme.onBackground,
+                  color: txt.title,
                   fontWeight: FontWeight.w600,
                   height: 1.4,
                 ),
               ),
               const SizedBox(height: 10),
               Text(
-                'Be the first to start the conversation.',
+                AppLocalizations.of(context)!.bethefirsttostarttheconversation,
                 textAlign: TextAlign.center,
                 style: AppTextStyles.bodyText.copyWith(
                   fontSize: 13,
-                  color: const Color(0xFF595959),
+                  color: txt.muted,
                   height: 1.4,
                 ),
               ),
@@ -229,7 +231,9 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
     );
   }
 
-  Widget _buildCommentItem(Comment comment) {
+  Widget _buildCommentItem(Comments comment) {
+    final txt = AppTextColors.of(context);
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     final isEditing = editingCommentId == comment.id;
     final isCurrentUserComment =
         widget.currentUsername != null &&
@@ -242,29 +246,55 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          CircleAvatar(
-            radius: 13.5.r,
-            backgroundColor: Theme.of(
-              context,
-            ).colorScheme.primary.withOpacity(0.1),
-            backgroundImage:
-                comment.profileImage.isNotEmpty && profileBytes != null
-                ? MemoryImage(profileBytes)
-                : null,
-            onBackgroundImageError: comment.profileImage.isNotEmpty
-                ? (_, __) {}
-                : null,
-            child: comment.profileImage.isEmpty
-                ? Text(
-                    comment.user.isNotEmpty
-                        ? comment.user[0].toUpperCase()
-                        : 'U',
-                    style: AppTextStyles.cardTitle.copyWith(
-                      fontWeight: FontWeight.w600,
-                      color: Theme.of(context).colorScheme.primary,
-                    ),
-                  )
-                : null,
+          GestureDetector(
+            onTap: () {
+              // if (userProvider.userId == comment.id) {
+              //   Navigator.of(context).pushAndRemoveUntil(
+              //     MaterialPageRoute(
+              //       builder: (_) => const HomeScreen(initialIndex: 4),
+              //     ),
+              //     (route) => false,
+              //   );
+              // } else {
+              //   Navigator.push(
+              //     context,
+              //     MaterialPageRoute(
+              //       builder: (_) => PublicProfileScreen(userId: comment.id.toString()),
+              //     ),
+              //   );
+              // }
+            },
+            child: CircleAvatar(
+              radius: 15.5,
+              backgroundColor: isDarkMode
+                  ? const Color(0xFF303030)
+                  : Theme.of(context).colorScheme.primary.withOpacity(0.1),
+              backgroundImage:
+                  comment.profileImage != null &&
+                          comment.profileImage!.isNotEmpty &&
+                          profileBytes != null
+                      ? MemoryImage(profileBytes)
+                      : null,
+              onBackgroundImageError: comment.profileImage != null &&
+                      comment.profileImage!.isNotEmpty
+                  ? (_, __) {}
+                  : null,
+              child: comment.profileImage == null ||
+                      comment.profileImage!.isEmpty
+                  ? Text(
+                      comment.user.isNotEmpty
+                          ? comment.user[0].toUpperCase()
+                          : 'P',
+                      style: AppTextStyles.cardTitle.copyWith(
+                        fontSize: 17,
+                        fontWeight: FontWeight.w600,
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.onPrimary.withOpacity(0.8),
+                      ),
+                    )
+                  : null,
+            ),
           ),
           SizedBox(width: 5.w),
           Expanded(
@@ -282,7 +312,8 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
                             comment.user,
                             style: AppTextStyles.subText.copyWith(
                               color: Theme.of(context).colorScheme.onBackground,
-                              fontWeight: FontWeight.w600,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w500,
                             ),
                           ),
                           Padding(
@@ -291,18 +322,14 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
                               ' • ',
                               style: AppTextStyles.subText.copyWith(
                                 fontWeight: FontWeight.w600,
-                                color: Theme.of(
-                                  context,
-                                ).colorScheme.onSurface.withOpacity(0.7),
+                                color: txt.muted,
                               ),
                             ),
                           ),
                           Text(
-                            _formatTime(comment.createdAt),
+                            _timeAgo(comment.createdAt),
                             style: AppTextStyles.subText.copyWith(
-                              color: Theme.of(
-                                context,
-                              ).colorScheme.onSurface.withOpacity(0.7),
+                              color: txt.muted,
                             ),
                           ),
                           const Spacer(),
@@ -338,15 +365,14 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
                             ),
                         ],
                       ),
-                      SizedBox(height: 3.h),
                       isEditing
                           ? _buildEditCommentField(comment)
                           : Text(
                               comment.text,
                               style: AppTextStyles.subText.copyWith(
-                                color: Theme.of(
-                                  context,
-                                ).colorScheme.onBackground,
+                                color: txt.body,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w400,
                               ),
                             ),
                     ],
@@ -360,7 +386,7 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
     );
   }
 
-  Widget _buildEditCommentField(Comment comment) {
+  Widget _buildEditCommentField(Comments comment) {
     return Column(
       children: [
         TextField(
@@ -412,6 +438,8 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
   }
 
   Widget _buildCommentInput() {
+    final txt = AppTextColors.of(context);
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     return Container(
       padding: EdgeInsets.only(
         left: 15.w,
@@ -423,29 +451,59 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
         children: [
           Expanded(
             child: Container(
-              padding: EdgeInsets.symmetric(horizontal: 15.w),
+              height: 45,
+
               decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.secondaryContainer,
-                borderRadius: BorderRadius.circular(25.r),
+                color: isDarkMode ? const Color(0xFF1F1F23) : Colors.white,
+                borderRadius: BorderRadius.circular(50),
+                // border: Border.all(color: Theme.of(context).colorScheme.outline,width: 1)
               ),
               child: TextField(
                 controller: _commentController,
+                cursorColor: Theme.of(
+                  context,
+                ).colorScheme.onPrimary.withOpacity(0.8),
+                cursorWidth: 1.5,
+
                 decoration: InputDecoration(
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 12),
                   hintText: AppLocalizations.of(context)!.whatdoyouthinkforthis,
-                  hintStyle: AppTextStyles.subText.copyWith(
-                    color: Theme.of(
-                      context,
-                    ).colorScheme.onSurface.withOpacity(0.6),
+                  hintStyle: AppTextStyles.bodyText.copyWith(
+                    color: const Color(0XFF898989),
+                    fontWeight: FontWeight.w400,
+                    fontSize: 13.5,
                   ),
                   border: InputBorder.none,
+                  enabledBorder: OutlineInputBorder(
+                    borderSide: BorderSide(
+                      color: isDarkMode
+                          ? Colors.white.withValues(alpha: 0.1)
+                          : Theme.of(context).colorScheme.outline,
+                      width: 1,
+                    ),
+                    borderRadius: BorderRadius.circular(50),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderSide: BorderSide(
+                      color: isDarkMode
+                          ? Colors.white.withValues(alpha: 0.15)
+                          : Theme.of(context).colorScheme.outline,
+                      width: 1,
+                    ),
+                    borderRadius: BorderRadius.circular(50),
+                  ),
                 ),
-                style: AppTextStyles.bodyText,
+                style: AppTextStyles.bodyText.copyWith(
+                  color: txt.title,
+                  fontWeight: FontWeight.w500,
+                  fontSize: 14,
+                ),
                 maxLines: null,
                 textCapitalization: TextCapitalization.sentences,
               ),
             ),
           ),
-          SizedBox(width: 10.w),
+          const SizedBox(width: 10),
           GestureDetector(
             onTap: isSending ? null : _postComment,
             child: Container(
@@ -466,18 +524,18 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
     );
   }
 
-  String _formatTime(DateTime dateTime) {
-    final now = DateTime.now();
-    final difference = now.difference(dateTime);
-
-    if (difference.inMinutes < 1) return 'Just now';
-    if (difference.inMinutes < 60) return '${difference.inMinutes}m ago';
-    if (difference.inHours < 24) return '${difference.inHours}h ago';
-    if (difference.inDays < 7) return '${difference.inDays}d ago';
-    if (difference.inDays < 28) {
-      final weeks = (difference.inDays / 7).floor();
-      return '${weeks}w ago';
+  String _timeAgo(DateTime dt) {
+    try {
+      final diff = DateTime.now().difference(dt.toLocal());
+      if (diff.inSeconds < 60) return 'Just now';
+      if (diff.inMinutes < 60) return '${diff.inMinutes} min ago';
+      if (diff.inHours < 24) return '${diff.inHours} h ago';
+      if (diff.inDays < 7) return '${diff.inDays} d ago';
+      if (diff.inDays < 30) return '${(diff.inDays / 7).floor()} w ago';
+      if (diff.inDays < 365) return '${(diff.inDays / 30).floor()} mo ago';
+      return '${(diff.inDays / 365).floor()} y ago';
+    } catch (_) {
+      return '';
     }
-    return '${dateTime.day}/${dateTime.month}/${dateTime.year}';
   }
 }

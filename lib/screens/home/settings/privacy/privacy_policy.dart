@@ -3,7 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-import '../../../../core/constants/app_colors.dart';
+import '../../../../core/themes/app_text_colors.dart';
+import '../../../../core/themes/app_text_styles.dart';
 import '../../../../languages/l10n/generated/app_localizations.dart';
 import '../../../../widgets/appbar/common_appbar.dart';
 
@@ -19,32 +20,32 @@ class PrivacyPolicy extends StatefulWidget {
 class PrivacyState extends State<PrivacyPolicy> {
   final String email = 'contact@polzet.com';
 
-  // Define the text styles for the title
-  static TextStyle titleStyle = TextStyle(
-    color: AppColors.primaryColor,
-    fontSize: 11.7.sp,
-    fontWeight: FontWeight.w600,
-  );
+  static TextStyle titleStyle(BuildContext context) =>
+      AppTextStyles.sectionHeading.copyWith(
+        color: Theme.of(context).colorScheme.onPrimary,
+        fontSize: 15,
+        fontWeight: FontWeight.w600,
+      );
 
-   static TextStyle lblSecondryText(BuildContext context) => TextStyle(
-    color: Theme.of(context).colorScheme.onBackground,
-    fontSize: 11.5.sp,
-    fontWeight: FontWeight.w400,
-  );
-
-  // Define the text styles for the labletext
-  static TextStyle labelStyle = TextStyle(
-    color: const Color(0XFF545454),
-    fontSize: 11.2.sp,
-    fontWeight: FontWeight.w600,
-  );
+  static TextStyle subTextStyle(BuildContext context) =>
+      AppTextStyles.subText.copyWith(
+        color: Theme.of(context).colorScheme.onBackground,
+        fontSize: 14,
+        fontWeight: FontWeight.w400,
+      );
 
   @override
   Widget build(BuildContext context) {
-    // Define the text styles for the subtitle
-    final TextStyle subtitleStyle = TextStyle(
-      color: const Color(0XFF2B607B),
-      fontSize: 12.sp,
+    final txt = AppTextColors.of(context);
+    final TextStyle labelTextStyle = AppTextStyles.cardTitle.copyWith(
+      color: txt.title,
+      fontSize: 14,
+      fontWeight: FontWeight.w600,
+    );
+
+    final TextStyle sublabelTextStyle = AppTextStyles.cardTitle.copyWith(
+      color: txt.body,
+      fontSize: 14,
       fontWeight: FontWeight.w600,
     );
     return Scaffold(
@@ -53,431 +54,467 @@ class PrivacyState extends State<PrivacyPolicy> {
         title: AppLocalizations.of(context)!.privacypolicy,
         showBackButton: true,
       ),
-     
+
       body: ListView(
         padding: EdgeInsets.fromLTRB(12.w, 10.h, 12.w, 12.h),
         children: [
-          Text(AppLocalizations.of(context)!.lastupdated, style: titleStyle),
+          Text(
+            AppLocalizations.of(context)!.lastupdated,
+            style: titleStyle(context),
+          ),
           SizedBox(height: 15.h),
           Text(
             AppLocalizations.of(context)!.privacypolicydescriptions,
-            style: lblSecondryText(context),
+            style: subTextStyle(context),
           ),
           SizedBox(height: 20.h),
           Text(
             AppLocalizations.of(context)!.informationwecollect,
-            style: titleStyle,
+            style: titleStyle(context),
           ), // policy_1
           SizedBox(height: 5.h),
           Text(
             AppLocalizations.of(context)!.wecollectiinformation,
-            style: lblSecondryText(context),
+            style: subTextStyle(context),
           ),
           SizedBox(height: 15.h),
           Text(
             AppLocalizations.of(context)!.informationyouprovide,
-            style: subtitleStyle,
+            style: labelTextStyle,
           ),
           SizedBox(height: 15.h),
           Text(
             AppLocalizations.of(context)!.accountinformation,
-            style: labelStyle,
+            style: sublabelTextStyle,
           ),
           SizedBox(height: 5.h),
           Text(
             AppLocalizations.of(context)!.whenyoucreateanaccount,
-            style: lblSecondryText(context),
+            style: subTextStyle(context),
           ),
           SizedBox(height: 15.h),
-          Text(AppLocalizations.of(context)!.usecontent, style: labelStyle),
+          Text(
+            AppLocalizations.of(context)!.usecontent,
+            style: sublabelTextStyle,
+          ),
           SizedBox(height: 5.h),
           Text(
             AppLocalizations.of(context)!.wecollectimages,
-            style: lblSecondryText(context),
+            style: subTextStyle(context),
           ),
           SizedBox(height: 15.h),
-          Text(AppLocalizations.of(context)!.communications, style: labelStyle),
+          Text(
+            AppLocalizations.of(context)!.communications,
+            style: sublabelTextStyle,
+          ),
           SizedBox(height: 5.h),
           Text(
             AppLocalizations.of(context)!.wecollectyourcontactdetails,
-            style: lblSecondryText(context),
+            style: subTextStyle(context),
           ),
           SizedBox(height: 15.h),
           Text(
             AppLocalizations.of(context)!.surveysandfeedback,
-            style: labelStyle,
+            style: sublabelTextStyle,
           ),
           SizedBox(height: 5.h),
           Text(
             AppLocalizations.of(context)!.wemaycollectinformationyourovide,
-            style: lblSecondryText(context),
+            style: subTextStyle(context),
           ),
           SizedBox(height: 20.h),
           Text(
             AppLocalizations.of(context)!.informationcollectedautomatically,
-            style: subtitleStyle,
+            style: labelTextStyle,
           ),
           SizedBox(height: 15.h),
-          Text(AppLocalizations.of(context)!.usagedata, style: labelStyle),
+          Text(
+            AppLocalizations.of(context)!.usagedata,
+            style: sublabelTextStyle,
+          ),
           SizedBox(height: 5.h),
           Text(
             AppLocalizations.of(
               context,
             )!.wecollectinformationaboutyourinteractions,
-            style: lblSecondryText(context),
+            style: subTextStyle(context),
           ),
           SizedBox(height: 15.h),
           Text(
             AppLocalizations.of(context)!.deviceandtechnicalinformation,
-            style: labelStyle,
+            style: sublabelTextStyle,
           ),
           SizedBox(height: 5.h),
           Text(
             AppLocalizations.of(context)!.wecollectdetailsaboutyourdevice,
-            style: lblSecondryText(context),
+            style: subTextStyle(context),
           ),
           SizedBox(height: 15.h),
-          Text(AppLocalizations.of(context)!.locationdata, style: labelStyle),
+          Text(
+            AppLocalizations.of(context)!.locationdata,
+            style: sublabelTextStyle,
+          ),
           SizedBox(height: 5.h),
           Text(
             AppLocalizations.of(context)!.withyourconsentwemay,
-            style: lblSecondryText(context),
+            style: subTextStyle(context),
           ),
           SizedBox(height: 15.h),
           Text(
             AppLocalizations.of(context)!.cookiesandtrackingtechnologies,
-            style: labelStyle,
+            style: sublabelTextStyle,
           ),
           SizedBox(height: 5.h),
           Text(
             AppLocalizations.of(context)!.weusecookieswebbeacons,
-            style: lblSecondryText(context),
+            style: subTextStyle(context),
           ),
           SizedBox(height: 20.h),
           Text(
             AppLocalizations.of(context)!.informationfromthirdparties,
-            style: subtitleStyle,
+            style: labelTextStyle,
           ),
           SizedBox(height: 15.h),
           Text(
             AppLocalizations.of(context)!.socialmediaintegrations,
-            style: labelStyle,
+            style: sublabelTextStyle,
           ),
           SizedBox(height: 5.h),
           Text(
             AppLocalizations.of(context)!.ifyouconnectyourpolzetaccount,
-            style: lblSecondryText(context),
+            style: subTextStyle(context),
           ),
           SizedBox(height: 15.h),
           Text(
             AppLocalizations.of(context)!.analyticsandadvertisingpartners,
-            style: labelStyle,
+            style: sublabelTextStyle,
           ),
           SizedBox(height: 5.h),
           Text(
             AppLocalizations.of(context)!.wemayreceiveaggregatedoranonymized,
-            style: lblSecondryText(context),
+            style: subTextStyle(context),
           ),
           SizedBox(height: 20.h),
           Text(
             AppLocalizations.of(context)!.howweuseyourinformation,
-            style: titleStyle,
+            style: titleStyle(context),
           ), // policy_2
           SizedBox(height: 5.h),
           Text(
             AppLocalizations.of(context)!.weuseyourinformationto,
-            style: lblSecondryText(context),
+            style: subTextStyle(context),
           ),
           SizedBox(height: 20.h),
           Text(
             AppLocalizations.of(context)!.provideandimprovetheplatform,
-            style: labelStyle,
+            style: sublabelTextStyle,
           ), //
           SizedBox(height: 5.h),
           Text(
             AppLocalizations.of(context)!.operatemaintainandenhanc,
-            style: lblSecondryText(context),
+            style: subTextStyle(context),
           ),
           SizedBox(height: 15.h),
           Text(
             AppLocalizations.of(context)!.accountmanagement,
-            style: labelStyle,
+            style: sublabelTextStyle,
           ),
           SizedBox(height: 5.h),
           Text(
             AppLocalizations.of(context)!.createandmanageyouraccount,
-            style: lblSecondryText(context),
+            style: subTextStyle(context),
           ),
           SizedBox(height: 15.h),
           Text(
             AppLocalizations.of(context)!.accountmanagement,
-            style: labelStyle,
+            style: sublabelTextStyle,
           ),
           SizedBox(height: 5.h),
           Text(
             AppLocalizations.of(context)!.respondtoyourinquiriessend,
-            style: lblSecondryText(context),
+            style: subTextStyle(context),
           ),
           SizedBox(height: 15.h),
           Text(
             AppLocalizations.of(context)!.analyticsandresearch,
-            style: labelStyle,
+            style: sublabelTextStyle,
           ),
           SizedBox(height: 5.h),
           Text(
             AppLocalizations.of(context)!.analysesusagetrends,
-            style: lblSecondryText(context),
+            style: subTextStyle(context),
           ),
           SizedBox(height: 15.h),
-          Text(AppLocalizations.of(context)!.advertising, style: labelStyle),
+          Text(
+            AppLocalizations.of(context)!.advertising,
+            style: sublabelTextStyle,
+          ),
           SizedBox(height: 5.h),
           Text(
             AppLocalizations.of(context)!.delivertargetedadvertisements,
-            style: lblSecondryText(context),
+            style: subTextStyle(context),
           ),
           SizedBox(height: 15.h),
           Text(
             AppLocalizations.of(context)!.safetyandsecurity,
-            style: labelStyle,
+            style: sublabelTextStyle,
           ),
           SizedBox(height: 5.h),
           Text(
             AppLocalizations.of(context)!.detectandpreventfraud,
-            style: lblSecondryText(context),
+            style: subTextStyle(context),
           ),
           SizedBox(height: 15.h),
           Text(
             AppLocalizations.of(context)!.legalcompliance,
-            style: labelStyle,
+            style: sublabelTextStyle,
           ),
           SizedBox(height: 5.h),
           Text(
             AppLocalizations.of(context)!.complywithapplicablelaws,
-            style: lblSecondryText(context),
+            style: subTextStyle(context),
           ),
           SizedBox(height: 20.h),
           Text(
             AppLocalizations.of(context)!.howweshareyourinformation,
-            style: titleStyle,
+            style: titleStyle(context),
           ), // policy_3
           SizedBox(height: 5.h),
           Text(
             AppLocalizations.of(context)!.wemayshareyourinformationasfollows,
-            style: lblSecondryText(context),
+            style: subTextStyle(context),
           ),
           SizedBox(height: 15.h),
           Text(
             AppLocalizations.of(context)!.withotherusers,
-            style: subtitleStyle,
+            style: labelTextStyle,
           ),
           SizedBox(height: 15.h),
-          Text(AppLocalizations.of(context)!.publiccontent, style: labelStyle),
+          Text(
+            AppLocalizations.of(context)!.publiccontent,
+            style: sublabelTextStyle,
+          ),
           SizedBox(height: 5.h),
           Text(
             AppLocalizations.of(context)!.usercontentyoupostpublicly,
-            style: lblSecondryText(context),
+            style: subTextStyle(context),
           ),
           SizedBox(height: 15.h),
           Text(
             AppLocalizations.of(context)!.profileinformation,
-            style: labelStyle,
+            style: sublabelTextStyle,
           ),
           SizedBox(height: 5.h),
           Text(
             AppLocalizations.of(context)!.yourusernameprofilepicture,
-            style: lblSecondryText(context),
+            style: subTextStyle(context),
           ),
           SizedBox(height: 15.h),
           Text(
             AppLocalizations.of(context)!.withserviceproviders,
-            style: subtitleStyle,
+            style: labelTextStyle,
           ),
           SizedBox(height: 5.h),
           Text(
             AppLocalizations.of(context)!.weshareinformationwiththirdparty,
-            style: lblSecondryText(context),
+            style: subTextStyle(context),
           ),
           SizedBox(height: 15.h),
           Text(
             AppLocalizations.of(context)!.withbusinesspartners,
-            style: subtitleStyle,
+            style: labelTextStyle,
           ),
           SizedBox(height: 5.h),
           Text(
             AppLocalizations.of(context)!.wemayshareanonymizedoraggregated,
-            style: lblSecondryText(context),
+            style: subTextStyle(context),
           ),
           SizedBox(height: 15.h),
           Text(
             AppLocalizations.of(context)!.forlegalreasons,
-            style: subtitleStyle,
+            style: labelTextStyle,
           ),
           SizedBox(height: 5.h),
           Text(
             AppLocalizations.of(context)!.wemaydiscloseyourinformationtocomply,
-            style: lblSecondryText(context),
+            style: subTextStyle(context),
           ),
           SizedBox(height: 10.h),
           Text(
             AppLocalizations.of(context)!.intheeventofamerger,
-            style: lblSecondryText(context),
+            style: subTextStyle(context),
           ),
           SizedBox(height: 15.h),
           Text(
             AppLocalizations.of(context)!.withyourconsent,
-            style: subtitleStyle,
+            style: labelTextStyle,
           ),
           SizedBox(height: 5.h),
           Text(
             AppLocalizations.of(context)!.wemayshareyourinformationfor,
-            style: lblSecondryText(context),
+            style: subTextStyle(context),
           ),
           SizedBox(height: 20.h),
           Text(
             AppLocalizations.of(context)!.yourchoicesandrights,
-            style: titleStyle,
+            style: titleStyle(context),
           ), // policy_4
           SizedBox(height: 15.h),
           Text(
             AppLocalizations.of(context)!.accountandprivacysettings,
-            style: subtitleStyle,
+            style: labelTextStyle,
           ),
           SizedBox(height: 5.h),
           Text(
             AppLocalizations.of(context)!.youcanmanageyourprivacysettings,
-            style: lblSecondryText(context),
+            style: subTextStyle(context),
           ),
           SizedBox(height: 10.h),
           Text(
             AppLocalizations.of(context)!.youmayupdateordelete,
-            style: lblSecondryText(context),
+            style: subTextStyle(context),
           ),
           SizedBox(height: 15.h),
           Text(
             AppLocalizations.of(context)!.marketingcommunications,
-            style: subtitleStyle,
+            style: labelTextStyle,
           ),
           SizedBox(height: 5.h),
           Text(
             AppLocalizations.of(context)!.youcanoptoutofreceiving,
-            style: lblSecondryText(context),
+            style: subTextStyle(context),
           ),
           SizedBox(height: 15.h),
-          Text(AppLocalizations.of(context)!.cookies, style: subtitleStyle),
+          Text(AppLocalizations.of(context)!.cookies, style: labelTextStyle),
           SizedBox(height: 5.h),
           Text(
             AppLocalizations.of(context)!.youcandisablecookiesthrough,
-            style: lblSecondryText(context),
+            style: subTextStyle(context),
           ),
 
           SizedBox(height: 15.h),
-          Text(AppLocalizations.of(context)!.datarights, style: subtitleStyle),
+          Text(AppLocalizations.of(context)!.datarights, style: labelTextStyle),
           SizedBox(height: 5.h),
           Text(
             AppLocalizations.of(context)!.dependingonyourjurisdiction,
-            style: lblSecondryText(context),
+            style: subTextStyle(context),
           ),
           SizedBox(height: 20.h),
-          Text(AppLocalizations.of(context)!.access, style: labelStyle),
+          Text(AppLocalizations.of(context)!.access, style: sublabelTextStyle),
           SizedBox(height: 5.h),
           Text(
             AppLocalizations.of(context)!.requestacopyof,
-            style: lblSecondryText(context),
+            style: subTextStyle(context),
           ),
           SizedBox(height: 15.h),
-          Text(AppLocalizations.of(context)!.correction, style: labelStyle),
+          Text(
+            AppLocalizations.of(context)!.correction,
+            style: sublabelTextStyle,
+          ),
           SizedBox(height: 5.h),
           Text(
             AppLocalizations.of(context)!.requestcorrectionsto,
-            style: lblSecondryText(context),
+            style: subTextStyle(context),
           ),
           SizedBox(height: 15.h),
-          Text(AppLocalizations.of(context)!.deletion, style: labelStyle),
+          Text(
+            AppLocalizations.of(context)!.deletion,
+            style: sublabelTextStyle,
+          ),
           SizedBox(height: 5.h),
           Text(
             AppLocalizations.of(context)!.requestdeletionof,
-            style: lblSecondryText(context),
+            style: subTextStyle(context),
           ),
           SizedBox(height: 15.h),
-          Text(AppLocalizations.of(context)!.restriction, style: labelStyle),
+          Text(
+            AppLocalizations.of(context)!.restriction,
+            style: sublabelTextStyle,
+          ),
           SizedBox(height: 5.h),
           Text(
             AppLocalizations.of(context)!.requestrestrictionson,
-            style: lblSecondryText(context),
+            style: subTextStyle(context),
           ),
           SizedBox(height: 15.h),
-          Text(AppLocalizations.of(context)!.portability, style: labelStyle),
+          Text(
+            AppLocalizations.of(context)!.portability,
+            style: sublabelTextStyle,
+          ),
           SizedBox(height: 5.h),
           Text(
             AppLocalizations.of(context)!.requestacopyofyour,
-            style: lblSecondryText(context),
+            style: subTextStyle(context),
           ),
           SizedBox(height: 15.h),
-          Text(AppLocalizations.of(context)!.objection, style: labelStyle),
+          Text(
+            AppLocalizations.of(context)!.objection,
+            style: sublabelTextStyle,
+          ),
           SizedBox(height: 5.h),
           Text(
             AppLocalizations.of(context)!.objecttocertainprocessing,
-            style: lblSecondryText(context),
+            style: subTextStyle(context),
           ),
           SizedBox(height: 15.h),
           Text(
             AppLocalizations.of(context)!.toexercisetheserights,
-            style: lblSecondryText(context),
+            style: subTextStyle(context),
           ),
           SizedBox(height: 20.h),
           Text(
             AppLocalizations.of(context)!.dataretention,
-            style: titleStyle,
+            style: titleStyle(context),
           ), // policy_5
           SizedBox(height: 5.h),
           Text(
             AppLocalizations.of(context)!.weretainyourpersonalinformationfor,
-            style: lblSecondryText(context),
+            style: subTextStyle(context),
           ),
           SizedBox(height: 15.h),
           Text(
             AppLocalizations.of(context)!.accountinformationisretained,
-            style: lblSecondryText(context),
+            style: subTextStyle(context),
           ),
           SizedBox(height: 10.h),
           Text(
             AppLocalizations.of(context)!.usercontentmayremain,
-            style: lblSecondryText(context),
+            style: subTextStyle(context),
           ),
           SizedBox(height: 10.h),
           Text(
             AppLocalizations.of(context)!.usagedatamayberetained,
-            style: lblSecondryText(context),
+            style: subTextStyle(context),
           ),
           SizedBox(height: 10.h),
           Text(
             AppLocalizations.of(context)!.whenwenolongerneed,
-            style: lblSecondryText(context),
+            style: subTextStyle(context),
           ),
           SizedBox(height: 20.h),
           Text(
             AppLocalizations.of(context)!.datascurity,
-            style: titleStyle,
+            style: titleStyle(context),
           ), // policy_6
           SizedBox(height: 5.h),
           Text(
             AppLocalizations.of(context)!.weimplementreasonabletechnical,
-            style: lblSecondryText(context),
+            style: subTextStyle(context),
           ),
           SizedBox(height: 20.h),
           Text(
             AppLocalizations.of(context)!.internationalsdatatransfers,
-            style: titleStyle,
+            style: titleStyle(context),
           ), // policy_7
           SizedBox(height: 5.h),
           Text(
             AppLocalizations.of(context)!.polzetoperatesglobally,
-            style: lblSecondryText(context),
+            style: subTextStyle(context),
           ),
           SizedBox(height: 20.h),
           Text(
             AppLocalizations.of(context)!.childrensprivacy,
-            style: titleStyle,
+            style: titleStyle(context),
           ), // policy_8
           SizedBox(height: 5.h),
           RichText(
@@ -505,32 +542,32 @@ class PrivacyState extends State<PrivacyPolicy> {
           SizedBox(height: 20.h),
           Text(
             AppLocalizations.of(context)!.thirdpartylinksandservices,
-            style: titleStyle,
+            style: titleStyle(context),
           ), // policy_9
           SizedBox(height: 10.h),
           Text(
             AppLocalizations.of(context)!.theplatformmaycontainlinks,
-            style: lblSecondryText(context),
+            style: subTextStyle(context),
           ),
           SizedBox(height: 20.h),
           Text(
             AppLocalizations.of(context)!.changestothisprivacypolicy,
-            style: titleStyle,
+            style: titleStyle(context),
           ), // policy_10
           SizedBox(height: 10.h),
           Text(
             AppLocalizations.of(context)!.wemayupdatethisprivacypolicy,
-            style: lblSecondryText(context),
+            style: subTextStyle(context),
           ),
           SizedBox(height: 20.h),
           Text(
             AppLocalizations.of(context)!.contactus,
-            style: titleStyle,
+            style: titleStyle(context),
           ), // policy_11
           SizedBox(height: 10.h),
           Text(
             AppLocalizations.of(context)!.ifyouhavequestions,
-            style: lblSecondryText(context),
+            style: subTextStyle(context),
           ),
           SizedBox(height: 5.h),
           Row(
@@ -548,7 +585,7 @@ class PrivacyState extends State<PrivacyPolicy> {
           SizedBox(height: 10.h),
           Text(
             AppLocalizations.of(context)!.thankyoufortrusting,
-            style: lblSecondryText(context),
+            style: subTextStyle(context),
           ),
           SizedBox(height: 10.h),
         ],

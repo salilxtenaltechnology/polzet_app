@@ -1,10 +1,13 @@
 // ignore_for_file: deprecated_member_use, must_be_immutable
-import 'package:feather_icons/feather_icons.dart';
+import 'package:polzet_app/core/constants/feather_icons_compat.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:polzet_app/languages/l10n/generated/app_localizations.dart';
 import 'package:provider/provider.dart';
+import '../../../../provider/user_provider.dart';
 
 import '../../../../core/constants/app_radius.dart';
+import '../../../../core/themes/app_text_colors.dart';
 import '../../../../core/themes/app_text_styles.dart';
 import '../../../../gen/assets.gen.dart';
 import '../../../../mixin/utility_mixins.dart';
@@ -35,7 +38,7 @@ import '../../../../api/services/share/share_service.dart';
 enum FollowStatus { none, rechase, chase, both, pending }
 
 class PublicProfileScreen extends StatelessWidget {
-  final int userId;
+  final String userId;
   const PublicProfileScreen({super.key, required this.userId});
 
   @override
@@ -49,7 +52,7 @@ class PublicProfileScreen extends StatelessWidget {
 }
 
 class _PublicProfileScreenBody extends StatefulWidget {
-  final int userId;
+  final String userId;
   const _PublicProfileScreenBody({required this.userId});
 
   @override
@@ -64,16 +67,17 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
   List<PublicPost> cachedThingsPosts = [];
   List<PublicPost> cachedImagesPosts = [];
 
-  Map<int, bool> postLikeStates = {};
-  Map<int, int> postLikeCounts = {};
+  Map<String, bool> postLikeStates = {};
+  Map<String, int> postLikeCounts = {};
 
   final LikeService likeService = LikeService();
-  Map<int, List<LikeUser>> postLikedUsers = {};
-  Map<int, bool> likedUsersLoading = {};
-  Map<int, int> postCommentsCounts = {};
+  Map<String, List<LikeUser>> postLikedUsers = {};
+  Map<String, bool> likedUsersLoading = {};
+  Map<String, int> postCommentsCounts = {};
+  Map<String, int> postSharesCounts = {};
 
   FollowStatus? _localFollowStatus;
-  FollowStatus? _serverFollowStatus; 
+  FollowStatus? _serverFollowStatus;
   bool _isProcessingRequest = false;
 
   late TabController _tabController;
@@ -139,7 +143,6 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
         };
       case FollowStatus.pending:
         return {
-          'icon': Icons.schedule,
           'text': 'Requested',
           'canTap': !_isProcessingRequest,
           'isFollowing': true,
@@ -293,7 +296,7 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
   }
 
   void _showAllImagesGrid(
-    int postId,
+    String postId,
     PublicPoll poll,
     bool isPolledByCurrentUser,
     PublicPost post,
@@ -301,8 +304,10 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
     if (isPolledByCurrentUser) {
       Navigator.of(context).push(
         MaterialPageRoute(
-          builder: (_) =>
-              ImageResultScreen(username: post.user, postId: post.id),
+          builder: (_) => ImageResultScreen(
+            username: post.user,
+            postId: post.id,
+          ),
         ),
       );
     } else {
@@ -331,7 +336,7 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
     }
   }
 
-  void _showCommentsBottomSheet(int postId, String username) async {
+  void _showCommentsBottomSheet(String postId, String username) async {
     BottomSheetUtils.showCommentsBottomSheet(
       context: context,
       postId: postId,
@@ -342,14 +347,14 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
     );
   }
 
-  void _showLikedUsersBottomSheet(int postId, String username) {
+  void _showLikedUsersBottomSheet(String postId, String username) {
     BottomSheetUtils.showLikedUsersBottomSheet(
       context: context,
       postId: postId,
     );
   }
 
-  Future<void> _fetchLikedUsersSilently(int postId) async {
+  Future<void> _fetchLikedUsersSilently(String postId) async {
     try {
       final users = await ApiService().fetchLikedUsers(postId);
       if (mounted) {
@@ -360,15 +365,39 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
     } catch (_) {}
   }
 
-  Future<void> _toggleLike(int postId) async {
+  Future<void> _toggleLike(String postId) async {
     final currentLikeState = postLikeStates[postId] ?? false;
     final currentLikeCount = postLikeCounts[postId] ?? 0;
+
+    final userProvider = Provider.of<UserProvider>(context, listen: false);
+    final currentUserId = userProvider.userId ?? '';
+    final currentUsername = userProvider.username ?? '';
+    final currentUserFullName = '${userProvider.firstName ?? ''} ${userProvider.lastName ?? ''}'.trim();
+    final currentUserImage = userProvider.profile_picture;
 
     setState(() {
       postLikeStates[postId] = !currentLikeState;
       postLikeCounts[postId] = currentLikeState
           ? currentLikeCount - 1
           : currentLikeCount + 1;
+
+      if (!currentLikeState) {
+        final list = List<LikeUser>.from(postLikedUsers[postId] ?? []);
+        list.insert(
+          0,
+          LikeUser(
+            id: currentUserId,
+            fullName: currentUserFullName.isNotEmpty ? currentUserFullName : currentUsername,
+            username: currentUsername,
+            profileImage: currentUserImage,
+          ),
+        );
+        postLikedUsers[postId] = list.take(3).toList();
+      } else {
+        final list = List<LikeUser>.from(postLikedUsers[postId] ?? []);
+        list.removeWhere((user) => user.username == currentUsername);
+        postLikedUsers[postId] = list;
+      }
     });
 
     try {
@@ -403,11 +432,12 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
     }
   }
 
-  bool _isLoading(PublicProfileProvider provider) =>
-      provider.isLoading;
+  bool _isLoading(PublicProfileProvider provider) => provider.isLoading;
 
   @override
   Widget build(BuildContext context) {
+    final txt = AppTextColors.of(context);
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     final top = MediaQuery.of(context).padding.top;
     final publicProfileProvider = Provider.of<PublicProfileProvider>(context);
 
@@ -508,7 +538,7 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
       ),
       body: RefreshIndicator(
         onRefresh: _handleRefresh,
-        color: Theme.of(context).colorScheme.primary,
+        color: Theme.of(context).colorScheme.onPrimary,
         child: NestedScrollView(
           physics: canViewPosts
               ? const AlwaysScrollableScrollPhysics()
@@ -536,10 +566,12 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
                       overlayColor: const WidgetStatePropertyAll(
                         Colors.transparent,
                       ),
-                      unselectedLabelColor: const Color(0XFF8E8E8E),
-                      tabs: const [
-                        Tab(text: 'Things'),
-                        Tab(text: 'Images'),
+                      unselectedLabelColor: Theme.of(
+                        context,
+                      ).colorScheme.onBackground.withOpacity(0.5),
+                      tabs: [
+                        Tab(text: AppLocalizations.of(context)!.things),
+                        Tab(text: AppLocalizations.of(context)!.images),
                       ],
                     ),
                   ),
@@ -553,7 +585,7 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
                     isLoadingPosts
                         ? Center(
                             child: Loader(
-                              color: Theme.of(context).colorScheme.primary,
+                              color: Theme.of(context).colorScheme.onPrimary,
                             ),
                           )
                         : cachedThingsPosts.isEmpty
@@ -561,21 +593,26 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
                             child: Column(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                Image.asset(
-                                  Assets.images.noThingsPost.path,
-                                  height: 0.20.sh,
-                                  width: 0.20.sh,
-                                  fit: BoxFit.contain,
-                                ),
-                                const SizedBox(height: 5),
+                                isDarkMode
+                                    ? const SizedBox()
+                                    : Padding(
+                                        padding: const EdgeInsets.only(
+                                          bottom: 10,
+                                        ),
+                                        child: Image.asset(
+                                          Assets.images.noThingsPost.path,
+                                          height: 0.20.sh,
+                                          width: 0.20.sh,
+                                          fit: BoxFit.contain,
+                                        ),
+                                      ),
+
                                 Text(
-                                  'No things poll yet',
+                                  AppLocalizations.of(context)!.nothingspollyet,
                                   textAlign: TextAlign.center,
                                   style: AppTextStyles.sectionHeading.copyWith(
                                     fontSize: 18.5,
-                                    color: Theme.of(
-                                      context,
-                                    ).colorScheme.onBackground,
+                                    color: txt.title,
                                     fontWeight: FontWeight.w600,
                                     height: 1.4,
                                   ),
@@ -609,21 +646,21 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
                             child: Column(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                Image.asset(
-                                  Assets.images.noImagePoll.path,
-                                  height: 0.20.sh,
-                                  width: 0.20.sh,
-                                  fit: BoxFit.contain,
-                                ),
+                                isDarkMode
+                                    ? const SizedBox()
+                                    : Image.asset(
+                                        Assets.images.noImagePoll.path,
+                                        height: 0.20.sh,
+                                        width: 0.20.sh,
+                                        fit: BoxFit.contain,
+                                      ),
                                 const SizedBox(height: 5),
                                 Text(
-                                  'No image poll yet',
+                                  AppLocalizations.of(context)!.noimagepollyet,
                                   textAlign: TextAlign.center,
                                   style: AppTextStyles.sectionHeading.copyWith(
                                     fontSize: 18.5,
-                                    color: Theme.of(
-                                      context,
-                                    ).colorScheme.onBackground,
+                                    color: txt.title,
                                     fontWeight: FontWeight.w600,
                                     height: 1.4,
                                   ),
@@ -652,32 +689,26 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(
-                        FeatherIcons.lock,
-                        size: 40.sp,
-                        color: Theme.of(
-                          context,
-                        ).colorScheme.onBackground.withOpacity(0.5),
-                      ),
+                      Icon(FeatherIcons.lock, size: 40.sp, color: txt.muted),
                       SizedBox(height: 10.h),
                       Text(
-                        'This account is private',
-                        style: AppTextStyles.bodyText.copyWith(
-                          fontSize: 16.sp,
+                        AppLocalizations.of(context)!.thisaccountisprivate,
+                        style: AppTextStyles.sectionHeading.copyWith(
+                          fontSize: 18.5,
+                          color: txt.title,
                           fontWeight: FontWeight.w600,
-                          color: Theme.of(
-                            context,
-                          ).colorScheme.onBackground.withOpacity(0.7),
+                          height: 1.4,
                         ),
                       ),
-                      SizedBox(height: 5.h),
+                      const SizedBox(height: 8),
                       Text(
-                        'Chase this account to see their posts.',
-                        style: AppTextStyles.subText.copyWith(
-                          fontSize: 14.sp,
-                          color: Theme.of(
-                            context,
-                          ).colorScheme.onBackground.withOpacity(0.5),
+                        AppLocalizations.of(
+                          context,
+                        )!.chasethisaccounttoseetheirposts,
+                        style: AppTextStyles.bodyText.copyWith(
+                          fontSize: 13,
+                          color: txt.muted,
+                          height: 1.4,
                         ),
                       ),
                     ],
@@ -718,6 +749,10 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
                 cachedImagesPosts = posts;
               });
               for (var post in posts) {
+                postLikeStates[post.id] = post.isLiked;
+                postLikeCounts[post.id] = post.likesCount;
+                postCommentsCounts[post.id] = post.comments.length;
+                postSharesCounts[post.id] = post.sharesCount;
                 if (post.likesCount > 0) _fetchLikedUsersSilently(post.id);
               }
             }
@@ -736,6 +771,10 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
                 }).toList();
               });
               for (var post in cachedThingsPosts) {
+                postLikeStates[post.id] = post.isLiked;
+                postLikeCounts[post.id] = post.likesCount;
+                postCommentsCounts[post.id] = post.comments.length;
+                postSharesCounts[post.id] = post.sharesCount;
                 if (post.likesCount > 0) _fetchLikedUsersSilently(post.id);
               }
             }
@@ -770,12 +809,15 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
     required bool isImage,
     required PublicProfileProvider userProvider,
   }) {
+    final txt = AppTextColors.of(context);
+
     if (post.polls.isEmpty) return const SizedBox.shrink();
     final poll = post.polls.first;
 
     final isLiked = postLikeStates[post.id] ?? post.isLiked;
     final likesCount = postLikeCounts[post.id] ?? post.likesCount;
     final commentsCount = postCommentsCounts[post.id] ?? post.comments.length;
+    final sharesCount = postSharesCounts[post.id] ?? post.sharesCount;
     final viewLikes = postLikedUsers[post.id] ?? [];
     final currentUsername = userProvider.userProfile?.username ?? '';
     final profile = userProvider.userProfile;
@@ -783,13 +825,17 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
     return Container(
       margin: EdgeInsets.only(bottom: 20.h),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.background,
+        color: Theme.of(context).colorScheme.primaryContainer,
         borderRadius: BorderRadius.circular(AppRadius.card),
-        border: Border.all(color: const Color(0xFFEFEFEF), width: 1),
+        border: Border.all(
+          color: Theme.of(context).colorScheme.outline,
+          width: 1,
+        ),
         boxShadow: const [BoxShadow(color: Color(0x06000000), blurRadius: 2)],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
           // ── Header ──────────────────────────────────────────────
           Padding(
@@ -797,13 +843,9 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                Container(
-                  width: 45,
-                  height: 45,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    border: Border.all(color: Colors.white, width: 3),
-                  ),
+                SizedBox(
+                  width: 40,
+                  height: 40,
                   child: ClipOval(
                     child: (() {
                       if (profile == null) {
@@ -836,6 +878,7 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
                 const SizedBox(width: 7),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text(
                       userProvider.isLoading || profile == null
@@ -845,11 +888,12 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
                                       .trim()
                                 : profile.username),
                       style: AppTextStyles.sectionHeading.copyWith(
-                        color: const Color(0XFF2C2C2C),
+                        color: txt.title,
                         fontSize: 14,
                       ),
                     ),
                     Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
                         Text(
                           userProvider.isLoading || profile == null
@@ -858,13 +902,13 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
                           style: AppTextStyles.bodyText.copyWith(
                             fontSize: 12,
                             fontWeight: FontWeight.w500,
-                            color: const Color(0XFF595959),
+                            color: txt.body,
                           ),
                         ),
                         Text(
                           '  • ${_timeAgo(post.createdAt)}',
                           style: AppTextStyles.subText.copyWith(
-                            color: const Color(0xFF727272),
+                            color: txt.muted,
                             fontWeight: FontWeight.w400,
                             fontSize: 11.5,
                           ),
@@ -873,17 +917,11 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
                     ),
                   ],
                 ),
-                const Spacer(),
-                const Icon(
-                  FeatherIcons.moreVertical,
-                  size: 22,
-                  color: Color(0xFF727272),
-                ),
               ],
             ),
           ),
 
-          const Divider(color: Color(0xFFDCDCDC)),
+          Divider(color: Theme.of(context).colorScheme.outlineVariant),
 
           // ── Body ─────────────────────────────────────────────────
           Padding(
@@ -901,7 +939,7 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
                         style: AppTextStyles.bodyText.copyWith(
                           fontSize: 14.5,
                           fontWeight: FontWeight.w600,
-                          color: const Color(0xFF111111),
+                          color: Theme.of(context).colorScheme.onBackground,
                         ),
                       ),
                     ),
@@ -929,7 +967,7 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
                       MaterialPageRoute(
                         builder: (_) => ThingsResultScreen(
                           username: post.user,
-                          postId: post.id,
+                          postId: post.id.toString(),
                         ),
                       ),
                     );
@@ -964,7 +1002,7 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
                         });
                   }),
 
-                SizedBox(height: 16.h),
+                const SizedBox(height: 12),
 
                 // ── Actions row ───────────────────────────────────
                 Row(
@@ -975,53 +1013,70 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
                           ? AppIcons.filledHeart(key: const ValueKey('filled'))
                           : AppIcons.outlineHeart(
                               key: const ValueKey('outline'),
-                              color: Theme.of(
-                                context,
-                              ).colorScheme.onBackground.withOpacity(0.6),
                             ),
                     ),
-                    SizedBox(width: 4.w),
+                    const SizedBox(width: 8),
                     GestureDetector(
                       onTap: () =>
                           _showLikedUsersBottomSheet(post.id, currentUsername),
-                      child: Text('$likesCount'),
-                    ),
-                    SizedBox(width: 16.w),
-                    GestureDetector(
-                      onTap: () =>
-                          _showCommentsBottomSheet(post.id, currentUsername),
-                      child: AppIcons.commnetBox(
-                        color: Theme.of(
-                          context,
-                        ).colorScheme.onBackground.withOpacity(0.6),
+                      child: Text(
+                        likesCount > 0 ? '$likesCount' : '',
+                        style: AppTextStyles.subText.copyWith(
+                          color: txt.body,
+                          fontSize: 13.5,
+                          fontWeight: FontWeight.w400,
+                        ),
                       ),
                     ),
-                    SizedBox(width: 4.w),
+                    SizedBox(width: 8.w),
                     GestureDetector(
                       onTap: () =>
                           _showCommentsBottomSheet(post.id, currentUsername),
-                      child: Text('$commentsCount'),
+                      child: AppIcons.commnetBox(),
                     ),
-                    SizedBox(width: 16.w),
+                    const SizedBox(width: 8),
+                    GestureDetector(
+                      onTap: () =>
+                          _showCommentsBottomSheet(post.id, currentUsername),
+                      child: Text(
+                        commentsCount > 0 ? '$commentsCount' : '',
+                        style: AppTextStyles.subText.copyWith(
+                          color: txt.body,
+                          fontSize: 13.5,
+                          fontWeight: FontWeight.w400,
+                        ),
+                      ),
+                    ),
+                    SizedBox(width: 8.w),
                     GestureDetector(
                       onTap: () {
                         ShareService.sharePost(
                           post,
                           context: context,
                           usernameOverride: currentUsername,
+                          onShareSuccess: (newCount) {
+                            if (mounted) {
+                              setState(() {
+                                postSharesCounts[post.id] = newCount;
+                              });
+                            }
+                          },
                         );
                       },
-                      child: AppIcons.sharePost(
-                        color: Theme.of(
-                          context,
-                        ).colorScheme.onBackground.withOpacity(0.7),
+                      child: Row(
+                        children: [
+                          AppIcons.sharePost(),
+                          const SizedBox(width: 8),
+                          Text(
+                            sharesCount > 0 ? '$sharesCount' : '',
+                            style: AppTextStyles.subText.copyWith(
+                              color: txt.body,
+                              fontSize: 13.5,
+                              fontWeight: FontWeight.w400,
+                            ),
+                          ),
+                        ],
                       ),
-                    ),
-                    const Spacer(),
-                    Icon(
-                      FeatherIcons.bookmark,
-                      size: 20.sp,
-                      color: Colors.black54,
                     ),
                   ],
                 ),
@@ -1106,20 +1161,24 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
   }
 
   Widget _buildOptionChip({required String label, required bool isBold}) {
+    final txt = AppTextColors.of(context);
     return Expanded(
       child: Container(
         padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 7.h),
         decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surface,
+          color: Theme.of(context).colorScheme.primaryContainer,
           borderRadius: BorderRadius.circular(AppRadius.card),
-          border: Border.all(color: const Color(0XFFEFEFEF), width: 1),
+          border: Border.all(
+            color: Theme.of(context).colorScheme.outline,
+            width: 1,
+          ),
         ),
         child: Text(
           label,
           style: AppTextStyles.bodyText.copyWith(
             fontSize: 14.5,
             fontWeight: isBold ? FontWeight.w600 : FontWeight.w400,
-            color: const Color(0xFF2C2C2C),
+            color: txt.title,
           ),
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
@@ -1129,6 +1188,8 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
   }
 
   Widget _buildPolledTextOptions(PublicPoll poll, VoidCallback onTap) {
+    final txt = AppTextColors.of(context);
+    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
     if (poll.options.isEmpty) return const SizedBox.shrink();
 
     return GestureDetector(
@@ -1189,7 +1250,9 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
                             width: double.infinity,
                             height: 8.h,
                             decoration: BoxDecoration(
-                              color: const Color(0xFFD9D9D9).withOpacity(0.5),
+                              color: isDarkMode
+                                  ? const Color(0xFF2D2D2D)
+                                  : const Color(0xFFF6F3F2),
                               borderRadius: BorderRadius.circular(
                                 AppRadius.card,
                               ),
@@ -1223,7 +1286,7 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
                     style: AppTextStyles.subText.copyWith(
                       fontSize: 12.5,
                       fontWeight: FontWeight.w400,
-                      color: const Color(0xFF8E8E8E),
+                      color: txt.muted,
                     ),
                   ),
                 ),
@@ -1348,6 +1411,7 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
   }
 
   Widget _buildHeader(double topPadding, PublicProfileProvider userProvider) {
+    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
     final profile = userProvider.userProfile;
     final effectiveStatus = _getEffectiveFollowStatus(
       profile?.followStatus,
@@ -1361,7 +1425,7 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
         : true;
     final buttonState = _getButtonState(effectiveStatus);
     return Container(
-      color: Colors.white,
+      color: Theme.of(context).colorScheme.background,
       child: Column(
         children: [
           GestureDetector(
@@ -1373,7 +1437,10 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
                   height: 100,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    border: Border.all(color: Colors.white, width: 3),
+                    border: Border.all(
+                      color: Theme.of(context).colorScheme.outlineVariant,
+                      width: 1.5,
+                    ),
                   ),
                   child: ClipOval(
                     child: (() {
@@ -1442,7 +1509,7 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
               children: [
                 _StatCard(
                   value: profile?.rechaseList?.length.toString() ?? '0',
-                  label: 'Re-chase',
+                  label: AppLocalizations.of(context)!.revibe,
                   onTap: canViewPosts
                       ? () {
                           navigationPush(
@@ -1461,7 +1528,7 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
                 const SizedBox(width: 15),
                 _StatCard(
                   value: profile?.chaseList?.length.toString() ?? '0',
-                  label: 'Chase',
+                  label: AppLocalizations.of(context)!.vibe,
                   onTap: canViewPosts
                       ? () {
                           navigationPush(
@@ -1484,7 +1551,7 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
                             .toString()
                       : (profile.imagePostCount + profile.textPostCount)
                             .toString(),
-                  label: 'Polls',
+                  label: AppLocalizations.of(context)!.polls,
                   onTap: null,
                 ),
               ],
@@ -1501,7 +1568,7 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
                 Expanded(
                   child: SizedBox(
                     height: 38,
-                    child: ElevatedButton.icon(
+                    child: ElevatedButton(
                       onPressed: buttonState['canTap']
                           ? () {
                               _handleFollowAction(
@@ -1511,35 +1578,33 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
                               );
                             }
                           : null,
-                      icon: Icon(
-                        buttonState['icon'],
-                        size: 16,
-                        color: buttonState['isFollowing']
-                            ? Theme.of(context).colorScheme.primary
-                            : Colors.white,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: buttonState['isFollowing']
+                            ? (isDarkMode ? Colors.transparent : Colors.white)
+                            : Theme.of(context).colorScheme.primary.withOpacity(
+                                buttonState['canTap'] ? 1.0 : 0.5,
+                              ),
+                        elevation: 0,
+                        side: buttonState['isFollowing']
+                            ? BorderSide(
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.outlineVariant,
+                              )
+                            : null,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(AppRadius.button),
+                        ),
                       ),
-                      label: Text(
+                      child: Text(
                         buttonState['text'],
+                        textAlign: TextAlign.center,
                         style: AppTextStyles.subText.copyWith(
                           fontSize: 14.5,
                           color: buttonState['isFollowing']
                               ? Theme.of(context).colorScheme.onBackground
                               : Colors.white,
                           fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: buttonState['isFollowing']
-                            ? Colors.white
-                            : Theme.of(context).colorScheme.primary.withOpacity(
-                                buttonState['canTap'] ? 1.0 : 0.5,
-                              ),
-                        elevation: 0,
-                        side: buttonState['isFollowing']
-                            ? const BorderSide(color: Color(0xFFDDDDDD))
-                            : null,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(AppRadius.button),
                         ),
                       ),
                     ),
@@ -1563,7 +1628,7 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
                                   currentUsername: profile.username,
                                 ),
                               child: PrivateChatScreen(
-                                userId: profile!.id,
+                                userId: int.tryParse(profile!.id.toString()),
                                 memberName: profile.username,
                                 profileUrl: profile.profilePictureUrl,
                                 chatId: profile.chatId,
@@ -1573,8 +1638,8 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
                         );
                       },
                       style: OutlinedButton.styleFrom(
-                        side: const BorderSide(
-                          color: Color(0xFFDDDDDD),
+                        side: BorderSide(
+                          color: Theme.of(context).colorScheme.outlineVariant,
                           width: 1,
                         ),
                         shape: RoundedRectangleBorder(
@@ -1583,7 +1648,7 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
                         padding: const EdgeInsets.symmetric(horizontal: 16),
                       ),
                       child: Text(
-                        'Message',
+                        AppLocalizations.of(context)!.message,
                         style: AppTextStyles.subText.copyWith(
                           fontSize: 14.5,
                           color: Theme.of(context).colorScheme.onBackground,
@@ -1617,12 +1682,12 @@ class _AvatarPlaceholder extends StatelessWidget {
     }
 
     return Container(
-      color: Theme.of(context).colorScheme.primary.withOpacity(0.09),
+      color: Theme.of(context).colorScheme.onPrimary.withOpacity(0.09),
       child: Center(
         child: Text(
           firstLetter,
           style: AppTextStyles.bodyText.copyWith(
-            color: Theme.of(context).colorScheme.primary,
+            color: Theme.of(context).colorScheme.onPrimary.withOpacity(0.7),
             fontSize: fontSize,
             fontWeight: FontWeight.w600,
           ),
@@ -1646,9 +1711,12 @@ class _StatCard extends StatelessWidget {
         width: 100,
         padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: Theme.of(context).colorScheme.primaryContainer,
           borderRadius: BorderRadius.circular(AppRadius.card),
-          border: Border.all(color: const Color(0XFFEFEFEF), width: 1),
+          border: Border.all(
+            color: Theme.of(context).colorScheme.outline,
+            width: 1,
+          ),
           boxShadow: [
             BoxShadow(
               color: const Color(0x00000000).withOpacity(0.06),

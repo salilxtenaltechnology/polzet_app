@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:polzet_app/widgets/loader.dart';
 
 import '../../../api/services/api_service.dart';
+import '../../../core/themes/app_text_colors.dart';
 import '../../../core/themes/app_text_styles.dart';
 import '../../../data/token/shared_preferences.dart';
 import '../../../main.dart';
@@ -226,6 +227,7 @@ class _EmailNumberVerifyScreenState extends State<EmailNumberVerifyScreen> {
     required String hint,
     TextInputType keyboardType = TextInputType.text,
   }) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     return SizedBox(
       height: 48,
       child: TextField(
@@ -242,12 +244,20 @@ class _EmailNumberVerifyScreenState extends State<EmailNumberVerifyScreen> {
             });
           }
         },
-        style: const TextStyle(fontSize: 14.5, color: Color(0xFF404040)),
+        cursorColor: Theme.of(context).colorScheme.onPrimary.withOpacity(0.8),
+        cursorWidth: 1.5,
+        style: AppTextStyles.subText.copyWith(
+          fontSize: 15,
+          color: Theme.of(context).colorScheme.onBackground,
+          fontWeight: FontWeight.w400,
+        ),
         decoration: InputDecoration(
           hintText: hint,
           hintStyle: AppTextStyles.subText.copyWith(
             fontSize: 14.5,
-            color: const Color(0xFFB3B3B3),
+            color: isDarkMode
+                ? const Color(0XFFB3B3B3)
+                : const Color(0XFF898989),
             fontWeight: FontWeight.w400,
           ),
           contentPadding: const EdgeInsets.symmetric(
@@ -256,23 +266,27 @@ class _EmailNumberVerifyScreenState extends State<EmailNumberVerifyScreen> {
           ),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(color: Color(0xFFDDDDDD), width: 1),
+            borderSide: BorderSide(
+              color: isDarkMode
+                  ? Theme.of(context).colorScheme.outline
+                  : const Color(0xFFDDDDDD),
+              width: 1,
+            ),
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
             borderSide: BorderSide(
-              color: Theme.of(context).colorScheme.primary,
-              width: 1,
+              color: Theme.of(context).colorScheme.onPrimary.withOpacity(0.7),
+              width: 0.7,
             ),
           ),
-          filled: true,
-          fillColor: Colors.white,
         ),
       ),
     );
   }
 
   Widget _buildPasswordField() {
+      final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     return SizedBox(
       height: 48,
       child: TextField(
@@ -283,12 +297,20 @@ class _EmailNumberVerifyScreenState extends State<EmailNumberVerifyScreen> {
             setState(() => _emailOrMobileError = '');
           }
         },
-        style: const TextStyle(fontSize: 14.5, color: Color(0xFF404040)),
+        cursorColor: Theme.of(context).colorScheme.onPrimary.withOpacity(0.8),
+        cursorWidth: 1.5,
+        style: AppTextStyles.subText.copyWith(
+          fontSize: 15,
+          color: Theme.of(context).colorScheme.onBackground,
+          fontWeight: FontWeight.w400,
+        ),
         decoration: InputDecoration(
           hintText: 'Enter password',
-          hintStyle: AppTextStyles.subText.copyWith(
+         hintStyle: AppTextStyles.subText.copyWith(
             fontSize: 14.5,
-            color: const Color(0xFFB3B3B3),
+           color: isDarkMode
+                ? const Color(0XFFB3B3B3)
+                : const Color(0XFF898989),
             fontWeight: FontWeight.w400,
           ),
           contentPadding: const EdgeInsets.symmetric(
@@ -299,25 +321,29 @@ class _EmailNumberVerifyScreenState extends State<EmailNumberVerifyScreen> {
             onTap: () => setState(() => _obscurePassword = !_obscurePassword),
             child: Icon(
               _obscurePassword
-                  ? Icons.remove_red_eye_outlined
-                  : Icons.visibility_off_outlined,
+                  ? Icons.visibility_off_outlined
+                  : Icons.visibility_outlined,
               color: const Color(0xFF8E8E8E),
               size: 22,
             ),
           ),
-          enabledBorder: OutlineInputBorder(
+           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(color: Color(0xFFDDDDDD), width: 1),
+            borderSide: BorderSide(
+              color: isDarkMode
+                  ? Theme.of(context).colorScheme.outline
+                  : const Color(0xFFDDDDDD),
+              width: 1,
+            ),
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
             borderSide: BorderSide(
-              color: Theme.of(context).colorScheme.primary,
-              width: 1,
+              color: Theme.of(context).colorScheme.onPrimary.withOpacity(0.7),
+              width: 0.7,
             ),
           ),
-          filled: true,
-          fillColor: Colors.white,
+         
         ),
       ),
     );
@@ -353,15 +379,18 @@ class _EmailNumberVerifyScreenState extends State<EmailNumberVerifyScreen> {
   }
 
   Widget _buildCountryCodeButton() {
+      final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     return GestureDetector(
       onTap: _showCountryPicker,
       child: Container(
         height: 48,
         padding: const EdgeInsets.symmetric(horizontal: 12),
         decoration: BoxDecoration(
-          color: Colors.white,
+         color: Theme.of(context).colorScheme.background,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: const Color(0xFFDDDDDD), width: 1),
+          border: Border.all(color: isDarkMode
+                  ? Theme.of(context).colorScheme.outline
+                  : const Color(0xFFDDDDDD), width: 1),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -370,10 +399,10 @@ class _EmailNumberVerifyScreenState extends State<EmailNumberVerifyScreen> {
             const SizedBox(width: 4),
             Text(
               _selectedCountry.dialCode,
-              style: const TextStyle(
+               style: AppTextStyles.subText.copyWith(
                 fontSize: 14.5,
-                color: Color(0xFF404040),
-                fontWeight: FontWeight.w500,
+                color: Theme.of(context).colorScheme.onBackground,
+                fontWeight: FontWeight.w400,
               ),
             ),
             const SizedBox(width: 4),
@@ -392,9 +421,12 @@ class _EmailNumberVerifyScreenState extends State<EmailNumberVerifyScreen> {
     return Container(
       height: 45,
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).colorScheme.primaryContainer,
         borderRadius: BorderRadius.circular(13),
-        border: Border.all(color: const Color(0xFFDDDDDD), width: 1.2),
+        border: Border.all(
+          color: Theme.of(context).colorScheme.outline,
+          width: 1,
+        ),
       ),
       child: Row(
         children: [
@@ -511,12 +543,13 @@ class _EmailNumberVerifyScreenState extends State<EmailNumberVerifyScreen> {
   }
 
   Widget _buildFieldLabel(String label) {
+    final txt = AppTextColors.of(context);
     return Text(
       label,
       style: AppTextStyles.cardTitle.copyWith(
         fontSize: 14.5,
         fontWeight: FontWeight.w400,
-        color: const Color(0xFF2C2C2C),
+        color: txt.title,
       ),
     );
   }
@@ -538,7 +571,8 @@ class _EmailNumberVerifyScreenState extends State<EmailNumberVerifyScreen> {
                     : 'Sign up with Email',
                 style: AppTextStyles.subSectionHeading.copyWith(
                   fontSize: 23,
-                  color: const Color(0xFF111111),
+                  color: Theme.of(context).colorScheme.onBackground,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
               const SizedBox(height: 32),

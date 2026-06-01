@@ -25,7 +25,7 @@ class PublicProfileModel {
 }
 
 class ProfileData {
-  final int id;
+  final String id;
   final String username;
   final String? email;
   final String? mobileNumber;
@@ -81,7 +81,7 @@ class ProfileData {
 
   factory ProfileData.fromJson(Map<String, dynamic> json) {
     return ProfileData(
-      id: json['id'] ?? 0,
+      id: (json['id'] ?? '').toString(),
       username: json['username'] ?? '',
       email: json['email'],
       mobileNumber: json['mobile_number'],
@@ -92,13 +92,10 @@ class ProfileData {
       countryCode: json['country_code'] ?? '',
       bio: json['bio'],
       nextUsernameChange: json['next_username_change'] ?? '',
-      // ✅ Fix 1: Parse string counts to int
-      followersCount:
-          int.tryParse(json['followers_count']?.toString() ?? '0') ?? 0,
-      followingCount:
-          int.tryParse(json['following_count']?.toString() ?? '0') ?? 0,
-      imagePostCount: json['image_post_count'] ?? 0,
-      textPostCount: json['text_post_count'] ?? 0,
+      followersCount: _toInt(json['followers_count']),
+      followingCount: _toInt(json['following_count']),
+      imagePostCount: _toInt(json['image_post_count']),
+      textPostCount: _toInt(json['text_post_count']),
       profilePictureUrl: json['profile_picture_url'],
       profileThumbnailUrl: json['profile_thumbnail_url'],
       coverThumbnailUrl: json['cover_thumbnail_url'],
@@ -114,8 +111,7 @@ class ProfileData {
         (json['posts'] is Map) ? json['posts'] as Map<String, dynamic> : {},
       ),
       followStatus: json['follow_status'] ?? '',
-      // ✅ Fix 2: Handle null chat_id
-      chatId: json['chat_id'] ?? 0,
+      chatId: _toInt(json['chat_id']),
     );
   }
 
@@ -150,7 +146,7 @@ class ProfileData {
   }
 
   ProfileData copyWith({
-    int? id,
+    String? id,
     String? username,
     String? email,
     String? mobileNumber,
@@ -243,7 +239,7 @@ class PostsData {
 }
 
 class ChaseUser {
-  final int userId;
+  final String userId;
   final String firstName;
   final String lastName;
   final String username;
@@ -265,7 +261,7 @@ class ChaseUser {
 
   factory ChaseUser.fromJson(Map<String, dynamic> json) {
     return ChaseUser(
-      userId: json['user_id'] ?? 0,
+      userId: (json['uuid'] ?? json['user_id'] ?? json['id'] ?? '').toString(),
       firstName: json['first_name'] ?? '',
       lastName: json['last_name'] ?? '',
       username: json['username'] ?? '',
@@ -291,7 +287,7 @@ class ChaseUser {
 }
 
 class RechaseUser {
-  final int userId;
+  final String userId;
   final String firstName;
   final String lastName;
   final String username;
@@ -313,7 +309,7 @@ class RechaseUser {
 
   factory RechaseUser.fromJson(Map<String, dynamic> json) {
     return RechaseUser(
-      userId: json['user_id'] ?? 0,
+      userId: (json['uuid'] ?? json['user_id'] ?? json['id'] ?? '').toString(),
       firstName: json['first_name'] ?? '',
       lastName: json['last_name'] ?? '',
       username: json['username'] ?? '',
@@ -339,7 +335,7 @@ class RechaseUser {
 }
 
 class PublicPost {
-  final int id;
+  final String id;
   final String user;
   final String description;
   final String createdAt;
@@ -348,6 +344,9 @@ class PublicPost {
   final List<dynamic> comments;
   final int likesCount;
   final bool isLiked;
+  final int commentCount;
+  final int sharesCount;
+  final String locationName;
   bool is_polled_by_current_user;
 
   PublicPost({
@@ -360,13 +359,18 @@ class PublicPost {
     required this.comments,
     required this.likesCount,
     required this.isLiked,
+    required this.commentCount,
+    required this.sharesCount,
+    required this.locationName,
     required this.is_polled_by_current_user,
   });
 
   factory PublicPost.fromJson(Map<String, dynamic> json) {
     return PublicPost(
-      id: json['id'] ?? 0,
-      user: json['user'] ?? '',
+      id: (json['uuid'] ?? json['id'] ?? '').toString(),
+      user: (json['user'] is Map)
+          ? (json['user']['username'] ?? '').toString()
+          : (json['user'] ?? '').toString(),
       description: json['description'] ?? '',
       createdAt: json['created_at'] ?? '',
       images:
@@ -380,9 +384,12 @@ class PublicPost {
               .toList() ??
           [],
       comments: json['comments'] ?? [],
-      likesCount: json['likes_count'] ?? 0,
+      likesCount: _toInt(json['likes_count']),
       isLiked: json['is_liked'] ?? false,
       is_polled_by_current_user: json['is_polled_by_current_user'] ?? false,
+      commentCount: _toInt(json['comments_count']),
+      sharesCount: _toInt(json['shares_count']),
+      locationName: json['location_name'] as String? ?? '',
     );
   }
 
@@ -397,13 +404,16 @@ class PublicPost {
       'comments': comments,
       'likes_count': likesCount,
       'is_liked': isLiked,
+      'comments_count': commentCount,
+      'shares_count': sharesCount,
+      'location_name': locationName,
       'is_polled_by_current_user': is_polled_by_current_user,
     };
   }
 }
 
 class PublicPostImage {
-  final int id;
+  final dynamic id;
   final String url;
   final String thumbnailUrl;
   final int order;
@@ -419,7 +429,7 @@ class PublicPostImage {
 
   factory PublicPostImage.fromJson(Map<String, dynamic> json) {
     return PublicPostImage(
-      id: json['id'] ?? 0,
+      id: json['id'],
       url: json['url'] ?? '',
       thumbnailUrl: json['thumbnail_url'] ?? '',
       order: json['order'] ?? 0,
@@ -439,7 +449,7 @@ class PublicPostImage {
 }
 
 class PublicPoll {
-  final int id;
+  final String id;
   final String question;
   final int maxOptions;
   final List<PublicPollOption> options;
@@ -457,16 +467,16 @@ class PublicPoll {
 
   factory PublicPoll.fromJson(Map<String, dynamic> json) {
     return PublicPoll(
-      id: json['id'] ?? 0,
+      id: (json['id'] ?? '').toString(),
       question: json['question'] ?? '',
-      maxOptions: json['max_options'] ?? 0,
+      maxOptions: _toInt(json['max_options']),
       options:
           (json['options'] as List<dynamic>?)
               ?.map((e) => PublicPollOption.fromJson(e as Map<String, dynamic>))
               .toList() ??
           [],
       totalVotes: json['total_votes']?.toString() ?? '0',
-      userVote: json['user_vote'],
+      userVote: _toIntNullable(json['user_vote']),
     );
   }
 
@@ -483,7 +493,7 @@ class PublicPoll {
 }
 
 class PublicPollOption {
-  final int id;
+  final dynamic id;
   final String? text;
   final PollOptionImage? image;
   final String voteCount;
@@ -501,13 +511,13 @@ class PublicPollOption {
 
   factory PublicPollOption.fromJson(Map<String, dynamic> json) {
     return PublicPollOption(
-      id: json['id'] ?? 0,
+      id: json['id'],
       text: json['text'],
       image: json['image'] != null
           ? PollOptionImage.fromJson(json['image'] as Map<String, dynamic>)
           : null,
       voteCount: json['vote_count']?.toString() ?? '0',
-      percentage: (json['percentage'] ?? 0).toDouble(),
+      percentage: _toDouble(json['percentage']),
       voters: json['voters'] ?? [],
     );
   }
@@ -554,4 +564,26 @@ class PollOptionImage {
       'thumbnail_url': thumbnailUrl,
     };
   }
+}
+
+int? _toIntNullable(dynamic value) {
+  if (value == null) return null;
+  if (value is int) return value;
+  if (value is String) return int.tryParse(value);
+  return int.tryParse(value.toString());
+}
+
+int _toInt(dynamic value, {int defaultValue = 0}) {
+  if (value == null) return defaultValue;
+  if (value is int) return value;
+  if (value is String) return int.tryParse(value) ?? defaultValue;
+  return int.tryParse(value.toString()) ?? defaultValue;
+}
+
+double _toDouble(dynamic value, {double defaultValue = 0.0}) {
+  if (value == null) return defaultValue;
+  if (value is double) return value;
+  if (value is int) return value.toDouble();
+  if (value is String) return double.tryParse(value) ?? defaultValue;
+  return double.tryParse(value.toString()) ?? defaultValue;
 }

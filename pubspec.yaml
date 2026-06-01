@@ -2,7 +2,7 @@ name: polzet_app
 description: "A new Flutter project."
 publish_to: 'none'
 
-version: 1.0.0+1
+version: 1.1.0+9
 
 environment:
   sdk: '>=3.10.3 <4.0.0'
@@ -15,11 +15,8 @@ dependencies:
   
   # Icons & UI
   cupertino_icons: ^1.0.8
-  feather_icons: ^1.2.0
-  icons_plus: ^5.0.0
   google_fonts: ^6.3.3
   flutter_screenutil: ^5.9.3
-  page_transition: ^2.2.1
   curved_navigation_bar: ^1.0.6
   lottie: ^3.3.2
   shimmer: ^3.0.0
@@ -40,7 +37,6 @@ dependencies:
   # Firebase
   firebase_core: ^4.3.0
   firebase_messaging: ^16.1.0
-  cloud_firestore: ^6.1.1
   
   # Media & Hardware
   image_cropper: ^11.0.0
@@ -58,13 +54,6 @@ dependencies:
   intl: ^0.20.2
   fl_chart: ^1.1.1
   google_sign_in: ^7.2.0
-  flutter_gen_runner: ^5.13.0+1
-  build_runner: ^2.13.1
-  screenshot: ^3.0.0
-  image: ^4.8.0
-  photo_view: ^0.15.0
-  google_sign_in_android: ^7.2.10
-  flutter_skeleton_ui: ^0.0.6
   showcaseview: ^5.0.2
   url_launcher: ^6.3.2
 
@@ -73,6 +62,8 @@ dev_dependencies:
     sdk: flutter
   flutter_lints: ^3.0.0  # Kept at 3.0.0 for better compatibility with SDK 3.10
   flutter_launcher_icons: ^0.14.4
+  build_runner: ^2.13.1
+  flutter_gen_runner: ^5.13.0+1
 
 flutter_gen:
   output: lib/gen
@@ -80,9 +71,9 @@ flutter_gen:
 flutter_launcher_icons: # Fixed name (was flutter_icons)
   android: "launcher_icon"
   ios: true
-  image_path: "assets/images/ic_app.png"
-  adaptive_icon_background: "#ffffff"
-  adaptive_icon_foreground: "assets/images/ic_app.png"
+  image_path: "assets/images/ic_app_foreground.png"
+  adaptive_icon_background: "assets/images/icon_background.png"
+  adaptive_icon_foreground: "assets/images/ic_app_foreground.png"
 
 flutter:
   uses-material-design: true

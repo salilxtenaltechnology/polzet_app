@@ -1,12 +1,12 @@
 // ignore_for_file: deprecated_member_use
 
-import 'package:feather_icons/feather_icons.dart';
+import 'package:polzet_app/core/constants/feather_icons_compat.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../../../api/services/api_service.dart';
-import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_radius.dart';
+import '../../../../core/themes/app_text_colors.dart';
 import '../../../../core/themes/app_text_styles.dart';
 import '../../../../gen/assets.gen.dart';
 import '../../../../languages/l10n/generated/app_localizations.dart';
@@ -121,11 +121,15 @@ class _UserChaseState extends State<UserChase>
     super.dispose();
   }
 
+ 
+
   Widget _buildEmptyState({
     required String image,
     required String title,
     required String message,
   }) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final txt = AppTextColors.of(context);
     return LayoutBuilder(
       builder: (context, constraints) {
         return SizedBox(
@@ -138,19 +142,24 @@ class _UserChaseState extends State<UserChase>
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Image.asset(
-                      image,
-                      height: 0.22.sh,
-                      width: 0.22.sh,
-                      fit: BoxFit.contain,
-                    ),
-                    const SizedBox(height: 14),
+                    isDarkMode
+                        ? const SizedBox()
+                        : Padding(
+                            padding: const EdgeInsets.only(bottom: 12),
+                            child: Image.asset(
+                              image,
+                              height: 0.22.sh,
+                              width: 0.22.sh,
+                              fit: BoxFit.contain,
+                            ),
+                          ),
+
                     Text(
                       title,
                       textAlign: TextAlign.center,
                       style: AppTextStyles.sectionHeading.copyWith(
                         fontSize: 18.5,
-                        color: Theme.of(context).colorScheme.onBackground,
+                        color: txt.title,
                         fontWeight: FontWeight.w600,
                         height: 1.4,
                       ),
@@ -163,7 +172,7 @@ class _UserChaseState extends State<UserChase>
                         textAlign: TextAlign.center,
                         style: AppTextStyles.bodyText.copyWith(
                           fontSize: 13,
-                          color: const Color(0xFF595959),
+                          color: txt.muted,
                           height: 1.4,
                         ),
                       ),
@@ -179,29 +188,22 @@ class _UserChaseState extends State<UserChase>
   }
 
   Widget _buildUserListItem({required Map<String, dynamic> user}) {
+    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final txt = AppTextColors.of(context);
+
     final profilePic = user['avatar_url'] as String?;
     final firstName = user['first_name'] ?? 'Polzet';
     final lastName = user['last_name'] ?? 'User';
     final username = user['username'] as String? ?? '';
     final firstLetter = username.isNotEmpty ? username[0].toUpperCase() : '?';
-    final userId = user['user_id'] as int;
+    final userId = user['uuid'] as String;
     final followStatus = user['follow_status'] as String? ?? '';
     final isPrivate = user['is_private'] == true;
 
-    return Container(
-      height: 60,
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 10),
-      margin: EdgeInsets.only(bottom: 7.h, right: 10.w, left: 10.w, top: 5.h),
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.primaryContainer,
-        borderRadius: BorderRadius.circular(AppRadius.card),
-        border: Border.all(color: const Color(0XFFEFEFEF), width: 1),
-        boxShadow: const [BoxShadow(color: Color(0x06000000), blurRadius: 2)],
-      ),
-      child: GestureDetector(
-        onTap: () =>
-            navigationPush(context, PublicProfileScreen(userId: userId)),
+    return GestureDetector(
+      onTap: () => navigationPush(context, PublicProfileScreen(userId: userId)),
+      child: Padding(
+        padding: EdgeInsetsGeometry.symmetric(horizontal: 10.w, vertical: 10),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.start,
           crossAxisAlignment: CrossAxisAlignment.center,
@@ -213,7 +215,8 @@ class _UserChaseState extends State<UserChase>
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 border: Border.all(
-                  color: const Color(0xFFD1D1D1).withOpacity(0.7),
+                  color: Theme.of(context).colorScheme.outline,
+                  width: 0.7,
                 ),
                 image: profilePic != null
                     ? DecorationImage(
@@ -222,7 +225,9 @@ class _UserChaseState extends State<UserChase>
                       )
                     : null,
                 color: profilePic == null
-                    ? Theme.of(context).primaryColor.withOpacity(0.08)
+                    ? (isDarkMode
+                          ? const Color(0xFF252525)
+                          : Theme.of(context).primaryColor.withOpacity(0.08))
                     : null,
               ),
               child: profilePic == null
@@ -232,7 +237,9 @@ class _UserChaseState extends State<UserChase>
                         style: TextStyle(
                           fontSize: 17,
                           fontWeight: FontWeight.w500,
-                          color: Theme.of(context).primaryColor,
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onPrimary.withOpacity(0.8),
                         ),
                       ),
                     )
@@ -251,7 +258,7 @@ class _UserChaseState extends State<UserChase>
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: AppTextStyles.bodyText.copyWith(
-                        color: const Color(0XFF595959),
+                        color: txt.body,
                         fontSize: 14.5,
                         fontWeight: FontWeight.w500,
                       ),
@@ -260,7 +267,7 @@ class _UserChaseState extends State<UserChase>
                       '$firstName $lastName'.trim(),
                       style: AppTextStyles.bodyText.copyWith(
                         fontSize: 12.5,
-                        color: const Color(0XFF8E8E8E),
+                        color: txt.muted,
                         fontWeight: FontWeight.w500,
                       ),
                       maxLines: 1,
@@ -270,7 +277,7 @@ class _UserChaseState extends State<UserChase>
                     Text(
                       username,
                       style: AppTextStyles.bodyText.copyWith(
-                        color: const Color(0XFF595959),
+                        color: txt.body,
                         fontSize: 14.5,
                         fontWeight: FontWeight.w500,
                       ),
@@ -281,7 +288,7 @@ class _UserChaseState extends State<UserChase>
                       username,
                       style: AppTextStyles.bodyText.copyWith(
                         fontSize: 12.5,
-                        color: const Color(0XFF8E8E8E),
+                        color: txt.muted,
                         fontWeight: FontWeight.w500,
                       ),
                       maxLines: 1,
@@ -306,6 +313,8 @@ class _UserChaseState extends State<UserChase>
 
   @override
   Widget build(BuildContext context) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final txt = AppTextColors.of(context);
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.background,
       appBar: CommonAppBar(title: widget.username),
@@ -322,13 +331,13 @@ class _UserChaseState extends State<UserChase>
               indicatorSize: TabBarIndicatorSize.tab,
               indicator: FadeUnderlineTabIndicator(),
               labelColor: Theme.of(context).colorScheme.primary,
-              labelStyle: TextStyle(
+              labelStyle: const TextStyle(
                 fontWeight: FontWeight.w500,
-                fontSize: 11.sp,
+                fontSize: 14,
               ),
-              unselectedLabelStyle: TextStyle(
-                fontWeight: FontWeight.w400,
-                fontSize: 11.sp,
+              unselectedLabelStyle: const TextStyle(
+                fontWeight: FontWeight.w500,
+                fontSize: 14,
               ),
               dividerColor: Colors.transparent,
               unselectedLabelColor: Theme.of(context).colorScheme.onBackground,
@@ -352,11 +361,15 @@ class _UserChaseState extends State<UserChase>
             width: double.infinity,
             margin: EdgeInsets.symmetric(vertical: 7.h, horizontal: 10.w),
             decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.primaryContainer,
+              color: isDarkMode ? const Color(0xFF1F1F23) : Colors.white,
               borderRadius: BorderRadius.circular(AppRadius.button),
             ),
             child: TextField(
               controller: _searchController,
+              cursorColor: Theme.of(
+                context,
+              ).colorScheme.onPrimary.withOpacity(0.8),
+              cursorWidth: 1.5,
               decoration: InputDecoration(
                 contentPadding: EdgeInsets.only(
                   right: 12.w,
@@ -377,24 +390,22 @@ class _UserChaseState extends State<UserChase>
                 ),
                 enabledBorder: OutlineInputBorder(
                   borderSide: BorderSide(
-                    color: Theme.of(
-                      context,
-                    ).colorScheme.onBackground.withOpacity(0.1),
+                    color: Theme.of(context).colorScheme.outline,
                   ),
                   borderRadius: BorderRadius.circular(9),
                 ),
                 focusedBorder: OutlineInputBorder(
-                  borderSide: const BorderSide(
-                    color: AppColors.primaryColor,
+                  borderSide: BorderSide(
+                    color: Theme.of(context).colorScheme.outline,
                     width: 0.7,
                   ),
                   borderRadius: BorderRadius.circular(9),
                 ),
               ),
               style: AppTextStyles.bodyText.copyWith(
-                color: Theme.of(context).colorScheme.onBackground,
-                fontWeight: FontWeight.w400,
-                fontSize: 13.5,
+                color: txt.title,
+                fontWeight: FontWeight.w500,
+                fontSize: 14,
               ),
               onChanged: _filterUsers,
             ),
@@ -433,7 +444,9 @@ class _UserChaseState extends State<UserChase>
                             ? AppLocalizations.of(context)!.norechaseyet
                             : AppLocalizations.of(context)!.nousersfound,
                         message: _searchQuery.isEmpty
-                            ? 'Stay active and share polls to build your community'
+                            ? AppLocalizations.of(
+                                context,
+                              )!.stayactiveandsharepollstobuildyourcommunity
                             : AppLocalizations.of(
                                 context,
                               )!.trysearchingwithadifferent,

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../core/constants/app_radius.dart';
+import '../../core/themes/app_text_colors.dart';
 
 class NotificationsDiolog extends StatelessWidget {
   const NotificationsDiolog({super.key, required this.onPressed});
@@ -45,12 +46,13 @@ class NotificationsDiolog extends StatelessWidget {
   }
 
   Widget _label(BuildContext context, String text, VoidCallback? onTap) {
+    final txt = AppTextColors.of(context);
     return GestureDetector(
       onTap: onTap,
       child: Text(
         text,
         style: TextStyle(
-          color: Theme.of(context).colorScheme.onBackground,
+          color: txt.title,
           fontSize: 12.sp,
           fontWeight: FontWeight.w400,
         ),
@@ -61,7 +63,7 @@ class NotificationsDiolog extends StatelessWidget {
   Widget _primaryDivider(BuildContext context) {
     return Divider(
       height: 12.3.h,
-      color: Theme.of(context).colorScheme.onBackground.withOpacity(0.2),
+      color: Theme.of(context).colorScheme.outlineVariant,
     );
   }
 }

@@ -4,7 +4,8 @@ import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
-import 'package:page_transition/page_transition.dart';
+import 'package:polzet_app/core/constants/feather_icons_compat.dart';
+import '../../../core/themes/app_text_colors.dart';
 import '../../../core/themes/app_text_styles.dart';
 import '../login/email_login.dart';
 
@@ -184,10 +185,11 @@ class _PasswordResetSuccessScreenState extends State<SuccessPasswordScreen>
 
   @override
   Widget build(BuildContext context) {
+     final txt = AppTextColors.of(context);
     return FadeTransition(
       opacity: _exitFade,
       child: Scaffold(
-        backgroundColor: Colors.white,
+        backgroundColor: Theme.of(context).colorScheme.background,
         body: SafeArea(
           child: Center(
             child: Padding(
@@ -287,7 +289,7 @@ class _PasswordResetSuccessScreenState extends State<SuccessPasswordScreen>
                         style: AppTextStyles.subSectionHeading.copyWith(
                           fontSize: 23,
                           fontWeight: FontWeight.w600,
-                          color: const Color(0xFF111111),
+                          color: Theme.of(context).colorScheme.onBackground,
                         ),
                       ),
                     ),
@@ -305,7 +307,7 @@ class _PasswordResetSuccessScreenState extends State<SuccessPasswordScreen>
                         textAlign: TextAlign.center,
                         style: AppTextStyles.bodyText.copyWith(
                           fontSize: 13.5,
-                          color: const Color(0xFF595959),
+                          color: txt.body,
                           height: 1.4,
                         ),
                       ),

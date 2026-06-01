@@ -6,7 +6,7 @@ class ApiConfig {
   // www.polzet.com : Official Domain
 
   static String domainUrl =
-      'testbackend.polzet.in'; // Change this to your backend domain
+      'prodbackend.polzet.in'; // Change this to your backend domain
 
   static String get baseUrl {
     const protocol = useHttps ? 'https' : 'http';
@@ -25,9 +25,12 @@ class ApiConfig {
     return 'https://$domain';
   }
 }
+ 
 
-
-// https://testbackend.polzet.in
 // https://prodbackend.polzet.in
 
 // dart run build_runner build
+// Add language new texts : flutter gen-l10n
+
+
+// flutter run 2>&1 | grep -v "BLASTBufferQueue"

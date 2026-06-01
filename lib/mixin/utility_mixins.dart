@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:page_transition/page_transition.dart';
+import 'package:polzet_app/core/constants/feather_icons_compat.dart';
 
 mixin UtilityMixin {
   void clearStackAndAddScreen(BuildContext context, Widget screen) {

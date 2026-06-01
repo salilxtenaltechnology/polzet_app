@@ -2,7 +2,7 @@
 
 import 'dart:typed_data';
 
-import 'package:feather_icons/feather_icons.dart';
+import 'package:polzet_app/core/constants/feather_icons_compat.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
@@ -40,11 +40,11 @@ class _ImagePostsListState extends State<ImagePostsList> {
   late final ApiService apiService = ApiService();
   late final LikeService likeService = LikeService();
 
-  Map<int, bool> postLikeStates = {};
-  Map<int, int> postLikeCounts = {};
-  Map<int, int> postCommentsCounts = {};
-  Map<int, List<LikeUser>> postLikedUsers = {};
-  Map<int, bool> likedUsersLoading = {};
+  Map<String, bool> postLikeStates = {};
+  Map<String, int> postLikeCounts = {};
+  Map<String, int> postCommentsCounts = {};
+  Map<String, List<LikeUser>> postLikedUsers = {};
+  Map<String, bool> likedUsersLoading = {};
 
   List<UserPostModel>? cachedPosts;
   bool isLoading = false;
@@ -105,7 +105,7 @@ class _ImagePostsListState extends State<ImagePostsList> {
     }
   }
 
-  Future<void> _fetchLikedUsers(int postId) async {
+  Future<void> _fetchLikedUsers(String postId) async {
     if (likedUsersLoading[postId] == true ||
         postLikedUsers.containsKey(postId)) {
       return;
@@ -129,7 +129,7 @@ class _ImagePostsListState extends State<ImagePostsList> {
     }
   }
 
-  Future<void> _fetchLikedUsersSilently(int postId) async {
+  Future<void> _fetchLikedUsersSilently(String postId) async {
     try {
       final users = await ApiService().fetchLikedUsers(postId);
 
@@ -141,7 +141,7 @@ class _ImagePostsListState extends State<ImagePostsList> {
   }
 
   void _showAllImagesGrid(
-    int postId,
+    String postId,
     UserPollQuestion poll,
     bool isPolledByCurrentUser,
     UserPostModel post, // ← add this
@@ -178,7 +178,7 @@ class _ImagePostsListState extends State<ImagePostsList> {
     }
   }
 
-  Future<void> _toggleLike(int postId) async {
+  Future<void> _toggleLike(String postId) async {
     final currentLikeState = postLikeStates[postId] ?? false;
     final currentLikeCount = postLikeCounts[postId] ?? 0;
 
@@ -258,7 +258,7 @@ class _ImagePostsListState extends State<ImagePostsList> {
     }
   }
 
-  void _showCommentsBottomSheet(int postId) async {
+  void _showCommentsBottomSheet(String postId) async {
     BottomSheetUtils.showCommentsBottomSheet(
       context: context,
       postId: postId,
@@ -269,14 +269,14 @@ class _ImagePostsListState extends State<ImagePostsList> {
     );
   }
 
-  void _showLikedUsersBottomSheet(int postId) {
+  void _showLikedUsersBottomSheet(String postId) {
     BottomSheetUtils.showLikedUsersBottomSheet(
       context: context,
       postId: postId,
     );
   }
 
-  Future<void> deletePost(int postId, int index) async {
+  Future<void> deletePost(String postId, int index) async {
     try {
       bool success = await apiService.userDeletePost(postId);
       if (success) {
@@ -583,7 +583,7 @@ class _ImagePostsListState extends State<ImagePostsList> {
   }
 
   Widget _buildImagesStack(
-    int postId,
+    String postId,
     List<UserPollQuestion> polls,
     bool isPolledByCurrentUser,
   ) {

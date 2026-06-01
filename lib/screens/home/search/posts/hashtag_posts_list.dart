@@ -4,23 +4,25 @@ import 'dart:convert';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:intl/intl.dart';
-import 'package:polzet_app/api/api_config.dart';
-import 'package:polzet_app/widgets/button/back_button.dart';
-import 'package:polzet_app/widgets/loader.dart';
 
+import '../../../../api/api_config.dart';
 import '../../../../api/services/api_service.dart';
 import '../../../../api/services/like/like_service.dart';
-import '../../../../core/constants/app_colors.dart';
+import '../../../../api/services/share/share_service.dart';
 import '../../../../core/constants/app_icons.dart';
+import '../../../../core/constants/app_radius.dart';
+import '../../../../core/themes/app_text_colors.dart';
+import '../../../../core/themes/app_text_styles.dart';
 import '../../../../models/like/like_uers_model.dart';
 import '../../../../models/search/hashtag/hashtag_posts_list_model.dart';
+import '../../../../widgets/appbar/common_appbar.dart';
+import '../../../../widgets/loader.dart';
 import '../../../../widgets/show_toast.dart';
 import '../../../../core/utils/bottomsheet_util.dart';
 import '../../../../core/utils/like_util.dart';
-import '../../profile/posts/popup/hashtag_image_post_pop.dart';
+import '../../home feed/rank/result/image/image_result_screen.dart';
+import 'rank/hashtags_image_poll_ranking.dart';
 
-const _accent = AppColors.primaryColor;
 const _textSecondary = Color(0xFF888888);
 
 class HashtagPostsList extends StatefulWidget {
@@ -46,6 +48,7 @@ class _HashtagPostsListState extends State<HashtagPostsList> {
   final Map<int, bool> _likedMap = {};
   final Map<int, int> _likesCountMap = {};
   final Map<int, int> _commentsCountMap = {};
+  final Map<int, int> _sharesCountMap = {};
   final Map<int, List<LikeUser>> _likedUsersMap = {};
   final Map<int, bool> _likedUsersLoadingMap = {};
 
@@ -67,23 +70,36 @@ class _HashtagPostsListState extends State<HashtagPostsList> {
     HashtagPollModel poll,
     bool isPolledByCurrentUser,
   ) {
-    Navigator.of(context)
-        .push(
-          MaterialPageRoute(
-            builder: (context) => HashtagImagePostPopup(
-              images: poll.options,
-              postId: postId,
-              pollId: poll.id,
-              onImageTap: (index) {},
-              isPolledByCurrentUser: isPolledByCurrentUser,
+    if (isPolledByCurrentUser) {
+      // Already voted → show results
+      Navigator.of(context)
+          .push(
+            MaterialPageRoute(
+              builder: (_) => ImageResultScreen(
+                postId: postId.toString(),
+                username: _posts
+                    .firstWhere((p) => p.id == postId)
+                    .user
+                    .username,
+              ),
             ),
-          ),
-        )
-        .then((result) {
-          if (result == true) {
-            _fetchPosts();
-          }
-        });
+          )
+          .then((result) {
+            if (result == true) _fetchPosts();
+          });
+    } else {
+      // Not yet polled → open ranking screen
+      final post = _posts.firstWhere((p) => p.id == postId);
+      Navigator.of(context)
+          .push(
+            MaterialPageRoute(
+              builder: (_) => HashtagsImagePollRanking(post: post, poll: poll),
+            ),
+          )
+          .then((result) {
+            if (result == true) _fetchPosts();
+          });
+    }
   }
 
   @override
@@ -131,34 +147,12 @@ class _HashtagPostsListState extends State<HashtagPostsList> {
     }
   }
 
-  // Future<void> _fetchMorePosts() async {
-  //   if (_loadingMore || _nextPage == null) return;
-  //   setState(() => _loadingMore = true);
-  //   try {
-  //     final result = await ApiService().getHashtagPostsByUrl(_nextPage!);
-  //     if (!mounted) return;
-
-  //     _initPostState(result.results);
-
-  //     setState(() {
-  //       _posts.addAll(result.results);
-  //       _nextPage = result.next;
-  //     });
-
-  //     for (final post in result.results) {
-  //       _fetchLikedUsers(post.id);
-  //     }
-  //   } catch (_) {
-  //   } finally {
-  //     if (mounted) setState(() => _loadingMore = false);
-  //   }
-  // }
-
   void _initPostState(List<HashtagPostModel> posts) {
     for (final post in posts) {
       _likedMap[post.id] = post.isLikedByCurrentUser;
       _likesCountMap[post.id] = post.likesCount;
       _commentsCountMap[post.id] = post.commentsCount;
+      _sharesCountMap[post.id] = post.sharesCount;
 
       for (final poll in post.polls) {
         if (poll.isPolledByCurrentUser) {
@@ -244,17 +238,18 @@ class _HashtagPostsListState extends State<HashtagPostsList> {
   // }
 
   // ── Helpers ────────────────────────────────────────────────────────────────
-  String _timeAgo(String isoDate) {
+  String _timeAgo(DateTime dt) {
     try {
-      final dt = DateTime.parse(isoDate).toLocal();
-      final diff = DateTime.now().difference(dt);
-      if (diff.inSeconds < 60) return '${diff.inSeconds}s ago';
-      if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
-      if (diff.inHours < 24) return '${diff.inHours}h ago';
-      if (diff.inDays < 7) return '${diff.inDays}d ago';
-      return DateFormat('MMM d, y').format(dt);
+      final diff = DateTime.now().difference(dt.toLocal());
+      if (diff.inSeconds < 60) return 'Just now';
+      if (diff.inMinutes < 60) return '${diff.inMinutes} min ago';
+      if (diff.inHours < 24) return '${diff.inHours} h ago';
+      if (diff.inDays < 7) return '${diff.inDays} d ago';
+      if (diff.inDays < 30) return '${(diff.inDays / 7).floor()} w ago';
+      if (diff.inDays < 365) return '${(diff.inDays / 30).floor()} mo ago';
+      return '${(diff.inDays / 365).floor()} y ago';
     } catch (_) {
-      return isoDate;
+      return '';
     }
   }
 
@@ -290,28 +285,16 @@ class _HashtagPostsListState extends State<HashtagPostsList> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.background,
-      appBar: AppBar(
-        centerTitle: false,
-        title: Text(
-          widget.hashtag,
-          style: TextStyle(
-            fontSize: 12.2.sp,
-            fontWeight: FontWeight.w700,
-            color: Theme.of(context).colorScheme.onBackground,
-          ),
-        ),
-        backgroundColor: Theme.of(context).colorScheme.background,
-        elevation: 0,
-        toolbarHeight: 25.h,
-        leading: const PrimaryBackButton(),
-      ),
+      appBar: CommonAppBar(title: widget.hashtag),
       body: _buildBody(),
     );
   }
 
   Widget _buildBody() {
     if (_loading) {
-      return Center(child: Loader(color: AppColors.primaryColor));
+      return Center(
+        child: Loader(color: Theme.of(context).colorScheme.onPrimary),
+      );
     }
 
     if (_error != null) return _buildError();
@@ -329,7 +312,7 @@ class _HashtagPostsListState extends State<HashtagPostsList> {
     }
 
     return RefreshIndicator(
-      color: _accent,
+      color: Theme.of(context).colorScheme.onPrimary,
       onRefresh: _fetchPosts,
       child: ListView.separated(
         controller: _scrollController,
@@ -341,7 +324,7 @@ class _HashtagPostsListState extends State<HashtagPostsList> {
             return Center(
               child: Padding(
                 padding: EdgeInsets.all(12.h),
-                child: Loader(color: AppColors.primaryColor),
+                child: Loader(color: Theme.of(context).colorScheme.onPrimary),
               ),
             );
           }
@@ -357,36 +340,39 @@ class _HashtagPostsListState extends State<HashtagPostsList> {
     final isLiked = _likedMap[post.id] ?? false;
     final likesCount = _likesCountMap[post.id] ?? 0;
     final commentsCount = _commentsCountMap[post.id] ?? 0;
+    final sharesCount = _sharesCountMap[post.id] ?? 0;
     final likedUsers = _likedUsersMap[post.id] ?? [];
 
     return Container(
-      padding: EdgeInsets.all(10.w),
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.primaryContainer,
-        borderRadius: BorderRadius.circular(10.r),
-        boxShadow: const [
-          BoxShadow(color: Colors.black12, blurRadius: 5, spreadRadius: 2),
-        ],
+        borderRadius: BorderRadius.circular(AppRadius.card),
+        border: Border.all(
+          color: Theme.of(context).colorScheme.outline,
+          width: 1,
+        ),
+        boxShadow: const [BoxShadow(color: Color(0x06000000), blurRadius: 2)],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _buildHeader(post),
+          Divider(color: Theme.of(context).colorScheme.outlineVariant),
 
           // Description (image polls only)
           if (isImage && (post.description ?? '').isNotEmpty) ...[
-            SizedBox(height: 8.h),
-            Text(
-              post.description!,
-              style: TextStyle(
-                color: Theme.of(context).colorScheme.onBackground,
-                fontSize: 11.sp,
-                fontWeight: FontWeight.w500,
+            Padding(
+              padding: EdgeInsets.fromLTRB(10.w, 5.h, 10.w, 10.h),
+              child: Text(
+                post.description!,
+                style: AppTextStyles.bodyText.copyWith(
+                  fontSize: 14.5,
+                  fontWeight: FontWeight.w600,
+                  color: Theme.of(context).colorScheme.onBackground,
+                ),
               ),
             ),
           ],
-
-          SizedBox(height: 8.h),
 
           // Polls
           ...post.polls.map(
@@ -395,7 +381,7 @@ class _HashtagPostsListState extends State<HashtagPostsList> {
                 : _buildTextPollBlock(poll),
           ),
 
-          SizedBox(height: 4.h),
+          const SizedBox(height: 10),
 
           // Interaction bar
           _buildInteractionBar(
@@ -403,6 +389,7 @@ class _HashtagPostsListState extends State<HashtagPostsList> {
             isLiked: isLiked,
             likesCount: likesCount,
             commentsCount: commentsCount,
+            sharesCount: sharesCount,
           ),
 
           // Liked users avatars + text
@@ -413,34 +400,38 @@ class _HashtagPostsListState extends State<HashtagPostsList> {
                 context: context,
                 postId: post.id,
               ),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  LikeUtils.buildLikeAvatarsStack(
-                    context,
-                    likedUsers,
-                    avatarSize: 15,
-                  ),
-                  SizedBox(width: 5.w),
-                  Expanded(
-                    child: SizedBox(
-                      height: 20.h,
-                      child: Align(
-                        alignment: Alignment.centerLeft,
-                        child: RichText(
-                          overflow: TextOverflow.ellipsis,
-                          text: LikeUtils.buildLikedByRichText(
-                            context,
-                            likedUsers,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 10),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    LikeUtils.buildLikeAvatarsStack(
+                      context,
+                      likedUsers,
+                      avatarSize: 15,
+                    ),
+                    SizedBox(width: 5.w),
+                    Expanded(
+                      child: SizedBox(
+                        height: 20.h,
+                        child: Align(
+                          alignment: Alignment.centerLeft,
+                          child: RichText(
+                            overflow: TextOverflow.ellipsis,
+                            text: LikeUtils.buildLikedByRichText(
+                              context,
+                              likedUsers,
+                            ),
                           ),
                         ),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ],
+          const SizedBox(height: 10),
         ],
       ),
     );
@@ -448,55 +439,74 @@ class _HashtagPostsListState extends State<HashtagPostsList> {
 
   // ── Header ─────────────────────────────────────────────────────────────────
   Widget _buildHeader(HashtagPostModel post) {
-    // user.profileImage holds base64 — decode it
+    final txt = AppTextColors.of(context);
     final avatarBytes = _decodeBase64(post.user.profileImage);
 
-    return Row(
-      children: [
-        CircleAvatar(
-          radius: 17,
-          backgroundColor: Theme.of(
-            context,
-          ).colorScheme.primary.withOpacity(0.15),
-          backgroundImage: avatarBytes != null
-              ? MemoryImage(avatarBytes)
-              : null,
-          child: avatarBytes == null
-              ? Text(
-                  post.user.username.isNotEmpty
-                      ? post.user.username[0].toUpperCase()
-                      : '?',
-                  style: TextStyle(
-                    fontSize: 15.sp,
-                    fontWeight: FontWeight.w600,
-                    color: Theme.of(context).colorScheme.primary,
+    return Padding(
+      padding: EdgeInsets.fromLTRB(10.w, 10.h, 10.w, 0),
+      child: Row(
+        children: [
+          CircleAvatar(
+            radius: 20,
+            backgroundColor: Theme.of(
+              context,
+            ).colorScheme.onPrimary.withOpacity(0.1),
+            backgroundImage: avatarBytes != null
+                ? MemoryImage(avatarBytes)
+                : null,
+            child: avatarBytes == null
+                ? Text(
+                    post.user.username.isNotEmpty
+                        ? post.user.username[0].toUpperCase()
+                        : 'P',
+                    style: AppTextStyles.subText.copyWith(
+                      color: Theme.of(context).colorScheme.onPrimary,
+                      fontWeight: FontWeight.w500,
+                      fontSize: 18,
+                    ),
+                  )
+                : null,
+          ),
+          SizedBox(width: 8.w),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '${post.user.firstName} ${post.user.lastName}'.trim().isNotEmpty
+                    ? '${post.user.firstName} ${post.user.lastName}'.trim()
+                    : post.user.username,
+                style: TextStyle(
+                  fontSize: 11.sp,
+                  fontWeight: FontWeight.w600,
+                  color: txt.title,
+                ),
+              ),
+              Row(
+                children: [
+                  Text(
+                    post.user.username.isNotEmpty
+                        ? '@${post.user.username}'
+                        : '${post.user.firstName} ${post.user.lastName}'.trim(),
+                    style: AppTextStyles.bodyText.copyWith(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                      color: txt.body,
+                    ),
                   ),
-                )
-              : null,
-        ),
-        SizedBox(width: 8.w),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              post.user.username,
-              style: TextStyle(
-                fontSize: 11.sp,
-                fontWeight: FontWeight.w600,
-                color: Theme.of(context).colorScheme.onBackground,
+                  Text(
+                    '  • ${_timeAgo(DateTime.parse(post.createdAt))}',
+                    style: TextStyle(
+                      fontSize: 8.8.sp,
+                      color: txt.muted,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
               ),
-            ),
-            Text(
-              _timeAgo(post.createdAt),
-              style: TextStyle(
-                fontSize: 8.8.sp,
-                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ],
-        ),
-      ],
+            ],
+          ),
+        ],
+      ),
     );
   }
 
@@ -531,82 +541,91 @@ class _HashtagPostsListState extends State<HashtagPostsList> {
 
     final alignments = getAlignments(validImages.length);
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final availableWidth = constraints.maxWidth;
-        final imageHeight = 150.h;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 10),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final availableWidth = constraints.maxWidth;
+          final imageHeight = 150.h;
 
-        return GestureDetector(
-          onTap: () =>
-              _showAllImagesGrid(postId, poll, poll.isPolledByCurrentUser),
-          child: SizedBox(
-            height: imageHeight,
-            width: availableWidth,
-            child: Stack(
-              children: validImages
-                  .asMap()
-                  .entries
-                  .map<Widget>((entry) {
-                    final index = entry.key;
-                    final opt = entry.value;
-                    final alignment = alignments[index];
-                    double imageWidth = (availableWidth * 0.7) - (index * 8.0);
-                    imageWidth = imageWidth < 60.w ? 60.w : imageWidth;
-                    final imageUrl = opt.image != null
-                        ? _resolveUrl(opt.image!.url)
-                        : '';
+          return GestureDetector(
+            onTap: () =>
+                _showAllImagesGrid(postId, poll, poll.isPolledByCurrentUser),
+            child: SizedBox(
+              height: imageHeight,
+              width: availableWidth,
+              child: Stack(
+                children: validImages
+                    .asMap()
+                    .entries
+                    .map<Widget>((entry) {
+                      final index = entry.key;
+                      final opt = entry.value;
+                      final alignment = alignments[index];
+                      double imageWidth =
+                          (availableWidth * 0.7) - (index * 8.0);
+                      imageWidth = imageWidth < 60.w ? 60.w : imageWidth;
+                      final imageUrl = opt.image != null
+                          ? _resolveUrl(opt.image!.url)
+                          : '';
 
-                    return Align(
-                      alignment: alignment,
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 200),
-                        width: imageWidth,
-                        height: imageHeight,
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(12.r),
-                          border: Border.all(
-                            color: Colors.white.withOpacity(0.3),
-                            width: 1.2,
+                      return Align(
+                        alignment: alignment,
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 200),
+                          width: imageWidth,
+                          height: imageHeight,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(
+                              AppRadius.button,
+                            ),
+                            border: Border.all(
+                              color: Theme.of(context).colorScheme.outline,
+                              width: 1.2,
+                            ),
+                          ),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(
+                              AppRadius.button,
+                            ),
+                            child: imageUrl.isNotEmpty
+                                ? Image.network(
+                                    imageUrl,
+                                    fit: BoxFit.cover,
+                                    loadingBuilder: (_, child, progress) {
+                                      if (progress == null) return child;
+                                      return Container(
+                                        color: Colors.grey[200],
+                                        child: Center(
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                            value:
+                                                progress.expectedTotalBytes !=
+                                                    null
+                                                ? progress.cumulativeBytesLoaded /
+                                                      progress
+                                                          .expectedTotalBytes!
+                                                : null,
+                                          ),
+                                        ),
+                                      );
+                                    },
+                                    errorBuilder: (_, __, ___) =>
+                                        _imagePlaceholder(),
+                                  )
+                                : _imagePlaceholder(),
                           ),
                         ),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(12.r),
-                          child: imageUrl.isNotEmpty
-                              ? Image.network(
-                                  imageUrl,
-                                  fit: BoxFit.cover,
-                                  loadingBuilder: (_, child, progress) {
-                                    if (progress == null) return child;
-                                    return Container(
-                                      color: Colors.grey[200],
-                                      child: Center(
-                                        child: CircularProgressIndicator(
-                                          strokeWidth: 2,
-                                          value:
-                                              progress.expectedTotalBytes !=
-                                                  null
-                                              ? progress.cumulativeBytesLoaded /
-                                                    progress.expectedTotalBytes!
-                                              : null,
-                                        ),
-                                      ),
-                                    );
-                                  },
-                                  errorBuilder: (_, __, ___) =>
-                                      _imagePlaceholder(),
-                                )
-                              : _imagePlaceholder(),
-                        ),
-                      ),
-                    );
-                  })
-                  .toList()
-                  .reversed
-                  .toList(),
+                      );
+                    })
+                    .toList()
+                    .reversed
+                    .toList(),
+              ),
             ),
-          ),
-        );
-      },
+          );
+        },
+      ),
     );
   }
 
@@ -883,86 +902,94 @@ class _HashtagPostsListState extends State<HashtagPostsList> {
     required bool isLiked,
     required int likesCount,
     required int commentsCount,
+    required int sharesCount,
   }) {
-    return Row(
-      children: [
-        // Like
-        GestureDetector(
-          onTap: () => _toggleLike(post.id),
-          child: Row(
-            children: [
-              AnimatedSwitcher(
-                duration: const Duration(milliseconds: 200),
-                transitionBuilder: (child, animation) =>
-                    ScaleTransition(scale: animation, child: child),
-                child: isLiked
-                    ? AppIcons.filledHeart(key: const ValueKey('filled'))
-                    : AppIcons.outlineHeart(
-                        key: const ValueKey('outline'),
-                        color: Theme.of(
-                          context,
-                        ).colorScheme.onBackground.withOpacity(0.6),
-                      ),
-              ),
-              SizedBox(width: 3.w),
-              Text(
-                LikeService.getLikesCountText(likesCount),
-                style: TextStyle(
-                  fontSize: 10.8.sp,
-                  fontWeight: FontWeight.w500,
-                  color: Theme.of(
-                    context,
-                  ).colorScheme.onSurface.withOpacity(0.8),
+    final txt = AppTextColors.of(context);
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 10),
+      child: Row(
+        children: [
+          // Like
+          GestureDetector(
+            onTap: () => _toggleLike(post.id),
+            child: Row(
+              children: [
+                AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 200),
+                  transitionBuilder: (child, animation) =>
+                      ScaleTransition(scale: animation, child: child),
+                  child: isLiked
+                      ? AppIcons.filledHeart(key: const ValueKey('filled'))
+                      : AppIcons.outlineHeart(key: const ValueKey('outline')),
                 ),
-              ),
-            ],
-          ),
-        ),
-
-        SizedBox(width: 8.w),
-
-        // Comment
-        GestureDetector(
-          onTap: () => BottomSheetUtils.showCommentsBottomSheet(
-            context: context,
-            postId: post.id,
-            currentUsername: post.user.username,
-            onCommentsCountChanged: (count) {
-              if (mounted) setState(() => _commentsCountMap[post.id] = count);
-            },
-          ),
-          child: Row(
-            children: [
-              AppIcons.commnetBox(
-                color: Theme.of(
-                  context,
-                ).colorScheme.onBackground.withOpacity(0.6),
-              ),
-              SizedBox(width: 3.w),
-              Text(
-                _formatCount(commentsCount),
-                style: TextStyle(
-                  fontSize: 10.8.sp,
-                  fontWeight: FontWeight.w500,
-                  color: Theme.of(
-                    context,
-                  ).colorScheme.onSurface.withOpacity(0.8),
+                const SizedBox(width: 8),
+                Text(
+                  LikeService.getLikesCountText(likesCount),
+                  style: AppTextStyles.subText.copyWith(
+                    color: txt.body,
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w400,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
-
-        SizedBox(width: 8.w),
-
-        // Share
-        GestureDetector(
-          onTap: () {},
-          child: AppIcons.sharePost(
-            color: Theme.of(context).colorScheme.onBackground.withOpacity(0.7),
+          SizedBox(width: 8.w),
+          // Comment
+          GestureDetector(
+            onTap: () => BottomSheetUtils.showCommentsBottomSheet(
+              context: context,
+              postId: post.id,
+              currentUsername: post.user.username,
+              onCommentsCountChanged: (count) {
+                if (mounted) setState(() => _commentsCountMap[post.id] = count);
+              },
+            ),
+            child: Row(
+              children: [
+                AppIcons.commnetBox(),
+                SizedBox(width: 3.w),
+                Text(
+                  _formatCount(commentsCount),
+                  style: AppTextStyles.subText.copyWith(
+                    color: txt.body,
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w400,
+                  ),
+                ),
+              ],
+            ),
           ),
-        ),
-      ],
+          SizedBox(width: 8.w),
+          // Share
+          GestureDetector(
+            onTap: () => ShareService.sharePost(
+              post,
+              context: context,
+              usernameOverride: post.user.username,
+              onShareSuccess: (newCount) {
+                if (mounted) {
+                  setState(() => _sharesCountMap[post.id] = newCount);
+                }
+              },
+            ),
+            child: Row(
+              children: [
+                AppIcons.sharePost(),
+                const SizedBox(width: 8),
+                Text(
+                  _formatCount(sharesCount),
+                  style: AppTextStyles.subText.copyWith(
+                    color: txt.body,
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w400,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -994,7 +1021,7 @@ class _HashtagPostsListState extends State<HashtagPostsList> {
             child: Container(
               padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 9.h),
               decoration: BoxDecoration(
-                color: _accent,
+                color: Theme.of(context).colorScheme.primary,
                 borderRadius: BorderRadius.circular(10.r),
               ),
               child: Text(

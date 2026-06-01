@@ -5,6 +5,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:polzet_app/core/themes/app_text_styles.dart';
 
 import '../../core/constants/app_radius.dart';
+import '../../core/themes/app_text_colors.dart';
 import '../../languages/l10n/generated/app_localizations.dart';
 
 class DeletePostDiolog extends StatelessWidget {
@@ -15,7 +16,7 @@ class DeletePostDiolog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 200.w,
+      width: 250.w,
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.secondaryContainer,
         borderRadius: AppRadius.cardRadius,
@@ -35,6 +36,7 @@ class DeletePostDiolog extends StatelessWidget {
   }
 
   Widget _label(BuildContext context, String text, VoidCallback? onTap) {
+      final txt = AppTextColors.of(context);
     return GestureDetector(
       onTap: onTap,
       child: SizedBox(
@@ -45,7 +47,7 @@ class DeletePostDiolog extends StatelessWidget {
             text,
             textAlign: TextAlign.center,
             style: AppTextStyles.subText.copyWith(
-              color: Theme.of(context).colorScheme.onBackground,
+              color: txt.title,
               fontSize: 12.sp,
               fontWeight: FontWeight.w500,
             ),
@@ -56,6 +58,6 @@ class DeletePostDiolog extends StatelessWidget {
   }
 
   Widget _primaryDivider(BuildContext context) {
-    return const Divider(height: 1, thickness: 1, color: Color(0XFFDCDCDC));
+    return  Divider(height: 1, thickness: 1, color: Theme.of(context).colorScheme.outlineVariant);
   }
 }

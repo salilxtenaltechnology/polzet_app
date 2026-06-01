@@ -1,13 +1,13 @@
 // ignore_for_file: prefer_final_fields, deprecated_member_use
 
-import 'package:feather_icons/feather_icons.dart';
+import 'package:polzet_app/core/constants/feather_icons_compat.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
 
 import '../../../../../api/services/api_service.dart';
-import '../../../../../core/constants/app_colors.dart';
 import '../../../../../core/constants/app_radius.dart';
+import '../../../../../core/themes/app_text_colors.dart';
 import '../../../../../core/themes/app_text_styles.dart';
 import '../../../../../languages/l10n/generated/app_localizations.dart';
 import '../../../../../mixin/utility_mixins.dart';
@@ -20,7 +20,7 @@ import '../../../../../widgets/tabbar/indicatore_animation.dart';
 import '../public_profile_screen.dart';
 
 class PublicChaseList extends StatefulWidget {
-  final int userId;
+  final dynamic userId;
   final String? username;
   final int initialIndex;
   final List<dynamic>? chaseList;
@@ -164,13 +164,13 @@ class _PublicChaseListState extends State<PublicChaseList>
               indicatorSize: TabBarIndicatorSize.tab,
               indicator: FadeUnderlineTabIndicator(),
               labelColor: Theme.of(context).colorScheme.primary,
-              labelStyle: TextStyle(
+              labelStyle: const TextStyle(
                 fontWeight: FontWeight.w500,
-                fontSize: 11.sp,
+                fontSize: 14,
               ),
-              unselectedLabelStyle: TextStyle(
+              unselectedLabelStyle: const TextStyle(
                 fontWeight: FontWeight.w500,
-                fontSize: 11.sp,
+                fontSize: 14,
               ),
               dividerColor: Colors.transparent,
               unselectedLabelColor: Theme.of(context).colorScheme.onBackground,
@@ -198,6 +198,10 @@ class _PublicChaseListState extends State<PublicChaseList>
             ),
             child: TextField(
               controller: _searchController,
+              cursorColor: Theme.of(
+                context,
+              ).colorScheme.onPrimary.withOpacity(0.8),
+              cursorWidth: 1.5,
               decoration: InputDecoration(
                 contentPadding: EdgeInsets.only(
                   right: 12.w,
@@ -225,9 +229,10 @@ class _PublicChaseListState extends State<PublicChaseList>
                   borderRadius: BorderRadius.circular(9),
                 ),
                 focusedBorder: OutlineInputBorder(
-                  borderSide: const BorderSide(
-                    color: AppColors.primaryColor,
-                    width: 0.7,
+                  borderSide: BorderSide(
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.onBackground.withOpacity(0.1),
                   ),
                   borderRadius: BorderRadius.circular(9),
                 ),
@@ -244,8 +249,16 @@ class _PublicChaseListState extends State<PublicChaseList>
             child: TabBarView(
               controller: _tabController,
               children: [
-                _buildUserList(_filteredChaseList, _isLoadingChase),
-                _buildUserList(_filteredRechaseList, _isLoadingRechase),
+                _buildUserList(
+                  _filteredChaseList,
+                  _isLoadingChase,
+                  'No chase users',
+                ),
+                _buildUserList(
+                  _filteredRechaseList,
+                  _isLoadingRechase,
+                  'No re-chase users',
+                ),
               ],
             ),
           ),
@@ -254,7 +267,12 @@ class _PublicChaseListState extends State<PublicChaseList>
     );
   }
 
-  Widget _buildUserList(List<Map<String, dynamic>> users, bool isLoading) {
+  Widget _buildUserList(
+    List<Map<String, dynamic>> users,
+    bool isLoading,
+    String emptyMessage,
+  ) {
+    final txt = AppTextColors.of(context);
     if (isLoading) {
       return Center(
         child: Loader(color: Theme.of(context).colorScheme.primary),
@@ -264,11 +282,14 @@ class _PublicChaseListState extends State<PublicChaseList>
     if (users.isEmpty) {
       return Center(
         child: Text(
-          'No users found',
-          style: TextStyle(
-            color: Colors.grey,
-            fontSize: 10.4.sp,
-            fontWeight: FontWeight.w500,
+          _searchController.text.trim().isNotEmpty
+              ? AppLocalizations.of(context)!.nousersfound
+              : emptyMessage,
+          style: AppTextStyles.sectionHeading.copyWith(
+            fontSize: 18.5,
+            color: txt.title,
+            fontWeight: FontWeight.w600,
+            height: 1.4,
           ),
         ),
       );
@@ -284,20 +305,9 @@ class _PublicChaseListState extends State<PublicChaseList>
     );
   }
 
-  String _chaseLabel(String status) {
-    switch (status) {
-      case 'following':
-        return 'Chasing';
-      case 'followers':
-        return 'Chase Back';
-      case 'requested':
-        return 'Requested';
-      default:
-        return 'Chase';
-    }
-  }
-
   Widget _buildUserTile(Map<String, dynamic> user) {
+    final txt = AppTextColors.of(context);
+
     final userProvider = Provider.of<UserProvider>(context, listen: false);
     final firstName = user['first_name'] ?? 'Polzet';
     final lastName = user['last_name'] ?? 'User';
@@ -309,19 +319,10 @@ class _PublicChaseListState extends State<PublicChaseList>
 
     return GestureDetector(
       onTap: () {
-        navigationPush(context, PublicProfileScreen(userId: user['user_id']));
+        navigationPush(context, PublicProfileScreen(userId: user['user_id']?.toString() ?? ''));
       },
-      child: Container(
-        height: 60,
-        width: double.infinity,
-        padding: const EdgeInsets.symmetric(horizontal: 10),
-        margin: EdgeInsets.only(bottom: 10.h),
-        decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.primaryContainer,
-          borderRadius: BorderRadius.circular(AppRadius.card),
-          border: Border.all(color: const Color(0XFFEFEFEF), width: 1),
-          boxShadow: const [BoxShadow(color: Color(0x06000000), blurRadius: 2)],
-        ),
+      child: Padding(
+        padding: const EdgeInsetsGeometry.symmetric(vertical: 10),
         child: Row(
           children: [
             _buildAvatar(userName, avatarUrl, isOnline),
@@ -337,7 +338,7 @@ class _PublicChaseListState extends State<PublicChaseList>
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: AppTextStyles.bodyText.copyWith(
-                        color: const Color(0XFF595959),
+                        color: txt.body,
                         fontSize: 14.5,
                         fontWeight: FontWeight.w500,
                       ),
@@ -346,7 +347,7 @@ class _PublicChaseListState extends State<PublicChaseList>
                       '$firstName $lastName'.trim(),
                       style: AppTextStyles.bodyText.copyWith(
                         fontSize: 12.5,
-                        color: const Color(0XFF8E8E8E),
+                        color: txt.muted,
                         fontWeight: FontWeight.w500,
                       ),
                       maxLines: 1,
@@ -356,7 +357,7 @@ class _PublicChaseListState extends State<PublicChaseList>
                     Text(
                       '$userName',
                       style: AppTextStyles.bodyText.copyWith(
-                        color: const Color(0XFF595959),
+                        color: txt.body,
                         fontSize: 14.5,
                         fontWeight: FontWeight.w500,
                       ),
@@ -367,7 +368,7 @@ class _PublicChaseListState extends State<PublicChaseList>
                       '$userName',
                       style: AppTextStyles.bodyText.copyWith(
                         fontSize: 12.5,
-                        color: const Color(0XFF8E8E8E),
+                        color: txt.muted,
                         fontWeight: FontWeight.w500,
                       ),
                       maxLines: 1,
@@ -377,7 +378,7 @@ class _PublicChaseListState extends State<PublicChaseList>
                 ],
               ),
             ),
-            if (userProvider.userId != user['user_id'])
+            if (userProvider.userId?.toString() != user['user_id']?.toString())
               ToggleChaseButton(
                 username: userName,
                 userId: user['user_id'],
@@ -393,6 +394,7 @@ class _PublicChaseListState extends State<PublicChaseList>
 
   Widget _buildAvatar(String userName, String? avatarUrl, bool isOnline) {
     final imageBytes = getConvertImage(avatarUrl);
+    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
     return Stack(
       clipBehavior: Clip.none,
       children: [
@@ -402,7 +404,10 @@ class _PublicChaseListState extends State<PublicChaseList>
           margin: EdgeInsets.only(right: 5.w),
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            border: Border.all(color: const Color(0xFFD1D1D1).withOpacity(0.7)),
+            border: Border.all(
+              color: Theme.of(context).colorScheme.outline,
+              width: 0.7,
+            ),
             image: avatarUrl != null && avatarUrl.isNotEmpty
                 ? DecorationImage(
                     image: MemoryImage(imageBytes!),
@@ -410,7 +415,9 @@ class _PublicChaseListState extends State<PublicChaseList>
                   )
                 : null,
             color: avatarUrl == null
-                ? Theme.of(context).primaryColor.withOpacity(0.08)
+                ? (isDarkMode
+                      ? const Color(0xFF252525)
+                      : Theme.of(context).primaryColor.withOpacity(0.08))
                 : null,
           ),
           child: avatarUrl == null || avatarUrl.isEmpty
@@ -448,7 +455,7 @@ class _PublicChaseListState extends State<PublicChaseList>
         style: TextStyle(
           fontSize: 17,
           fontWeight: FontWeight.w500,
-          color: Theme.of(context).primaryColor,
+          color: Theme.of(context).colorScheme.onPrimary.withOpacity(0.8),
         ),
       ),
     );

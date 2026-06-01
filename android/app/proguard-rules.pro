@@ -129,3 +129,26 @@
 -dontwarn org.conscrypt.**
 -dontwarn org.bouncycastle.**
 -dontwarn org.openjsse.**
+
+# =========================================================================
+# ✅ Glide (Internal image engine for photo_manager / wechat_assets_picker)
+# =========================================================================
+-keep public class * extends com.bumptech.glide.module.AppGlideModule
+-keep class com.bumptech.glide.GeneratedAppGlideModuleImpl
+-keep class * extends com.bumptech.glide.module.LibraryGlideModule
+-keep class com.bumptech.glide.annotation.GlideModule
+-keep public enum com.bumptech.glide.load.resource.bitmap.ImageHeaderParser$ImageType {
+  public static **[] values();
+  public static ** valueOf(java.lang.String);
+}
+-keep class com.bumptech.glide.load.data.ParcelFileDescriptorRewinder$InternalRewinder {
+  *** rewind();
+}
+
+# =========================================================================
+# ✅ Lottie Animations
+# =========================================================================
+-keep class com.airbnb.lottie.** { *; }
+-keep interface com.airbnb.lottie.** { *; }
+-keep enum com.airbnb.lottie.** { *; }
+-dontwarn com.airbnb.lottie.**

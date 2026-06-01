@@ -4,28 +4,36 @@
 
 import 'dart:async';
 import 'dart:convert';
+import 'dart:ui';
+import 'package:polzet_app/core/constants/feather_icons_compat.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:polzet_app/languages/l10n/generated/app_localizations.dart';
+import 'package:polzet_app/widgets/loader.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:polzet_app/data/token/shared_preferences.dart';
 import '../../../api/services/api_service.dart';
+import '../../../api/api_config.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../core/constants/app_radius.dart';
+import '../../../core/themes/app_text_colors.dart';
 import '../../../core/themes/app_text_styles.dart';
 import '../../../gen/assets.gen.dart';
 import '../../../mixin/utility_mixins.dart';
 import '../../../models/global search/global_search_model.dart';
 import '../../../models/global search/recent_search.dart';
-import '../../../widgets/custom_text_styles.dart';
+import '../../../widgets/button/chase/toggle_chase_button.dart';
 import '../../../widgets/tabbar/indicatore_animation.dart';
 import '../profile/public/public_profile_screen.dart';
 import 'posts/hashtag_posts_list.dart';
 import 'posts/single_post_details.dart';
+import 'package:provider/provider.dart';
+import '../../../provider/user_provider.dart';
 
 // ─── Palette ────────────────────────────────────────────────────────────────
 
-const _accent = AppColors.primaryColor;
 const _accentSoft = Color(0x336C63FF);
-const _textPrimary = Color(0xFFEEEEEE);
 const _textSecondary = Color(0xFF888888);
 
 // ─── Stream controller (static — shared across rebuilds) ─────────────────────
@@ -59,8 +67,9 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen>
   bool _loading = false; // only true on very first open (no cache)
   Timer? _debounce;
   Timer? _autoRefreshTimer;
+  Future<String?>? _authTokenFuture;
 
-  static const _tabs = ['Top', 'Accounts', 'Posts', 'Photos', 'Tags', 'Places'];
+  static const _tabs = ['Top', 'Accounts', 'Polls', 'Photos', 'Tags', 'Places'];
 
   List<RecentSearchModel> _recentSearches = [];
   List<String> _removedSearchIds = [];
@@ -70,6 +79,7 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen>
   @override
   void initState() {
     super.initState();
+    _authTokenFuture = SharedPrefService.getToken();
     _tabController = TabController(length: _tabs.length, vsync: this);
 
     _focusNode.addListener(() {
@@ -246,6 +256,7 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen>
 
   @override
   Widget build(BuildContext context) {
+    //  final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.background,
       body: SafeArea(
@@ -254,8 +265,7 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen>
             _buildSearchBar(),
             // Tab bar is driven by _snapshot so it appears as soon as
             // the first stream event arrives.
-            if (_snapshot != null &&
-                !(_focusNode.hasFocus && _searchController.text.isEmpty))
+            if (_snapshot != null && _searchController.text.trim().isNotEmpty)
               _buildTabBar(),
             Expanded(
               // StreamBuilder wraps the entire body so every push to
@@ -268,22 +278,33 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen>
                       builder: (context, snap) {
                         // First open, no cache — shimmer
                         if (_loading && snap.data == null) {
-                          return _buildShimmer();
+                          // return _buildShimmer();
+                          return Center(
+                            child: Loader(
+                              color: Theme.of(context).colorScheme.onPrimary,
+                            ),
+                          );
                         }
 
                         // API error before any data — fallback prompt
                         if (snap.data == null) return _buildSearchPrompt();
 
                         final data = snap.data!.data;
+                        if (_searchController.text.trim().isEmpty) {
+                          return _buildDefaultSuggestions(
+                            data.accounts,
+                            data.posts,
+                          );
+                        }
                         return TabBarView(
                           controller: _tabController,
                           children: [
                             _buildTopTab(data.accounts),
                             _buildAccountsList(data.accounts),
-                            _buildPostsList(data.posts),
+                            _buildPollsList(data.posts),
                             _buildPhotosList(data.photos),
                             _buildHashtagsList(data.hashtags),
-                            _buildPlacesList(context),
+                            _buildPlacesList(data.places),
                           ],
                         );
                       },
@@ -298,48 +319,52 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen>
   // ── Search bar ─────────────────────────────────────────────────────────────
 
   Widget _buildSearchBar() {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     return Padding(
-      padding: const EdgeInsets.fromLTRB(12, 8, 12, 5).w,
+      padding: const EdgeInsets.fromLTRB(10, 8, 10, 5).w,
       child: Row(
         children: [
           Expanded(
             child: Container(
-              height: 34.7.h,
+              height: 44,
               width: double.infinity,
               decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.background,
-                borderRadius: BorderRadius.circular(15.r),
-                boxShadow: const [
-                  BoxShadow(
-                    color: Colors.black12,
-                    blurRadius: 5,
-                    spreadRadius: 1,
-                  ),
-                ],
+                color: isDarkMode ? const Color(0xFF1F1F23) : Colors.white,
+                borderRadius: BorderRadius.circular(AppRadius.button),
               ),
               child: TextField(
                 controller: _searchController,
                 focusNode: _focusNode,
                 autofocus: false,
+                cursorColor: Theme.of(
+                  context,
+                ).colorScheme.onPrimary.withOpacity(0.8),
+                cursorWidth: 1.5,
                 style: TextStyle(
                   color: Theme.of(context).colorScheme.onBackground,
                   fontSize: 12.sp,
                   fontWeight: FontWeight.w500,
                 ),
-                cursorColor: _accent,
                 onChanged: _onSearchChanged,
                 decoration: InputDecoration(
-                  hintText: 'Search accounts, posts, places…',
-                  hintStyle: CustomTextStyles.lblPrimaryHintText(context),
-                  prefixIcon: const Icon(
-                    Icons.search_rounded,
-                    color: _textSecondary,
+                  hintText: AppLocalizations.of(
+                    context,
+                  )!.searchaccountspostsplaces,
+                  hintStyle: AppTextStyles.bodyText.copyWith(
+                    color: const Color(0XFF898989),
+                    fontWeight: FontWeight.w400,
+                    fontSize: 13.5,
+                  ),
+                  prefixIcon: Icon(
+                    FeatherIcons.search,
+                    size: 17.spMax,
+                    color: const Color(0XFF898989),
                   ),
                   suffixIcon: _searchController.text.isNotEmpty
                       ? IconButton(
                           icon: const Icon(
                             Icons.close_rounded,
-                            color: _textSecondary,
+                            color: Color(0XFF898989),
                             size: 18,
                           ),
                           onPressed: () {
@@ -349,6 +374,22 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen>
                         )
                       : null,
                   border: InputBorder.none,
+                  enabledBorder: OutlineInputBorder(
+                    borderSide: BorderSide(
+                      color: isDarkMode
+                          ? Theme.of(context).colorScheme.outline
+                          : const Color(0xFFDCDCDC),
+                      width: 0.8,
+                    ),
+                    borderRadius: BorderRadius.circular(9),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderSide: BorderSide(
+                      color: Theme.of(context).colorScheme.outline,
+                      width: 0.8,
+                    ),
+                    borderRadius: BorderRadius.circular(9),
+                  ),
                   contentPadding: EdgeInsets.only(top: 8.h),
                 ),
               ),
@@ -402,7 +443,7 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen>
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  'Recent Searches',
+                  AppLocalizations.of(context)!.recentsearches,
                   style: TextStyle(
                     color: Theme.of(context).colorScheme.onBackground,
                     fontSize: 14.sp,
@@ -412,7 +453,7 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen>
                 GestureDetector(
                   onTap: _clearAllRecentSearches,
                   child: Text(
-                    'Clear all',
+                    AppLocalizations.of(context)!.clearall,
                     style: TextStyle(
                       color: AppColors.primaryColor,
                       fontSize: 12.sp,
@@ -461,7 +502,11 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen>
               color: _accentSoft,
               shape: BoxShape.circle,
             ),
-            child: const Icon(Icons.search_rounded, color: _accent, size: 36),
+            child: Icon(
+              Icons.search_rounded,
+              color: Theme.of(context).colorScheme.onPrimary,
+              size: 36,
+            ),
           ),
           const SizedBox(height: 16),
           Text(
@@ -489,10 +534,10 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen>
       padding: EdgeInsets.only(left: 12.w),
       child: Text(
         title,
-        style: TextStyle(
+        style: AppTextStyles.cardTitle.copyWith(
           color: Theme.of(context).colorScheme.onBackground,
-          fontSize: 11.2.sp,
-          fontWeight: FontWeight.w600,
+          fontSize: 14,
+          fontWeight: FontWeight.w500,
         ),
       ),
     );
@@ -501,6 +546,7 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen>
   // ── Top tab ────────────────────────────────────────────────────────────────
 
   Widget _buildTopTab(List<SearchAccount> accounts) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     final query = _searchController.text.trim();
 
     // Active search with a query — show spinner
@@ -524,9 +570,12 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen>
       );
     }
 
-    // No query — show only popular photos
+    // No query — show default suggestions (accounts and polls)
     if (query.isEmpty) {
-      return _buildDefaultTopSuggestions(_snapshot?.data.photos ?? []);
+      return _buildDefaultSuggestions(
+        _snapshot?.data.accounts ?? [],
+        _snapshot?.data.posts ?? [],
+      );
     }
 
     final data = _snapshot?.data;
@@ -544,15 +593,17 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen>
           mainAxisAlignment: MainAxisAlignment.center,
           mainAxisSize: MainAxisSize.min,
           children: [
-            Image.asset(
-              Assets.images.noSearchFound.path,
-              height: 0.22.sh,
-              width: 0.22.sh,
-              fit: BoxFit.contain,
-            ),
+            isDarkMode
+                ? const SizedBox()
+                : Image.asset(
+                    Assets.images.noSearchFound.path,
+                    height: 0.22.sh,
+                    width: 0.22.sh,
+                    fit: BoxFit.contain,
+                  ),
             const SizedBox(height: 15),
             Text(
-              'Not found "$query"',
+              '${AppLocalizations.of(context)!.notfound} "$query"',
               textAlign: TextAlign.center,
               style: AppTextStyles.sectionHeading.copyWith(
                 fontSize: 15.5,
@@ -563,7 +614,9 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen>
             ),
             const SizedBox(height: 10),
             Text(
-              'Try another keyword or explore trending polls.',
+              AppLocalizations.of(
+                context,
+              )!.tryanotherkeywordorexploretrendingpolls,
               textAlign: TextAlign.center,
               style: AppTextStyles.bodyText.copyWith(
                 fontSize: 13,
@@ -587,17 +640,46 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen>
           ...accounts.map((acc) => _buildAccountTile(acc)),
         ],
 
-        // ── Posts ─────────────────────────────────────────────────────────
-        if (data?.posts.isNotEmpty ?? false) ...[
+        // ── Polls (Things Only) ───────────────────────────────────────────
+        if (data?.posts.any((post) {
+              final poll = post.polls.isNotEmpty ? post.polls.first : null;
+              final bool isImage =
+                  poll != null && poll.options.any((o) => o.image != null);
+              return !isImage;
+            }) ??
+            false) ...[
           SizedBox(height: 8.h),
-          _buildSectionHeader('Posts'),
-          ...data!.posts.map((post) => _buildPostTile(post)),
+          _buildSectionHeader('Polls'),
+          ...data!.posts
+              .where((post) {
+                final poll = post.polls.isNotEmpty ? post.polls.first : null;
+                final bool isImage =
+                    poll != null && poll.options.any((o) => o.image != null);
+                return !isImage;
+              })
+              .map((post) => _buildSearchPostCard(post)),
+        ],
+
+        // ── Posts ─────────────────────────────────────────────────────────
+        if (data?.posts.any(
+              (post) =>
+                  post.thumbnail != null && post.thumbnail!.trim().isNotEmpty,
+            ) ??
+            false) ...[
+          SizedBox(height: 8.h),
+          _buildSectionHeader(AppLocalizations.of(context)!.posts),
+          ...data!.posts
+              .where(
+                (post) =>
+                    post.thumbnail != null && post.thumbnail!.trim().isNotEmpty,
+              )
+              .map((post) => _buildTopTabPostCard(post)),
         ],
 
         // ── Photos ────────────────────────────────────────────────────────
         if (data?.photos.isNotEmpty ?? false) ...[
           SizedBox(height: 8.h),
-          _buildSectionHeader('Photos'),
+          _buildSectionHeader(AppLocalizations.of(context)!.photos),
           GridView.builder(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
@@ -611,12 +693,19 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen>
             itemBuilder: (_, i) {
               final photo = data.photos[i];
               return _buildPhotoCell(data.photos[i], () {
+                final userProvider = Provider.of<UserProvider>(
+                  context,
+                  listen: false,
+                );
+                final currentUsername = userProvider.username ?? '';
+                final String username =
+                    photo.author.username.isNotEmpty &&
+                        photo.author.username != 'user'
+                    ? photo.author.username
+                    : currentUsername;
                 navigationPush(
                   context,
-                  SinglePostDetails(
-                    postId: photo.postId,
-                    username: photo.author.username,
-                  ),
+                  SinglePostDetails(postId: photo.postId, username: username),
                 );
               });
             },
@@ -627,6 +716,7 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen>
         if (data?.hashtags.isNotEmpty ?? false) ...[
           SizedBox(height: 8.h),
           _buildSectionHeader('Tags'),
+          const SizedBox(height: 10),
           ...data!.hashtags.map((tag) => _buildHashtagTile(tag)),
         ],
       ],
@@ -635,60 +725,429 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen>
 
   // ── Default suggestions (Top tab, no query) ────────────────────────────────
 
-  Widget _buildDefaultTopSuggestions(List<SearchPhoto> photos) {
+  Widget _buildTopTabPostCard(SearchPost post) {
+    final txt = AppTextColors.of(context);
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    return GestureDetector(
+      onTap: () {
+        navigationPush(
+          context,
+          SinglePostDetails(username: post.author.username, postId: post.id),
+        );
+      },
+      child: Container(
+        margin: EdgeInsets.symmetric(horizontal: 12.w, vertical: 5.h),
+        padding: EdgeInsets.all(12.w),
+        decoration: BoxDecoration(
+          color: isDarkMode ? const Color(0xFF1F1F23) : Colors.white,
+          borderRadius: BorderRadius.circular(AppRadius.card),
+          border: Border.all(
+            color: isDarkMode
+                ? Theme.of(context).colorScheme.outline.withOpacity(0.3)
+                : const Color(0XFFEFEFEF),
+            width: 1,
+          ),
+          boxShadow: const [BoxShadow(color: Color(0x06000000), blurRadius: 2)],
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            // Thumbnail Image on the left
+            ClipRRect(
+              borderRadius: BorderRadius.circular(AppRadius.button),
+              child: Container(
+                width: 75,
+                height: 70.w,
+                color: Theme.of(context).colorScheme.onPrimary.withOpacity(0.1),
+                child:
+                    post.thumbnail != null && post.thumbnail!.trim().isNotEmpty
+                    ? _buildNetworkImage(post.thumbnail!)
+                    : const Icon(Icons.image_rounded, color: _textSecondary),
+              ),
+            ),
+            SizedBox(width: 16.w),
+            // Title, Avatars & Vote count on the right
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    post.caption.isNotEmpty ? post.caption : post.title,
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.onBackground,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      height: 1.3,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    '@${post.author.username}',
+                    style: AppTextStyles.bodyText.copyWith(
+                      fontSize: 12.2,
+                      fontWeight: FontWeight.w500,
+                      color: txt.body,
+                      height: 1.3,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPostTypeIcon(SearchPost post, Color color, {double size = 10}) {
+    if (post.thumbnail == null || post.thumbnail!.trim().isEmpty) {
+      return Assets.images.thingsIcon.image(
+        color: color,
+        width: size,
+        height: size,
+      );
+    } else {
+      return Assets.images.imageIcon.image(
+        color: color,
+        width: size,
+        height: size,
+      );
+    }
+  }
+
+  Widget _buildTrendingPollCard(SearchPost post) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    return GestureDetector(
+      onTap: () {
+        navigationPush(
+          context,
+          SinglePostDetails(username: post.author.username, postId: post.id),
+        );
+      },
+      child: Container(
+        width: 145.w,
+        margin: EdgeInsets.only(right: 12.w, bottom: 8.h),
+        decoration: BoxDecoration(
+          color: isDarkMode ? const Color(0xFF1F1F23) : Colors.white,
+          borderRadius: BorderRadius.circular(AppRadius.card),
+          border: Border.all(
+            color: isDarkMode
+                ? Theme.of(context).colorScheme.outline.withOpacity(0.3)
+                : const Color(0XFFEFEFEF),
+            width: 1,
+          ),
+          boxShadow: const [BoxShadow(color: Color(0x06000000), blurRadius: 2)],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Image
+            Padding(
+              padding: const EdgeInsets.all(10),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(AppRadius.button),
+                child: AspectRatio(
+                  aspectRatio: 1.2,
+                  child: Container(
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.onPrimary.withOpacity(0.1),
+                    child:
+                        post.thumbnail != null &&
+                            post.thumbnail!.trim().isNotEmpty
+                        ? _buildNetworkImage(post.thumbnail!)
+                        : _buildPostTypeIcon(
+                            post,
+                            Theme.of(context).colorScheme.onPrimary,
+                          ),
+                  ),
+                ),
+              ),
+            ),
+            // Title
+            Expanded(
+              child: Padding(
+                padding: EdgeInsets.fromLTRB(10.w, 2.h, 10.w, 8.h),
+                child: Text(
+                  post.caption.isNotEmpty ? post.caption : post.title,
+                  style: AppTextStyles.bodyText.copyWith(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    color: Theme.of(context).colorScheme.onBackground,
+                    height: 1.3,
+                  ),
+                  maxLines: 3,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTrendingPollsSection(List<SearchPost> posts) {
+    final validPosts = posts
+        .where(
+          (post) => post.thumbnail != null && post.thumbnail!.trim().isNotEmpty,
+        )
+        .toList();
+    if (validPosts.isEmpty) return const SizedBox.shrink();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 5.h),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                "Trending Polls",
+                style: AppTextStyles.cardTitle.copyWith(
+                  fontSize: 14.5,
+                  fontWeight: FontWeight.w500,
+                  color: Theme.of(context).colorScheme.onBackground,
+                ),
+              ),
+              GestureDetector(
+                onTap: () {
+                  _focusNode.requestFocus();
+                },
+                child: Text(
+                  AppLocalizations.of(context)!.seeall,
+                  style: AppTextStyles.cardTitle.copyWith(
+                    color: Theme.of(context).colorScheme.onPrimary,
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        SizedBox(
+          height: 195.h,
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            padding: EdgeInsets.symmetric(horizontal: 16.w),
+            itemCount: validPosts.length,
+            itemBuilder: (context, index) {
+              return _buildTrendingPollCard(validPosts[index]);
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPopularThingsSection(List<SearchPost> posts) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: EdgeInsets.fromLTRB(12.w, 16.h, 12.w, 6.h),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                "Popular things",
+                style: AppTextStyles.cardTitle.copyWith(
+                  fontSize: 14.5,
+                  fontWeight: FontWeight.w500,
+                  color: Theme.of(context).colorScheme.onBackground,
+                ),
+              ),
+              GestureDetector(
+                onTap: () {
+                  _focusNode.requestFocus();
+                },
+                child: Text(
+                  AppLocalizations.of(context)!.seeall,
+                  style: AppTextStyles.cardTitle.copyWith(
+                    color: Theme.of(context).colorScheme.onPrimary,
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        ...posts.map((post) => _buildPopularThingCard(post)),
+      ],
+    );
+  }
+
+  Widget _buildPopularThingCard(SearchPost post) {
+    final poll = post.polls.isNotEmpty ? post.polls.first : null;
+    if (poll == null) return const SizedBox.shrink();
+
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final optionsCount = poll.options.length;
+    final children = <Widget>[];
+
+    if (optionsCount > 0) {
+      children.add(Expanded(child: _buildPopularThingOption(poll.options[0].text ?? '')));
+    }
+    if (optionsCount > 1) {
+      if (optionsCount == 2) {
+        children.add(SizedBox(width: 8.w));
+        children.add(Expanded(child: _buildPopularThingOption(poll.options[1].text ?? '')));
+      } else {
+        children.add(SizedBox(width: 8.w));
+        children.add(Expanded(child: _buildPopularThingOption(poll.options[1].text ?? '')));
+        children.add(SizedBox(width: 8.w));
+        children.add(Expanded(child: _buildPopularThingOption('+${optionsCount - 2} more', isMore: true)));
+      }
+    }
+
+    return GestureDetector(
+      onTap: () {
+        navigationPush(
+          context,
+          SinglePostDetails(
+            username: post.author.username,
+            postId: post.id,
+          ),
+        );
+      },
+      child: Container(
+        width: double.infinity,
+        margin: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
+        padding: EdgeInsets.all(12.w),
+        decoration: BoxDecoration(
+          color: isDarkMode ? const Color(0xFF1F1F23) : Colors.white,
+          borderRadius: BorderRadius.circular(AppRadius.card),
+          border: Border.all(
+            color: isDarkMode
+                ? Theme.of(context).colorScheme.outline.withOpacity(0.3)
+                : const Color(0XFFEFEFEF),
+            width: 1,
+          ),
+          boxShadow: const [BoxShadow(color: Color(0x04000000), blurRadius: 2)],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              post.description.isNotEmpty ? post.description : poll.question,
+              style: AppTextStyles.cardTitle.copyWith(
+                fontSize: 15.5,
+                fontWeight: FontWeight.bold,
+                color: Theme.of(context).colorScheme.onBackground,
+              ),
+            ),
+            SizedBox(height: 14.h),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: children,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPopularThingOption(String text, {bool isMore = false}) {
+      final txt = AppTextColors.of(context);
+    return Container(
+      width: double.infinity,
+       padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 7.h),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.primaryContainer,
+        borderRadius: BorderRadius.circular(AppRadius.card),
+         border: Border.all(
+            color: Theme.of(context).colorScheme.outline,
+            width: 1,
+          ),
+      ),
+      child: Center(
+        child: Text(
+          text,
+          textAlign: TextAlign.center,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            fontSize: 13.5,
+            fontWeight: isMore ? FontWeight.w600 : FontWeight.w400,
+             color: txt.title,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDefaultSuggestions(
+    List<SearchAccount> accounts,
+    List<SearchPost> posts,
+  ) {
     // _snapshot is the latest stream value — always up to date
     final data = _snapshot?.data;
-    if (data == null || photos.isEmpty) return const SizedBox.shrink();
+    if (data == null || (accounts.isEmpty && posts.isEmpty)) {
+      return const SizedBox.shrink();
+    }
+
+    final validPosts = posts
+        .where(
+          (post) => post.thumbnail != null && post.thumbnail!.trim().isNotEmpty,
+        )
+        .toList();
+
+    final thingsPosts = posts.where((post) {
+      final poll = post.polls.isNotEmpty ? post.polls.first : null;
+      final bool isImage =
+          poll != null && poll.options.any((o) => o.image != null);
+      return !isImage;
+    }).toList();
 
     return ListView(
       padding: const EdgeInsets.only(bottom: 16),
       children: [
-        // Photos
-        if (data.photos.isNotEmpty) ...[
-          GridView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            padding: const EdgeInsets.fromLTRB(4, 10, 4, 4),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 3,
-              crossAxisSpacing: 3,
-              mainAxisSpacing: 3,
-            ),
-            itemCount: data.photos.length,
-            itemBuilder: (_, i) {
-              final photo = data.photos[i];
-              return _buildPhotoCell(data.photos[i], () {
-                navigationPush(
-                  context,
-                  SinglePostDetails(
-                    postId: photo.postId,
-                    username: photo.author.username,
-                  ),
-                );
-              });
-            },
-          ),
+        if (validPosts.isNotEmpty) ...[
+          _buildTrendingPollsSection(validPosts),
+          SizedBox(height: 16.h),
+        ],
+
+        // Accounts - Shown SECOND!
+        if (accounts.isNotEmpty) ...[
+          _buildSectionHeader('Accounts'),
+          SizedBox(height: 8.h),
+          ...accounts.map((acc) => _buildAccountTile(acc)),
+        ],
+
+        // Popular things - Shown THIRD!
+        if (thingsPosts.isNotEmpty) ...[
+          SizedBox(height: 8.h),
+          _buildPopularThingsSection(thingsPosts),
         ],
       ],
     );
   }
 
-  // ── Per-tab empty state ────────────────────────────────────────────────────
-
   Widget _buildTabEmpty(String label, String message) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Image.asset(
-            Assets.images.noSearchFound.path,
-            height: 0.22.sh,
-            width: 0.22.sh,
-            fit: BoxFit.contain,
-          ),
+          isDarkMode
+              ? const SizedBox()
+              : Image.asset(
+                  Assets.images.noSearchFound.path,
+                  height: 0.22.sh,
+                  width: 0.22.sh,
+                  fit: BoxFit.contain,
+                ),
           const SizedBox(height: 10),
           Text(
-            'No $label found',
+            '${AppLocalizations.of(context)!.no} $label ${AppLocalizations.of(context)!.found}',
             textAlign: TextAlign.center,
             style: AppTextStyles.sectionHeading.copyWith(
               fontSize: 15.5,
@@ -712,23 +1171,15 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen>
     );
   }
 
-  // ── Shimmer ────────────────────────────────────────────────────────────────
-
-  Widget _buildShimmer() {
-    return ListView.builder(
-      padding: EdgeInsets.fromLTRB(12.w, 10.h, 12.h, 0),
-      itemCount: 10,
-      itemBuilder: (_, __) => _ShimmerTile(),
-    );
-  }
-
   // ── Accounts tab ───────────────────────────────────────────────────────────
 
   Widget _buildAccountsList(List<SearchAccount> accounts) {
     if (accounts.isEmpty) {
       return _buildTabEmpty(
-        'accounts',
-        'Try searching with a different username or keyword.',
+        AppLocalizations.of(context)!.accountslower,
+        AppLocalizations.of(
+          context,
+        )!.trysearchingwithadifferentusernameorkeyword,
       );
     }
     return ListView.builder(
@@ -738,58 +1189,68 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen>
   }
 
   Widget _buildAccountTile(SearchAccount acc) {
+    final txt = AppTextColors.of(context);
     final avatar = _avatarProvider(acc.profileImage);
     return GestureDetector(
       onTap: () => navigationPush(context, PublicProfileScreen(userId: acc.id)),
-      child: ListTile(
-        contentPadding: EdgeInsets.symmetric(horizontal: 12.w),
-        minVerticalPadding: 0,
-        leading: CircleAvatar(
-          radius: 19,
-          backgroundColor: Theme.of(context).primaryColor.withOpacity(0.08),
-          backgroundImage: avatar,
-          child: avatar == null
-              ? Text(
-                  acc.username.isNotEmpty ? acc.username[0].toUpperCase() : '?',
-                  style: TextStyle(
-                    fontSize: 13.5.sp,
-                    fontWeight: FontWeight.w600,
-                    color: Theme.of(context).colorScheme.primary,
-                  ),
-                )
-              : null,
-        ),
-        title: Row(
+      child: Padding(
+        padding: EdgeInsetsGeometry.symmetric(horizontal: 12.w, vertical: 7),
+        child: Row(
           children: [
-            Flexible(
-              child: Text(
-                acc.fullName.isEmpty ? acc.username : acc.fullName,
-                style: TextStyle(
-                  fontSize: 10.2.sp,
-                  fontWeight: FontWeight.w600,
-                  color: Theme.of(context).colorScheme.onBackground,
-                ),
-                overflow: TextOverflow.ellipsis,
-              ),
+            CircleAvatar(
+              radius: 20,
+              backgroundColor: Theme.of(
+                context,
+              ).colorScheme.onPrimary.withOpacity(0.08),
+              backgroundImage: avatar,
+              child: avatar == null
+                  ? Text(
+                      acc.username.isNotEmpty
+                          ? acc.username[0].toUpperCase()
+                          : 'P',
+                      style: TextStyle(
+                        fontSize: 13.5.sp,
+                        fontWeight: FontWeight.w600,
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.onPrimary.withOpacity(0.8),
+                      ),
+                    )
+                  : null,
             ),
-            if (acc.isVerified) ...[
-              const SizedBox(width: 4),
-              const Icon(Icons.verified_rounded, color: _accent, size: 14),
-            ],
+            SizedBox(width: 7.w),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  acc.username,
+                  style: AppTextStyles.bodyText.copyWith(
+                    color: txt.body,
+                    fontSize: 14.5,
+                    fontWeight: FontWeight.w500,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+                Text(
+                  acc.fullName.isEmpty ? acc.username : acc.fullName,
+                  //   '@${acc.username} · ${_formatCount(acc.followersCount)} chases',
+                  style: AppTextStyles.bodyText.copyWith(
+                    fontSize: 12.5,
+                    color: txt.muted,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+            const Spacer(),
+            ToggleChaseButton(
+              userId: acc.id,
+              username: acc.username,
+              followStatus: acc.followStatus,
+              isPrivate: acc.isPrivate,
+              apiService: ApiService(),
+            ),
           ],
-        ),
-        subtitle: Text(
-          '@${acc.username} · ${_formatCount(acc.followersCount)} chases',
-          style: TextStyle(
-            color: _textSecondary,
-            fontSize: 9.5.sp,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-        trailing: ChaseButton(
-          userId: acc.id,
-          username: acc.username,
-          isChase: acc.isFollowing,
         ),
       ),
     );
@@ -797,123 +1258,332 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen>
 
   // ── Posts tab ──────────────────────────────────────────────────────────────
 
-  Widget _buildPostsList(List<SearchPost> posts) {
+  Widget _buildPollsList(List<SearchPost> posts) {
     if (posts.isEmpty) {
       return _buildTabEmpty(
-        'posts',
-        'Explore trending conversations or try another search.',
+        AppLocalizations.of(context)!.post,
+        AppLocalizations.of(
+          context,
+        )!.exploretrendingconversationsortryanothersearch,
       );
     }
     return ListView.builder(
       itemCount: posts.length,
-      itemBuilder: (_, i) => _buildPostTile(posts[i]),
+      padding: EdgeInsets.symmetric(vertical: 8.h),
+      itemBuilder: (_, i) => _buildSearchPostCard(posts[i]),
     );
   }
 
-  Widget _buildPostTile(SearchPost post) {
-    return GestureDetector(
-      onTap: () {
-        navigationPush(
-          context,
-          SinglePostDetails(username: post.author.username, postId: post.id),
-        );
-      },
-      child: Container(
-        padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(8),
-              child: Container(
-                width: 35.w,
-                height: 30.h,
-                color: AppColors.primaryColor.withOpacity(0.15),
-                child:
-                    post.thumbnail != null && post.thumbnail!.trim().isNotEmpty
-                    ? Image.network(
-                        post.thumbnail!,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => const Icon(
-                          Icons.broken_image_rounded,
-                          color: _textSecondary,
-                        ),
-                      )
-                    : Icon(
-                        post.postType == 'poll'
-                            ? Icons.article
-                            : post.postType == 'video'
-                            ? Icons.play_circle_rounded
-                            : Icons.image_rounded,
-                        color: AppColors.primaryColor,
-                      ),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  if (post.caption.isNotEmpty)
-                    Text(
-                      post.caption,
-                      style: TextStyle(
-                        fontSize: 10.sp,
-                        fontWeight: FontWeight.w600,
-                        color: Theme.of(context).colorScheme.onBackground,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  const SizedBox(height: 4),
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.center,
+  Widget _buildSearchPostCard(SearchPost post) {
+    final txt = AppTextColors.of(context);
+
+    // Header
+    final author = post.author;
+    final initial = author.username.isNotEmpty
+        ? author.username[0].toUpperCase()
+        : 'P';
+    final name = '${author.firstName} ${author.lastName}'.trim();
+    final displayName = name.isNotEmpty ? name : author.username;
+
+    // Check if it's an image poll
+    final poll = post.polls.isNotEmpty ? post.polls.first : null;
+    final bool isImage =
+        poll != null && poll.options.any((o) => o.image != null);
+
+    return Container(
+      margin: EdgeInsets.fromLTRB(12.w, 0, 12.w, 12.h),
+      padding: EdgeInsets.only(bottom: 10.h),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.primaryContainer,
+        borderRadius: BorderRadius.circular(AppRadius.card),
+        border: Border.all(
+          color: Theme.of(context).colorScheme.outline,
+          width: 1,
+        ),
+        boxShadow: const [BoxShadow(color: Color(0x06000000), blurRadius: 2)],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header Row
+          Padding(
+            padding: EdgeInsets.fromLTRB(10.w, 10.h, 10.w, 0),
+            child: Row(
+              children: [
+                CircleAvatar(
+                  radius: 19.5,
+                  backgroundColor: Theme.of(
+                    context,
+                  ).colorScheme.primary.withOpacity(0.1),
+                  backgroundImage: _avatarProvider(author.profileImage),
+                  child:
+                      author.profileImage == null ||
+                          author.profileImage!.isEmpty
+                      ? Text(
+                          initial,
+                          style: AppTextStyles.cardTitle.copyWith(
+                            color: Theme.of(context).colorScheme.onPrimary,
+                            fontWeight: FontWeight.w500,
+                            fontSize: 18,
+                          ),
+                        )
+                      : null,
+                ),
+                SizedBox(width: 8.w),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      CircleAvatar(
-                        radius: 8,
-                        backgroundColor: AppColors.primaryColor,
-                        backgroundImage:
-                            getProfileImage(post.author.profileImage) != null
-                            ? MemoryImage(
-                                getProfileImage(post.author.profileImage)!,
-                              )
-                            : null,
-                        child: post.author.profileImage == null
-                            ? Text(
-                                post.author.username.isNotEmpty
-                                    ? post.author.username[0].toUpperCase()
-                                    : '?',
-                                style: const TextStyle(
-                                  fontSize: 8,
-                                  color: _textPrimary,
-                                ),
-                              )
-                            : null,
-                      ),
-                      const SizedBox(width: 5),
                       Text(
-                        '@${post.author.username}',
-                        style: const TextStyle(
-                          color: _textSecondary,
-                          fontSize: 10.8,
+                        displayName,
+                        style: AppTextStyles.sectionHeading.copyWith(
+                          color: txt.title,
+                          fontSize: 14,
                         ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      Row(
+                        children: [
+                          Text(
+                            '@${author.username}',
+                            style: AppTextStyles.bodyText.copyWith(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                              color: txt.body,
+                            ),
+                          ),
+                          Text(
+                            ' • ${_timeAgo(post.createdAt)}',
+                            style: AppTextStyles.subText.copyWith(
+                              color: txt.muted,
+                              fontWeight: FontWeight.w400,
+                              fontSize: 11.5,
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),
-                ],
+                ),
+                // IconButton(
+                //   icon: const Icon(Icons.more_vert),
+                //   onPressed: () {},
+                //   color: txt.muted,
+                // ),
+              ],
+            ),
+          ),
+
+          Divider(color: Theme.of(context).colorScheme.outlineVariant),
+
+          // Question/Description
+          GestureDetector(
+            onTap: () {
+              navigationPush(
+                context,
+                SinglePostDetails(username: author.username, postId: post.id),
+              );
+            },
+            child: Padding(
+              padding: EdgeInsets.fromLTRB(10.w, 0, 10.w, 0),
+              child: Text(
+                post.description.isNotEmpty
+                    ? post.description
+                    : (poll?.question ?? ''),
+                style: AppTextStyles.bodyText.copyWith(
+                  color: txt.heading,
+                  fontWeight: FontWeight.w500,
+                ),
               ),
             ),
+          ),
+
+          const SizedBox(height: 12),
+
+          // Poll Content (Image Stack or Text Options)
+          if (poll != null) ...[
+            if (isImage)
+              _buildSearchImageStack(poll, post)
+            else
+              _buildSearchTextOptions(poll, post),
           ],
-        ),
+        ],
       ),
     );
+  }
+
+  Widget _buildSearchImageStack(SearchPostPoll poll, SearchPost post) {
+    final validImages = poll.options.where((o) => o.image != null).toList();
+    if (validImages.isEmpty) return const SizedBox.shrink();
+
+    final displayImages = validImages.take(4).toList();
+    final n = displayImages.length;
+
+    return Padding(
+      padding: EdgeInsets.fromLTRB(10.w, 0, 10.w, 0),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final w = constraints.maxWidth;
+          final h = 150.h;
+          final cardWidth = n == 1 ? w : w * 0.55;
+          final spacing = n > 1 ? (w - cardWidth) / (n - 1) : 0.0;
+
+          return GestureDetector(
+            onTap: () {
+              navigationPush(
+                context,
+                SinglePostDetails(
+                  username: post.author.username,
+                  postId: post.id,
+                ),
+              );
+            },
+            child: SizedBox(
+              height: h,
+              width: w,
+              child: Stack(
+                children: displayImages
+                    .asMap()
+                    .entries
+                    .map<Widget>((entry) {
+                      final i = entry.key;
+                      final opt = entry.value;
+                      final img = opt.image!;
+
+                      final imageUrl = img.url.startsWith('http')
+                          ? img.url
+                          : '${ApiConfig.baseUrlImage}${img.url}';
+
+                      Widget imageWidget = _buildNetworkImage(
+                        imageUrl,
+                        errorWidget: Icon(
+                          Icons.image_not_supported,
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onSurface.withOpacity(0.6),
+                          size: 30,
+                        ),
+                      );
+
+                      if (i > 0) {
+                        imageWidget = ClipRRect(
+                          borderRadius: BorderRadius.circular(AppRadius.button),
+                          child: Stack(
+                            fit: StackFit.expand,
+                            children: [
+                              imageWidget,
+                              BackdropFilter(
+                                filter: ImageFilter.blur(
+                                  sigmaX: 2.0,
+                                  sigmaY: 2.0,
+                                ),
+                                child: Container(color: Colors.transparent),
+                              ),
+                            ],
+                          ),
+                        );
+                      }
+
+                      return Positioned(
+                        left: i * spacing,
+                        width: cardWidth,
+                        height: h,
+                        child: Container(
+                          decoration: BoxDecoration(
+                            border: Border.all(
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.outlineVariant,
+                              width: 1,
+                            ),
+                            borderRadius: BorderRadius.circular(13),
+                          ),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(10.r),
+                            child: imageWidget,
+                          ),
+                        ),
+                      );
+                    })
+                    .toList()
+                    .reversed
+                    .toList(),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildSearchTextOptions(SearchPostPoll poll, SearchPost post) {
+    final txt = AppTextColors.of(context);
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+
+    return Column(
+      children: poll.options.map((option) {
+        return GestureDetector(
+          onTap: () {
+            navigationPush(
+              context,
+              SinglePostDetails(
+                username: post.author.username,
+                postId: post.id,
+              ),
+            );
+          },
+          child: Container(
+            // height: 40,
+            margin: EdgeInsets.only(bottom: 10.h, left: 10.w, right: 10.w),
+            padding: EdgeInsets.fromLTRB(10.w, 7.h, 10.w, 7.h),
+            width: double.infinity,
+            decoration: BoxDecoration(
+              color: isDarkMode ? const Color(0xFF242831) : Colors.white,
+              borderRadius: BorderRadius.circular(AppRadius.card),
+              border: Border.all(
+                color: Theme.of(context).colorScheme.outline,
+                width: 1,
+              ),
+            ),
+            child: Text(
+              option.text ?? '',
+              style: AppTextStyles.subText.copyWith(
+                color: txt.title,
+                fontSize: 14,
+                fontWeight: FontWeight.w400,
+              ),
+            ),
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  String _timeAgo(String createdAt) {
+    if (createdAt.isEmpty) return '';
+    try {
+      final dt = DateTime.parse(createdAt).toLocal();
+      final diff = DateTime.now().difference(dt);
+
+      if (diff.inSeconds < 60) return 'Just now';
+      if (diff.inMinutes < 60) return '${diff.inMinutes} min ago';
+      if (diff.inHours < 24) return '${diff.inHours} h ago';
+      if (diff.inDays < 7) return '${diff.inDays} d ago';
+      if (diff.inDays < 30) return '${(diff.inDays / 7).floor()} w ago';
+      return '${(diff.inDays / 30).floor()} mo ago';
+    } catch (_) {
+      return '';
+    }
   }
 
   // ── Photos tab ─────────────────────────────────────────────────────────────
 
   Widget _buildPhotosList(List<SearchPhoto> photos) {
     if (photos.isEmpty) {
-      return _buildTabEmpty('photos', 'We couldn’t find any matching photos.');
+      return _buildTabEmpty(
+        AppLocalizations.of(context)!.photoslower,
+        AppLocalizations.of(context)!.wecouldnotfindanymatchingphotos,
+      );
     }
     return GridView.builder(
       padding: const EdgeInsets.all(4),
@@ -926,14 +1596,52 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen>
       itemBuilder: (_, i) {
         final photo = photos[i];
         return _buildPhotoCell(photo, () {
+          final userProvider = Provider.of<UserProvider>(
+            context,
+            listen: false,
+          );
+          final currentUsername = userProvider.username ?? '';
+          final String username =
+              photo.author.username.isNotEmpty &&
+                  photo.author.username != 'user'
+              ? photo.author.username
+              : currentUsername;
           navigationPush(
             context,
-            SinglePostDetails(
-              postId: photo.postId,
-              username: photo.author.username,
-            ),
+            SinglePostDetails(postId: photo.postId, username: username),
           );
         });
+      },
+    );
+  }
+
+  Widget _buildNetworkImage(
+    String imageUrl, {
+    BoxFit fit = BoxFit.cover,
+    Widget? errorWidget,
+  }) {
+    if (imageUrl.trim().isEmpty) {
+      return errorWidget ??
+          const Icon(Icons.broken_image_rounded, color: _textSecondary);
+    }
+    return FutureBuilder<String?>(
+      future: _authTokenFuture,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return Container(color: Colors.grey[100]);
+        }
+        final token = snapshot.data;
+        final headers = token != null && imageUrl.contains('/api/')
+            ? {'Authorization': 'Bearer $token'}
+            : null;
+        return Image.network(
+          imageUrl,
+          fit: fit,
+          headers: headers,
+          errorBuilder: (_, __, ___) =>
+              errorWidget ??
+              const Icon(Icons.broken_image_rounded, color: _textSecondary),
+        );
       },
     );
   }
@@ -943,16 +1651,7 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen>
       onTap: onTap,
       child: Container(
         color: Colors.grey[100]!,
-        child: photo.imageUrl.trim().isNotEmpty
-            ? Image.network(
-                photo.imageUrl,
-                fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => const Icon(
-                  Icons.broken_image_rounded,
-                  color: _textSecondary,
-                ),
-              )
-            : const Icon(Icons.broken_image_rounded, color: _textSecondary),
+        child: _buildNetworkImage(photo.imageUrl),
       ),
     );
   }
@@ -960,7 +1659,12 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen>
   // ── Hashtags tab ───────────────────────────────────────────────────────────
 
   Widget _buildHashtagsList(List<SearchHashtag> hashtags) {
-    if (hashtags.isEmpty) return _buildTabEmpty('tags', 'Try searching for another topic or keyword.');
+    if (hashtags.isEmpty) {
+      return _buildTabEmpty(
+        AppLocalizations.of(context)!.tag,
+        AppLocalizations.of(context)!.trysearchingforanothertopicorkeyword,
+      );
+    }
     return ListView.builder(
       itemCount: hashtags.length,
       itemBuilder: (_, i) => _buildHashtagTile(hashtags[i]),
@@ -968,166 +1672,128 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen>
   }
 
   Widget _buildHashtagTile(SearchHashtag tag) {
-    return ListTile(
-      onTap: () {
-        navigationPush(context, HashtagPostsList(hashtag: tag.tag));
-      },
+    final txt = AppTextColors.of(context);
 
-      contentPadding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 2.h),
-      leading: Container(
-        width: 35.w,
-        height: 30.h,
-        decoration: BoxDecoration(
-          color: Theme.of(context).primaryColor.withOpacity(0.08),
-          borderRadius: BorderRadius.circular(10),
-        ),
-        child: Center(
-          child: Text(
-            '#',
-            style: TextStyle(
-              color: _accent,
-              fontSize: 17.sp,
-              fontWeight: FontWeight.bold,
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+      child: GestureDetector(
+        onTap: () {
+          navigationPush(context, HashtagPostsList(hashtag: tag.tag));
+        },
+        child: Row(
+          children: [
+            Container(
+              height: 45,
+              width: 45,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Theme.of(context).colorScheme.onPrimary.withOpacity(0.1),
+              ),
+              child: Center(
+                child: Icon(
+                  FeatherIcons.hash,
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.onPrimary.withOpacity(0.8),
+                  size: 18.spMax,
+                ),
+              ),
             ),
-          ),
+            SizedBox(width: 7.w),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  tag.tag,
+                  style: AppTextStyles.bodyText.copyWith(
+                    color: txt.body,
+                    fontSize: 14.5,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                Text(
+                  '${_formatCount(tag.postsCount)} posts',
+                  style: AppTextStyles.bodyText.copyWith(
+                    color: txt.muted,
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ],
         ),
-      ),
-      title: Text(
-        tag.tag,
-        style: TextStyle(
-          fontSize: 10.sp,
-          fontWeight: FontWeight.w600,
-          color: Theme.of(context).colorScheme.onBackground,
-        ),
-      ),
-      subtitle: Text(
-        '${_formatCount(tag.postsCount)} posts',
-        style: TextStyle(color: _textSecondary, fontSize: 10.sp),
       ),
     );
   }
-}
 
-// ── Places tab ─────────────────────────────────────────────────────────────
+  // ── Places tab ─────────────────────────────────────────────────────────────
 
-Widget _buildPlacesList(BuildContext context) {
-  final places = [
-    {
-      'name': 'Ahmedabad',
-      'subtitle': 'Gujarat, India',
-      'icon': Icons.location_on_rounded,
-    },
-  ];
+  Widget _buildPlacesList(List<SearchPlace> places) {
+    final txt = AppTextColors.of(context);
 
-  return ListView.builder(
-    itemCount: places.length,
-    itemBuilder: (_, i) {
-      final place = places[i];
-      return ListTile(
-        contentPadding: EdgeInsets.symmetric(horizontal: 12.w),
-        leading: Container(
-          width: 35.w,
-          height: 30.h,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: Theme.of(context).primaryColor.withOpacity(0.08),
-          ),
-          child: Center(
-            child: Icon(place['icon'] as IconData, color: _accent, size: 18),
-          ),
-        ),
-        title: Text(
-          place['name'] as String,
-          style: TextStyle(
-            fontSize: 10.sp,
-            fontWeight: FontWeight.w600,
-            color: Theme.of(context).colorScheme.onBackground,
-          ),
-        ),
-        subtitle: Text(
-          place['subtitle'] as String,
-          style: TextStyle(color: _textSecondary, fontSize: 10.sp),
-        ),
-      );
-    },
-  );
-}
+    if (places.isEmpty) {
+      return _buildTabEmpty('places', 'We could not find any matching places');
+    }
 
-// ─── Chase Button ─────────────────────────────────────────────────────────────
+    return ListView.builder(
+      itemCount: places.length,
+      padding: EdgeInsets.symmetric(vertical: 8.h),
+      itemBuilder: (_, i) {
+        final place = places[i];
+        final nameParts = place.name.split(',');
+        final String name = nameParts.first.trim();
+        final String subtitle = nameParts.length > 1
+            ? nameParts.sublist(1).join(',').trim()
+            : '';
 
-class ChaseButton extends StatefulWidget {
-  final bool isChase;
-  final String username;
-  final int userId;
-
-  const ChaseButton({
-    super.key,
-    required this.isChase,
-    required this.username,
-    required this.userId,
-  });
-
-  @override
-  State<ChaseButton> createState() => _ChaseButtonState();
-}
-
-class _ChaseButtonState extends State<ChaseButton> {
-  final Set<int> _chasedUserIds = {};
-  @override
-  void initState() {
-    super.initState();
-    if (widget.isChase) _chasedUserIds.add(widget.userId);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final ApiService apiService = ApiService();
-
-    return StatefulBuilder(
-      builder: (context, setLocalState) {
-        final isChased = _chasedUserIds.contains(widget.userId);
-
-        return GestureDetector(
-          onTap: () async {
-            if (isChased) {
-              setLocalState(() => _chasedUserIds.remove(widget.userId));
-              try {
-                await apiService.unfriend(widget.userId);
-              } catch (e) {
-                setLocalState(() => _chasedUserIds.add(widget.userId));
-              }
-            } else {
-              setLocalState(() => _chasedUserIds.add(widget.userId));
-              try {
-                await apiService.sendFriendRequest(widget.username);
-              } catch (e) {
-                setLocalState(() => _chasedUserIds.remove(widget.userId));
-              }
-            }
-          },
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 250),
-            height: 21.h,
-            width: 63.w,
-            margin: EdgeInsets.only(left: 10.w),
-            decoration: BoxDecoration(
-              color: isChased
-                  ? Colors.transparent
-                  : Theme.of(context).colorScheme.primary,
-              borderRadius: BorderRadius.circular(8.r),
-              border: isChased
-                  ? Border.all(width: 1, color: AppColors.primaryColor)
-                  : null,
-            ),
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+          child: GestureDetector(
+            onTap: () {},
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Text(
-                  isChased ? 'Chased' : 'Chase',
-                  style: TextStyle(
-                    color: isChased ? AppColors.primaryColor : Colors.white,
-                    fontSize: 10.sp,
+                Container(
+                  height: 45,
+                  width: 45,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.onPrimary.withOpacity(0.1),
                   ),
+                  child: Center(
+                    child: Icon(
+                      FeatherIcons.mapPin,
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.onPrimary.withOpacity(0.8),
+                      size: 15.spMax,
+                    ),
+                  ),
+                ),
+                SizedBox(width: 7.w),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      name,
+                      style: AppTextStyles.bodyText.copyWith(
+                        color: txt.body,
+                        fontSize: 14.5,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    if (subtitle.isNotEmpty)
+                      Text(
+                        subtitle,
+                        style: AppTextStyles.bodyText.copyWith(
+                          color: txt.muted,
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                  ],
                 ),
               ],
             ),

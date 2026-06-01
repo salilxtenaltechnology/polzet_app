@@ -3,15 +3,14 @@
 import 'dart:async';
 import 'dart:typed_data';
 
-import 'package:feather_icons/feather_icons.dart';
+import 'package:polzet_app/core/constants/feather_icons_compat.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
 
-import '../../../../core/constants/app_colors.dart';
 import '../../../api/services/api_service.dart';
-import '../../../core/constants/app_constants.dart';
 import '../../../core/constants/app_radius.dart';
+import '../../../core/themes/app_text_colors.dart';
 import '../../../gen/assets.gen.dart';
 import '../../../languages/l10n/generated/app_localizations.dart';
 import '../../../mixin/utility_mixins.dart';
@@ -168,18 +167,23 @@ class MessageListState extends State<MessageList>
     if (chat['title'] != null && (chat['title'] as String).trim().isNotEmpty) {
       return chat['title'] as String;
     }
-    final currentUserId = Provider.of<UserProvider>(
+    final userProvider = Provider.of<UserProvider>(
       context,
       listen: false,
-    ).userId;
+    );
+    final currentUserId = userProvider.userId;
+    final currentUsername = userProvider.username;
     final members = chat['members'] as List?;
     if (members != null && members.length > 1) {
       for (final m in members) {
         final user =
             (m as Map<String, dynamic>)['user'] as Map<String, dynamic>?;
         final id = user?['id'];
-        if (id != null && id != currentUserId) {
-          return user?['username']?.toString() ?? 'Unknown';
+        final username = user?['username']?.toString();
+        if (id != null &&
+            id.toString() != currentUserId &&
+            (currentUsername == null || username != currentUsername)) {
+          return username ?? 'Unknown';
         }
       }
     }
@@ -227,15 +231,19 @@ class MessageListState extends State<MessageList>
           ? profileUrl
           : null;
     }
-    final currentUserId = Provider.of<UserProvider>(
+    final userProvider = Provider.of<UserProvider>(
       context,
       listen: false,
-    ).userId;
+    );
+    final currentUserId = userProvider.userId;
+    final currentUsername = userProvider.username;
     final members = chat['members'] as List?;
     if (members == null || members.isEmpty) return null;
     for (final m in members) {
       final user = (m as Map<String, dynamic>)['user'] as Map<String, dynamic>?;
-      if (user?['id'] != currentUserId) {
+      final username = user?['username']?.toString();
+      if (user?['id']?.toString() != currentUserId &&
+          (currentUsername == null || username != currentUsername)) {
         return user?['profile_image']?.toString();
       }
     }
@@ -246,16 +254,20 @@ class MessageListState extends State<MessageList>
   }
 
   bool _isOtherMemberOnline(Map<String, dynamic> chat) {
-    final currentUserId = Provider.of<UserProvider>(
+    final userProvider = Provider.of<UserProvider>(
       context,
       listen: false,
-    ).userId;
+    );
+    final currentUserId = userProvider.userId;
+    final currentUsername = userProvider.username;
     final members = chat['members'] as List?;
     if (members == null) return false;
     for (final m in members) {
       final member = m as Map<String, dynamic>;
       final user = member['user'] as Map<String, dynamic>?;
-      if (user?['id'] != currentUserId) {
+      final username = user?['username']?.toString();
+      if (user?['id']?.toString() != currentUserId &&
+          (currentUsername == null || username != currentUsername)) {
         return (member['is_online'] as bool?) ?? false;
       }
     }
@@ -276,33 +288,43 @@ class MessageListState extends State<MessageList>
   }
 
   bool _isOtherMemberBlocked(Map<String, dynamic> chat) {
-    final currentUserId = Provider.of<UserProvider>(
+    final userProvider = Provider.of<UserProvider>(
       context,
       listen: false,
-    ).userId;
+    );
+    final currentUserId = userProvider.userId;
+    final currentUsername = userProvider.username;
     final members = chat['members'] as List?;
     if (members == null) return false;
     for (final m in members) {
       final member = m as Map<String, dynamic>;
       final user = member['user'] as Map<String, dynamic>?;
-      if (user?['id'] != currentUserId) {
+      final username = user?['username']?.toString();
+      if (user?['id']?.toString() != currentUserId &&
+          (currentUsername == null || username != currentUsername)) {
         return (member['is_block'] as bool?) ?? false;
       }
     }
     return false;
   }
 
-  int? _getOtherUserId(Map<String, dynamic> chat) {
-    final currentUserId = Provider.of<UserProvider>(
+  dynamic _getOtherUserId(Map<String, dynamic> chat) {
+    final userProvider = Provider.of<UserProvider>(
       context,
       listen: false,
-    ).userId;
+    );
+    final currentUserId = userProvider.userId;
+    final currentUsername = userProvider.username;
     final members = chat['members'] as List?;
     if (members == null) return null;
     for (final m in members) {
       final member = m as Map<String, dynamic>;
       final user = member['user'] as Map<String, dynamic>?;
-      if (user?['id'] != currentUserId) return user?['id'] as int?;
+      final username = user?['username']?.toString();
+      if (user?['id']?.toString() != currentUserId &&
+          (currentUsername == null || username != currentUsername)) {
+        return user?['id'];
+      }
     }
     return null;
   }
@@ -312,11 +334,14 @@ class MessageListState extends State<MessageList>
     String title,
     String? avatarUrl,
   ) async {
-    final chatId = chat['id'] as int?;
+    final chatId = chat['id'] is int
+        ? chat['id'] as int
+        : int.tryParse(chat['id']?.toString() ?? '');
     final isBlocked = _isOtherMemberBlocked(chat);
 
     if (chatId != null && _unreadCount(chat) > 0) {
-      final index = _staticChats.indexWhere((c) => c['id'] == chatId);
+      final index = _staticChats.indexWhere(
+          (c) => c['id']?.toString() == chatId.toString());
       if (index != -1) {
         _staticChats[index] = {..._staticChats[index], 'unread_count': 0};
         _updateUnreadCount();
@@ -372,14 +397,15 @@ class MessageListState extends State<MessageList>
   }
 
   Widget _buildSearchBar() {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final txt = AppTextColors.of(context);
     return Container(
-      height: AppConstants.searchbarHeight.h,
+      height: 42,
       width: double.infinity,
-      margin: EdgeInsets.symmetric(vertical: 7.h, horizontal: 10.w),
+      margin: EdgeInsets.symmetric(vertical: 5, horizontal: 10.w),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.primaryContainer,
+        color: isDarkMode ? const Color(0xFF1F1F23) : Colors.white,
         borderRadius: BorderRadius.circular(AppRadius.button),
-        boxShadow: const [AppConstants.cardShadow],
       ),
       child: TextField(
         controller: _searchController,
@@ -387,22 +413,22 @@ class MessageListState extends State<MessageList>
           contentPadding: EdgeInsets.only(right: 12.w, left: 12.w, top: 10.h),
           hintText: AppLocalizations.of(context)!.searchusers,
           hintStyle: AppTextStyles.bodyText.copyWith(
-            color: Theme.of(context).colorScheme.onBackground.withOpacity(0.5),
+            color: txt.muted.withOpacity(0.7),
           ),
           border: InputBorder.none,
-          suffixIcon: _searchQuery.trim().isNotEmpty
+          prefixIcon: _searchQuery.trim().isNotEmpty
               ? GestureDetector(
                   onTap: _clearSearch,
                   child: Icon(
                     Icons.close,
                     size: 17.spMax,
-                    color: Theme.of(context).colorScheme.onBackground,
+                    color: const Color(0XFF898989),
                   ),
                 )
               : Icon(
                   FeatherIcons.search,
                   size: 17.spMax,
-                  color: Theme.of(context).colorScheme.onBackground,
+                  color: const Color(0XFF898989),
                 ),
           enabledBorder: OutlineInputBorder(
             borderSide: BorderSide(
@@ -413,15 +439,19 @@ class MessageListState extends State<MessageList>
             borderRadius: BorderRadius.circular(AppRadius.button),
           ),
           focusedBorder: OutlineInputBorder(
-            borderSide: const BorderSide(
-              color: AppColors.primaryColor,
+            borderSide: BorderSide(
+              color: Theme.of(
+                context,
+              ).colorScheme.onBackground.withOpacity(0.1),
               width: 0.7,
             ),
             borderRadius: BorderRadius.circular(AppRadius.button),
           ),
         ),
         style: AppTextStyles.bodyText.copyWith(
-          color: Theme.of(context).colorScheme.onBackground,
+          color: txt.title,
+          fontWeight: FontWeight.w500,
+          fontSize: 14,
         ),
         onChanged: _onSearchChanged,
       ),
@@ -456,7 +486,7 @@ class MessageListState extends State<MessageList>
                     style: AppTextStyles.subText.copyWith(
                       color: Colors.white,
                       fontWeight: FontWeight.w500,
-                      fontSize: 9,
+                      fontSize: 10.5,
                     ),
                   ),
                 ),
@@ -469,12 +499,15 @@ class MessageListState extends State<MessageList>
   }
 
   Widget _buildChatList(List<Map<String, dynamic>> chats) {
+    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
     return RefreshIndicator(
       onRefresh: _fetchAndPushGlobally,
+      color: Theme.of(context).colorScheme.onPrimary,
       child: ListView.builder(
-        padding: EdgeInsets.zero,
+        padding: const EdgeInsets.only(bottom: 100),
         itemCount: chats.length,
         itemBuilder: (context, i) {
+          final txt = AppTextColors.of(context);
           final chat = chats[i];
           final avatarUrl = _avatarUrl(chat);
           final imageBytes = _getCachedImage(avatarUrl);
@@ -487,10 +520,10 @@ class MessageListState extends State<MessageList>
             leading: Stack(
               children: [
                 CircleAvatar(
-                  radius: 20.r,
-                  backgroundColor: chat['chat_type'] == 'group'
-                      ? Colors.blueGrey[600]
-                      : Colors.grey[700],
+                  radius: 19.r,
+                  backgroundColor: isDarkMode
+                      ? const Color(0xFF252525)
+                      : Theme.of(context).primaryColor.withOpacity(0.08),
                   backgroundImage: imageBytes != null
                       ? MemoryImage(imageBytes)
                       : null,
@@ -498,8 +531,11 @@ class MessageListState extends State<MessageList>
                       ? Text(
                           title.isNotEmpty ? title[0].toUpperCase() : '?',
                           style: AppTextStyles.subText.copyWith(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w600,
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onPrimary.withOpacity(0.8),
+                            fontWeight: FontWeight.w500,
+                            fontSize: 20,
                           ),
                         )
                       : null,
@@ -527,8 +563,9 @@ class MessageListState extends State<MessageList>
             title: Text(
               title,
               style: AppTextStyles.cardTitle.copyWith(
-                color: Theme.of(context).colorScheme.onBackground,
-                fontSize: 12.sp,
+                color: txt.title,
+                fontSize: 14.5,
+                fontWeight: FontWeight.w500,
               ),
             ),
             subtitle: Row(
@@ -544,14 +581,10 @@ class MessageListState extends State<MessageList>
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: AppTextStyles.subText.copyWith(
-                      color: unread > 0
-                          ? Theme.of(context).colorScheme.onBackground
-                          : Theme.of(
-                              context,
-                            ).colorScheme.onBackground.withOpacity(0.6),
+                      color: unread > 0 ? txt.title : txt.body.withOpacity(0.6),
                       fontWeight: unread > 0
-                          ? FontWeight.w600
-                          : FontWeight.normal,
+                          ? FontWeight.w500
+                          : FontWeight.w400,
                       fontSize: 13,
                     ),
                   ),
@@ -559,7 +592,7 @@ class MessageListState extends State<MessageList>
                 Text(
                   '  · ${_formattedTime(chat)}',
                   style: AppTextStyles.subText.copyWith(
-                    color: const Color(0XFF999999),
+                    color: unread > 0 ? txt.body : txt.muted,
                     fontSize: 11,
                   ),
                 ),
@@ -572,6 +605,7 @@ class MessageListState extends State<MessageList>
   }
 
   Widget _buildTabBody(List<Map<String, dynamic>> allChats, String chatType) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     final chats = _applyFilter(allChats, chatType);
 
     if (allChats.isEmpty) {
@@ -585,15 +619,19 @@ class MessageListState extends State<MessageList>
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                Image.asset(
-                  Assets.images.noMessage.path,
-                  height: 0.22.sh,
-                  width: 0.22.sh,
-                  fit: BoxFit.contain,
-                ),
-                const SizedBox(height: 15),
+                isDarkMode
+                    ? const SizedBox()
+                    : Padding(
+                        padding: const EdgeInsets.only(bottom: 15),
+                        child: Image.asset(
+                          Assets.images.noMessage.path,
+                          height: 0.22.sh,
+                          width: 0.22.sh,
+                          fit: BoxFit.contain,
+                        ),
+                      ),
                 Text(
-                  'No messages yet',
+                  AppLocalizations.of(context)!.nomessagesyet,
                   textAlign: TextAlign.center,
                   style: AppTextStyles.sectionHeading.copyWith(
                     fontSize: 18.5,
@@ -604,7 +642,9 @@ class MessageListState extends State<MessageList>
                 ),
                 const SizedBox(height: 10),
                 Text(
-                  'Start chatting by sharing polls or reacting\nto conversations.',
+                  AppLocalizations.of(
+                    context,
+                  )!.startchattingbysharingpollsorreactingtoconversations,
                   textAlign: TextAlign.center,
                   style: AppTextStyles.bodyText.copyWith(
                     fontSize: 13,
@@ -620,20 +660,20 @@ class MessageListState extends State<MessageList>
     }
 
     if (chats.isEmpty && _searchQuery.trim().isNotEmpty) {
+      final txt = AppTextColors.of(context);
       return Center(
         child: Text(
           '${AppLocalizations.of(context)!.searchusers} "$_searchQuery"',
-          style: AppTextStyles.subText.copyWith(
-            color: Theme.of(context).colorScheme.onBackground.withOpacity(0.6),
+          style: AppTextStyles.bodyText.copyWith(
+            fontSize: 13,
+            color: txt.muted,
+            height: 1.4,
           ),
         ),
       );
     }
 
     if (chats.isEmpty) {
-      // final label = _tabController.index == 0
-      //     ? 'No chats yet'
-      //     : 'No groups yet';
       return SizedBox(
         width: double.infinity,
         // height: 0.5.sh,
@@ -644,15 +684,20 @@ class MessageListState extends State<MessageList>
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                Image.asset(
-                  Assets.images.noMessage.path,
-                  height: 0.22.sh,
-                  width: 0.22.sh,
-                  fit: BoxFit.contain,
-                ),
-                const SizedBox(height: 15),
+                isDarkMode
+                    ? const SizedBox()
+                    : Padding(
+                        padding: const EdgeInsets.only(bottom: 15),
+                        child: Image.asset(
+                          Assets.images.noMessage.path,
+                          height: 0.22.sh,
+                          width: 0.22.sh,
+                          fit: BoxFit.contain,
+                        ),
+                      ),
+
                 Text(
-                  'No messages yet',
+                  AppLocalizations.of(context)!.nomessagesyet,
                   textAlign: TextAlign.center,
                   style: AppTextStyles.sectionHeading.copyWith(
                     fontSize: 18.5,
@@ -663,7 +708,10 @@ class MessageListState extends State<MessageList>
                 ),
                 const SizedBox(height: 10),
                 Text(
-                  'Start chatting by sharing polls or reacting\nto conversations.',
+                  AppLocalizations.of(
+                    context,
+                  )!.startchattingbysharingpollsorreactingtoconversations,
+
                   textAlign: TextAlign.center,
                   style: AppTextStyles.bodyText.copyWith(
                     fontSize: 13,
@@ -719,7 +767,6 @@ class MessageListState extends State<MessageList>
 
           return Column(
             children: [
-              // _buildSearchBar(),
               Padding(
                 padding: EdgeInsets.symmetric(horizontal: 12.w),
                 child: TabBar(
@@ -738,11 +785,18 @@ class MessageListState extends State<MessageList>
                   ),
                   unselectedLabelColor: const Color(0XFF8E8E8E),
                   tabs: [
-                    _buildTabLabel('Chats', _unreadChatsCount),
-                    _buildTabLabel('Groups', _unreadGroupsCount),
+                    _buildTabLabel(
+                      AppLocalizations.of(context)!.chats,
+                      _unreadChatsCount,
+                    ),
+                    _buildTabLabel(
+                      AppLocalizations.of(context)!.groups,
+                      _unreadGroupsCount,
+                    ),
                   ],
                 ),
               ),
+              _buildSearchBar(),
 
               // ── Tab content ───────────────────────────────────────────
               Expanded(

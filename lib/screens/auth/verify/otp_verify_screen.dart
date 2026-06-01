@@ -9,6 +9,7 @@ import 'package:polzet_app/core/constants/app_radius.dart';
 import 'package:polzet_app/mixin/utility_mixins.dart';
 
 import '../../../api/services/api_service.dart';
+import '../../../core/themes/app_text_colors.dart';
 import '../../../core/themes/app_text_styles.dart';
 import '../../../widgets/loader.dart';
 import '../signup/registration_screen.dart';
@@ -55,6 +56,7 @@ class _OtpVerifyScreenState extends State<OtpVerifyScreen> with UtilityMixin {
 
   // ── OTP box ──────────────────────────────────────────────────────────────────
   Widget _buildOtpBox(int index) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     return SizedBox(
       width: 55,
       height: 65,
@@ -65,10 +67,12 @@ class _OtpVerifyScreenState extends State<OtpVerifyScreen> with UtilityMixin {
         keyboardType: TextInputType.number,
         maxLength: 1,
         inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-        style: const TextStyle(
+        cursorColor: Theme.of(context).colorScheme.onPrimary.withOpacity(0.8),
+        cursorWidth: 1.5,
+        style: AppTextStyles.bodyText.copyWith(
           fontSize: 20,
           fontWeight: FontWeight.w600,
-          color: Color(0xFF111111),
+          color: Theme.of(context).colorScheme.onBackground,
         ),
         onChanged: (value) {
           if (_otpError.isNotEmpty) setState(() => _otpError = '');
@@ -92,8 +96,8 @@ class _OtpVerifyScreenState extends State<OtpVerifyScreen> with UtilityMixin {
               color: _otpError.isNotEmpty
                   ? Theme.of(context).colorScheme.error
                   : _controllers[index].text.isNotEmpty
-                  ? Theme.of(context).colorScheme.primary
-                  : const Color(0xFFDDDDDD),
+                  ? Theme.of(context).colorScheme.onPrimary.withOpacity(0.7)
+                  : (isDarkMode ? Theme.of(context).colorScheme.outline :  const Color(0xFFDDDDDD)),
               width: 1,
             ),
           ),
@@ -102,12 +106,10 @@ class _OtpVerifyScreenState extends State<OtpVerifyScreen> with UtilityMixin {
             borderSide: BorderSide(
               color: _otpError.isNotEmpty
                   ? Theme.of(context).colorScheme.error
-                  : Theme.of(context).colorScheme.primary,
+                  : Theme.of(context).colorScheme.onPrimary.withOpacity(0.6),
               width: 1,
             ),
           ),
-          filled: true,
-          fillColor: Colors.white,
         ),
       ),
     );
@@ -176,7 +178,7 @@ class _OtpVerifyScreenState extends State<OtpVerifyScreen> with UtilityMixin {
                         fontSize: 13.2,
                         color: _isResending
                             ? const Color(0xFFB3B3B3)
-                            : Theme.of(context).colorScheme.primary,
+                            : Theme.of(context).colorScheme.onPrimary,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -315,6 +317,7 @@ class _OtpVerifyScreenState extends State<OtpVerifyScreen> with UtilityMixin {
 
   @override
   Widget build(BuildContext context) {
+    final txt = AppTextColors.of(context);
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.background,
       body: SafeArea(
@@ -328,7 +331,8 @@ class _OtpVerifyScreenState extends State<OtpVerifyScreen> with UtilityMixin {
                 widget.isMobile ? 'Verify your number' : 'Verify your email',
                 style: AppTextStyles.subSectionHeading.copyWith(
                   fontSize: 23,
-                  color: const Color(0xFF111111),
+                  color: Theme.of(context).colorScheme.onBackground,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
               const SizedBox(height: 8),
@@ -338,7 +342,7 @@ class _OtpVerifyScreenState extends State<OtpVerifyScreen> with UtilityMixin {
                 text: TextSpan(
                   style: AppTextStyles.bodyText.copyWith(
                     fontSize: 14.5,
-                    color: const Color(0xFF595959),
+                    color: txt.body,
                     fontWeight: FontWeight.w500,
                     height: 1.4,
                   ),
@@ -348,7 +352,7 @@ class _OtpVerifyScreenState extends State<OtpVerifyScreen> with UtilityMixin {
                       text: widget.maskedContact,
                       style: AppTextStyles.bodyText.copyWith(
                         fontSize: 14.5,
-                        color: const Color(0xFF595959),
+                        color: txt.body,
                         fontWeight: FontWeight.w600,
                         height: 1.4,
                       ),
@@ -426,8 +430,8 @@ class _OtpVerifyScreenState extends State<OtpVerifyScreen> with UtilityMixin {
                                       fontSize: 14.5,
                                       color: Theme.of(
                                         context,
-                                      ).colorScheme.primary,
-                                      fontWeight: FontWeight.w700,
+                                      ).colorScheme.onPrimary,
+                                      fontWeight: FontWeight.w600,
                                     ),
                                   ),
                                 ],
@@ -448,7 +452,7 @@ class _OtpVerifyScreenState extends State<OtpVerifyScreen> with UtilityMixin {
                               text: _formattedTime,
                               style: AppTextStyles.subText.copyWith(
                                 fontSize: 14,
-                                color: Theme.of(context).colorScheme.primary,
+                                color: Theme.of(context).colorScheme.onPrimary,
                                 fontWeight: FontWeight.w700,
                               ),
                             ),

@@ -5,6 +5,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:polzet_app/core/themes/app_text_styles.dart';
 
 import '../../widgets/base64/image_convert.dart';
+import '../themes/app_text_colors.dart';
 
 class LikeUtils {
   static String getLikedByText(List<dynamic> viewLikes) {
@@ -28,15 +29,18 @@ class LikeUtils {
       return const TextSpan(text: '');
     }
 
+    final txt = AppTextColors.of(context);
+
+
     final baseStyle = AppTextStyles.subText.copyWith(
       fontSize: 12,
-      color: const Color(0XFF8E8E8E),
+      color: txt.muted,
       fontWeight: FontWeight.w400,
     );
 
     final boldStyle = AppTextStyles.subText.copyWith(
       fontSize: 12.5,
-      color: const Color(0XFF2C2C2C),
+      color:  txt.body,
       fontWeight: FontWeight.w500,
     );
 

@@ -1,16 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:polzet_app/models/posts/homefeed_posts_model.dart';
-import 'package:polzet_app/widgets/poll/new_poll_bottomsheet.dart' show NewPollBottomsheet;
-import '../../models/posts/user_post_model.dart';
-import '../../models/public/public_profile_model.dart';
 import '../../widgets/bottomsheets/add_members/add_member_bottom_sheet.dart';
 import '../../widgets/bottomsheets/comment/comments_bottom_sheet.dart';
 import '../../widgets/bottomsheets/like/liked_users_bottom_sheet.dart';
-import '../../widgets/bottomsheets/voters/images/image_post_voters_bottom_sheet.dart';
-import '../../widgets/bottomsheets/voters/homefeed/homefeed_things_voters.dart';
-import '../../widgets/bottomsheets/voters/things/current_user_things_voters.dart';
-import '../../widgets/bottomsheets/voters/things/public_user_things_voters.dart';
 import '../../widgets/bottomsheets/share/share_bottom_sheet.dart';
+import '../../widgets/bottomsheets/voters/poll_voters_bottomsheet.dart';
+import '../../widgets/poll/new_poll_bottomsheet.dart';
 
 class BottomSheetUtils {
 
@@ -26,7 +20,7 @@ class BottomSheetUtils {
 
   static void showCommentsBottomSheet({
     required BuildContext context,
-    required int postId,
+    required dynamic postId,
     String? currentUsername,
     ValueChanged<int>? onCommentsCountChanged,
   }) {
@@ -44,7 +38,7 @@ class BottomSheetUtils {
 
   static void showLikedUsersBottomSheet({
     required BuildContext context,
-    required int postId,
+    required dynamic postId,
   }) {
     showModalBottomSheet(
       context: context,
@@ -54,71 +48,27 @@ class BottomSheetUtils {
     );
   }
 
-  static void showPostVotersBottomSheet({
+  static void showPollVotersBottomSheet({
     required BuildContext context,
-    required int pollId,
-    required int optionId,
+    required dynamic postId,
+    required String question,
+    String? pollImageUrl,
   }) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) =>
-          ImagePostVotersBottomSheet(pollId: pollId, optionId: optionId),
+      builder: (context) => PollVotersBottomsheet(
+        postId: postId,
+        question: question,
+        pollImageUrl: pollImageUrl,
+      ),
     );
   }
 
- static void showThingsPostVotersBottomSheet({
-  required BuildContext context,
-  required HomeFeedPoll poll,
-  required int postId,     
-}) {
-  showModalBottomSheet(
-    context: context,
-    isScrollControlled: true,
-    backgroundColor: Colors.transparent,
-    builder: (_) => HomefeedThingsVoters(
-      poll: poll,
-      postId: postId,        
-    ),
-  );
-}
-
-  static void showCurrenUserThingsPostBottomSheet({
-  required BuildContext context,
-  required UserPollQuestion poll,
-  required int postId,        // ← add
-}) {
-  showModalBottomSheet(
-    context: context,
-    isScrollControlled: true,
-    backgroundColor: Colors.transparent,
-    builder: (_) => CurrentUserThingsVoters(
-      poll: poll,
-      postId: postId,         // ← pass
-    ),
-  );
-}
-
-  static void showPublicUserThingsPostBottomSheet({
-  required BuildContext context,
-  required PublicPoll poll,
-  required int postId,     
-}) {
-  showModalBottomSheet(
-    context: context,
-    isScrollControlled: true,
-    backgroundColor: Colors.transparent,
-    builder: (_) => PublicUserThingsVoters(
-      poll: poll,
-      postId: postId,      
-    ),
-  );
-}
-
   static Future<Map<String, dynamic>?> showAddMembersBottomSheet({
     required BuildContext context,
-    Set<int> alreadySelected = const {},
+    Set<String> alreadySelected = const {},
   }) async {
     return await showModalBottomSheet<Map<String, dynamic>>(
       context: context,
@@ -132,6 +82,8 @@ class BottomSheetUtils {
     required BuildContext context,
     required String shareLink,
     required String username,
+    required String postId,
+    Function(int)? onShareSuccess,
   }) {
     showModalBottomSheet(
       context: context,
@@ -140,6 +92,8 @@ class BottomSheetUtils {
       builder: (_) => ShareBottomSheet(
         shareLink: shareLink,
         username: username,
+        postId: postId,
+        onShareSuccess: onShareSuccess,
       ),
     );
   }

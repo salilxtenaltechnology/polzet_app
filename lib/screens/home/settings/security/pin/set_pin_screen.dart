@@ -3,9 +3,14 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:polzet_app/core/themes/app_text_styles.dart';
+import 'package:polzet_app/widgets/appbar/common_appbar.dart';
 
+import '../../../../../core/constants/app_radius.dart';
+import '../../../../../core/themes/app_text_colors.dart';
+import '../../../../../gen/assets.gen.dart';
 import '../../../../../languages/l10n/generated/app_localizations.dart';
-import '../../../../../widgets/custom_text_styles.dart';
+import '../../../../../widgets/loader.dart';
 import 'pin_status.dart';
 
 class SetPinScreen extends StatefulWidget {
@@ -29,77 +34,282 @@ class _SetPinScreenState extends State<SetPinScreen> {
   @override
   void initState() {
     super.initState();
-    // If changing existing PIN, start with old PIN verification
     if (!widget.isSettingNewPin) {
       _isEnteringOldPin = true;
     }
   }
 
+  // ── Build ──────────────────────────────────────────────────────────────────
+
   @override
   Widget build(BuildContext context) {
+    final txt = AppTextColors.of(context);
+
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.background,
-      appBar: AppBar(
-        automaticallyImplyLeading: false,
-        toolbarHeight: 25.h,
-        leading: GestureDetector(
-          onTap: () => Navigator.pop(context),
-          child: const Icon(Icons.arrow_back_ios),
-        ),
-        title: Text(
-          _getScreenTitle(),
-          style: CustomTextStyles.appBarTitleText(context),
-        ),
-        centerTitle: true,
-        backgroundColor: Theme.of(context).colorScheme.background,
-      ),
+      appBar: CommonAppBar(title: _getScreenTitle()),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : Padding(
-              padding: EdgeInsets.all(20.w),
-              child: Column(
-                children: [
-                  SizedBox(height: 40.h),
-                  Text(
-                    _getInstructionText(),
-                    style: TextStyle(
-                      fontSize: 14.sp,
-                      fontWeight: FontWeight.w500,
-                      color: Theme.of(context).colorScheme.onBackground,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                  SizedBox(height: 40.h),
-                  // PIN dots display
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: List.generate(4, (index) {
-                      final currentPin = _getCurrentPin();
-                      return Container(
-                        margin: EdgeInsets.symmetric(horizontal: 10.w),
-                        width: 20.w,
-                        height: 20.w,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: index < currentPin.length
-                              ? Theme.of(context).colorScheme.primary
-                              : Theme.of(
-                                  context,
-                                ).colorScheme.primary.withOpacity(0.2),
-                        ),
-                      );
-                    }),
-                  ),
+          ? Center(
+              child: Loader(color: Theme.of(context).colorScheme.onPrimary),
+            )
+          : SafeArea(
+              child: Padding(
+                padding: EdgeInsets.symmetric(horizontal: 24.w),
+                child: Column(
+                  children: [
+                    SizedBox(height: 28.h),
 
-                  SizedBox(height: 50.h),
-                  // Number pad
-                  _buildNumberPad(),
-                  SizedBox(height: 30.h),
-                ],
+                    // ── Lock icon ──────────────────────────────────────────
+                    Container(
+                      width: 75,
+                      height: 75,
+                      padding: const EdgeInsets.all(22),
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.onPrimary.withOpacity(0.1),
+                      ),
+                      child: Image.asset(
+                        Assets.images.icSecurity.path,
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.onPrimary.withOpacity(0.7),
+                      ),
+                    ),
+
+                    SizedBox(height: 18.h),
+
+                    // ── Title ──────────────────────────────────────────────
+                    Text(
+                      _getInstructionText(),
+                      style: AppTextStyles.subSectionHeading.copyWith(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
+                        color: Theme.of(context).colorScheme.onBackground,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+
+                    SizedBox(height: 8.h),
+
+                    // ── Subtitle ───────────────────────────────────────────
+                    Text(
+                      'This PIN will be used to secure your account',
+                      style: AppTextStyles.subSectionHeading.copyWith(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w400,
+                        color: txt.muted,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+
+                    SizedBox(height: 32.h),
+
+                    // ── PIN dots ───────────────────────────────────────────
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: List.generate(4, (index) {
+                        final currentPin = _getCurrentPin();
+                        final isFilled = index < currentPin.length;
+
+                        return AnimatedContainer(
+                          duration: const Duration(milliseconds: 200),
+                          margin: EdgeInsets.symmetric(horizontal: 10.w),
+                          width: 22.w,
+                          height: 22.w,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(100),
+                            color: Colors.transparent,
+                            border: Border.all(
+                              color: Theme.of(context).colorScheme.onPrimary,
+                              width: 1.5,
+                            ),
+                          ),
+                          child: isFilled
+                              ? Center(
+                                  child: Container(
+                                    width: 13.w,
+                                    height: 13.w,
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(100),
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.onPrimary,
+                                    ),
+                                  ),
+                                )
+                              : null,
+                        );
+                      }),
+                    ),
+
+                    const SizedBox(height: 60),
+
+                    // ── Number pad ─────────────────────────────────────────
+                    _buildNumberPad(),
+
+                    const Spacer(),
+
+                    // ── Set PIN button ─────────────────────────────────────
+                    SizedBox(
+                      width: double.infinity,
+                      height: 45,
+                      child: ElevatedButton(
+                        onPressed: () {},
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Theme.of(
+                            context,
+                          ).colorScheme.primary,
+                          foregroundColor: Colors.white,
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(
+                              AppRadius.button,
+                            ),
+                          ),
+                        ),
+                        child: Text(
+                          _getScreenTitle(),
+                          style: AppTextStyles.bodyText.copyWith(
+                            fontSize: 15.5,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 35),
+                  ],
+                ),
               ),
             ),
     );
   }
+
+  // ── Number pad ─────────────────────────────────────────────────────────────
+
+  Widget _buildNumberPad() {
+    return Column(
+      children: [
+        _buildPadRow(['1', '2', '3']),
+        SizedBox(height: 16.h),
+        _buildPadRow(['4', '5', '6']),
+        SizedBox(height: 16.h),
+        _buildPadRow(['7', '8', '9']),
+        SizedBox(height: 16.h),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: [
+            _buildDeleteButton(),
+            _buildNumberButton('0'),
+            _buildClearAllNumberButton(),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPadRow(List<String> numbers) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      children: numbers.map(_buildNumberButton).toList(),
+    );
+  }
+
+  Widget _buildNumberButton(String number) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    return GestureDetector(
+      onTap: () => _onNumberPressed(number),
+      child: Container(
+        width: 65.w,
+        height: 65.w,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(100),
+          color: isDarkMode ? const Color(0xFF12141D) : Colors.white,
+          border: Border.all(
+            color: Theme.of(context).colorScheme.onPrimary.withOpacity(0.15),
+            width: 1,
+          ),
+        ),
+        child: Center(
+          child: Text(
+            number,
+            style: AppTextStyles.subSectionHeading.copyWith(
+              fontSize: 24,
+              fontWeight: FontWeight.w500,
+              color: Theme.of(context).colorScheme.onPrimary.withOpacity(0.85),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDeleteButton() {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    return GestureDetector(
+      onTap: _onDeletePressed,
+      child: Container(
+        width: 65.w,
+        height: 65.w,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(100),
+          color: isDarkMode ? const Color(0xFF12141D) : Colors.white,
+          border: Border.all(
+            color: Theme.of(context).colorScheme.onPrimary.withOpacity(0.15),
+            width: 1,
+          ),
+        ),
+        child: Center(
+          child: Icon(
+            Icons.backspace_outlined,
+            color: Theme.of(context).colorScheme.onPrimary,
+            size: 22.sp,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildClearAllNumberButton() {
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          if (_isEnteringOldPin) {
+            _oldPin = '';
+          } else if (_isConfirmingPin) {
+            _confirmPin = '';
+          } else {
+            _enteredPin = '';
+            _pinStrengthMessage = '';
+          }
+        });
+      },
+      child: Container(
+        width: 65.w,
+        height: 65.w,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(100),
+          color: Theme.of(context).colorScheme.onPrimary.withOpacity(0.09),
+          border: Border.all(
+            color: Theme.of(context).colorScheme.onPrimary.withOpacity(0.15),
+            width: 1,
+          ),
+        ),
+        child: Center(
+          child: Icon(
+            Icons.arrow_back_rounded,
+            color: Theme.of(context).colorScheme.onPrimary,
+            size: 23.sp,
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ── Logic (unchanged) ──────────────────────────────────────────────────────
 
   String _getScreenTitle() {
     if (_isEnteringOldPin) {
@@ -139,132 +349,6 @@ class _SetPinScreenState extends State<SetPinScreen> {
     }
   }
 
-  Widget _buildNumberPad() {
-    return Column(
-      children: [
-        // First row (1, 2, 3)
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          children: [
-            _buildNumberButton('1'),
-            _buildNumberButton('2'),
-            _buildNumberButton('3'),
-          ],
-        ),
-        SizedBox(height: 20.h),
-
-        // Second row (4, 5, 6)
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          children: [
-            _buildNumberButton('4'),
-            _buildNumberButton('5'),
-            _buildNumberButton('6'),
-          ],
-        ),
-        SizedBox(height: 20.h),
-
-        // Third row (7, 8, 9)
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          children: [
-            _buildNumberButton('7'),
-            _buildNumberButton('8'),
-            _buildNumberButton('9'),
-          ],
-        ),
-        SizedBox(height: 20.h),
-
-        // Fourth row (empty, 0, delete)
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          children: [
-            _buildDeleteButton(),
-            _buildNumberButton('0'),
-            _buildClearAllNumberButton(),
-          ],
-        ),
-      ],
-    );
-  }
-
-  Widget _buildNumberButton(String number) {
-    return GestureDetector(
-      onTap: () => _onNumberPressed(number),
-      child: Container(
-        width: 60.w,
-        height: 60.w,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
-          border: Border.all(
-            color: Theme.of(context).colorScheme.primary.withOpacity(0.2),
-            width: 1,
-          ),
-        ),
-        child: Center(
-          child: Text(
-            number,
-            style: TextStyle(
-              fontSize: 20.sp,
-              fontWeight: FontWeight.w500,
-              color: Theme.of(context).colorScheme.primary,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildClearAllNumberButton() {
-    return GestureDetector(
-      onTap: () {},
-      child: Container(
-        height: 60.h,
-        width: 60.w,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
-          border: Border.all(
-            color: Theme.of(context).colorScheme.primary.withOpacity(0.5),
-          ),
-        ),
-        child: Center(
-          child: Icon(
-            Icons.arrow_back,
-            color: Theme.of(context).colorScheme.primary,
-            size: 22.spMax,
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildDeleteButton() {
-    return GestureDetector(
-      onTap: _onDeletePressed,
-      child: Container(
-        width: 60.w,
-        height: 60.w,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
-          border: Border.all(
-            color: Theme.of(context).colorScheme.primary.withOpacity(0.2),
-            width: 1,
-          ),
-        ),
-        child: Center(
-          child: Icon(
-            Icons.backspace_outlined,
-            color: Theme.of(context).colorScheme.primary,
-            size: 22.sp,
-          ),
-        ),
-      ),
-    );
-  }
-
   void _onNumberPressed(String number) {
     setState(() {
       if (_isEnteringOldPin) {
@@ -284,15 +368,12 @@ class _SetPinScreenState extends State<SetPinScreen> {
       } else {
         if (_enteredPin.length < 4) {
           _enteredPin += number;
-          // Update PIN strength message
           _pinStrengthMessage = PinService.getPinStrength(_enteredPin);
 
           if (_enteredPin.length == 4) {
-            // Check PIN strength before proceeding
             if (_pinStrengthMessage == 'Strong') {
               _moveToConfirmation();
             } else {
-              // Show warning but allow user to continue
               Future.delayed(const Duration(milliseconds: 500), () {
                 _moveToConfirmation();
               });
@@ -316,7 +397,6 @@ class _SetPinScreenState extends State<SetPinScreen> {
       } else {
         if (_enteredPin.isNotEmpty) {
           _enteredPin = _enteredPin.substring(0, _enteredPin.length - 1);
-          // Update PIN strength message
           _pinStrengthMessage = _enteredPin.isEmpty
               ? ''
               : PinService.getPinStrength(_enteredPin);
@@ -327,12 +407,9 @@ class _SetPinScreenState extends State<SetPinScreen> {
 
   void _verifyOldPin() async {
     setState(() => _isLoading = true);
-
     try {
       final authResult = await PinService.authenticateWithPin(_oldPin);
-
       if (authResult.success) {
-        // Old PIN verified, move to new PIN entry
         setState(() {
           _isEnteringOldPin = false;
           _oldPin = '';
@@ -344,8 +421,6 @@ class _SetPinScreenState extends State<SetPinScreen> {
           _oldPin = '';
           _isLoading = false;
         });
-
-        // If locked, close screen
         if (authResult.isLocked) {
           Navigator.pop(context, false);
         }
@@ -370,20 +445,9 @@ class _SetPinScreenState extends State<SetPinScreen> {
   void _validatePins() async {
     if (_enteredPin == _confirmPin) {
       setState(() => _isLoading = true);
-
       try {
-        bool success;
-
-        if (widget.isSettingNewPin) {
-          // Setting new PIN
-          success = await PinService.savePin(_enteredPin);
-        } else {
-          // This shouldn't happen as we verify old PIN first, but just in case
-          success = await PinService.savePin(_enteredPin);
-        }
-
+        final success = await PinService.savePin(_enteredPin);
         if (success) {
-          // Return success
           Navigator.pop(context, true);
         } else {
           _showErrorSnackBar('Failed to save PIN. Please try again.');
@@ -407,8 +471,8 @@ class _SetPinScreenState extends State<SetPinScreen> {
   void _showErrorSnackBar(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.red,
+        content: Text(message,style: const TextStyle(color: Colors.white),),
+        backgroundColor: Theme.of(context).colorScheme.error,
         duration: const Duration(seconds: 3),
       ),
     );

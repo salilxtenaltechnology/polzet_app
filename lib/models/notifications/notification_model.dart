@@ -17,14 +17,22 @@ class NotificationsResponse {
   });
 
   factory NotificationsResponse.fromJson(Map<String, dynamic> json) {
+    final rawResults = (json['results'] is List)
+        ? (json['results'] as List)
+            .map((e) => NotificationItem.fromJson(_asMap(e)))
+            .toList()
+        : <NotificationItem>[];
+
+    final filteredResults = rawResults
+        .where((item) => item.category.toUpperCase() != 'CHAT')
+        .toList();
+
     return NotificationsResponse(
-      count: json['count'] as int? ?? 0,
-      unreadCount: json['unread_count'] as int? ?? 0,
-      page: json['page'] as int? ?? 1,
-      hasMore: json['has_more'] as bool? ?? false,
-      results: (json['results'] as List<dynamic>? ?? [])
-          .map((e) => NotificationItem.fromJson(e as Map<String, dynamic>))
-          .toList(),
+      count: filteredResults.length,
+      unreadCount: _toInt(json['unread_count']),
+      page: _toInt(json['page'], defaultValue: 1),
+      hasMore: _parseBool(json['has_more']),
+      results: filteredResults,
     );
   }
 
@@ -110,23 +118,23 @@ class NotificationItem {
     final String type = json['type'] as String? ?? '';
 
     return NotificationItem(
-      id: json['id'] as String? ?? '',
+      id: (json['uuid'] ?? json['id'] ?? '').toString(),
       category: json['category'] as String? ?? '',
       priority: json['priority'] as String? ?? 'normal',
-      isRead: json['is_read'] as bool? ?? false,
-      createdAt: DateTime.parse(json['created_at'] as String),
+      isRead: _parseBool(json['is_read']),
+      createdAt: DateTime.tryParse(json['created_at']?.toString() ?? '') ?? DateTime.now(),
       timeAgo: json['time_ago'] as String? ?? '',
       message: json['message'] as String?,
       redirectTo: json['redirect_to'] as String?,
       clickAction: json['click_action'] as String?,
       actor: NotificationActor.fromJson(
-        json['actor'] as Map<String, dynamic>? ?? {},
+        _asMap(json['actor']),
       ),
       post: json['post'] != null
-          ? NotificationPost.fromJson(json['post'] as Map<String, dynamic>)
+          ? NotificationPost.fromJson(_asMap(json['post']))
           : null,
       meta: json['meta'] != null
-          ? NotificationMeta.fromJson(json['meta'] as Map<String, dynamic>)
+          ? NotificationMeta.fromJson(_asMap(json['meta']))
           : null,
       type: type,
       title: json['title'] as String? ?? '',
@@ -154,7 +162,7 @@ class NotificationItem {
 }
 
 class NotificationActor {
-  final int userId;
+  final String userId;
   final String name;
   final String username;
   final String? avatarUrl;
@@ -170,11 +178,11 @@ class NotificationActor {
 
   factory NotificationActor.fromJson(Map<String, dynamic> json) {
     return NotificationActor(
-      userId: json['user_id'] as int? ?? 0,
+      userId: (json['user_uuid'] ?? json['user_id'] ?? json['id'] ?? '').toString(),
       name: json['name'] as String? ?? '',
       username: json['username'] as String? ?? '',
       avatarUrl: json['avatar_url'] as String?,
-      isOnline: json['is_online'] as bool? ?? false,
+      isOnline: _parseBool(json['is_online']),
     );
   }
 
@@ -188,7 +196,7 @@ class NotificationActor {
 }
 
 class NotificationPost {
-  final int postId;
+  final String postId;
   final String title;
   final String description;
   final String? imageUrl;
@@ -213,7 +221,7 @@ class NotificationPost {
     }
 
     return NotificationPost(
-      postId: json['post_id'] as int? ?? 0,
+      postId: (json['post_uuid'] ?? json['post_id'] ?? json['id'] ?? '').toString(),
       title: json['title'] as String? ?? '',
       description: json['description'] as String? ?? '',
       imageUrl: json['image_url'] as String?,
@@ -222,7 +230,7 @@ class NotificationPost {
           ? rawPollDetails
                 .map(
                   (e) => NotificationPollDetail.fromJson(
-                    e as Map<String, dynamic>,
+                    _asMap(e),
                   ),
                 )
                 .toList()
@@ -241,7 +249,7 @@ class NotificationPost {
 }
 
 class NotificationPollDetail {
-  final int id;
+  final String id;
   final String question;
   final List<NotificationPollOption> options;
   final bool isPolledByCurrentUser;
@@ -255,15 +263,17 @@ class NotificationPollDetail {
 
   factory NotificationPollDetail.fromJson(Map<String, dynamic> json) {
     return NotificationPollDetail(
-      id: json['id'] as int? ?? 0,
+      id: (json['id'] ?? '').toString(),
       question: json['question'] as String? ?? '',
-      options: (json['options'] as List<dynamic>? ?? [])
-          .map(
-            (e) => NotificationPollOption.fromJson(e as Map<String, dynamic>),
-          )
-          .toList(),
+      options: (json['options'] is List)
+          ? (json['options'] as List)
+              .map(
+                (e) => NotificationPollOption.fromJson(_asMap(e)),
+              )
+              .toList()
+          : [],
       isPolledByCurrentUser:
-          json['is_polled_by_current_user'] as bool? ?? false,
+          _parseBool(json['is_polled_by_current_user']),
     );
   }
 
@@ -276,7 +286,7 @@ class NotificationPollDetail {
 }
 
 class NotificationPollOption {
-  final int id;
+  final dynamic id;
   final String? text;
   final NotificationPollImage? image;
   final String voteCount;
@@ -303,23 +313,26 @@ class NotificationPollOption {
         : (rawVoteCount as String? ?? '0');
 
     return NotificationPollOption(
-      id: json['id'] as int? ?? 0,
+      id: json['id'],
       text: json['text'] as String?,
       image: json['image'] != null
           ? NotificationPollImage.fromJson(
-              json['image'] as Map<String, dynamic>,
+              _asMap(json['image']),
             )
           : null,
       voteCount: voteCountStr,
-      percentage: (json['percentage'] as num? ?? 0).toDouble(),
-      voters: (json['voters'] as List<dynamic>? ?? [])
-          .map((e) => NotificationPollVoter.fromJson(e as Map<String, dynamic>))
-          .toList(),
-      score: (json['score'] as num? ?? 0).toInt(),
-      rankDistribution:
-          (json['rank_distribution'] as Map<String, dynamic>? ?? {}).map(
-            (k, v) => MapEntry(k, (v as num?)?.toInt() ?? 0),
-          ),
+      percentage: _toDouble(json['percentage']),
+      voters: (json['voters'] is List)
+          ? (json['voters'] as List)
+              .map((e) => NotificationPollVoter.fromJson(_asMap(e)))
+              .toList()
+          : [],
+      score: _toInt(json['score']),
+      rankDistribution: (json['rank_distribution'] is Map)
+          ? (json['rank_distribution'] as Map<dynamic, dynamic>).map(
+              (k, v) => MapEntry(k.toString(), _toInt(v)),
+            )
+          : {},
     );
   }
 
@@ -336,7 +349,7 @@ class NotificationPollOption {
 }
 
 class NotificationPollImage {
-  final int id;
+  final dynamic id;
   final int order;
   final String url;
   final String thumbnailUrl;
@@ -350,8 +363,8 @@ class NotificationPollImage {
 
   factory NotificationPollImage.fromJson(Map<String, dynamic> json) {
     return NotificationPollImage(
-      id: json['id'] as int? ?? 0,
-      order: json['order'] as int? ?? 0,
+      id: json['id'],
+      order: _toInt(json['order']),
       url: json['url'] as String? ?? '',
       thumbnailUrl: json['thumbnail_url'] as String? ?? '',
     );
@@ -366,7 +379,7 @@ class NotificationPollImage {
 }
 
 class NotificationPollVoter {
-  final int id;
+  final dynamic id;
   final String username;
   final String firstName;
   final String lastName;
@@ -382,7 +395,7 @@ class NotificationPollVoter {
 
   factory NotificationPollVoter.fromJson(Map<String, dynamic> json) {
     return NotificationPollVoter(
-      id: json['id'] as int? ?? 0,
+      id: json['id'],
       username: json['username'] as String? ?? '',
       firstName: json['first_name'] as String? ?? '',
       lastName: json['last_name'] as String? ?? '',
@@ -404,15 +417,15 @@ class NotificationMeta {
   final String type;
   final String? title;
   final String? sender;
-  final int? postId;
-  final int? senderId;
-  final int? chatId;
+  final dynamic postId;
+  final dynamic senderId;
+  final dynamic chatId;
   final String? commentText;
   final String? messagePreview;
   final String? groupName;
   final int count;
   final List<dynamic> secondaryUsers;
-  final int? requestId;
+  final dynamic requestId;
 
   NotificationMeta({
     this.body,
@@ -441,15 +454,15 @@ class NotificationMeta {
       type: json['type'] as String? ?? '',
       title: json['title'] as String?,
       sender: json['sender'] as String?,
-      postId: json['post_id'] as int?,
-      senderId: json['sender_id'] as int?,
-      chatId: json['chat_id'] as int?,
+      postId: json['post_id'],
+      senderId: json['sender_id'],
+      chatId: json['chat_id'],
       commentText: json['comment_text'] as String?,
       messagePreview: json['message_preview'] as String?,
       groupName: json['group_name'] as String?,
       count: parsedCount,
-      secondaryUsers: json['secondary_users'] as List<dynamic>? ?? [],
-      requestId: json['request_id'] as int?,
+      secondaryUsers: json['secondary_users'] is List ? (json['secondary_users'] as List) : [],
+      requestId: json['request_id'],
     );
   }
 
@@ -468,4 +481,34 @@ class NotificationMeta {
     'secondary_users': secondaryUsers,
     if (requestId != null) 'request_id': requestId,
   };
+}
+
+int _toInt(dynamic value, {int defaultValue = 0}) {
+  if (value == null) return defaultValue;
+  if (value is int) return value;
+  if (value is String) return int.tryParse(value) ?? defaultValue;
+  return int.tryParse(value.toString()) ?? defaultValue;
+}
+
+double _toDouble(dynamic value, {double defaultValue = 0.0}) {
+  if (value == null) return defaultValue;
+  if (value is double) return value;
+  if (value is int) return value.toDouble();
+  if (value is String) return double.tryParse(value) ?? defaultValue;
+  return double.tryParse(value.toString()) ?? defaultValue;
+}
+
+bool _parseBool(dynamic value) {
+  if (value == null) return false;
+  if (value is bool) return value;
+  if (value is int) return value == 1;
+  if (value is String) return value.toLowerCase() == 'true' || value == '1';
+  return false;
+}
+
+Map<String, dynamic> _asMap(dynamic value) {
+  if (value is Map) {
+    return value.map((key, val) => MapEntry(key.toString(), val));
+  }
+  return const {};
 }

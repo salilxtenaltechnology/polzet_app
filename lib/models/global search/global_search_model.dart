@@ -1,4 +1,6 @@
 // global_search_model.dart
+import '../../api/api_config.dart';
+
 class GlobalSearchModel {
   final bool success;
   final String query;
@@ -31,7 +33,7 @@ class GlobalSearchData {
   final List<SearchPost> posts;
   final List<SearchPhoto> photos;
   final List<SearchHashtag> hashtags;
-  final List<dynamic> places;
+  final List<SearchPlace> places;
 
   GlobalSearchData({
     required this.accounts,
@@ -42,33 +44,47 @@ class GlobalSearchData {
   });
 
   factory GlobalSearchData.fromJson(Map<String, dynamic> json) {
+    final List<SearchAccount> accounts = (json['accounts'] as List<dynamic>? ?? [])
+        .map((e) => SearchAccount.fromJson(e))
+        .toList();
+
+    final List<SearchPost> posts = (json['posts'] as List<dynamic>? ?? [])
+        .map((e) => SearchPost.fromJson(e))
+        .toList();
+
+    final List<SearchPhoto> photos = (json['photos'] as List<dynamic>? ?? [])
+        .map((e) => SearchPhoto.fromJson(e))
+        .toList();
+
+    final List<SearchHashtag> hashtags = (json['hashtags'] as List<dynamic>? ?? [])
+        .map((e) => SearchHashtag.fromJson(e))
+        .toList();
+
+    final List<SearchPlace> places = (json['places'] as List<dynamic>? ?? [])
+        .map((e) => SearchPlace.fromJson(e as Map<String, dynamic>))
+        .toList();
+
     return GlobalSearchData(
-      accounts: (json['accounts'] as List<dynamic>? ?? [])
-          .map((e) => SearchAccount.fromJson(e))
-          .toList(),
-      posts: (json['posts'] as List<dynamic>? ?? [])
-          .map((e) => SearchPost.fromJson(e))
-          .toList(),
-      photos: (json['photos'] as List<dynamic>? ?? [])
-          .map((e) => SearchPhoto.fromJson(e))
-          .toList(),
-      hashtags: (json['hashtags'] as List<dynamic>? ?? [])
-          .map((e) => SearchHashtag.fromJson(e))
-          .toList(),
-      places: json['places'] ?? [],
+      accounts: accounts,
+      posts: posts,
+      photos: photos,
+      hashtags: hashtags,
+      places: places,
     );
   }
 }
 
 /* ─── Account ─────*/
 class SearchAccount {
-  final int id;
+  final String id;
   final String username;
   final String fullName;
   final String? profileImage;
   final bool isVerified;
   final int followersCount;
   final bool isFollowing;
+  final String followStatus;
+  final bool isPrivate;
 
   SearchAccount({
     required this.id,
@@ -78,82 +94,206 @@ class SearchAccount {
     required this.isVerified,
     required this.followersCount,
     required this.isFollowing,
+    this.followStatus = 'none',
+    this.isPrivate = false,
   });
 
   factory SearchAccount.fromJson(Map<String, dynamic> json) {
+    final String parsedId = (json['user_id'] ?? json['id'] ?? '').toString();
+    final String firstName = json['first_name'] ?? '';
+    final String lastName = json['last_name'] ?? '';
+    final String calculatedFullName = json['fullName'] ?? 
+        (firstName.isNotEmpty ? '$firstName $lastName'.trim() : '');
+    final String? profileImg = json['profileImage'] ?? json['avatar_url'];
+    final String status = json['follow_status'] ?? 'none';
+    final bool following = json['isFollowing'] ?? 
+        (status == 'following' || status == 'both');
+
     return SearchAccount(
-      id: json['id'] ?? 0,
+      id: parsedId,
       username: json['username'] ?? '',
-      fullName: json['fullName'] ?? '',
-      profileImage: json['profileImage'],
+      fullName: calculatedFullName,
+      profileImage: profileImg,
       isVerified: json['isVerified'] ?? false,
       followersCount: json['followersCount'] ?? 0,
-      isFollowing: json['isFollowing'] ?? false,
+      isFollowing: following,
+      followStatus: status,
+      isPrivate: json['is_private'] ?? false,
     );
   }
 }
 
 /* ─── Post ─────*/
 class SearchPost {
-  final int id;
-  final String title;
-  final String caption;
+  final String id;
+  final String description;
   final String createdAt;
-  final String? locationName;
   final SearchPostAuthor author;
-  final String postType;
-  final String? thumbnail;
+  final List<SearchPostPoll> polls;
+  final int likesCount;
+  final int commentsCount;
+  final int sharesCount;
+  final bool isLikedByCurrentUser;
+  final String followingStatus;
 
   SearchPost({
     required this.id,
-    required this.title,
-    required this.caption,
+    required this.description,
     required this.createdAt,
-    this.locationName,
     required this.author,
-    required this.postType,
-    this.thumbnail,
+    required this.polls,
+    required this.likesCount,
+    required this.commentsCount,
+    required this.sharesCount,
+    required this.isLikedByCurrentUser,
+    required this.followingStatus,
   });
+
+  String get caption => description;
+  String get title => description;
+
+  String? get thumbnail {
+    for (final poll in polls) {
+      for (final option in poll.options) {
+        if (option.image != null) {
+          final String rawUrl = option.image!.thumbnailUrl.isNotEmpty
+              ? option.image!.thumbnailUrl
+              : option.image!.url;
+          if (rawUrl.isEmpty) continue;
+          return rawUrl.startsWith('http')
+              ? rawUrl
+              : '${ApiConfig.baseUrlImage}$rawUrl';
+        }
+      }
+    }
+    return null;
+  }
 
   factory SearchPost.fromJson(Map<String, dynamic> json) {
     return SearchPost(
-      id: json['id'] ?? 0,
-      title: json['title'] ?? '',
-      caption: json['caption'] ?? '',
-      createdAt: json['createdAt'] ?? '',
-      locationName: json['location_name'],
-      author: SearchPostAuthor.fromJson(json['author'] ?? {}),
-      postType: json['postType'] ?? '',
-      thumbnail: json['thumbnail'],
+      id: json['id'] ?? '',
+      description: json['description'] ?? '',
+      createdAt: json['created_at'] ?? '',
+      author: SearchPostAuthor.fromJson(json['author'] ?? json['user'] ?? {}),
+      polls: (json['polls'] as List<dynamic>? ?? [])
+          .map((e) => SearchPostPoll.fromJson(e as Map<String, dynamic>))
+          .toList(),
+      likesCount: json['likes_count'] as int? ?? 0,
+      commentsCount: json['comments_count'] as int? ?? 0,
+      sharesCount: json['shares_count'] as int? ?? 0,
+      isLikedByCurrentUser: json['is_liked_by_current_user'] ?? false,
+      followingStatus: json['following_status'] ?? 'none',
     );
   }
 }
 
 class SearchPostAuthor {
-  final int id;
+  final String id;
   final String username;
+  final String firstName;
+  final String lastName;
   final String? profileImage;
 
   SearchPostAuthor({
     required this.id,
     required this.username,
+    required this.firstName,
+    required this.lastName,
     this.profileImage,
   });
 
   factory SearchPostAuthor.fromJson(Map<String, dynamic> json) {
     return SearchPostAuthor(
-      id: json['id'] ?? 0,
+      id: (json['id'] ?? json['userid'] ?? '').toString(),
       username: json['username'] ?? '',
-      profileImage: json['profileImage'],
+      firstName: json['first_name'] ?? '',
+      lastName: json['last_name'] ?? '',
+      profileImage: json['profileImage'] ?? json['profile_image'],
+    );
+  }
+}
+
+class SearchPostPoll {
+  final String id;
+  final String question;
+  final List<SearchPostPollOption> options;
+  final bool isPolledByCurrentUser;
+
+  SearchPostPoll({
+    required this.id,
+    required this.question,
+    required this.options,
+    required this.isPolledByCurrentUser,
+  });
+
+  factory SearchPostPoll.fromJson(Map<String, dynamic> json) {
+    return SearchPostPoll(
+      id: (json['id'] ?? '').toString(),
+      question: json['question'] ?? '',
+      options: (json['options'] as List<dynamic>? ?? [])
+          .map((e) => SearchPostPollOption.fromJson(e as Map<String, dynamic>))
+          .toList(),
+      isPolledByCurrentUser: json['is_polled_by_current_user'] ?? false,
+    );
+  }
+}
+
+class SearchPostPollOption {
+  final dynamic id;
+  final String? text;
+  final SearchPostPollImage? image;
+  final String voteCount;
+  final double percentage;
+
+  SearchPostPollOption({
+    required this.id,
+    this.text,
+    this.image,
+    required this.voteCount,
+    required this.percentage,
+  });
+
+  factory SearchPostPollOption.fromJson(Map<String, dynamic> json) {
+    return SearchPostPollOption(
+      id: json['id'],
+      text: json['text'] as String?,
+      image: json['image'] != null
+          ? SearchPostPollImage.fromJson(json['image'] as Map<String, dynamic>)
+          : null,
+      voteCount: json['vote_count']?.toString() ?? '0',
+      percentage: (json['percentage'] as num?)?.toDouble() ?? 0.0,
+    );
+  }
+}
+
+class SearchPostPollImage {
+  final dynamic id;
+  final String url;
+  final String thumbnailUrl;
+  final int order;
+
+  SearchPostPollImage({
+    required this.id,
+    required this.url,
+    required this.thumbnailUrl,
+    required this.order,
+  });
+
+  factory SearchPostPollImage.fromJson(Map<String, dynamic> json) {
+    return SearchPostPollImage(
+      id: json['id'],
+      url: json['url'] ?? '',
+      thumbnailUrl: json['thumbnail_url'] ?? '',
+      order: json['order'] as int? ?? 0,
     );
   }
 }
 
 /* ─── Photo ─────*/
 class SearchPhoto {
-  final int id;
+  final String id;
   final String imageUrl;
-  final int postId;
+  final String postId;
   final SearchPhotoAuthor author;
 
   SearchPhoto({
@@ -165,23 +305,23 @@ class SearchPhoto {
 
   factory SearchPhoto.fromJson(Map<String, dynamic> json) {
     return SearchPhoto(
-      id: json['id'] ?? 0,
-      imageUrl: json['imageUrl'] ?? '',
-      postId: json['postId'] ?? 0,
-      author: SearchPhotoAuthor.fromJson(json['author'] ?? {}),
+      id: (json['id'] ?? json['image_id'] ?? '').toString(),
+      imageUrl: json['imageUrl'] ?? json['image_url'] ?? json['url'] ?? '',
+      postId: (json['postId'] ?? json['post_id'] ?? '').toString(),
+      author: SearchPhotoAuthor.fromJson(json['author'] ?? json['user'] ?? {'username': 'user'}),
     );
   }
 }
 
 class SearchPhotoAuthor {
-  final int id;
+  final String id;
   final String username;
 
   SearchPhotoAuthor({required this.id, required this.username});
 
   factory SearchPhotoAuthor.fromJson(Map<String, dynamic> json) {
     return SearchPhotoAuthor(
-      id: json['id'] ?? 0,
+      id: (json['id'] ?? json['user_id'] ?? '').toString(),
       username: json['username'] ?? '',
     );
   }
@@ -189,7 +329,7 @@ class SearchPhotoAuthor {
 
 /* ─── Hastags ─────*/
 class SearchHashtag {
-  final int id;
+  final dynamic id;
   final String tag;
   final int postsCount;
 
@@ -201,9 +341,9 @@ class SearchHashtag {
 
   factory SearchHashtag.fromJson(Map<String, dynamic> json) {
     return SearchHashtag(
-      id: json['id'] ?? 0,
-      tag: json['tag'] ?? '',
-      postsCount: json['postsCount'] ?? 0,
+      id: json['id'],
+      tag: json['tag'] ?? json['name'] ?? '',
+      postsCount: json['postsCount'] ?? json['posts_count'] ?? 0,
     );
   }
 }
@@ -225,6 +365,19 @@ class SearchPagination {
       page: json['page'] ?? 1,
       limit: json['limit'] ?? 10,
       hasNext: json['hasNext'] ?? false,
+    );
+  }
+}
+
+/* ─── Place ─────*/
+class SearchPlace {
+  final String name;
+
+  SearchPlace({required this.name});
+
+  factory SearchPlace.fromJson(Map<String, dynamic> json) {
+    return SearchPlace(
+      name: json['name'] ?? '',
     );
   }
 }

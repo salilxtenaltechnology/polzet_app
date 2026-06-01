@@ -8,7 +8,9 @@ import 'package:flutter/material.dart';
 import '../../../../../api/api_config.dart';
 import '../../../../../api/services/api_service.dart';
 import '../../../../../core/constants/app_radius.dart';
+import '../../../../../core/themes/app_text_colors.dart';
 import '../../../../../core/themes/app_text_styles.dart';
+import '../../../../../languages/l10n/generated/app_localizations.dart';
 import '../../../../../models/public/public_profile_model.dart';
 import '../../../../../widgets/appbar/common_appbar.dart';
 import '../../../../../widgets/loader.dart';
@@ -108,7 +110,7 @@ class _PublicUserImageRankingState extends State<PublicUserImageRanking> {
             builder: (_) => RankSubmittedScreen(
               nextScreen: ImageResultScreen(
                 username: widget.post.user,
-                postId: widget.post.id,
+                postId: widget.post.id.toString(),
               ),
             ),
           ),
@@ -133,36 +135,41 @@ class _PublicUserImageRankingState extends State<PublicUserImageRanking> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Theme.of(context).colorScheme.background,
-      appBar: const CommonAppBar(title: 'Rank your choices'),
-      body: Column(
-        children: [
-          Expanded(
-            child: ReorderableListView.builder(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
-              proxyDecorator: _proxyDecorator,
-              onReorder: _onReorder,
-              buildDefaultDragHandles: false,
-              header: _buildPostHeader(),
-              itemCount: _orderedImages.length,
-              itemBuilder: (context, index) {
-                final option = _orderedImages[index];
-                return _UserRankImageCard(
-                  key: ValueKey(option.id),
-                  option: option,
-                  rank: _hasRanked ? index + 1 : null,
-                  allImages: _orderedImages,
-                  index: index,
-                );
-              },
+    return SafeArea(
+      top: false,
+      child: Scaffold(
+        backgroundColor: Theme.of(context).colorScheme.background,
+        appBar: CommonAppBar(
+          title: AppLocalizations.of(context)!.rankyourchoices,
+        ),
+        body: Column(
+          children: [
+            Expanded(
+              child: ReorderableListView.builder(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
+                proxyDecorator: _proxyDecorator,
+                onReorder: _onReorder,
+                buildDefaultDragHandles: false,
+                header: _buildPostHeader(),
+                itemCount: _orderedImages.length,
+                itemBuilder: (context, index) {
+                  final option = _orderedImages[index];
+                  return _UserRankImageCard(
+                    key: ValueKey(option.id),
+                    option: option,
+                    rank: _hasRanked ? index + 1 : null,
+                    allImages: _orderedImages,
+                    index: index,
+                  );
+                },
+              ),
             ),
-          ),
-        ],
-      ),
-      bottomNavigationBar: Padding(
-        padding: const EdgeInsets.fromLTRB(22, 5, 22, 35),
-        child: _buildSubmitButton(),
+          ],
+        ),
+        bottomNavigationBar: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 5, 16, 35),
+          child: _buildSubmitButton(),
+        ),
       ),
     );
   }
@@ -179,6 +186,7 @@ class _PublicUserImageRankingState extends State<PublicUserImageRanking> {
   }
 
   Widget _buildPostHeader() {
+    final txt = AppTextColors.of(context);
     final username = widget.post.user;
     final initial = username.isNotEmpty ? username[0].toUpperCase() : '?';
 
@@ -194,7 +202,7 @@ class _PublicUserImageRankingState extends State<PublicUserImageRanking> {
                 radius: 20,
                 backgroundColor: Theme.of(
                   context,
-                ).colorScheme.primary.withOpacity(0.15),
+                ).colorScheme.onPrimary.withOpacity(0.1),
                 backgroundImage: _profileImageBytes != null
                     ? MemoryImage(_profileImageBytes!)
                     : null,
@@ -202,7 +210,9 @@ class _PublicUserImageRankingState extends State<PublicUserImageRanking> {
                     ? Text(
                         initial,
                         style: AppTextStyles.cardTitle.copyWith(
-                          color: Theme.of(context).colorScheme.primary,
+                          color: Theme.of(context).colorScheme.onPrimary,
+                          fontWeight: FontWeight.w500,
+                          fontSize: 18,
                         ),
                       )
                     : null,
@@ -216,7 +226,7 @@ class _PublicUserImageRankingState extends State<PublicUserImageRanking> {
                       '${widget.firstName ?? ''} ${widget.lastName ?? ''}'
                           .trim(),
                       style: AppTextStyles.sectionHeading.copyWith(
-                        color: const Color(0XFF2C2C2C),
+                        color: txt.title,
                         fontSize: 14,
                       ),
                     ),
@@ -227,13 +237,13 @@ class _PublicUserImageRankingState extends State<PublicUserImageRanking> {
                           style: AppTextStyles.bodyText.copyWith(
                             fontSize: 12,
                             fontWeight: FontWeight.w500,
-                            color: const Color(0XFF595959),
+                            color: txt.body,
                           ),
                         ),
                         Text(
                           '  • ${_timeAgo(widget.post.createdAt)}',
                           style: AppTextStyles.subText.copyWith(
-                            color: const Color(0xFF898989),
+                            color: txt.muted,
                             fontWeight: FontWeight.w400,
                             fontSize: 12,
                           ),
@@ -243,7 +253,6 @@ class _PublicUserImageRankingState extends State<PublicUserImageRanking> {
                   ],
                 ),
               ),
-              const Icon(Icons.more_vert, size: 20, color: Color(0xFF727272)),
             ],
           ),
 
@@ -256,15 +265,15 @@ class _PublicUserImageRankingState extends State<PublicUserImageRanking> {
               style: AppTextStyles.bodyText.copyWith(
                 fontSize: 15,
                 fontWeight: FontWeight.w500,
-                color: const Color(0xFF111111),
+                color: Theme.of(context).colorScheme.onBackground,
               ),
             ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 7),
           Text(
-            'Hold & drag to rank image',
+            AppLocalizations.of(context)!.holdanddragtorankimage,
             style: AppTextStyles.subText.copyWith(
               fontSize: 13,
-              color: const Color(0xFF898989),
+              color: txt.muted,
             ),
           ),
           const SizedBox(height: 12),
@@ -357,7 +366,7 @@ class _UserRankImageCard extends StatelessWidget {
               child: Container(
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(AppRadius.card),
-                  border: Border.all(color: const Color(0xFFDDDDDD), width: 1),
+                  color: Theme.of(context).colorScheme.outlineVariant,
                 ),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(AppRadius.card),
@@ -397,13 +406,9 @@ class _UserRankImageCard extends StatelessWidget {
                 child: Container(
                   width: 28,
                   height: 28,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFB82B53),
+                  decoration: const BoxDecoration(
+                    color: Color(0xFFB82B53),
                     shape: BoxShape.circle,
-                    border: Border.all(
-                      color: Theme.of(context).colorScheme.background,
-                      width: 1.5,
-                    ),
                   ),
                   alignment: Alignment.center,
                   child: Text(
@@ -411,7 +416,7 @@ class _UserRankImageCard extends StatelessWidget {
                     style: AppTextStyles.subText.copyWith(
                       color: Colors.white,
                       fontWeight: FontWeight.w600,
-                      fontSize: 11,
+                      fontSize: 12,
                     ),
                   ),
                 ),

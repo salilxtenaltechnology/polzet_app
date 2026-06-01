@@ -1728,4 +1728,347 @@ class AppLocalizationsVi extends AppLocalizations {
 
   @override
   String get passworddonotmatch => 'Mật khẩu không khớp';
+
+  @override
+  String get home => 'Trang chủ';
+
+  @override
+  String get profile => 'Hồ sơ';
+
+  @override
+  String get chats => 'Trò chuyện';
+
+  @override
+  String get groups => 'Nhóm';
+
+  @override
+  String get shareprofile => 'Chia sẻ hồ sơ';
+
+  @override
+  String get images => 'hình ảnh';
+
+  @override
+  String get nothingsavedyet => 'Chưa có gì được lưu';
+
+  @override
+  String get savedpollsyouwanttorevisitlater =>
+      'Các cuộc thăm dò đã lưu mà bạn muốn xem lại sau.';
+
+  @override
+  String get nothingspollyet => 'Chưa có cuộc thăm dò nào';
+
+  @override
+  String get createyourfirstpollandstartgatheringopinions =>
+      'Tạo cuộc thăm dò đầu tiên và bắt đầu thu thập ý kiến.';
+
+  @override
+  String get noimagepollyet => 'Chưa có cuộc thăm dò hình ảnh';
+
+  @override
+  String get submitranking => 'Gửi xếp hạng';
+
+  @override
+  String get rankyourchoices => 'Xếp hạng lựa chọn của bạn';
+
+  @override
+  String get holdanddragtorankimage => 'Giữ và kéo để xếp hạng hình ảnh';
+
+  @override
+  String get holdanddragtorankanswer => 'Giữ và kéo để xếp hạng câu trả lời';
+
+  @override
+  String get stayactiveandsharepollstobuildyourcommunity =>
+      'Hãy năng động và chia sẻ các cuộc thăm dò để xây dựng cộng đồng';
+
+  @override
+  String get askopinionsandgetanswers => 'Hỏi ý kiến và nhận câu trả lời';
+
+  @override
+  String get updateyourpasswordandsecureyouraccount =>
+      'Cập nhật mật khẩu và bảo mật tài khoản của bạn';
+
+  @override
+  String get controlwhocanviewyouractivityandpolls =>
+      'Kiểm soát ai có thể xem hoạt động và cuộc thăm dò của bạn';
+
+  @override
+  String get managepeopleyouveblockedonpolzet =>
+      'Quản lý những người bạn đã chặn trên Polzet';
+
+  @override
+  String get preferences => 'Tùy chọn';
+
+  @override
+  String get choosewhatupdatesandalertsyouwanttoreceive =>
+      'Chọn các cập nhật và cảnh báo bạn muốn nhận';
+
+  @override
+  String get chooseyourpreferredapplanguage =>
+      'Chọn ngôn ngữ ứng dụng ưa thích của bạn';
+
+  @override
+  String get gethelpwithyouraccount => 'Nhận trợ giúp về tài khoản của bạn';
+
+  @override
+  String get shareyourthoughtsandhelpimprovepolzet =>
+      'Chia sẻ suy nghĩ của bạn và giúp cải thiện Polzet.';
+
+  @override
+  String get readtherulesandguidelinesforusingpolzet =>
+      'Đọc các quy tắc và hướng dẫn sử dụng Polzet.';
+
+  @override
+  String get continueButton => 'Tiếp tục';
+
+  @override
+  String get currentpasswordisrequired => 'Mật khẩu hiện tại là bắt buộc.';
+
+  @override
+  String get newpasswordisrequired => 'Mật khẩu mới là bắt buộc.';
+
+  @override
+  String get mustbeeightpluscharacterswithaletternumberandspecialcharacter =>
+      'Phải có 8+ ký tự bao gồm chữ cái, số và ký tự đặc biệt.';
+
+  @override
+  String get pleaseconfirmyournewpassword =>
+      'Vui lòng xác nhận mật khẩu mới của bạn.';
+
+  @override
+  String get passwordsdonotmatch => 'Mật khẩu không khớp.';
+
+  @override
+  String get pushnotification => 'Thông báo đẩy';
+
+  @override
+  String get receivealertandupdatesacrosspolzet =>
+      'Nhận cảnh báo và cập nhật trên Polzet.';
+
+  @override
+  String get pollactivity => 'Hoạt động thăm dò';
+
+  @override
+  String get commentsandreplies => 'Bình luận & Trả lời';
+
+  @override
+  String get socialactivity => 'Hoạt động xã hội';
+
+  @override
+  String get searchaccountspostsplaces =>
+      'Tìm kiếm tài khoản, bài viết, địa điểm…';
+
+  @override
+  String get norecentsearches => 'Không có tìm kiếm gần đây';
+
+  @override
+  String get tryanotherkeywordorexploretrendingpolls =>
+      'Thử từ khóa khác hoặc khám phá các cuộc thăm dò thịnh hành.';
+
+  @override
+  String get searching => 'Đang tìm kiếm...';
+
+  @override
+  String get notfound => 'Không tìm thấy';
+
+  @override
+  String get accounts => 'Tài khoản';
+
+  @override
+  String get accountslower => 'tài khoản';
+
+  @override
+  String get trysearchingwithadifferentusernameorkeyword =>
+      'Hãy thử tìm kiếm với tên người dùng hoặc từ khóa khác.';
+
+  @override
+  String get tags => 'Thẻ';
+
+  @override
+  String get tag => 'thẻ';
+
+  @override
+  String get no => 'Không có';
+
+  @override
+  String get found => 'tìm thấy';
+
+  @override
+  String get post => 'bài viết';
+
+  @override
+  String get exploretrendingconversationsortryanothersearch =>
+      'Khám phá các cuộc trò chuyện thịnh hành hoặc thử tìm kiếm khác.';
+
+  @override
+  String get photoslower => 'ảnh';
+
+  @override
+  String get wecouldnotfindanymatchingphotos =>
+      'Không tìm thấy ảnh phù hợp nào.';
+
+  @override
+  String get trysearchingforanothertopicorkeyword =>
+      'Hãy thử tìm kiếm chủ đề hoặc từ khóa khác.';
+
+  @override
+  String get today => 'Hôm nay';
+
+  @override
+  String get yesterday => 'Hôm qua';
+
+  @override
+  String get lastsavendays => '7 ngày qua';
+
+  @override
+  String get lastthirtydays => '30 ngày qua';
+
+  @override
+  String get older => 'Cũ hơn';
+
+  @override
+  String get clearallnotifications => 'Xóa tất cả thông báo';
+
+  @override
+  String get areyousureyouwanttoclearallnotifications =>
+      'Bạn có chắc muốn xóa tất cả thông báo không?';
+
+  @override
+  String get yesclearall => 'Có, xóa tất cả';
+
+  @override
+  String get deletenotifications => 'Xóa thông báo';
+
+  @override
+  String get areyousureyouwanttodeletethesenotifications =>
+      'Bạn có chắc muốn xóa các thông báo này không?';
+
+  @override
+  String get thisoinwillbeusedtosecureyouraccount =>
+      'Mã PIN này sẽ được dùng để bảo mật tài khoản của bạn';
+
+  @override
+  String get changeoin => 'Đổi mã PIN';
+
+  @override
+  String get likedby => 'Được thích bởi';
+
+  @override
+  String get bethefirsttostarttheconversation =>
+      'Hãy là người đầu tiên bắt đầu cuộc trò chuyện';
+
+  @override
+  String get suggestedforyou => 'Gợi ý cho bạn';
+
+  @override
+  String get pollresult => 'Kết quả thăm dò';
+
+  @override
+  String get totalvotes => 'Tổng số phiếu';
+
+  @override
+  String get saved => 'Đã lưu';
+
+  @override
+  String get screenshotsoptional => 'Ảnh chụp màn hình (Tùy chọn)';
+
+  @override
+  String get nomessagesyet => 'Chưa có tin nhắn';
+
+  @override
+  String get nonotificationsyet => 'Chưa có thông báo';
+
+  @override
+  String get likescommentsandupdateswillappearhere =>
+      'Lượt thích, bình luận và cập nhật sẽ xuất hiện ở đây.';
+
+  @override
+  String get votesupdateswillappearhere =>
+      'Cập nhật phiếu bầu sẽ xuất hiện ở đây.';
+
+  @override
+  String get chaserequestsupdateswillappearhere =>
+      'Cập nhật yêu cầu Chase sẽ xuất hiện ở đây.';
+
+  @override
+  String get startchattingbysharingpollsorreactingtoconversations =>
+      'Bắt đầu trò chuyện bằng cách chia sẻ cuộc thăm dò hoặc phản hồi\ncác cuộc trò chuyện.';
+
+  @override
+  String get doyouwanttochangeyourcurrentpin =>
+      'Bạn có muốn thay đổi mã PIN hiện tại không?';
+
+  @override
+  String get top => 'Hàng đầu';
+
+  @override
+  String get searchvoters => 'Tìm kiếm cử tri';
+
+  @override
+  String get fingerprint => 'Dấu vân tay';
+
+  @override
+  String get enablefingerprint => 'Bật dấu vân tay';
+
+  @override
+  String get unlocktheappfasterandmoresecurelybyusingyourfingerprint =>
+      'Mở khóa ứng dụng nhanh hơn và an toàn hơn\nbằng cách sử dụng dấu vân tay của bạn';
+
+  @override
+  String get thisaccountisprivate => 'Tài khoản này ở chế độ riêng tư';
+
+  @override
+  String get chasethisaccounttoseetheirposts =>
+      'Theo dõi tài khoản này để xem bài đăng của họ.';
+
+  @override
+  String get online => 'Trực tuyến';
+
+  @override
+  String get offline => 'Ngoại tuyến';
+
+  @override
+  String get startchasingpeopletodiscoverfreshopinionsthenwillappearusershere =>
+      'Bắt đầu theo dõi mọi người để khám phá ý kiến mới\nsau đó người dùng sẽ xuất hiện ở đây';
+
+  @override
+  String get selectyourdateofbirth => 'Chọn ngày sinh của bạn';
+
+  @override
+  String get selected => 'Đã chọn';
+
+  @override
+  String get chasing => 'Đang theo dõi';
+
+  @override
+  String get chaseback => 'Theo dõi lại';
+
+  @override
+  String get requested => 'Đã yêu cầu';
+
+  @override
+  String get usefingerprint => 'Dùng dấu vân tay';
+
+  @override
+  String get novotersfound => 'Không tìm thấy cử tri';
+
+  @override
+  String get permanentlydeleteyourpolzetaccountandalldata =>
+      'Xóa vĩnh viễn tài khoản Polzet và toàn bộ dữ liệu của bạn';
+
+  @override
+  String get unblockuser => 'Bỏ chặn người dùng';
+
+  @override
+  String get blockuser => 'Chặn người dùng';
+
+  @override
+  String get areyousureyouwanttounblockthisuser =>
+      'Bạn có chắc muốn bỏ chặn người dùng này không?';
+
+  @override
+  String get areyousureyouwanttoblockthisuser =>
+      'Bạn có chắc muốn chặn người dùng này không?';
+
+  @override
+  String get nopostsavailable => 'Không có bài đăng nào';
 }

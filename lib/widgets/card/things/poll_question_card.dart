@@ -39,15 +39,15 @@ class ThingsQustionsCard extends StatefulWidget {
   });
 
   final UserPostModel post;
-  final Function(int postId) onDelete;
-  final Function(int postId, bool isLiked, int likesCount) onLikeChanged;
-  final Function(int postId, int commentsCount) onCommentsChanged;
+  final Function(dynamic postId) onDelete;
+  final Function(dynamic postId, bool isLiked, int likesCount) onLikeChanged;
+  final Function(dynamic postId, int commentsCount) onCommentsChanged;
   final VoidCallback onCommentsIconTap;
   final bool? currentLikeState;
   final int? currentLikesCount;
   final int? currentCommentsCount;
   final List<LikeUser>? currentLikedUsers;
-  final Function(int postId, List<LikeUser> users)? onLikedUsersUpdated;
+  final Function(dynamic postId, List<LikeUser> users)? onLikedUsersUpdated;
   String? username;
   String? profileImage;
   final Map<int, double> localPercentages;
@@ -55,7 +55,7 @@ class ThingsQustionsCard extends StatefulWidget {
   final Function(Map<int, double> updated) onPercentagesUpdated;
   final Function(String pollKey, bool polled) onPollPolledStateChanged;
   final VoidCallback? onVoteSuccess;
-  final Function(UserPollQuestion poll, int postId) onViewVotesTap;
+  final Function(UserPollQuestion poll, dynamic postId) onViewVotesTap;
   @override
   State<ThingsQustionsCard> createState() => _ThingsQustionsCardState();
 }
@@ -63,17 +63,13 @@ class ThingsQustionsCard extends StatefulWidget {
 class _ThingsQustionsCardState extends State<ThingsQustionsCard> {
   late final LikeService likeService = LikeService();
 
-  // Local state for optimistic updates
   late bool isLiked;
   late int likesCount;
   late int commentsCount;
   late List<LikeUser> likedUsers;
 
-  // Poll selection state - mirrors HomeFeedPostCard logic
-  // Key: pollId.toString(), Value: ordered list of selected option indices
   Map<String, List<int>> selectedOptions = {};
   Map<String, bool> pollVotingStates = {};
-  // Track is_polled_by_current_user per poll (mutable for optimistic update)
 
   @override
   void initState() {
@@ -440,7 +436,7 @@ class _ThingsQustionsCardState extends State<ThingsQustionsCard> {
         Row(
           children: [
             CircleAvatar(
-              radius: 17,
+              radius: 19,
               backgroundColor: Theme.of(
                 context,
               ).colorScheme.primary.withOpacity(0.15),
@@ -465,15 +461,25 @@ class _ThingsQustionsCardState extends State<ThingsQustionsCard> {
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  widget.username ?? '',
-                  style: TextStyle(
-                    fontSize: 11.sp,
-                    fontWeight: FontWeight.w600,
-                    color: Theme.of(context).colorScheme.onBackground,
-                  ),
-                ),
-                Text(
+                 Text(
+                      widget.username ?? '',
+                      style: TextStyle(
+                        fontSize: 11.sp,
+                        fontWeight: FontWeight.w600,
+                        color: Theme.of(context).colorScheme.onBackground,
+                      ),
+                    ),
+                Row(
+                  children: [
+                    Text(
+                      widget.username ?? '',
+                      style: TextStyle(
+                        fontSize: 11.sp,
+                        fontWeight: FontWeight.w600,
+                        color: Theme.of(context).colorScheme.onBackground,
+                      ),
+                    ),
+                    Text(
                   'Placed a post',
                   style: TextStyle(
                     fontSize: 8.8.sp,
@@ -483,6 +489,9 @@ class _ThingsQustionsCardState extends State<ThingsQustionsCard> {
                     fontWeight: FontWeight.w500,
                   ),
                 ),
+                  ],
+                ),
+                
               ],
             ),
             const Spacer(),

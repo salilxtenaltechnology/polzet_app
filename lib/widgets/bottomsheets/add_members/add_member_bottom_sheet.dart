@@ -1,6 +1,6 @@
 // ignore_for_file: deprecated_member_use
 
-import 'package:feather_icons/feather_icons.dart';
+import 'package:polzet_app/core/constants/feather_icons_compat.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
@@ -8,13 +8,15 @@ import '../../../../api/services/api_service.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../mixin/utility_mixins.dart';
 import '../../../../widgets/base64/image_convert.dart';
-import '../../../../widgets/custom_card.dart';
 import '../../../../widgets/custom_text_styles.dart';
 import '../../../core/constants/app_radius.dart';
+import '../../../core/themes/app_text_colors.dart';
+import '../../../core/themes/app_text_styles.dart';
 import '../../../languages/l10n/generated/app_localizations.dart';
+import '../../loader.dart';
 
 class AddMemberBottomSheet extends StatefulWidget {
-  final Set<int> alreadySelected;
+  final Set<String> alreadySelected;
 
   const AddMemberBottomSheet({super.key, this.alreadySelected = const {}});
 
@@ -29,13 +31,13 @@ class _AddMemberBottomSheetState extends State<AddMemberBottomSheet>
 
   List<Map<String, dynamic>> _allUsers = [];
   List<Map<String, dynamic>> _filteredUsers = [];
-  late Set<int> _selectedIds;
+  late Set<String> _selectedIds;
   bool _isLoadingUsers = false;
 
   @override
   void initState() {
     super.initState();
-    _selectedIds = Set<int>.from(widget.alreadySelected);
+    _selectedIds = {};
     _fetchUsers();
     _searchController.addListener(_onSearch);
   }
@@ -54,12 +56,26 @@ class _AddMemberBottomSheetState extends State<AddMemberBottomSheet>
         _apiServices.getFollowingList(),
       ]);
 
-      final seen = <int>{};
+      final seen = <String>{};
       final merged = <Map<String, dynamic>>[];
 
       for (final user in [...results[0], ...results[1]]) {
-        final id = user['id'];
-        if (id is int && seen.add(id)) merged.add(user);
+        final id = user['id']?.toString() ?? '';
+        if (id.isNotEmpty && seen.add(id)) {
+          merged.add(user);
+
+          final username = user['username']?.toString().toLowerCase() ?? '';
+          final name = user['name']?.toString().toLowerCase() ?? user['username']?.toString().toLowerCase() ?? '';
+
+          final bool isAlreadySelected = widget.alreadySelected.any((sel) {
+            final selLower = sel.toLowerCase();
+            return selLower == id || selLower == username || selLower == name;
+          });
+
+          if (isAlreadySelected) {
+            _selectedIds.add(id);
+          }
+        }
       }
 
       if (mounted) {
@@ -86,7 +102,7 @@ class _AddMemberBottomSheetState extends State<AddMemberBottomSheet>
     });
   }
 
-  void _toggleMember(int id) => setState(() {
+  void _toggleMember(String id) => setState(() {
     _selectedIds.contains(id) ? _selectedIds.remove(id) : _selectedIds.add(id);
   });
 
@@ -105,7 +121,7 @@ class _AddMemberBottomSheetState extends State<AddMemberBottomSheet>
 
   void _onAdd() {
     final selectedUsers = _allUsers
-        .where((u) => _selectedIds.contains(u['id']))
+        .where((u) => _selectedIds.contains(u['id']?.toString()))
         .map((u) {
           final normalized = Map<String, dynamic>.from(u);
           normalized['profile_image'] ??=
@@ -124,10 +140,12 @@ class _AddMemberBottomSheetState extends State<AddMemberBottomSheet>
 
   @override
   Widget build(BuildContext context) {
+    final txt = AppTextColors.of(context);
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     return Container(
       height: MediaQuery.of(context).size.height * 0.85,
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.background,
+        color: Theme.of(context).colorScheme.tertiaryContainer,
         borderRadius: const BorderRadius.only(
           topLeft: Radius.circular(AppRadius.modal),
           topRight: Radius.circular(AppRadius.modal),
@@ -151,7 +169,7 @@ class _AddMemberBottomSheetState extends State<AddMemberBottomSheet>
             decoration: BoxDecoration(
               border: Border(
                 bottom: BorderSide(
-                  color: Theme.of(context).colorScheme.outline.withOpacity(0.5),
+                  color: Theme.of(context).colorScheme.outlineVariant,
                   width: 1,
                 ),
               ),
@@ -159,27 +177,22 @@ class _AddMemberBottomSheetState extends State<AddMemberBottomSheet>
             child: Center(
               child: Text(
                 AppLocalizations.of(context)!.addmember,
-                style: CustomTextStyles.bottomsheetTitleTextStyle(context),
+                style: AppTextStyles.sectionHeading.copyWith(color: txt.title),
               ),
             ),
           ),
           Padding(
             padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
             child: Container(
-              height: 34.h,
+              height: 43,
               decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.background,
-                borderRadius: BorderRadius.circular(15.r),
-                boxShadow: const [
-                  BoxShadow(
-                    color: Colors.black12,
-                    blurRadius: 10,
-                    spreadRadius: 3,
-                  ),
-                ],
+                color: isDarkMode ? const Color(0xFF1F1F23) : Colors.white,
+                borderRadius: BorderRadius.circular(AppRadius.button),
               ),
               child: TextField(
                 controller: _searchController,
+                cursorColor: Theme.of(context).colorScheme.onPrimary.withOpacity(0.8),
+              cursorWidth: 1.5,
                 decoration: InputDecoration(
                   contentPadding: EdgeInsets.only(
                     right: 12.w,
@@ -189,31 +202,29 @@ class _AddMemberBottomSheetState extends State<AddMemberBottomSheet>
                   hintText: AppLocalizations.of(context)!.searchusers,
                   hintStyle: CustomTextStyles.lblPrimaryHintText(context),
                   border: InputBorder.none,
-                  suffixIcon: Icon(
+                  prefixIcon: Icon(
                     FeatherIcons.search,
                     size: 17.spMax,
-                    color: Theme.of(context).colorScheme.onBackground,
+                    color: const Color(0XFF898989),
                   ),
                   enabledBorder: OutlineInputBorder(
                     borderSide: BorderSide(
-                      color: Theme.of(
-                        context,
-                      ).colorScheme.onBackground.withOpacity(0.1),
+                      color: Theme.of(context).colorScheme.outline,
                     ),
-                    borderRadius: BorderRadius.circular(15.r),
+                    borderRadius: BorderRadius.circular(9),
                   ),
                   focusedBorder: OutlineInputBorder(
-                    borderSide: const BorderSide(
-                      color: AppColors.primaryColor,
+                    borderSide: BorderSide(
+                      color: Theme.of(context).colorScheme.outline,
                       width: 0.7,
                     ),
-                    borderRadius: BorderRadius.circular(15.r),
+                    borderRadius: BorderRadius.circular(9),
                   ),
                 ),
                 style: TextStyle(
-                  color: Theme.of(context).colorScheme.onBackground,
-                  fontSize: 13.sp,
-                  fontWeight: FontWeight.w400,
+                  color: txt.title,
+                  fontWeight: FontWeight.w500,
+                  fontSize: 14,
                 ),
               ),
             ),
@@ -225,7 +236,7 @@ class _AddMemberBottomSheetState extends State<AddMemberBottomSheet>
             ),
           ),
           Container(
-            color: Theme.of(context).colorScheme.background,
+            color: Theme.of(context).colorScheme.tertiaryContainer,
             padding: EdgeInsets.fromLTRB(12.w, 5.h, 12.w, 16.h),
             child: GestureDetector(
               onTap: _selectedIds.isEmpty ? null : _onAdd,
@@ -236,7 +247,7 @@ class _AddMemberBottomSheetState extends State<AddMemberBottomSheet>
                   color: _selectedIds.isEmpty
                       ? AppColors.primaryColor.withOpacity(0.4)
                       : AppColors.primaryColor,
-                  borderRadius: BorderRadius.circular(50.r),
+                  borderRadius: BorderRadius.circular(AppRadius.button),
                 ),
                 child: Center(
                   child: Text(
@@ -255,26 +266,18 @@ class _AddMemberBottomSheetState extends State<AddMemberBottomSheet>
   }
 
   Widget _buildUserList() {
+    final txt = AppTextColors.of(context);
     if (_isLoadingUsers) {
-      return const Center(child: CircularProgressIndicator());
+      return Center(
+        child: Loader(color: Theme.of(context).colorScheme.onPrimary),
+      );
     }
 
     if (_filteredUsers.isEmpty) {
       return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              FeatherIcons.users,
-              size: 40.sp,
-              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.3),
-            ),
-            SizedBox(height: 10.h),
-            Text(
-              AppLocalizations.of(context)!.nousersfound,
-              style: CustomTextStyles.lblSecondryText(context),
-            ),
-          ],
+        child: Text(
+          AppLocalizations.of(context)!.nousersfound,
+          style: CustomTextStyles.lblSecondryText(context),
         ),
       );
     }
@@ -284,14 +287,28 @@ class _AddMemberBottomSheetState extends State<AddMemberBottomSheet>
       separatorBuilder: (_, __) => SizedBox(height: 8.h),
       itemBuilder: (context, index) {
         final user = _filteredUsers[index];
-        final id = user['id'] as int;
+        final id = user['id']?.toString() ?? '';
         final isSelected = _selectedIds.contains(id);
         final avatarUrl = _userAvatar(user);
 
         return GestureDetector(
           onTap: () => _toggleMember(id),
-          child: CustomCard(
-            widget: Row(
+          child: Container(
+            height: 48,
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 10),
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.primaryContainer,
+              borderRadius: BorderRadius.circular(AppRadius.card),
+              border: Border.all(
+                color: Theme.of(context).colorScheme.outline,
+                width: 1,
+              ),
+              boxShadow: const [
+                BoxShadow(color: Color(0x06000000), blurRadius: 2),
+              ],
+            ),
+            child: Row(
               children: [
                 Builder(
                   builder: (_) {
@@ -300,14 +317,14 @@ class _AddMemberBottomSheetState extends State<AddMemberBottomSheet>
                         : null;
                     final initial = _userName(user).trim().isNotEmpty
                         ? _userName(user).trim()[0].toUpperCase()
-                        : '?';
+                        : 'P';
                     return CircleAvatar(
-                      radius: 15.r,
+                      radius: 13.r,
                       backgroundImage: imageBytes != null
                           ? MemoryImage(imageBytes)
                           : null,
                       backgroundColor: imageBytes == null
-                          ? Theme.of(context).colorScheme.primary
+                          ? Theme.of(context).colorScheme.onPrimary.withOpacity(0.1)
                           : null,
                       child: imageBytes == null
                           ? Text(
@@ -315,7 +332,7 @@ class _AddMemberBottomSheetState extends State<AddMemberBottomSheet>
                               style: TextStyle(
                                 fontSize: 13.sp,
                                 fontWeight: FontWeight.w600,
-                                color: Colors.white,
+                                color: Theme.of(context).colorScheme.onPrimary,
                               ),
                             )
                           : null,
@@ -327,7 +344,7 @@ class _AddMemberBottomSheetState extends State<AddMemberBottomSheet>
                   child: Text(
                     _userName(user),
                     style: TextStyle(
-                      color: Theme.of(context).colorScheme.onBackground,
+                      color: txt.title,
                       fontSize: 11.2.sp,
                       fontWeight: FontWeight.w400,
                     ),

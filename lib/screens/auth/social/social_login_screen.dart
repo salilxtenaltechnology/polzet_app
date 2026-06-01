@@ -1,3 +1,5 @@
+// ignore_for_file: deprecated_member_use
+
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
@@ -5,12 +7,13 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
 import '../../../api/services/google/google_auth_service.dart';
+import '../../../core/themes/app_text_colors.dart';
 import '../../../core/themes/app_text_styles.dart';
 import '../../../gen/assets.gen.dart';
 import '../../../mixin/utility_mixins.dart';
 import '../../../widgets/button/google/google_button.dart';
 import '../../home/settings/privacy/privacy_policy.dart';
-import '../../home/settings/terms and policy/terms_and_conditions.dart';
+import '../../home/settings/terms and conditions/terms_and_conditions.dart';
 import '../login/email_login.dart';
 
 class SocialLoginScreen extends StatefulWidget {
@@ -60,8 +63,9 @@ class _SocialLoginScreenState extends State<SocialLoginScreen>
 
   @override
   Widget build(BuildContext context) {
+    final txt = AppTextColors.of(context);
     return Scaffold(
-      backgroundColor: const Color(0xFFFDFDFD),
+      backgroundColor: Theme.of(context).colorScheme.background,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -79,13 +83,13 @@ class _SocialLoginScreenState extends State<SocialLoginScreen>
                     height: 42,
                   ),
                   const SizedBox(width: 15),
-                  const Text(
-                    'polzet',
+                  Text(
+                    'POLZET',
                     style: TextStyle(
-                      fontFamily: 'Flexing',
+                      fontFamily: 'Inter',
                       fontSize: 40,
                       fontWeight: FontWeight.w700,
-                      color: Color(0xFF1A1A1A),
+                      color: Theme.of(context).colorScheme.onBackground,
                       letterSpacing: -0.5,
                     ),
                   ),
@@ -97,7 +101,7 @@ class _SocialLoginScreenState extends State<SocialLoginScreen>
                 textAlign: TextAlign.center,
                 style: AppTextStyles.subSectionHeading.copyWith(
                   fontSize: 23,
-                  color: const Color(0xFF111111),
+                  color: Theme.of(context).colorScheme.onBackground,
                 ),
               ),
               const SizedBox(height: 10),
@@ -106,7 +110,7 @@ class _SocialLoginScreenState extends State<SocialLoginScreen>
                 textAlign: TextAlign.center,
                 style: AppTextStyles.bodyText.copyWith(
                   fontSize: 14.5,
-                  color: const Color(0xFF595959),
+                  color: txt.body,
                 ),
               ),
               const Spacer(flex: 1),
@@ -122,35 +126,35 @@ class _SocialLoginScreenState extends State<SocialLoginScreen>
                     textAlign: TextAlign.center,
                     style: AppTextStyles.bodyText.copyWith(
                       fontSize: 12,
-                      color: Colors.red,
+                      color: Theme.of(context).colorScheme.error,
                     ),
                   ),
                 ),
               const SizedBox(height: 16),
-              const Row(
+              Row(
                 children: [
                   Expanded(
                     child: Divider(
-                      color: Color(0xFFE5E7EB),
+                      color: Theme.of(context).colorScheme.outlineVariant,
                       thickness: 1,
                       indent: 40,
                       endIndent: 5,
                     ),
                   ),
                   Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 14),
+                    padding: const EdgeInsets.symmetric(horizontal: 14),
                     child: Text(
                       'or',
                       style: TextStyle(
                         fontSize: 13,
-                        color: Color(0xFF9E9E9E),
+                        color: txt.muted,
                         fontWeight: FontWeight.w400,
                       ),
                     ),
                   ),
                   Expanded(
                     child: Divider(
-                      color: Color(0xFFE5E7EB),
+                      color: Theme.of(context).colorScheme.outlineVariant,
                       thickness: 1,
                       indent: 5,
                       endIndent: 40,
@@ -161,31 +165,31 @@ class _SocialLoginScreenState extends State<SocialLoginScreen>
               const SizedBox(height: 16),
               _EmailPhoneButton(),
               const SizedBox(height: 16),
-              GestureDetector(
-                onTap: () {},
-                child: Text(
-                  'Continue as Guest',
-                  style: AppTextStyles.bodyText.copyWith(
-                    color: Theme.of(context).colorScheme.primary,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ),
+              // GestureDetector(
+              //   onTap: () {},
+              //   child: Text(
+              //     'Continue as Guest',
+              //     style: AppTextStyles.bodyText.copyWith(
+              //       color: Theme.of(context).colorScheme.primary,
+              //       fontSize: 13,
+              //       fontWeight: FontWeight.w500,
+              //     ),
+              //   ),
+              // ),
               const Spacer(flex: 3),
               RichText(
                 textAlign: TextAlign.center,
                 text: TextSpan(
                   style: AppTextStyles.bodyText.copyWith(
                     fontSize: 14,
-                    color: const Color(0xFF8A8A8A),
+                    color: txt.muted,
                   ),
                   children: [
                     const TextSpan(text: 'By continuing, you agree to our '),
                     TextSpan(
                       text: 'Terms',
                       style: TextStyle(
-                        color: Theme.of(context).colorScheme.primary,
+                        color: Theme.of(context).colorScheme.onPrimary,
                         fontWeight: FontWeight.w500,
                       ),
                       recognizer: TapGestureRecognizer()
@@ -196,7 +200,7 @@ class _SocialLoginScreenState extends State<SocialLoginScreen>
                     TextSpan(
                       text: 'Privacy Policy',
                       style: TextStyle(
-                        color: Theme.of(context).colorScheme.primary,
+                        color: Theme.of(context).colorScheme.onPrimary,
                         fontWeight: FontWeight.w500,
                       ),
                       recognizer: TapGestureRecognizer()
@@ -218,14 +222,20 @@ class _SocialLoginScreenState extends State<SocialLoginScreen>
 class _EmailPhoneButton extends StatelessWidget with UtilityMixin {
   @override
   Widget build(BuildContext context) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     return SizedBox(
       width: double.infinity,
       height: 56,
       child: OutlinedButton(
         onPressed: () => navigationPush(context, const EmailLoginScreen()),
         style: OutlinedButton.styleFrom(
-          backgroundColor: Colors.white,
-          side: const BorderSide(color: Color(0xFFE5E7EB), width: 1.2),
+          backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+          side: BorderSide(
+            color: isDarkMode
+                ? Theme.of(context).colorScheme.outline
+                : const Color(0xFFE5E7EB),
+            width: 1.2,
+          ),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(14),
           ),
@@ -235,7 +245,9 @@ class _EmailPhoneButton extends StatelessWidget with UtilityMixin {
           'Continue With Email or Phone',
           style: AppTextStyles.cardTitle.copyWith(
             fontSize: 15,
-            color: const Color(0xFF1A1A1A),
+            color: isDarkMode
+                ? Theme.of(context).colorScheme.onBackground.withOpacity(0.9)
+                : const Color(0xFF1A1A1A),
           ),
         ),
       ),

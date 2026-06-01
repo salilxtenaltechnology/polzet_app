@@ -2,12 +2,15 @@
 
 import 'dart:typed_data';
 
-import 'package:feather_icons/feather_icons.dart';
+import 'package:polzet_app/core/constants/feather_icons_compat.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
+import '../../../../../core/constants/app_radius.dart';
+import '../../../../../core/themes/app_text_colors.dart';
+import '../../../../../core/themes/app_text_styles.dart';
 import '../../../../../languages/l10n/generated/app_localizations.dart';
 import '../../../../../mixin/utility_mixins.dart';
 import '../../../../../models/message/message_model.dart';
@@ -249,6 +252,8 @@ class GroupChatScreenState extends State<GroupChatScreen>
   }
 
   Widget _buildMessageBubble(BuildContext context, ChatMessage message) {
+    final txt = AppTextColors.of(context);
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     Uint8List? avatarBytes;
     if (!message.isSentByMe && message.senderProfileImage != null) {
       avatarBytes = getProfileImage(message.senderProfileImage!);
@@ -256,7 +261,7 @@ class GroupChatScreenState extends State<GroupChatScreen>
 
     final String initial = (message.senderUsername?.isNotEmpty == true)
         ? message.senderUsername![0].toUpperCase()
-        : '?';
+        : 'P';
 
     return Align(
       alignment: message.isSentByMe
@@ -273,8 +278,10 @@ class GroupChatScreenState extends State<GroupChatScreen>
             Padding(
               padding: EdgeInsets.only(top: 5.h),
               child: CircleAvatar(
-                radius: 12.r,
-                backgroundColor: const Color(0xFFEEEEEE),
+                radius: 15,
+                backgroundColor: Theme.of(
+                  context,
+                ).colorScheme.onPrimary.withOpacity(0.1),
                 backgroundImage: avatarBytes != null
                     ? MemoryImage(avatarBytes)
                     : null,
@@ -301,16 +308,18 @@ class GroupChatScreenState extends State<GroupChatScreen>
             decoration: BoxDecoration(
               color: message.isSentByMe
                   ? Theme.of(context).colorScheme.primary
-                  : Theme.of(context).colorScheme.tertiaryContainer,
+                  : (isDarkMode
+                        ? const Color(0xFF2A2A2E)
+                        : const Color(0xFFF3F4F6)),
               borderRadius: BorderRadius.only(
                 topLeft: message.isSentByMe
-                    ? Radius.circular(10.r)
+                    ? const Radius.circular(AppRadius.card)
                     : const Radius.circular(0),
-                topRight: Radius.circular(10.r),
-                bottomLeft: Radius.circular(10.r),
+                topRight: const Radius.circular(AppRadius.card),
+                bottomLeft: const Radius.circular(AppRadius.card),
                 bottomRight: message.isSentByMe
                     ? const Radius.circular(0)
-                    : Radius.circular(10.r),
+                    : const Radius.circular(AppRadius.card),
               ),
             ),
             child: Column(
@@ -351,8 +360,8 @@ class GroupChatScreenState extends State<GroupChatScreen>
                           style: TextStyle(
                             fontSize: 8.2.sp,
                             color: message.isSentByMe
-                                ? Colors.white60
-                                : const Color(0XFF8593A8),
+                                ? const Color(0xBDFFFFFF)
+                                : txt.muted,
                           ),
                         ),
                         SizedBox(width: 3.w),
@@ -392,17 +401,28 @@ class GroupChatScreenState extends State<GroupChatScreen>
       color: Colors.red.withOpacity(0.1),
       child: Row(
         children: [
-          Icon(Icons.error_outline, size: 14.sp, color: Colors.red),
+          Icon(
+            Icons.error_outline,
+            size: 14.sp,
+            color: Theme.of(context).colorScheme.error,
+          ),
           SizedBox(width: 6.w),
           Expanded(
             child: Text(
               'Failed to load messages. Tap to retry.',
-              style: TextStyle(fontSize: 10.5.sp, color: Colors.red),
+              style: TextStyle(
+                fontSize: 10.5.sp,
+                color: Theme.of(context).colorScheme.error,
+              ),
             ),
           ),
           GestureDetector(
             onTap: () => provider.fetchMessageHistory(),
-            child: Icon(Icons.refresh, size: 16.sp, color: Colors.red),
+            child: Icon(
+              Icons.refresh,
+              size: 16.sp,
+              color: Theme.of(context).colorScheme.error,
+            ),
           ),
         ],
       ),
@@ -466,6 +486,9 @@ class GroupChatScreenState extends State<GroupChatScreen>
 
   @override
   Widget build(BuildContext context) {
+    final txt = AppTextColors.of(context);
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+
     final provider = context.watch<GroupChatProvider>();
     final imageBytes = _avatarUrl != null ? getProfileImage(_avatarUrl!) : null;
     final title = provider.groupName ?? widget.groupName ?? 'Chat';
@@ -476,429 +499,452 @@ class GroupChatScreenState extends State<GroupChatScreen>
         widget.chat?['members']?.length ?? provider.memberPresence.length;
     final initial = title.isNotEmpty ? title[0].toUpperCase() : '?';
 
-    return Scaffold(
-      backgroundColor: Theme.of(context).colorScheme.background,
-      appBar: AppBar(
-        toolbarHeight: 40.h,
-        automaticallyImplyLeading: false,
-        leadingWidth: double.infinity,
-        leading: Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            SizedBox(width: 12.w),
-            const PrimaryBackButton(),
-            CircleAvatar(
-              radius: 18.r,
-              backgroundColor: const Color(0XFFEEEEEE),
-              backgroundImage: imageBytes != null
-                  ? MemoryImage(imageBytes)
-                  : null,
-              child: imageBytes == null
-                  ? Text(
-                      initial,
-                      style: TextStyle(
-                        fontSize: 13.sp,
-                        fontWeight: FontWeight.w600,
-                        color: Theme.of(context).colorScheme.primary,
-                      ),
-                    )
-                  : null,
-            ),
-            SizedBox(width: 7.w),
-            Expanded(
-              child: GestureDetector(
-                onTap: () => Navigator.push(
+    return SafeArea(
+      top: false,
+      child: Scaffold(
+        backgroundColor: Theme.of(context).colorScheme.background,
+        appBar: AppBar(
+          toolbarHeight: 40.h,
+          automaticallyImplyLeading: false,
+          leadingWidth: double.infinity,
+          leading: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              SizedBox(width: 12.w),
+              const PrimaryBackButton(),
+              CircleAvatar(
+                radius: 18.r,
+                backgroundColor: Theme.of(
                   context,
-                  MaterialPageRoute(
-                    builder: (_) => ChangeNotifierProvider.value(
-                      value: context.read<GroupChatProvider>(),
-                      child: ChatDetails(
-                        chatName: title,
-                        profileUrl: _avatarUrl,
-                        isGroupChat: true,
-                        chatId: provider.chatId,
-                        chat: widget.chat,
+                ).colorScheme.onPrimary.withOpacity(0.1),
+                backgroundImage: imageBytes != null
+                    ? MemoryImage(imageBytes)
+                    : null,
+                child: imageBytes == null
+                    ? Text(
+                        initial,
+                        style: AppTextStyles.cardTitle.copyWith(
+                          fontSize: 17,
+                          fontWeight: FontWeight.w600,
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onPrimary.withOpacity(0.8),
+                        ),
+                      )
+                    : null,
+              ),
+              SizedBox(width: 7.w),
+              Expanded(
+                child: GestureDetector(
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => ChangeNotifierProvider.value(
+                        value: context.read<GroupChatProvider>(),
+                        child: ChatDetails(
+                          chatName: title,
+                          profileUrl: _avatarUrl,
+                          isGroupChat: true,
+                          chatId: provider.chatId,
+                          chat: widget.chat,
+                        ),
                       ),
                     ),
                   ),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      title,
-                      style: TextStyle(
-                        color: Theme.of(context).colorScheme.onBackground,
-                        fontSize: 12.sp,
-                        fontWeight: FontWeight.w600,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        title,
+                        style: AppTextStyles.bodyText.copyWith(
+                          color: txt.title,
+                          fontSize: 14.5,
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
-                    ),
-                    Consumer<GroupChatProvider>(
-                      builder: (_, prov, __) {
-                        return AnimatedSwitcher(
-                          duration: const Duration(milliseconds: 250),
-                          child: prov.isSomeoneTyping
-                              ? Row(
-                                  key: const ValueKey('typing'),
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Text(
-                                      prov.typingIndicatorText,
-                                      style: TextStyle(
-                                        fontSize: 9.5.sp,
-                                        color: Colors.green,
-                                        fontStyle: FontStyle.italic,
+                      Consumer<GroupChatProvider>(
+                        builder: (_, prov, __) {
+                          return AnimatedSwitcher(
+                            duration: const Duration(milliseconds: 250),
+                            child: prov.isSomeoneTyping
+                                ? Row(
+                                    key: const ValueKey('typing'),
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text(
+                                        prov.typingIndicatorText,
+                                        style: TextStyle(
+                                          fontSize: 9.5.sp,
+                                          color: Colors.green,
+                                          fontStyle: FontStyle.italic,
+                                        ),
                                       ),
-                                    ),
-                                  ],
-                                )
-                              : Row(
-                                  key: const ValueKey('status'),
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    (() {
-                                      int otherOnlineCount = prov
-                                          .memberPresence
-                                          .values
-                                          .where(
-                                            (m) =>
-                                                m.isOnline &&
-                                                m.userId != prov.currentUserId,
-                                          )
-                                          .length;
+                                    ],
+                                  )
+                                : Row(
+                                    key: const ValueKey('status'),
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      (() {
+                                        int otherOnlineCount = prov
+                                            .memberPresence
+                                            .values
+                                            .where(
+                                              (m) =>
+                                                  m.isOnline &&
+                                                  m.userId !=
+                                                      prov.currentUserId,
+                                            )
+                                            .length;
 
-                                      int totalOnline = otherOnlineCount;
+                                        int totalOnline = otherOnlineCount;
 
-                                      String memberText =
-                                          '$memberCount ${memberCount == 1 ? AppLocalizations.of(context)!.member : AppLocalizations.of(context)!.members}';
+                                        String memberText =
+                                            '$memberCount ${memberCount == 1 ? AppLocalizations.of(context)!.member : AppLocalizations.of(context)!.members}';
 
-                                      if (otherOnlineCount > 0) {
-                                        return Text(
-                                          '$totalOnline online',
-                                          style: TextStyle(
-                                            color: Colors.green,
-                                            fontSize: 9.5.sp,
-                                            fontWeight: FontWeight.w300,
-                                          ),
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                        );
-                                      } else {
-                                        return ConstrainedBox(
-                                          constraints: BoxConstraints(
-                                            maxWidth: 200.w,
-                                          ),
-                                          child: Text(
-                                            memberText,
+                                        if (otherOnlineCount > 0) {
+                                          return Text(
+                                            '$totalOnline ${AppLocalizations.of(context)!.online}',
                                             style: TextStyle(
-                                              color: const Color(0XFF8593A8),
+                                              color: Colors.green,
                                               fontSize: 9.5.sp,
                                               fontWeight: FontWeight.w300,
                                             ),
-                                            overflow: TextOverflow.ellipsis,
                                             maxLines: 1,
-                                            softWrap: false,
-                                          ),
-                                        );
-                                      }
-                                    })(),
-                                  ],
-                                ),
-                        );
-                      },
-                    ),
-                  ],
+                                            overflow: TextOverflow.ellipsis,
+                                          );
+                                        } else {
+                                          return ConstrainedBox(
+                                            constraints: BoxConstraints(
+                                              maxWidth: 200.w,
+                                            ),
+                                            child: Text(
+                                              memberText,
+                                              style: AppTextStyles.subText
+                                                  .copyWith(
+                                                    color: txt.muted,
+                                                    fontSize: 9.5.sp,
+                                                    fontWeight: FontWeight.w300,
+                                                  ),
+                                              overflow: TextOverflow.ellipsis,
+                                              maxLines: 1,
+                                              softWrap: false,
+                                            ),
+                                          );
+                                        }
+                                      })(),
+                                    ],
+                                  ),
+                          );
+                        },
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
+          backgroundColor: Theme.of(context).colorScheme.background,
+          surfaceTintColor: Theme.of(context).colorScheme.background,
         ),
-        backgroundColor: Theme.of(context).colorScheme.background,
-        surfaceTintColor: Theme.of(context).colorScheme.background,
-        actions: [
-          Icon(FeatherIcons.video, size: 20.sp),
-          SizedBox(width: 15.w),
-          Icon(FeatherIcons.phone, size: 18.sp),
-          SizedBox(width: 15.w),
-        ],
-      ),
-      body: Column(
-        children: [
-          if (provider.historyError != null) _buildHistoryError(provider),
-          Expanded(
-            child: Stack(
-              children: [
-                StreamBuilder<List<ChatMessage>>(
-                  stream: _messagesStream,
-                  initialData: context.read<GroupChatProvider>().messages,
-                  builder: (context, snapshot) {
-                    final messages = snapshot.data ?? [];
-                    final isLoading = context
-                        .read<GroupChatProvider>()
-                        .isLoadingHistory;
+        body: Column(
+          children: [
+            if (provider.historyError != null) _buildHistoryError(provider),
+            Expanded(
+              child: Stack(
+                children: [
+                  StreamBuilder<List<ChatMessage>>(
+                    stream: _messagesStream,
+                    initialData: context.read<GroupChatProvider>().messages,
+                    builder: (context, snapshot) {
+                      final messages = snapshot.data ?? [];
+                      final isLoading = context
+                          .read<GroupChatProvider>()
+                          .isLoadingHistory;
 
-                    if (messages.length > _previousMessageCount) {
-                      if (_previousMessageCount == 0) {
-                        WidgetsBinding.instance.addPostFrameCallback((_) {
-                          if (_isAtBottom ||
-                              (messages.isNotEmpty &&
-                                  messages.last.isSentByMe)) {
-                            _scrollToBottom();
-                            context.read<GroupChatProvider>().markAsRead();
-                          }
-                        });
-                      } else {
-                        int newAppendedCount = 0;
-                        for (int i = messages.length - 1; i >= 0; i--) {
-                          final m = messages[i];
-                          if (_previousLastMessage != null &&
-                              m.text == _previousLastMessage!.text &&
-                              m.created_at ==
-                                  _previousLastMessage!.created_at) {
-                            break;
-                          }
-                          newAppendedCount++;
-                        }
-
-                        if (newAppendedCount > 0 &&
-                            newAppendedCount < messages.length) {
-                          final lastIsMe = messages.last.isSentByMe;
+                      if (messages.length > _previousMessageCount) {
+                        if (_previousMessageCount == 0) {
                           WidgetsBinding.instance.addPostFrameCallback((_) {
-                            if (_isAtBottom || lastIsMe) {
+                            if (_isAtBottom ||
+                                (messages.isNotEmpty &&
+                                    messages.last.isSentByMe)) {
                               _scrollToBottom();
                               context.read<GroupChatProvider>().markAsRead();
-                            } else {
-                              setState(() => _unreadCount += newAppendedCount);
                             }
                           });
-                        }
-                      }
-                    }
-
-                    _previousMessageCount = messages.length;
-                    _previousLastMessage = messages.isNotEmpty
-                        ? messages.last
-                        : null;
-
-                    WidgetsBinding.instance.addPostFrameCallback((_) {
-                      if (!mounted) return;
-                      _updateFloatingDate();
-
-                      if (_scrollController.hasClients) {
-                        final maxScroll =
-                            _scrollController.position.maxScrollExtent;
-                        if (maxScroll <= 50 &&
-                            !context
-                                .read<GroupChatProvider>()
-                                .isLoadingHistory) {
-                          context.read<GroupChatProvider>().fetchMoreHistory();
-                        }
-                      }
-                    });
-
-                    if (messages.isEmpty && !isLoading) {
-                      return Center(
-                        child: Text(
-                          AppLocalizations.of(
-                                context,
-                              )?.nomessagesyetstarttheconversation ??
-                              'No messages yet...',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            color: const Color(0XFF8593A8),
-                            fontSize: 10.5.sp,
-                          ),
-                        ),
-                      );
-                    }
-
-                    final reversedMessages = messages.reversed.toList();
-                    return ListView.builder(
-                      reverse: true,
-                      controller: _scrollController,
-                      padding: EdgeInsets.symmetric(vertical: 8.h),
-                      itemCount: reversedMessages.length + 1,
-                      itemBuilder: (ctx, index) {
-                        if (index == reversedMessages.length) {
-                          return _buildHistoryLoader(isLoading);
-                        }
-
-                        final message = reversedMessages[index];
-                        bool showHeader = false;
-                        bool isAbsoluteOldestMessage = false;
-
-                        if (index == reversedMessages.length - 1) {
-                          showHeader = true;
-                          isAbsoluteOldestMessage = true;
                         } else {
-                          final previousMessage = reversedMessages[index + 1];
-                          showHeader = !_isSameDay(
-                            message.created_at,
-                            previousMessage.created_at,
-                          );
-                        }
+                          int newAppendedCount = 0;
+                          for (int i = messages.length - 1; i >= 0; i--) {
+                            final m = messages[i];
+                            if (_previousLastMessage != null &&
+                                m.text == _previousLastMessage!.text &&
+                                m.created_at ==
+                                    _previousLastMessage!.created_at) {
+                              break;
+                            }
+                            newAppendedCount++;
+                          }
 
-                        if (showHeader) {
-                          final dateStr = _getDateSeparator(message.created_at);
-                          if (!_headerKeys.containsKey(dateStr)) {
-                            _headerKeys[dateStr] = GlobalKey(
-                              debugLabel: dateStr,
+                          if (newAppendedCount > 0 &&
+                              newAppendedCount < messages.length) {
+                            final lastIsMe = messages.last.isSentByMe;
+                            WidgetsBinding.instance.addPostFrameCallback((_) {
+                              if (_isAtBottom || lastIsMe) {
+                                _scrollToBottom();
+                                context.read<GroupChatProvider>().markAsRead();
+                              } else {
+                                setState(
+                                  () => _unreadCount += newAppendedCount,
+                                );
+                              }
+                            });
+                          }
+                        }
+                      }
+
+                      _previousMessageCount = messages.length;
+                      _previousLastMessage = messages.isNotEmpty
+                          ? messages.last
+                          : null;
+
+                      WidgetsBinding.instance.addPostFrameCallback((_) {
+                        if (!mounted) return;
+                        _updateFloatingDate();
+
+                        if (_scrollController.hasClients) {
+                          final maxScroll =
+                              _scrollController.position.maxScrollExtent;
+                          if (maxScroll <= 50 &&
+                              !context
+                                  .read<GroupChatProvider>()
+                                  .isLoadingHistory) {
+                            context
+                                .read<GroupChatProvider>()
+                                .fetchMoreHistory();
+                          }
+                        }
+                      });
+
+                      if (messages.isEmpty && !isLoading) {
+                        return Center(
+                          child: Text(
+                            AppLocalizations.of(
+                                  context,
+                                )?.nomessagesyetstarttheconversation ??
+                                'No messages yet...',
+                            textAlign: TextAlign.center,
+                            style: AppTextStyles.bodyText.copyWith(
+                              fontSize: 12.5,
+                              color: txt.muted,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        );
+                      }
+
+                      final reversedMessages = messages.reversed.toList();
+                      return ListView.builder(
+                        reverse: true,
+                        controller: _scrollController,
+                        padding: EdgeInsets.symmetric(vertical: 8.h),
+                        itemCount: reversedMessages.length + 1,
+                        itemBuilder: (ctx, index) {
+                          if (index == reversedMessages.length) {
+                            return _buildHistoryLoader(isLoading);
+                          }
+
+                          final message = reversedMessages[index];
+                          bool showHeader = false;
+                          bool isAbsoluteOldestMessage = false;
+
+                          if (index == reversedMessages.length - 1) {
+                            showHeader = true;
+                            isAbsoluteOldestMessage = true;
+                          } else {
+                            final previousMessage = reversedMessages[index + 1];
+                            showHeader = !_isSameDay(
+                              message.created_at,
+                              previousMessage.created_at,
                             );
                           }
 
-                          bool hideInlineDate =
-                              isAbsoluteOldestMessage &&
-                              context.read<GroupChatProvider>().hasMoreHistory;
+                          if (showHeader) {
+                            final dateStr = _getDateSeparator(
+                              message.created_at,
+                            );
+                            if (!_headerKeys.containsKey(dateStr)) {
+                              _headerKeys[dateStr] = GlobalKey(
+                                debugLabel: dateStr,
+                              );
+                            }
 
-                          if (hideInlineDate) {
+                            bool hideInlineDate =
+                                isAbsoluteOldestMessage &&
+                                context
+                                    .read<GroupChatProvider>()
+                                    .hasMoreHistory;
+
+                            if (hideInlineDate) {
+                              return Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  SizedBox(
+                                    key: _headerKeys[dateStr],
+                                    height: 0,
+                                    width: 0,
+                                  ),
+                                  _buildMessageBubble(ctx, message),
+                                ],
+                              );
+                            }
+
                             return Column(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                SizedBox(
+                                Container(
                                   key: _headerKeys[dateStr],
-                                  height: 0,
-                                  width: 0,
+                                  margin: EdgeInsets.symmetric(vertical: 10.h),
+                                  padding: EdgeInsets.symmetric(
+                                    horizontal: 10.w,
+                                    vertical: 3.h,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: isDarkMode
+                                        ? Theme.of(
+                                            context,
+                                          ).colorScheme.secondaryContainer
+                                        : const Color(0xFFF2F2F2),
+                                    borderRadius: BorderRadius.circular(5.r),
+                                  ),
+                                  child: Text(
+                                    dateStr,
+                                    style: TextStyle(
+                                      fontSize: 9.sp,
+                                      fontWeight: FontWeight.w500,
+                                      color: txt.body,
+                                    ),
+                                  ),
                                 ),
                                 _buildMessageBubble(ctx, message),
                               ],
                             );
                           }
 
-                          return Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Container(
-                                key: _headerKeys[dateStr],
-                                margin: EdgeInsets.symmetric(vertical: 10.h),
-                                padding: EdgeInsets.symmetric(
-                                  horizontal: 10.w,
-                                  vertical: 3.h,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFFF2F2F2),
-                                  borderRadius: BorderRadius.circular(5.r),
-                                ),
-                                child: Text(
-                                  dateStr,
-                                  style: TextStyle(
-                                    fontSize: 9.sp,
-                                    fontWeight: FontWeight.w500,
-                                    color: Theme.of(
-                                      context,
-                                    ).colorScheme.onBackground.withOpacity(0.6),
-                                  ),
-                                ),
-                              ),
-                              _buildMessageBubble(ctx, message),
-                            ],
-                          );
-                        }
-
-                        return _buildMessageBubble(ctx, message);
-                      },
-                    );
-                  },
-                ),
-                _buildScrollToBottomButton(),
-                if (_floatingDate != null)
-                  Positioned(
-                    top: -10.h,
-                    left: 0,
-                    right: 0,
-                    child: Center(
-                      child: Container(
-                        margin: EdgeInsets.symmetric(vertical: 10.h),
-                        padding: EdgeInsets.symmetric(
-                          horizontal: 10.w,
-                          vertical: 3.h,
-                        ),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFF2F2F2),
-                          borderRadius: BorderRadius.circular(5.r),
-                        ),
-                        child: Text(
-                          _floatingDate ?? '',
-                          style: TextStyle(
-                            fontSize: 9.sp,
-                            fontWeight: FontWeight.w500,
-                            color: Theme.of(
-                              context,
-                            ).colorScheme.onBackground.withOpacity(0.6),
+                          return _buildMessageBubble(ctx, message);
+                        },
+                      );
+                    },
+                  ),
+                  _buildScrollToBottomButton(),
+                  if (_floatingDate != null)
+                    Positioned(
+                      top: -10.h,
+                      left: 0,
+                      right: 0,
+                      child: Center(
+                        child: Container(
+                          margin: EdgeInsets.symmetric(vertical: 10.h),
+                          padding: EdgeInsets.symmetric(
+                            horizontal: 10.w,
+                            vertical: 3.h,
+                          ),
+                          decoration: BoxDecoration(
+                            color: isDarkMode
+                                ? Theme.of(
+                                    context,
+                                  ).colorScheme.secondaryContainer
+                                : const Color(0xFFF2F2F2),
+                            borderRadius: BorderRadius.circular(5.r),
+                          ),
+                          child: Text(
+                            _floatingDate ?? '',
+                            style: TextStyle(
+                              color: txt.title,
+                              fontWeight: FontWeight.w500,
+                              fontSize: 9.sp,
+                            ),
                           ),
                         ),
                       ),
                     ),
-                  ),
-              ],
+                ],
+              ),
             ),
-          ),
-          Container(
-            height: 35.h,
-            width: double.infinity,
-            margin: const EdgeInsets.fromLTRB(12, 5, 12, 12).w,
-            padding: EdgeInsets.symmetric(horizontal: 10.w),
-            decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.tertiaryContainer,
-              borderRadius: BorderRadius.circular(12.r),
-            ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: _messageController,
-                    onChanged: (_) =>
-                        context.read<GroupChatProvider>().onUserTyping(),
-                    decoration: InputDecoration(
-                      border: InputBorder.none,
-                      hintText:
-                          AppLocalizations.of(context)?.message ?? 'Message',
-                      hintStyle: TextStyle(
-                        color: const Color(0XFF8593A8),
-                        fontSize: 11.5.sp,
+            Container(
+              height: 45,
+              width: double.infinity,
+              margin: const EdgeInsets.fromLTRB(5, 5, 12, 15).w,
+              padding: EdgeInsets.symmetric(horizontal: 10.w),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _messageController,
+                      onChanged: (_) =>
+                          context.read<GroupChatProvider>().onUserTyping(),
+                      cursorColor: Theme.of(
+                        context,
+                      ).colorScheme.onPrimary.withOpacity(0.8),
+                      cursorWidth: 1.5,
+                      decoration: InputDecoration(
+                        border: InputBorder.none,
+                        hintText: AppLocalizations.of(context)?.message,
+                        hintStyle: AppTextStyles.bodyText.copyWith(
+                          color: const Color(0XFF898989),
+                          fontWeight: FontWeight.w400,
+                          fontSize: 14,
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderSide: BorderSide(
+                            color: isDarkMode
+                                ? Theme.of(context).colorScheme.outline
+                                : const Color(0xFFDDDDDD),
+
+                            width: 1,
+                          ),
+                          borderRadius: BorderRadius.circular(AppRadius.button),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderSide: BorderSide(
+                            color: isDarkMode
+                                ? Theme.of(context).colorScheme.outline
+                                : const Color(0xFFDDDDDD),
+                            width: 1,
+                          ),
+                          borderRadius: BorderRadius.circular(AppRadius.button),
+                        ),
+                      ),
+                      onSubmitted: (_) => _sendMessage(),
+                      textInputAction: TextInputAction.send,
+                      style: AppTextStyles.bodyText.copyWith(
+                        color: txt.title,
+                        fontWeight: FontWeight.w500,
+                        fontSize: 15,
                       ),
                     ),
-                    onSubmitted: (_) => _sendMessage(),
-                    textInputAction: TextInputAction.send,
                   ),
-                ),
-                GestureDetector(
-                  onTap: () {},
-                  child: Icon(
-                    FeatherIcons.image,
-                    size: 20.spMax,
-                    color: const Color(0XFF8593A8),
-                  ),
-                ),
-                SizedBox(width: 7.w),
-                GestureDetector(
-                  onTap: () {},
-                  child: Icon(
-                    FeatherIcons.smile,
-                    size: 20.spMax,
-                    color: const Color(0XFF8593A8),
-                  ),
-                ),
-                SizedBox(width: 7.w),
-                GestureDetector(
-                  onTap: _sendMessage,
-                  child: Container(
-                    padding: EdgeInsets.all(6.w),
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.primary,
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(
-                      FeatherIcons.send,
-                      size: 16.spMax,
-                      color: Colors.white,
+                  GestureDetector(
+                    onTap: _sendMessage,
+                    child: Container(
+                      margin: const EdgeInsets.only(left: 12),
+                      padding: EdgeInsets.all(6.w),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.primary,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        FeatherIcons.send,
+                        size: 16.spMax,
+                        color: Colors.white,
+                      ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

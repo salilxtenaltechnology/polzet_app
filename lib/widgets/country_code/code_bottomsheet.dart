@@ -1,12 +1,13 @@
 // ignore_for_file: deprecated_member_use
 
+import 'package:polzet_app/core/constants/feather_icons_compat.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:polzet_app/core/themes/app_text_styles.dart';
 
 import '../../core/constants/app_radius.dart';
+import '../../core/themes/app_text_colors.dart';
 import '../../models/country/country_model.dart';
-import '../text_field/secondry_textfield.dart';
 
 class CountryPickerBottomSheet extends StatefulWidget {
   final Function(Country) onCountrySelected;
@@ -58,32 +59,93 @@ class _CountryPickerBottomSheetState extends State<CountryPickerBottomSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final txt = AppTextColors.of(context);
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     return Container(
       height: MediaQuery.of(context).size.height * 0.8,
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.secondaryContainer,
-        borderRadius:   AppRadius.modalRadius,
+        color: Theme.of(context).colorScheme.tertiaryContainer,
+        borderRadius: AppRadius.modalRadius,
       ),
-      padding: const EdgeInsets.all(16),
       child: Column(
         children: [
           Container(
-            width: 45.w,
-            height: 4.h,
-            margin: const EdgeInsets.only(bottom: 16),
+            padding: EdgeInsets.symmetric(vertical: 10.h),
+            margin: EdgeInsets.symmetric(horizontal: 10.w),
+            width: double.infinity,
             decoration: BoxDecoration(
-              color: Theme.of(
-                context,
-              ).colorScheme.onBackground.withOpacity(0.25),
-              borderRadius: BorderRadius.circular(2.r),
+              border: Border(
+                bottom: BorderSide(
+                  color: Theme.of(context).colorScheme.outlineVariant,
+                  width: 1,
+                ),
+              ),
+            ),
+            child: Center(
+              child: Text(
+                'Country',
+                style: AppTextStyles.sectionHeading.copyWith(color: txt.title),
+              ),
             ),
           ),
-          SecondryTextfield(
-            controller: _searchController,
-            onChanged: _filterCountries,
-            hintText: 'Search country...',
+          Container(
+            height: 43,
+            width: double.infinity,
+            margin: EdgeInsets.symmetric(vertical: 12, horizontal: 10.w),
+            decoration: BoxDecoration(
+              color: isDarkMode ? const Color(0xFF1F1F23) : Colors.white,
+              borderRadius: BorderRadius.circular(AppRadius.button),
+            ),
+            child: TextField(
+              controller: _searchController,
+              cursorColor: Theme.of(
+                context,
+              ).colorScheme.onPrimary.withOpacity(0.8),
+              cursorWidth: 1.5,
+              decoration: InputDecoration(
+                contentPadding: EdgeInsets.only(
+                  right: 12.w,
+                  left: 12.w,
+                  top: 10.h,
+                ),
+                hintText: 'Search country',
+                hintStyle: AppTextStyles.bodyText.copyWith(
+                  color: const Color(0XFF898989),
+                  fontWeight: FontWeight.w400,
+                  fontSize: 13.5,
+                ),
+                border: InputBorder.none,
+
+                prefixIcon: Icon(
+                  FeatherIcons.search,
+                  size: 17.spMax,
+                  color: const Color(0XFF898989),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderSide: BorderSide(
+                    color: Theme.of(context).colorScheme.outline,
+                    width: 0.7,
+                  ),
+                  borderRadius: BorderRadius.circular(9),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderSide: BorderSide(
+                    color: Theme.of(context).colorScheme.outline,
+                    width: 0.7,
+                  ),
+                  borderRadius: BorderRadius.circular(9),
+                ),
+              ),
+              style: AppTextStyles.bodyText.copyWith(
+                color: txt.title,
+                fontWeight: FontWeight.w500,
+                fontSize: 14,
+              ),
+              onChanged: _filterCountries,
+            ),
           ),
-          SizedBox(height: 12.h),
+
+        
           // Countries list
           Expanded(
             child: ListView.builder(
@@ -95,20 +157,21 @@ class _CountryPickerBottomSheetState extends State<CountryPickerBottomSheet> {
                 return ListTile(
                   leading: Text(
                     country.flag,
-                    style: TextStyle(fontSize: 20.sp),
+                    style: const TextStyle(fontSize: 20),
                   ),
                   title: Text(
                     country.name,
                     style: AppTextStyles.bodyText.copyWith(
-                      color: const Color(0XFF111111)
-                    )
+                      color: txt.title,
+                      fontSize: 14,
+                    ),
                   ),
                   trailing: Text(
                     country.dialCode,
                     style: AppTextStyles.bodyText.copyWith(
-                      color: const Color(0XFF595959), 
-                      fontSize: 13.5
-                    )
+                      color: txt.body,
+                      fontSize: 13.5,
+                    ),
                   ),
                   selected: isSelected,
                   selectedTileColor: Theme.of(

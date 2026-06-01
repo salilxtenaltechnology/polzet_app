@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
+import '../../core/themes/app_text_colors.dart';
 import '../../languages/l10n/generated/app_localizations.dart';
 import '../../core/themes/app_text_styles.dart';
 
@@ -12,14 +13,16 @@ class LogoutDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final txt = AppTextColors.of(context);
+
     return Container(
-      width: 330,
+      width: 340,
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.secondaryContainer,
         borderRadius: BorderRadius.circular(20),
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
           // Title & subtitle section
@@ -31,8 +34,8 @@ class LogoutDialog extends StatelessWidget {
                 Text(
                   AppLocalizations.of(context)!.logout,
                   style: AppTextStyles.cardTitle.copyWith(
-                    fontSize: 15.sp,
-                    fontWeight: FontWeight.bold,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
                     color: Theme.of(context).colorScheme.onBackground,
                   ),
                 ),
@@ -41,8 +44,9 @@ class LogoutDialog extends StatelessWidget {
                   AppLocalizations.of(context)!.areyousurewanttologout,
                   textAlign: TextAlign.center,
                   style: AppTextStyles.bodyText.copyWith(
-                    color: Theme.of(context).colorScheme.onBackground,
-                    fontSize: 13.sp,
+                    color: txt.body,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w400,
                   ),
                 ),
               ],
@@ -50,7 +54,11 @@ class LogoutDialog extends StatelessWidget {
           ),
 
           // Horizontal divider
-          const Divider(height: 1, thickness: 1, color: Color(0XFFDCDCDC)),
+          Divider(
+            height: 0.7,
+            thickness: 0.7,
+            color: Theme.of(context).colorScheme.outlineVariant,
+          ),
 
           // Buttons row
           IntrinsicHeight(
@@ -71,7 +79,7 @@ class LogoutDialog extends StatelessWidget {
                         AppLocalizations.of(context)!.cancel,
                         textAlign: TextAlign.center,
                         style: AppTextStyles.subText.copyWith(
-                          fontSize: 13.5.sp,
+                          fontSize: 14,
                           color: const Color(0XFF898989),
                           fontWeight: FontWeight.w400,
                         ),
@@ -81,10 +89,10 @@ class LogoutDialog extends StatelessWidget {
                 ),
 
                 // Vertical divider
-                const VerticalDivider(
-                  width: 1,
-                  thickness: 1,
-                  color: Color(0XFFDCDCDC),
+                VerticalDivider(
+                  width: 0.7,
+                  thickness: 0.7,
+                  color: Theme.of(context).colorScheme.outlineVariant,
                 ),
 
                 // Log out button
@@ -102,8 +110,8 @@ class LogoutDialog extends StatelessWidget {
                         AppLocalizations.of(context)!.logout,
                         textAlign: TextAlign.center,
                         style: AppTextStyles.subText.copyWith(
-                          fontSize: 13.5.sp,
-                          color: const Color(0XFFE5484D),
+                          fontSize: 14,
+                          color: Theme.of(context).colorScheme.error,
                           fontWeight: FontWeight.w500,
                         ),
                       ),

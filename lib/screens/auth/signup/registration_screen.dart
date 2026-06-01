@@ -4,11 +4,14 @@
 import 'dart:async';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:intl/intl.dart';
 
 import '../../../api/app_api.dart';
 import '../../../api/services/api_service.dart';
+import '../../../core/themes/app_text_colors.dart';
 import '../../../core/themes/app_text_styles.dart';
+import '../../../languages/l10n/generated/app_localizations.dart';
 import '../../../mixin/utility_mixins.dart';
 import '../../../widgets/loader.dart';
 import '../account/account_success_screen.dart';
@@ -41,6 +44,10 @@ class _RegistrationScreenState extends State<RegistrationScreen>
   final _passwordCtrl = TextEditingController();
   final _confirmPwCtrl = TextEditingController();
 
+  final _passwordFocusNode = FocusNode();
+  final _layerLink = LayerLink();
+  OverlayEntry? _overlayEntry;
+
   // ── State ───────────────────────────────────────────────────────────────────
   DateTime? _dob;
   bool _obscurePassword = true;
@@ -62,9 +69,20 @@ class _RegistrationScreenState extends State<RegistrationScreen>
   _isUsernameAvailable; // null = not checked, true = available, false = taken
   String _usernameStatusMessage = '';
 
-  // ── Dispose ─────────────────────────────────────────────────────────────────
+  // ── Init & Dispose ──────────────────────────────────────────────────────────
+  @override
+  void initState() {
+    super.initState();
+    _passwordFocusNode.addListener(_onFocusChange);
+    _passwordCtrl.addListener(_onTextChanged);
+  }
+
   @override
   void dispose() {
+    _hideOverlay();
+    _passwordFocusNode.removeListener(_onFocusChange);
+    _passwordFocusNode.dispose();
+    _passwordCtrl.removeListener(_onTextChanged);
     _usernameDebounce?.cancel();
     _firstNameCtrl.dispose();
     _lastNameCtrl.dispose();
@@ -72,6 +90,207 @@ class _RegistrationScreenState extends State<RegistrationScreen>
     _passwordCtrl.dispose();
     _confirmPwCtrl.dispose();
     super.dispose();
+  }
+
+  // ── Real-time Password Validator ─────────────────────────────────────────────
+  void _onFocusChange() {
+    if (_passwordFocusNode.hasFocus) {
+      _showOverlay();
+    } else {
+      _hideOverlay();
+    }
+  }
+
+  void _onTextChanged() {
+    _overlayEntry?.markNeedsBuild();
+  }
+
+  void _showOverlay() {
+    if (_overlayEntry != null) return;
+    _overlayEntry = _createOverlayEntry();
+    Overlay.of(context).insert(_overlayEntry!);
+  }
+
+  void _hideOverlay() {
+    _overlayEntry?.remove();
+    _overlayEntry = null;
+  }
+
+  OverlayEntry _createOverlayEntry() {
+    return OverlayEntry(
+      builder: (context) {
+        return Positioned(
+          width: MediaQuery.of(context).size.width - 48.w,
+          child: CompositedTransformFollower(
+            link: _layerLink,
+            showWhenUnlinked: false,
+            offset: Offset(0, 48.h + 4.h),
+            child: Material(
+              color: Colors.transparent,
+              child: _buildValidatorPopup(context),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  bool _hasLength(String val) => val.length >= 8;
+  bool _hasUppercase(String val) => val.contains(RegExp(r'[A-Z]'));
+  bool _hasLowercase(String val) => val.contains(RegExp(r'[a-z]'));
+  bool _hasNumber(String val) => val.contains(RegExp(r'[0-9]'));
+  bool _hasSpecialChar(String val) => val.contains(RegExp(r'[^A-Za-z0-9]'));
+
+  int _getStrengthScore(String val) {
+    int score = 0;
+    if (_hasLength(val)) score++;
+    if (_hasUppercase(val)) score++;
+    if (_hasLowercase(val)) score++;
+    if (_hasNumber(val)) score++;
+    if (_hasSpecialChar(val)) score++;
+    return score;
+  }
+
+  Widget _buildValidatorPopup(BuildContext context) {
+    final text = _passwordCtrl.text;
+    final score = _getStrengthScore(text);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    Color strengthColor;
+    String strengthLabel;
+    int segmentsFilled;
+
+    if (text.isEmpty) {
+      strengthColor = isDark ? Colors.white38 : Colors.black38;
+      strengthLabel = 'Weak password';
+      segmentsFilled = 0;
+    } else if (score <= 2) {
+      strengthColor = const Color(0xFFE53935); // Red
+      strengthLabel = 'Weak password';
+      segmentsFilled = score == 0 ? 1 : score;
+    } else if (score <= 3) {
+      strengthColor = const Color(0xFFE0A900); // Yellow/Orange
+      strengthLabel = 'Good password';
+      segmentsFilled = 3;
+    } else {
+      strengthColor = const Color(0xFF2E7D32); // Green
+      strengthLabel = 'Strong password';
+      segmentsFilled = score;
+    }
+
+    final cardBgColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
+    final neutralColor = isDark ? const Color(0xFF333333) : const Color(0xFFE5E5E5);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Padding(
+          padding: EdgeInsets.only(left: 32.w),
+          child: CustomPaint(
+            size: Size(16.w, 8.h),
+            painter: TrianglePainter(color: cardBgColor),
+          ),
+        ),
+        Container(
+          width: double.infinity,
+          decoration: BoxDecoration(
+            color: cardBgColor,
+            borderRadius: BorderRadius.circular(14.r),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(isDark ? 0.3 : 0.05),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 16.h),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  Text(
+                    strengthLabel,
+                    style: AppTextStyles.bodyText.copyWith(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                      color: strengthColor,
+                    ),
+                  ),
+                ],
+              ),
+              SizedBox(height: 10.h),
+              Row(
+                children: List.generate(5, (index) {
+                  final isFilled = index < segmentsFilled;
+                  return Expanded(
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 250),
+                      height: 5,
+                      margin: EdgeInsets.only(right: index < 4 ? 6.w : 0),
+                      decoration: BoxDecoration(
+                        color: isFilled ? strengthColor : neutralColor,
+                        borderRadius: BorderRadius.circular(10.r),
+                      ),
+                    ),
+                  );
+                }),
+              ),
+              SizedBox(height: 18.h),
+              _buildRequirementRow('8 - 10 characters', _hasLength(text), isDark),
+              SizedBox(height: 10.h),
+              _buildRequirementRow('At least 1 uppercase letter', _hasUppercase(text), isDark),
+              SizedBox(height: 10.h),
+              _buildRequirementRow('At least 1 lowercase letter', _hasLowercase(text), isDark),
+              SizedBox(height: 10.h),
+              _buildRequirementRow('At least 1 number', _hasNumber(text), isDark),
+              SizedBox(height: 10.h),
+              _buildRequirementRow('At least 1 special character', _hasSpecialChar(text), isDark),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildRequirementRow(String requirement, bool isMet, bool isDark) {
+    final txt = AppTextColors.of(context);
+    const activeGreen = Color(0xFF16A34A);
+    final inactiveColor = txt.body;
+
+    return Row(
+      children: [
+        AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          width: 20,
+          height: 20,
+          decoration: BoxDecoration(
+            color: isMet
+                ? activeGreen
+                : (isDark ? txt.muted : inactiveColor.withOpacity(0.3)),
+            shape: BoxShape.circle,
+          ),
+          alignment: Alignment.center,
+          child: const Icon(Icons.check, size: 13, color: Colors.white),
+        ),
+        SizedBox(width: 10.w),
+        Expanded(
+          child: AnimatedDefaultTextStyle(
+            duration: const Duration(milliseconds: 200),
+            style: AppTextStyles.bodyText.copyWith(
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
+              color: isMet ? activeGreen : (isDark ? txt.muted : inactiveColor),
+            ),
+            child: Text(requirement),
+          ),
+        ),
+      ],
+    );
   }
 
   // ── Validation ───────────────────────────────────────────────────────────────
@@ -154,16 +373,16 @@ class _RegistrationScreenState extends State<RegistrationScreen>
       _passwordError = _confirmPwError = '';
       final pw = _passwordCtrl.text;
 
-      final passwordRegex = RegExp(
-        r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$',
-      );
-
       if (pw.isEmpty) {
         _passwordError = 'Please create a password';
         ok = false;
-      } else if (!passwordRegex.hasMatch(pw)) {
-        _passwordError =
-            'Password must be 8+ characters with uppercase, lowercase, number & special character';
+      } else if (!_hasLength(pw) ||
+          !_hasUppercase(pw) ||
+          !_hasLowercase(pw) ||
+          !_hasNumber(pw) ||
+          !_hasSpecialChar(pw)) {
+        _passwordError = AppLocalizations.of(context)!
+            .mustbeeightpluscharacterswithaletternumberandspecialcharacter;
         ok = false;
       }
 
@@ -171,7 +390,7 @@ class _RegistrationScreenState extends State<RegistrationScreen>
         _confirmPwError = 'Please confirm your password';
         ok = false;
       } else if (_confirmPwCtrl.text != pw) {
-        _confirmPwError = 'Passwords do not match';
+        _confirmPwError = AppLocalizations.of(context)!.passworddonotmatch;
         ok = false;
       }
     });
@@ -272,14 +491,17 @@ class _RegistrationScreenState extends State<RegistrationScreen>
   }
 
   // ── Helpers ──────────────────────────────────────────────────────────────────
-  Widget _buildLabel(String text) => Text(
-    text,
-    style: AppTextStyles.cardTitle.copyWith(
-      fontSize: 14.5,
-      fontWeight: FontWeight.w400,
-      color: const Color(0xFF2C2C2C),
-    ),
-  );
+  Widget _buildLabel(String text) {
+    final txt = AppTextColors.of(context);
+    return Text(
+      text,
+      style: AppTextStyles.cardTitle.copyWith(
+        fontSize: 14.5,
+        fontWeight: FontWeight.w400,
+        color: txt.title,
+      ),
+    );
+  }
 
   Widget _buildError(String error) {
     if (error.isEmpty) return const SizedBox.shrink();
@@ -295,38 +517,45 @@ class _RegistrationScreenState extends State<RegistrationScreen>
     );
   }
 
-  InputDecoration _fieldDecoration(String hint) => InputDecoration(
-    hintText: hint,
-    hintStyle: AppTextStyles.subText.copyWith(
-      fontSize: 14.5,
-      color: const Color(0xFFB3B3B3),
-      fontWeight: FontWeight.w400,
-    ),
-    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-    enabledBorder: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(12),
-      borderSide: const BorderSide(color: Color(0xFFDDDDDD), width: 1),
-    ),
-    focusedBorder: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(12),
-      borderSide: BorderSide(
-        color: Theme.of(context).colorScheme.primary,
-        width: 1,
+  InputDecoration _fieldDecoration(String hint) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    return InputDecoration(
+      hintText: hint,
+      hintStyle: AppTextStyles.subText.copyWith(
+        fontSize: 14.5,
+        color: isDarkMode ? const Color(0XFFB3B3B3) : const Color(0XFF898989),
+        fontWeight: FontWeight.w400,
       ),
-    ),
-    errorBorder: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(12),
-      borderSide: BorderSide(
-        color: Theme.of(context).colorScheme.error,
-        width: 1,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(
+          color: isDarkMode
+              ? Theme.of(context).colorScheme.outline
+              : const Color(0xFFDDDDDD),
+          width: 1,
+        ),
       ),
-    ),
-    filled: true,
-    fillColor: Colors.white,
-  );
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(
+          color: Theme.of(context).colorScheme.onPrimary.withOpacity(0.7),
+          width: 0.7,
+        ),
+      ),
+      errorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(
+          color: Theme.of(context).colorScheme.error,
+          width: 0.7,
+        ),
+      ),
+    );
+  }
 
   // ── Step 0: Personal Info ────────────────────────────────────────────────────
   Widget _buildStep0() {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -338,7 +567,15 @@ class _RegistrationScreenState extends State<RegistrationScreen>
             controller: _firstNameCtrl,
             textCapitalization: TextCapitalization.words,
             onChanged: (_) => setState(() => _firstNameError = ''),
-            style: const TextStyle(fontSize: 14.5, color: Color(0xFF404040)),
+            cursorColor: Theme.of(
+              context,
+            ).colorScheme.onPrimary.withOpacity(0.8),
+            cursorWidth: 1.5,
+            style: AppTextStyles.subText.copyWith(
+              fontSize: 15,
+              color: Theme.of(context).colorScheme.onBackground,
+              fontWeight: FontWeight.w400,
+            ),
             decoration: _fieldDecoration('Enter your first name'),
           ),
         ),
@@ -353,7 +590,11 @@ class _RegistrationScreenState extends State<RegistrationScreen>
             controller: _lastNameCtrl,
             textCapitalization: TextCapitalization.words,
             onChanged: (_) => setState(() => _lastNameError = ''),
-            style: const TextStyle(fontSize: 14.5, color: Color(0xFF404040)),
+            style: AppTextStyles.subText.copyWith(
+              fontSize: 15,
+              color: Theme.of(context).colorScheme.onBackground,
+              fontWeight: FontWeight.w400,
+            ),
             decoration: _fieldDecoration('Enter your last name'),
           ),
         ),
@@ -368,13 +609,13 @@ class _RegistrationScreenState extends State<RegistrationScreen>
             height: 48,
             padding: const EdgeInsets.symmetric(horizontal: 16),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: Theme.of(context).colorScheme.background,
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
-                color: _dobError.isNotEmpty
-                    ? Theme.of(context).colorScheme.error
+                color: isDarkMode
+                    ? Theme.of(context).colorScheme.outline
                     : const Color(0xFFDDDDDD),
-                width: 1,
+                width: 0.7,
               ),
             ),
             child: Row(
@@ -387,7 +628,9 @@ class _RegistrationScreenState extends State<RegistrationScreen>
                     style: TextStyle(
                       fontSize: 14.5,
                       color: _dob != null
-                          ? const Color(0xFF404040)
+                          ? (isDarkMode
+                                ? Colors.white
+                                : const Color(0xFF404040))
                           : const Color(0xFFB3B3B3),
                       fontWeight: FontWeight.w400,
                     ),
@@ -411,6 +654,7 @@ class _RegistrationScreenState extends State<RegistrationScreen>
 
   // ── Step 1: Username ─────────────────────────────────────────────────────────
   Widget _buildStep1() {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     // Suffix icon: loader → tick → cross
     Widget? suffixIcon;
     if (_isCheckingUsername) {
@@ -446,42 +690,51 @@ class _RegistrationScreenState extends State<RegistrationScreen>
           child: TextField(
             controller: _usernameCtrl,
             onChanged: _onUsernameChanged,
-            style: const TextStyle(fontSize: 14.5, color: Color(0xFF404040)),
+            cursorColor: Theme.of(context).colorScheme.onPrimary.withOpacity(0.8),
+        cursorWidth: 1.5,
+        style: AppTextStyles.subText.copyWith(
+          fontSize: 15,
+          color: Theme.of(context).colorScheme.onBackground,
+          fontWeight: FontWeight.w400,
+        ),
             decoration: InputDecoration(
               hintText: 'Enter a valid username',
               hintStyle: AppTextStyles.subText.copyWith(
-                fontSize: 14.5,
-                color: const Color(0xFFB3B3B3),
-                fontWeight: FontWeight.w400,
-              ),
+            fontSize: 14.5,
+            color: isDarkMode
+                ? const Color(0XFFB3B3B3)
+                : const Color(0XFF898989),
+            fontWeight: FontWeight.w400,
+          ),
               contentPadding: const EdgeInsets.symmetric(
                 horizontal: 16,
                 vertical: 14,
               ),
               suffixIcon: suffixIcon,
               enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(
-                  color: Color(0xFFDDDDDD),
-                  width: 1,
-                ),
-              ),
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(
+              color: isDarkMode
+                  ? Theme.of(context).colorScheme.outline
+                  : const Color(0xFFDDDDDD),
+              width: 0.7,
+            ),
+          ),
               focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(
-                  color: Theme.of(context).colorScheme.primary,
-                  width: 1,
-                ),
-              ),
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(
+              color: Theme.of(context).colorScheme.onPrimary.withOpacity(0.7),
+              width: 0.7,
+            ),
+          ),
               errorBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
                 borderSide: BorderSide(
                   color: Theme.of(context).colorScheme.error,
-                  width: 1,
+                  width: 0.7,
                 ),
               ),
-              filled: true,
-              fillColor: Colors.white,
+            
             ),
           ),
         ),
@@ -513,24 +766,31 @@ class _RegistrationScreenState extends State<RegistrationScreen>
       children: [
         _buildLabel('Create Password'),
         const SizedBox(height: 8),
-        SizedBox(
-          height: 48,
-          child: TextField(
-            controller: _passwordCtrl,
-            obscureText: _obscurePassword,
-            onChanged: (_) => setState(() => _passwordError = ''),
-            style: const TextStyle(fontSize: 14.5, color: Color(0xFF404040)),
-            decoration: _fieldDecoration('Create your password').copyWith(
-              suffixIcon: IconButton(
-                icon: Icon(
-                  _obscurePassword
-                      ? Icons.visibility_off_outlined
-                      : Icons.visibility_outlined,
-                  size: 20,
-                  color: const Color(0xFF8A8A8A),
+        CompositedTransformTarget(
+          link: _layerLink,
+          child: SizedBox(
+            height: 48,
+            child: TextField(
+              controller: _passwordCtrl,
+              focusNode: _passwordFocusNode,
+              obscureText: _obscurePassword,
+              onChanged: (_) {
+                setState(() => _passwordError = '');
+                _overlayEntry?.markNeedsBuild();
+              },
+              style: const TextStyle(fontSize: 14.5, color: Color(0xFF404040)),
+              decoration: _fieldDecoration('Create your password').copyWith(
+                suffixIcon: IconButton(
+                  icon: Icon(
+                    _obscurePassword
+                        ? Icons.visibility_off_outlined
+                        : Icons.visibility_outlined,
+                    size: 20,
+                    color: const Color(0xFF8A8A8A),
+                  ),
+                  onPressed: () =>
+                      setState(() => _obscurePassword = !_obscurePassword),
                 ),
-                onPressed: () =>
-                    setState(() => _obscurePassword = !_obscurePassword),
               ),
             ),
           ),
@@ -626,6 +886,7 @@ class _RegistrationScreenState extends State<RegistrationScreen>
   // ── Build ─────────────────────────────────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
+    final txt = AppTextColors.of(context);
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.background,
       body: SafeArea(
@@ -637,7 +898,11 @@ class _RegistrationScreenState extends State<RegistrationScreen>
               if (_step > 0)
                 GestureDetector(
                   onTap: _onBack,
-                  child: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
+                  child: Icon(
+                    Icons.arrow_back_ios_new_rounded,
+                    color: Theme.of(context).colorScheme.onBackground,
+                    size: 20,
+                  ),
                 ),
 
               const SizedBox(height: 60),
@@ -646,7 +911,8 @@ class _RegistrationScreenState extends State<RegistrationScreen>
                 _title,
                 style: AppTextStyles.subSectionHeading.copyWith(
                   fontSize: 23,
-                  color: const Color(0xFF111111),
+                  fontWeight: FontWeight.w600,
+                  color: Theme.of(context).colorScheme.onBackground,
                 ),
               ),
               const SizedBox(height: 32),
@@ -678,14 +944,14 @@ class _RegistrationScreenState extends State<RegistrationScreen>
                     text: TextSpan(
                       text: 'Already have an account? ',
                       style: AppTextStyles.subText.copyWith(
-                        fontSize: 13.5,
-                        color: const Color(0xFF8A8A8A),
+                        fontSize: 14,
+                        color: txt.muted,
                       ),
                       children: [
                         TextSpan(
                           text: 'Login',
                           style: TextStyle(
-                            color: Theme.of(context).colorScheme.primary,
+                            color: Theme.of(context).colorScheme.onPrimary,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
@@ -699,5 +965,31 @@ class _RegistrationScreenState extends State<RegistrationScreen>
         ),
       ),
     );
+  }
+}
+
+class TrianglePainter extends CustomPainter {
+  final Color color;
+
+  TrianglePainter({required this.color});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..style = PaintingStyle.fill;
+
+    final path = Path()
+      ..moveTo(0, size.height)
+      ..lineTo(size.width / 2, 0)
+      ..lineTo(size.width, size.height)
+      ..close();
+
+    canvas.drawPath(path, paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant TrianglePainter oldDelegate) {
+    return oldDelegate.color != color;
   }
 }

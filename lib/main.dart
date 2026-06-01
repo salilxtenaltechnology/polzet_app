@@ -4,10 +4,10 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:polzet_app/screens/home/search/posts/single_post_details.dart';
 import 'package:provider/provider.dart';
 
 import 'api/services/notification/notification_services.dart';
-import 'core/connectivity/connectivity_overlay.dart';
 import 'core/constants/app_strings.dart';
 import 'core/navigation/notification_router.dart';
 import 'core/themes/app_themes.dart';
@@ -21,11 +21,10 @@ import 'provider/private_chat_provider.dart';
 import 'provider/user_provider.dart';
 import 'screens/home/home_imports.dart';
 import 'screens/home/message/chat/private/private_chat_screen.dart';
-import 'screens/home/notifications/notification_details.dart';
 import 'screens/home/profile/public/public_profile_screen.dart';
 import 'screens/splash/splash_screen.dart';
 
-// ✅ Background message handler
+// Background message handler
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
@@ -36,7 +35,7 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  await SharedPrefService.clearOnFirstLaunch(); // Clear all token when uninstall app
+  await SharedPrefService.clearOnFirstLaunch();
 
   try {
     await Firebase.initializeApp(
@@ -137,7 +136,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     }
   }
 
-  /// ✅ Reconnect notification WebSocket
+  /// Reconnect notification WebSocket
   Future<void> _reconnectNotificationWebSocket() async {
     final loggedIn = await _isLoggedIn();
     if (loggedIn && !NotificationService().isWebSocketConnected) {
@@ -260,8 +259,13 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     final Map<String, dynamic> data = {...rawData, ...notificationData};
     final type = (data['type'] ?? '').toString().toLowerCase().trim();
 
+    // Read username from provider
+    final userProvider = Provider.of<UserProvider>(context, listen: false);
+    final String username = userProvider.username ?? '';
+
     debugPrint('🎯 Navigating to notification type: "$type"');
     debugPrint('📋 Full notification data: $data');
+    debugPrint('   👤 Username: $username');
 
     Widget? destination;
 
@@ -270,17 +274,17 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
         type == 'commetnt' ||
         type == 'vote' ||
         type == 'reply') {
-      final postId = _parseToInt(data['post_id']);
+      final String? postId = data['post_id']?.toString();
       debugPrint('   📝 Post notification detected - postId: $postId');
 
-      if (postId > 0) {
-        destination = NotificationDetails(postId: postId);
+      if (postId != null && postId.isNotEmpty && postId != '0') {
+        destination = SinglePostDetails(username: username, postId: postId);
       } else {
         debugPrint('❌ Invalid or missing post_id for type: $type');
       }
     } else if (type == 'follow') {
-      final userId = _parseToInt(data['sender_id']);
-      if (userId > 0) {
+      final String? userId = data['sender_id']?.toString();
+      if (userId != null && userId.isNotEmpty) {
         destination = PublicProfileScreen(userId: userId);
       } else {
         debugPrint('❌ Invalid or missing sender_id for type: $type');
@@ -367,8 +371,6 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
         darkTheme: AppThemes.darkMode,
         themeMode: themeProvider.isDarkMode ? ThemeMode.dark : ThemeMode.light,
         title: AppStrings.appName,
-        builder: (context, child) =>
-            ConnectivityOverlay(navigatorKey: navigatorKey, child: child!),
         home: const SplashScreen(),
       ),
     );

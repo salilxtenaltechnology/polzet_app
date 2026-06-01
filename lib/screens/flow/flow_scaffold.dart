@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 
 import '../../core/constants/app_radius.dart';
+import '../../core/themes/app_text_colors.dart';
 import '../../core/themes/app_text_styles.dart';
 
 class FlowScaffold extends StatelessWidget {
@@ -31,8 +32,9 @@ class FlowScaffold extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+     final txt = AppTextColors.of(context);
     return Scaffold(
-      backgroundColor: const Color(0xFFFDFDFD),
+      backgroundColor: Theme.of(context).colorScheme.background,
       body: SafeArea(
         child: Column(
           children: [
@@ -47,10 +49,10 @@ class FlowScaffold extends StatelessWidget {
                       alignment: Alignment.centerLeft,
                       child: GestureDetector(
                         onTap: onBack,
-                        child: const Icon(
+                        child:  Icon(
                           Icons.arrow_back,
                           size: 22,
-                          color: Color(0xFF111111),
+                          color: Theme.of(context).colorScheme.onBackground,
                         ),
                       ),
                     ),
@@ -59,7 +61,7 @@ class FlowScaffold extends StatelessWidget {
                     style: AppTextStyles.bodyText.copyWith(
                       fontSize: 14,
                       fontWeight: FontWeight.w500,
-                      color: const Color(0xFF2C2C2C).withOpacity(0.8),
+                      color: txt.title.withOpacity(0.9),
                     ),
                   ),
                 ],
@@ -79,7 +81,7 @@ class FlowScaffold extends StatelessWidget {
                       textAlign: TextAlign.center,
                       style: AppTextStyles.subSectionHeading.copyWith(
                         fontSize: 20,
-                        color: const Color(0xFF111111),
+                        color: Theme.of(context).colorScheme.onBackground,
                         letterSpacing: -0.3,
                       ),
                     ),
@@ -89,7 +91,7 @@ class FlowScaffold extends StatelessWidget {
                       textAlign: TextAlign.center,
                       style: AppTextStyles.bodyText.copyWith(
                         fontSize: 13.5,
-                        color: const Color(0xFF595959),
+                        color: txt.body,
                         height: 1.4,
                       ),
                     ),

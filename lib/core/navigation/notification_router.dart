@@ -1,8 +1,10 @@
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
+import 'package:polzet_app/screens/home/search/posts/single_post_details.dart';
+import 'package:provider/provider.dart';
 
+import '../../provider/user_provider.dart';
 import '../../screens/home/home_imports.dart';
-import '../../screens/home/notifications/notification_details.dart';
 import '../../screens/home/profile/public/public_profile_screen.dart';
 
 // PROFESSIONAL: Centralized notification routing service
@@ -33,7 +35,7 @@ class NotificationRouter {
   }
 
   /// ✅ ENHANCED: Resolve the destination widget DIRECTLY
-  Future<Widget?> resolveDestination() async {
+  Future<Widget?> resolveDestination(BuildContext context) async {
     if (_pendingNotification == null || _hasNavigated) {
       debugPrint(
         '📬 NotificationRouter: No pending notification or already handled',
@@ -55,6 +57,9 @@ class NotificationRouter {
 
     final type = (data['type'] ?? '').toString().toLowerCase().trim();
 
+     final userProvider = Provider.of<UserProvider>(context, listen: false);
+  final String username = userProvider.username ?? '';
+
     debugPrint('🚀 NotificationRouter.resolveDestination()');
     debugPrint('   Type: "$type"');
     debugPrint('   Data keys: ${data.keys.toList()}');
@@ -67,20 +72,20 @@ class NotificationRouter {
           type == 'commetnt' || // backend type
           type == 'vote' ||
           type == 'reply') {
-        final postId = _parseToInt(data['post_id'], 'post_id');
+        final String? postId = data['post_id']?.toString();
         debugPrint('   📝 Post notification - postId: $postId');
 
-        if (postId > 0) {
-          return NotificationDetails(postId: postId);
+        if (postId != null && postId.isNotEmpty && postId != '0') {
+          return SinglePostDetails(postId: postId,  username: username,);
         } else {
           debugPrint('❌ Invalid post_id: ${data['post_id']}');
           debugPrint('   Available keys: ${data.keys.toList()}');
         }
       } else if (type == 'follow') {
-        final userId = _parseToInt(data['sender_id'], 'sender_id');
+        final String? userId = data['sender_id']?.toString();
         debugPrint('   👤 Follow notification - userId: $userId');
 
-        if (userId > 0) {
+        if (userId != null && userId.isNotEmpty) {
           return PublicProfileScreen(userId: userId);
         } else {
           debugPrint('❌ Invalid sender_id: ${data['sender_id']}');
@@ -149,16 +154,18 @@ class NotificationRouter {
 
   /// Navigate to post details screen
   void _navigateToPost(BuildContext context, Map<String, dynamic> data) {
-    final postId = _parseToInt(data['post_id'], 'post_id');
+    final String? postId = data['post_id']?.toString();
+     final userProvider = Provider.of<UserProvider>(context, listen: false);
+  final String username = userProvider.username ?? '';
 
     debugPrint('📝 Attempting to navigate to post');
     debugPrint('   Raw post_id: ${data['post_id']}');
     debugPrint('   Parsed postId: $postId');
     debugPrint('   Data keys: ${data.keys.toList()}');
 
-    if (postId > 0) {
+    if (postId != null && postId.isNotEmpty && postId != '0') {
       Navigator.of(context).push(
-        MaterialPageRoute(builder: (_) => NotificationDetails(postId: postId)),
+        MaterialPageRoute(builder: (_) => SinglePostDetails(postId: postId,  username: username,)),
       );
     } else {
       _navigateToNotificationsTab(context);
@@ -166,9 +173,9 @@ class NotificationRouter {
   }
 
   void _navigateToProfile(BuildContext context, Map<String, dynamic> data) {
-    final userId = _parseToInt(data['sender_id'], 'sender_id');
+    final String? userId = data['sender_id']?.toString();
 
-    if (userId > 0) {
+    if (userId != null && userId.isNotEmpty) {
       Navigator.of(
         context,
       ).push(MaterialPageRoute(builder: (_) => PublicProfileScreen(userId: userId)));
@@ -177,27 +184,6 @@ class NotificationRouter {
     }
   }
 
-  // ENHANCED: Safe integer parsing with validation and detailed logging
-  int _parseToInt(dynamic value, String fieldName) {
-    if (value == null) {
-      return 0;
-    }
-
-    if (value is int) {
-      return value;
-    }
-
-    if (value is String) {
-      final parsed = int.tryParse(value);
-      if (parsed == null) {
-        debugPrint('❌ Failed to parse $fieldName: "$value"');
-        return 0;
-      }
-      return parsed;
-    }
-
-    return 0;
-  }
 
   void _navigateToNotificationsTab(BuildContext context) {
     debugPrint('🔔 Navigating to notifications tab (fallback)');

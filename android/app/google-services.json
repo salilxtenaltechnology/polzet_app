@@ -14,15 +14,7 @@
       },
       "oauth_client": [
         {
-          "client_id": "470797111076-3ejifq8gb73kll5orsj9t1urh25qedki.apps.googleusercontent.com",
-          "client_type": 1,
-          "android_info": {
-            "package_name": "com.polzet_app",
-            "certificate_hash": "129bdc4ef9d593c7245feb3356d6f0503d8a1b76"
-          }
-        },
-        {
-          "client_id": "470797111076-jv1nr29ro0349aerhg79so8rpa5u4k96.apps.googleusercontent.com",
+          "client_id": "470797111076-j8f3ice8arpgitabd4q73nbgijhs9knq.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
             "package_name": "com.polzet_app",
@@ -30,7 +22,15 @@
           }
         },
         {
-          "client_id": "53424915324-6jgqsatmm1o2uslhl1hd326ss483fb8n.apps.googleusercontent.com",
+          "client_id": "470797111076-q9inr20h5p8rmkqfuis1mm0jv172f1kl.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.polzet_app",
+            "certificate_hash": "129bdc4ef9d593c7245feb3356d6f0503d8a1b76"
+          }
+        },
+        {
+          "client_id": "470797111076-oq07ifq4rpgben72r6ikg0b7faorf06k.apps.googleusercontent.com",
           "client_type": 3
         }
       ],
@@ -43,7 +43,7 @@
         "appinvite_service": {
           "other_platform_oauth_client": [
             {
-              "client_id": "53424915324-6jgqsatmm1o2uslhl1hd326ss483fb8n.apps.googleusercontent.com",
+              "client_id": "470797111076-oq07ifq4rpgben72r6ikg0b7faorf06k.apps.googleusercontent.com",
               "client_type": 3
             }
           ]

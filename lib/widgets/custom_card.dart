@@ -15,13 +15,13 @@ class CustomCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.primaryContainer,
         borderRadius: AppRadius.cardRadius,
+        border: Border.all(
+          color: Theme.of(context).colorScheme.outline, 
+          width: 1,
+        ),
         boxShadow: const [
-          BoxShadow(
-            color: Color(0x15000000),
-            blurRadius: 5,
-            spreadRadius: 2,
-          ),
-        ],
+              BoxShadow(color: Color(0x06000000), blurRadius: 2),
+            ],
       ),
       child: widget,
     );

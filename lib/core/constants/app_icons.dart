@@ -23,7 +23,7 @@ class AppIcons {
       _img(Assets.images.inactiveBell, size: size, color: color, key: key);
 
   /*---- Post Actions ----*/
-  static Widget filledHeart({double size = 24, Color? color, Key? key}) =>
+  static Widget filledHeart({double size = 23, Color? color, Key? key}) =>
       _img(Assets.images.filledHeart, size: size, color: color, key: key);
 
   static Widget outlineHeart({double size = 24, Color? color, Key? key}) =>
@@ -38,11 +38,12 @@ class AppIcons {
   static Widget icVote({double size = 14.5, Color? color, Key? key}) =>
       _img(Assets.images.icVote, size: size, color: color, key: key);
 
-  static Widget commnetBox({double size = 24, Color? color, Key? key}) =>
+  static Widget commnetBox({double size = 22, Color? color, Key? key}) =>
       _img(Assets.images.comments, size: size, color: color, key: key);
 
-  static Widget sharePost({double size = 25.3, Color? color, Key? key}) =>
+  static Widget sharePost({double size = 23, Color? color, Key? key}) =>
       _img(Assets.images.forward, size: size, color: color, key: key);
+
 
   static Widget _img(
     AssetGenImage asset, {

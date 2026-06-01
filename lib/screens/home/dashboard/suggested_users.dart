@@ -6,18 +6,19 @@ import 'package:polzet_app/core/themes/app_text_styles.dart';
 
 import '../../../api/services/api_service.dart';
 import '../../../core/constants/app_radius.dart';
+import '../../../core/themes/app_text_colors.dart';
 import '../../../mixin/utility_mixins.dart';
 import '../../../models/user/suggestionsb users/suggestions_users_model.dart';
 import '../../../widgets/shimmer/suggestion_users_shimmer.dart';
 import '../../../widgets/error/api_error_widget.dart';
 import '../profile/public/public_profile_screen.dart';
 
-class PeopleYouMayKnowSection extends StatefulWidget {
+class SuggestedUsers extends StatefulWidget {
   final Future<UserSuggestionsModel> suggestionsFuture;
-  final Set<int> chasedUserIds;
+  final Set<dynamic> chasedUserIds;
   final ApiService apiService;
 
-  const PeopleYouMayKnowSection({
+  const SuggestedUsers({
     super.key,
     required this.suggestionsFuture,
     required this.chasedUserIds,
@@ -25,14 +26,14 @@ class PeopleYouMayKnowSection extends StatefulWidget {
   });
 
   @override
-  State<PeopleYouMayKnowSection> createState() =>
-      _PeopleYouMayKnowSectionState();
+  State<SuggestedUsers> createState() => _SuggestedUsersState();
 }
 
-class _PeopleYouMayKnowSectionState extends State<PeopleYouMayKnowSection>
-    with UtilityMixin {
+class _SuggestedUsersState extends State<SuggestedUsers> with UtilityMixin {
   @override
   Widget build(BuildContext context) {
+    final txt = AppTextColors.of(context);
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     return FutureBuilder<UserSuggestionsModel>(
       future: widget.suggestionsFuture,
       builder: (context, snapshot) {
@@ -69,7 +70,7 @@ class _PeopleYouMayKnowSectionState extends State<PeopleYouMayKnowSection>
             (MediaQuery.of(context).size.width - 16 * 2 - 12) / 2;
 
         return SizedBox(
-          height: 245,
+          height: 250,
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
             physics: const ClampingScrollPhysics(),
@@ -100,7 +101,7 @@ class _PeopleYouMayKnowSectionState extends State<PeopleYouMayKnowSection>
                       color: Theme.of(context).colorScheme.primaryContainer,
                       borderRadius: BorderRadius.circular(AppRadius.card),
                       border: Border.all(
-                        color: const Color(0xFFEFEFEF),
+                        color: Theme.of(context).colorScheme.outline,
                         width: 1,
                       ),
                       boxShadow: const [
@@ -113,7 +114,7 @@ class _PeopleYouMayKnowSectionState extends State<PeopleYouMayKnowSection>
                         GestureDetector(
                           onTap: () => navigationPush(
                             context,
-                            PublicProfileScreen(userId: user.id),
+                            PublicProfileScreen(userId: user.id.toString()),
                           ),
                           child: user.avatar.isNotEmpty
                               ? CircleAvatar(
@@ -123,9 +124,11 @@ class _PeopleYouMayKnowSectionState extends State<PeopleYouMayKnowSection>
                                 )
                               : CircleAvatar(
                                   radius: 50,
-                                  backgroundColor: Theme.of(
-                                    context,
-                                  ).colorScheme.primary.withOpacity(0.1),
+                                  backgroundColor: isDarkMode
+                                      ? Colors.grey.withOpacity(0.1)
+                                      : Theme.of(
+                                          context,
+                                        ).colorScheme.primary.withOpacity(0.1),
                                   child: Text(
                                     user.username.isNotEmpty
                                         ? user.username[0].toUpperCase()
@@ -135,7 +138,7 @@ class _PeopleYouMayKnowSectionState extends State<PeopleYouMayKnowSection>
                                       fontWeight: FontWeight.w600,
                                       color: Theme.of(
                                         context,
-                                      ).colorScheme.primary,
+                                      ).colorScheme.onPrimary.withOpacity(0.8),
                                     ),
                                   ),
                                 ),
@@ -152,18 +155,77 @@ class _PeopleYouMayKnowSectionState extends State<PeopleYouMayKnowSection>
                             color: Theme.of(context).colorScheme.onBackground,
                           ),
                         ),
-                        const SizedBox(height: 3),
-                        Text(
-                          '+${user.mutualFriends} Mutuals',
-                          textAlign: TextAlign.center,
-                          overflow: TextOverflow.ellipsis,
-                          maxLines: 1,
-                          style: AppTextStyles.subText.copyWith(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w400,
-                            color: const Color(0XFF8E8E8E),
+                        const SizedBox(height: 5),
+                        if (user.mutualFriendsAvatars.isNotEmpty)
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              SizedBox(
+                                height: 20,
+                                width: (user.mutualFriendsAvatars.take(3).length - 1) * 14.0 + 18.0,
+                                child: Stack(
+                                  children: List.generate(
+                                    user.mutualFriendsAvatars.take(3).length,
+                                    (index) {
+                                      final avatarUrl = user.mutualFriendsAvatars[index];
+                                      ImageProvider img;
+                                      if (avatarUrl.startsWith('data:image')) {
+                                        img = MemoryImage(
+                                          base64Decode(avatarUrl.split(',').last),
+                                        );
+                                      } else {
+                                        img = NetworkImage(avatarUrl);
+                                      }
+                                      return Positioned(
+                                        left: index * 14.0,
+                                        child: Container(
+                                          decoration: BoxDecoration(
+                                            shape: BoxShape.circle,
+                                            border: Border.all(
+                                              color: isDarkMode
+                                                  ? const Color(0xFF2A2A2E)
+                                                  : Theme.of(context).colorScheme.primaryContainer,
+                                              width: 1,
+                                            ),
+                                          ),
+                                          child: CircleAvatar(
+                                            radius: 9,
+                                            backgroundImage: img,
+                                            backgroundColor: Colors.grey.shade200,
+                                          ),
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 4),
+                              Flexible(
+                                child: Text(
+                                  '+${user.mutualFriends} mutual',
+                                  overflow: TextOverflow.ellipsis,
+                                  maxLines: 1,
+                                  style: AppTextStyles.subText.copyWith(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w400,
+                                    color: txt.muted,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          )
+                        else
+                          Text(
+                            '+${user.mutualFriends} Mutuals',
+                            textAlign: TextAlign.center,
+                            overflow: TextOverflow.ellipsis,
+                            maxLines: 1,
+                            style: AppTextStyles.subText.copyWith(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w400,
+                              color: txt.muted,
+                            ),
                           ),
-                        ),
 
                         GestureDetector(
                           onTap: () async {
@@ -200,11 +262,24 @@ class _PeopleYouMayKnowSectionState extends State<PeopleYouMayKnowSection>
                             width: double.infinity,
                             decoration: BoxDecoration(
                               color: isChased
-                                  ? Colors.grey.shade400
+                                  ? Colors.transparent
                                   : Theme.of(context).colorScheme.primary,
                               borderRadius: BorderRadius.circular(
                                 AppRadius.button,
                               ),
+                              border: isChased
+                                  ? Border.all(
+                                      color: isDarkMode
+                                          ? Theme.of(context)
+                                                .colorScheme
+                                                .onPrimary
+                                                .withOpacity(0.3)
+                                          : Theme.of(
+                                              context,
+                                            ).colorScheme.primary,
+                                      width: 1,
+                                    )
+                                  : null,
                             ),
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.center,
@@ -220,7 +295,15 @@ class _PeopleYouMayKnowSectionState extends State<PeopleYouMayKnowSection>
                                 Text(
                                   isChased ? 'Chasing' : 'Chase',
                                   style: TextStyle(
-                                    color: Colors.white,
+                                    color: isChased
+                                        ? (isDarkMode
+                                              ? Colors.white.withValues(
+                                                  alpha: 0.8,
+                                                )
+                                              : Theme.of(
+                                                  context,
+                                                ).colorScheme.primary)
+                                        : Colors.white,
                                     fontSize: 10.8.sp,
                                   ),
                                 ),

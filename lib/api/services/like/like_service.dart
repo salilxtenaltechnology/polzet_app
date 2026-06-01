@@ -10,12 +10,12 @@ class LikeService {
   factory LikeService() => _instance;
   LikeService._internal();
 
-  final Map<int, bool> _ongoingOperations = {};
+  final Map<dynamic, bool> _ongoingOperations = {};
 
   //*---- Returns updated like state and count ----*//
   Future<LikeResult> togglePostLike({
     required BuildContext context,
-    required int postId,
+    required dynamic postId,
     required bool currentLikeState,
     required int currentLikesCount,
   }) async {

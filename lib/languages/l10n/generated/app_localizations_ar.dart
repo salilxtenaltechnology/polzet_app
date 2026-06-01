@@ -1707,4 +1707,342 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get passworddonotmatch => 'كلمات المرور غير متطابقة';
+
+  @override
+  String get home => 'الرئيسية';
+
+  @override
+  String get profile => 'الملف الشخصي';
+
+  @override
+  String get chats => 'المحادثات';
+
+  @override
+  String get groups => 'المجموعات';
+
+  @override
+  String get shareprofile => 'مشاركة الملف الشخصي';
+
+  @override
+  String get images => 'صور';
+
+  @override
+  String get nothingsavedyet => 'لم يتم حفظ أي شيء بعد';
+
+  @override
+  String get savedpollsyouwanttorevisitlater =>
+      'الاستطلاعات المحفوظة التي تريد مراجعتها لاحقاً.';
+
+  @override
+  String get nothingspollyet => 'لا يوجد استطلاع بعد';
+
+  @override
+  String get createyourfirstpollandstartgatheringopinions =>
+      'أنشئ استطلاعك الأول وابدأ في جمع الآراء.';
+
+  @override
+  String get noimagepollyet => 'لا يوجد استطلاع صور بعد';
+
+  @override
+  String get submitranking => 'إرسال الترتيب';
+
+  @override
+  String get rankyourchoices => 'رتّب خياراتك';
+
+  @override
+  String get holdanddragtorankimage => 'اضغط مع السحب لترتيب الصورة';
+
+  @override
+  String get holdanddragtorankanswer => 'اضغط مع السحب لترتيب الإجابة';
+
+  @override
+  String get stayactiveandsharepollstobuildyourcommunity =>
+      'ابقَ نشطاً وشارك الاستطلاعات لبناء مجتمعك';
+
+  @override
+  String get askopinionsandgetanswers => 'اطرح آراءك واحصل على إجابات';
+
+  @override
+  String get updateyourpasswordandsecureyouraccount =>
+      'حدّث كلمة مرورك وأمّن حسابك';
+
+  @override
+  String get controlwhocanviewyouractivityandpolls =>
+      'تحكم في من يمكنه رؤية نشاطك واستطلاعاتك';
+
+  @override
+  String get managepeopleyouveblockedonpolzet =>
+      'إدارة الأشخاص الذين حظرتهم على Polzet';
+
+  @override
+  String get preferences => 'التفضيلات';
+
+  @override
+  String get choosewhatupdatesandalertsyouwanttoreceive =>
+      'اختر التحديثات والتنبيهات التي تريد تلقيها';
+
+  @override
+  String get chooseyourpreferredapplanguage => 'اختر لغة التطبيق المفضلة لديك';
+
+  @override
+  String get gethelpwithyouraccount => 'احصل على مساعدة بشأن حسابك';
+
+  @override
+  String get shareyourthoughtsandhelpimprovepolzet =>
+      'شارك أفكارك وساعد في تحسين Polzet.';
+
+  @override
+  String get readtherulesandguidelinesforusingpolzet =>
+      'اقرأ القواعد والإرشادات لاستخدام Polzet.';
+
+  @override
+  String get continueButton => 'متابعة';
+
+  @override
+  String get currentpasswordisrequired => 'كلمة المرور الحالية مطلوبة.';
+
+  @override
+  String get newpasswordisrequired => 'كلمة المرور الجديدة مطلوبة.';
+
+  @override
+  String get mustbeeightpluscharacterswithaletternumberandspecialcharacter =>
+      'يجب أن تحتوي على 8 أحرف على الأقل بحرف ورقم ورمز خاص.';
+
+  @override
+  String get pleaseconfirmyournewpassword => 'يرجى تأكيد كلمة المرور الجديدة.';
+
+  @override
+  String get passwordsdonotmatch => 'كلمتا المرور غير متطابقتين.';
+
+  @override
+  String get pushnotification => 'إشعار فوري';
+
+  @override
+  String get receivealertandupdatesacrosspolzet =>
+      'تلقّ التنبيهات والتحديثات عبر Polzet.';
+
+  @override
+  String get pollactivity => 'نشاط الاستطلاع';
+
+  @override
+  String get commentsandreplies => 'التعليقات والردود';
+
+  @override
+  String get socialactivity => 'النشاط الاجتماعي';
+
+  @override
+  String get searchaccountspostsplaces => 'ابحث عن حسابات، منشورات، أماكن…';
+
+  @override
+  String get norecentsearches => 'لا توجد عمليات بحث حديثة';
+
+  @override
+  String get tryanotherkeywordorexploretrendingpolls =>
+      'جرّب كلمة مفتاحية أخرى أو استكشف الاستطلاعات الرائجة.';
+
+  @override
+  String get searching => 'جارٍ البحث...';
+
+  @override
+  String get notfound => 'غير موجود';
+
+  @override
+  String get accounts => 'الحسابات';
+
+  @override
+  String get accountslower => 'حسابات';
+
+  @override
+  String get trysearchingwithadifferentusernameorkeyword =>
+      'جرّب البحث باسم مستخدم أو كلمة مفتاحية مختلفة.';
+
+  @override
+  String get tags => 'الوسوم';
+
+  @override
+  String get tag => 'وسوم';
+
+  @override
+  String get no => 'لا';
+
+  @override
+  String get found => 'موجود';
+
+  @override
+  String get post => 'منشورات';
+
+  @override
+  String get exploretrendingconversationsortryanothersearch =>
+      'استكشف المحادثات الرائجة أو جرّب بحثاً آخر.';
+
+  @override
+  String get photoslower => 'صور';
+
+  @override
+  String get wecouldnotfindanymatchingphotos =>
+      'لم نتمكن من العثور على أي صور مطابقة.';
+
+  @override
+  String get trysearchingforanothertopicorkeyword =>
+      'جرّب البحث عن موضوع أو كلمة مفتاحية أخرى.';
+
+  @override
+  String get today => 'اليوم';
+
+  @override
+  String get yesterday => 'أمس';
+
+  @override
+  String get lastsavendays => 'آخر 7 أيام';
+
+  @override
+  String get lastthirtydays => 'آخر 30 يوماً';
+
+  @override
+  String get older => 'أقدم';
+
+  @override
+  String get clearallnotifications => 'مسح جميع الإشعارات';
+
+  @override
+  String get areyousureyouwanttoclearallnotifications =>
+      'هل أنت متأكد أنك تريد مسح جميع الإشعارات؟';
+
+  @override
+  String get yesclearall => 'نعم، امسح الكل';
+
+  @override
+  String get deletenotifications => 'حذف الإشعارات';
+
+  @override
+  String get areyousureyouwanttodeletethesenotifications =>
+      'هل أنت متأكد أنك تريد حذف هذه الإشعارات؟';
+
+  @override
+  String get thisoinwillbeusedtosecureyouraccount =>
+      'سيُستخدم هذا الرمز السري لتأمين حسابك';
+
+  @override
+  String get changeoin => 'تغيير الرمز السري';
+
+  @override
+  String get likedby => 'أعجب';
+
+  @override
+  String get bethefirsttostarttheconversation => 'كن أول من يبدأ المحادثة';
+
+  @override
+  String get suggestedforyou => 'مقترح لك';
+
+  @override
+  String get pollresult => 'نتيجة الاستطلاع';
+
+  @override
+  String get totalvotes => 'إجمالي الأصوات';
+
+  @override
+  String get saved => 'محفوظ';
+
+  @override
+  String get screenshotsoptional => 'لقطات الشاشة (اختياري)';
+
+  @override
+  String get nomessagesyet => 'لا توجد رسائل بعد';
+
+  @override
+  String get nonotificationsyet => 'لا توجد إشعارات بعد';
+
+  @override
+  String get likescommentsandupdateswillappearhere =>
+      'الإعجابات والتعليقات والتحديثات ستظهر هنا.';
+
+  @override
+  String get votesupdateswillappearhere => 'تحديثات الأصوات ستظهر هنا.';
+
+  @override
+  String get chaserequestsupdateswillappearhere =>
+      'تحديثات طلبات المتابعة ستظهر هنا.';
+
+  @override
+  String get startchattingbysharingpollsorreactingtoconversations =>
+      'ابدأ الدردشة من خلال مشاركة استطلاعات الرأي أو التفاعل مع المحادثات.';
+
+  @override
+  String get doyouwanttochangeyourcurrentpin =>
+      'هل تريد تغيير رمزك السري الحالي؟';
+
+  @override
+  String get top => 'الأعلى';
+
+  @override
+  String get searchvoters => 'البحث عن الناخبين';
+
+  @override
+  String get fingerprint => 'بصمة الإصبع';
+
+  @override
+  String get enablefingerprint => 'تفعيل بصمة الإصبع';
+
+  @override
+  String get unlocktheappfasterandmoresecurelybyusingyourfingerprint =>
+      'افتح التطبيق بشكل أسرع وأكثر أمانًا\nباستخدام بصمة إصبعك';
+
+  @override
+  String get thisaccountisprivate => 'هذا الحساب خاص';
+
+  @override
+  String get chasethisaccounttoseetheirposts =>
+      'تابع هذا الحساب لرؤية منشوراته.';
+
+  @override
+  String get online => 'متصل';
+
+  @override
+  String get offline => 'غير متصل';
+
+  @override
+  String get startchasingpeopletodiscoverfreshopinionsthenwillappearusershere =>
+      'ابدأ بمتابعة الأشخاص لاكتشاف آراء جديدة\nثم ستظهر المستخدمون هنا';
+
+  @override
+  String get selectyourdateofbirth => 'اختر تاريخ ميلادك';
+
+  @override
+  String get selected => 'محدد';
+
+  @override
+  String get chasing => 'متابعة';
+
+  @override
+  String get chaseback => 'تابع بالمثل';
+
+  @override
+  String get requested => 'مطلوب';
+
+  @override
+  String get usefingerprint => 'استخدم بصمة الإصبع';
+
+  @override
+  String get novotersfound => 'لم يتم العثور على ناخبين';
+
+  @override
+  String get permanentlydeleteyourpolzetaccountandalldata =>
+      'احذف حساب Polzet وجميع بياناتك نهائيًا';
+
+  @override
+  String get unblockuser => 'إلغاء حظر المستخدم';
+
+  @override
+  String get blockuser => 'حظر المستخدم';
+
+  @override
+  String get areyousureyouwanttounblockthisuser =>
+      'هل أنت متأكد أنك تريد إلغاء حظر هذا المستخدم؟';
+
+  @override
+  String get areyousureyouwanttoblockthisuser =>
+      'هل أنت متأكد أنك تريد حظر هذا المستخدم؟';
+
+  @override
+  String get nopostsavailable => 'لا توجد منشورات متاحة';
 }

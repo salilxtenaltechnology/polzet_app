@@ -5,19 +5,20 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../../core/constants/app_colors.dart';
 import '../../core/constants/app_radius.dart';
+import '../../core/themes/app_text_colors.dart';
 import '../../core/themes/app_text_styles.dart';
 import '../../gen/assets.gen.dart';
 import '../../languages/l10n/generated/app_localizations.dart';
 import '../../mixin/utility_mixins.dart';
-import '../../screens/home/poll/poll_images.dart';
-import '../../screens/home/poll/poll_question.dart';
-import '../custom_text_styles.dart';
+import '../../screens/home/new poll/new_image_poll.dart';
+import '../../screens/home/new poll/new_things_poll.dart';
 
 class NewPollBottomsheet extends StatelessWidget with UtilityMixin {
   const NewPollBottomsheet({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final txt = AppTextColors.of(context);
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(12).w,
@@ -42,10 +43,10 @@ class NewPollBottomsheet extends StatelessWidget with UtilityMixin {
           SizedBox(height: 12.h),
           Text(
             AppLocalizations.of(context)!.addnewpoll,
-            style: CustomTextStyles.bottomsheetTitleTextStyle(context),
+            style: AppTextStyles.sectionHeading.copyWith(color: txt.title),
           ),
           Divider(
-            color: Theme.of(context).colorScheme.onBackground.withOpacity(0.1),
+            color: Theme.of(context).colorScheme.outlineVariant,
             height: 25.h,
           ),
           Row(
@@ -56,7 +57,7 @@ class NewPollBottomsheet extends StatelessWidget with UtilityMixin {
                   GestureDetector(
                     onTap: () {
                       Navigator.pop(context);
-                      navigationPush(context, const PollQuestion());
+                      navigationPush(context, const NewThingsPoll());
                     },
                     child: Container(
                       height: 55.h,
@@ -71,14 +72,14 @@ class NewPollBottomsheet extends StatelessWidget with UtilityMixin {
                       ),
                     ),
                   ),
-                  SizedBox(height: 5.h),
+                  const SizedBox(height: 12),
                   Text(
                     AppLocalizations.of(context)!.answer,
-                   style: AppTextStyles.subText.copyWith(
-          fontSize: 13.5,
-          fontWeight: FontWeight.w500,
-          color: Theme.of(context).colorScheme.onBackground,
-        ),
+                    style: AppTextStyles.subText.copyWith(
+                      fontSize: 13.5,
+                      fontWeight: FontWeight.w500,
+                      color: txt.heading,
+                    ),
                   ),
                 ],
               ),
@@ -88,7 +89,7 @@ class NewPollBottomsheet extends StatelessWidget with UtilityMixin {
                   GestureDetector(
                     onTap: () {
                       Navigator.pop(context);
-                      navigationPush(context, const PollImages());
+                      navigationPush(context, const NewImagePoll());
                     },
                     child: Container(
                       height: 55.h,
@@ -101,14 +102,14 @@ class NewPollBottomsheet extends StatelessWidget with UtilityMixin {
                       child: Assets.images.imageIcon.image(color: Colors.white),
                     ),
                   ),
-                  SizedBox(height: 5.h),
+                  const SizedBox(height: 12),
                   Text(
                     AppLocalizations.of(context)!.image,
-                   style: AppTextStyles.subText.copyWith(
-          fontSize: 13.5,
-          fontWeight: FontWeight.w500,
-          color: Theme.of(context).colorScheme.onBackground,
-        ),
+                    style: AppTextStyles.subText.copyWith(
+                      fontSize: 13.5,
+                      fontWeight: FontWeight.w500,
+                      color: txt.heading,
+                    ),
                   ),
                 ],
               ),

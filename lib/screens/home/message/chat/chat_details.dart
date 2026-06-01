@@ -1,15 +1,18 @@
 // ignore_for_file: deprecated_member_use
 import 'dart:io';
 
-import 'package:feather_icons/feather_icons.dart';
+import 'package:polzet_app/core/constants/feather_icons_compat.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:polzet_app/widgets/loader.dart';
 import 'package:provider/provider.dart';
 
 import '../../../../../core/constants/app_colors.dart';
 import '../../../../api/services/api_service.dart';
 import '../../../../api/services/image/image_picker_service.dart';
+import '../../../../core/themes/app_text_colors.dart';
+import '../../../../core/themes/app_text_styles.dart';
 import '../../../../core/themes/app_themes.dart';
 import '../../../../languages/l10n/generated/app_localizations.dart';
 import '../../../../mixin/utility_mixins.dart';
@@ -77,10 +80,16 @@ class _ChatDetailsState extends State<ChatDetails> with UtilityMixin {
   }
 
   bool _isCurrentUserAdmin(List<Map<String, dynamic>> members) {
-    final currentUserId = context.read<UserProvider>().userId;
+    final userProvider = context.read<UserProvider>();
+    final currentUserId = userProvider.userId;
+    final currentUsername = userProvider.username;
     for (final m in members) {
       final user = Map<String, dynamic>.from(m['user'] as Map? ?? {});
-      if (user['id'] == currentUserId) return m['is_admin'] == true;
+      final username = user['username']?.toString();
+      if (user['id']?.toString() == currentUserId ||
+          (currentUsername != null && username == currentUsername)) {
+        return m['is_admin'] == true;
+      }
     }
     return false;
   }
@@ -225,12 +234,12 @@ class _ChatDetailsState extends State<ChatDetails> with UtilityMixin {
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         border: Border.all(
-                          color: AppThemes.lightMode.colorScheme.primaryContainer,
+                          color: AppThemes.lightMode.colorScheme.outlineVariant,
                           width: 1.w,
                         ),
                       ),
                       child: CircleAvatar(
-                        radius: 14.r,
+                        radius: 14,
                         backgroundColor: const Color.fromARGB(
                           255,
                           252,
@@ -282,6 +291,7 @@ class _ChatDetailsState extends State<ChatDetails> with UtilityMixin {
 
   @override
   Widget build(BuildContext context) {
+    final txt = AppTextColors.of(context);
     final groupProvider = widget.isGroupChat
         ? context.watch<GroupChatProvider>()
         : null;
@@ -327,12 +337,6 @@ class _ChatDetailsState extends State<ChatDetails> with UtilityMixin {
         centerTitle: true,
         backgroundColor: Theme.of(context).colorScheme.background,
         surfaceTintColor: Theme.of(context).colorScheme.background,
-        actions: [
-          Icon(FeatherIcons.video, size: 20.sp),
-          SizedBox(width: 15.w),
-          Icon(FeatherIcons.phone, size: 18.sp),
-          SizedBox(width: 15.w),
-        ],
       ),
       body: Padding(
         padding: EdgeInsets.symmetric(horizontal: 12.w),
@@ -351,7 +355,7 @@ class _ChatDetailsState extends State<ChatDetails> with UtilityMixin {
                       color: imageBytes == null
                           ? Theme.of(
                               context,
-                            ).colorScheme.primary.withOpacity(0.15)
+                            ).colorScheme.onPrimary.withOpacity(0.1)
                           : null,
                       border: Border.all(
                         color: Theme.of(
@@ -370,10 +374,10 @@ class _ChatDetailsState extends State<ChatDetails> with UtilityMixin {
                         ? Center(
                             child: Text(
                               initial,
-                              style: TextStyle(
-                                fontSize: 30.sp,
+                              style: AppTextStyles.cardTitle.copyWith(
+                                fontSize: 30,
                                 fontWeight: FontWeight.w600,
-                                color: Theme.of(context).colorScheme.primary,
+                                color: Theme.of(context).colorScheme.onPrimary,
                               ),
                             ),
                           )
@@ -448,8 +452,8 @@ class _ChatDetailsState extends State<ChatDetails> with UtilityMixin {
                         ),
                         focusedBorder: UnderlineInputBorder(
                           borderSide: BorderSide(
-                            color: Theme.of(context).colorScheme.primary,
-                            width: 1.5,
+                            color: Theme.of(context).colorScheme.onPrimary.withOpacity(0.7),
+                            width: 1,
                           ),
                         ),
                       ),
@@ -459,11 +463,11 @@ class _ChatDetailsState extends State<ChatDetails> with UtilityMixin {
                   SizedBox(width: 6.w),
                   groupProvider!.isRenaming
                       ? SizedBox(
-                          height: 16.sp,
-                          width: 16.sp,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: Theme.of(context).colorScheme.primary,
+                          height: 14.sp,
+                          width: 14.sp,
+                          child: Loader(
+                           
+                            color: Theme.of(context).colorScheme.onPrimary,
                           ),
                         )
                       : GestureDetector(
@@ -471,7 +475,7 @@ class _ChatDetailsState extends State<ChatDetails> with UtilityMixin {
                           child: Icon(
                             Icons.check,
                             size: 18.sp,
-                            color: Theme.of(context).colorScheme.primary,
+                            color: Theme.of(context).colorScheme.onPrimary,
                           ),
                         ),
                   SizedBox(width: 4.w),
@@ -480,14 +484,18 @@ class _ChatDetailsState extends State<ChatDetails> with UtilityMixin {
                       _isEditingName = false;
                       _nameController.text = chatName ?? '';
                     }),
-                    child: Icon(Icons.close, size: 18.sp, color: Colors.red),
+                    child: Icon(
+                      Icons.close,
+                      size: 18.sp,
+                      color: Theme.of(context).colorScheme.error,
+                    ),
                   ),
                 ] else ...[
                   Text(
                     chatName ?? '',
-                    style: TextStyle(
+                    style: AppTextStyles.cardTitle.copyWith(
                       color: Theme.of(context).colorScheme.onBackground,
-                      fontSize: 11.5.sp,
+                      fontSize: 15,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -498,9 +506,7 @@ class _ChatDetailsState extends State<ChatDetails> with UtilityMixin {
                       child: Icon(
                         FeatherIcons.edit2,
                         size: 13.sp,
-                        color: Theme.of(
-                          context,
-                        ).colorScheme.onBackground.withOpacity(0.5),
+                        color: txt.muted,
                       ),
                     ),
                   ],
@@ -518,9 +524,7 @@ class _ChatDetailsState extends State<ChatDetails> with UtilityMixin {
             SizedBox(height: 8.h),
             Divider(
               thickness: 1,
-              color: Theme.of(
-                context,
-              ).colorScheme.onBackground.withOpacity(0.1),
+              color: Theme.of(context).colorScheme.outlineVariant,
             ),
 
             Padding(
@@ -532,23 +536,23 @@ class _ChatDetailsState extends State<ChatDetails> with UtilityMixin {
                 ),
                 child: Row(
                   children: [
-                    Icon(FeatherIcons.image, size: 18.spMax),
+                    Icon(FeatherIcons.image, size: 18.spMax, color: txt.title),
                     SizedBox(width: 8.w),
                     Text(
                       AppLocalizations.of(context)!.medialinksdocs,
-                      style: TextStyle(
-                        color: Theme.of(context).colorScheme.onBackground,
-                        fontSize: 11.sp,
-                        fontWeight: FontWeight.w600,
+                      style: AppTextStyles.cardTitle.copyWith(
+                        color: txt.title,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
                     const Spacer(),
                     Text(
-                      '0',
-                      style: TextStyle(
+                      '10',
+                      style: AppTextStyles.cardTitle.copyWith(
                         color: Theme.of(context).colorScheme.onBackground,
-                        fontSize: 11.sp,
-                        fontWeight: FontWeight.w600,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
                     SizedBox(width: 5.w),
@@ -634,7 +638,7 @@ class _ChatDetailsState extends State<ChatDetails> with UtilityMixin {
                             ? Icons.delete_forever_rounded
                             : Icons.exit_to_app_rounded,
                         size: 20.spMax,
-                        color: const Color(0XFFF44336),
+                        color: Theme.of(context).colorScheme.error,
                       ),
                       SizedBox(width: 8.w),
                       Text(
@@ -642,7 +646,7 @@ class _ChatDetailsState extends State<ChatDetails> with UtilityMixin {
                             ? AppLocalizations.of(context)!.deletegroup
                             : AppLocalizations.of(context)!.leavegroup,
                         style: TextStyle(
-                          color: const Color(0XFFF44336),
+                          color: Theme.of(context).colorScheme.error,
                           fontSize: 11.sp,
                           fontWeight: FontWeight.w600,
                         ),
@@ -666,13 +670,13 @@ class _ChatDetailsState extends State<ChatDetails> with UtilityMixin {
                       Icon(
                         Icons.warning_amber_outlined,
                         size: 18.spMax,
-                        color: const Color(0XFFF44336),
+                        color: Theme.of(context).colorScheme.error,
                       ),
                       SizedBox(width: 8.w),
                       Text(
                         AppLocalizations.of(context)!.report,
                         style: TextStyle(
-                          color: const Color(0XFFF44336),
+                          color: Theme.of(context).colorScheme.error,
                           fontSize: 11.sp,
                           fontWeight: FontWeight.w600,
                         ),
@@ -704,7 +708,7 @@ class _ChatDetailsState extends State<ChatDetails> with UtilityMixin {
                       Icon(
                         Icons.block,
                         size: 18.spMax,
-                        color: const Color(0XFFF44336),
+                        color: Theme.of(context).colorScheme.error,
                       ),
                       SizedBox(width: 8.w),
                       Text(
@@ -712,7 +716,7 @@ class _ChatDetailsState extends State<ChatDetails> with UtilityMixin {
                             ? AppLocalizations.of(context)!.unblock
                             : AppLocalizations.of(context)!.block,
                         style: TextStyle(
-                          color: const Color(0XFFF44336),
+                          color: Theme.of(context).colorScheme.error,
                           fontSize: 11.sp,
                           fontWeight: FontWeight.w600,
                         ),
@@ -734,18 +738,19 @@ class _ChatDetailsState extends State<ChatDetails> with UtilityMixin {
     bool value,
     ValueChanged<bool> onChanged,
   ) {
+    final txt = AppTextColors.of(context);
     return Padding(
       padding: EdgeInsets.only(top: 15.h),
       child: Row(
         children: [
-          Icon(icon, size: 18.spMax),
+          Icon(icon, size: 18.spMax, color: txt.title),
           SizedBox(width: 8.w),
           Text(
             label,
-            style: TextStyle(
-              color: Theme.of(context).colorScheme.onBackground,
-              fontSize: 11.sp,
-              fontWeight: FontWeight.w600,
+            style: AppTextStyles.cardTitle.copyWith(
+              color: txt.title,
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
             ),
           ),
           const Spacer(),
@@ -767,18 +772,19 @@ class _ChatDetailsState extends State<ChatDetails> with UtilityMixin {
   }
 
   Widget _arrowRow(String label, IconData icon) {
+    final txt = AppTextColors.of(context);
     return Padding(
       padding: EdgeInsets.only(top: 15.h),
       child: Row(
         children: [
-          Icon(icon, size: 18.spMax),
+          Icon(icon, size: 18.spMax, color: txt.title),
           SizedBox(width: 8.w),
           Text(
             label,
-            style: TextStyle(
-              color: Theme.of(context).colorScheme.onBackground,
-              fontSize: 11.sp,
-              fontWeight: FontWeight.w600,
+            style: AppTextStyles.cardTitle.copyWith(
+              color: txt.title,
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
             ),
           ),
           const Spacer(),
@@ -793,18 +799,19 @@ class _ChatDetailsState extends State<ChatDetails> with UtilityMixin {
   }
 
   Widget _colorRow(String label, IconData icon, Color color) {
+    final txt = AppTextColors.of(context);
     return Padding(
       padding: EdgeInsets.only(top: 15.h),
       child: Row(
         children: [
-          Icon(icon, size: 18.spMax),
+          Icon(icon, size: 18.spMax, color: txt.title),
           SizedBox(width: 8.w),
           Text(
             label,
-            style: TextStyle(
-              color: Theme.of(context).colorScheme.onBackground,
-              fontSize: 11.sp,
-              fontWeight: FontWeight.w600,
+            style: AppTextStyles.cardTitle.copyWith(
+              color: txt.title,
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
             ),
           ),
           const Spacer(),

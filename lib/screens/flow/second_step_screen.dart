@@ -1,3 +1,5 @@
+// ignore_for_file: deprecated_member_use
+
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -6,6 +8,7 @@ import '../../../api/services/api_service.dart';
 import '../../../models/user/suggestionsb users/suggestions_users_model.dart';
 import '../../../widgets/loader.dart';
 import '../../../widgets/error/api_error_widget.dart';
+import '../../core/themes/app_text_colors.dart';
 import '../../core/themes/app_text_styles.dart';
 import '../../gen/assets.gen.dart';
 import 'flow_scaffold.dart';
@@ -15,7 +18,6 @@ const _dummyPopularUsers = [
   (username: 'john_doe', name: 'John Doe'),
   (username: 'alex_lee', name: 'Alex Lee'),
   (username: 'maria_g', name: 'Maria Garcia'),
-
 ];
 
 class SecondStepScreen extends StatefulWidget {
@@ -37,7 +39,7 @@ class SecondStepScreen extends StatefulWidget {
 class _SecondStepScreenState extends State<SecondStepScreen> {
   final ApiService _apiService = ApiService();
 
-  final Set<int> _chasedUserIds = {};
+  final Set<dynamic> _chasedUserIds = {};
   final Set<String> _chasedPopularUsernames = {};
   int _selectedTab = 0;
   late Future<UserSuggestionsModel> _suggestionsFuture;
@@ -53,7 +55,7 @@ class _SecondStepScreenState extends State<SecondStepScreen> {
   }
 
   Future<void> _onChaseToggle({
-    required int userId,
+    required dynamic userId,
     required String username,
     required bool isChased,
     required StateSetter setLocalState,
@@ -79,12 +81,16 @@ class _SecondStepScreenState extends State<SecondStepScreen> {
     }
   }
 
-  ImageProvider _buildAvatar(String avatar) {
+  ImageProvider? _buildAvatar(String avatar) {
+    if (avatar.isEmpty) return null;
     if (avatar.startsWith('data:image')) {
       final base64Str = avatar.split(',').last;
       return MemoryImage(base64Decode(base64Str));
     }
-    return NetworkImage(avatar);
+    if (Uri.tryParse(avatar)?.hasAuthority == true) {
+      return NetworkImage(avatar);
+    }
+    return null;
   }
 
   @override
@@ -96,7 +102,9 @@ class _SecondStepScreenState extends State<SecondStepScreen> {
       title: 'Follow people you like',
       subtitle: 'Choose a few to personalize your feed',
       primaryLabel: 'Continue',
-      onPrimary: _canContinue ? widget.onContinue : null, // ← disabled until one chased
+      onPrimary: _canContinue
+          ? widget.onContinue
+          : null, // ← disabled until one chased
       onSkip: widget.onSkip,
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -129,7 +137,9 @@ class _SecondStepScreenState extends State<SecondStepScreen> {
       future: _suggestionsFuture,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return Center(child: Loader(color: Theme.of(context).colorScheme.primary));
+          return Center(
+            child: Loader(color: Theme.of(context).colorScheme.primary),
+          );
         }
         if (snapshot.hasError) {
           return ApiErrorWidget(
@@ -226,22 +236,40 @@ class _UserTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final txt = AppTextColors.of(context);
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).colorScheme.primaryContainer,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0x14000000), width: 1),
+        border: Border.all(
+          color: Theme.of(context).colorScheme.outline,
+          width: 1,
+        ),
       ),
       child: Row(
         children: [
           // Avatar
           CircleAvatar(
             radius: 22,
+            backgroundColor: isDarkMode
+                ? const Color(0xFF2E2E2E)
+                : Theme.of(context).colorScheme.primary.withOpacity(0.1),
             backgroundImage: avatarProvider,
-            backgroundColor: Colors.grey.shade200,
             child: avatarProvider == null
-                ? const Icon(Icons.person, size: 24, color: Colors.white)
+                ? Center(
+                    child: Text(
+                      username.isNotEmpty ? username[0].toUpperCase() : '?',
+                      style: AppTextStyles.bodyText.copyWith(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.onPrimary.withOpacity(0.85),
+                      ),
+                    ),
+                  )
                 : null,
           ),
           const SizedBox(width: 12),
@@ -256,7 +284,7 @@ class _UserTile extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                   maxLines: 1,
                   style: AppTextStyles.bodyText.copyWith(
-                    color: const Color(0xFF595959),
+                    color: txt.title,
                     fontSize: 14,
                     fontWeight: FontWeight.w500,
                   ),
@@ -265,7 +293,7 @@ class _UserTile extends StatelessWidget {
                 Text(
                   subLabel,
                   style: AppTextStyles.subText.copyWith(
-                    color: const Color(0xFF8E8E8E),
+                    color: txt.body,
                     fontSize: 12.5,
                     fontWeight: FontWeight.w400,
                   ),
@@ -283,25 +311,27 @@ class _UserTile extends StatelessWidget {
               margin: const EdgeInsets.only(left: 5),
               decoration: BoxDecoration(
                 color: isChased
-                    ? Colors.white
+                    ? Colors.transparent
                     : Theme.of(context).colorScheme.primary,
                 borderRadius: BorderRadius.circular(10),
                 border: Border.all(
-                  color: Theme.of(context).colorScheme.primary,
+                  color: isChased
+                      ? Theme.of(context).colorScheme.onPrimary.withOpacity(0.8)
+                      : Colors.transparent,
                   width: 1.2,
                 ),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Image.asset(
-                    Assets.images.icAddUser.path,
-                    height: 17,
-                    width: 17,
-                    color: isChased
-                        ? Theme.of(context).colorScheme.primary
-                        : Colors.white,
-                  ),
+                  isChased
+                      ? const SizedBox()
+                      : Image.asset(
+                          Assets.images.icAddUser.path,
+                          height: 17,
+                          width: 17,
+                          color: Colors.white,
+                        ),
                   const SizedBox(width: 5),
                   Text(
                     isChased ? 'Chasing' : 'Chase',
@@ -309,7 +339,7 @@ class _UserTile extends StatelessWidget {
                       fontSize: 12.5,
                       fontWeight: FontWeight.w500,
                       color: isChased
-                          ? Theme.of(context).colorScheme.primary
+                          ? Theme.of(context).colorScheme.onPrimary
                           : Colors.white,
                     ),
                   ),
@@ -338,6 +368,8 @@ class _TabItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final txt = AppTextColors.of(context);
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     return GestureDetector(
       onTap: onTap,
       child: Column(
@@ -348,8 +380,8 @@ class _TabItem extends StatelessWidget {
               fontSize: 14.5,
               fontWeight: isSelected ? FontWeight.w500 : FontWeight.w400,
               color: isSelected
-                  ? const Color(0xFF1A1A1A)
-                  : const Color(0xFF8E8E8E),
+                  ? (isDarkMode ? txt.title : const Color(0xFF1A1A1A))
+                  : txt.muted,
             ),
           ),
           const SizedBox(height: 6),

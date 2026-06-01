@@ -45,10 +45,6 @@ class ConnectivityOverlay extends StatefulWidget {
 
 class _ConnectivityOverlayState extends State<ConnectivityOverlay> {
   ConnectionStatus _lastStatus = ConnectionStatus.unknown;
-  bool _bottomSheetShown = false;
-
-  // ── Helper: always use navigatorKey context for sheets/overlays ────────────
-  BuildContext? get _navContext => widget.navigatorKey.currentContext;
 
   @override
   void dispose() {
@@ -58,85 +54,11 @@ class _ConnectivityOverlayState extends State<ConnectivityOverlay> {
   // ── Status change handler ──────────────────────────────────────────────────
   void _onStatusChanged(ConnectionStatus status) {
     if (status == _lastStatus) return;
-
-    final prev = _lastStatus;
     _lastStatus = status;
-
-    switch (status) {
-      case ConnectionStatus.offline:
-        _showConnectivitySheet(type: _SheetType.offline);
-        break;
-
-      case ConnectionStatus.serverDown:
-        _showConnectivitySheet(type: _SheetType.serverDown);
-        break;
-
-      case ConnectionStatus.online:
-        final wasOffline = prev == ConnectionStatus.offline;
-
-        _closeBottomSheet();
-
-        if (wasOffline) {
-          Future.delayed(const Duration(milliseconds: 250), () {
-            if (mounted) _showConnectivitySheet(type: _SheetType.backOnline);
-          });
-        }
-        break;
-
-      case ConnectionStatus.unknown:
-        break;
-    }
+    // Logic removed when disconnect internet or server down pop
   }
 
-  void _showConnectivitySheet({required _SheetType type}) {
-    if (_bottomSheetShown) {
-      _closeBottomSheet(then: () => _openSheet(type: type));
-      return;
-    }
-    _openSheet(type: type);
-  }
 
-  void _openSheet({required _SheetType type}) {
-    final ctx = _navContext; // ← uses navigatorKey context
-    if (ctx == null) return;
-    _bottomSheetShown = true;
-
-    final connectivity = Provider.of<ConnectivityProvider>(ctx, listen: false);
-
-    showModalBottomSheet(
-      context: ctx, // ← uses navigatorKey context
-      isDismissible: type == _SheetType.backOnline,
-      enableDrag: type == _SheetType.backOnline,
-      backgroundColor: Colors.transparent,
-      barrierColor: type == _SheetType.backOnline
-          ? Colors.transparent
-          : Colors.black.withOpacity(0.4),
-      builder: (_) => _ConnectivitySheet(
-        type: type,
-        onRetry: () async => connectivity.retryNow(),
-        onDismiss: () => Navigator.of(ctx).pop(),
-      ),
-    ).whenComplete(() => _bottomSheetShown = false);
-
-    // Auto-dismiss "back online" after 3 seconds
-    if (type == _SheetType.backOnline) {
-      Timer(const Duration(seconds: 3), () {
-        if (mounted && _bottomSheetShown) {
-          Navigator.of(ctx, rootNavigator: true).maybePop();
-        }
-      });
-    }
-  }
-
-  void _closeBottomSheet({VoidCallback? then}) {
-    final ctx = _navContext; // ← uses navigatorKey context
-    if (_bottomSheetShown && ctx != null) {
-      Navigator.of(ctx, rootNavigator: true).maybePop();
-      Future.delayed(const Duration(milliseconds: 300), () => then?.call());
-    } else {
-      then?.call();
-    }
-  }
 
   @override
   Widget build(BuildContext context) {

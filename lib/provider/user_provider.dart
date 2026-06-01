@@ -13,7 +13,7 @@ class UserProvider with ChangeNotifier {
   final ApiService apiService = ApiService();
 
   // ─── Basic Info ───────────────────────────────────────────────
-  int? userId;
+  String? userId;
   String? username;
   String? firstName;
   String? lastName;
@@ -115,6 +115,11 @@ class UserProvider with ChangeNotifier {
   Future<void> prefetchInsightsData() async {
     if (cachedInsightsData != null) return;
     try {
+      final token = await SharedPrefService.getToken();
+      if (token == null || token.isEmpty) {
+        debugPrint('ℹ️ UserProvider: Skipping insights prefetch because there is no active token.');
+        return;
+      }
       cachedInsightsData = await apiService.getInsightsData();
       notifyListeners();
     } catch (e) {
@@ -168,7 +173,7 @@ class UserProvider with ChangeNotifier {
     if (data == null) return;
 
     // Basic Info
-    userId = data['id'];
+    userId = data['id']?.toString();
     username = data['username'];
     firstName = data['first_name'];
     lastName = data['last_name'];
@@ -281,7 +286,7 @@ class UserProvider with ChangeNotifier {
   // ─── Update Single Field ──────────────────────────────────────
   void updateUserField(String field, dynamic value) {
     switch (field) {
-      case 'userId':             userId = value; break;
+      case 'userId':             userId = value?.toString(); break;
       case 'username':           username = value; break;
       case 'firstName':          firstName = value; break;
       case 'lastName':           lastName = value; break;

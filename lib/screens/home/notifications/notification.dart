@@ -19,12 +19,12 @@ import '../../../../provider/private_chat_provider.dart';
 import '../../../../provider/group_chat_provider.dart';
 import '../../../core/constants/app_icons.dart';
 import '../../../core/constants/app_radius.dart';
+import '../../../core/themes/app_text_colors.dart';
 import '../../../core/themes/app_text_styles.dart';
 import '../../../languages/l10n/generated/app_localizations.dart';
 import '../../../mixin/utility_mixins.dart';
 import '../../../models/notifications/notification_model.dart';
 import '../../../models/request/incoming_request.dart';
-import '../../../models/user/user_model.dart';
 import '../../../widgets/appbar/common_appbar.dart';
 import '../../../widgets/button/request/friend_request_button.dart';
 import '../../../widgets/dialog/custom_diolog.dart';
@@ -34,7 +34,7 @@ import '../../../widgets/tabbar/indicatore_animation.dart';
 import '../message/chat/group/group_chat_screen.dart';
 import '../message/chat/private/private_chat_screen.dart';
 import '../profile/public/public_profile_screen.dart';
-import 'notification_details.dart';
+import '../search/posts/single_post_details.dart';
 import 'poll_vote_notification_tile.dart';
 
 class Notifications extends StatefulWidget {
@@ -47,12 +47,13 @@ class Notifications extends StatefulWidget {
 }
 
 class NotificationState extends State<Notifications>
-    with SingleTickerProviderStateMixin, UtilityMixin {
+    with TickerProviderStateMixin, UtilityMixin {
   late TabController _tabController;
+  bool? _lastIsPrivate;
   late Future<List<IncomingData>> friendRequestsFuture;
 
   final _dio = Dio();
-  UserModel? userModel;
+
   List<dynamic> incoming = [];
   bool _isDisposed = false;
   int _currentPage = 1;
@@ -94,9 +95,16 @@ class NotificationState extends State<Notifications>
         options: Options(headers: headers),
       );
 
-      if (response.data['results'] != null) {
+      final dynamic responseData;
+      if (response.data is String) {
+        responseData = json.decode(response.data as String);
+      } else {
+        responseData = response.data;
+      }
+
+      if (responseData is Map && responseData['results'] != null) {
         final notificationsResponse = NotificationsResponse.fromJson(
-          response.data,
+          Map<String, dynamic>.from(responseData),
         );
         globalCachedNotifications = List<NotificationItem>.from(
           notificationsResponse.results,
@@ -151,11 +159,11 @@ class NotificationState extends State<Notifications>
       if (_isDisposed) return;
 
       if (cachedData != null && cachedData.isNotEmpty) {
-        final Map<String, dynamic> jsonData = json.decode(cachedData);
+        final decoded = json.decode(cachedData);
 
-        if (jsonData.containsKey('results') && jsonData['results'] != null) {
+        if (decoded is Map && decoded['results'] != null) {
           final notificationsResponse = NotificationsResponse.fromJson(
-            jsonData,
+            Map<String, dynamic>.from(decoded),
           );
           _lastNotifications = notificationsResponse.results;
 
@@ -175,7 +183,7 @@ class NotificationState extends State<Notifications>
 
   Future<void> _saveNotificationsToCache(
     List<NotificationItem> notifications,
-    Map<String, dynamic> rawResponse,
+    Map<dynamic, dynamic> rawResponse,
   ) async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -236,9 +244,16 @@ class NotificationState extends State<Notifications>
 
       if (_isDisposed || !mounted) return;
 
-      if (response.data['results'] != null) {
+      final dynamic responseData;
+      if (response.data is String) {
+        responseData = json.decode(response.data as String);
+      } else {
+        responseData = response.data;
+      }
+
+      if (responseData is Map && responseData['results'] != null) {
         final notificationsResponse = NotificationsResponse.fromJson(
-          response.data,
+          Map<String, dynamic>.from(responseData),
         );
 
         // Build a NEW list — never mutate the existing one so StreamBuilder
@@ -248,7 +263,7 @@ class NotificationState extends State<Notifications>
         );
 
         // Persist using model toJson() so poll_details are cached.
-        await _saveNotificationsToCache(freshList, response.data);
+        await _saveNotificationsToCache(freshList, responseData);
 
         if (_isDisposed || _notificationStreamController.isClosed) return;
 
@@ -298,9 +313,16 @@ class NotificationState extends State<Notifications>
         options: Options(headers: headers),
       );
 
-      if (response.data['results'] != null) {
+      final dynamic responseData;
+      if (response.data is String) {
+        responseData = json.decode(response.data as String);
+      } else {
+        responseData = response.data;
+      }
+
+      if (responseData is Map && responseData['results'] != null) {
         final notificationsResponse = NotificationsResponse.fromJson(
-          response.data,
+          Map<String, dynamic>.from(responseData),
         );
 
         // Create a NEW list so StreamBuilder detects the change.
@@ -369,10 +391,18 @@ class NotificationState extends State<Notifications>
         options: Options(headers: {'Authorization': 'Bearer $accessToken'}),
       );
 
-      if (response.data['status'] == 'success') {
-        incoming = response.data['data']['incoming'];
+      final dynamic responseData;
+      if (response.data is String) {
+        responseData = json.decode(response.data as String);
+      } else {
+        responseData = response.data;
+      }
+
+      if (responseData is Map && responseData['status'] == 'success') {
+        final List<dynamic> rawIncoming = responseData['data']?['incoming'] ?? [];
+        incoming = rawIncoming;
         await _saveFriendRequestsToCache(incoming);
-        return incoming.map((e) => IncomingData.fromJson(e)).toList();
+        return incoming.map((e) => IncomingData.fromJson(Map<String, dynamic>.from(e as Map))).toList();
       } else {
         throw Exception('Failed to load data');
       }
@@ -397,7 +427,14 @@ class NotificationState extends State<Notifications>
 
       if (kDebugMode) print(response);
 
-      if (response.statusCode == 200 && response.data['status'] == 'success') {
+      final dynamic responseData;
+      if (response.data is String) {
+        responseData = json.decode(response.data as String);
+      } else {
+        responseData = response.data;
+      }
+
+      if (response.statusCode == 200 && responseData is Map && responseData['status'] == 'success') {
         showToast(message: 'Friend request accepted successfully!');
         setState(() {
           incoming.removeWhere(
@@ -424,15 +461,15 @@ class NotificationState extends State<Notifications>
     final itemDate = DateTime(date.year, date.month, date.day);
 
     if (itemDate == today || itemDate.isAfter(today)) {
-      return "Today";
+      return AppLocalizations.of(context)!.today;
     } else if (itemDate == yesterday) {
-      return "Yesterday";
+      return AppLocalizations.of(context)!.yesterday;
     } else if (today.difference(itemDate).inDays <= 7) {
-      return "Last 7 days";
+      return AppLocalizations.of(context)!.lastsavendays;
     } else if (today.difference(itemDate).inDays <= 30) {
-      return "Last 30 days";
+      return AppLocalizations.of(context)!.lastthirtydays;
     } else {
-      return "Older";
+      return AppLocalizations.of(context)!.older;
     }
   }
 
@@ -481,11 +518,15 @@ class NotificationState extends State<Notifications>
         return 'commented on your post';
       case 'VOTE':
         return 'voted on your poll';
+      case 'SHARE':
+        return 'shared your post';
       case 'FRIEND_REQUEST':
         return 'sent you a chase request';
       case 'NEW_GROUP_ADDED':
         final groupName = notification.meta?.groupName ?? 'the group';
         return 'added you to the group $groupName.';
+      case 'NEW_MESSAGE':
+        return 'send you new message.';
       default:
         return 'sent you a notification';
     }
@@ -526,6 +567,10 @@ class NotificationState extends State<Notifications>
         return const Color(0xFF7569D6);
       case 'NEW_GROUP_ADDED':
         return const Color(0xFF25282D);
+      case 'SHARE':
+        return const Color(0xFF4A90E2);
+      case 'NEW_MESSAGE':
+        return const Color(0xFF10B981);
       default:
         return const Color(0xFF9B3046);
     }
@@ -537,17 +582,6 @@ class NotificationState extends State<Notifications>
   void initState() {
     super.initState();
     _isDisposed = false;
-
-    final userProvider = Provider.of<UserProvider>(context, listen: false);
-    final isPrivate = userProvider.privacy_status ?? false;
-    final tabCount = isPrivate ? 3 : 2;
-    _tabController = TabController(length: tabCount, vsync: this);
-
-    _tabController.addListener(() {
-      if (_tabController.index == 0 && !_tabController.indexIsChanging) {
-        if (!_isLoadingFromNetwork) fetchNotifications();
-      }
-    });
 
     _allNotificationsScrollController.addListener(_onAllNotificationsScroll);
     _pollNotificationsScrollController.addListener(_onPollNotificationsScroll);
@@ -568,6 +602,35 @@ class NotificationState extends State<Notifications>
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final userProvider = Provider.of<UserProvider>(context);
+    final isPrivate = userProvider.is_private ?? false;
+
+    if (_lastIsPrivate == null) {
+      _lastIsPrivate = isPrivate;
+      final tabCount = isPrivate ? 3 : 2;
+      _tabController = TabController(length: tabCount, vsync: this);
+      _tabController.addListener(_handleTabSelection);
+    } else if (_lastIsPrivate != isPrivate) {
+      _lastIsPrivate = isPrivate;
+      final tabCount = isPrivate ? 3 : 2;
+
+      _tabController.removeListener(_handleTabSelection);
+      _tabController.dispose();
+
+      _tabController = TabController(length: tabCount, vsync: this);
+      _tabController.addListener(_handleTabSelection);
+    }
+  }
+
+  void _handleTabSelection() {
+    if (_tabController.index == 0 && !_tabController.indexIsChanging) {
+      if (!_isLoadingFromNetwork) fetchNotifications();
+    }
+  }
+
+  @override
   void dispose() {
     _isDisposed = true;
     _tabController.dispose();
@@ -582,7 +645,9 @@ class NotificationState extends State<Notifications>
   @override
   Widget build(BuildContext context) {
     final userProvider = Provider.of<UserProvider>(context);
-    final isPrivate = userProvider.privacy_status ?? false;
+    final isPrivate = userProvider.is_private ?? false;
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final txt = AppTextColors.of(context);
 
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.background,
@@ -638,7 +703,7 @@ class NotificationState extends State<Notifications>
                         );
                       }
 
-                      if (snapshot.hasError && !snapshot.hasData) {
+                      if (snapshot.hasError && _lastNotifications.isEmpty) {
                         return _buildErrorWidget();
                       }
 
@@ -655,34 +720,41 @@ class NotificationState extends State<Notifications>
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   crossAxisAlignment: CrossAxisAlignment.center,
                                   children: [
-                                    Image.asset(
-                                      Assets.images.noNotifications.path,
-                                      height: 0.22.sh,
-                                      width: 0.22.sh,
-                                      fit: BoxFit.contain,
-                                    ),
-
-                                    const SizedBox(height: 15),
+                                    isDarkMode
+                                        ? const SizedBox()
+                                        : Padding(
+                                            padding: const EdgeInsets.only(
+                                              bottom: 15,
+                                            ),
+                                            child: Image.asset(
+                                              Assets.images.noComments.path,
+                                              height: 0.22.sh,
+                                              width: 0.22.sh,
+                                              fit: BoxFit.contain,
+                                            ),
+                                          ),
                                     Text(
-                                      'No notifications yet',
+                                      AppLocalizations.of(
+                                        context,
+                                      )!.nonotificationsyet,
                                       textAlign: TextAlign.center,
                                       style: AppTextStyles.sectionHeading
                                           .copyWith(
                                             fontSize: 18.5,
-                                            color: Theme.of(
-                                              context,
-                                            ).colorScheme.onBackground,
+                                            color: txt.title,
                                             fontWeight: FontWeight.w600,
                                             height: 1.4,
                                           ),
                                     ),
                                     const SizedBox(height: 10),
                                     Text(
-                                      'Likes, comments, and updates will appear here.',
+                                      AppLocalizations.of(
+                                        context,
+                                      )!.likescommentsandupdateswillappearhere,
                                       textAlign: TextAlign.center,
                                       style: AppTextStyles.bodyText.copyWith(
                                         fontSize: 13,
-                                        color: const Color(0xFF595959),
+                                        color: txt.muted,
                                         height: 1.4,
                                       ),
                                     ),
@@ -772,11 +844,13 @@ class NotificationState extends State<Notifications>
                                                   },
                                                 ),
                                             child: Text(
-                                              'Clear all',
+                                              AppLocalizations.of(
+                                                context,
+                                              )!.clearall,
                                               style: TextStyle(
                                                 color: Theme.of(
                                                   context,
-                                                ).colorScheme.primary,
+                                                ).colorScheme.onPrimary,
                                                 fontWeight: FontWeight.w600,
                                                 fontSize: 12.sp,
                                               ),
@@ -786,6 +860,7 @@ class NotificationState extends State<Notifications>
                                     ),
                                   ),
                                 _buildNotificationTile(
+                                  username: userProvider.username,
                                   notification: notification,
                                   post: post,
                                 ),
@@ -822,7 +897,7 @@ class NotificationState extends State<Notifications>
                         );
                       }
 
-                      if (snapshot.hasError && !snapshot.hasData) {
+                      if (snapshot.hasError && _lastNotifications.where((n) => n.type == 'VOTE').isEmpty) {
                         return _buildErrorWidget();
                       }
 
@@ -842,33 +917,41 @@ class NotificationState extends State<Notifications>
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   crossAxisAlignment: CrossAxisAlignment.center,
                                   children: [
-                                    Image.asset(
-                                      Assets.images.noNotifications.path,
-                                      height: 0.22.sh,
-                                      width: 0.22.sh,
-                                      fit: BoxFit.contain,
-                                    ),
-                                    const SizedBox(height: 15),
+                                    isDarkMode
+                                        ? const SizedBox()
+                                        : Padding(
+                                            padding: const EdgeInsets.only(
+                                              bottom: 15,
+                                            ),
+                                            child: Image.asset(
+                                              Assets.images.noComments.path,
+                                              height: 0.22.sh,
+                                              width: 0.22.sh,
+                                              fit: BoxFit.contain,
+                                            ),
+                                          ),
                                     Text(
-                                      'No notifications yet',
+                                      AppLocalizations.of(
+                                        context,
+                                      )!.nonotificationsyet,
                                       textAlign: TextAlign.center,
                                       style: AppTextStyles.sectionHeading
                                           .copyWith(
                                             fontSize: 18.5,
-                                            color: Theme.of(
-                                              context,
-                                            ).colorScheme.onBackground,
+                                            color: txt.title,
                                             fontWeight: FontWeight.w600,
                                             height: 1.4,
                                           ),
                                     ),
                                     const SizedBox(height: 10),
                                     Text(
-                                      'Votes updates will appear here.',
+                                      AppLocalizations.of(
+                                        context,
+                                      )!.votesupdateswillappearhere,
                                       textAlign: TextAlign.center,
                                       style: AppTextStyles.bodyText.copyWith(
                                         fontSize: 13,
-                                        color: const Color(0xFF595959),
+                                        color: txt.muted,
                                         height: 1.4,
                                       ),
                                     ),
@@ -956,7 +1039,9 @@ class NotificationState extends State<Notifications>
                                                   },
                                                 ),
                                             child: Text(
-                                              'Clear all',
+                                              AppLocalizations.of(
+                                                context,
+                                              )!.clearall,
                                               style: TextStyle(
                                                 color: Theme.of(
                                                   context,
@@ -1012,7 +1097,8 @@ class NotificationState extends State<Notifications>
                                         if (post != null) {
                                           navigationPush(
                                             context,
-                                            NotificationDetails(
+                                            SinglePostDetails(
+                                              username: userProvider.username!,
                                               postId: post.postId,
                                             ),
                                           );
@@ -1022,6 +1108,7 @@ class NotificationState extends State<Notifications>
                                   )
                                 else
                                   _buildNotificationTile(
+                                    username: userProvider.username,
                                     notification: notification,
                                     post: notification.post,
                                     showVoteIcon: false,
@@ -1046,6 +1133,8 @@ class NotificationState extends State<Notifications>
   }
 
   Widget _buildRequestTab() {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final txt = AppTextColors.of(context);
     return RefreshIndicator(
       onRefresh: () async {
         _hasMoreData = true;
@@ -1066,7 +1155,7 @@ class NotificationState extends State<Notifications>
             );
           }
 
-          if (snapshot.hasError && !snapshot.hasData) {
+          if (snapshot.hasError && _lastNotifications.where((n) => n.type.toUpperCase() == 'FRIEND_REQUEST').isEmpty) {
             return _buildErrorWidget();
           }
 
@@ -1086,30 +1175,36 @@ class NotificationState extends State<Notifications>
                       mainAxisAlignment: MainAxisAlignment.center,
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
-                        Image.asset(
-                          Assets.images.noNotifications.path,
-                          height: 0.22.sh,
-                          width: 0.22.sh,
-                          fit: BoxFit.contain,
-                        ),
-                        const SizedBox(height: 15),
+                        isDarkMode
+                            ? const SizedBox()
+                            : Padding(
+                                padding: const EdgeInsets.only(bottom: 15),
+                                child: Image.asset(
+                                  Assets.images.noComments.path,
+                                  height: 0.22.sh,
+                                  width: 0.22.sh,
+                                  fit: BoxFit.contain,
+                                ),
+                              ),
                         Text(
-                          'No notifications yet',
+                          AppLocalizations.of(context)!.nonotificationsyet,
                           textAlign: TextAlign.center,
                           style: AppTextStyles.sectionHeading.copyWith(
                             fontSize: 18.5,
-                            color: Theme.of(context).colorScheme.onBackground,
+                            color: txt.title,
                             fontWeight: FontWeight.w600,
                             height: 1.4,
                           ),
                         ),
                         const SizedBox(height: 10),
                         Text(
-                          'Chase requests updates will appear here.',
+                          AppLocalizations.of(
+                            context,
+                          )!.chaserequestsupdateswillappearhere,
                           textAlign: TextAlign.center,
                           style: AppTextStyles.bodyText.copyWith(
                             fontSize: 13,
-                            color: const Color(0xFF595959),
+                            color: txt.muted,
                             height: 1.4,
                           ),
                         ),
@@ -1125,6 +1220,10 @@ class NotificationState extends State<Notifications>
               itemBuilder: (context, index) {
                 final notification = requestNotifications[index];
                 return _buildTileWithHeader(
+                  username: Provider.of<UserProvider>(
+                    context,
+                    listen: false,
+                  ).username,
                   notification: notification,
                   list: requestNotifications,
                   index: index,
@@ -1139,6 +1238,7 @@ class NotificationState extends State<Notifications>
   }
 
   Widget _buildTileWithHeader({
+    required dynamic username,
     required NotificationItem notification,
     required List<NotificationItem> list,
     required int index,
@@ -1182,7 +1282,7 @@ class NotificationState extends State<Notifications>
                       _clearAllNotifications();
                     }),
                     child: Text(
-                      'Clear all',
+                      AppLocalizations.of(context)!.clearall,
                       style: TextStyle(
                         color: Theme.of(context).colorScheme.primary,
                         fontWeight: FontWeight.w600,
@@ -1194,6 +1294,7 @@ class NotificationState extends State<Notifications>
             ),
           ),
         _buildNotificationTile(
+          username: username,
           notification: notification,
           post: notification.post,
         ),
@@ -1220,8 +1321,10 @@ class NotificationState extends State<Notifications>
   Widget _buildNotificationTile({
     required NotificationItem notification,
     required dynamic post,
+    required username,
     bool showVoteIcon = true,
   }) {
+    final txt = AppTextColors.of(context);
     final isFriendRequest = notification.type.toUpperCase() == 'FRIEND_REQUEST';
 
     return Dismissible(
@@ -1251,7 +1354,10 @@ class NotificationState extends State<Notifications>
             return;
           }
           if (post != null) {
-            navigationPush(context, NotificationDetails(postId: post.postId));
+            navigationPush(
+              context,
+              SinglePostDetails(username: username, postId: post.postId),
+            );
           } else if (notification.type.toUpperCase() == 'FOLLOW') {
             navigationPush(
               context,
@@ -1341,6 +1447,23 @@ class NotificationState extends State<Notifications>
                         right: -2.w,
                         child: AppIcons.icVote(),
                       ),
+                    if (notification.type.toUpperCase() == 'SHARE')
+                      Positioned(
+                        bottom: -3.h,
+                        right: -4.w,
+                        child: Container(
+                          padding: EdgeInsets.all(2.w),
+                          decoration: BoxDecoration(
+                            color: Theme.of(context).colorScheme.background,
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            Icons.share,
+                            size: 10.sp,
+                            color: txt.heading,
+                          ),
+                        ),
+                      ),
                   ],
                 ),
               ),
@@ -1362,7 +1485,7 @@ class NotificationState extends State<Notifications>
                           TextSpan(
                             text: notification.actor.name,
                             style: AppTextStyles.bodyText.copyWith(
-                              color: Theme.of(context).colorScheme.onBackground,
+                              color: txt.title,
                               fontWeight: FontWeight.w600,
                               fontSize: 14.5,
                             ),
@@ -1370,7 +1493,7 @@ class NotificationState extends State<Notifications>
                           TextSpan(
                             text: ' ${getNotificationMessage(notification)}',
                             style: AppTextStyles.bodyText.copyWith(
-                              color: Theme.of(context).colorScheme.onBackground,
+                              color: txt.title,
                               fontWeight: FontWeight.w500,
                               fontSize: 14.5,
                             ),
@@ -1381,9 +1504,7 @@ class NotificationState extends State<Notifications>
                     SizedBox(height: 2.h),
                     Text(
                       formatDateTime(notification.createdAt.toString()),
-                      style: AppTextStyles.subText.copyWith(
-                        color: const Color(0xFF2c2c2c).withOpacity(0.7),
-                      ),
+                      style: AppTextStyles.subText.copyWith(color: txt.muted),
                     ),
 
                     if (isFriendRequest) ...[
@@ -1436,7 +1557,7 @@ class NotificationState extends State<Notifications>
                             child: PrivateChatScreen(
                               memberName: notification.actor.name,
                               profileUrl: notification.actor.avatarUrl,
-                              userId: notification.actor.userId,
+                              userId: int.tryParse(notification.actor.userId),
                               chatId: notification.meta?.chatId,
                             ),
                           ),
@@ -1464,12 +1585,10 @@ class NotificationState extends State<Notifications>
                     width: 80.w,
                     margin: EdgeInsets.only(left: 5.w),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: Theme.of(context).colorScheme.primaryContainer,
                       borderRadius: BorderRadius.circular(AppRadius.button),
                       border: Border.all(
-                        color: Theme.of(
-                          context,
-                        ).colorScheme.outline.withOpacity(0.7),
+                        color: Theme.of(context).colorScheme.outline,
                       ),
                     ),
                     child: Center(

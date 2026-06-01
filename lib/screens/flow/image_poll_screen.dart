@@ -2,7 +2,7 @@
 
 import 'dart:io';
 
-import 'package:feather_icons/feather_icons.dart';
+import 'package:polzet_app/core/constants/feather_icons_compat.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
@@ -11,6 +11,7 @@ import '../../../api/services/image/image_picker_service.dart';
 import '../../../data/token/shared_preferences.dart';
 import '../../../widgets/show_toast.dart';
 import '../../core/constants/app_radius.dart';
+import '../../core/themes/app_text_colors.dart';
 import '../../core/themes/app_text_styles.dart';
 import '../../widgets/dotted_border/dotted_border.dart';
 import 'all_set_screen.dart';
@@ -183,13 +184,15 @@ class _ImagePollScreenState extends State<ImagePollScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final txt = AppTextColors.of(context);
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     final rows = <List<int>>[];
     for (var i = 0; i < _options.length; i += 2) {
       rows.add([i, if (i + 1 < _options.length) i + 1]);
     }
 
     return Scaffold(
-      backgroundColor: const Color(0xFFFDFDFD),
+      backgroundColor: Theme.of(context).colorScheme.background,
       body: SafeArea(
         child: Column(
           children: [
@@ -203,10 +206,10 @@ class _ImagePollScreenState extends State<ImagePollScreen> {
                     alignment: Alignment.centerLeft,
                     child: GestureDetector(
                       onTap: () => Navigator.of(context).pop(),
-                      child: const Icon(
+                      child: Icon(
                         Icons.arrow_back,
                         size: 22,
-                        color: kDark,
+                        color: Theme.of(context).colorScheme.onBackground,
                       ),
                     ),
                   ),
@@ -215,7 +218,7 @@ class _ImagePollScreenState extends State<ImagePollScreen> {
                     style: AppTextStyles.bodyText.copyWith(
                       fontSize: 14,
                       fontWeight: FontWeight.w500,
-                      color: const Color(0xFF2C2C2C).withOpacity(0.8),
+                      color: txt.title.withOpacity(0.9),
                     ),
                   ),
                 ],
@@ -235,7 +238,7 @@ class _ImagePollScreenState extends State<ImagePollScreen> {
                       style: AppTextStyles.subSectionHeading.copyWith(
                         fontSize: 22,
                         fontWeight: FontWeight.w700,
-                        color: kDark,
+                        color: Theme.of(context).colorScheme.onBackground,
                         letterSpacing: -0.3,
                       ),
                     ),
@@ -244,7 +247,7 @@ class _ImagePollScreenState extends State<ImagePollScreen> {
                       'Let people choose by tapping on images',
                       style: AppTextStyles.bodyText.copyWith(
                         fontSize: 13.5,
-                        color: const Color(0xFF595959),
+                        color: txt.body,
                         height: 1.4,
                       ),
                     ),
@@ -256,7 +259,7 @@ class _ImagePollScreenState extends State<ImagePollScreen> {
                       style: AppTextStyles.bodyText.copyWith(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
-                        color: const Color(0xFF2C2C2C),
+                        color: Theme.of(context).colorScheme.onBackground,
                       ),
                     ),
                     const SizedBox(height: 8),
@@ -276,28 +279,30 @@ class _ImagePollScreenState extends State<ImagePollScreen> {
                       decoration: InputDecoration(
                         hintText: 'What dress should I wear?',
                         hintStyle: AppTextStyles.subText.copyWith(
-                          fontSize: 13.5,
-                          color: const Color(0xFFB3B3B3),
+                          fontSize: 14.5,
+                          color: const Color(0XFF898989),
+                          fontWeight: FontWeight.w400,
                         ),
                         contentPadding: const EdgeInsets.symmetric(
                           horizontal: 14,
                           vertical: 12,
                         ),
                         enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                          borderSide: const BorderSide(
-                            color: Color(0xFFE0E0E0),
+                          borderRadius: BorderRadius.circular(AppRadius.card),
+                          borderSide: BorderSide(
+                            color: Theme.of(context).colorScheme.outline,
+                            width: 1.5,
                           ),
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10),
                           borderSide: BorderSide(
-                            color: Theme.of(context).colorScheme.primary,
+                            color: isDarkMode
+                                ? Colors.white.withValues(alpha: 0.3)
+                                : Theme.of(context).colorScheme.primary,
                             width: 1,
                           ),
                         ),
-                        filled: true,
-                        fillColor: Colors.white,
                       ),
                     ),
                     // Question error
@@ -353,12 +358,12 @@ class _ImagePollScreenState extends State<ImagePollScreen> {
                         ),
                       );
                     }),
-
+                    const SizedBox(height: 5),
                     Text(
                       'Add 2–4 similar images (e.g. outfits, places, food)',
                       style: AppTextStyles.bodyText.copyWith(
                         fontSize: 12,
-                        color: const Color(0xFF8E8E8E),
+                        color: txt.muted,
                       ),
                     ),
                     // Image error
@@ -369,7 +374,7 @@ class _ImagePollScreenState extends State<ImagePollScreen> {
                           _imageError,
                           style: AppTextStyles.bodyText.copyWith(
                             fontSize: 12,
-                            color: Colors.red,
+                            color: Theme.of(context).colorScheme.error,
                           ),
                         ),
                       ),
@@ -385,19 +390,21 @@ class _ImagePollScreenState extends State<ImagePollScreen> {
                           icon: Icon(
                             Icons.add,
                             size: 18,
-                            color: Theme.of(context).colorScheme.primary,
+                            color: Theme.of(context).colorScheme.onPrimary,
                           ),
                           label: Text(
                             'Add Option',
                             style: AppTextStyles.bodyText.copyWith(
                               fontSize: 14,
                               fontWeight: FontWeight.w500,
-                              color: Theme.of(context).colorScheme.primary,
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.onPrimary.withOpacity(0.8),
                             ),
                           ),
                           style: OutlinedButton.styleFrom(
                             side: BorderSide(
-                              color: Theme.of(context).colorScheme.primary,
+                              color: Theme.of(context).colorScheme.onPrimary,
                             ),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(
@@ -482,7 +489,7 @@ class _ImageOptionCard extends StatelessWidget {
             aspectRatio: 1.3,
             child: CustomPaint(
               painter: DottedBorderPainter(
-                color: Theme.of(context).colorScheme.primary.withOpacity(0.5),
+                color: Theme.of(context).colorScheme.onPrimary.withOpacity(0.4),
                 strokeWidth: 1.5,
                 gap: 5,
               ),
@@ -499,12 +506,12 @@ class _ImageOptionCard extends StatelessWidget {
                             decoration: BoxDecoration(
                               color: Theme.of(
                                 context,
-                              ).colorScheme.primary.withOpacity(0.08),
+                              ).colorScheme.onPrimary.withOpacity(0.08),
                               shape: BoxShape.circle,
                             ),
                             child: Icon(
                               FeatherIcons.share,
-                              color: Theme.of(context).colorScheme.primary,
+                              color: Theme.of(context).colorScheme.onPrimary,
                               size: 22,
                             ),
                           ),

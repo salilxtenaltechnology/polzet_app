@@ -2,7 +2,7 @@
 
 import 'dart:convert';
 
-import 'package:feather_icons/feather_icons.dart';
+import 'package:polzet_app/core/constants/feather_icons_compat.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -13,6 +13,8 @@ import '../../../../../../api/services/api_service.dart';
 import '../../../../../../core/themes/app_text_styles.dart';
 import '../../../../../../models/posts/user_post_model.dart';
 import '../../../../../../widgets/appbar/common_appbar.dart';
+import '../../../../../core/themes/app_text_colors.dart';
+import '../../../../../languages/l10n/generated/app_localizations.dart';
 import '../../../../../widgets/loader.dart';
 import '../../../home feed/rank/result/things/things_result_screen.dart';
 import '../../../home feed/rank/submit/rank_submitted_screen.dart';
@@ -118,7 +120,7 @@ class _UserThingsRankingState extends State<UserThingsRanking> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.background,
-      appBar: const CommonAppBar(title: 'Rank your choices'),
+      appBar:  CommonAppBar(title:  AppLocalizations.of(context)!.rankyourchoices,),
       body: Column(
         children: [
           Expanded(
@@ -136,13 +138,14 @@ class _UserThingsRankingState extends State<UserThingsRanking> {
         ],
       ),
       bottomNavigationBar: Padding(
-        padding: const EdgeInsets.fromLTRB(22, 5, 22, 35),
+        padding: const EdgeInsets.fromLTRB(16, 5, 16, 35),
         child: _buildSubmitButton(),
       ),
     );
   }
 
   Widget _buildHeader() {
+    final txt = AppTextColors.of(context);
     final username = widget.post.user;
     final initial = username.isNotEmpty ? username[0].toUpperCase() : '?';
 
@@ -152,7 +155,7 @@ class _UserThingsRankingState extends State<UserThingsRanking> {
           radius: 20,
           backgroundColor: Theme.of(
             context,
-          ).colorScheme.primary.withOpacity(0.15),
+          ).colorScheme.onPrimary.withOpacity(0.1),
           backgroundImage: _profileImageBytes != null
               ? MemoryImage(_profileImageBytes!)
               : null,
@@ -160,7 +163,9 @@ class _UserThingsRankingState extends State<UserThingsRanking> {
               ? Text(
                   initial,
                   style: AppTextStyles.cardTitle.copyWith(
-                    color: Theme.of(context).colorScheme.primary,
+                    color: Theme.of(context).colorScheme.onPrimary,
+                    fontWeight: FontWeight.w500,
+                    fontSize: 18,
                   ),
                 )
               : null,
@@ -176,7 +181,7 @@ class _UserThingsRankingState extends State<UserThingsRanking> {
               Text(
                 '${widget.firstName ?? ''} ${widget.lastName ?? ''}'.trim(),
                 style: AppTextStyles.sectionHeading.copyWith(
-                  color: const Color(0XFF2C2C2C),
+                  color: txt.title,
                   fontSize: 14,
                 ),
               ),
@@ -187,13 +192,13 @@ class _UserThingsRankingState extends State<UserThingsRanking> {
                     style: AppTextStyles.bodyText.copyWith(
                       fontSize: 12,
                       fontWeight: FontWeight.w500,
-                      color: const Color(0XFF595959),
+                      color: txt.body,
                     ),
                   ),
                   Text(
                     '  • ${timeAgo(widget.post.createdAt)}',
                     style: AppTextStyles.subText.copyWith(
-                      color: const Color(0xFF898989),
+                      color: txt.muted,
                       fontWeight: FontWeight.w400,
                       fontSize: 12,
                     ),
@@ -203,18 +208,12 @@ class _UserThingsRankingState extends State<UserThingsRanking> {
             ],
           ),
         ),
-
-        // 3-dot menu placeholder
-        Icon(
-          Icons.more_vert,
-          color: Theme.of(context).colorScheme.onBackground.withOpacity(0.5),
-          size: 20,
-        ),
       ],
     );
   }
 
   Widget _buildQuestion() {
+    final txt = AppTextColors.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -226,13 +225,14 @@ class _UserThingsRankingState extends State<UserThingsRanking> {
             color: Theme.of(context).colorScheme.onBackground,
           ),
         ),
-        SizedBox(height: 4.h),
+        const SizedBox(height: 7),
         Text(
-          'Hold & drag to rank answer',
+          AppLocalizations.of(context)!.holdanddragtorankanswer,
+
           style: AppTextStyles.subText.copyWith(
             fontSize: 13,
             fontWeight: FontWeight.w400,
-            color: const Color(0xFF898989),
+            color: txt.muted,
           ),
         ),
       ],
@@ -274,6 +274,7 @@ class _UserThingsRankingState extends State<UserThingsRanking> {
     int index, {
     required Key key,
   }) {
+    final txt = AppTextColors.of(context);
     final rank = index + 1;
 
     return KeyedSubtree(
@@ -289,7 +290,7 @@ class _UserThingsRankingState extends State<UserThingsRanking> {
               color: Theme.of(context).colorScheme.primaryContainer,
               borderRadius: BorderRadius.circular(AppRadius.card),
               border: Border.all(
-                color: Theme.of(context).colorScheme.onBackground.withOpacity(0.08),
+                color: Theme.of(context).colorScheme.outline,
                 width: 1,
               ),
               boxShadow: [
@@ -302,13 +303,9 @@ class _UserThingsRankingState extends State<UserThingsRanking> {
             child: Row(
               children: [
                 // ── Drag handle ──────────────────────────────────────────────
-                const Padding(
-                  padding: EdgeInsets.only(right: 12),
-                  child: Icon(
-                    FeatherIcons.menu,
-                    size: 20,
-                    color: Color(0XFF595959),
-                  ),
+                Padding(
+                  padding: const EdgeInsets.only(right: 12),
+                  child: Icon(FeatherIcons.menu, size: 20, color: txt.body),
                 ),
 
                 // ── Option text ──────────────────────────────────────────────
@@ -389,7 +386,7 @@ class _UserThingsRankingState extends State<UserThingsRanking> {
                 child: Loader(color: Colors.white),
               )
             : Text(
-                'Submit ranking',
+                AppLocalizations.of(context)!.submitranking,
                 style: AppTextStyles.bodyText.copyWith(
                   fontSize: 15,
                   fontWeight: FontWeight.w500,

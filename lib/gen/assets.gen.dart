@@ -42,10 +42,6 @@ class $AssetsFontsGen {
 class $AssetsImagesGen {
   const $AssetsImagesGen();
 
-  /// File path: assets/images/acc_verify.png
-  AssetGenImage get accVerify =>
-      const AssetGenImage('assets/images/acc_verify.png');
-
   /// File path: assets/images/active_bell.png
   AssetGenImage get activeBell =>
       const AssetGenImage('assets/images/active_bell.png');
@@ -53,6 +49,10 @@ class $AssetsImagesGen {
   /// File path: assets/images/active_home.png
   AssetGenImage get activeHome =>
       const AssetGenImage('assets/images/active_home.png');
+
+  /// File path: assets/images/active_insights.png
+  AssetGenImage get activeInsights =>
+      const AssetGenImage('assets/images/active_insights.png');
 
   /// File path: assets/images/active_message.png
   AssetGenImage get activeMessage =>
@@ -70,12 +70,12 @@ class $AssetsImagesGen {
   AssetGenImage get addImage =>
       const AssetGenImage('assets/images/add_image.png');
 
-  /// File path: assets/images/add_users.png
-  AssetGenImage get addUsers =>
-      const AssetGenImage('assets/images/add_users.png');
-
   /// File path: assets/images/bg.png
   AssetGenImage get bg => const AssetGenImage('assets/images/bg.png');
+
+  /// File path: assets/images/bg_spalsh.png
+  AssetGenImage get bgSpalsh =>
+      const AssetGenImage('assets/images/bg_spalsh.png');
 
   /// File path: assets/images/celebration.png
   AssetGenImage get celebration =>
@@ -92,10 +92,6 @@ class $AssetsImagesGen {
   AssetGenImage get currentUser =>
       const AssetGenImage('assets/images/current_user.png');
 
-  /// File path: assets/images/default_cover.png
-  AssetGenImage get defaultCover =>
-      const AssetGenImage('assets/images/default_cover.png');
-
   /// File path: assets/images/filled_heart.png
   AssetGenImage get filledHeart =>
       const AssetGenImage('assets/images/filled_heart.png');
@@ -107,10 +103,6 @@ class $AssetsImagesGen {
   /// File path: assets/images/forward.png
   AssetGenImage get forward => const AssetGenImage('assets/images/forward.png');
 
-  /// File path: assets/images/google_maps_location_qr.png
-  AssetGenImage get googleMapsLocationQr =>
-      const AssetGenImage('assets/images/google_maps_location_qr.png');
-
   /// File path: assets/images/heart.png
   AssetGenImage get heart => const AssetGenImage('assets/images/heart.png');
 
@@ -118,13 +110,13 @@ class $AssetsImagesGen {
   AssetGenImage get icAccountPrivacy =>
       const AssetGenImage('assets/images/ic_accountPrivacy.png');
 
-  /// File path: assets/images/ic_active_poll.png
-  AssetGenImage get icActivePoll =>
-      const AssetGenImage('assets/images/ic_active_poll.png');
-
   /// File path: assets/images/ic_add_user.png
   AssetGenImage get icAddUser =>
       const AssetGenImage('assets/images/ic_add_user.png');
+
+  /// File path: assets/images/ic_app_foreground.png
+  AssetGenImage get icAppForeground =>
+      const AssetGenImage('assets/images/ic_app_foreground.png');
 
   /// File path: assets/images/ic_avatar.png
   AssetGenImage get icAvatar =>
@@ -138,9 +130,9 @@ class $AssetsImagesGen {
   AssetGenImage get icDarkmode =>
       const AssetGenImage('assets/images/ic_darkmode.png');
 
-  /// File path: assets/images/ic_facebook.png
-  AssetGenImage get icFacebook =>
-      const AssetGenImage('assets/images/ic_facebook.png');
+  /// File path: assets/images/ic_delete.png
+  AssetGenImage get icDelete =>
+      const AssetGenImage('assets/images/ic_delete.png');
 
   /// File path: assets/images/ic_feedback.png
   AssetGenImage get icFeedback =>
@@ -184,12 +176,12 @@ class $AssetsImagesGen {
   /// File path: assets/images/ic_user.png
   AssetGenImage get icUser => const AssetGenImage('assets/images/ic_user.png');
 
-  /// File path: assets/images/ic_users.png
-  AssetGenImage get icUsers =>
-      const AssetGenImage('assets/images/ic_users.png');
-
   /// File path: assets/images/ic_vote.png
   AssetGenImage get icVote => const AssetGenImage('assets/images/ic_vote.png');
+
+  /// File path: assets/images/icon_background.png
+  AssetGenImage get iconBackground =>
+      const AssetGenImage('assets/images/icon_background.png');
 
   /// File path: assets/images/image_icon.png
   AssetGenImage get imageIcon =>
@@ -202,6 +194,10 @@ class $AssetsImagesGen {
   /// File path: assets/images/inactive_home.png
   AssetGenImage get inactiveHome =>
       const AssetGenImage('assets/images/inactive_home.png');
+
+  /// File path: assets/images/inactive_insights.png
+  AssetGenImage get inactiveInsights =>
+      const AssetGenImage('assets/images/inactive_insights.png');
 
   /// File path: assets/images/inactive_message.png
   AssetGenImage get inactiveMessage =>
@@ -304,32 +300,30 @@ class $AssetsImagesGen {
 
   /// List of all assets
   List<dynamic> get values => [
-    accVerify,
     activeBell,
     activeHome,
+    activeInsights,
     activeMessage,
     activeUser,
     addGroup,
     addImage,
-    addUsers,
     bg,
+    bgSpalsh,
     celebration,
     comments,
     connected,
     currentUser,
-    defaultCover,
     filledHeart,
     firstOnBoard,
     forward,
-    googleMapsLocationQr,
     heart,
     icAccountPrivacy,
-    icActivePoll,
     icAddUser,
+    icAppForeground,
     icAvatar,
     icBlockAccount,
     icDarkmode,
-    icFacebook,
+    icDelete,
     icFeedback,
     icGoogle,
     icHelpSupport,
@@ -341,11 +335,12 @@ class $AssetsImagesGen {
     icSplash,
     icTermsConditions,
     icUser,
-    icUsers,
     icVote,
+    iconBackground,
     imageIcon,
     inactiveBell,
     inactiveHome,
+    inactiveInsights,
     inactiveMessage,
     inactiveUser,
     insights,

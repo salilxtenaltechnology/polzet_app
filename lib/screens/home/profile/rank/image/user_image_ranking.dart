@@ -8,7 +8,9 @@ import 'package:polzet_app/widgets/appbar/common_appbar.dart';
 
 import '../../../../../api/api_config.dart';
 import '../../../../../api/services/api_service.dart';
+import '../../../../../core/themes/app_text_colors.dart';
 import '../../../../../core/themes/app_text_styles.dart';
+import '../../../../../languages/l10n/generated/app_localizations.dart';
 import '../../../../../models/posts/user_post_model.dart';
 import '../../../../../widgets/loader.dart';
 import '../../../home feed/rank/result/image/image_preview_screen.dart';
@@ -139,36 +141,41 @@ class _UserImageRankState extends State<UserImageRanking> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Theme.of(context).colorScheme.background,
-      appBar: const CommonAppBar(title: 'Rank your choices'),
-      body: Column(
-        children: [
-          Expanded(
-            child: ReorderableListView.builder(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
-              proxyDecorator: _proxyDecorator,
-              onReorder: _onReorder,
-              buildDefaultDragHandles: false,
-              header: _buildPostHeader(),
-              itemCount: _orderedImages.length,
-              itemBuilder: (context, index) {
-                final option = _orderedImages[index];
-                return _UserRankImageCard(
-                  key: ValueKey(option.id),
-                  option: option,
-                  rank: _hasRanked ? index + 1 : null,
-                  allImages: _orderedImages,
-                  index: index,
-                );
-              },
+    return SafeArea(
+      top: false,
+      child: Scaffold(
+        backgroundColor: Theme.of(context).colorScheme.background,
+        appBar: CommonAppBar(
+          title: AppLocalizations.of(context)!.rankyourchoices,
+        ),
+        body: Column(
+          children: [
+            Expanded(
+              child: ReorderableListView.builder(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
+                proxyDecorator: _proxyDecorator,
+                onReorder: _onReorder,
+                buildDefaultDragHandles: false,
+                header: _buildPostHeader(),
+                itemCount: _orderedImages.length,
+                itemBuilder: (context, index) {
+                  final option = _orderedImages[index];
+                  return _UserRankImageCard(
+                    key: ValueKey(option.id),
+                    option: option,
+                    rank: _hasRanked ? index + 1 : null,
+                    allImages: _orderedImages,
+                    index: index,
+                  );
+                },
+              ),
             ),
-          ),
-        ],
-      ),
-      bottomNavigationBar: Padding(
-        padding: const EdgeInsets.fromLTRB(22, 5, 22, 35),
-        child: _buildSubmitButton(),
+          ],
+        ),
+        bottomNavigationBar: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 5, 16, 35),
+          child: _buildSubmitButton(),
+        ),
       ),
     );
   }
@@ -189,6 +196,7 @@ class _UserImageRankState extends State<UserImageRanking> {
   // ── Header ─────────────────────────────────────────────────────────────────
 
   Widget _buildPostHeader() {
+    final txt = AppTextColors.of(context);
     final username = widget.post.user;
     final initial = username.isNotEmpty ? username[0].toUpperCase() : '?';
 
@@ -204,7 +212,7 @@ class _UserImageRankState extends State<UserImageRanking> {
                 radius: 20,
                 backgroundColor: Theme.of(
                   context,
-                ).colorScheme.primary.withOpacity(0.15),
+                ).colorScheme.onPrimary.withOpacity(0.1),
                 backgroundImage: _profileImageBytes != null
                     ? MemoryImage(_profileImageBytes!)
                     : null,
@@ -212,7 +220,9 @@ class _UserImageRankState extends State<UserImageRanking> {
                     ? Text(
                         initial,
                         style: AppTextStyles.cardTitle.copyWith(
-                          color: Theme.of(context).colorScheme.primary,
+                          color: Theme.of(context).colorScheme.onPrimary,
+                          fontWeight: FontWeight.w500,
+                          fontSize: 18,
                         ),
                       )
                     : null,
@@ -226,7 +236,7 @@ class _UserImageRankState extends State<UserImageRanking> {
                       '${widget.firstName ?? ''} ${widget.lastName ?? ''}'
                           .trim(),
                       style: AppTextStyles.sectionHeading.copyWith(
-                        color: const Color(0XFF2C2C2C),
+                        color: txt.title,
                         fontSize: 14,
                       ),
                     ),
@@ -237,13 +247,13 @@ class _UserImageRankState extends State<UserImageRanking> {
                           style: AppTextStyles.bodyText.copyWith(
                             fontSize: 12,
                             fontWeight: FontWeight.w500,
-                            color: const Color(0XFF595959),
+                            color: txt.body,
                           ),
                         ),
                         Text(
                           '  • ${_timeAgo(widget.post.createdAt)}',
                           style: AppTextStyles.subText.copyWith(
-                            color: const Color(0xFF898989),
+                            color: txt.muted,
                             fontWeight: FontWeight.w400,
                             fontSize: 12,
                           ),
@@ -253,7 +263,6 @@ class _UserImageRankState extends State<UserImageRanking> {
                   ],
                 ),
               ),
-              const Icon(Icons.more_vert, size: 20, color: Color(0xFF727272)),
             ],
           ),
 
@@ -266,14 +275,14 @@ class _UserImageRankState extends State<UserImageRanking> {
               style: AppTextStyles.bodyText.copyWith(
                 fontSize: 15,
                 fontWeight: FontWeight.w500,
-                color: const Color(0xFF111111),
+                color: Theme.of(context).colorScheme.onBackground,
               ),
             ),
 
-          const SizedBox(height: 4),
+          const SizedBox(height: 7),
 
           Text(
-            'Hold & drag to rank image',
+            AppLocalizations.of(context)!.holdanddragtorankimage,
             style: AppTextStyles.subText.copyWith(
               fontSize: 13,
               color: const Color(0xFF898989),
@@ -311,7 +320,7 @@ class _UserImageRankState extends State<UserImageRanking> {
                 child: Loader(color: Colors.white),
               )
             : Text(
-                'Submit ranking',
+               AppLocalizations.of(context)!.submitranking,
                 style: AppTextStyles.bodyText.copyWith(
                   fontSize: 15,
                   fontWeight: FontWeight.w500,
@@ -349,92 +358,87 @@ class _UserRankImageCard extends StatelessWidget {
 
     return ReorderableDragStartListener(
       index: index,
-      child: Padding(
-        padding: const EdgeInsets.only(bottom: 10),
-        child: Stack(
-          children: [
-            // ── Image ──────────────────────────────────────────────────────
-            GestureDetector(
-              onTap: () {
-                final urls = allImages
-                    .where((o) => o.image != null)
-                    .map((o) => '${ApiConfig.baseUrlImage}${o.image!.url}')
-                    .toList();
+      child: Stack(
+        children: [
+          // ── Image ──────────────────────────────────────────────────────
+          GestureDetector(
+            onTap: () {
+              final urls = allImages
+                  .where((o) => o.image != null)
+                  .map((o) => '${ApiConfig.baseUrlImage}${o.image!.url}')
+                  .toList();
 
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    fullscreenDialog: true,
-                    builder: (_) => ImagePreviewScreen(
-                      imageUrls: urls,
-                      initialIndex: index,
-                    ),
-                  ),
-                );
-              },
-              child: Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(AppRadius.card),
-                  border: Border.all(color: const Color(0xFFDDDDDD), width: 1),
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  fullscreenDialog: true,
+                  builder: (_) =>
+                      ImagePreviewScreen(imageUrls: urls, initialIndex: index),
                 ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(AppRadius.card),
-                  child: imageUrl.isNotEmpty
-                      ? Image.network(
-                          imageUrl,
-                          width: double.infinity,
-                          height: 200,
-                          fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => _placeholder(),
-                          loadingBuilder: (_, child, progress) {
-                            if (progress == null) return child;
-                            return SizedBox(
-                              height: 200,
-                              child: Center(
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  value: progress.expectedTotalBytes != null
-                                      ? progress.cumulativeBytesLoaded /
-                                            progress.expectedTotalBytes!
-                                      : null,
-                                ),
+              );
+            },
+            child: Container(
+              margin: const EdgeInsets.only(bottom: 10),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(AppRadius.card),
+                border: Border.all(
+                  color: Theme.of(context).colorScheme.outlineVariant,
+                  width: 1,
+                ),
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(AppRadius.card),
+                child: imageUrl.isNotEmpty
+                    ? Image.network(
+                        imageUrl,
+                        width: double.infinity,
+                        height: 200,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => _placeholder(),
+                        loadingBuilder: (_, child, progress) {
+                          if (progress == null) return child;
+                          return SizedBox(
+                            height: 200,
+                            child: Center(
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                value: progress.expectedTotalBytes != null
+                                    ? progress.cumulativeBytesLoaded /
+                                          progress.expectedTotalBytes!
+                                    : null,
                               ),
-                            );
-                          },
-                        )
-                      : _placeholder(),
+                            ),
+                          );
+                        },
+                      )
+                    : _placeholder(),
+              ),
+            ),
+          ),
+
+          // ── Rank badge ─────────────────────────────────────────────────
+          if (rank != null)
+            Positioned(
+              top: 10,
+              right: 10,
+              child: Container(
+                width: 28,
+                height: 28,
+                decoration: const BoxDecoration(
+                  color: Color(0xFFB82B53),
+                  shape: BoxShape.circle,
+                ),
+                alignment: Alignment.center,
+                child: Text(
+                  rank.toString(),
+                  style: AppTextStyles.subText.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 13,
+                  ),
                 ),
               ),
             ),
-
-            // ── Rank badge ─────────────────────────────────────────────────
-            if (rank != null)
-              Positioned(
-                top: 10,
-                right: 10,
-                child: Container(
-                  width: 28,
-                  height: 28,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFB82B53),
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: Theme.of(context).colorScheme.background,
-                      width: 1.5,
-                    ),
-                  ),
-                  alignment: Alignment.center,
-                  child: Text(
-                    rank.toString(),
-                    style: AppTextStyles.subText.copyWith(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w600,
-                      fontSize: 11,
-                    ),
-                  ),
-                ),
-              ),
-          ],
-        ),
+        ],
       ),
     );
   }

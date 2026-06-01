@@ -1724,4 +1724,348 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String get passworddonotmatch => 'Kata sandi tidak cocok';
+
+  @override
+  String get home => 'Beranda';
+
+  @override
+  String get profile => 'Profil';
+
+  @override
+  String get chats => 'Obrolan';
+
+  @override
+  String get groups => 'Grup';
+
+  @override
+  String get shareprofile => 'Bagikan profil';
+
+  @override
+  String get images => 'gambar';
+
+  @override
+  String get nothingsavedyet => 'Belum ada yang disimpan';
+
+  @override
+  String get savedpollsyouwanttorevisitlater =>
+      'Polling tersimpan yang ingin kamu tinjau nanti.';
+
+  @override
+  String get nothingspollyet => 'Belum ada polling hal';
+
+  @override
+  String get createyourfirstpollandstartgatheringopinions =>
+      'Buat polling pertamamu dan mulai kumpulkan pendapat.';
+
+  @override
+  String get noimagepollyet => 'Belum ada polling gambar';
+
+  @override
+  String get submitranking => 'Kirim peringkat';
+
+  @override
+  String get rankyourchoices => 'Urutkan pilihanmu';
+
+  @override
+  String get holdanddragtorankimage =>
+      'Tahan dan seret untuk mengurutkan gambar';
+
+  @override
+  String get holdanddragtorankanswer =>
+      'Tahan dan seret untuk mengurutkan jawaban';
+
+  @override
+  String get stayactiveandsharepollstobuildyourcommunity =>
+      'Tetap aktif dan bagikan polling untuk membangun komunitasmu';
+
+  @override
+  String get askopinionsandgetanswers => 'Minta pendapat dan dapatkan jawaban';
+
+  @override
+  String get updateyourpasswordandsecureyouraccount =>
+      'Perbarui kata sandimu dan amankan akunmu';
+
+  @override
+  String get controlwhocanviewyouractivityandpolls =>
+      'Kendalikan siapa yang dapat melihat aktivitas dan pollingmu';
+
+  @override
+  String get managepeopleyouveblockedonpolzet =>
+      'Kelola orang yang kamu blokir di Polzet';
+
+  @override
+  String get preferences => 'Preferensi';
+
+  @override
+  String get choosewhatupdatesandalertsyouwanttoreceive =>
+      'Pilih pembaruan dan notifikasi yang ingin kamu terima';
+
+  @override
+  String get chooseyourpreferredapplanguage =>
+      'Pilih bahasa aplikasi yang kamu sukai';
+
+  @override
+  String get gethelpwithyouraccount => 'Dapatkan bantuan untuk akunmu';
+
+  @override
+  String get shareyourthoughtsandhelpimprovepolzet =>
+      'Bagikan pendapatmu dan bantu tingkatkan Polzet.';
+
+  @override
+  String get readtherulesandguidelinesforusingpolzet =>
+      'Baca aturan dan panduan penggunaan Polzet.';
+
+  @override
+  String get continueButton => 'Lanjutkan';
+
+  @override
+  String get currentpasswordisrequired => 'Kata sandi saat ini wajib diisi.';
+
+  @override
+  String get newpasswordisrequired => 'Kata sandi baru wajib diisi.';
+
+  @override
+  String get mustbeeightpluscharacterswithaletternumberandspecialcharacter =>
+      'Minimal 8 karakter dengan huruf, angka, dan karakter khusus.';
+
+  @override
+  String get pleaseconfirmyournewpassword =>
+      'Harap konfirmasi kata sandi barumu.';
+
+  @override
+  String get passwordsdonotmatch => 'Kata sandi tidak cocok.';
+
+  @override
+  String get pushnotification => 'Notifikasi push';
+
+  @override
+  String get receivealertandupdatesacrosspolzet =>
+      'Terima notifikasi dan pembaruan di Polzet.';
+
+  @override
+  String get pollactivity => 'Aktivitas polling';
+
+  @override
+  String get commentsandreplies => 'Komentar & Balasan';
+
+  @override
+  String get socialactivity => 'Aktivitas sosial';
+
+  @override
+  String get searchaccountspostsplaces => 'Cari akun, postingan, tempat…';
+
+  @override
+  String get norecentsearches => 'Tidak ada pencarian terbaru';
+
+  @override
+  String get tryanotherkeywordorexploretrendingpolls =>
+      'Coba kata kunci lain atau jelajahi polling tren.';
+
+  @override
+  String get searching => 'Mencari...';
+
+  @override
+  String get notfound => 'Tidak ditemukan';
+
+  @override
+  String get accounts => 'Akun';
+
+  @override
+  String get accountslower => 'akun';
+
+  @override
+  String get trysearchingwithadifferentusernameorkeyword =>
+      'Coba cari dengan nama pengguna atau kata kunci lain.';
+
+  @override
+  String get tags => 'Tagar';
+
+  @override
+  String get tag => 'tagar';
+
+  @override
+  String get no => 'Tidak ada';
+
+  @override
+  String get found => 'ditemukan';
+
+  @override
+  String get post => 'postingan';
+
+  @override
+  String get exploretrendingconversationsortryanothersearch =>
+      'Jelajahi percakapan tren atau coba pencarian lain.';
+
+  @override
+  String get photoslower => 'foto';
+
+  @override
+  String get wecouldnotfindanymatchingphotos =>
+      'Tidak dapat menemukan foto yang cocok.';
+
+  @override
+  String get trysearchingforanothertopicorkeyword =>
+      'Coba cari topik atau kata kunci lain.';
+
+  @override
+  String get today => 'Hari ini';
+
+  @override
+  String get yesterday => 'Kemarin';
+
+  @override
+  String get lastsavendays => '7 hari terakhir';
+
+  @override
+  String get lastthirtydays => '30 hari terakhir';
+
+  @override
+  String get older => 'Lebih lama';
+
+  @override
+  String get clearallnotifications => 'Hapus semua notifikasi';
+
+  @override
+  String get areyousureyouwanttoclearallnotifications =>
+      'Yakin ingin menghapus semua notifikasi?';
+
+  @override
+  String get yesclearall => 'Ya, hapus semua';
+
+  @override
+  String get deletenotifications => 'Hapus notifikasi';
+
+  @override
+  String get areyousureyouwanttodeletethesenotifications =>
+      'Yakin ingin menghapus notifikasi ini?';
+
+  @override
+  String get thisoinwillbeusedtosecureyouraccount =>
+      'PIN ini akan digunakan untuk mengamankan akunmu';
+
+  @override
+  String get changeoin => 'Ganti PIN';
+
+  @override
+  String get likedby => 'Disukai oleh';
+
+  @override
+  String get bethefirsttostarttheconversation =>
+      'Jadilah yang pertama memulai percakapan';
+
+  @override
+  String get suggestedforyou => 'Disarankan untukmu';
+
+  @override
+  String get pollresult => 'Hasil polling';
+
+  @override
+  String get totalvotes => 'Total suara';
+
+  @override
+  String get saved => 'Tersimpan';
+
+  @override
+  String get screenshotsoptional => 'Tangkapan Layar (Opsional)';
+
+  @override
+  String get nomessagesyet => 'Belum ada pesan';
+
+  @override
+  String get nonotificationsyet => 'Belum ada notifikasi';
+
+  @override
+  String get likescommentsandupdateswillappearhere =>
+      'Suka, komentar, dan pembaruan akan muncul di sini.';
+
+  @override
+  String get votesupdateswillappearhere =>
+      'Pembaruan suara akan muncul di sini.';
+
+  @override
+  String get chaserequestsupdateswillappearhere =>
+      'Pembaruan permintaan Chase akan muncul di sini.';
+
+  @override
+  String get startchattingbysharingpollsorreactingtoconversations =>
+      'Mulai mengobrol dengan berbagi polling atau merespons\npercakapan.';
+
+  @override
+  String get doyouwanttochangeyourcurrentpin =>
+      'Apakah kamu ingin mengubah PIN saat ini?';
+
+  @override
+  String get top => 'Teratas';
+
+  @override
+  String get searchvoters => 'Cari pemilih';
+
+  @override
+  String get fingerprint => 'Sidik jari';
+
+  @override
+  String get enablefingerprint => 'Aktifkan sidik jari';
+
+  @override
+  String get unlocktheappfasterandmoresecurelybyusingyourfingerprint =>
+      'Buka kunci aplikasi lebih cepat dan aman\ndengan menggunakan sidik jari Anda';
+
+  @override
+  String get thisaccountisprivate => 'Akun ini bersifat pribadi';
+
+  @override
+  String get chasethisaccounttoseetheirposts =>
+      'Ikuti akun ini untuk melihat postingan mereka.';
+
+  @override
+  String get online => 'Online';
+
+  @override
+  String get offline => 'Offline';
+
+  @override
+  String get startchasingpeopletodiscoverfreshopinionsthenwillappearusershere =>
+      'Mulai ikuti orang-orang untuk menemukan pendapat baru\nlalu pengguna akan muncul di sini';
+
+  @override
+  String get selectyourdateofbirth => 'Pilih tanggal lahir Anda';
+
+  @override
+  String get selected => 'Dipilih';
+
+  @override
+  String get chasing => 'Mengikuti';
+
+  @override
+  String get chaseback => 'Ikuti Balik';
+
+  @override
+  String get requested => 'Diminta';
+
+  @override
+  String get usefingerprint => 'Gunakan sidik jari';
+
+  @override
+  String get novotersfound => 'Tidak ada pemilih ditemukan';
+
+  @override
+  String get permanentlydeleteyourpolzetaccountandalldata =>
+      'Hapus akun Polzet dan semua data Anda secara permanen';
+
+  @override
+  String get unblockuser => 'Buka blokir pengguna';
+
+  @override
+  String get blockuser => 'Blokir pengguna';
+
+  @override
+  String get areyousureyouwanttounblockthisuser =>
+      'Apakah Anda yakin ingin membuka blokir pengguna ini?';
+
+  @override
+  String get areyousureyouwanttoblockthisuser =>
+      'Apakah Anda yakin ingin memblokir pengguna ini?';
+
+  @override
+  String get nopostsavailable => 'Tidak ada postingan tersedia';
 }

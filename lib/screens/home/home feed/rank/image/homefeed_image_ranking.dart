@@ -10,7 +10,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../../../api/api_config.dart';
 import '../../../../../api/services/api_service.dart';
+import '../../../../../core/themes/app_text_colors.dart';
 import '../../../../../core/themes/app_text_styles.dart';
+import '../../../../../languages/l10n/generated/app_localizations.dart';
 import '../../../../../models/posts/homefeed_posts_model.dart';
 import '../../../../../widgets/base64/image_convert.dart';
 import '../../../../../widgets/loader.dart';
@@ -26,8 +28,8 @@ class HomefeedImageRanking extends StatefulWidget {
   final String? timeAgo;
   final String? question;
   final String? createdAt;
-  final int postId;
-  final int pollId;
+  final String? postId;
+  final String? pollId;
 
   const HomefeedImageRanking({
     super.key,
@@ -60,6 +62,7 @@ class _ImageRankingState extends State<HomefeedImageRanking> {
   @override
   void initState() {
     super.initState();
+    debugPrint("POST_ID : ${widget.postId}");
     _orderedImages = List.from(widget.images);
     _initialFirstOption = _orderedImages.first;
 
@@ -94,7 +97,7 @@ class _ImageRankingState extends State<HomefeedImageRanking> {
             builder: (_) => RankSubmittedScreen(
               nextScreen: ImageResultScreen(
                 username: widget.user.username,
-                postId: widget.post.id,
+                postId: widget.post.id.toString(),
               ),
             ),
           ),
@@ -158,71 +161,78 @@ class _ImageRankingState extends State<HomefeedImageRanking> {
           });
         }
 
-        return Scaffold(
-          backgroundColor: Theme.of(context).colorScheme.background,
-          appBar: const CommonAppBar(title: 'Rank your choices'),
-          body: Column(
-            children: [
-              Expanded(
-                child: ReorderableListView.builder(
-                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
-                  proxyDecorator: _proxyDecorator,
-                  onReorder: _onReorder,
-                  header: _buildPostHeader(),
-                  itemCount: _orderedImages.length,
-                  itemBuilder: (context, index) {
-                    final option = _orderedImages[index];
-                    final isFirstOption = option == _initialFirstOption;
-                    final itemKey = ValueKey(
-                      option.hashCode,
-                    ); // Must be constant across index changes
+        return SafeArea(
+          top: false,
+          child: Scaffold(
+            backgroundColor: Theme.of(context).colorScheme.background,
+            appBar: const CommonAppBar(title: 'Rank your choices'),
+            body: Column(
+              children: [
+                Expanded(
+                  child: ReorderableListView.builder(
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
+                    proxyDecorator: _proxyDecorator,
+                    onReorder: _onReorder,
+                    header: _buildPostHeader(),
+                    itemCount: _orderedImages.length,
+                    itemBuilder: (context, index) {
+                      final option = _orderedImages[index];
+                      final isFirstOption = option == _initialFirstOption;
+                      final itemKey = ValueKey(
+                        option.hashCode,
+                      ); // Must be constant across index changes
 
-                    final card = _RankImageCard(
-                      option: option,
-                      rank: _hasRanked ? index + 1 : null,
-                      allImages: _orderedImages,
-                      index: index,
-                    );
+                      final card = _RankImageCard(
+                        option: option,
+                        rank: _hasRanked ? index + 1 : null,
+                        allImages: _orderedImages,
+                        index: index,
+                      );
 
-                    if (isFirstOption) {
-                      return KeyedSubtree(
-                        key: itemKey,
-                        child: Padding(
-                          padding: const EdgeInsets.only(bottom: 10),
-                          child: Showcase(
-                            key: _firstImageShowcaseKey,
-                            description:
-                                'Tap to hold & drag then up and down to rank image.',
-                            titleTextAlign: TextAlign.center,
-                            descTextStyle: AppTextStyles.bodyText.copyWith(
-                              color: Theme.of(context).colorScheme.onBackground,
-                              fontSize: 14,
-                              fontWeight: FontWeight.w500,
+                      if (isFirstOption) {
+                        return KeyedSubtree(
+                          key: itemKey,
+                          child: Padding(
+                            padding: const EdgeInsets.only(bottom: 10),
+                            child: Showcase(
+                              tooltipBackgroundColor: Theme.of(
+                                context,
+                              ).colorScheme.primary,
+                              overlayColor: const Color(0x0D000000),
+                              key: _firstImageShowcaseKey,
+                              description:
+                                  'Tap to hold & drag then up and down to rank image.',
+                              titleTextAlign: TextAlign.center,
+                              descTextStyle: AppTextStyles.bodyText.copyWith(
+                                color: Colors.white,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500,
+                              ),
+                              targetBorderRadius: BorderRadius.circular(
+                                AppRadius.card,
+                              ),
+                              child: card,
                             ),
-                            targetBorderRadius: BorderRadius.circular(
-                              AppRadius.card,
-                            ),
+                          ),
+                        );
+                      } else {
+                        return KeyedSubtree(
+                          key: itemKey,
+                          child: Padding(
+                            padding: const EdgeInsets.only(bottom: 10),
                             child: card,
                           ),
-                        ),
-                      );
-                    } else {
-                      return KeyedSubtree(
-                        key: itemKey,
-                        child: Padding(
-                          padding: const EdgeInsets.only(bottom: 10),
-                          child: card,
-                        ),
-                      );
-                    }
-                  },
+                        );
+                      }
+                    },
+                  ),
                 ),
-              ),
-            ],
-          ),
-          bottomNavigationBar: Padding(
-            padding: const EdgeInsets.fromLTRB(22, 5, 22, 35),
-            child: _buildSubmitButton(),
+              ],
+            ),
+            bottomNavigationBar: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 5, 16, 35),
+              child: _buildSubmitButton(),
+            ),
           ),
         );
       },
@@ -241,29 +251,35 @@ class _ImageRankingState extends State<HomefeedImageRanking> {
   }
 
   Widget _buildPostHeader() {
+    final txt = AppTextColors.of(context);
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // User row
           Row(
             children: [
-              CircleAvatar(
-                radius: 20,
-                backgroundColor: Colors.grey.shade300,
-                backgroundImage: _profileImageBytes != null
-                    ? MemoryImage(_profileImageBytes!)
-                    : null,
-                child: _profileImageBytes == null
-                    ? Text(
-                        widget.user.firstLetter,
-                        style: AppTextStyles.subText.copyWith(
-                          color: Theme.of(context).colorScheme.primary,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      )
-                    : null,
+              GestureDetector(
+                onTap: () {},
+                child: CircleAvatar(
+                  radius: 20,
+                  backgroundColor: Theme.of(
+                    context,
+                  ).colorScheme.onPrimary.withOpacity(0.1),
+                  backgroundImage: _profileImageBytes != null
+                      ? MemoryImage(_profileImageBytes!)
+                      : null,
+                  child: _profileImageBytes == null
+                      ? Text(
+                          widget.user.firstLetter,
+                          style: AppTextStyles.subText.copyWith(
+                            color: Theme.of(context).colorScheme.onPrimary,
+                            fontWeight: FontWeight.w500,
+                            fontSize: 18,
+                          ),
+                        )
+                      : null,
+                ),
               ),
               const SizedBox(width: 10),
               Expanded(
@@ -271,27 +287,27 @@ class _ImageRankingState extends State<HomefeedImageRanking> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      '${widget.user.firstName ?? ''} ${widget.user.lastName ?? ''}'
+                      '${widget.user.firstName ?? 'Polzet'} ${widget.user.lastName ?? 'User'}'
                           .trim(),
                       style: AppTextStyles.sectionHeading.copyWith(
-                        color: const Color(0XFF2C2C2C),
+                        color: txt.title,
                         fontSize: 14,
                       ),
                     ),
                     Row(
                       children: [
                         Text(
-                          widget.user.username,
+                          '@${widget.user.username}',
                           style: AppTextStyles.bodyText.copyWith(
                             fontSize: 12,
                             fontWeight: FontWeight.w500,
-                            color: const Color(0XFF595959),
+                            color: txt.body,
                           ),
                         ),
                         Text(
                           '  • ${timeAgo(widget.createdAt ?? '')}',
                           style: AppTextStyles.subText.copyWith(
-                            color: const Color(0XFF898989),
+                            color: txt.muted,
                             fontWeight: FontWeight.w400,
                             fontSize: 12,
                           ),
@@ -301,7 +317,7 @@ class _ImageRankingState extends State<HomefeedImageRanking> {
                   ],
                 ),
               ),
-              const Icon(Icons.more_vert, size: 20, color: Color(0XFF727272)),
+              // const Icon(Icons.more_vert, size: 20, color: Color(0XFF727272)),
             ],
           ),
 
@@ -314,18 +330,17 @@ class _ImageRankingState extends State<HomefeedImageRanking> {
               style: AppTextStyles.bodyText.copyWith(
                 fontSize: 15,
                 fontWeight: FontWeight.w500,
-                color: const Color(0xFF111111),
+                color: Theme.of(context).colorScheme.onBackground,
               ),
             ),
           const SizedBox(height: 4),
           Text(
-            'Hold & drag to rank image',
+            AppLocalizations.of(context)!.holdanddragtorankimage,
             style: AppTextStyles.subText.copyWith(
               fontSize: 13,
-              color: const Color(0xFF898989),
+              color: txt.muted,
             ),
           ),
-
           const SizedBox(height: 12),
         ],
       ),
@@ -357,7 +372,7 @@ class _ImageRankingState extends State<HomefeedImageRanking> {
                 child: Loader(color: Colors.white),
               )
             : Text(
-                'Submit ranking',
+                AppLocalizations.of(context)!.submitranking,
                 style: AppTextStyles.bodyText.copyWith(
                   fontSize: 15,
                   fontWeight: FontWeight.w500,
@@ -409,7 +424,10 @@ class _RankImageCard extends StatelessWidget {
           child: Container(
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(AppRadius.card),
-              border: Border.all(color: const Color(0xFFDDDDDD), width: 1),
+              border: Border.all(
+                color: Theme.of(context).colorScheme.outlineVariant,
+                width: 1,
+              ),
             ),
             child: ClipRRect(
               borderRadius: BorderRadius.circular(AppRadius.card),
@@ -437,13 +455,9 @@ class _RankImageCard extends StatelessWidget {
               child: Container(
                 width: 28,
                 height: 28,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFB82B53),
+                decoration: const BoxDecoration(
+                  color: Color(0xFFB82B53),
                   shape: BoxShape.circle,
-                  border: Border.all(
-                    color: Theme.of(context).colorScheme.background,
-                    width: 1.5,
-                  ),
                 ),
                 child: Center(
                   child: Text(
@@ -451,7 +465,7 @@ class _RankImageCard extends StatelessWidget {
                     style: AppTextStyles.subText.copyWith(
                       color: Colors.white,
                       fontWeight: FontWeight.w600,
-                      fontSize: 11,
+                      fontSize: 13,
                     ),
                   ),
                 ),

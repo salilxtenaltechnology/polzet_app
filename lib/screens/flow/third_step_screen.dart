@@ -2,11 +2,12 @@
 
 import 'package:flutter/material.dart';
 
+import '../../core/themes/app_text_colors.dart';
 import '../../core/themes/app_text_styles.dart';
 import '../../gen/assets.gen.dart';
 import 'flow_scaffold.dart';
 import 'image_poll_screen.dart';
-import 'question_poll_screen.dart';
+import 'things_poll_screen.dart';
 
 class ThirdStepScreen extends StatefulWidget {
   final VoidCallback onContinue;
@@ -25,15 +26,14 @@ class ThirdStepScreen extends StatefulWidget {
 }
 
 class _ThirdStepScreenState extends State<ThirdStepScreen> {
-  int? _selected; 
+  int? _selected;
 
   void _onCreatePoll() {
-     if (_selected == null) return; 
+    if (_selected == null) return;
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) => _selected == 0
-            ? const QuestionPollScreen()
-            : const ImagePollScreen(),
+        builder: (_) =>
+            _selected == 0 ? const ThingsPollScreen() : const ImagePollScreen(),
       ),
     );
   }
@@ -47,7 +47,7 @@ class _ThirdStepScreenState extends State<ThirdStepScreen> {
       title: 'Create your first poll',
       subtitle: 'Choose how you want to ask your question',
       primaryLabel: 'Create Poll',
-        onPrimary: _selected != null ? _onCreatePoll : null,
+      onPrimary: _selected != null ? _onCreatePoll : null,
       onSkip: widget.onSkip,
       body: Row(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -86,6 +86,8 @@ class _PollTypeCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final txt = AppTextColors.of(context);
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     return GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
@@ -93,13 +95,17 @@ class _PollTypeCard extends StatelessWidget {
         width: 110,
         height: 110,
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: isDarkMode
+              ? const Color.fromARGB(255, 41, 41, 41)
+              : Colors.white,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
             color: isSelected
-                ? Theme.of(context).colorScheme.primary
-                : const Color(0xFFEFEFEF),
-            width: 1.2,
+                ? Theme.of(context).colorScheme.onPrimary.withOpacity(0.8)
+                : (isDarkMode
+                      ? Theme.of(context).colorScheme.outline
+                      : const Color(0xFFEFEFEF)),
+            width: 1,
           ),
           boxShadow: const [BoxShadow(color: Color(0x07000000), blurRadius: 1)],
         ),
@@ -110,7 +116,7 @@ class _PollTypeCard extends StatelessWidget {
               width: 50,
               height: 50,
               decoration: BoxDecoration(
-                color: const Color(0xFF9B3046).withOpacity(0.1),
+                color: Theme.of(context).colorScheme.onPrimary.withOpacity(0.1),
                 shape: BoxShape.circle,
               ),
               child: Center(
@@ -118,7 +124,9 @@ class _PollTypeCard extends StatelessWidget {
                   width: 22,
                   height: 22,
                   color: isSelected
-                      ? Theme.of(context).colorScheme.primary
+                      ? Theme.of(
+                          context,
+                        ).colorScheme.onPrimary.withOpacity(0.85)
                       : const Color(0xFF6B7280),
                 ),
               ),
@@ -130,7 +138,7 @@ class _PollTypeCard extends StatelessWidget {
                 fontSize: 13,
                 fontWeight: isSelected ? FontWeight.w500 : FontWeight.w400,
                 color: isSelected
-                    ? const Color(0xFF2C2C2C)
+                    ? (isDarkMode ? txt.body : const Color(0xFF2C2C2C))
                     : const Color(0xFF777C87),
               ),
             ),

@@ -14,7 +14,7 @@ class AppConstants {
   static const double modalRadius = 16;
 
   static const BoxShadow cardShadow = BoxShadow(
-    color: Color(0x0F000000),
+    color: Color(0x0F060000),
     blurRadius: 4,
     spreadRadius: 0,
   );

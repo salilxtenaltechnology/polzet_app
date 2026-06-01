@@ -1,14 +1,16 @@
 // ignore_for_file: deprecated_member_use
 
 import 'dart:convert';
-import 'package:feather_icons/feather_icons.dart';
+import 'package:polzet_app/core/constants/feather_icons_compat.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../../../../api/services/api_service.dart';
 import '../../../../../core/constants/app_radius.dart';
+import '../../../../../core/themes/app_text_colors.dart';
 import '../../../../../core/themes/app_text_styles.dart';
+import '../../../../../languages/l10n/generated/app_localizations.dart';
 import '../../../../../models/public/public_profile_model.dart';
 import '../../../../../widgets/appbar/common_appbar.dart';
 import '../../../../../widgets/loader.dart';
@@ -61,8 +63,7 @@ class _PublicUserThingsRankingState extends State<PublicUserThingsRanking> {
   }
 
   String _timeAgo(String createdAt) {
-    // ← accept String
-    final parsed = DateTime.parse(createdAt); // ← parse inside
+    final parsed = DateTime.parse(createdAt);
     final diff = DateTime.now().difference(parsed);
     if (diff.inSeconds < 60) return 'Just now';
     if (diff.inMinutes < 60) return '${diff.inMinutes} min ago';
@@ -78,7 +79,6 @@ class _PublicUserThingsRankingState extends State<PublicUserThingsRanking> {
 
     setState(() => _isSubmitting = true);
 
-    // Build votes payload: rank is 1-based position in current list order
     final List<Map<String, int>> votes = [];
     for (int i = 0; i < _rankedOptions.length; i++) {
       votes.add({'option_id': _rankedOptions[i].id, 'rank': i + 1});
@@ -99,46 +99,50 @@ class _PublicUserThingsRankingState extends State<PublicUserThingsRanking> {
           builder: (_) => RankSubmittedScreen(
             nextScreen: ThingsResultScreen(
               username: widget.post.user,
-              postId: widget.post.id,
+              postId: widget.post.id.toString(),
             ),
           ),
         ),
         result: true,
       );
-    } else {
-      // showToast(message: result['message']?.toString() ?? 'Failed to submit');
-    }
+    } else {}
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Theme.of(context).colorScheme.background,
-      appBar: const CommonAppBar(title: 'Rank your choices'),
-      body: Column(
-        children: [
-          Expanded(
-            child: ListView(
-              padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
-              children: [
-                _buildHeader(),
-                SizedBox(height: 12.h),
-                _buildQuestion(),
-                SizedBox(height: 16.h),
-                _buildDraggableList(),
-              ],
+    return SafeArea(
+      top: false,
+      child: Scaffold(
+        backgroundColor: Theme.of(context).colorScheme.background,
+        appBar: CommonAppBar(
+          title: AppLocalizations.of(context)!.rankyourchoices,
+        ),
+        body: Column(
+          children: [
+            Expanded(
+              child: ListView(
+                padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
+                children: [
+                  _buildHeader(),
+                  SizedBox(height: 12.h),
+                  _buildQuestion(),
+                  SizedBox(height: 16.h),
+                  _buildDraggableList(),
+                ],
+              ),
             ),
-          ),
-        ],
-      ),
-      bottomNavigationBar: Padding(
-        padding: const EdgeInsets.fromLTRB(22, 5, 22, 35),
-        child: _buildSubmitButton(),
+          ],
+        ),
+        bottomNavigationBar: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 5, 16, 35),
+          child: _buildSubmitButton(),
+        ),
       ),
     );
   }
 
   Widget _buildHeader() {
+    final txt = AppTextColors.of(context);
     final username = widget.post.user;
     final initial = username.isNotEmpty ? username[0].toUpperCase() : '?';
 
@@ -148,7 +152,7 @@ class _PublicUserThingsRankingState extends State<PublicUserThingsRanking> {
           radius: 20,
           backgroundColor: Theme.of(
             context,
-          ).colorScheme.primary.withOpacity(0.15),
+          ).colorScheme.onPrimary.withOpacity(0.1),
           backgroundImage: _profileImageBytes != null
               ? MemoryImage(_profileImageBytes!)
               : null,
@@ -156,7 +160,9 @@ class _PublicUserThingsRankingState extends State<PublicUserThingsRanking> {
               ? Text(
                   initial,
                   style: AppTextStyles.cardTitle.copyWith(
-                    color: Theme.of(context).colorScheme.primary,
+                    color: Theme.of(context).colorScheme.onPrimary,
+                    fontWeight: FontWeight.w500,
+                    fontSize: 18,
                   ),
                 )
               : null,
@@ -172,7 +178,7 @@ class _PublicUserThingsRankingState extends State<PublicUserThingsRanking> {
               Text(
                 '${widget.firstName ?? ''} ${widget.lastName ?? ''}'.trim(),
                 style: AppTextStyles.sectionHeading.copyWith(
-                  color: const Color(0XFF2C2C2C),
+                  color: txt.title,
                   fontSize: 14,
                 ),
               ),
@@ -183,13 +189,13 @@ class _PublicUserThingsRankingState extends State<PublicUserThingsRanking> {
                     style: AppTextStyles.bodyText.copyWith(
                       fontSize: 12,
                       fontWeight: FontWeight.w500,
-                      color: const Color(0XFF595959),
+                      color: txt.body,
                     ),
                   ),
                   Text(
                     '  • ${_timeAgo(widget.post.createdAt)}',
                     style: AppTextStyles.subText.copyWith(
-                      color: const Color(0xFF898989),
+                      color: txt.muted,
                       fontWeight: FontWeight.w400,
                       fontSize: 12,
                     ),
@@ -199,18 +205,12 @@ class _PublicUserThingsRankingState extends State<PublicUserThingsRanking> {
             ],
           ),
         ),
-
-        // 3-dot menu placeholder
-        Icon(
-          Icons.more_vert,
-          color: Theme.of(context).colorScheme.onBackground.withOpacity(0.5),
-          size: 20,
-        ),
       ],
     );
   }
 
   Widget _buildQuestion() {
+    final txt = AppTextColors.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -222,13 +222,13 @@ class _PublicUserThingsRankingState extends State<PublicUserThingsRanking> {
             color: Theme.of(context).colorScheme.onBackground,
           ),
         ),
-        SizedBox(height: 4.h),
+        const SizedBox(height: 7),
         Text(
-          'Hold & drag to rank answer',
+          AppLocalizations.of(context)!.holdanddragtorankanswer,
           style: AppTextStyles.subText.copyWith(
             fontSize: 13,
             fontWeight: FontWeight.w400,
-            color: const Color(0xFF898989),
+            color: txt.muted,
           ),
         ),
       ],
@@ -270,6 +270,7 @@ class _PublicUserThingsRankingState extends State<PublicUserThingsRanking> {
     int index, {
     required Key key,
   }) {
+    final txt = AppTextColors.of(context);
     final rank = index + 1;
 
     return KeyedSubtree(
@@ -285,7 +286,7 @@ class _PublicUserThingsRankingState extends State<PublicUserThingsRanking> {
               color: Theme.of(context).colorScheme.primaryContainer,
               borderRadius: BorderRadius.circular(AppRadius.card),
               border: Border.all(
-                color: Theme.of(context).colorScheme.onBackground.withOpacity(0.08),
+                color: Theme.of(context).colorScheme.outline,
                 width: 1,
               ),
               boxShadow: [
@@ -297,17 +298,11 @@ class _PublicUserThingsRankingState extends State<PublicUserThingsRanking> {
             ),
             child: Row(
               children: [
-                // ── Drag handle ──────────────────────────────────────────────
-                const Padding(
-                  padding: EdgeInsets.only(right: 12),
-                  child: Icon(
-                    FeatherIcons.menu,
-                    size: 20,
-                    color: Color(0XFF595959),
-                  ),
+                Padding(
+                  padding: const EdgeInsets.only(right: 12),
+                  child: Icon(FeatherIcons.menu, size: 20, color: txt.body),
                 ),
 
-                // ── Option text ──────────────────────────────────────────────
                 Expanded(
                   child: Text(
                     option.text ?? '',
@@ -319,7 +314,6 @@ class _PublicUserThingsRankingState extends State<PublicUserThingsRanking> {
                   ),
                 ),
 
-                // ── Rank badge (visible after first interaction) ─────────────
                 if (_hasInteracted) ...[
                   SizedBox(width: 10.w),
                   _buildRankBadge(rank),
@@ -336,13 +330,9 @@ class _PublicUserThingsRankingState extends State<PublicUserThingsRanking> {
     return Container(
       width: 28,
       height: 28,
-      decoration: BoxDecoration(
-        color: const Color(0xFFB82B53),
+      decoration: const BoxDecoration(
+        color: Color(0xFFB82B53),
         shape: BoxShape.circle,
-        border: Border.all(
-          color: Theme.of(context).colorScheme.background,
-          width: 1.5,
-        ),
       ),
       alignment: Alignment.center,
       child: Text(
@@ -355,8 +345,6 @@ class _PublicUserThingsRankingState extends State<PublicUserThingsRanking> {
       ),
     );
   }
-
-  // ── Submit button ──────────────────────────────────────────────────────────
 
   Widget _buildSubmitButton() {
     final isEnabled = _hasInteracted && !_isSubmitting;
@@ -383,7 +371,7 @@ class _PublicUserThingsRankingState extends State<PublicUserThingsRanking> {
                 child: Loader(color: Colors.white),
               )
             : Text(
-                'Submit ranking',
+                AppLocalizations.of(context)!.submitranking,
                 style: AppTextStyles.bodyText.copyWith(
                   fontSize: 15,
                   fontWeight: FontWeight.w500,

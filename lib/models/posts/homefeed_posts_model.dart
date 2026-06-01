@@ -43,7 +43,7 @@ class HomeFeedResponse {
 }
 
 class HomeFeedPost {
-  final int id;
+  final String id;
   final HomeFeedUser user;
   final String description;
   final String createdAt;
@@ -52,6 +52,7 @@ class HomeFeedPost {
   final bool isLikedByCurrentUser;
   final int commentsCount;
   final String followingStatus;
+  final int sharesCount;
 
   final List<HomeFeedLikeUser> viewLikes;
 
@@ -66,12 +67,13 @@ class HomeFeedPost {
     required this.commentsCount,
     required this.viewLikes,
     required this.followingStatus,
+    required this.sharesCount,
   });
 
   factory HomeFeedPost.fromJson(Map<String, dynamic> json) {
     try {
       return HomeFeedPost(
-        id: _parseToInt(json['id']),
+        id: _parseToString(json['id']),
         user: HomeFeedUser.fromJson(json['user'] ?? {}),
         description: _parseToString(json['description']),
         createdAt: _parseToString(json['created_at']),
@@ -87,6 +89,7 @@ class HomeFeedPost {
           (item) => HomeFeedLikeUser.fromJson(item),
         ),
         followingStatus: _parseToString(json['following_status']),
+        sharesCount: _parseToInt(json['shares_count'])
       );
     } catch (e) {
       debugPrint('Error parsing HomeFeedPost: $e');
@@ -107,6 +110,7 @@ class HomeFeedPost {
       'comments_count': commentsCount,
       'view_likes': viewLikes.map((like) => like.toJson()).toList(),
       'following_status': followingStatus,
+      'shares_count' : sharesCount
     };
   }
 
@@ -188,7 +192,7 @@ class HomeFeedLikeUser {
 }
 
 class HomeFeedUser {
-  final int userid;
+  final String userid;
   final String? firstName;
   final String? lastName;
   final String username;
@@ -205,13 +209,13 @@ class HomeFeedUser {
   });
 
   String get firstLetter {
-    if (username.isEmpty) return 'U';
+    if (username.isEmpty) return 'P';
     return username[0].toUpperCase();
   }
 
   factory HomeFeedUser.fromJson(Map<String, dynamic> json) {
     return HomeFeedUser(
-      userid: _parseToInt(json['userid']),
+      userid: _parseToString(json['userid'] ?? json['id'] ?? json['user_id']),
       firstName: _parseToString(json['first_name']),
       lastName: _parseToString(json['last_name']),
       username: _parseToString(json['username']),
@@ -231,13 +235,6 @@ class HomeFeedUser {
     };
   }
 
-  static int _parseToInt(dynamic value) {
-    if (value == null) return 0;
-    if (value is int) return value;
-    if (value is String) return int.tryParse(value) ?? 0;
-    return int.tryParse(value.toString()) ?? 0;
-  }
-
   static String _parseToString(dynamic value) {
     if (value == null) return '';
     return value.toString();
@@ -245,7 +242,7 @@ class HomeFeedUser {
 }
 
 class HomeFeedPoll {
-  final int id;
+  final String id;
   final String question;
   final int maxOptions;
   final List<HomeFeedPollOption> options;
@@ -265,7 +262,7 @@ class HomeFeedPoll {
 
   factory HomeFeedPoll.fromJson(Map<String, dynamic> json) {
     return HomeFeedPoll(
-      id: _parseToInt(json['id']),
+      id: _parseToString(json['id']),
       question: _parseToString(json['question']),
       maxOptions: _parseToInt(json['max_options']),
       options: _parseList<HomeFeedPollOption>(

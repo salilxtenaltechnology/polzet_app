@@ -22,6 +22,7 @@ class HashtagPostsListModel {
     );
   }
 }
+
 class HashtagPostModel {
   final int id;
   final String? description;
@@ -35,6 +36,7 @@ class HashtagPostModel {
   final bool isPolledByCurrentUser;
   final String? locationName;
   final int commentsCount;
+  final int sharesCount;
   final String followingStatus;
 
   HashtagPostModel({
@@ -50,6 +52,7 @@ class HashtagPostModel {
     required this.isPolledByCurrentUser,
     this.locationName,
     required this.commentsCount,
+    required this.sharesCount,
     required this.followingStatus,
   });
 
@@ -71,6 +74,7 @@ class HashtagPostModel {
       isPolledByCurrentUser: json['is_polled_by_current_user'] ?? false,
       locationName: json['location_name'],
       commentsCount: json['comments_count'] ?? 0,
+      sharesCount: json['shares_count'] ?? 0,
       followingStatus: json['following_status'] ?? 'none',
     );
   }
@@ -78,6 +82,8 @@ class HashtagPostModel {
 
 class HashtagPostUser {
   final int userid;
+  final String firstName;
+  final String lastName;
   final String username;
   final String? profileImage;
   final String? location;
@@ -85,13 +91,17 @@ class HashtagPostUser {
   HashtagPostUser({
     required this.userid,
     required this.username,
+    required this.firstName,
+    required this.lastName,
     this.profileImage,
     this.location,
   });
 
   factory HashtagPostUser.fromJson(Map<String, dynamic> json) {
     return HashtagPostUser(
-      userid: json['userid'] ?? 0,
+      userid: json['userid'] ?? json['id'] ?? json['user_id'] ?? 0,
+      firstName: json['first_name'] ?? '',
+      lastName: json['last_name'] ?? '',
       username: json['username'] ?? '',
       profileImage: json['profile_image'],
       location: json['location'],

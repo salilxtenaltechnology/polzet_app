@@ -5,6 +5,8 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:polzet_app/widgets/show_toast.dart';
+import 'package:provider/provider.dart';
+import '../../../../provider/user_provider.dart';
 
 import '../../../../api/app_api.dart';
 import '../../../../core/constants/app_colors.dart';
@@ -87,6 +89,11 @@ class _PrivateAccountState extends State<PrivateAccount> {
       );
 
       if (response.statusCode == 200) {
+        if (mounted) {
+          final userProvider = Provider.of<UserProvider>(context, listen: false);
+          userProvider.updateUserField('is_private', value);
+          userProvider.updateUserField('privacy_status', value);
+        }
         setState(() {
           isPrivate = value;
           isUpdating = false;

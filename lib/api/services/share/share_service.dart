@@ -15,6 +15,7 @@ class ShareService {
     dynamic post, {
     required BuildContext context,
     String? usernameOverride,
+    Function(int)? onShareSuccess,
   }) async {
     try {
       final username = usernameOverride ?? post.user?.username ?? 'user';
@@ -24,6 +25,8 @@ class ShareService {
         context: context,
         shareLink: link,
         username: username,
+        postId: postId,
+        onShareSuccess: onShareSuccess,
       );
     } catch (e) {
       debugPrint('Error sharing post: $e');

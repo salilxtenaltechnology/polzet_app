@@ -1,12 +1,12 @@
 // ignore_for_file: deprecated_member_use
-import 'package:feather_icons/feather_icons.dart';
+import 'package:polzet_app/core/constants/feather_icons_compat.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:polzet_app/api/services/api_service.dart';
 import 'package:provider/provider.dart';
 
-import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_radius.dart';
+import '../../../core/themes/app_text_colors.dart';
 import '../../../gen/assets.gen.dart';
 import '../../../languages/l10n/generated/app_localizations.dart';
 import '../../../models/like/like_uers_model.dart';
@@ -16,9 +16,10 @@ import '../../../core/themes/app_text_styles.dart';
 import '../../loader.dart';
 import '../../../screens/home/home_imports.dart';
 import '../../../screens/home/profile/public/public_profile_screen.dart';
+import '../../../widgets/button/chase/toggle_chase_button.dart';
 
 class LikedUsersBottomSheet extends StatefulWidget {
-  final int postId;
+  final dynamic postId;
 
   const LikedUsersBottomSheet({super.key, required this.postId});
 
@@ -31,10 +32,9 @@ class _LikedUsersBottomSheetState extends State<LikedUsersBottomSheet> {
   late List<LikeUser> _filteredUsers;
   bool _isLoading = true;
 
-  // Track per-user follow status locally for optimistic UI updates
+  // Track per-user follow status locally for initial load
   // Key: user.id, Value: "following" | "followers" | "none"
-  final Map<int, String> _followStatusMap = {};
-  final Map<int, String> _originalServerStatusMap = {};
+  final Map<String, String> _followStatusMap = {};
 
   final TextEditingController _searchController = TextEditingController();
 
@@ -66,7 +66,6 @@ class _LikedUsersBottomSheetState extends State<LikedUsersBottomSheet> {
           for (final user in users) {
             final status = user.followStatus ?? 'none';
             _followStatusMap[user.id] = status;
-            _originalServerStatusMap[user.id] = status;
           }
         });
       }
@@ -106,94 +105,15 @@ class _LikedUsersBottomSheetState extends State<LikedUsersBottomSheet> {
     });
   }
 
-  /// Returns button label based on current follow status
-  String _chaseLabel(String status) {
-    switch (status) {
-      case 'following':
-      case 'both':
-        return 'Chasing';
-      case 'followers':
-      case 'follower':
-        return 'Chase Back';
-      case 'requested':
-      case 'pending':
-        return 'Requested';
-      default:
-        return 'Chase';
-    }
-  }
-
-  /// Returns true when the user is already following (button appears outlined/inactive)
-  bool _isFollowing(String status) =>
-      status == 'following' ||
-      status == 'both' ||
-      status == 'requested' ||
-      status == 'pending';
-
-  Future<void> _handleChaseToggle(LikeUser user) async {
-    final currentStatus = _followStatusMap[user.id] ?? 'none';
-    final originalServerStatus = _originalServerStatusMap[user.id] ?? 'none';
-
-    if (currentStatus == 'requested' || currentStatus == 'pending') {
-      final revertStatus =
-          originalServerStatus == 'requested' ||
-              originalServerStatus == 'pending'
-          ? 'none'
-          : originalServerStatus;
-
-      setState(() => _followStatusMap[user.id] = revertStatus);
-
-      try {
-        final success = await ApiService().cancelFriendRequest(user.id);
-        if (!success && mounted) {
-          setState(() => _followStatusMap[user.id] = currentStatus);
-        }
-      } catch (e) {
-        if (mounted) setState(() => _followStatusMap[user.id] = currentStatus);
-      }
-    } else if (_isFollowing(currentStatus)) {
-      // Unfriend
-      final nextStatus =
-          (originalServerStatus == 'both' ||
-              originalServerStatus == 'followers' ||
-              originalServerStatus == 'follower')
-          ? 'followers'
-          : 'none';
-
-      setState(() => _followStatusMap[user.id] = nextStatus);
-
-      try {
-        final response = await ApiService().unfriend(user.id);
-        if (response['status'] == 'success') {
-          _originalServerStatusMap[user.id] = nextStatus;
-        } else if (mounted) {
-          setState(() => _followStatusMap[user.id] = currentStatus);
-        }
-      } catch (e) {
-        if (mounted) setState(() => _followStatusMap[user.id] = currentStatus);
-      }
-    } else {
-      // Send friend request
-      setState(() => _followStatusMap[user.id] = 'requested');
-
-      try {
-        final success = await ApiService().sendFriendRequest(user.username);
-        if (!success && mounted) {
-          setState(() => _followStatusMap[user.id] = currentStatus);
-        }
-      } catch (e) {
-        if (mounted) setState(() => _followStatusMap[user.id] = currentStatus);
-      }
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
+    final txt = AppTextColors.of(context);
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     final userProvider = Provider.of<UserProvider>(context, listen: false);
     return Container(
       height: MediaQuery.of(context).size.height * 0.8,
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
+        color: Theme.of(context).colorScheme.tertiaryContainer,
         borderRadius: const BorderRadius.only(
           topLeft: Radius.circular(AppRadius.modal),
           topRight: Radius.circular(AppRadius.modal),
@@ -209,17 +129,15 @@ class _LikedUsersBottomSheetState extends State<LikedUsersBottomSheet> {
             decoration: BoxDecoration(
               border: Border(
                 bottom: BorderSide(
-                  color: Theme.of(context).colorScheme.outline.withOpacity(0.5),
+                  color: Theme.of(context).colorScheme.outlineVariant,
                   width: 1,
                 ),
               ),
             ),
             child: Center(
               child: Text(
-                AppLocalizations.of(context)!.likes,
-                style: AppTextStyles.sectionHeading.copyWith(
-                  color: Theme.of(context).colorScheme.onBackground,
-                ),
+               AppLocalizations.of(context)!.likedby,
+                style: AppTextStyles.sectionHeading.copyWith(color: txt.title),
               ),
             ),
           ),
@@ -231,11 +149,13 @@ class _LikedUsersBottomSheetState extends State<LikedUsersBottomSheet> {
             width: double.infinity,
             margin: EdgeInsets.symmetric(vertical: 7.h, horizontal: 10.w),
             decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.primaryContainer,
+             color: isDarkMode ? const Color(0xFF1F1F23) : Colors.white,
               borderRadius: BorderRadius.circular(AppRadius.button),
             ),
             child: TextField(
               controller: _searchController,
+              cursorColor: Theme.of(context).colorScheme.onPrimary.withOpacity(0.8),
+              cursorWidth: 1.5,
               decoration: InputDecoration(
                 contentPadding: EdgeInsets.only(
                   right: 12.w,
@@ -249,30 +169,31 @@ class _LikedUsersBottomSheetState extends State<LikedUsersBottomSheet> {
                   fontSize: 13.5,
                 ),
                 border: InputBorder.none,
+                
                 prefixIcon: Icon(
                   FeatherIcons.search,
                   size: 17.spMax,
                   color: const Color(0XFF898989),
                 ),
                 enabledBorder: OutlineInputBorder(
-                  borderSide: const BorderSide(
-                    color: Color(0XFFDCDCDC),
+                  borderSide: BorderSide(
+                    color: Theme.of(context).colorScheme.outline,
                     width: 0.7,
                   ),
                   borderRadius: BorderRadius.circular(9),
                 ),
                 focusedBorder: OutlineInputBorder(
-                  borderSide: const BorderSide(
-                    color: AppColors.primaryColor,
+                  borderSide:  BorderSide(
+                    color: Theme.of(context).colorScheme.outline,
                     width: 0.7,
                   ),
                   borderRadius: BorderRadius.circular(9),
                 ),
               ),
               style: AppTextStyles.bodyText.copyWith(
-                color: Theme.of(context).colorScheme.onBackground,
-                fontWeight: FontWeight.w400,
-                fontSize: 13.5,
+                color: txt.title,
+                fontWeight: FontWeight.w500,
+                fontSize: 14,
               ),
               onChanged: _filterUsers,
             ),
@@ -340,25 +261,11 @@ class _LikedUsersBottomSheetState extends State<LikedUsersBottomSheet> {
                     itemBuilder: (context, index) {
                       final user = _filteredUsers[index];
                       final followStatus = _followStatusMap[user.id] ?? 'none';
-                      final isFollowing = _isFollowing(followStatus);
 
-                      return Container(
-                        height: 60,
-                        margin: EdgeInsetsGeometry.symmetric(
+                      return Padding(
+                        padding: EdgeInsetsGeometry.symmetric(
                           horizontal: 10.w,
-                          vertical: 5.h,
-                        ),
-                        padding: const EdgeInsets.symmetric(horizontal: 10),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(AppRadius.card),
-                          border: Border.all(
-                            color: const Color(0XFFEFEFEF),
-                            width: 1,
-                          ),
-                          boxShadow: const [
-                            BoxShadow(color: Color(0x06000000), blurRadius: 2),
-                          ],
+                          vertical: 10,
                         ),
                         child: Row(
                           crossAxisAlignment: CrossAxisAlignment.center,
@@ -366,7 +273,6 @@ class _LikedUsersBottomSheetState extends State<LikedUsersBottomSheet> {
                             // Avatar with online indicator
                             GestureDetector(
                               onTap: () {
-                                //  Navigator.pop(context); // Close bottom sheet
                                 if (userProvider.userId == user.id) {
                                   Navigator.of(context).pushAndRemoveUntil(
                                     MaterialPageRoute(
@@ -397,9 +303,10 @@ class _LikedUsersBottomSheetState extends State<LikedUsersBottomSheet> {
                                             getProfileImage(user.profileImage)!,
                                           )
                                         : null,
-                                    backgroundColor: Theme.of(
-                                      context,
-                                    ).colorScheme.primary.withOpacity(0.1),
+                                    backgroundColor: isDarkMode
+                                        ? const Color(0xFF303030)
+                                        : Theme.of(context).colorScheme.primary
+                                              .withOpacity(0.1),
                                     child:
                                         user.profileImage == null ||
                                             user.profileImage!.isEmpty
@@ -409,9 +316,10 @@ class _LikedUsersBottomSheetState extends State<LikedUsersBottomSheet> {
                                                 .copyWith(
                                                   fontSize: 17,
                                                   fontWeight: FontWeight.w600,
-                                                  color: Theme.of(
-                                                    context,
-                                                  ).colorScheme.primary,
+                                                  color: Theme.of(context)
+                                                      .colorScheme
+                                                      .onPrimary
+                                                      .withOpacity(0.8),
                                                 ),
                                           )
                                         : null,
@@ -449,7 +357,7 @@ class _LikedUsersBottomSheetState extends State<LikedUsersBottomSheet> {
                                 Text(
                                   user.username,
                                   style: AppTextStyles.bodyText.copyWith(
-                                    color: const Color(0XFF595959),
+                                    color: txt.body,
                                     fontSize: 14.5,
                                     fontWeight: FontWeight.w500,
                                   ),
@@ -458,7 +366,7 @@ class _LikedUsersBottomSheetState extends State<LikedUsersBottomSheet> {
                                   user.fullName!,
                                   style: AppTextStyles.bodyText.copyWith(
                                     fontSize: 12.5,
-                                    color: const Color(0XFF8E8E8E),
+                                    color: txt.muted,
                                     fontWeight: FontWeight.w500,
                                   ),
                                 ),
@@ -468,44 +376,13 @@ class _LikedUsersBottomSheetState extends State<LikedUsersBottomSheet> {
                             const Spacer(),
 
                             // Chase button — hidden for current user
-                            if (userProvider.userId != user.id)
-                              GestureDetector(
-                                onTap: () => _handleChaseToggle(user),
-                                child: Container(
-                                  height: 32,
-                                  width: 100,
-                                  decoration: BoxDecoration(
-                                    color: isFollowing
-                                        ? Colors.transparent
-                                        : Theme.of(context).colorScheme.primary,
-                                    borderRadius: BorderRadius.circular(
-                                      AppRadius.button,
-                                    ),
-                                    border: isFollowing
-                                        ? Border.all(
-                                            color: Theme.of(context)
-                                                .colorScheme
-                                                .primary
-                                                .withOpacity(0.8),
-                                            width: 1,
-                                          )
-                                        : null,
-                                  ),
-                                  child: Center(
-                                    child: Text(
-                                      _chaseLabel(followStatus),
-                                      style: AppTextStyles.subText.copyWith(
-                                        fontSize: 13,
-                                        color: isFollowing
-                                            ? Theme.of(
-                                                context,
-                                              ).colorScheme.primary
-                                            : Colors.white,
-                                        fontWeight: FontWeight.w500,
-                                      ),
-                                    ),
-                                  ),
-                                ),
+                            if (userProvider.username != user.username)
+                              ToggleChaseButton(
+                                username: user.username,
+                                userId: user.id,
+                                followStatus: followStatus,
+                                apiService: ApiService(),
+                                isPrivate: false,
                               ),
                           ],
                         ),

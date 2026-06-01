@@ -3,21 +3,25 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:icons_plus/icons_plus.dart';
-import 'package:feather_icons/feather_icons.dart';
-
+import 'package:polzet_app/core/constants/feather_icons_compat.dart';
 import 'package:local_auth/local_auth.dart';
+
 import '../../../../api/services/api_service.dart';
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/constants/app_radius.dart';
+import '../../../../core/themes/app_text_colors.dart';
+import '../../../../core/themes/app_text_styles.dart';
+import '../../../../gen/assets.gen.dart';
 import '../../../../languages/l10n/generated/app_localizations.dart';
 import '../../../../mixin/utility_mixins.dart';
 import '../../../../widgets/appbar/common_appbar.dart';
-import '../../../../widgets/custom_text_styles.dart';
 import '../../../../widgets/dialog/custom_diolog.dart';
 import '../../../../widgets/loader.dart';
 import '../../../../widgets/show_toast.dart';
-import '../../../auth/forgot password/new_forgot_password_screen.dart';
+import 'account/delete_account.dart';
 import 'biometric/biometric_service.dart';
+import 'biometric/enable_biometric_screen.dart';
+import 'password/change_password.dart';
 import 'pin/pin_status.dart';
 import 'pin/set_pin_screen.dart';
 
@@ -25,9 +29,7 @@ class Security extends StatefulWidget {
   const Security({super.key});
 
   @override
-  State<StatefulWidget> createState() {
-    return SecurityState();
-  }
+  State<StatefulWidget> createState() => SecurityState();
 }
 
 class SecurityState extends State<Security> with UtilityMixin {
@@ -35,13 +37,10 @@ class SecurityState extends State<Security> with UtilityMixin {
   final _currentPasswordController = TextEditingController();
   final _newPasswordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
+
   bool _showUpdatePasswordButton = false;
-  bool _isCurrentPasswordHidden = true;
-  bool _isNewPasswordHidden = true;
-  bool _isConfirmPasswordHidden = true;
-  bool _isSecurity = false;
   bool _isPinSecurity = false;
-  bool _isFaceLock = false;
+  final bool _isFaceLock = false;
   bool _isFingerprint = false;
   bool _isLoading = false;
   bool _isSavePassword = false;
@@ -62,17 +61,16 @@ class SecurityState extends State<Security> with UtilityMixin {
     super.initState();
     _loadSecuritySettings();
     _checkBiometricSupport();
+
     _currentPasswordController.addListener(() {
       checkIfChangedPassword(
         _currentPasswordController.text,
         _initialCurrentPassword,
       );
     });
-
     _newPasswordController.addListener(() {
       checkIfChangedPassword(_newPasswordController.text, _initialNewPassword);
     });
-
     _confirmPasswordController.addListener(() {
       checkIfChangedPassword(
         _confirmPasswordController.text,
@@ -83,15 +81,11 @@ class SecurityState extends State<Security> with UtilityMixin {
 
   Future<void> _loadSecuritySettings() async {
     try {
-      // final pinSecurity = await PinService.isPinSecurityEnabled();
       final fingerprint = await BiometricService.isFingerprintEnabled();
-      final biometricEnabled = await BiometricService.isBiometricEnabled();
-      final pinSecurity = await PinService.isPinSecurityEnabled(); // ✅ Add this
-
+      final pinSecurity = await PinService.isPinSecurityEnabled();
       setState(() {
-        _isSecurity = biometricEnabled;
-        _isPinSecurity = biometricEnabled ? pinSecurity : false;
-        _isFingerprint = biometricEnabled ? fingerprint : false;
+        _isPinSecurity = pinSecurity;
+        _isFingerprint = fingerprint;
       });
     } catch (e) {
       _showErrorSnackBar('Error loading security settings: $e');
@@ -103,58 +97,23 @@ class SecurityState extends State<Security> with UtilityMixin {
       final isAvailable = await BiometricService.isBiometricAvailable();
       final availableBiometrics =
           await BiometricService.getAvailableBiometrics();
-
       setState(() {
         _isBiometricAvailable = isAvailable;
         _availableBiometrics = availableBiometrics;
       });
     } catch (e) {
-      setState(() {
-        _isBiometricAvailable = false;
-      });
+      setState(() => _isBiometricAvailable = false);
       _showErrorSnackBar('Error checking biometric support: $e');
     }
   }
 
-  Future<void> _handleSecurityToggle(bool value) async {
-    setState(() {
-      _isSecurity = value;
-
-      // If security is turned off, disable all other security options
-      if (!value) {
-        _isPinSecurity = false;
-        _isFaceLock = false;
-        _isFingerprint = false;
-      }
-    });
-
-    await BiometricService.saveBiometricEnabled(value);
-
-    if (!value) {
-      await PinService.setPinSecurityEnabled(false);
-      await PinService.clearSavedPin(); // Clear PIN data
-
-      await BiometricService.saveFingerprintEnabled(false);
-    }
-  }
-
+  // ── PIN Toggle ─────────────────────────────────────────────────────────────
   Future<void> _handlePinSecurityToggle(bool value) async {
-    if (!_isSecurity) {
-      _showErrorSnackBar('Please enable Security first');
-      return;
-    }
-
     if (value) {
-      if (_isFingerprint) {
-        setState(() => _isFingerprint = false);
-        await BiometricService.saveFingerprintEnabled(false);
-      }
-
       final isPinSet = await PinService.isPinSet();
       if (isPinSet) {
         setState(() => _isPinSecurity = true);
         await PinService.setPinSecurityEnabled(true);
-
         showToast(message: 'PIN security enabled');
       } else {
         final result = await Navigator.push(
@@ -163,11 +122,9 @@ class SecurityState extends State<Security> with UtilityMixin {
             builder: (context) => const SetPinScreen(isSettingNewPin: true),
           ),
         );
-
         if (result == true) {
           setState(() => _isPinSecurity = true);
           await PinService.setPinSecurityEnabled(true);
-          _saveSettings();
         } else {
           setState(() => _isPinSecurity = false);
         }
@@ -178,24 +135,17 @@ class SecurityState extends State<Security> with UtilityMixin {
         AppLocalizations.of(context)!.disablepinsecurity,
         AppLocalizations.of(context)!.areyousurewanttodisablepinsecurity,
         () async {
-          Navigator.of(context).pop(); // close dialog
+          Navigator.of(context).pop();
           setState(() => _isPinSecurity = false);
           await PinService.setPinSecurityEnabled(false);
-          _saveSettings();
           showToast(message: 'PIN security disabled');
         },
       );
     }
   }
 
-  Future<void> _handleFaceLockToggle(bool value) async {}
-
+  // ── Fingerprint Toggle ─────────────────────────────────────────────────────
   Future<void> _handleFingerprintToggle(bool value) async {
-    if (!_isSecurity) {
-      _showErrorSnackBar('Please enable Security first');
-      return;
-    }
-
     if (value && !_isBiometricAvailable) {
       _showErrorSnackBar(
         'Biometric authentication is not available on this device',
@@ -204,46 +154,24 @@ class SecurityState extends State<Security> with UtilityMixin {
     }
 
     if (value) {
-      if (_isPinSecurity) {
-        setState(() => _isPinSecurity = false);
-        await PinService.setPinSecurityEnabled(false);
-        await PinService.clearSavedPin();
-      }
-
-      final isAuthenticated = await _authenticateUser(
-        'Enable Fingerprint Security',
+      final result = await Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => const EnableBiometricScreen()),
       );
-      if (!isAuthenticated) return;
-
-      setState(() => _isFingerprint = true);
-      await BiometricService.saveFingerprintEnabled(true);
-      _saveSettings();
-      showToast(message: 'Fingerprint Security enabled successfully');
+      if (result == true) {
+        setState(() => _isFingerprint = true);
+        showToast(message: 'Fingerprint security enabled');
+      } else {
+        setState(() => _isFingerprint = false);
+      }
     } else {
       setState(() => _isFingerprint = false);
       await BiometricService.saveFingerprintEnabled(false);
-      _saveSettings();
+      showToast(message: 'Fingerprint security disabled');
     }
   }
 
-  Future<bool> _authenticateUser(String reason) async {
-    try {
-      setState(() => _isLoading = true);
-
-      final isAuthenticated = await BiometricService.authenticateWithBiometrics(
-        reason: reason,
-        useErrorDialogs: true,
-        stickyAuth: true,
-      );
-
-      return isAuthenticated;
-    } catch (e) {
-      _showErrorSnackBar('Authentication failed: $e');
-      return false;
-    } finally {
-      setState(() => _isLoading = false);
-    }
-  }
+  Future<void> _handleFaceLockToggle(bool value) async {}
 
   void _showErrorSnackBar(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
@@ -258,84 +186,20 @@ class SecurityState extends State<Security> with UtilityMixin {
   void _showChangePinOption() async {
     showPinSecurityDiolog(
       context,
-      'Change PIN',
-      'Do you want to change your current PIN?',
+      AppLocalizations.of(context)!.changeoin,
+      AppLocalizations.of(context)!.doyouwanttochangeyourcurrentpin,
       () async {
-        Navigator.of(context).pop(); // close dialog
+        Navigator.of(context).pop();
         final result = await Navigator.push(
           context,
           MaterialPageRoute(
             builder: (context) => const SetPinScreen(isSettingNewPin: false),
           ),
         );
-
         if (result == true) {
           showToast(message: 'PIN changed successfully');
         }
       },
-    );
-  }
-
-  String _formatDate(DateTime date) {
-    return '${date.day}/${date.month}/${date.year}';
-  }
-
-  Future<void> _saveSettings() async {
-    setState(() => _isLoading = true);
-
-    try {
-      await BiometricService.saveBiometricEnabled(_isSecurity);
-      await BiometricService.saveFingerprintEnabled(_isFingerprint);
-    } catch (e) {
-      _showErrorSnackBar('Error saving settings: $e');
-    } finally {
-      setState(() => _isLoading = false);
-    }
-  }
-
-  Widget _labelModel(
-    IconData icon,
-    String labelName,
-    bool isSwitch,
-    ValueChanged<bool> onChanged, {
-    bool isEnabled = true,
-  }) {
-    return Opacity(
-      opacity: isEnabled ? 1.0 : 0.5,
-      child: Column(
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Icon(
-                icon,
-                color: Theme.of(context).colorScheme.onBackground,
-                size: 20.spMax,
-              ),
-              SizedBox(width: 10.w),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      labelName,
-                      style: CustomTextStyles.lblPrimaryText(context),
-                    ),
-                  ],
-                ),
-              ),
-              Transform.scale(
-                scale: 0.85,
-                child: CupertinoSwitch(
-                  activeTrackColor: AppColors.primaryColor,
-                  value: isSwitch,
-                  onChanged: isEnabled ? onChanged : null,
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
     );
   }
 
@@ -347,9 +211,9 @@ class SecurityState extends State<Security> with UtilityMixin {
       _showUpdatePasswordButton = true;
     });
 
-    String currentPassword = _currentPasswordController.text.trim();
-    String newPassword = _newPasswordController.text.trim();
-    String confirmPassword = _confirmPasswordController.text.trim();
+    final currentPassword = _currentPasswordController.text.trim();
+    final newPassword = _newPasswordController.text.trim();
+    final confirmPassword = _confirmPasswordController.text.trim();
 
     if (!RegExp(
       r'^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$',
@@ -357,7 +221,7 @@ class SecurityState extends State<Security> with UtilityMixin {
       if (!mounted) return;
       setState(() {
         newPasswordErrorText =
-            'Password must be at least 8 characters long and include one uppercase letter and one special character.';
+            'Password must be at least 8 characters long and include one uppercase letter and one special character.';
         _isLoading = false;
       });
       return;
@@ -366,7 +230,7 @@ class SecurityState extends State<Security> with UtilityMixin {
     if (!mounted) return;
     setState(() => _isSavePassword = true);
 
-    String result = await apiService.updatePassword(
+    final result = await apiService.changePassword(
       currentPassword: currentPassword,
       newPassword: newPassword,
       confirmNewPassword: confirmPassword,
@@ -390,28 +254,18 @@ class SecurityState extends State<Security> with UtilityMixin {
         _initialNewPassword = '';
         _initialConfirmPassword = '';
         _showUpdatePasswordButton = false;
-        // Clear any error messages
         currentPasswordErrorText = null;
         newPasswordErrorText = null;
         confirmPasswordErrorText = null;
-        Future.delayed(const Duration(seconds: 3), () {
-          setState(() {
-            _showUpdatePasswordButton = false;
-          });
-        });
       });
     }
 
-    setState(() {
-      _isSavePassword = false;
-    });
+    setState(() => _isSavePassword = false);
   }
 
   void checkIfChangedPassword(String current, String initial) {
     if (!_isLoading) {
-      setState(() {
-        _showUpdatePasswordButton = current != initial;
-      });
+      setState(() => _showUpdatePasswordButton = current != initial);
     }
   }
 
@@ -423,137 +277,17 @@ class SecurityState extends State<Security> with UtilityMixin {
         title: AppLocalizations.of(context)!.security,
         showBackButton: true,
       ),
-
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? Center(
+              child: Loader(color: Theme.of(context).colorScheme.onPrimary),
+            )
           : ListView(
               padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 5.h),
               children: [
-                // Main Security Toggle
-                _labelModel(
-                  Iconsax.shield_tick_outline,
-                  AppLocalizations.of(context)!.security,
-                  _isSecurity,
-                  _handleSecurityToggle,
-                ),
-                Divider(
-                  thickness: 1,
-                  height: 30,
-                  color: Theme.of(
-                    context,
-                  ).colorScheme.onBackground.withOpacity(0.1),
-                ),
-                _labelModel(
-                  Icons.password_outlined,
-                  AppLocalizations.of(context)!.pinsecurity,
-                  _isPinSecurity,
-                  _handlePinSecurityToggle,
-                  isEnabled: _isSecurity && !_isFingerprint,
-                ),
-                SizedBox(height: 7.h),
-                if (_isSecurity && _isPinSecurity) ...[
-                  FutureBuilder<PinStatus>(
-                    future: PinService.getPinStatus(),
-                    builder: (context, snapshot) {
-                      if (snapshot.hasData) {
-                        final pinStatus = snapshot.data!;
-                        return Padding(
-                          padding: EdgeInsets.only(bottom: 3.h),
-                          child: Row(
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  '${AppLocalizations.of(context)!.lastchanged}${_formatDate(pinStatus.lastChangeDate!)}',
-                                  // 'PIN Security Active${pinStatus.lastChangeDate != null ? ' •  : ''}',
-                                  style: TextStyle(
-                                    color: Colors.green,
-                                    fontSize: 10.sp,
-                                  ),
-                                ),
-                              ),
-                              GestureDetector(
-                                onTap: _showChangePinOption,
-                                child: Text(
-                                  AppLocalizations.of(context)!.change,
-                                  style: TextStyle(
-                                    color: Theme.of(
-                                      context,
-                                    ).colorScheme.primary,
-                                    fontSize: 10.sp,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        );
-                      }
-                      return const SizedBox.shrink();
-                    },
-                  ),
-                ],
-
-                // Face Recognition - Only enabled when main security is on
-                _labelModel(
-                  FeatherIcons.smile,
-                  AppLocalizations.of(context)!.facerecognition,
-                  _isFaceLock,
-                  _handleFaceLockToggle,
-                  isEnabled:
-                      _isSecurity &&
-                      _availableBiometrics.contains(BiometricType.face),
-                ),
-                SizedBox(height: 10.h),
-                // Fingerprint Security - Only enabled when main security is on
-                _labelModel(
-                  Icons.fingerprint,
-                  AppLocalizations.of(context)!.fingerprintsecurity,
-                  _isFingerprint,
-                  _handleFingerprintToggle,
-                  isEnabled:
-                      _isSecurity && _isBiometricAvailable && !_isPinSecurity,
-                ),
-
-                // Security disabled info
-                if (!_isSecurity) ...[
-                  SizedBox(height: 20.h),
-                  Container(
-                    padding: EdgeInsets.all(12.w),
-                    decoration: BoxDecoration(
-                      color: Theme.of(
-                        context,
-                      ).colorScheme.primary.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(8.r),
-                      border: Border.all(
-                        color: Theme.of(
-                          context,
-                        ).colorScheme.primary.withOpacity(0.3),
-                      ),
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(
-                          Icons.info_outline,
-                          color: Theme.of(context).colorScheme.primary,
-                          size: 20.sp,
-                        ),
-                        SizedBox(width: 10.w),
-                        Expanded(
-                          child: Text(
-                            AppLocalizations.of(
-                              context,
-                            )!.enablesecurityfirsttoaccess,
-                            style: TextStyle(
-                              color: Theme.of(context).colorScheme.primary,
-                              fontSize: 11.4.sp,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-                // Biometric Support Info
+                _buildSecurityCard(),
+                SizedBox(height: 20.h),
+                _buildChangePasswordCard(),
+                _buildDeleteAccountCard(),
                 if (!_isBiometricAvailable) ...[
                   SizedBox(height: 20.h),
                   Container(
@@ -584,201 +318,288 @@ class SecurityState extends State<Security> with UtilityMixin {
                     ),
                   ),
                 ],
-                Divider(
-                  thickness: 1.1,
-                  height: 30,
-                  color: Theme.of(
-                    context,
-                  ).colorScheme.onBackground.withOpacity(0.2),
-                ),
-                Text(
-                  AppLocalizations.of(context)!.changepassword,
-                  style: TextStyle(
-                    color: Theme.of(context).colorScheme.onBackground,
-                    fontSize: 12.sp,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                SizedBox(height: 10.h),
-                Text(
-                  AppLocalizations.of(context)!.currentpassword,
-                  style: TextStyle(
-                    color: const Color(0xFF8E8D8D),
-                    fontSize: 12.sp,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                SizedBox(height: 5.h),
-                _buildPasswordTextField(
-                  _currentPasswordController,
-                  TextInputType.visiblePassword,
-                  AppLocalizations.of(context)!.entercurrentpassword,
-                  _isCurrentPasswordHidden,
-                  () {
-                    setState(() {
-                      _isCurrentPasswordHidden = !_isCurrentPasswordHidden;
-                    });
-                  },
-                ),
-                if (currentPasswordErrorText != null)
-                  Padding(
-                    padding: EdgeInsets.only(top: 5.h),
-                    child: Text(
-                      currentPasswordErrorText ?? '',
-                      style: CustomTextStyles.msgErrorText(context),
-                    ),
-                  ),
-                SizedBox(height: 5.h),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    GestureDetector(
-                      onTap: () {
-                        navigationPush(
-                          context,
-                          const NewForgotPasswordScreen(),
-                        );
-                      },
-                      child: Text(
-                        AppLocalizations.of(context)!.forgotyourpassword,
-                        style: TextStyle(
-                          color: Theme.of(context).colorScheme.primary,
-                          fontWeight: FontWeight.w300,
-                          fontSize: 11.5.sp,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                Text(
-                  AppLocalizations.of(context)!.newpassword,
-                  style: TextStyle(
-                    color: const Color(0xFF8E8D8D),
-                    fontSize: 12.sp,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                SizedBox(height: 5.h),
-                _buildPasswordTextField(
-                  _newPasswordController,
-                  TextInputType.visiblePassword,
-                  AppLocalizations.of(context)!.enternewpassword,
-                  _isNewPasswordHidden,
-                  () {
-                    setState(() {
-                      _isNewPasswordHidden = !_isNewPasswordHidden;
-                    });
-                  },
-                ),
-                if (newPasswordErrorText != null)
-                  Padding(
-                    padding: EdgeInsets.only(top: 5.h),
-                    child: Text(
-                      newPasswordErrorText ?? '',
-                      style: CustomTextStyles.msgErrorText(context),
-                    ),
-                  ),
-                SizedBox(height: 12.h),
-                Text(
-                  AppLocalizations.of(context)!.confirmpassword,
-                  style: TextStyle(
-                    color: const Color(0xFF8E8D8D),
-                    fontSize: 12.sp,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                SizedBox(height: 5.h),
-                _buildPasswordTextField(
-                  _confirmPasswordController,
-                  TextInputType.visiblePassword,
-                  AppLocalizations.of(context)!.enterconfirmpassword,
-                  _isConfirmPasswordHidden,
-                  () {
-                    setState(() {
-                      _isConfirmPasswordHidden = !_isConfirmPasswordHidden;
-                    });
-                  },
-                ),
-                if (confirmPasswordErrorText != null)
-                  Padding(
-                    padding: EdgeInsets.only(top: 5.h),
-                    child: Text(
-                      confirmPasswordErrorText ?? '',
-                      style: CustomTextStyles.msgErrorText(context),
-                    ),
-                  ),
-                if (_showUpdatePasswordButton)
-                  GestureDetector(
-                    onTap: () {
-                      if (_showUpdatePasswordButton) {
-                        updatePassword();
-                      }
-                    },
-                    child: Container(
-                      height: 30.h,
-                      width: double.infinity,
-                      margin: EdgeInsets.only(top: 10.h),
-                      decoration: BoxDecoration(
-                        color: AppColors.primaryColor,
-                        borderRadius: BorderRadius.circular(50.r),
-                      ),
-                      child: Center(
-                        child: _isSavePassword
-                            ? Loader(color: Colors.white)
-                            : Text(
-                                AppLocalizations.of(context)!.savechanges,
-                                style: CustomTextStyles.btnPrimaryText,
-                              ),
-                      ),
-                    ),
-                  ),
               ],
             ),
     );
   }
 
-  Widget _buildPasswordTextField(
-    TextEditingController controller,
-    TextInputType inputType,
-    String hintText,
-    bool isHidden,
-    VoidCallback? onTap,
-  ) {
-    return SizedBox(
-      height: 35.h,
-      child: TextField(
-        controller: controller,
-        keyboardType: inputType,
-        style: CustomTextStyles.lblPrimaryText(context),
-        obscureText: isHidden,
-        decoration: InputDecoration(
-          contentPadding: EdgeInsets.only(left: 10.w),
-          hintText: hintText,
-          hintStyle: CustomTextStyles.lblPrimaryHintText(context),
-          border: InputBorder.none,
-          suffixIcon: IconButton(
-            onPressed: onTap,
-            icon: Icon(
-              isHidden ? FeatherIcons.eyeOff : FeatherIcons.eye,
-              size: 20,
-              color: Theme.of(
-                context,
-              ).colorScheme.onBackground.withOpacity(0.13),
-            ),
+  Widget _buildSecurityCard() {
+    return Column(
+      children: [
+        _buildSecurityTile(
+          icon: Icons.password_outlined,
+          title: AppLocalizations.of(context)!.pinsecurity,
+          value: _isPinSecurity,
+          isEnabled: true, // always enabled
+          onChanged: _handlePinSecurityToggle,
+          trailing: _isPinSecurity
+              ? GestureDetector(
+                  onTap: _showChangePinOption,
+                  child: Container(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: 10.w,
+                      vertical: 4.h,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.onPrimary.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(20.r),
+                      border: Border.all(
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.onPrimary.withOpacity(0.3),
+                        width: 1,
+                      ),
+                    ),
+                    child: Text(
+                      AppLocalizations.of(context)!.changeoin,
+                      style: AppTextStyles.subText.copyWith(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w500,
+                        color: Theme.of(context).colorScheme.onPrimary,
+                      ),
+                    ),
+                  ),
+                )
+              : null,
+        ),
+
+        SizedBox(height: 10.h),
+
+        _buildSecurityTile(
+          icon: Icons.fingerprint,
+          title: AppLocalizations.of(context)!.fingerprintsecurity,
+          value: _isFingerprint,
+          isEnabled: _isBiometricAvailable, // only device capability matters
+          onChanged: _handleFingerprintToggle,
+        ),
+
+        SizedBox(height: 10.h),
+
+        _buildSecurityTile(
+          icon: FeatherIcons.smile,
+          title: AppLocalizations.of(context)!.facerecognition,
+          value: _isFaceLock,
+          isEnabled: _availableBiometrics.contains(BiometricType.face),
+          onChanged: _handleFaceLockToggle,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSecurityTile({
+    required IconData icon,
+    required String title,
+    required bool value,
+    required bool isEnabled,
+    required ValueChanged<bool> onChanged,
+    Widget? trailing,
+  }) {
+    final txt = AppTextColors.of(context);
+
+    return Opacity(
+      opacity: isEnabled ? 1.0 : 0.4,
+      child: Container(
+        height: 55,
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.primaryContainer,
+          borderRadius: BorderRadius.circular(AppRadius.card),
+          border: Border.all(
+            color: Theme.of(context).colorScheme.outline,
+            width: 1,
           ),
-          enabledBorder: OutlineInputBorder(
-            borderSide: BorderSide(
-              color: Theme.of(
-                context,
-              ).colorScheme.onBackground.withOpacity(0.1),
-            ),
-            borderRadius: BorderRadius.circular(7),
+          boxShadow: const [BoxShadow(color: Color(0x06000000), blurRadius: 2)],
+        ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          child: Row(
+            children: [
+              Container(
+                height: 37,
+                width: 37,
+                decoration: BoxDecoration(
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.onPrimary.withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  icon,
+                  size: 14.sp,
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.onPrimary.withOpacity(0.7),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  title,
+                  style: AppTextStyles.bodyText.copyWith(
+                    color: txt.title,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+              if (trailing != null) ...[trailing, SizedBox(width: 8.w)],
+              Transform.scale(
+                scale: 0.85,
+                child: CupertinoSwitch(
+                  activeTrackColor: AppColors.primaryColor,
+                  value: value,
+                  onChanged: isEnabled ? onChanged : null,
+                ),
+              ),
+            ],
           ),
-          focusedBorder: OutlineInputBorder(
-            borderSide: BorderSide(
-              color: AppColors.primaryColor.withOpacity(0.7),
-            ),
-            borderRadius: BorderRadius.circular(7),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildChangePasswordCard() {
+    final txt = AppTextColors.of(context);
+
+    return GestureDetector(
+      onTap: () => navigationPush(context, const ChangePasswordScreen()),
+      child: Container(
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.primaryContainer,
+          borderRadius: BorderRadius.circular(AppRadius.card),
+          border: Border.all(
+            color: Theme.of(context).colorScheme.outline,
+            width: 1,
+          ),
+          boxShadow: const [BoxShadow(color: Color(0x06000000), blurRadius: 2)],
+        ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          child: Row(
+            children: [
+              Container(
+                height: 47,
+                width: 47,
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.onPrimary.withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: Image.asset(
+                  Assets.images.icSecurity.path,
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.onPrimary.withOpacity(0.7),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      AppLocalizations.of(context)!.changepassword,
+                      style: AppTextStyles.bodyText.copyWith(
+                        color: txt.title,
+                        fontSize: 14.5,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    SizedBox(height: 3.h),
+                    Text(
+                      AppLocalizations.of(
+                        context,
+                      )!.updateyourpasswordandsecureyouraccount,
+                      style: AppTextStyles.subText.copyWith(
+                        color: txt.muted,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w400,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(
+                Icons.arrow_forward_ios_rounded,
+                size: 15.5,
+                color: Color(0XFF595959),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDeleteAccountCard() {
+    final txt = AppTextColors.of(context);
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+
+    return GestureDetector(
+      onTap: () => navigationPush(context, const DeleteAccountScreen()),
+      child: Container(
+        margin: const EdgeInsets.only(top: 15),
+        decoration: BoxDecoration(
+          color: isDarkMode
+              ? const Color(0xFFF85D7F).withOpacity(0.06)
+              : const Color(0XFFFFF1F4),
+          borderRadius: BorderRadius.circular(AppRadius.card),
+          border: Border.all(
+            color: const Color(0XFFD63C5E).withOpacity(0.4),
+            width: 1,
+          ),
+          boxShadow: const [BoxShadow(color: Color(0x06000000), blurRadius: 2)],
+        ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          child: Row(
+            children: [
+              Container(
+                height: 47,
+                width: 47,
+                padding: const EdgeInsets.all(12),
+                decoration: const BoxDecoration(
+                  color: Colors.transparent,
+                  shape: BoxShape.circle,
+                ),
+                child: Image.asset(Assets.images.icDelete.path),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      AppLocalizations.of(context)!.deleteaccount,
+                      style: AppTextStyles.bodyText.copyWith(
+                        color: const Color(0XFFD63C5E).withOpacity(0.8),
+                        fontSize: 14.5,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    SizedBox(height: 3.h),
+                    Text(
+                      AppLocalizations.of(
+                        context,
+                      )!.permanentlydeleteyourpolzetaccountandalldata,
+                      style: AppTextStyles.subText.copyWith(
+                        color: txt.muted,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w400,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(
+                Icons.arrow_forward_ios_rounded,
+                size: 15.5,
+                color: Color(0XFF595959),
+              ),
+            ],
           ),
         ),
       ),

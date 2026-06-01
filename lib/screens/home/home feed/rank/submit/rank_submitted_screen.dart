@@ -2,12 +2,12 @@
 
 import 'package:flutter/material.dart';
 
+import '../../../../../core/themes/app_text_colors.dart';
 import '../../../../../core/themes/app_text_styles.dart';
 
 class RankSubmittedScreen extends StatefulWidget {
-   final Widget? nextScreen; 
-  const RankSubmittedScreen({super.key,    this.nextScreen, 
-});
+  final Widget? nextScreen;
+  const RankSubmittedScreen({super.key, this.nextScreen});
 
   @override
   State<RankSubmittedScreen> createState() => _RankSubmittedScreenState();
@@ -75,29 +75,29 @@ class _RankSubmittedScreenState extends State<RankSubmittedScreen>
   }
 
   Future<void> _runSequence() async {
-  await Future.delayed(const Duration(milliseconds: 100));
-  await _circleController.forward();
+    await Future.delayed(const Duration(milliseconds: 100));
+    await _circleController.forward();
 
-  await Future.delayed(const Duration(milliseconds: 60));
-  await _checkController.forward();
+    await Future.delayed(const Duration(milliseconds: 60));
+    await _checkController.forward();
 
-  await Future.delayed(const Duration(milliseconds: 60));
-  await _textController.forward();
+    await Future.delayed(const Duration(milliseconds: 60));
+    await _textController.forward();
 
-  await Future.delayed(const Duration(milliseconds: 1500));
+    await Future.delayed(const Duration(milliseconds: 1500));
 
-  if (!mounted) return;
+    if (!mounted) return;
 
-  if (widget.nextScreen != null) {
-    // Replace self with ImageResultScreen
-    // Back from ImageResultScreen → goes straight to HomeScreen
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute(builder: (_) => widget.nextScreen!),
-    );
-  } else {
-    Navigator.of(context).pop(true);
+    if (widget.nextScreen != null) {
+      // Replace self with ImageResultScreen
+      // Back from ImageResultScreen → goes straight to HomeScreen
+      Navigator.of(
+        context,
+      ).pushReplacement(MaterialPageRoute(builder: (_) => widget.nextScreen!));
+    } else {
+      Navigator.of(context).pop(true);
+    }
   }
-}
 
   @override
   void dispose() {
@@ -109,6 +109,7 @@ class _RankSubmittedScreenState extends State<RankSubmittedScreen>
 
   @override
   Widget build(BuildContext context) {
+    final txt = AppTextColors.of(context);
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.background,
       body: Center(
@@ -154,7 +155,7 @@ class _RankSubmittedScreenState extends State<RankSubmittedScreen>
                       style: AppTextStyles.subSectionHeading.copyWith(
                         fontSize: 22,
                         fontWeight: FontWeight.w700,
-                        color: const Color(0XFF111111),
+                        color: Theme.of(context).colorScheme.onBackground,
                       ),
                     ),
                     const SizedBox(height: 8),
@@ -162,7 +163,7 @@ class _RankSubmittedScreenState extends State<RankSubmittedScreen>
                       'Your feed is now personalized just for you.',
                       style: AppTextStyles.bodyText.copyWith(
                         fontSize: 14,
-                        color: const Color(0xFF595959),
+                        color: txt.body,
                       ),
                     ),
                   ],

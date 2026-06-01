@@ -2,9 +2,9 @@ class ChartPoint {
   final String label;
   final double value;
   ChartPoint({required this.label, required this.value});
-  factory ChartPoint.fromJson(Map<String, dynamic> json) => ChartPoint(
-    label: json['label'],
-    value: (json['value'] as num).toDouble(),
+  factory ChartPoint.fromJson(Map<String, dynamic>? json) => ChartPoint(
+    label: json?['label'] ?? '',
+    value: (json?['value'] as num?)?.toDouble() ?? 0.0,
   );
 }
 
@@ -21,15 +21,17 @@ class InsightsModel {
     required this.recent,
   });
 
-  factory InsightsModel.fromJson(Map<String, dynamic> json) {
-    final data = json['data'];
+  factory InsightsModel.fromJson(Map<String, dynamic>? json) {
+    final data = json?['data'];
     return InsightsModel(
-      totalViews: data['total_views'],
-      chasers: data['chasers'],
-      pollsCreated: data['polls_created'],
-      recent: (data['recent'] as List)
-          .map((e) => ChartPoint.fromJson(e))
-          .toList(),
+      totalViews: data?['total_views'] ?? 0,
+      chasers: data?['chasers'] ?? 0,
+      pollsCreated: data?['polls_created'] ?? 0,
+      recent: data?['recent'] != null
+          ? (data['recent'] as List)
+              .map((e) => ChartPoint.fromJson(e as Map<String, dynamic>?))
+              .toList()
+          : const [],
     );
   }
 }

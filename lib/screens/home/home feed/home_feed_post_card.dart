@@ -1,5 +1,6 @@
 // ignore_for_file: deprecated_member_use, unused_local_variable, must_be_immutable, unused_element, avoid_function_literals_in_foreach_calls, dead_code, non_constant_identifier_names
 
+import 'dart:async';
 import 'dart:math';
 import 'dart:ui';
 import 'package:flutter/material.dart';
@@ -14,6 +15,7 @@ import '../../../api/services/like/like_service.dart';
 import '../../../api/services/share/share_service.dart';
 import '../../../core/constants/app_icons.dart';
 import '../../../core/constants/app_radius.dart';
+import '../../../core/themes/app_text_colors.dart';
 import '../../../core/themes/app_text_styles.dart';
 import '../../../mixin/utility_mixins.dart';
 import '../../../models/posts/homefeed_posts_model.dart';
@@ -40,6 +42,9 @@ class HomeFeedPostCard extends StatefulWidget {
     this.onImageSelectionChanged,
   });
 
+  static final Map<String, String> globallyChasedUserStates = {};
+  static final Map<String, Timer> activeChaseTimers = {};
+
   @override
   State<HomeFeedPostCard> createState() => _HomeFeedPostCardState();
 }
@@ -48,8 +53,9 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
   late bool isLike;
   late int likesCount;
   late int commentsCount;
+  late int sharesCount;
   late List<HomeFeedLikeUser> viewLikes;
-  late int? user_id;
+  late String? user_id;
   bool isLikeLoading = false;
   List<int> randomImageIndices = [];
   double? percentage;
@@ -63,7 +69,6 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
   Map<String, int> pollTotalVotes = {};
   Map<String, bool> pollResultsLoaded = {};
 
-  bool _isLocalChased = false;
   Uint8List? _profileImageBytes;
 
   final Map<int, double> _cachedPercentages = {};
@@ -78,9 +83,15 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
     likesCount = widget.post.likesCount;
     commentsCount = widget.post.commentsCount;
     viewLikes = List.from(widget.post.viewLikes);
+    sharesCount = widget.post.sharesCount;
 
     final userProvider = Provider.of<UserProvider>(context, listen: false);
     user_id = userProvider.userId;
+
+    if (widget.post.followingStatus != 'none') {
+      HomeFeedPostCard.globallyChasedUserStates[widget.post.user.userid] =
+          'hidden';
+    }
 
     if (widget.post.user.profileImage != null &&
         widget.post.user.profileImage!.isNotEmpty) {
@@ -98,9 +109,20 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
     if (alreadyVotedPolls.isNotEmpty) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         for (final poll in alreadyVotedPolls) {
-          _fetchAndApplyPollResults(poll);
+          //3  _fetchAndApplyPollResults(poll);
         }
       });
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant HomeFeedPostCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.post.followingStatus != oldWidget.post.followingStatus) {
+      if (widget.post.followingStatus != 'none') {
+        HomeFeedPostCard.globallyChasedUserStates[widget.post.user.userid] =
+            'hidden';
+      }
     }
   }
 
@@ -108,7 +130,7 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
     if (isLikeLoading) return;
 
     final userProvider = Provider.of<UserProvider>(context, listen: false);
-    final currentUserId = userProvider.userId ?? 0;
+    final currentUserId = userProvider.userId ?? '';
     final currentUsername = userProvider.username ?? '';
     final currentUserImage = userProvider.profile_picture;
 
@@ -123,7 +145,7 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
         viewLikes.insert(
           0,
           HomeFeedLikeUser(
-            id: currentUserId,
+            id: int.tryParse(currentUserId) ?? 0,
             username: currentUsername,
             profileImage: currentUserImage,
           ),
@@ -160,7 +182,7 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
   Future<String?> _getCurrentUsername() async =>
       Provider.of<UserProvider>(context, listen: false).username;
 
-  void _showCommentsBottomSheet(int postId) async {
+  void _showCommentsBottomSheet(String postId) async {
     final currentUsername = await _getCurrentUsername();
     BottomSheetUtils.showCommentsBottomSheet(
       context: context,
@@ -177,19 +199,19 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
         postId: widget.post.id,
       );
 
-  void _showThingsPostVotersBottomSheet(HomeFeedPoll poll) {
-    poll.options.sort((a, b) {
-      if (a.rankPosition != null && b.rankPosition != null) {
-        return a.rankPosition!.compareTo(b.rankPosition!);
-      }
-      return b.percentage.compareTo(a.percentage);
-    });
-    BottomSheetUtils.showThingsPostVotersBottomSheet(
-      context: context,
-      poll: poll,
-      postId: widget.post.id,
-    );
-  }
+  // void _showThingsPostVotersBottomSheet(HomeFeedPoll poll) {
+  //   poll.options.sort((a, b) {
+  //     if (a.rankPosition != null && b.rankPosition != null) {
+  //       return a.rankPosition!.compareTo(b.rankPosition!);
+  //     }
+  //     return b.percentage.compareTo(a.percentage);
+  //   });
+  //   BottomSheetUtils.showThingsPollVotersBottomSheet(
+  //     context: context,
+  //     poll: poll,
+  //     postId: widget.post.id,
+  //   );
+  // }
 
   bool _hasImageOptions(HomeFeedPoll poll) =>
       poll.options.any((o) => o.image != null);
@@ -200,35 +222,18 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
   List<PollOptionImage> _getPollImages(HomeFeedPoll poll) =>
       poll.options.where((o) => o.image != null).map((o) => o.image!).toList();
 
-  // void _showAllImagesGrid(List<PollOptionImage> images, HomeFeedPoll poll) {
-  //   Navigator.of(context)
-  //       .push(
-  //         MaterialPageRoute(
-  //           builder: (_) => AllImagesPopup(
-  //             images: poll.options,
-  //             postId: widget.post.id,
-  //             pollId: poll.id,
-  //             onImageTap: (_) {},
-  //             isPolledByCurrentUser: poll.isPolledByCurrentUser,
-  //           ),
-  //         ),
-  //       )
-  //       .then((result) {
-  //         if (result == true) setState(() {});
-  //       });
-  // }
-
   void _showAllImagesGrid(
     List<PollOptionImage> images,
     HomeFeedPost post,
     HomeFeedPoll poll,
   ) {
     if (poll.isPolledByCurrentUser) {
-      // ── Already voted → show results
       Navigator.of(context).push(
         MaterialPageRoute(
-          builder: (_) =>
-              ImageResultScreen(username: post.user.username, postId: post.id),
+          builder: (_) => ImageResultScreen(
+            username: post.user.username,
+            postId: post.id.toString(),
+          ),
         ),
       );
     } else {
@@ -278,8 +283,6 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
       );
 
       if (result['success']) {
-        await _fetchAndApplyPollResults(poll);
-
         if (mounted) {
           setState(() {
             poll.isPolledByCurrentUser = true;
@@ -328,63 +331,6 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
     }
   }
 
-  Future<void> _fetchAndApplyPollResults(HomeFeedPoll poll) async {
-    try {
-      final Map<String, dynamic> response = await ApiService().getPollResults(
-        widget.post.id,
-      );
-
-      if (!mounted) return;
-      if (response['status'] != 'success') return;
-
-      final data = response['data'] as Map<String, dynamic>?;
-      if (data == null) return;
-
-      final int totalVotes = (data['total_votes'] as int?) ?? poll.totalVotes;
-      final List<dynamic> results = data['results'] as List<dynamic>? ?? [];
-
-      final Map<int, int> optionRankMap = {};
-      for (int i = 0; i < results.length; i++) {
-        final r = results[i] as Map<String, dynamic>;
-        optionRankMap[r['option_id'] as int] = i;
-      }
-
-      if (!mounted) return;
-
-      setState(() {
-        pollTotalVotes[poll.id.toString()] = totalVotes;
-        poll.totalVotes = totalVotes;
-
-        for (final dynamic item in results) {
-          final r = item as Map<String, dynamic>;
-          final int optionId = r['option_id'] as int;
-          final double pct = (r['percentage'] as num?)?.toDouble() ?? 0.0;
-          final int rank1Count = r['rank_1_count'] as int? ?? 0;
-
-          _cachedPercentages[optionId] = pct;
-          _animationDone[optionId] = false;
-
-          for (final option in poll.options) {
-            if (option.id == optionId) {
-              option.percentage = pct;
-              option.rank1Count = rank1Count;
-              option.rankPosition = optionRankMap[optionId] ?? 999;
-              break;
-            }
-          }
-        }
-
-        poll.options.sort((a, b) {
-          final aRank = a.rankPosition ?? 999;
-          final bRank = b.rankPosition ?? 999;
-          return aRank.compareTo(bRank);
-        });
-      });
-    } catch (e) {
-      debugPrint('Error fetching poll results: $e');
-    }
-  }
-
   void _notifyDashboardOfUpdate() {
     try {
       context.findAncestorStateOfType<DashboardState>()?.notifyPostsChanged();
@@ -420,8 +366,13 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
 
   @override
   Widget build(BuildContext context) {
+    final txt = AppTextColors.of(context);
     final bool hasPolls = widget.post.polls.isNotEmpty;
     final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
+
+    final String chaseState =
+        HomeFeedPostCard.globallyChasedUserStates[widget.post.user.userid] ??
+        (widget.post.followingStatus != 'none' ? 'hidden' : 'none');
 
     if (!hasPolls) return const SizedBox.shrink();
 
@@ -431,9 +382,12 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
           margin: EdgeInsets.only(bottom: 15.h),
           padding: EdgeInsets.only(bottom: 10.h),
           decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.background,
+            color: Theme.of(context).colorScheme.primaryContainer,
             borderRadius: BorderRadius.circular(AppRadius.card),
-            border: Border.all(color: const Color(0xFFEFEFEF), width: 1),
+            border: Border.all(
+              color: Theme.of(context).colorScheme.outline,
+              width: 1,
+            ),
             boxShadow: const [
               BoxShadow(color: Color(0x06000000), blurRadius: 2),
             ],
@@ -462,10 +416,6 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
                                 ?.setPage(4);
                           }
                         } else {
-                          // navigationPush(
-                          //   context,
-                          //   PublicProfile(userId: widget.post.user.userid),
-                          // );
                           navigationPush(
                             context,
                             PublicProfileScreen(
@@ -475,10 +425,10 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
                         }
                       },
                       child: CircleAvatar(
-                        radius: 18,
+                        radius: 19.5,
                         backgroundColor: Theme.of(
                           context,
-                        ).colorScheme.primary.withOpacity(0.15),
+                        ).colorScheme.onPrimary.withOpacity(0.1),
                         backgroundImage: _profileImageBytes != null
                             ? MemoryImage(_profileImageBytes!)
                             : null,
@@ -488,67 +438,138 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
                             ? Text(
                                 widget.post.user.firstLetter,
                                 style: AppTextStyles.cardTitle.copyWith(
-                                  color: Theme.of(context).colorScheme.primary,
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onPrimary,
+                                  fontWeight: FontWeight.w500,
+                                  fontSize: 18,
                                 ),
                               )
                             : null,
                       ),
                     ),
                     SizedBox(width: 8.w),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          widget.post.user.username,
-                          style: AppTextStyles.sectionHeading.copyWith(
-                            color: const Color(0XFF2C2C2C),
-                            fontSize: 14,
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            widget.post.user.firstName != null ||
+                                    widget.post.user.lastName != null
+                                ? '${widget.post.user.firstName ?? 'Polzet'} ${widget.post.user.lastName ?? 'User'}'
+                                      .trim()
+                                : 'Polzet User',
+                            style: AppTextStyles.sectionHeading.copyWith(
+                              color: txt.title,
+                              fontSize: 14,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
-                        ),
-                        Row(
-                          children: [
-                            Text(
-                              'Placed a post',
-                              style: AppTextStyles.bodyText.copyWith(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w500,
-                                color: const Color(0XFF595959),
+                          Row(
+                            children: [
+                              Flexible(
+                                child: Text(
+                                  '@${widget.post.user.username}',
+                                  style: AppTextStyles.bodyText.copyWith(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w500,
+                                    color: txt.body,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
                               ),
-                            ),
-                            Text(
-                              '  • ${_timeAgo(DateTime.parse(widget.post.createdAt))}',
-                              style: AppTextStyles.subText.copyWith(
-                                color: const Color(0xFF727272),
-                                fontWeight: FontWeight.w400,
-                                fontSize: 11.5,
+                              Text(
+                                '  • ${_timeAgo(DateTime.parse(widget.post.createdAt))}',
+                                style: AppTextStyles.subText.copyWith(
+                                  color: txt.muted,
+                                  fontWeight: FontWeight.w400,
+                                  fontSize: 11.5,
+                                ),
                               ),
-                            ),
-                          ],
-                        ),
-                      ],
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
-                    const Spacer(),
-                    if (widget.post.followingStatus == 'none' &&
-                        widget.post.user.userid != user_id)
+                    if (chaseState != 'hidden' &&
+                        widget.post.user.userid != user_id) ...[
+                      SizedBox(width: 8.w),
                       GestureDetector(
                         onTap: () async {
-                          if (_isLocalChased) {
-                            setState(() => _isLocalChased = false);
+                          final userId = widget.post.user.userid;
+                          final username = widget.post.user.username;
+                          final dashboardState = context
+                              .findAncestorStateOfType<DashboardState>();
+
+                          if (chaseState == 'chasing') {
+                            // User wants to cancel request / unfriend
+                            HomeFeedPostCard.activeChaseTimers[userId]
+                                ?.cancel();
+                            HomeFeedPostCard.activeChaseTimers.remove(userId);
+
+                            setState(() {
+                              HomeFeedPostCard
+                                      .globallyChasedUserStates[userId] =
+                                  'none';
+                            });
+                            _notifyDashboardOfUpdate();
+
                             try {
-                              await ApiService().unfriend(
-                                widget.post.user.userid,
-                              );
+                              await ApiService().unfriend(userId);
                             } catch (e) {
-                              setState(() => _isLocalChased = true);
+                              debugPrint('Error unfriending user: $e');
                             }
                           } else {
-                            setState(() => _isLocalChased = true);
+                            // User wants to Chase
+                            HomeFeedPostCard.activeChaseTimers[userId]
+                                ?.cancel();
+
+                            setState(() {
+                              HomeFeedPostCard
+                                      .globallyChasedUserStates[userId] =
+                                  'chasing';
+                            });
+                            _notifyDashboardOfUpdate();
+
+                            // Start a 10-second timer to hide the button
+                            HomeFeedPostCard.activeChaseTimers[userId] = Timer(
+                              const Duration(seconds: 10),
+                              () {
+                                HomeFeedPostCard
+                                        .globallyChasedUserStates[userId] =
+                                    'hidden';
+                                HomeFeedPostCard.activeChaseTimers.remove(
+                                  userId,
+                                );
+                                try {
+                                  dashboardState?.notifyPostsChanged();
+                                } catch (e) {
+                                  debugPrint('Could not notify dashboard: $e');
+                                }
+                              },
+                            );
+
                             try {
-                              await ApiService().sendFriendRequest(
-                                widget.post.user.username,
-                              );
+                              await ApiService().sendFriendRequest(username);
                             } catch (e) {
-                              setState(() => _isLocalChased = false);
+                              debugPrint('Error sending friend request: $e');
+                              if (HomeFeedPostCard
+                                      .globallyChasedUserStates[userId] ==
+                                  'chasing') {
+                                HomeFeedPostCard.activeChaseTimers[userId]
+                                    ?.cancel();
+                                HomeFeedPostCard.activeChaseTimers.remove(
+                                  userId,
+                                );
+                                setState(() {
+                                  HomeFeedPostCard
+                                          .globallyChasedUserStates[userId] =
+                                      'none';
+                                });
+                                _notifyDashboardOfUpdate();
+                              }
                             }
                           }
                         },
@@ -559,38 +580,52 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
                             vertical: 4.5,
                           ),
                           decoration: BoxDecoration(
-                            color: _isLocalChased
+                            color: chaseState == 'chasing'
                                 ? Colors.transparent
                                 : Theme.of(context).colorScheme.primary,
-                            border: Border.all(
-                              color: Theme.of(context).colorScheme.primary,
-                              width: 1.2,
-                            ),
+                            border: chaseState == 'chasing'
+                                ? Border.all(
+                                    color: isDarkMode
+                                        ? Theme.of(context)
+                                              .colorScheme
+                                              .onPrimary
+                                              .withOpacity(0.3)
+                                        : Theme.of(context).colorScheme.primary
+                                              .withOpacity(0.8),
+                                    width: 1,
+                                  )
+                                : null,
                             borderRadius: BorderRadius.circular(
                               AppRadius.button,
                             ),
                           ),
                           child: Text(
-                            _isLocalChased ? 'Chased' : 'Chase',
+                            chaseState == 'chasing' ? 'Chasing' : 'Chase',
                             style: AppTextStyles.subText.copyWith(
                               fontSize: 12.5,
-                              color: _isLocalChased
-                                  ? Theme.of(context).colorScheme.primary
+                              color: chaseState == 'chasing'
+                                  ? (isDarkMode
+                                        ? Theme.of(context)
+                                              .colorScheme
+                                              .onPrimary
+                                              .withOpacity(0.7)
+                                        : Theme.of(context).colorScheme.primary)
                                   : Colors.white,
                             ),
                           ),
                         ),
                       ),
+                    ],
                   ],
                 ),
               ),
-              const Divider(color: Color(0xFFDCDCDC)),
+              Divider(color: Theme.of(context).colorScheme.outlineVariant),
 
               if (hasPolls) ..._buildPollContent(),
 
               /*──── Actions ────*/
               Padding(
-                padding: EdgeInsets.fromLTRB(10.w, 0, 10.w, 0.h),
+                padding: EdgeInsets.fromLTRB(10.w, 5, 10.w, 0.h),
                 child: Row(
                   children: [
                     GestureDetector(
@@ -607,20 +642,17 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
                                   )
                                 : AppIcons.outlineHeart(
                                     key: const ValueKey('outline'),
-                                    color: Theme.of(
-                                      context,
-                                    ).colorScheme.onBackground.withOpacity(0.6),
                                   ),
                           ),
-                          SizedBox(width: 3.w),
+                          const SizedBox(width: 8),
                           Text(
                             likesCount > 0
                                 ? LikeService.getLikesCountText(likesCount)
                                 : '',
                             style: AppTextStyles.subText.copyWith(
-                              color: Theme.of(
-                                context,
-                              ).colorScheme.onSurface.withOpacity(0.8),
+                              color: txt.body,
+                              fontSize: 13.5,
+                              fontWeight: FontWeight.w400,
                             ),
                           ),
                         ],
@@ -631,18 +663,14 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
                       onTap: () => _showCommentsBottomSheet(widget.post.id),
                       child: Row(
                         children: [
-                          AppIcons.commnetBox(
-                            color: Theme.of(
-                              context,
-                            ).colorScheme.onBackground.withOpacity(0.6),
-                          ),
-                          SizedBox(width: 3.w),
+                          AppIcons.commnetBox(),
+                          const SizedBox(width: 8),
                           Text(
                             commentsCount > 0 ? '$commentsCount' : '',
                             style: AppTextStyles.subText.copyWith(
-                              color: Theme.of(
-                                context,
-                              ).colorScheme.onSurface.withOpacity(0.8),
+                              color: txt.body,
+                              fontSize: 13.5,
+                              fontWeight: FontWeight.w400,
                             ),
                           ),
                         ],
@@ -650,12 +678,30 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
                     ),
                     SizedBox(width: 8.w),
                     GestureDetector(
-                      onTap: () =>
-                          ShareService.sharePost(widget.post, context: context),
-                      child: AppIcons.sharePost(
-                        color: Theme.of(
-                          context,
-                        ).colorScheme.onBackground.withOpacity(0.7),
+                      onTap: () => ShareService.sharePost(
+                        widget.post,
+                        context: context,
+                        onShareSuccess: (newCount) {
+                          if (mounted) {
+                            setState(() {
+                              sharesCount = newCount;
+                            });
+                          }
+                        },
+                      ),
+                      child: Row(
+                        children: [
+                          AppIcons.sharePost(),
+                          const SizedBox(width: 8),
+                          Text(
+                            sharesCount > 0 ? '$sharesCount' : '',
+                            style: AppTextStyles.subText.copyWith(
+                              color: txt.body,
+                              fontSize: 13.5,
+                              fontWeight: FontWeight.w400,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ],
@@ -704,6 +750,7 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
   }
 
   List<Widget> _buildPollContent() {
+    final txt = AppTextColors.of(context);
     List<Widget> widgets = [];
     for (var poll in widget.post.polls) {
       if (_hasImageOptions(poll)) {
@@ -720,7 +767,7 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
                     Text(
                       poll.question,
                       style: AppTextStyles.bodyText.copyWith(
-                        color: Theme.of(context).colorScheme.onBackground,
+                        color: txt.heading,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -749,6 +796,7 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
     HomeFeedPost post,
     HomeFeedPoll poll,
   ) {
+    final txt = AppTextColors.of(context);
     final displayImages = images.take(4).toList();
     final n = displayImages.length;
     final hasUserPolled = poll.isPolledByCurrentUser;
@@ -813,7 +861,7 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
                       child: Container(
                         decoration: BoxDecoration(
                           border: Border.all(
-                            color: const Color(0xFFDDDDDD),
+                            color: Theme.of(context).colorScheme.outlineVariant,
                             width: 1,
                           ),
                           borderRadius: BorderRadius.circular(AppRadius.button),
@@ -836,10 +884,6 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
                                       color: Theme.of(
                                         context,
                                       ).colorScheme.primary,
-                                      border: Border.all(
-                                        color: Colors.white,
-                                        width: 1,
-                                      ),
                                     ),
                                     child: Center(
                                       child: Text(
@@ -874,6 +918,7 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
     HomeFeedPoll poll,
     HomeFeedPost post,
   ) {
+    final txt = AppTextColors.of(context);
     final validOptions = poll.options
         .where((o) => o.text != null && o.text!.isNotEmpty)
         .toList();
@@ -886,7 +931,10 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
         if (poll.isPolledByCurrentUser) {
           navigationPush(
             context,
-            ThingsResultScreen(username: post.user.username, postId: post.id),
+            ThingsResultScreen(
+              username: post.user.username,
+              postId: post.id.toString(),
+            ),
           );
         } else {
           navigationPush(
@@ -906,7 +954,7 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
             Text(
               poll.question,
               style: AppTextStyles.bodyText.copyWith(
-                color: Theme.of(context).colorScheme.onBackground,
+                color: txt.heading,
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -954,6 +1002,7 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
     HomeFeedPoll poll, {
     bool showPercentage = false,
   }) {
+    final txt = AppTextColors.of(context);
     final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
     final double cachedPct = _cachedPercentages[option.id] ?? 0.0;
@@ -973,10 +1022,15 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(AppRadius.card),
         color: hasUserPolled
-            ? (isDarkMode ? const Color(0xFF2A2228) : const Color(0xFFFCF9F9))
-            : (isDarkMode ? const Color(0xFF242831) : Colors.white),
+            ? (isDarkMode
+                  ? const Color(0XFF2A2026).withOpacity(0.7)
+                  : const Color(0xFFFCF9F9))
+            : (isDarkMode
+                  ? const Color(0xFF242831).withOpacity(0.7)
+                  : Colors.white),
         border: Border.all(
-          color: isDarkMode ? const Color(0xFF30353D) : const Color(0xFFEFEFEF),
+          // color: isDarkMode ? const Color(0xFF30353D) : const Color(0xFFEFEFEF),
+          color: Theme.of(context).colorScheme.outline,
           width: 1,
         ),
       ),
@@ -988,7 +1042,7 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
               child: Text(
                 option.text ?? '',
                 style: AppTextStyles.subText.copyWith(
-                  color: const Color(0xFF2C2C2C),
+                  color: txt.title,
                   fontSize: 14,
                   fontWeight: FontWeight.w400,
                 ),

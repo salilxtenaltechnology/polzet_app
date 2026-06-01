@@ -25,13 +25,20 @@ class CommonAppBar extends StatelessWidget implements PreferredSizeWidget {
   Widget build(BuildContext context) {
     return AppBar(
       automaticallyImplyLeading: false,
-      leading: showBackButton ? const PrimaryBackButton() : null,
+      leading: showBackButton
+          ? Padding(
+              padding: EdgeInsets.only(left: 8.w),
+              child: const PrimaryBackButton(),
+            )
+          : null,
+      leadingWidth: showBackButton ? 48.w : 0,
       centerTitle: false,
+      titleSpacing: showBackButton ? 4.w : 16.w,
       title: Text(
         title,
         style: AppTextStyles.pageTitleTextStyle(
           context,
-        ).copyWith(fontSize: 18.sp),
+        ).copyWith(fontSize: 17.8.sp),
       ),
       backgroundColor: Theme.of(context).colorScheme.background,
       surfaceTintColor: Theme.of(context).colorScheme.background,

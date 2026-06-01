@@ -5,15 +5,19 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:polzet_app/core/constants/app_radius.dart';
 import 'package:polzet_app/widgets/show_toast.dart';
 import 'package:provider/provider.dart';
 
 import '../../../../api/services/api_service.dart';
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/themes/app_text_colors.dart';
+import '../../../../core/themes/app_text_styles.dart';
 import '../../../../data/token/shared_preferences.dart';
 import '../../../../languages/l10n/generated/app_localizations.dart';
 import '../../../../provider/user_provider.dart';
 import '../../../../widgets/appbar/common_appbar.dart';
+import '../../../../widgets/loader.dart';
 
 class FeedbackScreen extends StatefulWidget {
   const FeedbackScreen({super.key});
@@ -207,132 +211,130 @@ class _FeedbackScreenState extends State<FeedbackScreen>
         showBackButton: true,
       ),
 
-      body: FadeTransition(
-        opacity: _fadeAnimation,
-        child: CustomScrollView(
-          slivers: [
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.all(12).w,
-                child: Form(
-                  key: _formKey,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // ── Issue ID Banner (shown after submit) ──
-                      if (_submittedIssueId != null &&
-                          _submittedIssueId!.isNotEmpty) ...[
-                        _buildIssueIdBanner(),
-                        SizedBox(height: 12.h),
-                      ],
-
-                      // ── Rating Card ──
-                      _buildRatingCard(),
+      body: CustomScrollView(
+        slivers: [
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.all(12).w,
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // ── Issue ID Banner (shown after submit) ──
+                    if (_submittedIssueId != null &&
+                        _submittedIssueId!.isNotEmpty) ...[
+                      _buildIssueIdBanner(),
                       SizedBox(height: 12.h),
+                    ],
 
-                      // ── Subject Field ──
-                      _buildLabel(AppLocalizations.of(context)!.subject),
-                      const SizedBox(height: 8),
-                      _buildTextField(
-                        controller: subjectController,
-                        hint: AppLocalizations.of(
-                          context,
-                        )!.egAppissueloginproblem,
-                        maxLines: 1,
-                        validator: (v) => v == null || v.isEmpty
-                            ? AppLocalizations.of(context)!.subjectisrequired
-                            : null,
-                      ),
-                      const SizedBox(height: 20),
+                    // ── Rating Card ──
+                    _buildRatingCard(),
+                    SizedBox(height: 12.h),
 
-                      // ── Category ──
-                      _buildLabel(AppLocalizations.of(context)!.category),
-                      const SizedBox(height: 8),
-                      _buildCategorySelector(),
-                      const SizedBox(height: 20),
+                    // ── Subject Field ──
+                    _buildLabel(AppLocalizations.of(context)!.subject),
+                    const SizedBox(height: 8),
+                    _buildTextField(
+                      controller: subjectController,
+                      hint: AppLocalizations.of(
+                        context,
+                      )!.egAppissueloginproblem,
+                      maxLines: 1,
+                      validator: (v) => v == null || v.isEmpty
+                          ? AppLocalizations.of(context)!.subjectisrequired
+                          : null,
+                    ),
+                    const SizedBox(height: 20),
 
-                      // ── Message ──
-                      _buildLabel(AppLocalizations.of(context)!.message),
-                      const SizedBox(height: 8),
-                      _buildTextField(
-                        controller: messageController,
-                        hint: AppLocalizations.of(
-                          context,
-                        )!.describeyourissueorsuggestionindetails,
-                        maxLines: 5,
-                        validator: (v) {
-                          if (v == null || v.isEmpty) {
-                            return AppLocalizations.of(
-                              context,
-                            )!.messageisrequired;
-                          }
-                          if (v.length < 10) {
-                            return AppLocalizations.of(
-                              context,
-                            )!.messagemustbeatleasttencharacters;
-                          }
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 12),
+                    // ── Category ──
+                    _buildLabel(AppLocalizations.of(context)!.category),
+                    const SizedBox(height: 8),
+                    _buildCategorySelector(),
+                    const SizedBox(height: 20),
 
-                      // ── Char Count ──
-                      Align(
-                        alignment: Alignment.centerRight,
-                        child: ValueListenableBuilder(
-                          valueListenable: messageController,
-                          builder: (_, __, ___) => Text(
-                            '${messageController.text.length} ${AppLocalizations.of(context)!.characters}',
-                            style: TextStyle(
-                              color: Colors.grey.shade500,
-                              fontSize: 12,
-                            ),
+                    // ── Message ──
+                    _buildLabel(AppLocalizations.of(context)!.message),
+                    const SizedBox(height: 8),
+                    _buildTextField(
+                      controller: messageController,
+                      hint: AppLocalizations.of(
+                        context,
+                      )!.describeyourissueorsuggestionindetails,
+                      maxLines: 5,
+                      validator: (v) {
+                        if (v == null || v.isEmpty) {
+                          return AppLocalizations.of(
+                            context,
+                          )!.messageisrequired;
+                        }
+                        if (v.length < 10) {
+                          return AppLocalizations.of(
+                            context,
+                          )!.messagemustbeatleasttencharacters;
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 12),
+
+                    // ── Char Count ──
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: ValueListenableBuilder(
+                        valueListenable: messageController,
+                        builder: (_, __, ___) => Text(
+                          '${messageController.text.length} ${AppLocalizations.of(context)!.characters}',
+                          style: TextStyle(
+                            color: Colors.grey.shade500,
+                            fontSize: 12,
                           ),
                         ),
                       ),
-                      const SizedBox(height: 20),
+                    ),
+                    const SizedBox(height: 20),
 
-                      // ── Screenshot ──
-                      _buildLabel('Screenshot (Optional)'),
-                      const SizedBox(height: 8),
-                      _buildScreenshotPicker(),
-                      const SizedBox(height: 32),
+                    // ── Screenshot ──
+                    _buildLabel(AppLocalizations.of(context)!.screenshotsoptional),
+                    const SizedBox(height: 8),
+                    _buildScreenshotPicker(),
+                    const SizedBox(height: 32),
 
-                      // ── Submit Button ──
-                      _buildSubmitButton(),
-                      const SizedBox(height: 40),
-                    ],
-                  ),
+                    // ── Submit Button ──
+                    _buildSubmitButton(),
+                    const SizedBox(height: 40),
+                  ],
                 ),
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 
   // ── Issue ID Banner ───────────────────────────────────────
   Widget _buildIssueIdBanner() {
+    final txt = AppTextColors.of(context);
     return Container(
       width: double.infinity,
       padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
       decoration: BoxDecoration(
-        color: AppColors.primaryColor.withOpacity(0.08),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.primaryColor.withOpacity(0.25)),
+        color: Theme.of(context).colorScheme.onPrimary.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(AppRadius.card),
+        border: Border.all(color: Theme.of(context).colorScheme.outline),
       ),
       child: Row(
         children: [
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: AppColors.primaryColor.withOpacity(0.12),
+              color: Theme.of(context).colorScheme.onPrimary.withOpacity(0.12),
               borderRadius: BorderRadius.circular(10),
             ),
-            child: const Icon(
+            child: Icon(
               Icons.confirmation_number_outlined,
-              color: AppColors.primaryColor,
+              color: Theme.of(context).colorScheme.onPrimary,
               size: 20,
             ),
           ),
@@ -346,7 +348,7 @@ class _FeedbackScreenState extends State<FeedbackScreen>
                   style: TextStyle(
                     fontSize: 11.sp,
                     fontWeight: FontWeight.w700,
-                    color: AppColors.primaryColor,
+                    color: txt.title,
                   ),
                 ),
                 const SizedBox(height: 2),
@@ -355,7 +357,7 @@ class _FeedbackScreenState extends State<FeedbackScreen>
                   style: TextStyle(
                     fontSize: 10.sp,
                     fontWeight: FontWeight.w500,
-                    color: const Color(0xFF1A1A2E),
+                    color: txt.body,
                     letterSpacing: 0.3,
                   ),
                 ),
@@ -370,13 +372,15 @@ class _FeedbackScreenState extends State<FeedbackScreen>
             child: Container(
               padding: const EdgeInsets.all(6),
               decoration: BoxDecoration(
-                color: AppColors.primaryColor.withOpacity(0.1),
+                color: Theme.of(
+                  context,
+                ).colorScheme.onPrimary.withOpacity(0.12),
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: const Icon(
+              child: Icon(
                 Icons.copy_rounded,
                 size: 16,
-                color: AppColors.primaryColor,
+                color: Theme.of(context).colorScheme.onPrimary,
               ),
             ),
           ),
@@ -387,6 +391,7 @@ class _FeedbackScreenState extends State<FeedbackScreen>
 
   // ── Screenshot Picker ─────────────────────────────────────
   Widget _buildScreenshotPicker() {
+    final txt = AppTextColors.of(context);
     if (_screenshotFile != null) {
       return Stack(
         children: [
@@ -394,8 +399,11 @@ class _FeedbackScreenState extends State<FeedbackScreen>
             height: 160.h,
             width: double.infinity,
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.grey.shade200),
+              borderRadius: BorderRadius.circular(AppRadius.card),
+              border: Border.all(
+                color: Theme.of(context).colorScheme.outline,
+                width: 1.5,
+              ),
             ),
             child: ClipRRect(
               borderRadius: BorderRadius.circular(15),
@@ -431,22 +439,19 @@ class _FeedbackScreenState extends State<FeedbackScreen>
         width: double.infinity,
         height: 100.h,
         decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
+          color: Theme.of(context).colorScheme.background,
+          borderRadius: BorderRadius.circular(AppRadius.card),
           border: Border.all(
-            color: Colors.grey.shade200,
-            style: BorderStyle.solid,
+            color: Theme.of(context).colorScheme.outline,
+            width: 1.5,
           ),
         ),
         child: _isPickingImage
-            ? const Center(
+            ? Center(
                 child: SizedBox(
                   width: 24,
                   height: 24,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    color: AppColors.primaryColor,
-                  ),
+                  child: Loader(color: Theme.of(context).colorScheme.onPrimary),
                 ),
               )
             : Column(
@@ -455,14 +460,14 @@ class _FeedbackScreenState extends State<FeedbackScreen>
                   Icon(
                     Icons.add_photo_alternate_outlined,
                     size: 32,
-                    color: Colors.grey.shade400,
+                    color: txt.muted,
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 10),
                   Text(
                     'Attach screenshot (PNG/JPEG, max 3MB)',
                     style: TextStyle(
                       fontSize: 12,
-                      color: Colors.grey.shade400,
+                      color: txt.muted,
                       fontWeight: FontWeight.w400,
                     ),
                   ),
@@ -474,28 +479,24 @@ class _FeedbackScreenState extends State<FeedbackScreen>
 
   // ── Rating Card Widget ────────────────────────────────────
   Widget _buildRatingCard() {
+    final txt = AppTextColors.of(context);
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(15),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).colorScheme.tertiaryContainer,
         borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.primaryColor.withOpacity(0.08),
-            blurRadius: 20,
-            offset: const Offset(0, 4),
-          ),
-        ],
+        border: Border.all(color: Theme.of(context).colorScheme.outline),
+        boxShadow: const [BoxShadow(color: Color(0x06000000), blurRadius: 2)],
       ),
       child: Column(
         children: [
           Text(
             AppLocalizations.of(context)!.howwouldyourateyourexperince,
-            style: TextStyle(
-              fontSize: 11.2.sp,
+            style: AppTextStyles.cardTitle.copyWith(
+              fontSize: 14,
               fontWeight: FontWeight.w500,
-              color: Theme.of(context).colorScheme.onBackground,
+              color: txt.title,
             ),
             textAlign: TextAlign.center,
           ),
@@ -541,7 +542,7 @@ class _FeedbackScreenState extends State<FeedbackScreen>
             child: Text(
               _getRatingLabel(),
               key: ValueKey(starRating),
-              style: TextStyle(
+              style: AppTextStyles.bodyText.copyWith(
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
                 color: _getRatingColor(),
@@ -571,6 +572,7 @@ class _FeedbackScreenState extends State<FeedbackScreen>
   }
 
   Color _getRatingColor() {
+    final txt = AppTextColors.of(context);
     switch (starRating) {
       case 1:
         return const Color(0xFFE53E3E);
@@ -583,7 +585,7 @@ class _FeedbackScreenState extends State<FeedbackScreen>
       case 5:
         return AppColors.primaryColor;
       default:
-        return Colors.grey;
+        return txt.muted;
     }
   }
 
@@ -592,9 +594,9 @@ class _FeedbackScreenState extends State<FeedbackScreen>
     return Text(
       text,
       style: TextStyle(
-        fontSize: 11.sp,
-        fontWeight: FontWeight.w700,
-        color: const Color(0xFF1A1A2E),
+        fontSize: 14,
+        fontWeight: FontWeight.w600,
+        color: Theme.of(context).colorScheme.onBackground,
         letterSpacing: 0.2,
       ),
     );
@@ -607,44 +609,54 @@ class _FeedbackScreenState extends State<FeedbackScreen>
     required int maxLines,
     String? Function(String?)? validator,
   }) {
+    final txt = AppTextColors.of(context);
     return TextFormField(
       controller: controller,
+      cursorColor: Theme.of(context).colorScheme.onPrimary.withOpacity(0.8),
+      cursorWidth: 1.5,
       maxLines: maxLines,
       validator: validator,
-      style: const TextStyle(
-        fontSize: 15,
-        color: Color(0xFF1A1A2E),
+      style: AppTextStyles.bodyText.copyWith(
+        color: txt.title,
         fontWeight: FontWeight.w500,
+        fontSize: 14,
       ),
       decoration: InputDecoration(
         hintText: hint,
-        hintStyle: TextStyle(
-          color: Colors.grey.shade400,
-          fontSize: 14,
+        hintStyle: AppTextStyles.bodyText.copyWith(
+          color: const Color(0XFF898989),
           fontWeight: FontWeight.w400,
+          fontSize: 14,
         ),
-        filled: true,
-        fillColor: Colors.white,
         contentPadding: const EdgeInsets.all(16),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide(color: Colors.grey.shade200),
-        ),
+        border: InputBorder.none,
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide(color: Colors.grey.shade200),
+          borderSide: BorderSide(
+            color: Theme.of(context).colorScheme.outline,
+            width: 1.5,
+          ),
+          borderRadius: BorderRadius.circular(11),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: const BorderSide(color: AppColors.primaryColor, width: 1),
+          borderRadius: BorderRadius.circular(11),
+          borderSide: BorderSide(
+            color: Theme.of(context).colorScheme.outline,
+            width: 1.5,
+          ),
         ),
         errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: const BorderSide(color: Color(0xFFE53E3E), width: 1),
+          borderRadius: BorderRadius.circular(11),
+          borderSide: BorderSide(
+            color: Theme.of(context).colorScheme.error,
+            width: 0.7,
+          ),
         ),
         focusedErrorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: const BorderSide(color: Color(0xFFE53E3E), width: 1),
+          borderRadius: BorderRadius.circular(11),
+          borderSide: BorderSide(
+            color: Theme.of(context).colorScheme.error,
+            width: 0.5,
+          ),
         ),
       ),
     );
@@ -670,32 +682,34 @@ class _FeedbackScreenState extends State<FeedbackScreen>
       width: double.infinity,
       padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 4.h),
       decoration: BoxDecoration(
-        color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(
+          color: Theme.of(context).colorScheme.outline,
+          width: 1.5,
+        ),
       ),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<String>(
           value: selectedCategory,
           hint: Text(
             AppLocalizations.of(context)!.complaint,
-            style: TextStyle(
-              color: Colors.grey.shade400,
-              fontSize: 14,
+            style: AppTextStyles.bodyText.copyWith(
+              color: const Color(0XFF898989),
               fontWeight: FontWeight.w400,
+              fontSize: 13.5,
             ),
           ),
-          dropdownColor: Colors.white,
+          dropdownColor: Theme.of(context).colorScheme.tertiaryContainer,
           isExpanded: true,
           items: feedbackOptions.map((opt) {
             return DropdownMenuItem<String>(
               value: opt['value'],
               child: Text(
                 opt['label']!,
-                style: const TextStyle(
+                style: AppTextStyles.subText.copyWith(
                   fontSize: 15,
-                  color: Color(0xFF1A1A2E),
-                  fontWeight: FontWeight.w500,
+                  color: Theme.of(context).colorScheme.onBackground,
+                  fontWeight: FontWeight.w400,
                 ),
               ),
             );
@@ -705,7 +719,7 @@ class _FeedbackScreenState extends State<FeedbackScreen>
               setState(() => selectedCategory = newValue);
             }
           },
-          iconEnabledColor: Colors.grey.shade400,
+          iconEnabledColor: const Color(0XFF898989),
         ),
       ),
     );
@@ -715,7 +729,7 @@ class _FeedbackScreenState extends State<FeedbackScreen>
   Widget _buildSubmitButton() {
     return SizedBox(
       width: double.infinity,
-      height: 32.h,
+      height: 45,
       child: ElevatedButton(
         onPressed: isSubmitting ? null : _submitFeedback,
         style:
@@ -726,7 +740,7 @@ class _FeedbackScreenState extends State<FeedbackScreen>
               elevation: 0,
               shadowColor: Colors.transparent,
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(AppRadius.button),
               ),
             ).copyWith(
               overlayColor: WidgetStateProperty.all(

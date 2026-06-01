@@ -12,7 +12,7 @@ import '../../data/token/shared_preferences.dart';
 import '../api/services/api_service.dart';
 
 class GroupMemberPresence {
-  final int userId;
+  final dynamic userId;
   String username;
   bool isOnline;
   bool isTyping;
@@ -31,7 +31,7 @@ class GroupChatProvider extends ChangeNotifier {
   int? _chatId;
   Map<String, dynamic>? _chat;
 
-  final Set<int> _adminIds = {};
+  final Set<dynamic> _adminIds = {};
 
   String? get groupName => _groupName;
   String? get chatName => _groupName;
@@ -46,9 +46,9 @@ class GroupChatProvider extends ChangeNotifier {
     return [];
   }
 
-  Set<int> get adminIds => Set.unmodifiable(_adminIds);
+  Set<dynamic> get adminIds => Set.unmodifiable(_adminIds);
 
-  bool isAdmin(int userId) => _adminIds.contains(userId);
+  bool isAdmin(dynamic userId) => _adminIds.contains(userId);
 
   void _syncAdminIds() {
     _adminIds.clear();
@@ -58,8 +58,8 @@ class GroupChatProvider extends ChangeNotifier {
     if (_chat!['admins'] != null) {
       final adminsList = _chat!['admins'] as List<dynamic>;
       for (final a in adminsList) {
-        if (a is Map<String, dynamic>) {
-          final id = a['id'] as int?;
+        if (a is Map) {
+          final id = a['id'];
           if (id != null) _adminIds.add(id);
         }
       }
@@ -70,9 +70,9 @@ class GroupChatProvider extends ChangeNotifier {
     if (_chat!['members'] != null) {
       final membersList = _chat!['members'] as List<dynamic>;
       for (final m in membersList) {
-        if (m is Map<String, dynamic> && m['is_admin'] == true) {
-          final user = m['user'] as Map<String, dynamic>?;
-          final id = user?['id'] as int?;
+        if (m is Map && m['is_admin'] == true) {
+          final user = m['user'] as Map?;
+          final id = user?['id'];
           if (id != null) _adminIds.add(id);
         }
       }
@@ -85,8 +85,8 @@ class GroupChatProvider extends ChangeNotifier {
   bool _isRenaming = false;
   bool get isRenaming => _isRenaming;
 
-  final Map<int, GroupMemberPresence> _memberPresence = {};
-  Map<int, GroupMemberPresence> get memberPresence =>
+  final Map<dynamic, GroupMemberPresence> _memberPresence = {};
+  Map<dynamic, GroupMemberPresence> get memberPresence =>
       Map.unmodifiable(_memberPresence);
 
   List<String> get typingUsernames => _memberPresence.values
@@ -106,7 +106,7 @@ class GroupChatProvider extends ChangeNotifier {
 
   Timer? _typingTimer;
   Timer? _pollingTimer;
-  final Map<int, Timer> _memberTypingTimers = {};
+  final Map<dynamic, Timer> _memberTypingTimers = {};
 
   final StreamController<List<ChatMessage>> _messagesStreamController =
       StreamController<List<ChatMessage>>.broadcast();
@@ -188,8 +188,8 @@ class GroupChatProvider extends ChangeNotifier {
   String? _currentUsername;
   String? get currentUsername => _currentUsername;
 
-  int? _currentUserId;
-  int? get currentUserId => _currentUserId;
+  dynamic _currentUserId;
+  dynamic get currentUserId => _currentUserId;
 
   bool isMuteNotification = false;
 
@@ -241,7 +241,7 @@ class GroupChatProvider extends ChangeNotifier {
     required String? groupImageUrl,
     int? chatId,
     String? currentUsername,
-    int? currentUserId,
+    dynamic currentUserId,
     Map<String, dynamic>? chat,
   }) async {
     _groupName = groupName;
@@ -262,17 +262,16 @@ class GroupChatProvider extends ChangeNotifier {
       final membersList = chat['members'] as List<dynamic>?;
       if (membersList != null) {
         for (final m in membersList) {
-          if (m is Map<String, dynamic>) {
-            final user = m['user'] as Map<String, dynamic>?;
-            final userId = user?['id'] as int?;
+          if (m is Map) {
+            final user = m['user'] as Map?;
+            final dynamic userId = user?['id'];
             final username = user?['username']?.toString();
-            final isOnline = (m['is_online'] as bool?) ?? false;
 
             if (userId != null) {
               _memberPresence[userId] = GroupMemberPresence(
                 userId: userId,
                 username: username ?? 'User $userId',
-                isOnline: isOnline,
+                isOnline: false,
               );
             }
           }
@@ -299,6 +298,7 @@ class GroupChatProvider extends ChangeNotifier {
     }
 
     _startPolling();
+    _refreshChatData();
   }
 
   void _startPolling() {
@@ -555,7 +555,7 @@ class GroupChatProvider extends ChangeNotifier {
     try {
       final data = jsonDecode(raw as String) as Map<String, dynamic>;
       final String type = data['type']?.toString() ?? '';
-      final int? userId = data['user_id'] as int?;
+      final dynamic userId = data['user_id'];
 
       // ── presence_update (server broadcast for all members) ──────────────
       if (type == 'presence_update') {
@@ -643,7 +643,7 @@ class GroupChatProvider extends ChangeNotifier {
   }
 
   void _upsertMemberOnline({
-    required int userId,
+    required dynamic userId,
     String? username,
     required bool isOnline,
   }) {
@@ -667,7 +667,7 @@ class GroupChatProvider extends ChangeNotifier {
   }
 
   void _upsertMemberTyping({
-    required int userId,
+    required dynamic userId,
     String? username,
     required bool isTyping,
   }) {
@@ -712,7 +712,9 @@ class GroupChatProvider extends ChangeNotifier {
         final msgMap = data['message'] as Map<String, dynamic>?;
         if (msgMap == null) return;
 
-        final int? serverId = msgMap['id'] as int?;
+        final int? serverId = msgMap['id'] is int
+            ? msgMap['id'] as int
+            : int.tryParse(msgMap['id']?.toString() ?? '');
         final String text = msgMap['text']?.toString() ?? '';
         if (text.isEmpty) return;
 
@@ -724,13 +726,13 @@ class GroupChatProvider extends ChangeNotifier {
 
         String? senderUsername;
         String? senderProfileImage;
-        int? senderUserId;
+        dynamic senderUserId;
 
         if (msgMap['sender'] is Map) {
           final sender = msgMap['sender'] as Map<String, dynamic>;
           senderUsername = sender['username']?.toString();
           senderProfileImage = sender['profile_image']?.toString();
-          senderUserId = sender['id'] as int?;
+          senderUserId = sender['id'];
         }
 
         // ✅ Use sender id (not username) to detect own messages — more reliable
@@ -1017,7 +1019,7 @@ class GroupChatProvider extends ChangeNotifier {
     }
   }
 
-  void removeMemberOptimistically(int userId) {
+  void removeMemberOptimistically(dynamic userId) {
     if (_chat == null || _chat!['members'] == null) return;
     final membersList = List<Map<String, dynamic>>.from(
       (_chat!['members'] as List).map((e) => Map<String, dynamic>.from(e)),
@@ -1029,7 +1031,7 @@ class GroupChatProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<bool> removeMember(int userId) async {
+  Future<bool> removeMember(dynamic userId) async {
     if (_chatId == null) return false;
     try {
       final res = await ApiService().removeMember(
@@ -1047,7 +1049,7 @@ class GroupChatProvider extends ChangeNotifier {
     }
   }
 
-  Future<bool> makeAdmin(int userId) async {
+  Future<bool> makeAdmin(dynamic userId) async {
     if (_chatId == null) return false;
     try {
       final res = await ApiService().makeAdmin(
@@ -1069,7 +1071,7 @@ class GroupChatProvider extends ChangeNotifier {
     }
   }
 
-  void updateMemberAdminStatus(int userId, bool isAdminStatus) {
+  void updateMemberAdminStatus(dynamic userId, bool isAdminStatus) {
     if (isAdminStatus) {
       _adminIds.add(userId);
     } else {
@@ -1089,9 +1091,9 @@ class GroupChatProvider extends ChangeNotifier {
       if (_chat != null && _chat!['members'] != null) {
         final membersList = _chat!['members'] as List<dynamic>;
         for (final m in membersList) {
-          if (m is Map<String, dynamic>) {
-            final user = m['user'] as Map<String, dynamic>?;
-            final uid = user?['id'] as int?;
+          if (m is Map) {
+            final user = m['user'] as Map?;
+            final uid = user?['id'];
             final username = user?['username']?.toString();
             if (uid != null) {
               final existing = _memberPresence[uid];
@@ -1118,7 +1120,7 @@ class GroupChatProvider extends ChangeNotifier {
   Future<void> refreshChatData() => _refreshChatData();
 
   Future<bool> addGroupMembers(
-    List<int> userIds, [
+    List<dynamic> userIds, [
     List<Map<String, dynamic>>? newUsers,
   ]) async {
     if (_chatId == null) return false;
@@ -1128,7 +1130,7 @@ class GroupChatProvider extends ChangeNotifier {
         members: userIds,
       );
 
-      if (res['success'] == true) {
+      if (res['success'] == true || res['message'] == 'Members added' || res['added'] != null) {
         await _refreshChatData();
         return true;
       }
@@ -1147,12 +1149,11 @@ class GroupChatProvider extends ChangeNotifier {
 
     final existingIds = membersList
         .map((m) => (m['user'] as Map?)?['id'])
-        .whereType<int>()
         .toSet();
 
     for (final userObj in newUsers) {
       final id = userObj['id'];
-      if (id != null && !existingIds.contains(id as int)) {
+      if (id != null && !existingIds.contains(id)) {
         final normalized = Map<String, dynamic>.from(userObj);
         normalized['profile_image'] ??=
             userObj['avatar'] ??
@@ -1168,7 +1169,7 @@ class GroupChatProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  void rollbackOptimisticMembers(Set<int> failedIds) {
+  void rollbackOptimisticMembers(Set<dynamic> failedIds) {
     if (_chat == null || _chat!['members'] == null) return;
 
     final membersList = List<Map<String, dynamic>>.from(
@@ -1178,7 +1179,7 @@ class GroupChatProvider extends ChangeNotifier {
     _chat = {
       ..._chat!,
       'members': membersList
-          .where((m) => !failedIds.contains((m['user'] as Map?)?['id'] as int?))
+          .where((m) => !failedIds.contains((m['user'] as Map?)?['id']))
           .toList(),
     };
 

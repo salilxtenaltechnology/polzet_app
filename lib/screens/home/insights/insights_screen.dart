@@ -65,10 +65,10 @@ class _InsightsScreenState extends State<InsightsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.background,
-
-      // appBar: CommonAppBar(title: AppLocalizations.of(context)!.insights),
       body: _loading
           ? Center(child: Loader(color: Theme.of(context).colorScheme.primary))
           : ListView(
@@ -83,7 +83,7 @@ class _InsightsScreenState extends State<InsightsScreen> {
                         AppLocalizations.of(context)!.totalviews,
                         style: AppTextStyles.subText.copyWith(
                           color: Theme.of(context).colorScheme.onBackground,
-                          fontSize: 11.sp,
+                          fontSize: 13.5,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
@@ -92,8 +92,8 @@ class _InsightsScreenState extends State<InsightsScreen> {
                         insightsModel?.totalViews.toString() ?? '0',
                         style: AppTextStyles.subText.copyWith(
                           color: Theme.of(context).colorScheme.onBackground,
-                          fontSize: 11.sp,
-                          fontWeight: FontWeight.bold,
+                          fontSize: 13.5,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
                     ],
@@ -111,7 +111,7 @@ class _InsightsScreenState extends State<InsightsScreen> {
                         AppLocalizations.of(context)!.vibe,
                         style: AppTextStyles.subText.copyWith(
                           color: Theme.of(context).colorScheme.onBackground,
-                          fontSize: 11.sp,
+                          fontSize: 13.5,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
@@ -120,8 +120,8 @@ class _InsightsScreenState extends State<InsightsScreen> {
                         insightsModel?.chasers.toString() ?? '0',
                         style: AppTextStyles.subText.copyWith(
                           color: Theme.of(context).colorScheme.onBackground,
-                          fontSize: 11.sp,
-                          fontWeight: FontWeight.bold,
+                          fontSize: 13.5,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
                     ],
@@ -139,7 +139,7 @@ class _InsightsScreenState extends State<InsightsScreen> {
                         AppLocalizations.of(context)!.pollcreated,
                         style: AppTextStyles.subText.copyWith(
                           color: Theme.of(context).colorScheme.onBackground,
-                          fontSize: 11.sp,
+                          fontSize: 13.5,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
@@ -148,8 +148,8 @@ class _InsightsScreenState extends State<InsightsScreen> {
                         insightsModel?.pollsCreated.toString() ?? '0',
                         style: AppTextStyles.subText.copyWith(
                           color: Theme.of(context).colorScheme.onBackground,
-                          fontSize: 11.sp,
-                          fontWeight: FontWeight.bold,
+                          fontSize: 13.5,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
                     ],
@@ -166,8 +166,8 @@ class _InsightsScreenState extends State<InsightsScreen> {
                           AppLocalizations.of(context)!.weeklyviews,
                           style: AppTextStyles.subText.copyWith(
                             color: Theme.of(context).colorScheme.onBackground,
-                            fontSize: 11.sp,
-                            fontWeight: FontWeight.bold,
+                            fontSize: 13.5,
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
                         SizedBox(height: 15.h),
@@ -255,14 +255,21 @@ class _InsightsScreenState extends State<InsightsScreen> {
                                   barWidth: 2,
                                   belowBarData: BarAreaData(
                                     show: true,
-                                    gradient: const LinearGradient(
-                                      colors: [
-                                        Color(0xFFFCF7F8),
-                                        Color(0XFFFFF1F4),
-                                      ],
-                                      begin: Alignment.topCenter,
-                                      end: Alignment.bottomCenter,
-                                    ),
+                                    gradient: isDarkMode
+                                        ? const LinearGradient(
+                                            colors: [
+                                              Color(0xFF2D2D2D),
+                                              Color(0XFF1A1A1A),
+                                            ],
+                                          )
+                                        : const LinearGradient(
+                                            colors: [
+                                              Color(0xFFFCF7F8),
+                                              Color(0XFFFFF1F4),
+                                            ],
+                                            begin: Alignment.topCenter,
+                                            end: Alignment.bottomCenter,
+                                          ),
                                   ),
                                   dotData: FlDotData(
                                     show: true,
@@ -342,11 +349,12 @@ class _InsightsScreenState extends State<InsightsScreen> {
                           padding: EdgeInsets.symmetric(vertical: 8.h),
                           margin: EdgeInsets.only(top: 12.h, bottom: 10.h),
                           decoration: BoxDecoration(
-                            gradient: const LinearGradient(
-                              colors: [Color(0xFFEC4899), Color(0xFFF59E0B)],
-                              begin: Alignment.centerLeft,
-                              end: Alignment.centerRight,
-                            ),
+                            color: Theme.of(context).colorScheme.primary,
+                            // gradient: const LinearGradient(
+                            //   colors: [Color(0xFFEC4899), Color(0xFFF59E0B)],
+                            //   begin: Alignment.centerLeft,
+                            //   end: Alignment.centerRight,
+                            // ),
                             borderRadius: BorderRadius.circular(30),
                             boxShadow: [
                               BoxShadow(
@@ -374,6 +382,7 @@ class _InsightsScreenState extends State<InsightsScreen> {
                     ],
                   ),
                 ),
+                  const SizedBox(height: 100),
               ],
             ),
     );

@@ -4,7 +4,6 @@ import java.io.FileInputStream
 plugins {
     id("com.android.application")
     id("com.google.gms.google-services")
-    id("kotlin-android")
     id("dev.flutter.flutter-gradle-plugin")
 }
 
@@ -35,8 +34,8 @@ android {
         applicationId = "com.polzet_app"
         minSdk = flutter.minSdkVersion
         targetSdk = 35
-        versionCode = 8
-        versionName = "1.0.3"
+        versionCode = 9
+        versionName = "1.1.0"
         multiDexEnabled = true
     }
 

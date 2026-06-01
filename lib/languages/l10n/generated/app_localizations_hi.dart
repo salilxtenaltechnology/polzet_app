@@ -1720,4 +1720,346 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get passworddonotmatch => 'पासवर्ड मेल नहीं खाते';
+
+  @override
+  String get home => 'होम';
+
+  @override
+  String get profile => 'प्रोफ़ाइल';
+
+  @override
+  String get chats => 'चैट';
+
+  @override
+  String get groups => 'समूह';
+
+  @override
+  String get shareprofile => 'प्रोफ़ाइल शेयर करें';
+
+  @override
+  String get images => 'छवियाँ';
+
+  @override
+  String get nothingsavedyet => 'अभी तक कुछ सहेजा नहीं गया';
+
+  @override
+  String get savedpollsyouwanttorevisitlater =>
+      'जिन पोल को आप बाद में देखना चाहते हैं वे यहाँ सहेजे जाएंगे।';
+
+  @override
+  String get nothingspollyet => 'अभी तक कोई चीज़ पोल नहीं है';
+
+  @override
+  String get createyourfirstpollandstartgatheringopinions =>
+      'अपना पहला पोल बनाएं और राय इकट्ठा करना शुरू करें।';
+
+  @override
+  String get noimagepollyet => 'अभी तक कोई छवि पोल नहीं है';
+
+  @override
+  String get submitranking => 'रैंकिंग सबमिट करें';
+
+  @override
+  String get rankyourchoices => 'अपनी पसंद को रैंक करें';
+
+  @override
+  String get holdanddragtorankimage =>
+      'छवि रैंक करने के लिए होल्ड और ड्रैग करें';
+
+  @override
+  String get holdanddragtorankanswer =>
+      'उत्तर रैंक करने के लिए होल्ड और ड्रैग करें';
+
+  @override
+  String get stayactiveandsharepollstobuildyourcommunity =>
+      'सक्रिय रहें और अपना समुदाय बनाने के लिए पोल शेयर करें';
+
+  @override
+  String get askopinionsandgetanswers => 'राय पूछें और जवाब पाएं';
+
+  @override
+  String get updateyourpasswordandsecureyouraccount =>
+      'अपना पासवर्ड अपडेट करें और अपने खाते को सुरक्षित करें';
+
+  @override
+  String get controlwhocanviewyouractivityandpolls =>
+      'नियंत्रित करें कि आपकी गतिविधि और पोल कौन देख सकता है';
+
+  @override
+  String get managepeopleyouveblockedonpolzet =>
+      'Polzet पर ब्लॉक किए गए लोगों को प्रबंधित करें';
+
+  @override
+  String get preferences => 'प्राथमिकताएं';
+
+  @override
+  String get choosewhatupdatesandalertsyouwanttoreceive =>
+      'चुनें कि आप कौन से अपडेट और अलर्ट प्राप्त करना चाहते हैं';
+
+  @override
+  String get chooseyourpreferredapplanguage => 'अपनी पसंदीदा ऐप भाषा चुनें';
+
+  @override
+  String get gethelpwithyouraccount => 'अपने खाते के साथ सहायता प्राप्त करें';
+
+  @override
+  String get shareyourthoughtsandhelpimprovepolzet =>
+      'अपने विचार शेयर करें और Polzet को बेहतर बनाने में मदद करें।';
+
+  @override
+  String get readtherulesandguidelinesforusingpolzet =>
+      'Polzet उपयोग के नियम और दिशानिर्देश पढ़ें।';
+
+  @override
+  String get continueButton => 'जारी रखें';
+
+  @override
+  String get currentpasswordisrequired => 'वर्तमान पासवर्ड आवश्यक है।';
+
+  @override
+  String get newpasswordisrequired => 'नया पासवर्ड आवश्यक है।';
+
+  @override
+  String get mustbeeightpluscharacterswithaletternumberandspecialcharacter =>
+      'अक्षर, संख्या और विशेष वर्ण के साथ 8+ वर्ण होने चाहिए।';
+
+  @override
+  String get pleaseconfirmyournewpassword =>
+      'कृपया अपना नया पासवर्ड confirm करें।';
+
+  @override
+  String get passwordsdonotmatch => 'पासवर्ड मेल नहीं खाते।';
+
+  @override
+  String get pushnotification => 'पुश नोटिफिकेशन';
+
+  @override
+  String get receivealertandupdatesacrosspolzet =>
+      'Polzet पर अलर्ट और अपडेट प्राप्त करें।';
+
+  @override
+  String get pollactivity => 'पोल गतिविधि';
+
+  @override
+  String get commentsandreplies => 'टिप्पणियाँ और जवाब';
+
+  @override
+  String get socialactivity => 'सामाजिक गतिविधि';
+
+  @override
+  String get searchaccountspostsplaces => 'खाते, पोस्ट, स्थान खोजें…';
+
+  @override
+  String get norecentsearches => 'कोई हालिया खोज नहीं';
+
+  @override
+  String get tryanotherkeywordorexploretrendingpolls =>
+      'दूसरा कीवर्ड आज़माएं या ट्रेंडिंग पोल देखें।';
+
+  @override
+  String get searching => 'खोजा जा रहा है...';
+
+  @override
+  String get notfound => 'नहीं मिला';
+
+  @override
+  String get accounts => 'खाते';
+
+  @override
+  String get accountslower => 'खाते';
+
+  @override
+  String get trysearchingwithadifferentusernameorkeyword =>
+      'किसी अलग उपयोगकर्ता नाम या कीवर्ड से खोजें।';
+
+  @override
+  String get tags => 'टैग';
+
+  @override
+  String get tag => 'टैग';
+
+  @override
+  String get no => 'कोई नहीं';
+
+  @override
+  String get found => 'मिला';
+
+  @override
+  String get post => 'पोस्ट';
+
+  @override
+  String get exploretrendingconversationsortryanothersearch =>
+      'ट्रेंडिंग बातचीत देखें या दूसरी खोज करें।';
+
+  @override
+  String get photoslower => 'तस्वीरें';
+
+  @override
+  String get wecouldnotfindanymatchingphotos =>
+      'कोई मेल खाती तस्वीर नहीं मिली।';
+
+  @override
+  String get trysearchingforanothertopicorkeyword =>
+      'किसी दूसरे विषय या कीवर्ड से खोजें।';
+
+  @override
+  String get today => 'आज';
+
+  @override
+  String get yesterday => 'कल';
+
+  @override
+  String get lastsavendays => 'पिछले 7 दिन';
+
+  @override
+  String get lastthirtydays => 'पिछले 30 दिन';
+
+  @override
+  String get older => 'पुराने';
+
+  @override
+  String get clearallnotifications => 'सभी नोटिफिकेशन साफ़ करें';
+
+  @override
+  String get areyousureyouwanttoclearallnotifications =>
+      'क्या आप सभी नोटिफिकेशन साफ़ करना चाहते हैं?';
+
+  @override
+  String get yesclearall => 'हाँ, सभी साफ़ करें';
+
+  @override
+  String get deletenotifications => 'नोटिफिकेशन हटाएं';
+
+  @override
+  String get areyousureyouwanttodeletethesenotifications =>
+      'क्या आप ये नोटिफिकेशन हटाना चाहते हैं?';
+
+  @override
+  String get thisoinwillbeusedtosecureyouraccount =>
+      'यह PIN आपके खाते को सुरक्षित करने के लिए उपयोग किया जाएगा';
+
+  @override
+  String get changeoin => 'PIN बदलें';
+
+  @override
+  String get likedby => 'पसंद किया';
+
+  @override
+  String get bethefirsttostarttheconversation =>
+      'बातचीत शुरू करने वाले पहले व्यक्ति बनें';
+
+  @override
+  String get suggestedforyou => 'आपके लिए सुझाया गया';
+
+  @override
+  String get pollresult => 'पोल परिणाम';
+
+  @override
+  String get totalvotes => 'कुल वोट';
+
+  @override
+  String get saved => 'सहेजा गया';
+
+  @override
+  String get screenshotsoptional => 'स्क्रीनशॉट (वैकल्पिक)';
+
+  @override
+  String get nomessagesyet => 'अभी तक कोई संदेश नहीं';
+
+  @override
+  String get nonotificationsyet => 'अभी तक कोई सूचना नहीं';
+
+  @override
+  String get likescommentsandupdateswillappearhere =>
+      'लाइक, टिप्पणियाँ और अपडेट यहाँ दिखेंगे।';
+
+  @override
+  String get votesupdateswillappearhere => 'वोट अपडेट यहाँ दिखेंगे।';
+
+  @override
+  String get chaserequestsupdateswillappearhere =>
+      'Chase अनुरोध अपडेट यहाँ दिखेंगे।';
+
+  @override
+  String get startchattingbysharingpollsorreactingtoconversations =>
+      'पोल शेयर करके या बातचीत पर प्रतिक्रिया देकर\nचैट शुरू करें।';
+
+  @override
+  String get doyouwanttochangeyourcurrentpin =>
+      'क्या आप अपना मौजूदा PIN बदलना चाहते हैं?';
+
+  @override
+  String get top => 'शीर्ष';
+
+  @override
+  String get searchvoters => 'मतदाता खोजें';
+
+  @override
+  String get fingerprint => 'फिंगरप्रिंट';
+
+  @override
+  String get enablefingerprint => 'फिंगरप्रिंट सक्षम करें';
+
+  @override
+  String get unlocktheappfasterandmoresecurelybyusingyourfingerprint =>
+      'अपने फिंगरप्रिंट का उपयोग करके ऐप को\nतेज़ और अधिक सुरक्षित रूप से अनलॉक करें';
+
+  @override
+  String get thisaccountisprivate => 'यह खाता निजी है';
+
+  @override
+  String get chasethisaccounttoseetheirposts =>
+      'इनकी पोस्ट देखने के लिए इस खाते को फ़ॉलो करें।';
+
+  @override
+  String get online => 'ऑनलाइन';
+
+  @override
+  String get offline => 'ऑफ़लाइन';
+
+  @override
+  String get startchasingpeopletodiscoverfreshopinionsthenwillappearusershere =>
+      'नई राय खोजने के लिए लोगों को फ़ॉलो करना शुरू करें\nफिर यहाँ उपयोगकर्ता दिखाई देंगे';
+
+  @override
+  String get selectyourdateofbirth => 'अपनी जन्म तिथि चुनें';
+
+  @override
+  String get selected => 'चुना गया';
+
+  @override
+  String get chasing => 'फ़ॉलो कर रहे हैं';
+
+  @override
+  String get chaseback => 'वापस फ़ॉलो करें';
+
+  @override
+  String get requested => 'अनुरोध किया';
+
+  @override
+  String get usefingerprint => 'फिंगरप्रिंट का उपयोग करें';
+
+  @override
+  String get novotersfound => 'कोई मतदाता नहीं मिला';
+
+  @override
+  String get permanentlydeleteyourpolzetaccountandalldata =>
+      'अपना Polzet खाता और सभी डेटा स्थायी रूप से हटाएं';
+
+  @override
+  String get unblockuser => 'उपयोगकर्ता को अनब्लॉक करें';
+
+  @override
+  String get blockuser => 'उपयोगकर्ता को ब्लॉक करें';
+
+  @override
+  String get areyousureyouwanttounblockthisuser =>
+      'क्या आप वाकई इस उपयोगकर्ता को अनब्लॉक करना चाहते हैं?';
+
+  @override
+  String get areyousureyouwanttoblockthisuser =>
+      'क्या आप वाकई इस उपयोगकर्ता को ब्लॉक करना चाहते हैं?';
+
+  @override
+  String get nopostsavailable => 'कोई पोस्ट उपलब्ध नहीं';
 }

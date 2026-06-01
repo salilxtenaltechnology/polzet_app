@@ -1,25 +1,45 @@
 // models/single_post/single_post_model.dart
 
 class SinglePostModel {
-  final int id;
+  final dynamic id;
+  final String firstName;
+  final String lastName;
   final String user;
   final String profileImage;
   final String description;
   final String createdAt;
   final List<SinglePostPoll> polls;
+  final bool isLiked;
+  final bool isPolledByCurrentUser;
+  final String? locationName;
+  final int commentsCount;
+  final int likesCount;
+  final String followingStatus;
+  final int sharesCount;
 
   const SinglePostModel({
     required this.id,
+    required this.firstName,
+    required this.lastName,
     required this.user,
     required this.profileImage,
     required this.description,
     required this.createdAt,
     required this.polls,
+    required this.isLiked,
+    required this.isPolledByCurrentUser,
+    this.locationName,
+    required this.commentsCount,
+    required this.likesCount,
+    required this.followingStatus,
+    required this.sharesCount,
   });
 
   factory SinglePostModel.fromJson(Map<String, dynamic> json) {
     return SinglePostModel(
-      id: json['id'] as int,
+      id: json['id'],
+      firstName: json['first_name'] as String? ?? '',
+      lastName: json['last_name'] as String? ?? '',
       user: json['user'] as String? ?? '',
       profileImage: json['profile_image'] as String? ?? '',
       description: json['description'] as String? ?? '',
@@ -29,6 +49,14 @@ class SinglePostModel {
               ?.map((e) => SinglePostPoll.fromJson(e as Map<String, dynamic>))
               .toList() ??
           [],
+          isLiked: json['is_liked'] as bool? ?? false,
+      isPolledByCurrentUser: json['is_polled_by_current_user'] as bool? ?? false,
+      locationName: json['location_name'] as String?,
+      commentsCount: json['comments_count'] as int? ?? 0,
+      likesCount: json['likes_count'] as int? ?? 0,
+      followingStatus: json['following_status'] as String? ?? 'none',
+      sharesCount: json['shares_count'] as int? ?? 0,
+      
     );
   }
 
@@ -39,6 +67,13 @@ class SinglePostModel {
     'description': description,
     'created_at': createdAt,
     'polls': polls.map((e) => e.toJson()).toList(),
+    'is_liked': isLiked,
+    'is_polled_by_current_user': isPolledByCurrentUser,
+    'location_name': locationName,
+    'comments_count': commentsCount,
+    'likes_count': likesCount,
+    'following_status': followingStatus,
+    'shares_count': sharesCount,
   };
 
   bool get isImagePoll =>
@@ -52,7 +87,7 @@ class SinglePostModel {
 
 
 class SinglePostPoll {
-  final int id;
+  final dynamic id;
   final String question;
   final int maxOptions;
   final List<SinglePostPollOption> options;
@@ -71,7 +106,7 @@ class SinglePostPoll {
 
   factory SinglePostPoll.fromJson(Map<String, dynamic> json) {
     return SinglePostPoll(
-      id: json['id'] as int,
+      id: json['id'],
       question: json['question'] as String? ?? '',
       maxOptions: json['max_options'] as int? ?? 1,
       options:
@@ -100,7 +135,7 @@ class SinglePostPoll {
 
 
 class SinglePostPollOption {
-  final int id;
+  final dynamic id;
   final String? text;
   final SinglePostPollImage? image;
   final String voteCount;
@@ -118,7 +153,7 @@ class SinglePostPollOption {
 
   factory SinglePostPollOption.fromJson(Map<String, dynamic> json) {
     return SinglePostPollOption(
-      id: json['id'] as int,
+      id: json['id'],
       text: json['text'] as String?,
       image: json['image'] != null
           ? SinglePostPollImage.fromJson(json['image'] as Map<String, dynamic>)
@@ -145,7 +180,7 @@ class SinglePostPollOption {
 
 
 class SinglePostPollImage {
-  final int id;
+  final dynamic id;
   final int order;
   final String url;
   final String thumbnailUrl;
@@ -159,7 +194,7 @@ class SinglePostPollImage {
 
   factory SinglePostPollImage.fromJson(Map<String, dynamic> json) {
     return SinglePostPollImage(
-      id: json['id'] as int,
+      id: json['id'],
       order: json['order'] as int? ?? 0,
       url: json['url'] as String? ?? '',
       thumbnailUrl: json['thumbnail_url'] as String? ?? '',
@@ -186,7 +221,7 @@ class SinglePostPollImage {
 
 
 class SinglePostVoter {
-  final int id;
+  final dynamic id;
   final String username;
   final String firstName;
   final String lastName;
@@ -202,7 +237,7 @@ class SinglePostVoter {
 
   factory SinglePostVoter.fromJson(Map<String, dynamic> json) {
     return SinglePostVoter(
-      id: json['id'] as int,
+      id: json['id'],
       username: json['username'] as String? ?? '',
       firstName: json['first_name'] as String? ?? '',
       lastName: json['last_name'] as String? ?? '',

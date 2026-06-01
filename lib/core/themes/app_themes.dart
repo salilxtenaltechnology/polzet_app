@@ -2,9 +2,11 @@
 
 import 'package:flutter/material.dart';
 import '../constants/app_colors.dart';
+import 'app_text_colors.dart';
 
 class AppThemes {
   static final lightMode = ThemeData(
+    extensions: const [AppTextColors.light],
     useMaterial3: true,
     brightness: Brightness.light,
     fontFamily: 'Inter',
@@ -14,12 +16,12 @@ class AppThemes {
 
       // Primary brand
       primary: AppColors.primaryColor,
-      onPrimary: Colors.white,
+      onPrimary: AppColors.primaryColor,
 
       // Card / Container backgrounds
       primaryContainer: AppColors.lightPrimaryCardColor,
-      secondaryContainer: Color(0xFFF5F6F7),
-      tertiaryContainer: Color(0xFFEEF0F2),
+      secondaryContainer: AppColors.lightSecondaryCardColor,
+      tertiaryContainer: Colors.white, 
 
       // Surface
       surface: AppColors.lightPrimaryCardColor,
@@ -29,7 +31,6 @@ class AppThemes {
       onBackground: AppColors.lightHeadingColor,
 
       // Borders / Dividers
-      
       outline: AppColors.lightStrokeColor,
       outlineVariant: AppColors.lightDividerColor,
 
@@ -40,21 +41,22 @@ class AppThemes {
   );
 
   static final darkMode = ThemeData(
+    extensions: [AppTextColors.dark],
     useMaterial3: true,
     brightness: Brightness.dark,
     fontFamily: 'Inter',
     colorScheme: const ColorScheme.dark(
       // Main background
-      background: AppColors.darkBackgroundColor,
+      background: Color(0xFF0C1014),
 
       // Primary brand
       primary: AppColors.primaryColor,
-      onPrimary: Colors.white,
+      onPrimary: Color(0xFFF4F4F5),
 
       // Card / Container backgrounds
       primaryContainer: AppColors.darkPrimaryCardColor,
-      secondaryContainer: Color(0xFF242831),
-      tertiaryContainer: Color(0xFF2D3139),
+      secondaryContainer: AppColors.darkSecondaryCardColor,
+      tertiaryContainer: Color(0xFF212328),
 
       // Surface
       surface: Color(0xFF161B22),

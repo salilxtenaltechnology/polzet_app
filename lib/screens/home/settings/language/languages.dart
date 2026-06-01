@@ -11,6 +11,7 @@ class Languages extends StatefulWidget {
 
 class _LanguagesState extends State<Languages> {
   late String currentLanguage;
+  String? _selectedLanguage;
 
   final List<Map<String, String>> languageList = [
     {"code": "ar", "name": "Arabic (عربي)", "flag": "🇸🇦"},
@@ -36,12 +37,20 @@ class _LanguagesState extends State<Languages> {
   }
 
   void _changeLanguage(String code) {
-    MyApp.of(context)?.changeLanguage(Locale(code));
-    _saveLanguage(code);
+    setState(() {
+      _selectedLanguage = code;
+    });
+  }
+
+  void _onContinue() {
+    if (_selectedLanguage == null) return;
+    MyApp.of(context)?.changeLanguage(Locale(_selectedLanguage!));
+    _saveLanguage(_selectedLanguage!);
   }
 
   @override
   Widget build(BuildContext context) {
+    final txt = AppTextColors.of(context);
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.background,
       appBar: CommonAppBar(
@@ -59,30 +68,14 @@ class _LanguagesState extends State<Languages> {
                 itemCount: languageList.length,
                 itemBuilder: (context, index) {
                   final lang = languageList[index];
-                  bool isSelected = currentLanguage == lang["code"];
+                  bool isSelected =
+                      (_selectedLanguage ?? currentLanguage) == lang["code"];
 
                   return GestureDetector(
                     onTap: () => _changeLanguage(lang["code"]!),
                     child: Container(
-                      height: 35.h,
-                      margin: EdgeInsets.symmetric(vertical: 5.h),
-                      padding: EdgeInsets.symmetric(horizontal: 10.w),
-                      decoration: BoxDecoration(
-                        color: isSelected
-                            ? Theme.of(
-                                context,
-                              ).colorScheme.primary.withOpacity(0.13)
-                            : Colors.transparent,
-                        borderRadius: BorderRadius.circular(12.r),
-                        border: Border.all(
-                          color: isSelected
-                              ? Theme.of(context).colorScheme.primary
-                              : Theme.of(
-                                  context,
-                                ).colorScheme.onBackground.withOpacity(0.1),
-                          width: 1,
-                        ),
-                      ),
+                      height: 45,
+                      color: Colors.transparent,
                       child: Row(
                         children: [
                           Text(
@@ -93,15 +86,32 @@ class _LanguagesState extends State<Languages> {
                           Expanded(
                             child: Text(
                               lang["name"]!,
-                              style: CustomTextStyles.lblPrimaryText(context),
+                              style: AppTextStyles.bodyText.copyWith(
+                                fontSize: 13.5,
+                                color: txt.title,
+                                fontWeight: FontWeight.w500,
+                              ),
                             ),
                           ),
-                          if (isSelected)
-                            Icon(
-                              Icons.circle,
-                              size: 16.spMax,
-                              color: Theme.of(context).colorScheme.primary,
+                          Container(
+                            padding: const EdgeInsets.all(2),
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(100),
+                              border: Border.all(
+                                color: isSelected
+                                    ? Theme.of(context).colorScheme.onPrimary
+                                    : txt.muted,
+                                width: 1,
+                              ),
                             ),
+                            child: Icon(
+                              isSelected ? Icons.circle : Icons.circle_outlined,
+                              size: 16.spMax,
+                              color: isSelected
+                                  ? Theme.of(context).colorScheme.onPrimary
+                                  : Colors.transparent,
+                            ),
+                          ),
                         ],
                       ),
                     ),
@@ -110,6 +120,42 @@ class _LanguagesState extends State<Languages> {
               ),
             ),
           ],
+        ),
+      ),
+      bottomNavigationBar: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 5, 16, 35),
+        child: _buildContinueButton(),
+      ),
+    );
+  }
+
+  Widget _buildContinueButton() {
+    final bool isEnabled =
+        _selectedLanguage != null && _selectedLanguage != currentLanguage;
+    return SizedBox(
+      width: double.infinity,
+      height: 50,
+      child: ElevatedButton(
+        onPressed: isEnabled ? _onContinue : null,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Theme.of(context).colorScheme.primary,
+          disabledBackgroundColor: const Color(0x269B3046),
+          disabledForegroundColor: const Color(0xFF898989),
+          foregroundColor: Colors.white,
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
+        ),
+        child: Text(
+          'Continue',
+          style: AppTextStyles.bodyText.copyWith(
+            fontSize: 15,
+            fontWeight: FontWeight.w500,
+            color: isEnabled
+                ? Colors.white
+                : const Color(0xFF898989).withOpacity(0.6),
+          ),
         ),
       ),
     );

@@ -4,17 +4,18 @@ import 'dart:ui';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:polzet_app/screens/home/search/posts/single_post_details.dart';
 import 'package:provider/provider.dart';
 
 import '../../../api/api_config.dart';
 import '../../../api/services/api_service.dart';
 import '../../../core/constants/app_radius.dart';
+import '../../../core/themes/app_text_colors.dart';
 import '../../../core/themes/app_text_styles.dart';
 import '../../../mixin/utility_mixins.dart';
 import '../../../models/notifications/notification_model.dart';
 import '../../../models/posts/single_post_model.dart';
 import '../../../provider/user_provider.dart';
-import 'notification_details.dart';
 
 class PollVoteNotificationTile extends StatefulWidget {
   final NotificationItem notification;
@@ -37,14 +38,14 @@ class PollVoteNotificationTile extends StatefulWidget {
 
 class _PollVoteNotificationTileState extends State<PollVoteNotificationTile>
     with UtilityMixin {
-  static final Map<int, SinglePostModel> _cache = {};
-  static final Set<int> _fetching = {};
+  static final Map<dynamic, SinglePostModel> _cache = {};
+  static final Set<dynamic> _fetching = {};
 
   bool _isExpanded = false;
   bool _fetchFailed = false;
 
   // ── Convenience getters ────────────────────────────────────────────────────
-  int? get _postId => widget.notification.post?.postId;
+  dynamic get _postId => widget.notification.post?.postId;
 
   SinglePostModel? get _cachedPost => _postId != null ? _cache[_postId] : null;
 
@@ -86,8 +87,8 @@ class _PollVoteNotificationTileState extends State<PollVoteNotificationTile>
   // ── Fetch ──────────────────────────────────────────────────────────────────
 
   Future<void> _fetchPollDetails({bool forceRefresh = false}) async {
-    final int? postId = _postId;
-    if (postId == null || postId == 0) return;
+    final dynamic postId = _postId;
+    if (postId == null || postId == 0 || postId == '0') return;
 
     // If cached and not forcing refresh, nothing to do
     if (!forceRefresh && _cache.containsKey(postId)) return;
@@ -163,6 +164,7 @@ class _PollVoteNotificationTileState extends State<PollVoteNotificationTile>
 
   @override
   Widget build(BuildContext context) {
+    final txt = AppTextColors.of(context);
     final SinglePostModel? fetchedPost = _cachedPost;
 
     final SinglePostPoll? poll =
@@ -182,12 +184,12 @@ class _PollVoteNotificationTileState extends State<PollVoteNotificationTile>
       duration: const Duration(milliseconds: 200),
       margin: EdgeInsets.symmetric(horizontal: 10.w, vertical: 5.h),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
+        color: Theme.of(context).colorScheme.primaryContainer,
         borderRadius: BorderRadius.circular(12.r),
         border: Border.all(
           color: _isExpanded
               ? Theme.of(context).colorScheme.primary
-              : Theme.of(context).colorScheme.outline.withOpacity(0.5),
+              : Theme.of(context).colorScheme.outline,
         ),
       ),
       child: ClipRRect(
@@ -197,7 +199,7 @@ class _PollVoteNotificationTileState extends State<PollVoteNotificationTile>
           children: [
             // ── Header ─────────────────────────────────────────────────
             Material(
-              color: Theme.of(context).colorScheme.surface,
+              color: Theme.of(context).colorScheme.primaryContainer,
               child: InkWell(
                 onTap: _toggleExpand,
                 child: Padding(
@@ -217,9 +219,7 @@ class _PollVoteNotificationTileState extends State<PollVoteNotificationTile>
                                   TextSpan(
                                     text: widget.notification.actor.name,
                                     style: AppTextStyles.bodyText.copyWith(
-                                      color: Theme.of(
-                                        context,
-                                      ).colorScheme.onBackground,
+                                      color: txt.title,
                                       fontWeight: FontWeight.w600,
                                       fontSize: 14.5,
                                     ),
@@ -227,9 +227,7 @@ class _PollVoteNotificationTileState extends State<PollVoteNotificationTile>
                                   TextSpan(
                                     text: ' voted on your poll!',
                                     style: AppTextStyles.bodyText.copyWith(
-                                      color: Theme.of(
-                                        context,
-                                      ).colorScheme.onBackground,
+                                      color: txt.title,
                                       fontWeight: FontWeight.w500,
                                       fontSize: 14.5,
                                     ),
@@ -241,7 +239,7 @@ class _PollVoteNotificationTileState extends State<PollVoteNotificationTile>
                             Text(
                               '$totalVotes votes • ${widget.notification.timeAgo.isNotEmpty ? widget.notification.timeAgo : widget.timeAgo}',
                               style: AppTextStyles.subText.copyWith(
-                                color: const Color(0xFF2c2c2c).withOpacity(0.6),
+                                color: txt.title.withOpacity(0.6),
                                 fontSize: 10.5.sp,
                               ),
                             ),
@@ -269,7 +267,7 @@ class _PollVoteNotificationTileState extends State<PollVoteNotificationTile>
               Divider(
                 height: 1,
                 thickness: 1,
-                color: Theme.of(context).colorScheme.outline,
+                color: Theme.of(context).colorScheme.outlineVariant,
               ),
               if (_isFetchingPoll)
                 Padding(
@@ -290,9 +288,7 @@ class _PollVoteNotificationTileState extends State<PollVoteNotificationTile>
                   child: Text(
                     'Poll details not available.',
                     style: AppTextStyles.subText.copyWith(
-                      color: Theme.of(
-                        context,
-                      ).colorScheme.onBackground.withOpacity(0.5),
+                      color: txt.muted,
                       fontSize: 13.sp,
                     ),
                   ),
@@ -350,18 +346,22 @@ class _PollVoteNotificationTileState extends State<PollVoteNotificationTile>
     SinglePostPoll poll,
     int totalVotes,
   ) {
+    final userProvider = Provider.of<UserProvider>(context, listen: false);
+    final String username = userProvider.username ?? '';
     final bool hasAnyImage = poll.options.any((o) => o.image != null);
     final bool hasAnyText = poll.options.any(
       (o) => o.text != null && o.text!.isNotEmpty,
     );
 
     if (hasAnyImage && !hasAnyText) {
-      return _buildImagePoll(context, poll, totalVotes);
+      return _buildImagePoll(context, poll, totalVotes, username);
     }
     if (hasAnyText && !hasAnyImage) {
-      return _buildTextPoll(context, poll, totalVotes);
+      return _buildTextPoll(context, poll, totalVotes, username);
     }
-    if (hasAnyImage) return _buildImagePoll(context, poll, totalVotes);
+    if (hasAnyImage) {
+      return _buildImagePoll(context, poll, totalVotes, username);
+    }
     return Text(
       poll.question.isNotEmpty ? poll.question : 'No poll content.',
       style: AppTextStyles.subText.copyWith(
@@ -452,7 +452,9 @@ class _PollVoteNotificationTileState extends State<PollVoteNotificationTile>
   Widget _buildTextPoll(
     BuildContext context,
     SinglePostPoll poll,
+
     int totalVotes,
+    String username,
   ) {
     final double maxPercentage = poll.options
         .map((o) => o.percentage)
@@ -460,10 +462,13 @@ class _PollVoteNotificationTileState extends State<PollVoteNotificationTile>
 
     return GestureDetector(
       onTap: () {
-        final int? postId = widget.notification.meta?.postId;
+        final String? postId = widget.notification.meta?.postId?.toString();
 
         if (postId != null) {
-          navigationPush(context, NotificationDetails(postId: postId));
+          navigationPush(
+            context,
+            SinglePostDetails(username: username, postId: postId),
+          );
         }
       },
       child: Column(
@@ -500,6 +505,7 @@ class _PollVoteNotificationTileState extends State<PollVoteNotificationTile>
     int totalVotes,
     bool isHighest,
   ) {
+    final txt = AppTextColors.of(context);
     final int voteCount = int.tryParse(option.voteCount) ?? 0;
     double percentage = option.percentage;
     if (percentage == 0.0 && totalVotes > 0 && voteCount > 0) {
@@ -521,7 +527,7 @@ class _PollVoteNotificationTileState extends State<PollVoteNotificationTile>
                   option.text ?? 'Option',
 
                   style: AppTextStyles.bodyText.copyWith(
-                    color: const Color(0XFF595959),
+                    color: txt.body,
                     fontWeight: FontWeight.w400,
                     fontSize: 15,
                   ),
@@ -592,6 +598,7 @@ class _PollVoteNotificationTileState extends State<PollVoteNotificationTile>
     BuildContext context,
     SinglePostPoll poll,
     int totalVotes,
+    String username,
   ) {
     final List<SinglePostPollOption> options = poll.options;
 
@@ -625,10 +632,13 @@ class _PollVoteNotificationTileState extends State<PollVoteNotificationTile>
 
     return GestureDetector(
       onTap: () {
-        final int? postId = widget.notification.meta?.postId;
+        final String? postId = widget.notification.meta?.postId?.toString();
 
         if (postId != null) {
-          navigationPush(context, NotificationDetails(postId: postId));
+          navigationPush(
+            context,
+            SinglePostDetails(username: username, postId: postId),
+          );
         }
       },
       child: Column(

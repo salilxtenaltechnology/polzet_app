@@ -13,11 +13,17 @@ class IncomingData {
   });
 
   factory IncomingData.fromJson(Map<String, dynamic> json) {
+    final dynamic sender = json['sender'] ?? {};
+    final dynamic rawId = sender['id'];
+    final int parsedId = rawId is int
+        ? rawId
+        : int.tryParse(rawId?.toString() ?? '') ?? 0;
+
     return IncomingData(
-      senderId: json['sender']['id'],
-      senderUsername: json['sender']['username'],
-      profile_picture: json['sender']['profile_picture'],
-      createdAt: json['created_at'],
+      senderId: parsedId,
+      senderUsername: sender['username']?.toString() ?? '',
+      profile_picture: sender['profile_picture']?.toString(),
+      createdAt: json['created_at']?.toString() ?? '',
     );
   }
 }

@@ -3,11 +3,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
-import '../../../../core/constants/app_colors.dart';
+import '../../../../core/themes/app_text_colors.dart';
+import '../../../../core/themes/app_text_styles.dart';
 import '../../../../languages/l10n/generated/app_localizations.dart';
 import '../../../../mixin/utility_mixins.dart';
 import '../../../../widgets/appbar/common_appbar.dart';
-import '../../../../widgets/custom_text_styles.dart';
 
 class HelpSupport extends StatefulWidget {
   const HelpSupport({super.key});
@@ -20,50 +20,63 @@ class HelpSupport extends StatefulWidget {
 
 class HelpSupportState extends State<HelpSupport> with UtilityMixin {
   final String email = 'contact@polzet.com';
-  static TextStyle titleStyle = TextStyle(
-    color: AppColors.primaryColor,
-    fontSize: 12.5.sp,
-    fontWeight: FontWeight.w600,
-  );
 
-  static TextStyle labelStyle = TextStyle(
-    color: const Color(0XFF545454),
-    fontSize: 11.2.sp,
-    fontWeight: FontWeight.w600,
-  );
+  static TextStyle titleStyle(BuildContext context) =>
+      AppTextStyles.sectionHeading.copyWith(
+        color: Theme.of(context).colorScheme.onPrimary,
+        fontSize: 15,
+        fontWeight: FontWeight.w600,
+      );
+
+  static TextStyle subTextStyle(BuildContext context) =>
+      AppTextStyles.subText.copyWith(
+        color: Theme.of(context).colorScheme.onBackground,
+        fontSize: 14,
+        fontWeight: FontWeight.w400,
+      );
 
   @override
   Widget build(BuildContext context) {
-    final TextStyle subtitleStyle = TextStyle(
-      color: const Color(0XFF2B607B),
-      fontSize: 11.2.sp,
+    final txt = AppTextColors.of(context);
+    final TextStyle labelTextStyle = AppTextStyles.cardTitle.copyWith(
+      color: txt.body,
+      fontSize: 14,
+      fontWeight: FontWeight.w600,
+    );
+
+    final TextStyle subtitleStyle = AppTextStyles.cardTitle.copyWith(
+      color: txt.title,
+      fontSize: 14,
       fontWeight: FontWeight.w600,
     );
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.background,
-       appBar: CommonAppBar(
+      appBar: CommonAppBar(
         title: AppLocalizations.of(context)!.supportandabout,
         showBackButton: true,
       ),
-     
+
       body: ListView(
         padding: EdgeInsets.fromLTRB(12.w, 10.h, 12.w, 12.h),
         children: [
-          Text(AppLocalizations.of(context)!.lastupdated, style: titleStyle),
+          Text(
+            AppLocalizations.of(context)!.lastupdated,
+            style: titleStyle(context),
+          ),
           SizedBox(height: 10.h),
           Text(
             AppLocalizations.of(context)!.helpandsupportdescriptions,
-            style: CustomTextStyles.lblPrimaryText(context),
+            style: subTextStyle(context),
           ),
           SizedBox(height: 20.h),
           Text(
             AppLocalizations.of(context)!.howtocontactus,
-            style: titleStyle,
+            style: titleStyle(context),
           ), // policy_1
           SizedBox(height: 5.h),
           Text(
             AppLocalizations.of(context)!.weoffermultipleways,
-            style: CustomTextStyles.lblPrimaryText(context),
+            style: subTextStyle(context),
           ),
           SizedBox(height: 15.h),
           Text(
@@ -73,7 +86,7 @@ class HelpSupportState extends State<HelpSupport> with UtilityMixin {
           SizedBox(height: 5.h),
           Text(
             AppLocalizations.of(context)!.forquestionsaboutyouraccount,
-            style: CustomTextStyles.lblPrimaryText(context),
+            style: subTextStyle(context),
           ),
           SizedBox(height: 20.h),
           Text(
@@ -85,7 +98,7 @@ class HelpSupportState extends State<HelpSupport> with UtilityMixin {
             AppLocalizations.of(
               context,
             )!.forquestionsaboutyourpersonalinformation,
-            style: CustomTextStyles.lblPrimaryText(context),
+            style: subTextStyle(context),
           ),
           SizedBox(height: 20.h),
           Text(
@@ -95,7 +108,7 @@ class HelpSupportState extends State<HelpSupport> with UtilityMixin {
           SizedBox(height: 5.h),
           Text(
             AppLocalizations.of(context)!.toreportcontentthatviolates,
-            style: CustomTextStyles.lblPrimaryText(context),
+            style: subTextStyle(context),
           ),
           SizedBox(height: 20.h),
           Text(
@@ -105,7 +118,7 @@ class HelpSupportState extends State<HelpSupport> with UtilityMixin {
           SizedBox(height: 5.h),
           Text(
             AppLocalizations.of(context)!.tosubmitadmca,
-            style: CustomTextStyles.lblPrimaryText(context),
+            style: subTextStyle(context),
           ),
           SizedBox(height: 20.h),
           Text(
@@ -115,14 +128,14 @@ class HelpSupportState extends State<HelpSupport> with UtilityMixin {
           SizedBox(height: 5.h),
           Text(
             AppLocalizations.of(context)!.welovehearingyourideas,
-            style: CustomTextStyles.lblPrimaryText(context),
+            style: subTextStyle(context),
           ),
           SizedBox(height: 20.h),
           Row(
             children: [
               Text(
                 '✧ ${AppLocalizations.of(context)!.email} : ',
-                style: labelStyle,
+                style: labelTextStyle,
               ),
               Text(
                 'contact@polzet.com',
@@ -135,210 +148,225 @@ class HelpSupportState extends State<HelpSupport> with UtilityMixin {
             ],
           ),
           SizedBox(height: 10.h),
-          Text(AppLocalizations.of(context)!.responsetime, style: labelStyle),
+          Text(
+            AppLocalizations.of(context)!.responsetime,
+            style: labelTextStyle,
+          ),
           SizedBox(height: 5.h),
           Text(
             AppLocalizations.of(context)!.wereviewreportswithin,
-            style: CustomTextStyles.lblPrimaryText(context),
+            style: subTextStyle(context),
           ),
           SizedBox(height: 20.h),
-          Text(AppLocalizations.of(context)!.helpcenter, style: titleStyle),
+          Text(
+            AppLocalizations.of(context)!.helpcenter,
+            style: titleStyle(context),
+          ),
           SizedBox(height: 5.h),
           Text(
             AppLocalizations.of(context)!.ouronlinehelpcenterprovides,
-            style: CustomTextStyles.lblPrimaryText(context),
+            style: subTextStyle(context),
           ),
           SizedBox(height: 15.h),
           Text(
             AppLocalizations.of(context)!.accountsetupandmanagement,
-            style: CustomTextStyles.lblPrimaryText(context),
+            style: subTextStyle(context),
           ),
           SizedBox(height: 10.h),
           Text(
             AppLocalizations.of(context)!.uploadingimagesandtext,
-            style: CustomTextStyles.lblPrimaryText(context),
+            style: subTextStyle(context),
           ),
           SizedBox(height: 10.h),
           Text(
             AppLocalizations.of(context)!.privacyandsecuritysettings,
-            style: CustomTextStyles.lblPrimaryText(context),
+            style: subTextStyle(context),
           ),
           SizedBox(height: 10.h),
           Text(
             AppLocalizations.of(context)!.reportingissuesorabusivecontent,
-            style: CustomTextStyles.lblPrimaryText(context),
+            style: subTextStyle(context),
           ),
           SizedBox(height: 10.h),
           Text(
             AppLocalizations.of(context)!.troubleshootingtechnicalproblems,
-            style: CustomTextStyles.lblPrimaryText(context),
+            style: subTextStyle(context),
           ),
 
           SizedBox(height: 20.h),
           Text(
             AppLocalizations.of(context)!.whattoexpectwhenyoucontactus,
-            style: titleStyle,
+            style: titleStyle(context),
           ),
           SizedBox(height: 15.h),
-          Text(AppLocalizations.of(context)!.acknowledgment, style: labelStyle),
+          Text(
+            AppLocalizations.of(context)!.acknowledgment,
+            style: labelTextStyle,
+          ),
           SizedBox(height: 5.h),
           Text(
             AppLocalizations.of(context)!.foremailinquiriesyouwill,
-            style: CustomTextStyles.lblPrimaryText(context),
+            style: subTextStyle(context),
           ),
           SizedBox(height: 15.h),
           Text(
             AppLocalizations.of(context)!.resolutionprocess,
-            style: labelStyle,
+            style: labelTextStyle,
           ),
           SizedBox(height: 5.h),
           Text(
             AppLocalizations.of(context)!.oursupportteamwillreviewyourinquiry,
-            style: CustomTextStyles.lblPrimaryText(context),
+            style: subTextStyle(context),
           ),
           SizedBox(height: 15.h),
-          Text(AppLocalizations.of(context)!.escalation, style: labelStyle),
+          Text(AppLocalizations.of(context)!.escalation, style: labelTextStyle),
           SizedBox(height: 5.h),
           Text(
             AppLocalizations.of(context)!.ifyouarenotsatisfied,
-            style: CustomTextStyles.lblPrimaryText(context),
+            style: subTextStyle(context),
           ),
           SizedBox(height: 15.h),
           Text(
             AppLocalizations.of(context)!.confidentiality,
-            style: labelStyle,
+            style: labelTextStyle,
           ),
           SizedBox(height: 5.h),
           Text(
             AppLocalizations.of(context)!.wehandleyourinquiries,
-            style: CustomTextStyles.lblPrimaryText(context),
+            style: subTextStyle(context),
           ),
           SizedBox(height: 20.h),
           Text(
             AppLocalizations.of(context)!.communityguidelines,
-            style: titleStyle,
+            style: titleStyle(context),
           ),
           SizedBox(height: 10.h),
           Text(
             AppLocalizations.of(context)!.ensureyourcontent,
-            style: CustomTextStyles.lblPrimaryText(context),
+            style: subTextStyle(context),
           ),
           SizedBox(height: 10.h),
           Text(
             AppLocalizations.of(context)!.verifythatyouhave,
-            style: CustomTextStyles.lblPrimaryText(context),
+            style: subTextStyle(context),
           ),
           SizedBox(height: 10.h),
           Text(
             AppLocalizations.of(context)!.checkyourprivacysettings,
-            style: CustomTextStyles.lblPrimaryText(context),
+            style: subTextStyle(context),
           ),
           SizedBox(height: 20.h),
 
           Text(
             AppLocalizations.of(context)!.reportingtechnicalissues,
-            style: titleStyle,
+            style: titleStyle(context),
           ),
           SizedBox(height: 5.h),
           Text(
             AppLocalizations.of(context)!.ifyouencounterbugs,
-            style: CustomTextStyles.lblPrimaryText(context),
+            style: subTextStyle(context),
           ),
           SizedBox(height: 15.h),
           Text(
             AppLocalizations.of(context)!.adescriptionoftheissue,
-            style: CustomTextStyles.lblPrimaryText(context),
+            style: subTextStyle(context),
           ),
           SizedBox(height: 10.h),
           Text(
             AppLocalizations.of(context)!.yourdevicetypeandoperatingsystem,
-            style: CustomTextStyles.lblPrimaryText(context),
+            style: subTextStyle(context),
           ),
           SizedBox(height: 10.h),
           Text(
             AppLocalizations.of(context)!.screenshotsorscreenrecordings,
-            style: CustomTextStyles.lblPrimaryText(context),
+            style: subTextStyle(context),
           ),
           SizedBox(height: 10.h),
           Text(
             AppLocalizations.of(context)!.ourtechnicalteamwillinvestigate,
-            style: CustomTextStyles.lblPrimaryText(context),
+            style: subTextStyle(context),
           ),
           SizedBox(height: 20.h),
           Text(
             AppLocalizations.of(context)!.accessibilitysupport,
-            style: titleStyle,
+            style: titleStyle(context),
           ),
           SizedBox(height: 5.h),
           Text(
             AppLocalizations.of(context)!.wearecommittedtomaking,
-            style: CustomTextStyles.lblPrimaryText(context),
+            style: subTextStyle(context),
           ),
           SizedBox(height: 20.h),
           Text(
             AppLocalizations.of(context)!.feedbackmakesusbetter,
-            style: titleStyle,
+            style: titleStyle(context),
           ),
           SizedBox(height: 5.h),
           Text(
             AppLocalizations.of(context)!.yourinputhelpsusimprovethe,
-            style: CustomTextStyles.lblPrimaryText(context),
+            style: subTextStyle(context),
           ),
           SizedBox(height: 20.h),
-          Text(AppLocalizations.of(context)!.stayconnected, style: titleStyle),
+          Text(
+            AppLocalizations.of(context)!.stayconnected,
+            style: titleStyle(context),
+          ),
           SizedBox(height: 5.h),
           Text(
             AppLocalizations.of(context)!.forthelatestupdates,
-            style: CustomTextStyles.lblPrimaryText(context),
+            style: subTextStyle(context),
           ),
           SizedBox(height: 10.h),
           Text(
             AppLocalizations.of(context)!.followusx,
-            style: CustomTextStyles.lblPrimaryText(context),
+            style: subTextStyle(context),
           ),
           SizedBox(height: 20.h),
-          Text(AppLocalizations.of(context)!.contactsummary, style: titleStyle),
+          Text(
+            AppLocalizations.of(context)!.contactsummary,
+            style: titleStyle(context),
+          ),
           SizedBox(height: 10.h),
           Text(
             AppLocalizations.of(context)!.generalsupport,
-            style: CustomTextStyles.lblPrimaryText(context),
+            style: subTextStyle(context),
           ),
           SizedBox(height: 10.h),
           Text(
             AppLocalizations.of(context)!.privacydatarequests,
-            style: CustomTextStyles.lblPrimaryText(context),
+            style: subTextStyle(context),
           ),
           SizedBox(height: 10.h),
           Text(
             AppLocalizations.of(context)!.abusereports,
-            style: CustomTextStyles.lblPrimaryText(context),
+            style: subTextStyle(context),
           ),
           SizedBox(height: 10.h),
           Text(
             AppLocalizations.of(context)!.copyrightissues,
-            style: CustomTextStyles.lblPrimaryText(context),
+            style: subTextStyle(context),
           ),
           SizedBox(height: 10.h),
           Text(
             AppLocalizations.of(context)!.feedback,
-            style: CustomTextStyles.lblPrimaryText(context),
+            style: subTextStyle(context),
           ),
           SizedBox(height: 10.h),
           Text(
             AppLocalizations.of(context)!.accessibility,
-            style: CustomTextStyles.lblPrimaryText(context),
+            style: subTextStyle(context),
           ),
           SizedBox(height: 10.h),
           Text(
             AppLocalizations.of(context)!.helpcenter,
-            style: CustomTextStyles.lblPrimaryText(context),
+            style: subTextStyle(context),
           ),
           SizedBox(height: 20.h),
           Row(
             children: [
               Text(
                 '✧ ${AppLocalizations.of(context)!.email} : ',
-                style: labelStyle,
+                style: labelTextStyle,
               ),
               Text(
                 'contact@polzet.com',
@@ -351,11 +379,14 @@ class HelpSupportState extends State<HelpSupport> with UtilityMixin {
             ],
           ),
           SizedBox(height: 15.h),
-          Text(AppLocalizations.of(context)!.responsetime, style: labelStyle),
+          Text(
+            AppLocalizations.of(context)!.responsetime,
+            style: labelTextStyle,
+          ),
           SizedBox(height: 5.h),
           Text(
             AppLocalizations.of(context)!.wereviewreportswithin,
-            style: CustomTextStyles.lblPrimaryText(context),
+            style: subTextStyle(context),
           ),
           SizedBox(height: 20.h),
         ],

@@ -34,12 +34,13 @@ class SuggestionsData {
 }
 
 class SuggestedUser {
-  final int id;
+  final dynamic id;
   final String username;
   final String name;
   final String role;
   final String avatar;
   final int mutualFriends;
+  final List<String> mutualFriendsAvatars;
   final List<String> tags;
   final bool isNew;
 
@@ -50,18 +51,20 @@ class SuggestedUser {
     required this.role,
     required this.avatar,
     required this.mutualFriends,
+    required this.mutualFriendsAvatars,
     required this.tags,
     required this.isNew,
   });
 
   factory SuggestedUser.fromJson(Map<String, dynamic> json) {
     return SuggestedUser(
-      id: json['id'] ?? 0,
-      username: json['username'],
+      id: json['id'],
+      username: json['username'] ?? '',
       name: json['name'] ?? '',
       role: json['role'] ?? '',
       avatar: json['avatar'] ?? '',
       mutualFriends: json['mutualFriends'] ?? 0,
+      mutualFriendsAvatars: List<String>.from(json['mutualFriendsAvatars'] ?? []),
       tags: List<String>.from(json['tags'] ?? []),
       isNew: json['isNew'] ?? false,
     );

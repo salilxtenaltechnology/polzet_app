@@ -687,7 +687,7 @@ abstract class AppLocalizations {
   /// No description provided for @pleaseenteratleastoneimage.
   ///
   /// In en, this message translates to:
-  /// **'Please enter at least one image!'**
+  /// **'Please select at least two image!'**
   String get pleaseenteratleastoneimage;
 
   /// No description provided for @description.
@@ -1077,7 +1077,7 @@ abstract class AppLocalizations {
   /// No description provided for @votes.
   ///
   /// In en, this message translates to:
-  /// **'Votes'**
+  /// **'votes'**
   String get votes;
 
   /// No description provided for @firstname.
@@ -3215,6 +3215,624 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Password do not match'**
   String get passworddonotmatch;
+
+  /// No description provided for @home.
+  ///
+  /// In en, this message translates to:
+  /// **'Home'**
+  String get home;
+
+  /// No description provided for @profile.
+  ///
+  /// In en, this message translates to:
+  /// **'Profile'**
+  String get profile;
+
+  /// No description provided for @chats.
+  ///
+  /// In en, this message translates to:
+  /// **'Chats'**
+  String get chats;
+
+  /// No description provided for @groups.
+  ///
+  /// In en, this message translates to:
+  /// **'Groups'**
+  String get groups;
+
+  /// No description provided for @shareprofile.
+  ///
+  /// In en, this message translates to:
+  /// **'Share profile'**
+  String get shareprofile;
+
+  /// No description provided for @images.
+  ///
+  /// In en, this message translates to:
+  /// **'Images'**
+  String get images;
+
+  /// No description provided for @nothingsavedyet.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing saved yet'**
+  String get nothingsavedyet;
+
+  /// No description provided for @savedpollsyouwanttorevisitlater.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved polls you want to revisit later.'**
+  String get savedpollsyouwanttorevisitlater;
+
+  /// No description provided for @nothingspollyet.
+  ///
+  /// In en, this message translates to:
+  /// **'No things poll yet'**
+  String get nothingspollyet;
+
+  /// No description provided for @createyourfirstpollandstartgatheringopinions.
+  ///
+  /// In en, this message translates to:
+  /// **'Create your first poll and start gathering opinions.'**
+  String get createyourfirstpollandstartgatheringopinions;
+
+  /// No description provided for @noimagepollyet.
+  ///
+  /// In en, this message translates to:
+  /// **'No image poll yet'**
+  String get noimagepollyet;
+
+  /// No description provided for @submitranking.
+  ///
+  /// In en, this message translates to:
+  /// **'Submit ranking'**
+  String get submitranking;
+
+  /// No description provided for @rankyourchoices.
+  ///
+  /// In en, this message translates to:
+  /// **'Rank your choices'**
+  String get rankyourchoices;
+
+  /// No description provided for @holdanddragtorankimage.
+  ///
+  /// In en, this message translates to:
+  /// **'Hold & drag to rank image'**
+  String get holdanddragtorankimage;
+
+  /// No description provided for @holdanddragtorankanswer.
+  ///
+  /// In en, this message translates to:
+  /// **'Hold & drag to rank answer'**
+  String get holdanddragtorankanswer;
+
+  /// No description provided for @stayactiveandsharepollstobuildyourcommunity.
+  ///
+  /// In en, this message translates to:
+  /// **'Stay active and share polls to build your community'**
+  String get stayactiveandsharepollstobuildyourcommunity;
+
+  /// No description provided for @askopinionsandgetanswers.
+  ///
+  /// In en, this message translates to:
+  /// **'Ask opinions & get answers'**
+  String get askopinionsandgetanswers;
+
+  /// No description provided for @updateyourpasswordandsecureyouraccount.
+  ///
+  /// In en, this message translates to:
+  /// **'Update your password and secure your account'**
+  String get updateyourpasswordandsecureyouraccount;
+
+  /// No description provided for @controlwhocanviewyouractivityandpolls.
+  ///
+  /// In en, this message translates to:
+  /// **'Control who can view your activity and polls'**
+  String get controlwhocanviewyouractivityandpolls;
+
+  /// No description provided for @managepeopleyouveblockedonpolzet.
+  ///
+  /// In en, this message translates to:
+  /// **'Manage people you\'ve blocked on Polzet'**
+  String get managepeopleyouveblockedonpolzet;
+
+  /// No description provided for @preferences.
+  ///
+  /// In en, this message translates to:
+  /// **'Preferences'**
+  String get preferences;
+
+  /// No description provided for @choosewhatupdatesandalertsyouwanttoreceive.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose what updates and alerts you want to receive'**
+  String get choosewhatupdatesandalertsyouwanttoreceive;
+
+  /// No description provided for @chooseyourpreferredapplanguage.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose your preferred app language'**
+  String get chooseyourpreferredapplanguage;
+
+  /// No description provided for @gethelpwithyouraccount.
+  ///
+  /// In en, this message translates to:
+  /// **'Get help with your account'**
+  String get gethelpwithyouraccount;
+
+  /// No description provided for @shareyourthoughtsandhelpimprovepolzet.
+  ///
+  /// In en, this message translates to:
+  /// **'Share your thoughts and help improve Polzet.'**
+  String get shareyourthoughtsandhelpimprovepolzet;
+
+  /// No description provided for @readtherulesandguidelinesforusingpolzet.
+  ///
+  /// In en, this message translates to:
+  /// **'Read the rules and guidelines for using Polzet.'**
+  String get readtherulesandguidelinesforusingpolzet;
+
+  /// No description provided for @continueButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue'**
+  String get continueButton;
+
+  /// No description provided for @currentpasswordisrequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Current password is required.'**
+  String get currentpasswordisrequired;
+
+  /// No description provided for @newpasswordisrequired.
+  ///
+  /// In en, this message translates to:
+  /// **'New password is required.'**
+  String get newpasswordisrequired;
+
+  /// No description provided for @mustbeeightpluscharacterswithaletternumberandspecialcharacter.
+  ///
+  /// In en, this message translates to:
+  /// **'Must be 8+ characters with a letter, number & special character.'**
+  String get mustbeeightpluscharacterswithaletternumberandspecialcharacter;
+
+  /// No description provided for @pleaseconfirmyournewpassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Please confirm your new password.'**
+  String get pleaseconfirmyournewpassword;
+
+  /// No description provided for @passwordsdonotmatch.
+  ///
+  /// In en, this message translates to:
+  /// **'Passwords do not match.'**
+  String get passwordsdonotmatch;
+
+  /// No description provided for @pushnotification.
+  ///
+  /// In en, this message translates to:
+  /// **'Push Notification'**
+  String get pushnotification;
+
+  /// No description provided for @receivealertandupdatesacrosspolzet.
+  ///
+  /// In en, this message translates to:
+  /// **'Receive alert and updates across Polzet.'**
+  String get receivealertandupdatesacrosspolzet;
+
+  /// No description provided for @pollactivity.
+  ///
+  /// In en, this message translates to:
+  /// **'Poll Activity'**
+  String get pollactivity;
+
+  /// No description provided for @commentsandreplies.
+  ///
+  /// In en, this message translates to:
+  /// **'Comments & Replies'**
+  String get commentsandreplies;
+
+  /// No description provided for @socialactivity.
+  ///
+  /// In en, this message translates to:
+  /// **'Social Activity'**
+  String get socialactivity;
+
+  /// No description provided for @searchaccountspostsplaces.
+  ///
+  /// In en, this message translates to:
+  /// **'Search accounts, posts, places…'**
+  String get searchaccountspostsplaces;
+
+  /// No description provided for @norecentsearches.
+  ///
+  /// In en, this message translates to:
+  /// **'No recent searches'**
+  String get norecentsearches;
+
+  /// No description provided for @tryanotherkeywordorexploretrendingpolls.
+  ///
+  /// In en, this message translates to:
+  /// **'Try another keyword or explore trending polls.'**
+  String get tryanotherkeywordorexploretrendingpolls;
+
+  /// No description provided for @searching.
+  ///
+  /// In en, this message translates to:
+  /// **'Searching...'**
+  String get searching;
+
+  /// No description provided for @notfound.
+  ///
+  /// In en, this message translates to:
+  /// **'Not found'**
+  String get notfound;
+
+  /// No description provided for @accounts.
+  ///
+  /// In en, this message translates to:
+  /// **'Accounts'**
+  String get accounts;
+
+  /// No description provided for @accountslower.
+  ///
+  /// In en, this message translates to:
+  /// **'accounts'**
+  String get accountslower;
+
+  /// No description provided for @trysearchingwithadifferentusernameorkeyword.
+  ///
+  /// In en, this message translates to:
+  /// **'Try searching with a different username or keyword.'**
+  String get trysearchingwithadifferentusernameorkeyword;
+
+  /// No description provided for @tags.
+  ///
+  /// In en, this message translates to:
+  /// **'Tags'**
+  String get tags;
+
+  /// No description provided for @tag.
+  ///
+  /// In en, this message translates to:
+  /// **'tags'**
+  String get tag;
+
+  /// No description provided for @no.
+  ///
+  /// In en, this message translates to:
+  /// **'No'**
+  String get no;
+
+  /// No description provided for @found.
+  ///
+  /// In en, this message translates to:
+  /// **'found'**
+  String get found;
+
+  /// No description provided for @post.
+  ///
+  /// In en, this message translates to:
+  /// **'posts'**
+  String get post;
+
+  /// No description provided for @exploretrendingconversationsortryanothersearch.
+  ///
+  /// In en, this message translates to:
+  /// **'Explore trending conversations or try another search.'**
+  String get exploretrendingconversationsortryanothersearch;
+
+  /// No description provided for @photoslower.
+  ///
+  /// In en, this message translates to:
+  /// **'photos'**
+  String get photoslower;
+
+  /// No description provided for @wecouldnotfindanymatchingphotos.
+  ///
+  /// In en, this message translates to:
+  /// **'We couldn\'t find any matching photos.'**
+  String get wecouldnotfindanymatchingphotos;
+
+  /// No description provided for @trysearchingforanothertopicorkeyword.
+  ///
+  /// In en, this message translates to:
+  /// **'Try searching for another topic or keyword.'**
+  String get trysearchingforanothertopicorkeyword;
+
+  /// No description provided for @today.
+  ///
+  /// In en, this message translates to:
+  /// **'Today'**
+  String get today;
+
+  /// No description provided for @yesterday.
+  ///
+  /// In en, this message translates to:
+  /// **'Yesterday'**
+  String get yesterday;
+
+  /// No description provided for @lastsavendays.
+  ///
+  /// In en, this message translates to:
+  /// **'Last 7 days'**
+  String get lastsavendays;
+
+  /// No description provided for @lastthirtydays.
+  ///
+  /// In en, this message translates to:
+  /// **'Last 30 days'**
+  String get lastthirtydays;
+
+  /// No description provided for @older.
+  ///
+  /// In en, this message translates to:
+  /// **'Older'**
+  String get older;
+
+  /// No description provided for @clearallnotifications.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear all notifications'**
+  String get clearallnotifications;
+
+  /// No description provided for @areyousureyouwanttoclearallnotifications.
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to clear all notifications?'**
+  String get areyousureyouwanttoclearallnotifications;
+
+  /// No description provided for @yesclearall.
+  ///
+  /// In en, this message translates to:
+  /// **'Yes, clear all'**
+  String get yesclearall;
+
+  /// No description provided for @deletenotifications.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete notifications'**
+  String get deletenotifications;
+
+  /// No description provided for @areyousureyouwanttodeletethesenotifications.
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to delete these notifications?'**
+  String get areyousureyouwanttodeletethesenotifications;
+
+  /// No description provided for @thisoinwillbeusedtosecureyouraccount.
+  ///
+  /// In en, this message translates to:
+  /// **'This PIN will be used to secure your account'**
+  String get thisoinwillbeusedtosecureyouraccount;
+
+  /// No description provided for @changeoin.
+  ///
+  /// In en, this message translates to:
+  /// **'Change PIN'**
+  String get changeoin;
+
+  /// No description provided for @likedby.
+  ///
+  /// In en, this message translates to:
+  /// **'Liked by'**
+  String get likedby;
+
+  /// No description provided for @bethefirsttostarttheconversation.
+  ///
+  /// In en, this message translates to:
+  /// **'Be the first to start the conversation'**
+  String get bethefirsttostarttheconversation;
+
+  /// No description provided for @suggestedforyou.
+  ///
+  /// In en, this message translates to:
+  /// **'Suggested for you'**
+  String get suggestedforyou;
+
+  /// No description provided for @pollresult.
+  ///
+  /// In en, this message translates to:
+  /// **'Poll result'**
+  String get pollresult;
+
+  /// No description provided for @totalvotes.
+  ///
+  /// In en, this message translates to:
+  /// **'Total votes'**
+  String get totalvotes;
+
+  /// No description provided for @saved.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved'**
+  String get saved;
+
+  /// No description provided for @screenshotsoptional.
+  ///
+  /// In en, this message translates to:
+  /// **'Screenshots (Optional)'**
+  String get screenshotsoptional;
+
+  /// No description provided for @nomessagesyet.
+  ///
+  /// In en, this message translates to:
+  /// **'No messages yet'**
+  String get nomessagesyet;
+
+  /// No description provided for @nonotificationsyet.
+  ///
+  /// In en, this message translates to:
+  /// **'No notifications yet'**
+  String get nonotificationsyet;
+
+  /// No description provided for @likescommentsandupdateswillappearhere.
+  ///
+  /// In en, this message translates to:
+  /// **'Likes, comments, and updates will appear here.'**
+  String get likescommentsandupdateswillappearhere;
+
+  /// No description provided for @votesupdateswillappearhere.
+  ///
+  /// In en, this message translates to:
+  /// **'Votes updates will appear here.'**
+  String get votesupdateswillappearhere;
+
+  /// No description provided for @chaserequestsupdateswillappearhere.
+  ///
+  /// In en, this message translates to:
+  /// **'Chase requests updates will appear here.'**
+  String get chaserequestsupdateswillappearhere;
+
+  /// No description provided for @startchattingbysharingpollsorreactingtoconversations.
+  ///
+  /// In en, this message translates to:
+  /// **'Start chatting by sharing polls or reacting\nto conversations.'**
+  String get startchattingbysharingpollsorreactingtoconversations;
+
+  /// No description provided for @doyouwanttochangeyourcurrentpin.
+  ///
+  /// In en, this message translates to:
+  /// **'Do you want to change your current PIN?'**
+  String get doyouwanttochangeyourcurrentpin;
+
+  /// No description provided for @top.
+  ///
+  /// In en, this message translates to:
+  /// **'Top'**
+  String get top;
+
+  /// No description provided for @searchvoters.
+  ///
+  /// In en, this message translates to:
+  /// **'Search voters'**
+  String get searchvoters;
+
+  /// No description provided for @fingerprint.
+  ///
+  /// In en, this message translates to:
+  /// **'Fingerprint'**
+  String get fingerprint;
+
+  /// No description provided for @enablefingerprint.
+  ///
+  /// In en, this message translates to:
+  /// **'Enable Fingerprint'**
+  String get enablefingerprint;
+
+  /// No description provided for @unlocktheappfasterandmoresecurelybyusingyourfingerprint.
+  ///
+  /// In en, this message translates to:
+  /// **'Unlock the app faster and more securely by\nusing your fingerprint'**
+  String get unlocktheappfasterandmoresecurelybyusingyourfingerprint;
+
+  /// No description provided for @thisaccountisprivate.
+  ///
+  /// In en, this message translates to:
+  /// **'This account is private'**
+  String get thisaccountisprivate;
+
+  /// No description provided for @chasethisaccounttoseetheirposts.
+  ///
+  /// In en, this message translates to:
+  /// **'Chase this account to see their posts.'**
+  String get chasethisaccounttoseetheirposts;
+
+  /// No description provided for @online.
+  ///
+  /// In en, this message translates to:
+  /// **'Online'**
+  String get online;
+
+  /// No description provided for @offline.
+  ///
+  /// In en, this message translates to:
+  /// **'Offline'**
+  String get offline;
+
+  /// No description provided for @startchasingpeopletodiscoverfreshopinionsthenwillappearusershere.
+  ///
+  /// In en, this message translates to:
+  /// **'Start chasing people to discover fresh opinions\nthen will appear users here'**
+  String get startchasingpeopletodiscoverfreshopinionsthenwillappearusershere;
+
+  /// No description provided for @selectyourdateofbirth.
+  ///
+  /// In en, this message translates to:
+  /// **'Select your date of birth'**
+  String get selectyourdateofbirth;
+
+  /// No description provided for @selected.
+  ///
+  /// In en, this message translates to:
+  /// **'selected'**
+  String get selected;
+
+  /// No description provided for @chasing.
+  ///
+  /// In en, this message translates to:
+  /// **'Chasing'**
+  String get chasing;
+
+  /// No description provided for @chaseback.
+  ///
+  /// In en, this message translates to:
+  /// **'Chase Back'**
+  String get chaseback;
+
+  /// No description provided for @requested.
+  ///
+  /// In en, this message translates to:
+  /// **'Requested'**
+  String get requested;
+
+  /// No description provided for @usefingerprint.
+  ///
+  /// In en, this message translates to:
+  /// **'Use fingerprint'**
+  String get usefingerprint;
+
+  /// No description provided for @novotersfound.
+  ///
+  /// In en, this message translates to:
+  /// **'No voters found'**
+  String get novotersfound;
+
+  /// No description provided for @permanentlydeleteyourpolzetaccountandalldata.
+  ///
+  /// In en, this message translates to:
+  /// **'Permanently delete your Polzet account and all data'**
+  String get permanentlydeleteyourpolzetaccountandalldata;
+
+  /// No description provided for @unblockuser.
+  ///
+  /// In en, this message translates to:
+  /// **'Unblock User'**
+  String get unblockuser;
+
+  /// No description provided for @blockuser.
+  ///
+  /// In en, this message translates to:
+  /// **'Block User'**
+  String get blockuser;
+
+  /// No description provided for @areyousureyouwanttounblockthisuser.
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to unblock this user?'**
+  String get areyousureyouwanttounblockthisuser;
+
+  /// No description provided for @areyousureyouwanttoblockthisuser.
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to block this user?'**
+  String get areyousureyouwanttoblockthisuser;
+
+  /// No description provided for @nopostsavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'No posts available'**
+  String get nopostsavailable;
 }
 
 class _AppLocalizationsDelegate

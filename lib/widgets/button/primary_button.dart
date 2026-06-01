@@ -26,7 +26,7 @@ class PrimaryButton extends StatelessWidget {
     return GestureDetector(
       onTap: onPressed,
       child: Container(
-        height: height,
+        height: 50,
         width: double.infinity,
         margin: EdgeInsets.only(
           left: 15.w,

@@ -1,7 +1,7 @@
 // ignore_for_file: unused_field, must_be_immutable, deprecated_member_use
 
 import 'dart:convert';
-import 'package:feather_icons/feather_icons.dart';
+import 'package:polzet_app/core/constants/feather_icons_compat.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:polzet_app/core/constants/app_colors.dart';
@@ -10,11 +10,12 @@ import 'package:provider/provider.dart';
 
 import '../../../../../core/constants/app_constants.dart';
 import '../../../../../core/constants/app_radius.dart';
+import '../../../../../core/themes/app_text_colors.dart';
+import '../../../../../core/themes/app_text_styles.dart';
 import '../../../../../languages/l10n/generated/app_localizations.dart';
 import '../../../../../provider/group_chat_provider.dart';
 import '../../../../../provider/user_provider.dart';
 import '../../../../../widgets/appbar/common_appbar.dart';
-import '../../../../../widgets/custom_text_styles.dart';
 import '../../../../../core/utils/bottomsheet_util.dart';
 
 class GroupMembers extends StatefulWidget {
@@ -56,11 +57,11 @@ class _GroupMembersState extends State<GroupMembers> {
 
   /// Deduplicates members by user id
   List<Map<String, dynamic>> _deduplicated(List<Map<String, dynamic>> source) {
-    final seen = <int>{};
+    final seen = <String>{};
     final result = <Map<String, dynamic>>[];
     for (final m in source) {
-      final id = (_user(m)['id']) as int?;
-      if (id != null && seen.add(id)) result.add(m);
+      final id = _user(m)['id']?.toString() ?? '';
+      if (id.isNotEmpty && seen.add(id)) result.add(m);
     }
     return result;
   }
@@ -77,6 +78,22 @@ class _GroupMembersState extends State<GroupMembers> {
   }
 
   bool _isCurrentUserAdmin(GroupChatProvider provider) {
+    final currentUsername = context.read<UserProvider>().username;
+    if (currentUsername != null && currentUsername.isNotEmpty) {
+      for (final member in provider.members) {
+        final user = member['user'] as Map?;
+        if (user != null) {
+          final uName = user['username']?.toString();
+          if (uName != null &&
+              uName.toLowerCase() == currentUsername.toLowerCase()) {
+            if (member['is_admin'] == true) return true;
+            final userId = user['id'];
+            if (userId != null && provider.isAdmin(userId)) return true;
+          }
+        }
+      }
+    }
+
     final id = context.read<UserProvider>().userId;
     if (id == null) return false;
     return provider.isAdmin(id);
@@ -84,7 +101,7 @@ class _GroupMembersState extends State<GroupMembers> {
 
   // ── Actions ────────────────────────────────────────────────────────────────
 
-  Future<void> _removeMember(int userId, String username) async {
+  Future<void> _removeMember(dynamic userId, String username) async {
     final provider = context.read<GroupChatProvider>();
 
     provider.removeMemberOptimistically(userId);
@@ -99,7 +116,7 @@ class _GroupMembersState extends State<GroupMembers> {
     }
   }
 
-  Future<void> _makeAdmin(int userId, String username) async {
+  Future<void> _makeAdmin(dynamic userId, String username) async {
     final provider = context.read<GroupChatProvider>();
 
     provider.updateMemberAdminStatus(userId, true);
@@ -119,23 +136,31 @@ class _GroupMembersState extends State<GroupMembers> {
 
     final provider = context.read<GroupChatProvider>();
 
-    final existingIds = _deduplicated(
-      provider.members,
-    ).map((m) => _user(m)['id'] as int?).whereType<int>().toSet();
+    final existingIds = _deduplicated(provider.members)
+        .map((m) => _user(m)['id']?.toString() ?? '')
+        .where((id) => id.isNotEmpty)
+        .toSet();
+
+    final existingUsernames = _deduplicated(provider.members)
+        .map((m) => _user(m)['username']?.toString() ?? '')
+        .where((un) => un.isNotEmpty)
+        .toSet();
+
+    final Set<String> selectionSet = {...existingIds, ...existingUsernames};
 
     final result = await BottomSheetUtils.showAddMembersBottomSheet(
       context: context,
-      alreadySelected: existingIds,
+      alreadySelected: selectionSet,
     );
 
     if (result == null) return;
 
-    final selectedIds = result['ids'] as Set<int>;
+    final selectedIds = result['ids'] as Set<String>;
     final selectedUsers = result['users'] as List<Map<String, dynamic>>;
 
     final newIds = selectedIds.difference(existingIds);
     final newUsers = selectedUsers
-        .where((u) => newIds.contains(u['id'] as int?))
+        .where((u) => newIds.contains(u['id']?.toString() ?? ''))
         .toList();
 
     if (newIds.isEmpty) {
@@ -155,12 +180,15 @@ class _GroupMembersState extends State<GroupMembers> {
     }
   }
 
-  void _showOptions(int userId, String username, bool isAdmin) {
+  void _showOptions(dynamic userId, String username, bool isAdmin) {
+    final txt = AppTextColors.of(context);
     showModalBottomSheet(
       context: context,
-      backgroundColor: Theme.of(context).colorScheme.background,
+      backgroundColor: Theme.of(context).colorScheme.tertiaryContainer,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.modal)),
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(AppRadius.modal),
+        ),
       ),
       builder: (_) => Padding(
         padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 20.h),
@@ -182,7 +210,7 @@ class _GroupMembersState extends State<GroupMembers> {
             Text(
               username,
               style: TextStyle(
-                color: Theme.of(context).colorScheme.onBackground,
+                color: txt.title,
                 fontSize: 13.sp,
                 fontWeight: FontWeight.w600,
               ),
@@ -217,7 +245,7 @@ class _GroupMembersState extends State<GroupMembers> {
                   ),
                 ),
               ),
-              Divider(color: Colors.grey.withOpacity(0.2)),
+              Divider(color: Theme.of(context).colorScheme.outlineVariant),
             ],
 
             GestureDetector(
@@ -232,13 +260,13 @@ class _GroupMembersState extends State<GroupMembers> {
                     Icon(
                       Icons.person_remove_outlined,
                       size: 20.spMax,
-                      color: const Color(0xFFF44336),
+                      color: Theme.of(context).colorScheme.error,
                     ),
                     SizedBox(width: 12.w),
                     Text(
                       AppLocalizations.of(context)!.removefromgroup,
                       style: TextStyle(
-                        color: const Color(0xFFF44336),
+                        color: Theme.of(context).colorScheme.error,
                         fontSize: 12.sp,
                         fontWeight: FontWeight.w500,
                       ),
@@ -256,6 +284,7 @@ class _GroupMembersState extends State<GroupMembers> {
 
   @override
   Widget build(BuildContext context) {
+    final txt = AppTextColors.of(context);
     final provider = context.watch<GroupChatProvider>();
     final providerMembers = provider.members;
     final isCurrentUserAdmin = _isCurrentUserAdmin(provider);
@@ -289,7 +318,7 @@ class _GroupMembersState extends State<GroupMembers> {
           children: [
             Container(
               margin: EdgeInsets.only(top: 10.h),
-              height: AppConstants.searchbarHeight.h,
+              height: 42,
               decoration: BoxDecoration(
                 color: Theme.of(context).colorScheme.background,
                 borderRadius: BorderRadius.circular(AppRadius.button),
@@ -297,6 +326,10 @@ class _GroupMembersState extends State<GroupMembers> {
               ),
               child: TextField(
                 controller: _searchController,
+                cursorColor: Theme.of(
+                  context,
+                ).colorScheme.onPrimary.withOpacity(0.8),
+                cursorWidth: 1.5,
                 decoration: InputDecoration(
                   contentPadding: EdgeInsets.only(
                     right: 12.w,
@@ -304,12 +337,14 @@ class _GroupMembersState extends State<GroupMembers> {
                     top: 10.h,
                   ),
                   hintText: AppLocalizations.of(context)!.searchusers,
-                  hintStyle: CustomTextStyles.lblPrimaryHintText(context),
+                  hintStyle: AppTextStyles.bodyText.copyWith(
+                    color: txt.muted.withOpacity(0.7),
+                  ),
                   border: InputBorder.none,
-                  suffixIcon: Icon(
+                  prefixIcon: Icon(
                     FeatherIcons.search,
                     size: 17.spMax,
-                    color: Theme.of(context).colorScheme.onBackground,
+                    color: const Color(0XFF898989),
                   ),
                   enabledBorder: OutlineInputBorder(
                     borderSide: BorderSide(
@@ -320,17 +355,19 @@ class _GroupMembersState extends State<GroupMembers> {
                     borderRadius: BorderRadius.circular(AppRadius.button),
                   ),
                   focusedBorder: OutlineInputBorder(
-                    borderSide: const BorderSide(
-                      color: AppColors.primaryColor,
+                    borderSide: BorderSide(
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.onBackground.withOpacity(0.1),
                       width: 0.7,
                     ),
                     borderRadius: BorderRadius.circular(AppRadius.button),
                   ),
                 ),
                 style: TextStyle(
-                  color: Theme.of(context).colorScheme.onBackground,
-                  fontSize: 13.sp,
-                  fontWeight: FontWeight.w400,
+                  color: txt.title,
+                  fontWeight: FontWeight.w500,
+                  fontSize: 14,
                 ),
               ),
             ),
@@ -341,7 +378,7 @@ class _GroupMembersState extends State<GroupMembers> {
               child: displayList.isEmpty
                   ? Center(
                       child: Text(
-                        'No members found',
+                        AppLocalizations.of(context)!.usernotfound,
                         style: TextStyle(
                           color: Theme.of(
                             context,
@@ -356,7 +393,7 @@ class _GroupMembersState extends State<GroupMembers> {
                         final member = displayList[i];
                         final user = _user(member);
 
-                        final int? memberId = user['id'] as int?;
+                        final dynamic memberId = user['id'];
                         final String username =
                             user['username']?.toString() ?? '';
                         final String? profileImage = user['profile_image']
@@ -366,10 +403,11 @@ class _GroupMembersState extends State<GroupMembers> {
                             ? provider.isAdmin(memberId)
                             : false;
 
-                        final int? currentUserId = context
+                        final String? currentUserId = context
                             .read<UserProvider>()
                             .userId;
-                        final bool isSelf = memberId == currentUserId;
+                        final bool isSelf =
+                            memberId?.toString() == currentUserId;
 
                         return Padding(
                           padding: EdgeInsets.only(bottom: 10.h),
@@ -393,11 +431,14 @@ class _GroupMembersState extends State<GroupMembers> {
                                 borderRadius: BorderRadius.circular(
                                   AppRadius.card,
                                 ),
+                                border: Border.all(
+                                  color: Theme.of(context).colorScheme.outline,
+                                  width: 1,
+                                ),
                                 boxShadow: const [
                                   BoxShadow(
-                                    color: Color(0x13000000),
-                                    blurRadius: 5,
-                                    spreadRadius: 1,
+                                    color: Color(0x06000000),
+                                    blurRadius: 2,
                                   ),
                                 ],
                               ),
@@ -413,22 +454,17 @@ class _GroupMembersState extends State<GroupMembers> {
                                             ),
                                           )
                                         : null,
-                                    backgroundColor: const Color.fromARGB(
-                                      255,
-                                      249,
-                                      187,
-                                      187,
-                                    ).withOpacity(0.3),
+                                    backgroundColor: Theme.of(context).colorScheme.onPrimary.withOpacity(0.1),
                                     child: profileImage == null
                                         ? Text(
                                             username.isNotEmpty
                                                 ? username[0].toUpperCase()
-                                                : '?',
+                                                : 'P',
                                             style: TextStyle(
                                               color: Theme.of(
                                                 context,
-                                              ).colorScheme.primary,
-                                              fontSize: 14.5.sp,
+                                              ).colorScheme.onPrimary,
+                                              fontSize: 14.sp,
                                               fontWeight: FontWeight.w500,
                                             ),
                                           )
@@ -441,9 +477,7 @@ class _GroupMembersState extends State<GroupMembers> {
                                     child: Text(
                                       username,
                                       style: TextStyle(
-                                        color: Theme.of(
-                                          context,
-                                        ).colorScheme.onBackground,
+                                        color: txt.title,
                                         fontSize: 11.2.sp,
                                         fontWeight: FontWeight.w400,
                                       ),
@@ -456,7 +490,7 @@ class _GroupMembersState extends State<GroupMembers> {
                                     Text(
                                       AppLocalizations.of(context)!.admin,
                                       style: TextStyle(
-                                        color: AppColors.primaryColor,
+                                        color: const Color(0XFF16A34A),
                                         fontSize: 10.2.sp,
                                         fontWeight: FontWeight.w500,
                                       ),
@@ -471,10 +505,7 @@ class _GroupMembersState extends State<GroupMembers> {
                                       child: Icon(
                                         Icons.more_vert,
                                         size: 18.spMax,
-                                        color: Theme.of(context)
-                                            .colorScheme
-                                            .onBackground
-                                            .withOpacity(0.4),
+                                        color: txt.muted,
                                       ),
                                     ),
                                 ],

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:polzet_app/mixin/utility_mixins.dart';
 
 import '../../../api/services/api_service.dart';
+import '../../../core/themes/app_text_colors.dart';
 import '../../../core/themes/app_text_styles.dart';
 import '../../../models/country/country_model.dart';
 import '../../../widgets/country_code/code_bottomsheet.dart';
@@ -155,12 +156,13 @@ class _NewForgotPasswordSceenState extends State<NewForgotPasswordScreen>
   }
 
   Widget _buildFieldLabel(String label) {
+    final txt = AppTextColors.of(context);
     return Text(
       label,
       style: AppTextStyles.cardTitle.copyWith(
         fontSize: 14.5,
         fontWeight: FontWeight.w400,
-        color: const Color(0xFF2C2C2C),
+        color: txt.title,
       ),
     );
   }
@@ -169,9 +171,12 @@ class _NewForgotPasswordSceenState extends State<NewForgotPasswordScreen>
     return Container(
       height: 45,
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).colorScheme.primaryContainer,
         borderRadius: BorderRadius.circular(13),
-        border: Border.all(color: const Color(0xFFDDDDDD), width: 1.2),
+        border: Border.all(
+          color: Theme.of(context).colorScheme.outline,
+          width: 1,
+        ),
       ),
       child: Row(
         children: [
@@ -245,15 +250,18 @@ class _NewForgotPasswordSceenState extends State<NewForgotPasswordScreen>
   }
 
   Widget _buildCountryCodeButton() {
+     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     return GestureDetector(
       onTap: _showCountryPicker,
       child: Container(
         height: 48,
         padding: const EdgeInsets.symmetric(horizontal: 12),
         decoration: BoxDecoration(
-          color: Colors.white,
+         color: Theme.of(context).colorScheme.background,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: const Color(0xFFDDDDDD), width: 1),
+          border: Border.all(color: isDarkMode
+                  ? Theme.of(context).colorScheme.outline
+                  : const Color(0xFFDDDDDD), width: 1),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -262,10 +270,10 @@ class _NewForgotPasswordSceenState extends State<NewForgotPasswordScreen>
             const SizedBox(width: 4),
             Text(
               _selectedCountry.dialCode,
-              style: const TextStyle(
+              style: AppTextStyles.subText.copyWith(
                 fontSize: 14.5,
-                color: Color(0xFF404040),
-                fontWeight: FontWeight.w500,
+                color: Theme.of(context).colorScheme.onBackground,
+                fontWeight: FontWeight.w400,
               ),
             ),
             const SizedBox(width: 4),
@@ -300,6 +308,7 @@ class _NewForgotPasswordSceenState extends State<NewForgotPasswordScreen>
     required String hint,
     TextInputType keyboardType = TextInputType.text,
   }) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     return SizedBox(
       height: 48,
       child: TextField(
@@ -310,12 +319,20 @@ class _NewForgotPasswordSceenState extends State<NewForgotPasswordScreen>
             setState(() => _emailOrMobileError = '');
           }
         },
-        style: const TextStyle(fontSize: 14.5, color: Color(0xFF404040)),
+        cursorColor: Theme.of(context).colorScheme.onPrimary.withOpacity(0.8),
+        cursorWidth: 1.5,
+        style: AppTextStyles.subText.copyWith(
+          fontSize: 15,
+          color: Theme.of(context).colorScheme.onBackground,
+          fontWeight: FontWeight.w400,
+        ),
         decoration: InputDecoration(
           hintText: hint,
           hintStyle: AppTextStyles.subText.copyWith(
             fontSize: 14.5,
-            color: const Color(0xFFB3B3B3),
+            color: isDarkMode
+                ? const Color(0XFFB3B3B3)
+                : const Color(0XFF898989),
             fontWeight: FontWeight.w400,
           ),
           contentPadding: const EdgeInsets.symmetric(
@@ -324,17 +341,20 @@ class _NewForgotPasswordSceenState extends State<NewForgotPasswordScreen>
           ),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(color: Color(0xFFDDDDDD), width: 1),
+            borderSide: BorderSide(
+              color: isDarkMode
+                  ? Theme.of(context).colorScheme.outline
+                  : const Color(0xFFDDDDDD),
+              width: 1,
+            ),
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
             borderSide: BorderSide(
-              color: Theme.of(context).colorScheme.primary,
-              width: 1,
+              color: Theme.of(context).colorScheme.onPrimary.withOpacity(0.7),
+              width: 0.7,
             ),
           ),
-          filled: true,
-          fillColor: Colors.white,
         ),
       ),
     );
@@ -381,13 +401,17 @@ class _NewForgotPasswordSceenState extends State<NewForgotPasswordScreen>
       padding: const EdgeInsets.only(top: 5),
       child: Text(
         _emailOrMobileError,
-        style: AppTextStyles.bodyText.copyWith(fontSize: 12, color: Colors.red),
+        style: AppTextStyles.bodyText.copyWith(
+          fontSize: 12,
+          color: Theme.of(context).colorScheme.error,
+        ),
       ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
+    final txt = AppTextColors.of(context);
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.background,
       body: SafeArea(
@@ -398,10 +422,10 @@ class _NewForgotPasswordSceenState extends State<NewForgotPasswordScreen>
             children: [
               const SizedBox(height: 80),
               Text(
-                'Forgot password?',
+                'Forgot password',
                 style: AppTextStyles.subSectionHeading.copyWith(
                   fontSize: 23,
-                  color: const Color(0xFF111111),
+                  color: Theme.of(context).colorScheme.onBackground,
                 ),
               ),
               const SizedBox(height: 8),
@@ -409,7 +433,7 @@ class _NewForgotPasswordSceenState extends State<NewForgotPasswordScreen>
                 'Enter your email or mobile number to receive a verification code',
                 style: AppTextStyles.bodyText.copyWith(
                   fontSize: 13.5,
-                  color: const Color(0xFF595959),
+                  color: txt.body,
                   height: 1.4,
                 ),
               ),

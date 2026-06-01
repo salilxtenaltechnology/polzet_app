@@ -3,7 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:polzet_app/core/constants/app_radius.dart';
 
-import '../../../core/constants/app_colors.dart';
+import '../../core/themes/app_text_styles.dart';
 import '../custom_text_styles.dart';
 
 class SecondryTextfield extends StatelessWidget {
@@ -31,20 +31,26 @@ class SecondryTextfield extends StatelessWidget {
       decoration: InputDecoration(
         contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
         hintText: hintText,
-        hintStyle: CustomTextStyles.lblSecondryHintText(context),
+        hintStyle: AppTextStyles.subText.copyWith(
+          fontSize: 14.5,
+          color: const Color(0XFF898989),
+          fontWeight: FontWeight.w400,
+        ),
         suffixIcon: suffixIcon,
         border: InputBorder.none,
         enabledBorder: OutlineInputBorder(
-          borderSide: BorderSide(
-            color: Theme.of(context).colorScheme.onBackground.withOpacity(0.1),
-          ),
-          borderRadius: BorderRadius.circular(AppRadius.small),
-        ),
+                borderRadius: BorderRadius.circular(AppRadius.card),
+                borderSide: BorderSide(
+                  color: Theme.of(context).colorScheme.outline,
+                  width: 1.5,
+                ),
+              ),
         focusedBorder: OutlineInputBorder(
           borderSide: BorderSide(
-            color: AppColors.primaryColor.withOpacity(0.7),
-          ),
-          borderRadius: BorderRadius.circular(AppRadius.small),
+                  color: Theme.of(context).colorScheme.outline,
+                  width: 1.5,
+                ),
+            borderRadius: BorderRadius.circular(12),
         ),
       ),
     );

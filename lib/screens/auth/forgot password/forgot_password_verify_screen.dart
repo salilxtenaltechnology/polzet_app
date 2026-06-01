@@ -8,6 +8,7 @@ import 'package:flutter/services.dart';
 
 import '../../../api/services/api_service.dart';
 import '../../../core/constants/app_radius.dart';
+import '../../../core/themes/app_text_colors.dart';
 import '../../../core/themes/app_text_styles.dart';
 import '../../../widgets/loader.dart';
 import 'create_new_password_screen.dart';
@@ -194,12 +195,12 @@ class _ForgotPasswordVerifyScreenState
             child: GestureDetector(
               onTap: _isResending ? null : _onResendOtp,
               child: _isResending
-                  ? const Padding(
-                      padding: EdgeInsets.only(left: 10),
+                  ?  Padding(
+                      padding: const EdgeInsets.only(left: 10),
                       child: SizedBox(
                         width: 14,
                         height: 14,
-                        child: CircularProgressIndicator(strokeWidth: 1.8),
+                        child: Loader(color: Theme.of(context).colorScheme.onPrimary),
                       ),
                     )
                   : Text(
@@ -208,7 +209,7 @@ class _ForgotPasswordVerifyScreenState
                         fontSize: 13.2,
                         color: _isResending
                             ? const Color(0xFFB3B3B3)
-                            : Theme.of(context).colorScheme.primary,
+                            : Theme.of(context).colorScheme.onPrimary,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -221,6 +222,7 @@ class _ForgotPasswordVerifyScreenState
 
   // ── OTP box ───────────────────────────────────────────────────────────────────
   Widget _buildOTPBox(int index) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     return SizedBox(
       width: 55,
       height: 65,
@@ -231,10 +233,12 @@ class _ForgotPasswordVerifyScreenState
         keyboardType: TextInputType.number,
         maxLength: 1,
         inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-        style: const TextStyle(
+        cursorColor: Theme.of(context).colorScheme.onPrimary.withOpacity(0.8),
+        cursorWidth: 1.5,
+        style: AppTextStyles.bodyText.copyWith(
           fontSize: 20,
           fontWeight: FontWeight.w600,
-          color: Color(0xFF111111),
+          color: Theme.of(context).colorScheme.onBackground,
         ),
         onChanged: (val) {
           setState(() => _otpError = '');
@@ -251,10 +255,12 @@ class _ForgotPasswordVerifyScreenState
             borderRadius: BorderRadius.circular(AppRadius.card),
             borderSide: BorderSide(
               color: _otpError.isNotEmpty
-                  ? Colors.red
+                  ? Theme.of(context).colorScheme.error
                   : _otpControllers[index].text.isNotEmpty
-                  ? Theme.of(context).colorScheme.primary
-                  : const Color(0xFFDDDDDD),
+                  ? Theme.of(context).colorScheme.onPrimary.withOpacity(0.7)
+                  : (isDarkMode
+                        ? Theme.of(context).colorScheme.outline
+                        : const Color(0xFFDDDDDD)),
               width: 1,
             ),
           ),
@@ -262,13 +268,11 @@ class _ForgotPasswordVerifyScreenState
             borderRadius: BorderRadius.circular(12),
             borderSide: BorderSide(
               color: _otpError.isNotEmpty
-                  ? Colors.red
-                  : Theme.of(context).colorScheme.primary,
+                  ? Theme.of(context).colorScheme.error
+                  : Theme.of(context).colorScheme.onPrimary.withOpacity(0.6),
               width: 1,
             ),
           ),
-          filled: true,
-          fillColor: Colors.white,
         ),
       ),
     );
@@ -276,6 +280,7 @@ class _ForgotPasswordVerifyScreenState
 
   @override
   Widget build(BuildContext context) {
+    final txt = AppTextColors.of(context);
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.background,
       body: SafeArea(
@@ -289,7 +294,8 @@ class _ForgotPasswordVerifyScreenState
                 widget.isMobile ? 'Verify your number' : 'Verify your email',
                 style: AppTextStyles.subSectionHeading.copyWith(
                   fontSize: 23,
-                  color: const Color(0xFF111111),
+                  color: Theme.of(context).colorScheme.onBackground,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
               const SizedBox(height: 8),
@@ -297,7 +303,7 @@ class _ForgotPasswordVerifyScreenState
                 text: TextSpan(
                   style: AppTextStyles.bodyText.copyWith(
                     fontSize: 14.5,
-                    color: const Color(0xFF595959),
+                    color: txt.body,
                     fontWeight: FontWeight.w500,
                     height: 1.4,
                   ),
@@ -307,7 +313,7 @@ class _ForgotPasswordVerifyScreenState
                       text: widget.maskedContact,
                       style: AppTextStyles.bodyText.copyWith(
                         fontSize: 14.5,
-                        color: const Color(0xFF595959),
+                        color: txt.body,
                         fontWeight: FontWeight.w600,
                         height: 1.4,
                       ),
@@ -329,7 +335,7 @@ class _ForgotPasswordVerifyScreenState
                     _otpError,
                     style: AppTextStyles.bodyText.copyWith(
                       fontSize: 12,
-                      color: Colors.red,
+                      color: Theme.of(context).colorScheme.error
                     ),
                   ),
                 ),
@@ -379,12 +385,12 @@ class _ForgotPasswordVerifyScreenState
                                   const TextSpan(text: 'OTP will expire in '),
                                   TextSpan(
                                     text: _formattedTime,
-                                    style: AppTextStyles.subText.copyWith(
+                                     style: AppTextStyles.subText.copyWith(
                                       fontSize: 14.5,
                                       color: Theme.of(
                                         context,
-                                      ).colorScheme.primary,
-                                      fontWeight: FontWeight.w700,
+                                      ).colorScheme.onPrimary,
+                                      fontWeight: FontWeight.w600,
                                     ),
                                   ),
                                 ],
@@ -404,7 +410,7 @@ class _ForgotPasswordVerifyScreenState
                               text: _formattedTime,
                               style: AppTextStyles.subText.copyWith(
                                 fontSize: 14,
-                                color: Theme.of(context).colorScheme.primary,
+                                color: Theme.of(context).colorScheme.onPrimary,
                                 fontWeight: FontWeight.w700,
                               ),
                             ),

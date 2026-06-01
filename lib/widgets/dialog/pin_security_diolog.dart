@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../core/constants/app_radius.dart';
+import '../../core/themes/app_text_colors.dart';
 import '../../core/themes/app_text_styles.dart';
 import '../../languages/l10n/generated/app_localizations.dart';
 
@@ -61,6 +62,7 @@ class PinSecurityDiolog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final txt = AppTextColors.of(context);
     return Container(
       width: 330,
       decoration: BoxDecoration(
@@ -68,7 +70,7 @@ class PinSecurityDiolog extends StatelessWidget {
         borderRadius: AppRadius.cardRadius,
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
           Padding(
@@ -79,8 +81,8 @@ class PinSecurityDiolog extends StatelessWidget {
                 Text(
                   title,
                   style: AppTextStyles.cardTitle.copyWith(
-                    fontSize: 15.sp,
-                    fontWeight: FontWeight.bold,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
                     color: Theme.of(context).colorScheme.onBackground,
                   ),
                 ),
@@ -88,14 +90,19 @@ class PinSecurityDiolog extends StatelessWidget {
                 Text(
                   diologMessage,
                   style: AppTextStyles.bodyText.copyWith(
-                    color: Theme.of(context).colorScheme.onBackground,
-                    fontSize: 13.sp,
+                    color: txt.body,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w400,
                   ),
                 ),
               ],
             ),
           ),
-          const Divider(height: 1, thickness: 1, color: Color(0XFFDCDCDC)),
+          Divider(
+            height: 0.7,
+            thickness: 0.7,
+            color: Theme.of(context).colorScheme.outlineVariant,
+          ),
           IntrinsicHeight(
             child: Row(
               children: [
@@ -124,10 +131,10 @@ class PinSecurityDiolog extends StatelessWidget {
                 ),
 
                 // Vertical divider
-                const VerticalDivider(
-                  width: 1,
-                  thickness: 1,
-                  color: Color(0XFFDCDCDC),
+                VerticalDivider(
+                  width: 0.7,
+                  thickness: 0.7,
+                  color: Theme.of(context).colorScheme.outlineVariant,
                 ),
 
                 // Confirm button
@@ -145,8 +152,8 @@ class PinSecurityDiolog extends StatelessWidget {
                         AppLocalizations.of(context)!.confirm,
                         textAlign: TextAlign.center,
                         style: AppTextStyles.subText.copyWith(
-                          fontSize: 13.5.sp,
-                          color: const Color(0XFFE5484D),
+                          fontSize: 14,
+                          color: Theme.of(context).colorScheme.onPrimary,
                           fontWeight: FontWeight.w500,
                         ),
                       ),

@@ -1,5 +1,5 @@
 class LikeUser {
-  final int id;
+  final String id;
   final String? fullName;
   final String username;
   final String? profileImage;
@@ -21,7 +21,7 @@ class LikeUser {
 
   factory LikeUser.fromJson(Map<String, dynamic> json) {
     return LikeUser(
-      id: json['user_id'] ?? 0,
+      id: (json['uuid'] ?? json['user_id'] ?? json['id'] ?? '').toString(),
       fullName: json['name'] ?? 'Unknown User',
       username: json['username'] ?? 'Unknown User',
       profileImage: json['avatar_url'],

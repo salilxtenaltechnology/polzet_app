@@ -9,7 +9,7 @@ import '../../../core/themes/app_text_styles.dart';
 
 class ToggleChaseButton extends StatefulWidget {
   final String username;
-  final int userId;
+  final dynamic userId;
   final String followStatus;
   final ApiService apiService;
   final bool isPrivate;
@@ -123,9 +123,9 @@ class _ChaseButtonState extends State<ToggleChaseButton> {
         final nextStatus = widget.isPrivate
             ? 'requested'
             : ((_originalServerStatus == 'followers' ||
-                    _originalServerStatus == 'follower')
-                ? 'both'
-                : 'following');
+                      _originalServerStatus == 'follower')
+                  ? 'both'
+                  : 'following');
 
         setState(() {
           _followStatus = nextStatus;
@@ -159,6 +159,7 @@ class _ChaseButtonState extends State<ToggleChaseButton> {
 
   @override
   Widget build(BuildContext context) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     return GestureDetector(
       onTap: _toggleFollow,
       child: Container(
@@ -167,12 +168,16 @@ class _ChaseButtonState extends State<ToggleChaseButton> {
         margin: const EdgeInsets.only(left: 10),
         decoration: BoxDecoration(
           color: isFollowing
-              ? Theme.of(context).colorScheme.primaryContainer
+              ? (isDarkMode
+                    ? Colors.transparent
+                    : Theme.of(context).colorScheme.primaryContainer)
               : AppColors.primaryColor,
           borderRadius: BorderRadius.circular(AppRadius.button),
           border: isFollowing
               ? Border.all(
-                  color: Theme.of(context).colorScheme.primary.withOpacity(0.8),
+                  color: isDarkMode
+                      ? Theme.of(context).colorScheme.onPrimary.withOpacity(0.3)
+                      : Theme.of(context).colorScheme.primary.withOpacity(0.8),
                   width: 1,
                 )
               : null,
@@ -183,7 +188,11 @@ class _ChaseButtonState extends State<ToggleChaseButton> {
             style: AppTextStyles.subText.copyWith(
               fontSize: 13,
               color: isFollowing
-                  ? Theme.of(context).colorScheme.primary
+                  ? (isDarkMode
+                        ? Theme.of(
+                            context,
+                          ).colorScheme.onPrimary.withOpacity(0.7)
+                        : Theme.of(context).colorScheme.primary)
                   : Colors.white,
               fontWeight: FontWeight.w500,
             ),

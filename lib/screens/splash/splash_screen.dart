@@ -1,13 +1,8 @@
 // ignore_for_file: deprecated_member_use, must_be_immutable, unused_local_variable, unused_element, unused_field, use_build_context_synchronously
 import 'dart:async';
-
 import 'package:flutter/material.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 
-import '../../../core/constants/app_colors.dart';
-import '../../../core/constants/app_strings.dart';
 import '../../../core/navigation/notification_router.dart';
 import '../../../data/token/shared_preferences.dart';
 import '../../../provider/user_provider.dart';
@@ -16,9 +11,8 @@ import '../../mixin/utility_mixins.dart';
 import '../auth/onboarding/onboarding_screen.dart';
 import '../auth/social/social_login_screen.dart';
 import '../home/home_imports.dart';
-import '../home/settings/security/biometric/biometric_screen.dart';
 import '../home/settings/security/biometric/biometric_service.dart';
-import '../home/settings/security/pin/pin_gate_screen.dart';
+import '../home/settings/security/security_gate_screen.dart';
 import '../home/settings/security/pin/pin_status.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -29,13 +23,19 @@ class SplashScreen extends StatefulWidget {
 }
 
 class SplashScreenState extends State<SplashScreen>
-    with SingleTickerProviderStateMixin, UtilityMixin {
-  late AnimationController _controller;
-  late Animation<double> _logoAnimation;
-  late Animation<Offset> _textAnimation;
-
+    with TickerProviderStateMixin, UtilityMixin {
   // Future that resolves to the next screen widget
   late Future<Widget> _initializationFuture;
+
+  // Logo animation
+  late AnimationController _logoController;
+  late Animation<double> _logoScale;
+  late Animation<double> _logoOpacity;
+
+  // Text animation
+  late AnimationController _textController;
+  late Animation<double> _textOpacity;
+  late Animation<Offset> _textSlide;
 
   @override
   void initState() {
@@ -44,36 +44,45 @@ class SplashScreenState extends State<SplashScreen>
     // Start initialization logic immediately
     _initializationFuture = _initializeApp();
 
-    // Initialize animation controller
-    _controller = AnimationController(
+    // ── Logo Animations ──
+    _logoController = AnimationController(
       duration: const Duration(milliseconds: 1000),
       vsync: this,
     );
-
-    // Logo animation: small to big
-    _logoAnimation = Tween<double>(begin: 0.02, end: 1.0).animate(
-      CurvedAnimation(
-        parent: _controller,
-        curve: const Interval(0.0, 0.7, curve: Curves.easeInCubic),
-      ),
+    _logoScale = Tween<double>(begin: 0.05, end: 1.0).animate(
+      CurvedAnimation(parent: _logoController, curve: Curves.easeOutBack),
     );
+    _logoOpacity = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(parent: _logoController, curve: Curves.easeIn));
 
-    // Text animation: right to left
-    _textAnimation =
-        Tween<Offset>(begin: const Offset(2.2, 0.0), end: Offset.zero).animate(
-          CurvedAnimation(
-            parent: _controller,
-            curve: const Interval(0.7, 1.0, curve: Curves.decelerate),
-          ),
-        );
+    // ── Text Animations ──
+    _textController = AnimationController(
+      duration: const Duration(milliseconds: 800),
+      vsync: this,
+    );
+    _textOpacity = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(parent: _textController, curve: Curves.easeIn));
+    _textSlide = Tween<Offset>(
+      begin: const Offset(0.0, 0.5),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(parent: _textController, curve: Curves.easeOut));
 
-    // Start animation and listen for completion
-    _controller.forward();
-    _controller.addStatusListener((status) {
-      if (status == AnimationStatus.completed) {
-        _handleAnimationComplete();
-      }
-    });
+    _playAnimations();
+  }
+
+  Future<void> _playAnimations() async {
+    try {
+      await _logoController.forward().orCancel;
+      await _textController.forward().orCancel;
+    } catch (e) {
+      debugPrint('Animation interrupted: $e');
+    } finally {
+      _handleAnimationComplete();
+    }
   }
 
   Future<Widget> _initializeApp() async {
@@ -96,51 +105,27 @@ class SplashScreenState extends State<SplashScreen>
       final notificationRouter = NotificationRouter();
       Widget? notificationDestination;
       if (notificationRouter.hasPendingNotification()) {
-        notificationDestination = await notificationRouter.resolveDestination();
-      }
-
-      final bool isBiometricEnabled =
-          await BiometricService.isBiometricEnabled();
-      if (!isBiometricEnabled) {
-        return HomeScreen(
-          initialIndex: 0,
-          pendingDestination: notificationDestination,
+        notificationDestination = await notificationRouter.resolveDestination(
+          context,
         );
       }
 
       final bool isPinSecurityEnabled = await PinService.isPinSecurityEnabled();
       final bool isFingerprintEnabled =
           await BiometricService.isFingerprintEnabled();
+      final bool isBiometricAvailable =
+          await BiometricService.isBiometricAvailable();
 
-      if (isPinSecurityEnabled) {
-        final bool isPinSet = await PinService.isPinSet();
-        if (isPinSet) {
-          return PinGateScreen(
-            destination: HomeScreen(
-              initialIndex: 0,
-              pendingDestination: notificationDestination, 
-            ),
-          );
-        }
-      }
-
-      if (isFingerprintEnabled) {
-        final bool isBiometricAvailable =
-            await BiometricService.isBiometricAvailable();
-        if (isBiometricAvailable) {
-          return BiometricGateScreen(
-            destination: HomeScreen(
-              initialIndex: 0,
-              pendingDestination: notificationDestination,
-            ),
-          );
-        }
-      }
-
-      return HomeScreen(
+      final homeScreen = HomeScreen(
         initialIndex: 0,
         pendingDestination: notificationDestination,
       );
+
+      if (isPinSecurityEnabled || (isFingerprintEnabled && isBiometricAvailable)) {
+        return SecurityGateScreen(destination: homeScreen);
+      }
+
+      return homeScreen;
     }
 
     // ── Not logged in → check onboarding
@@ -162,7 +147,14 @@ class SplashScreenState extends State<SplashScreen>
     await Future.delayed(const Duration(milliseconds: 400));
 
     if (!mounted) return;
-    final nextScreen = await _initializationFuture;
+
+    Widget nextScreen;
+    try {
+      nextScreen = await _initializationFuture;
+    } catch (e) {
+      debugPrint('Initialization error: $e');
+      nextScreen = const SocialLoginScreen();
+    }
 
     if (!mounted) return;
     Navigator.of(context).pushAndRemoveUntil(
@@ -173,51 +165,86 @@ class SplashScreenState extends State<SplashScreen>
 
   @override
   void dispose() {
-    _controller.dispose();
+    _logoController.dispose();
+    _textController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                AnimatedBuilder(
-                  animation: _logoAnimation,
-                  builder: (context, child) {
-                    return Transform.scale(
-                      scale: _logoAnimation.value,
-                      child: Image.asset(
-                        Assets.images.icSplash.path,
-                        width: 38.w,
-                        height: 38.h,
-                      ),
-                    );
-                  },
-                ),
-                SizedBox(width: 7.w),
-                SlideTransition(
-                  position: _textAnimation,
-                  child: Text(
-                    AppStrings.appName.toUpperCase(),
-                    style: GoogleFonts.yesevaOne(
-                      color: AppColors.primaryColor,
-                      fontSize: 28.sp,
-                      fontWeight: FontWeight.w500,
-                      letterSpacing: 1.4,
+      backgroundColor: const Color(0xFF02000E),
+      body: Stack(
+        fit: StackFit.expand,
+        children: [
+          Align(
+            alignment: Alignment.center,
+            child: Opacity(
+              opacity: 0.7,
+              child: Image.asset(
+                Assets.images.bgSpalsh.path,
+                fit: BoxFit.scaleDown,
+              ),
+            ),
+          ),
+
+          Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              // ── Logo ──
+              AnimatedBuilder(
+                animation: _logoController,
+                builder: (_, __) => Opacity(
+                  opacity: _logoOpacity.value,
+                  child: Transform.scale(
+                    scale: _logoScale.value,
+                    child: Image.asset(
+                      Assets.images.icSplash.path,
+                      width: 130,
+                      height: 130,
                     ),
                   ),
                 ),
-              ],
-            ),
-          ],
-        ),
+              ),
+
+              const SizedBox(height: 30),
+
+              // ── POLZET gradient text ──
+              AnimatedBuilder(
+                animation: _textController,
+                builder: (_, __) => FadeTransition(
+                  opacity: _textOpacity,
+                  child: SlideTransition(
+                    position: _textSlide,
+                    child: ShaderMask(
+                      shaderCallback: (bounds) => const LinearGradient(
+                        colors: [
+                          Color(0xFFFB7A44), // #FB7A44
+                          Color(0xFFFD555A), // #FD555A
+                          Color(0xFFC004A3), // #C004A3
+                          Color(0xFF5909B5), // #5909B5
+                        ],
+                        begin: Alignment.centerLeft,
+                        end: Alignment.centerRight,
+                      ).createShader(bounds),
+                      blendMode: BlendMode.srcIn,
+                      child: const Text(
+                        'POLZET',
+                        style: TextStyle(
+                          fontFamily: 'Inter',
+                          fontSize: 38,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
+                          letterSpacing: 8,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }

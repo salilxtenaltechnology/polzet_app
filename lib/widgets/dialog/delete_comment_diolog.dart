@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../core/constants/app_radius.dart';
+import '../../core/themes/app_text_colors.dart';
+import '../../core/themes/app_text_styles.dart';
 import '../../languages/l10n/generated/app_localizations.dart';
 
 class DeleteCommentDiolog extends StatelessWidget {
@@ -12,64 +14,112 @@ class DeleteCommentDiolog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+     final txt = AppTextColors.of(context);
     return Container(
-      width: 325,
-      padding: EdgeInsets.fromLTRB(15.w, 12.h, 15.w, 12.h),
+      width: 330,
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.secondaryContainer,
-        borderRadius:  AppRadius.cardRadius,
+        borderRadius: AppRadius.cardRadius,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(
-           AppLocalizations.of(context)!.deletecomment,
-            style: TextStyle(
-              color: Theme.of(context).colorScheme.onBackground,
-              fontSize: 11.3.sp,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          SizedBox(height: 8.h),
-          Text(
-           AppLocalizations.of(context)!.areyousurewanttodeletethiscomments,
-            style: TextStyle(
-              color: Theme.of(context).colorScheme.onBackground,
-              fontSize: 11.sp,
-              fontWeight: FontWeight.w400,
-            ),
-          ),
-          SizedBox(height: 10.h),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              GestureDetector(
-                onTap: () => Navigator.of(context).pop(),
-                child: Text(
-                  AppLocalizations.of(context)!.cancel.toUpperCase(),
-                  style: TextStyle(
-                    fontSize: 11.5.sp,
+          Padding(
+             padding: const EdgeInsets.all(15),
+            child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  AppLocalizations.of(context)!.deletecomment,
+                  style: AppTextStyles.cardTitle.copyWith(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
                     color: Theme.of(context).colorScheme.onBackground,
-                    fontWeight: FontWeight.w500,
                   ),
                 ),
-              ),
-              SizedBox(width: 15.w),
-              GestureDetector(
-                onTap: onPressed,
-                child: Text(
-                AppLocalizations.of(context)!.yesdelete,
-                  style: TextStyle(
-                    fontSize: 11.5.sp,
-                     color: Theme.of(context).colorScheme.error,
-                    fontWeight: FontWeight.w500,
+                 SizedBox(height: 8.h),
+          Text(
+            AppLocalizations.of(context)!.areyousurewanttodeletethiscomments,
+             style: AppTextStyles.bodyText.copyWith(
+                    color: txt.body,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w400,
                   ),
-                ),
-              ),
-            ],
           ),
-        ],
+              ],
+            ),
+          ),
+         
+        Divider(
+            height: 0.7,
+            thickness: 0.7,
+            color: Theme.of(context).colorScheme.outlineVariant,
+          ),
+
+
+           IntrinsicHeight(
+            child: Row(
+              children: [
+                // Cancel button
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () => Navigator.of(context).pop(),
+                    child: Container(
+                      padding: EdgeInsets.symmetric(vertical: 10.h),
+                      decoration: const BoxDecoration(
+                        borderRadius: BorderRadius.only(
+                          bottomLeft: Radius.circular(20),
+                        ),
+                      ),
+                      child: Text(
+                        AppLocalizations.of(context)!.cancel,
+                        textAlign: TextAlign.center,
+                        style: AppTextStyles.subText.copyWith(
+                          fontSize: 14,
+                          color: const Color(0XFF898989),
+                          fontWeight: FontWeight.w400,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+
+                // Vertical divider
+                VerticalDivider(
+                  width: 0.7,
+                  thickness: 0.7,
+                  color: Theme.of(context).colorScheme.outlineVariant,
+                ),
+
+                // Log out button
+                Expanded(
+                  child: GestureDetector(
+                    onTap: onPressed,
+                    child: Container(
+                      padding: EdgeInsets.symmetric(vertical: 10.h),
+                      decoration: const BoxDecoration(
+                        borderRadius: BorderRadius.only(
+                          bottomRight: Radius.circular(20),
+                        ),
+                      ),
+                      child: Text(
+                        AppLocalizations.of(context)!.yesdelete,
+                        textAlign: TextAlign.center,
+                        style: AppTextStyles.subText.copyWith(
+                          fontSize: 14,
+                          color: Theme.of(context).colorScheme.error,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+
+           )
+        ]
       ),
     );
   }

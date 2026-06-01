@@ -1725,4 +1725,347 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get passworddonotmatch => 'Passwörter stimmen nicht überein';
+
+  @override
+  String get home => 'Startseite';
+
+  @override
+  String get profile => 'Profil';
+
+  @override
+  String get chats => 'Chats';
+
+  @override
+  String get groups => 'Gruppen';
+
+  @override
+  String get shareprofile => 'Profil teilen';
+
+  @override
+  String get images => 'Bilder';
+
+  @override
+  String get nothingsavedyet => 'Noch nichts gespeichert';
+
+  @override
+  String get savedpollsyouwanttorevisitlater =>
+      'Gespeicherte Umfragen, die du später erneut ansehen möchtest.';
+
+  @override
+  String get nothingspollyet => 'Noch keine Dinge-Umfrage';
+
+  @override
+  String get createyourfirstpollandstartgatheringopinions =>
+      'Erstelle deine erste Umfrage und sammle Meinungen.';
+
+  @override
+  String get noimagepollyet => 'Noch keine Bildumfrage';
+
+  @override
+  String get submitranking => 'Ranking einreichen';
+
+  @override
+  String get rankyourchoices => 'Bewerte deine Auswahl';
+
+  @override
+  String get holdanddragtorankimage => 'Halten und ziehen, um Bild zu ranken';
+
+  @override
+  String get holdanddragtorankanswer =>
+      'Halten und ziehen, um Antwort zu ranken';
+
+  @override
+  String get stayactiveandsharepollstobuildyourcommunity =>
+      'Bleib aktiv und teile Umfragen, um deine Community aufzubauen';
+
+  @override
+  String get askopinionsandgetanswers =>
+      'Meinungen einholen und Antworten erhalten';
+
+  @override
+  String get updateyourpasswordandsecureyouraccount =>
+      'Passwort aktualisieren und Konto sichern';
+
+  @override
+  String get controlwhocanviewyouractivityandpolls =>
+      'Steuere, wer deine Aktivitäten und Umfragen sehen kann';
+
+  @override
+  String get managepeopleyouveblockedonpolzet =>
+      'Auf Polzet blockierte Personen verwalten';
+
+  @override
+  String get preferences => 'Einstellungen';
+
+  @override
+  String get choosewhatupdatesandalertsyouwanttoreceive =>
+      'Wähle, welche Updates und Benachrichtigungen du erhalten möchtest';
+
+  @override
+  String get chooseyourpreferredapplanguage =>
+      'Wähle deine bevorzugte App-Sprache';
+
+  @override
+  String get gethelpwithyouraccount => 'Hilfe zu deinem Konto erhalten';
+
+  @override
+  String get shareyourthoughtsandhelpimprovepolzet =>
+      'Teile deine Gedanken und hilf, Polzet zu verbessern.';
+
+  @override
+  String get readtherulesandguidelinesforusingpolzet =>
+      'Lies die Regeln und Richtlinien für die Nutzung von Polzet.';
+
+  @override
+  String get continueButton => 'Weiter';
+
+  @override
+  String get currentpasswordisrequired =>
+      'Aktuelles Passwort ist erforderlich.';
+
+  @override
+  String get newpasswordisrequired => 'Neues Passwort ist erforderlich.';
+
+  @override
+  String get mustbeeightpluscharacterswithaletternumberandspecialcharacter =>
+      'Mindestens 8 Zeichen mit Buchstabe, Zahl und Sonderzeichen.';
+
+  @override
+  String get pleaseconfirmyournewpassword => 'Bitte neues Passwort bestätigen.';
+
+  @override
+  String get passwordsdonotmatch => 'Passwörter stimmen nicht überein.';
+
+  @override
+  String get pushnotification => 'Push-Benachrichtigung';
+
+  @override
+  String get receivealertandupdatesacrosspolzet =>
+      'Benachrichtigungen und Updates auf Polzet erhalten.';
+
+  @override
+  String get pollactivity => 'Umfrageaktivität';
+
+  @override
+  String get commentsandreplies => 'Kommentare und Antworten';
+
+  @override
+  String get socialactivity => 'Soziale Aktivität';
+
+  @override
+  String get searchaccountspostsplaces => 'Konten, Beiträge, Orte suchen…';
+
+  @override
+  String get norecentsearches => 'Keine letzten Suchanfragen';
+
+  @override
+  String get tryanotherkeywordorexploretrendingpolls =>
+      'Versuche ein anderes Schlüsselwort oder entdecke Trend-Umfragen.';
+
+  @override
+  String get searching => 'Suche läuft...';
+
+  @override
+  String get notfound => 'Nicht gefunden';
+
+  @override
+  String get accounts => 'Konten';
+
+  @override
+  String get accountslower => 'Konten';
+
+  @override
+  String get trysearchingwithadifferentusernameorkeyword =>
+      'Suche mit einem anderen Benutzernamen oder Schlüsselwort.';
+
+  @override
+  String get tags => 'Tags';
+
+  @override
+  String get tag => 'Tags';
+
+  @override
+  String get no => 'Keine';
+
+  @override
+  String get found => 'gefunden';
+
+  @override
+  String get post => 'Beiträge';
+
+  @override
+  String get exploretrendingconversationsortryanothersearch =>
+      'Entdecke Trendgespräche oder versuche eine andere Suche.';
+
+  @override
+  String get photoslower => 'Fotos';
+
+  @override
+  String get wecouldnotfindanymatchingphotos =>
+      'Keine passenden Fotos gefunden.';
+
+  @override
+  String get trysearchingforanothertopicorkeyword =>
+      'Suche nach einem anderen Thema oder Schlüsselwort.';
+
+  @override
+  String get today => 'Heute';
+
+  @override
+  String get yesterday => 'Gestern';
+
+  @override
+  String get lastsavendays => 'Letzte 7 Tage';
+
+  @override
+  String get lastthirtydays => 'Letzte 30 Tage';
+
+  @override
+  String get older => 'Älter';
+
+  @override
+  String get clearallnotifications => 'Alle Benachrichtigungen löschen';
+
+  @override
+  String get areyousureyouwanttoclearallnotifications =>
+      'Alle Benachrichtigungen wirklich löschen?';
+
+  @override
+  String get yesclearall => 'Ja, alle löschen';
+
+  @override
+  String get deletenotifications => 'Benachrichtigungen löschen';
+
+  @override
+  String get areyousureyouwanttodeletethesenotifications =>
+      'Diese Benachrichtigungen wirklich löschen?';
+
+  @override
+  String get thisoinwillbeusedtosecureyouraccount =>
+      'Diese PIN wird zur Sicherung deines Kontos verwendet';
+
+  @override
+  String get changeoin => 'PIN ändern';
+
+  @override
+  String get likedby => 'Gefällt';
+
+  @override
+  String get bethefirsttostarttheconversation =>
+      'Sei der Erste, der die Unterhaltung beginnt';
+
+  @override
+  String get suggestedforyou => 'Für dich vorgeschlagen';
+
+  @override
+  String get pollresult => 'Umfrageergebnis';
+
+  @override
+  String get totalvotes => 'Stimmen gesamt';
+
+  @override
+  String get saved => 'Gespeichert';
+
+  @override
+  String get screenshotsoptional => 'Screenshots (Optional)';
+
+  @override
+  String get nomessagesyet => 'Noch keine Nachrichten';
+
+  @override
+  String get nonotificationsyet => 'Noch keine Benachrichtigungen';
+
+  @override
+  String get likescommentsandupdateswillappearhere =>
+      'Likes, Kommentare und Updates erscheinen hier.';
+
+  @override
+  String get votesupdateswillappearhere => 'Stimmen-Updates erscheinen hier.';
+
+  @override
+  String get chaserequestsupdateswillappearhere =>
+      'Chase-Anfragen-Updates erscheinen hier.';
+
+  @override
+  String get startchattingbysharingpollsorreactingtoconversations =>
+      'Starte den Chat, indem du Umfragen teilst oder\nauf Gespräche reagierst.';
+
+  @override
+  String get doyouwanttochangeyourcurrentpin =>
+      'Möchtest du deine aktuelle PIN ändern?';
+
+  @override
+  String get top => 'Top';
+
+  @override
+  String get searchvoters => 'Wähler suchen';
+
+  @override
+  String get fingerprint => 'Fingerabdruck';
+
+  @override
+  String get enablefingerprint => 'Fingerabdruck aktivieren';
+
+  @override
+  String get unlocktheappfasterandmoresecurelybyusingyourfingerprint =>
+      'Entsperre die App schneller und sicherer\nmit deinem Fingerabdruck';
+
+  @override
+  String get thisaccountisprivate => 'Dieses Konto ist privat';
+
+  @override
+  String get chasethisaccounttoseetheirposts =>
+      'Folge diesem Konto, um seine Beiträge zu sehen.';
+
+  @override
+  String get online => 'Online';
+
+  @override
+  String get offline => 'Offline';
+
+  @override
+  String get startchasingpeopletodiscoverfreshopinionsthenwillappearusershere =>
+      'Folge Personen, um neue Meinungen zu entdecken\ndann erscheinen Nutzer hier';
+
+  @override
+  String get selectyourdateofbirth => 'Geburtsdatum auswählen';
+
+  @override
+  String get selected => 'Ausgewählt';
+
+  @override
+  String get chasing => 'Folge ich';
+
+  @override
+  String get chaseback => 'Zurückfolgen';
+
+  @override
+  String get requested => 'Angefragt';
+
+  @override
+  String get usefingerprint => 'Fingerabdruck verwenden';
+
+  @override
+  String get novotersfound => 'Keine Wähler gefunden';
+
+  @override
+  String get permanentlydeleteyourpolzetaccountandalldata =>
+      'Lösche dein Polzet-Konto und alle Daten dauerhaft';
+
+  @override
+  String get unblockuser => 'Nutzer entsperren';
+
+  @override
+  String get blockuser => 'Nutzer sperren';
+
+  @override
+  String get areyousureyouwanttounblockthisuser =>
+      'Bist du sicher, dass du diesen Nutzer entsperren möchtest?';
+
+  @override
+  String get areyousureyouwanttoblockthisuser =>
+      'Bist du sicher, dass du diesen Nutzer sperren möchtest?';
+
+  @override
+  String get nopostsavailable => 'Keine Beiträge verfügbar';
 }
