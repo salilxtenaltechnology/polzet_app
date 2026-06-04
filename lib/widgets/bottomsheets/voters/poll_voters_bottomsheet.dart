@@ -328,9 +328,7 @@ class _PollVotersBottomsheetState extends State<PollVotersBottomsheet> {
                                   backgroundImage: avatarBytes != null
                                       ? MemoryImage(avatarBytes)
                                       : null,
-                                  backgroundColor: isDarkMode
-                                      ? const Color(0xFF38383C)
-                                      : Colors.grey.shade100,
+                                  backgroundColor: Theme.of(context).colorScheme.onPrimary.withOpacity(0.1),
                                   child: avatarBytes == null
                                       ? Text(
                                           voter.fullName.isNotEmpty
@@ -345,7 +343,7 @@ class _PollVotersBottomsheetState extends State<PollVotersBottomsheet> {
                                                     .onPrimary
                                                     .withOpacity(0.7),
                                                 fontSize: 18,
-                                                fontWeight: FontWeight.w600,
+                                                fontWeight: FontWeight.w500,
                                               ),
                                         )
                                       : null,

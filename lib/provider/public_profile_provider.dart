@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../api/services/api_service.dart';
 import '../models/public/public_profile_model.dart';
+import '../models/global search/global_search_model.dart';
 
 enum ProfileErrorType { noInternet, serverError, unknown, none }
 
@@ -68,6 +69,84 @@ class PublicProfileProvider extends ChangeNotifier {
       }
     } catch (e) {
       debugPrint('Error fetching public profile: $e');
+      final msg = e.toString();
+
+      if (msg.contains('Network error') ||
+          msg.contains('SocketException') ||
+          msg.contains('connection') ||
+          msg.contains('NetworkException')) {
+        _errorType = ProfileErrorType.noInternet;
+        _error = 'No internet connection';
+      } else if (msg.contains('500') ||
+          msg.contains('503') ||
+          msg.contains('502') ||
+          msg.contains('server')) {
+        _errorType = ProfileErrorType.serverError;
+        _error = 'Server error';
+      } else {
+        _errorType = ProfileErrorType.unknown;
+        _error = _parseErrorMessage(msg);
+      }
+
+      _profileResponse = null;
+      _userProfile = null;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  /// Fetches public user profile by username
+  Future<void> fetchPublicUserProfileByUsername(
+    String username, {
+    bool isRefresh = false,
+  }) async {
+    if (_userProfile != null && _userProfile!.username != username) {
+      _userProfile = null;
+      _profileResponse = null;
+    }
+    if (!isRefresh) {
+      _isLoading = true;
+      _error = null;
+      _errorType = ProfileErrorType.none;
+      notifyListeners();
+    }
+
+    try {
+      final searchResult = await ApiService().globalSearch(username);
+      if (searchResult != null &&
+          searchResult.success &&
+          searchResult.data.accounts.isNotEmpty) {
+        SearchAccount? targetAccount;
+        for (final acc in searchResult.data.accounts) {
+          if (acc.username.toLowerCase() == username.toLowerCase()) {
+            targetAccount = acc;
+            break;
+          }
+        }
+        final account = targetAccount ?? searchResult.data.accounts.first;
+        
+        final response = await ApiService.getUserPublicProfile(account.uuid);
+
+        if (response.status == 'success') {
+          _profileResponse = response;
+          _userProfile = response.data;
+          _error = null;
+          _errorType = ProfileErrorType.none;
+        } else {
+          _error = response.message;
+          _errorType = ProfileErrorType.unknown;
+          _profileResponse = null;
+          _userProfile = null;
+        }
+      } else {
+        _error = 'User not found';
+        _errorType = ProfileErrorType.unknown;
+        _profileResponse = null;
+        _userProfile = null;
+      }
+    } catch (e) {
+      debugPrint('Error fetching public profile by username: $e');
       final msg = e.toString();
 
       if (msg.contains('Network error') ||

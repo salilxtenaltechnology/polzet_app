@@ -1,3 +1,6 @@
+import 'dart:convert';
+import 'package:flutter/material.dart';
+
 class UserSuggestionsModel {
   final String status;
   final SuggestionsData data;
@@ -43,6 +46,42 @@ class SuggestedUser {
   final List<String> mutualFriendsAvatars;
   final List<String> tags;
   final bool isNew;
+
+  // Cached image providers to prevent reloading/flickering on widget rebuilds
+  ImageProvider? _avatarImageProvider;
+  ImageProvider get avatarImageProvider {
+    if (_avatarImageProvider == null) {
+      if (avatar.startsWith('data:image')) {
+        try {
+          _avatarImageProvider = MemoryImage(base64Decode(avatar.split(',').last));
+        } catch (_) {
+          _avatarImageProvider = NetworkImage(avatar);
+        }
+      } else {
+        _avatarImageProvider = NetworkImage(avatar);
+      }
+    }
+    return _avatarImageProvider!;
+  }
+
+  List<ImageProvider>? _mutualImageProviders;
+  List<ImageProvider> get mutualImageProviders {
+    if (_mutualImageProviders == null) {
+      _mutualImageProviders = [];
+      for (final url in mutualFriendsAvatars) {
+        if (url.startsWith('data:image')) {
+          try {
+            _mutualImageProviders!.add(MemoryImage(base64Decode(url.split(',').last)));
+          } catch (_) {
+            _mutualImageProviders!.add(NetworkImage(url));
+          }
+        } else {
+          _mutualImageProviders!.add(NetworkImage(url));
+        }
+      }
+    }
+    return _mutualImageProviders!;
+  }
 
   SuggestedUser({
     required this.id,

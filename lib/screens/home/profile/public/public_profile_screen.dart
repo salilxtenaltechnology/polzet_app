@@ -1,6 +1,8 @@
 // ignore_for_file: deprecated_member_use, must_be_immutable
 import 'package:polzet_app/core/constants/feather_icons_compat.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import '../../../../widgets/show_toast.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:polzet_app/languages/l10n/generated/app_localizations.dart';
 import 'package:provider/provider.dart';
@@ -13,6 +15,7 @@ import '../../../../gen/assets.gen.dart';
 import '../../../../mixin/utility_mixins.dart';
 import '../../../../provider/private_chat_provider.dart';
 import '../../../../provider/public_profile_provider.dart';
+import '../../../../data/token/shared_preferences.dart';
 import '../../../../widgets/button/back_button.dart';
 import '../../../../widgets/loader.dart';
 import '../../../../widgets/shimmer/profile_simmer.dart';
@@ -38,22 +41,24 @@ import '../../../../api/services/share/share_service.dart';
 enum FollowStatus { none, rechase, chase, both, pending }
 
 class PublicProfileScreen extends StatelessWidget {
-  final String userId;
-  const PublicProfileScreen({super.key, required this.userId});
+  final String? userId;
+  final String? username;
+  const PublicProfileScreen({super.key, this.userId, this.username});
 
   @override
   Widget build(BuildContext context) {
-    debugPrint('Public Id : $userId');
+    debugPrint('Public Id : $userId, Username: $username');
     return ChangeNotifierProvider(
       create: (_) => PublicProfileProvider(),
-      child: _PublicProfileScreenBody(userId: userId),
+      child: _PublicProfileScreenBody(userId: userId, username: username),
     );
   }
 }
 
 class _PublicProfileScreenBody extends StatefulWidget {
-  final String userId;
-  const _PublicProfileScreenBody({required this.userId});
+  final String? userId;
+  final String? username;
+  const _PublicProfileScreenBody({this.userId, this.username});
 
   @override
   State<_PublicProfileScreenBody> createState() =>
@@ -63,6 +68,8 @@ class _PublicProfileScreenBody extends StatefulWidget {
 class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
     with SingleTickerProviderStateMixin, UtilityMixin {
   final ApiService apiService = ApiService();
+  String? resolvedUserId;
+  Future<String?>? _authTokenFuture;
   bool isLoadingPosts = true;
   List<PublicPost> cachedThingsPosts = [];
   List<PublicPost> cachedImagesPosts = [];
@@ -178,7 +185,7 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
           _isProcessingRequest = false;
         });
 
-        final success = await apiService.cancelFriendRequest(widget.userId);
+        final success = await apiService.cancelFriendRequest(resolvedUserId ?? widget.userId);
 
         if (!success) {
           setState(() => _localFollowStatus = FollowStatus.pending);
@@ -209,7 +216,7 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
           _isProcessingRequest = false;
         });
 
-        final response = await apiService.unfriend(widget.userId);
+        final response = await apiService.unfriend(resolvedUserId ?? widget.userId);
 
         if (response['status'] == 'success') {
           // Confirmed by server → now safe to update server status
@@ -280,12 +287,21 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+    _authTokenFuture = SharedPrefService.getToken();
 
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<PublicProfileProvider>().fetchPublicUserProfile(
-        widget.userId,
-      );
-      _loadData();
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final provider = context.read<PublicProfileProvider>();
+      if (widget.userId != null) {
+        resolvedUserId = widget.userId;
+        provider.fetchPublicUserProfile(widget.userId!);
+        _loadData();
+      } else if (widget.username != null) {
+        await provider.fetchPublicUserProfileByUsername(widget.username!);
+        if (provider.userProfile != null) {
+          resolvedUserId = provider.userProfile!.id;
+          _loadData();
+        }
+      }
     });
   }
 
@@ -354,7 +370,8 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
     );
   }
 
-  Future<void> _fetchLikedUsersSilently(String postId) async {
+  Future<void> _fetchLikedUsersSilently(String postId, {bool force = false}) async {
+    if (!force && postLikedUsers.containsKey(postId)) return;
     try {
       final users = await ApiService().fetchLikedUsers(postId);
       if (mounted) {
@@ -415,7 +432,7 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
         });
 
         if (result.likesCount > 0) {
-          _fetchLikedUsersSilently(postId);
+          _fetchLikedUsersSilently(postId, force: true);
         } else {
           setState(() {
             postLikedUsers.remove(postId);
@@ -482,58 +499,64 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
         //   'Profile',
         //   style: AppTextStyles.pageTitleTextStyle(context),
         // ),
-        actions: const [
-          // Theme(
-          //   data: Theme.of(context).copyWith(
-          //     splashColor: Colors.transparent,
-          //     highlightColor: Colors.transparent,
-          //   ),
-          //   child: PopupMenuButton<String>(
-          //     icon: const Icon(
-          //       FeatherIcons.moreVertical,
-          //       size: 22,
-          //       color: Colors.black,
-          //     ),
-          //     color: Colors.white,
-          //     shape: RoundedRectangleBorder(
-          //       borderRadius: BorderRadius.circular(12),
-          //     ),
-          //     offset: const Offset(0, 45),
-          //     elevation: 2,
-          //     padding: EdgeInsets.zero,
-          //     onSelected: (String result) {
-          //       // Handle menu selection
-          //     },
-          //     itemBuilder: (BuildContext context) {
-          //       PopupMenuItem<String> buildItem(String text) {
-          //         return PopupMenuItem<String>(
-          //           padding: const EdgeInsets.fromLTRB(10, 12, 10, 0),
-          //           value: text,
-          //           height: 45,
-          //           child: Text(
-          //             text,
-          //             style: AppTextStyles.bodyText.copyWith(
-          //               color: const  Color(0XFF595959),
-          //               fontWeight: FontWeight.w500,
-          //               fontSize: 13.5
+        actions:  [
+          Theme(
+            data: Theme.of(context).copyWith(
+              splashColor: Colors.transparent,
+              highlightColor: Colors.transparent,
+            ),
+            child: PopupMenuButton<String>(
+              icon: const Icon(
+                FeatherIcons.moreVertical,
+                size: 22,
+                color: Colors.black,
+              ),
+              color: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              offset: const Offset(0, 45),
+              elevation: 2,
+              padding: EdgeInsets.zero,
+              onSelected: (String result) {
+                if (profile == null) return;
+                if (result == 'Share Profile') {
+                  ShareService.shareProfile(
+                    username: profile.username,
+                    context: context,
+                  );
+                } else if (result == 'Copy Profile Link') {
+                  final link = 'https://www.polzet.com/profile/${profile.username}';
+                  Clipboard.setData(ClipboardData(text: link)).then((_) {
+                    showToast(message: 'Link copied');
+                  });
+                }
+              },
+              itemBuilder: (BuildContext context) {
+                PopupMenuItem<String> buildItem(String text) {
+                  return PopupMenuItem<String>(
+                    padding: const EdgeInsets.fromLTRB(10, 12, 10, 0),
+                    value: text,
+                    height: 45,
+                    child: Text(
+                      text,
+                      style: AppTextStyles.bodyText.copyWith(
+                        color: const  Color(0XFF595959),
+                        fontWeight: FontWeight.w500,
+                        fontSize: 13.5
 
-          //             )
-          //           ),
-          //         );
-          //       }
+                      )
+                    ),
+                  );
+                }
 
-          //       return <PopupMenuEntry<String>>[
-          //         buildItem('Share Profile'),
-          //         buildItem('Copy Profile Link'),
-          //         buildItem('Mute User'),
-          //         buildItem('Remove'),
-          //         buildItem('Report User'),
-          //       ];
-          //     },
-          //   ),
-          // ),
-          Icon(FeatherIcons.moreVertical, size: 22, color: Colors.black),
-          SizedBox(width: 4),
+                return <PopupMenuEntry<String>>[
+                  buildItem('Share Profile'),
+                  buildItem('Copy Profile Link'),
+                ];
+              },
+            ),
+          ),
         ],
       ),
       body: RefreshIndicator(
@@ -726,14 +749,30 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
       context,
       listen: false,
     );
-    await publicProfileProvider.fetchPublicUserProfile(
-      widget.userId,
-      isRefresh: true,
-    );
+    
+    if (widget.userId != null) {
+      resolvedUserId = widget.userId;
+      await publicProfileProvider.fetchPublicUserProfile(
+        widget.userId!,
+        isRefresh: true,
+      );
+    } else if (widget.username != null) {
+      await publicProfileProvider.fetchPublicUserProfileByUsername(
+        widget.username!,
+        isRefresh: true,
+      );
+      if (publicProfileProvider.userProfile != null) {
+        resolvedUserId = publicProfileProvider.userProfile!.id;
+      }
+    }
+    
     await _loadData(isRefresh: true);
   }
 
   Future<void> _loadData({bool isRefresh = false}) async {
+    final targetUserId = resolvedUserId ?? widget.userId;
+    if (targetUserId == null) return;
+
     if (!isRefresh) {
       setState(() {
         isLoadingPosts = true;
@@ -742,7 +781,7 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
 
     await Future.wait([
       apiService
-          .fetchPostsWithImages(widget.userId)
+          .fetchPostsWithImages(targetUserId)
           .then((posts) {
             if (mounted) {
               setState(() {
@@ -759,16 +798,11 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
           })
           .catchError((_) {}),
       apiService
-          .fetchPublicPostsPolls(widget.userId)
+          .fetchPublicPostsPolls(targetUserId)
           .then((posts) {
             if (mounted) {
               setState(() {
-                cachedThingsPosts = posts.where((post) {
-                  if (post.polls.isEmpty) return false;
-                  return post.polls.any(
-                    (poll) => poll.options.any((option) => option.text != null),
-                  );
-                }).toList();
+                cachedThingsPosts = posts;
               });
               for (var post in cachedThingsPosts) {
                 postLikeStates[post.id] = post.isLiked;
@@ -1364,6 +1398,7 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
                 Alignment alignment = alignments[index];
                 double imageWidth = (availableWidth * 0.7) - (index * 8.0);
                 imageWidth = imageWidth < 60.w ? 60.w : imageWidth;
+                final imageUrl = '${ApiConfig.baseUrlImage}${imageData.url}';
 
                 return Align(
                   alignment: alignment,
@@ -1377,24 +1412,42 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
                       ),
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(AppRadius.button),
-                        child: Image.network(
-                          '${ApiConfig.baseUrlImage}${imageData.url}',
-                          fit: BoxFit.cover,
-                          width: double.infinity,
-                          height: double.infinity,
-                          errorBuilder: (context, error, stackTrace) {
-                            return Container(
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(
-                                  AppRadius.button,
+                        child: FutureBuilder<String?>(
+                          future: _authTokenFuture,
+                          builder: (context, snapshot) {
+                            if (snapshot.connectionState == ConnectionState.waiting) {
+                              return Container(
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(AppRadius.button),
+                                  color: Colors.grey[200],
                                 ),
-                                color: Colors.grey[200],
-                              ),
-                              child: Icon(
-                                Icons.image_not_supported,
-                                color: Colors.grey[600],
-                                size: 30,
-                              ),
+                              );
+                            }
+                            final token = snapshot.data;
+                            final headers = token != null && imageUrl.contains('/api/')
+                                ? {'Authorization': 'Bearer $token'}
+                                : null;
+                            return Image.network(
+                              imageUrl,
+                              fit: BoxFit.cover,
+                              width: double.infinity,
+                              height: double.infinity,
+                              headers: headers,
+                              errorBuilder: (context, error, stackTrace) {
+                                return Container(
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(
+                                      AppRadius.button,
+                                    ),
+                                    color: Colors.grey[200],
+                                  ),
+                                  child: Icon(
+                                    Icons.image_not_supported,
+                                    color: Colors.grey[600],
+                                    size: 30,
+                                  ),
+                                );
+                              },
                             );
                           },
                         ),

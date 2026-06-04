@@ -160,7 +160,7 @@ class _RankSubmittedScreenState extends State<RankSubmittedScreen>
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'Your feed is now personalized just for you.',
+                      'Your opinion has been counted!',
                       style: AppTextStyles.bodyText.copyWith(
                         fontSize: 14,
                         color: txt.body,

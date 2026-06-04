@@ -17,12 +17,15 @@ class DeepLinkService {
   StreamSubscription<Uri>? _sub;
   Uri? _initialLink;
   Function(String username, String postId)? _onPostLinkReceived;
+  Function(String username)? _onProfileLinkReceived;
 
-  /*---- Parameters: username, postId ----*/
+  /*---- Parameters: username, postId, profile ----*/
   Future<void> initialize({
     required Function(String username, String postId) onPostLinkReceived,
+    required Function(String username) onProfileLinkReceived,
   }) async {
     _onPostLinkReceived = onPostLinkReceived;
+    _onProfileLinkReceived = onProfileLinkReceived;
 
     try {
       _initialLink = await _appLinks.getInitialLink();
@@ -44,15 +47,34 @@ class DeepLinkService {
     );
   }
 
+  String? _lastProcessedLink;
+  DateTime? _lastProcessedTime;
+
   /*---- Parse and handle deep link ----*/
   void _handleDeepLink(Uri uri) {
     try {
+      final linkString = uri.toString();
+      final now = DateTime.now();
+      
+      if (_lastProcessedLink == linkString &&
+          _lastProcessedTime != null &&
+          now.difference(_lastProcessedTime!) < const Duration(seconds: 2)) {
+        debugPrint('Ignoring duplicate deep link within 2 seconds: $uri');
+        return;
+      }
+      
+      _lastProcessedLink = linkString;
+      _lastProcessedTime = now;
+
       if (uri.host == 'www.polzet.com') {
         _handleHttpsLink(uri);
       }
-      // Generate custom scheme polzet url://post/{username}/{postId}
-      else if (uri.scheme == 'polzet' && uri.host == 'post') {
-        _handleCustomScheme(uri);
+      else if (uri.scheme == 'polzet') {
+        if (uri.host == 'post') {
+          _handleCustomSchemePost(uri);
+        } else if (uri.host == 'profile') {
+          _handleCustomSchemeProfile(uri);
+        }
       } else {
         debugPrint('Unrecognized deep link format: $uri');
       }
@@ -65,8 +87,10 @@ class DeepLinkService {
   void _handleHttpsLink(Uri uri) {
     final pathSegments = uri.pathSegments;
 
+    if (pathSegments.isEmpty) return;
+
     // Expected format: /post/{username}/{postId}
-    if (pathSegments.isNotEmpty && pathSegments[0] == 'post') {
+    if (pathSegments[0] == 'post') {
       if (pathSegments.length >= 3) {
         final username = pathSegments[1];
         final postId = pathSegments[2];
@@ -79,13 +103,27 @@ class DeepLinkService {
       } else {
         debugPrint('Invalid post link format - insufficient path segments');
       }
+    }
+    // Expected format: /profile/{username}
+    else if (pathSegments[0] == 'profile') {
+      if (pathSegments.length >= 2) {
+        final username = pathSegments[1];
+
+        debugPrint('Parsed HTTPS profile link - Username: $username');
+
+        if (_onProfileLinkReceived != null) {
+          _onProfileLinkReceived!(username);
+        }
+      } else {
+        debugPrint('Invalid profile link format - insufficient path segments');
+      }
     } else {
-      debugPrint('Invalid post link format - expected /post/ prefix');
+      debugPrint('Invalid link format - expected /post/ or /profile/ prefix');
     }
   }
 
-  /// Handle custom scheme deep links
-  void _handleCustomScheme(Uri uri) {
+  /// Handle custom scheme post deep links
+  void _handleCustomSchemePost(Uri uri) {
     final pathSegments = uri.pathSegments;
 
     // Expected format: polzet://post/{username}/{postId}
@@ -93,13 +131,31 @@ class DeepLinkService {
       final username = pathSegments[0];
       final postId = pathSegments[1];
 
-      debugPrint('Parsed custom scheme - Username: $username, PostId: $postId');
+      debugPrint('Parsed custom scheme post - Username: $username, PostId: $postId');
 
       if (_onPostLinkReceived != null) {
         _onPostLinkReceived!(username, postId);
       }
     } else {
-      debugPrint('Invalid custom scheme format - insufficient path segments');
+      debugPrint('Invalid custom scheme post format - insufficient path segments');
+    }
+  }
+
+  /// Handle custom scheme profile deep links
+  void _handleCustomSchemeProfile(Uri uri) {
+    final pathSegments = uri.pathSegments;
+
+    // Expected format: polzet://profile/{username}
+    if (pathSegments.isNotEmpty) {
+      final username = pathSegments[0];
+
+      debugPrint('Parsed custom scheme profile - Username: $username');
+
+      if (_onProfileLinkReceived != null) {
+        _onProfileLinkReceived!(username);
+      }
+    } else {
+      debugPrint('Invalid custom scheme profile format - insufficient path segments');
     }
   }
 
@@ -109,6 +165,7 @@ class DeepLinkService {
     _sub?.cancel();
     _sub = null;
     _onPostLinkReceived = null;
+    _onProfileLinkReceived = null;
   }
 
   /// Generate a shareable HTTPS link for a post
@@ -118,6 +175,14 @@ class DeepLinkService {
   /// Returns: https://www.polzet.com/post/{username}/{postId}
   static String generatePostLink(String username, String postId) {
     return 'https://www.polzet.com/post/$username/$postId';
+  }
+
+  /// Generate a shareable HTTPS link for a profile
+  /// [username] - Username of the profile
+  ///
+  /// Returns: https://www.polzet.com/profile/{username}
+  static String generateProfileLink(String username) {
+    return 'https://www.polzet.com/profile/$username';
   }
 
   /// Generate a custom scheme link for a post (fallback)

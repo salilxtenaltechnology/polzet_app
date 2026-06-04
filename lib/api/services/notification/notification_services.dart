@@ -167,24 +167,8 @@ class NotificationService {
     debugPrint('🌙 Background Notification Service Triggered');
     debugPrint('   Data: ${message.data}');
 
-    Map<String, dynamic>? notificationData;
-    if (message.data['notification'] != null) {
-      final notif = message.data['notification'];
-      if (notif is Map) {
-        notificationData = Map<String, dynamic>.from(notif);
-      } else if (notif is String) {
-        try {
-          notificationData = jsonDecode(notif) as Map<String, dynamic>;
-        } catch (_) {}
-      }
-    }
-    final category = notificationData?['category']?.toString() ??
-        message.data['category']?.toString() ??
-        '';
-    if (category.toUpperCase() == 'CHAT') {
-      debugPrint('🌙 Skipping background notification since category is CHAT');
-      return;
-    }
+
+
 
     if (message.notification != null) {
       debugPrint(
@@ -379,24 +363,8 @@ class NotificationService {
   // ✅ Extract and customize notification data based on type using helper
   Future<void> _showNativeNotification(RemoteMessage message) async {
     try {
-      Map<String, dynamic>? notificationData;
-      if (message.data['notification'] != null) {
-        final notif = message.data['notification'];
-        if (notif is Map) {
-          notificationData = Map<String, dynamic>.from(notif);
-        } else if (notif is String) {
-          try {
-            notificationData = jsonDecode(notif) as Map<String, dynamic>;
-          } catch (_) {}
-        }
-      }
-      final category = notificationData?['category']?.toString() ??
-          message.data['category']?.toString() ??
-          '';
-      if (category.toUpperCase() == 'CHAT') {
-        debugPrint('⏭️ Skipping foreground notification since category is CHAT');
-        return;
-      }
+
+
 
       final content = _getNotificationContent(message.data, message);
 
@@ -556,24 +524,8 @@ class NotificationService {
     try {
       final data = jsonDecode(body);
 
-      Map<String, dynamic>? notificationData;
-      if (data is Map && data['notification'] != null) {
-        final notif = data['notification'];
-        if (notif is Map) {
-          notificationData = Map<String, dynamic>.from(notif);
-        } else if (notif is String) {
-          try {
-            notificationData = jsonDecode(notif) as Map<String, dynamic>;
-          } catch (_) {}
-        }
-      }
-      final category = notificationData?['category']?.toString() ??
-          (data is Map ? data['category']?.toString() : null) ??
-          '';
-      if (category.toUpperCase() == 'CHAT') {
-        debugPrint('⏭️ Skipping WS notification since category is CHAT');
-        return;
-      }
+
+
 
       final notificationId = _generateNotificationId(data);
 

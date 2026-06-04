@@ -1,12 +1,16 @@
 // ignore_for_file: deprecated_member_use
 
 import 'dart:async';
+import 'dart:io';
 import 'dart:typed_data';
 
+import 'package:dio/dio.dart';
 import 'package:polzet_app/core/constants/feather_icons_compat.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
+
+import '../../../provider/connection_provider.dart';
 
 import '../../../api/services/api_service.dart';
 import '../../../core/constants/app_radius.dart';
@@ -20,6 +24,7 @@ import '../../../provider/user_provider.dart';
 import '../../../widgets/base64/image_convert.dart';
 import '../../../core/themes/app_text_styles.dart';
 import '../../../widgets/loader.dart';
+import '../../../widgets/connection/no_internet_screen.dart';
 import '../../../widgets/tabbar/indicatore_animation.dart';
 import 'chat/group/group_chat_screen.dart';
 import 'chat/private/private_chat_screen.dart';
@@ -42,6 +47,7 @@ class MessageListState extends State<MessageList>
   static final Map<String, Uint8List> _staticImageCache = {};
   static bool _everFetched = false;
   static final ValueNotifier<int> unreadMessageCount = ValueNotifier<int>(0);
+  static String? errorMessage;
 
   static final StreamController<List<Map<String, dynamic>>>
   _globalStreamController =
@@ -125,6 +131,7 @@ class MessageListState extends State<MessageList>
     try {
       final chats = await ApiService().getChatList();
       _everFetched = true;
+      errorMessage = null;
       if (_listsAreDifferent(_staticChats, chats)) {
         _staticChats = chats;
         _updateUnreadCount();
@@ -133,7 +140,47 @@ class MessageListState extends State<MessageList>
         _updateUnreadCount();
         _globalStreamController.add(_staticChats);
       }
-    } catch (_) {
+    } on SocketException catch (e) {
+      debugPrint('No internet connection fetching chat list');
+      _everFetched = true;
+      if (_staticChats.isEmpty) {
+        errorMessage = 'no_internet: ${e.toString()}';
+      }
+      _updateUnreadCount();
+      _globalStreamController.add(_staticChats);
+    } on TimeoutException catch (e) {
+      debugPrint('Request timed out fetching chat list');
+      _everFetched = true;
+      if (_staticChats.isEmpty) {
+        errorMessage = 'no_internet: timeout ${e.toString()}';
+      }
+      _updateUnreadCount();
+      _globalStreamController.add(_staticChats);
+    } on DioException catch (e) {
+      debugPrint(
+        'Dio error fetching chat list: ${e.response?.statusCode} | ${e.type}',
+      );
+      _everFetched = true;
+      if (_staticChats.isEmpty) {
+        final statusCode = e.response?.statusCode ?? 0;
+        if (statusCode >= 500) {
+          errorMessage = 'server_error: status $statusCode';
+        } else if (e.type == DioExceptionType.connectionError ||
+            e.type == DioExceptionType.connectionTimeout ||
+            e.type == DioExceptionType.receiveTimeout) {
+          errorMessage = 'no_internet: timeout ${e.message}';
+        } else {
+          errorMessage = 'unknown: status $statusCode ${e.message}';
+        }
+      }
+      _updateUnreadCount();
+      _globalStreamController.add(_staticChats);
+    } catch (e) {
+      debugPrint('Error fetching chat list: $e');
+      _everFetched = true;
+      if (_staticChats.isEmpty) {
+        errorMessage = 'unknown: ${e.toString()}';
+      }
       _updateUnreadCount();
       _globalStreamController.add(_staticChats);
     }
@@ -167,10 +214,7 @@ class MessageListState extends State<MessageList>
     if (chat['title'] != null && (chat['title'] as String).trim().isNotEmpty) {
       return chat['title'] as String;
     }
-    final userProvider = Provider.of<UserProvider>(
-      context,
-      listen: false,
-    );
+    final userProvider = Provider.of<UserProvider>(context, listen: false);
     final currentUserId = userProvider.userId;
     final currentUsername = userProvider.username;
     final members = chat['members'] as List?;
@@ -231,10 +275,7 @@ class MessageListState extends State<MessageList>
           ? profileUrl
           : null;
     }
-    final userProvider = Provider.of<UserProvider>(
-      context,
-      listen: false,
-    );
+    final userProvider = Provider.of<UserProvider>(context, listen: false);
     final currentUserId = userProvider.userId;
     final currentUsername = userProvider.username;
     final members = chat['members'] as List?;
@@ -254,10 +295,7 @@ class MessageListState extends State<MessageList>
   }
 
   bool _isOtherMemberOnline(Map<String, dynamic> chat) {
-    final userProvider = Provider.of<UserProvider>(
-      context,
-      listen: false,
-    );
+    final userProvider = Provider.of<UserProvider>(context, listen: false);
     final currentUserId = userProvider.userId;
     final currentUsername = userProvider.username;
     final members = chat['members'] as List?;
@@ -288,10 +326,7 @@ class MessageListState extends State<MessageList>
   }
 
   bool _isOtherMemberBlocked(Map<String, dynamic> chat) {
-    final userProvider = Provider.of<UserProvider>(
-      context,
-      listen: false,
-    );
+    final userProvider = Provider.of<UserProvider>(context, listen: false);
     final currentUserId = userProvider.userId;
     final currentUsername = userProvider.username;
     final members = chat['members'] as List?;
@@ -309,10 +344,7 @@ class MessageListState extends State<MessageList>
   }
 
   dynamic _getOtherUserId(Map<String, dynamic> chat) {
-    final userProvider = Provider.of<UserProvider>(
-      context,
-      listen: false,
-    );
+    final userProvider = Provider.of<UserProvider>(context, listen: false);
     final currentUserId = userProvider.userId;
     final currentUsername = userProvider.username;
     final members = chat['members'] as List?;
@@ -341,7 +373,8 @@ class MessageListState extends State<MessageList>
 
     if (chatId != null && _unreadCount(chat) > 0) {
       final index = _staticChats.indexWhere(
-          (c) => c['id']?.toString() == chatId.toString());
+        (c) => c['id']?.toString() == chatId.toString(),
+      );
       if (index != -1) {
         _staticChats[index] = {..._staticChats[index], 'unread_count': 0};
         _updateUnreadCount();
@@ -517,49 +550,58 @@ class MessageListState extends State<MessageList>
           return ListTile(
             onTap: () => _openChat(chat, title, avatarUrl),
             contentPadding: EdgeInsets.symmetric(horizontal: 10.w),
-            leading: Stack(
-              children: [
-                CircleAvatar(
-                  radius: 19.r,
-                  backgroundColor: isDarkMode
-                      ? const Color(0xFF252525)
-                      : Theme.of(context).primaryColor.withOpacity(0.08),
-                  backgroundImage: imageBytes != null
-                      ? MemoryImage(imageBytes)
-                      : null,
-                  child: imageBytes == null
-                      ? Text(
-                          title.isNotEmpty ? title[0].toUpperCase() : '?',
-                          style: AppTextStyles.subText.copyWith(
-                            color: Theme.of(
-                              context,
-                            ).colorScheme.onPrimary.withOpacity(0.8),
-                            fontWeight: FontWeight.w500,
-                            fontSize: 20,
-                          ),
-                        )
-                      : null,
-                ),
-                if (chat['chat_type'] == 'private' &&
-                    _isOtherMemberOnline(chat))
-                  Positioned(
-                    bottom: 0,
-                    right: 0,
-                    child: Container(
-                      width: 10.w,
-                      height: 10.h,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF4CAF50),
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: Theme.of(context).colorScheme.background,
-                          width: 1.8,
-                        ),
+            leading:
+                chat['chat_type'] == 'group' &&
+                    (avatarUrl == null || avatarUrl.trim().isEmpty)
+                ? _buildGroupAvatarStack(
+                    members: chat['members'] as List?,
+                    size: 55,
+                    isDarkMode: isDarkMode,
+                    context: context,
+                  )
+                : Stack(
+                    children: [
+                      CircleAvatar(
+                        radius: 19.r,
+                        backgroundColor: isDarkMode
+                            ? const Color(0xFF252525)
+                            : Theme.of(context).primaryColor.withOpacity(0.08),
+                        backgroundImage: imageBytes != null
+                            ? MemoryImage(imageBytes)
+                            : null,
+                        child: imageBytes == null
+                            ? Text(
+                                title.isNotEmpty ? title[0].toUpperCase() : '?',
+                                style: AppTextStyles.subText.copyWith(
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onPrimary.withOpacity(0.8),
+                                  fontWeight: FontWeight.w500,
+                                  fontSize: 20,
+                                ),
+                              )
+                            : null,
                       ),
-                    ),
+                      if (chat['chat_type'] == 'private' &&
+                          _isOtherMemberOnline(chat))
+                        Positioned(
+                          bottom: 0,
+                          right: 0,
+                          child: Container(
+                            width: 10.w,
+                            height: 10.h,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF4CAF50),
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: Theme.of(context).colorScheme.background,
+                                width: 1.8,
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
                   ),
-              ],
-            ),
             title: Text(
               title,
               style: AppTextStyles.cardTitle.copyWith(
@@ -759,6 +801,25 @@ class MessageListState extends State<MessageList>
         builder: (context, snapshot) {
           final allChats = snapshot.data ?? [];
 
+          if (errorMessage != null && allChats.isEmpty) {
+            final isOffline = !Provider.of<ConnectivityProvider>(
+              context,
+              listen: false,
+            ).isOnline;
+            return ConnectionErrorScreen(
+              type: (errorMessage!.startsWith('no_internet') && isOffline)
+                  ? ConnectionErrorType.noInternet
+                  : ConnectionErrorType.unknown,
+              errorMessage: errorMessage,
+              onRetry: () {
+                errorMessage = null;
+                _everFetched = false;
+                _globalStreamController.add([]);
+                _fetchAndPushGlobally();
+              },
+            );
+          }
+
           if (allChats.isEmpty && !_everFetched) {
             return Center(
               child: Loader(color: Theme.of(context).colorScheme.primary),
@@ -812,6 +873,140 @@ class MessageListState extends State<MessageList>
           );
         },
       ),
+    );
+  }
+
+  Widget _buildGroupAvatarStack({
+    required List<dynamic>? members,
+    required double size,
+    required bool isDarkMode,
+    required BuildContext context,
+  }) {
+    final List<String?> profileUrls = [];
+    final List<String> initials = [];
+
+    if (members != null) {
+      for (final member in members) {
+        if (profileUrls.length >= 2) break;
+        final user = member is Map ? member['user'] as Map? : null;
+        if (user != null) {
+          final profileUrl =
+              (user['profile_image'] ??
+                      user['profile_picture_url'] ??
+                      user['avatar'])
+                  ?.toString();
+          final name = (user['name'] ?? user['username'] ?? 'Unknown')
+              .toString();
+          profileUrls.add(profileUrl);
+          initials.add(name.isNotEmpty ? name[0].toUpperCase() : '?');
+        }
+      }
+    }
+
+    if (profileUrls.isEmpty) {
+      return Container(
+        width: size,
+        height: size,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: isDarkMode
+              ? const Color(0xFF252525)
+              : Theme.of(context).primaryColor.withOpacity(0.08),
+        ),
+        child: Center(
+          child: Icon(
+            Icons.group,
+            size: size * 0.5,
+            color: Theme.of(context).colorScheme.onPrimary.withOpacity(0.8),
+          ),
+        ),
+      );
+    }
+
+    final double circleSize = size * 0.70;
+
+    return SizedBox(
+      width: size,
+      height: size,
+      child: Stack(
+        children: [
+          Positioned(
+            top: 0,
+            left: 0,
+            child: _buildSingleAvatarCircle(
+              profileUrl: profileUrls[0],
+              initial: initials[0],
+              size: circleSize,
+              isDarkMode: isDarkMode,
+              context: context,
+            ),
+          ),
+          if (profileUrls.length > 1)
+            Positioned(
+              bottom: 2,
+              right: 3,
+              child: _buildSingleAvatarCircle(
+                profileUrl: profileUrls[1],
+                initial: initials[1],
+                size: circleSize,
+                isDarkMode: isDarkMode,
+                context: context,
+                hasBorder: true,
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSingleAvatarCircle({
+    required String? profileUrl,
+    required String initial,
+    required double size,
+    required bool isDarkMode,
+    required BuildContext context,
+    bool hasBorder = false,
+  }) {
+    final imageBytes = _getCachedImage(profileUrl);
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: imageBytes == null
+            ? (isDarkMode
+                  ? const Color(0xFF252525)
+                  : Theme.of(context).primaryColor.withOpacity(0.08))
+            : null,
+        border: hasBorder
+            ? Border.all(
+                color: Theme.of(context).colorScheme.background,
+                width: 1.5,
+              )
+            : Border.all(
+                color: Theme.of(
+                  context,
+                ).colorScheme.onSurface.withOpacity(0.05),
+                width: 1,
+              ),
+        image: imageBytes != null
+            ? DecorationImage(image: MemoryImage(imageBytes), fit: BoxFit.cover)
+            : null,
+      ),
+      child: imageBytes == null
+          ? Center(
+              child: Text(
+                initial,
+                style: TextStyle(
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.onPrimary.withOpacity(0.8),
+                  fontWeight: FontWeight.w500,
+                  fontSize: size * 0.4,
+                ),
+              ),
+            )
+          : null,
     );
   }
 }

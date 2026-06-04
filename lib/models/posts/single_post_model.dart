@@ -1,10 +1,10 @@
 // models/single_post/single_post_model.dart
 
 class SinglePostModel {
-  final dynamic id;
+  final String id;
   final String firstName;
   final String lastName;
-  final String user;
+  final SinglePostUser user;
   final String profileImage;
   final String description;
   final String createdAt;
@@ -37,10 +37,16 @@ class SinglePostModel {
 
   factory SinglePostModel.fromJson(Map<String, dynamic> json) {
     return SinglePostModel(
-      id: json['id'],
+      id: (json['uuid'] ?? json['id'] ?? '').toString(),
       firstName: json['first_name'] as String? ?? '',
       lastName: json['last_name'] as String? ?? '',
-      user: json['user'] as String? ?? '',
+      user: json['user'] is Map
+          ? SinglePostUser.fromJson(Map<String, dynamic>.from(json['user'] as Map))
+          : SinglePostUser(
+              uuid: (json['uuid'] ?? json['userid'] ?? json['user_id'] ?? json['id'] ?? '').toString(),
+              username: (json['user'] ?? '').toString(),
+              profileImage: '',
+            ),
       profileImage: json['profile_image'] as String? ?? '',
       description: json['description'] as String? ?? '',
       createdAt: json['created_at'] as String? ?? '',
@@ -62,7 +68,7 @@ class SinglePostModel {
 
   Map<String, dynamic> toJson() => {
     'id': id,
-    'user': user,
+    'user': user.toJson(),
     'profile_image' : profileImage,
     'description': description,
     'created_at': createdAt,
@@ -87,7 +93,7 @@ class SinglePostModel {
 
 
 class SinglePostPoll {
-  final dynamic id;
+  final String id;
   final String question;
   final int maxOptions;
   final List<SinglePostPollOption> options;
@@ -106,7 +112,7 @@ class SinglePostPoll {
 
   factory SinglePostPoll.fromJson(Map<String, dynamic> json) {
     return SinglePostPoll(
-      id: json['id'],
+      id: json['id']?.toString() ?? '',
       question: json['question'] as String? ?? '',
       maxOptions: json['max_options'] as int? ?? 1,
       options:
@@ -264,4 +270,31 @@ class SinglePostVoter {
     }
     return username.isNotEmpty ? username[0].toUpperCase() : '?';
   }
+}
+
+
+class SinglePostUser {
+  final String uuid;
+  final String username;
+  final String profileImage;
+
+  const SinglePostUser({
+    required this.uuid,
+    required this.username,
+    required this.profileImage,
+  });
+
+  factory SinglePostUser.fromJson(Map<String, dynamic> json) {
+    return SinglePostUser(
+      uuid: (json['uuid'] ?? json['userid'] ?? json['user_id'] ?? json['id'] ?? '').toString(),
+      username: json['username']?.toString() ?? '',
+      profileImage: json['profile_image']?.toString() ?? '',
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+    'uuid': uuid,
+    'username': username,
+    'profile_image': profileImage,
+  };
 }

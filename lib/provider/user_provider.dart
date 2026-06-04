@@ -66,6 +66,14 @@ class UserProvider with ChangeNotifier {
   Map<String, List<UserPostModel>> cachedImagesPostsMap = {};
   Map<String, int> cachedTotalPollsCountMap = {};
 
+  final List<String> _deletedPostIds = [];
+  List<String> get deletedPostIds => _deletedPostIds;
+
+  void notifyPostDeleted(String postId) {
+    _deletedPostIds.add(postId);
+    notifyListeners();
+  }
+
   Future<void> prefetchUserPosts() async {
     if (username == null || username!.isEmpty) return;
     final currentUsername = username!;
@@ -199,7 +207,14 @@ class UserProvider with ChangeNotifier {
     cover_thumbnail_url = data['cover_thumbnail_url'];
 
     // Profile Completion
-    profile_completion = data['profile_completion'];
+    final rawCompletion = data['profile_completion'];
+    if (rawCompletion is num) {
+      profile_completion = rawCompletion.toInt();
+    } else if (rawCompletion is String) {
+      profile_completion = int.tryParse(rawCompletion) ?? double.tryParse(rawCompletion)?.toInt();
+    } else {
+      profile_completion = null;
+    }
     onboarding_completed = data['onboarding_completed'];
     if (data['profile_status'] != null) {
       profile_status = Map<String, bool>.from(data['profile_status']);
@@ -303,7 +318,15 @@ class UserProvider with ChangeNotifier {
       case 'profile_thumbnail_url': profile_thumbnail_url = value; break;
       case 'cover_photo':        cover_photo = value; break;
       case 'cover_thumbnail_url': cover_thumbnail_url = value; break;
-      case 'profile_completion': profile_completion = value; break;
+      case 'profile_completion':
+        if (value is num) {
+          profile_completion = value.toInt();
+        } else if (value is String) {
+          profile_completion = int.tryParse(value) ?? double.tryParse(value)?.toInt();
+        } else {
+          profile_completion = null;
+        }
+        break;
       case 'onboarding_completed': onboarding_completed = value; break;
       case 'profile_status':     profile_status = value; break;
       case 'is_private':         is_private = value; break;
@@ -368,6 +391,16 @@ class UserProvider with ChangeNotifier {
     cachedImagesPostsMap.clear();
     cachedTotalPollsCountMap.clear();
     cachedInsightsData = null;
+    _deletedPostIds.clear();
+  }
+
+  void clearUserPostsCache() {
+    if (username != null) {
+      cachedThingsPostsMap.remove(username);
+      cachedImagesPostsMap.remove(username);
+      cachedTotalPollsCountMap.remove(username);
+      notifyListeners();
+    }
   }
 
   // ─── Image Decoders ───────────────────────────────────────────

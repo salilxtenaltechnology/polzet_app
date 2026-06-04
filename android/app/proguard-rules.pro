@@ -152,3 +152,18 @@
 -keep interface com.airbnb.lottie.** { *; }
 -keep enum com.airbnb.lottie.** { *; }
 -dontwarn com.airbnb.lottie.**
+
+# =========================================================================
+# ✅ Flutter Local Notifications
+# =========================================================================
+-keep class com.dexterous.** { *; }
+
+# =========================================================================
+# ✅ Fluttertoast
+# =========================================================================
+-keep class io.github.ponnamkarthik.toast.** { *; }
+
+# =========================================================================
+# ✅ Fluttercandies (Photo Manager, WeChat Assets Picker, WeChat Camera Picker)
+# =========================================================================
+-keep class com.fluttercandies.** { *; }

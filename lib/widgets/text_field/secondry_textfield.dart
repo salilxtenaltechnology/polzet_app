@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:polzet_app/core/constants/app_radius.dart';
 
 import '../../core/themes/app_text_styles.dart';
-import '../custom_text_styles.dart';
 
 class SecondryTextfield extends StatelessWidget {
   const SecondryTextfield({
@@ -27,7 +26,13 @@ class SecondryTextfield extends StatelessWidget {
       keyboardType: TextInputType.multiline,
       maxLines: 1,
       onChanged: onChanged,
-      style: CustomTextStyles.lblPrimaryText(context),
+      style: AppTextStyles.subText.copyWith(
+        fontSize: 15,
+        color: Theme.of(context).colorScheme.onBackground,
+        fontWeight: FontWeight.w400,
+      ),
+      cursorColor: Theme.of(context).colorScheme.onPrimary,
+      cursorWidth: 1.5,
       decoration: InputDecoration(
         contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
         hintText: hintText,
@@ -39,18 +44,18 @@ class SecondryTextfield extends StatelessWidget {
         suffixIcon: suffixIcon,
         border: InputBorder.none,
         enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(AppRadius.card),
-                borderSide: BorderSide(
-                  color: Theme.of(context).colorScheme.outline,
-                  width: 1.5,
-                ),
-              ),
+          borderRadius: BorderRadius.circular(AppRadius.card),
+          borderSide: BorderSide(
+            color: Theme.of(context).colorScheme.outline,
+            width: 1.5,
+          ),
+        ),
         focusedBorder: OutlineInputBorder(
           borderSide: BorderSide(
-                  color: Theme.of(context).colorScheme.outline,
-                  width: 1.5,
-                ),
-            borderRadius: BorderRadius.circular(12),
+            color: Theme.of(context).colorScheme.outline,
+            width: 1.5,
+          ),
+          borderRadius: BorderRadius.circular(12),
         ),
       ),
     );

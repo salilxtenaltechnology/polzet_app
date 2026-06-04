@@ -1,5 +1,4 @@
 // ignore_for_file: deprecated_member_use
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:polzet_app/core/themes/app_text_styles.dart';
@@ -39,7 +38,7 @@ class _SuggestedUsersState extends State<SuggestedUsers> with UtilityMixin {
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return SizedBox(
-            height: 200,
+            height: 250,
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -53,9 +52,9 @@ class _SuggestedUsersState extends State<SuggestedUsers> with UtilityMixin {
         if (snapshot.hasError) {
           debugPrint('❌ Error: ${snapshot.error}');
           return const SizedBox(
-            height: 200,
+            height: 250,
             child: ApiErrorWidget(
-              title: 'Unexpected Error',
+              title: 'Ooops!! Something went wrong',
               subtitle: 'Could not load suggested users',
             ),
           );
@@ -78,13 +77,6 @@ class _SuggestedUsersState extends State<SuggestedUsers> with UtilityMixin {
             itemCount: users.length > 5 ? 5 : users.length,
             itemBuilder: (context, i) {
               final user = users[i];
-
-              ImageProvider buildAvatar() {
-                if (user.avatar.startsWith('data:image')) {
-                  return MemoryImage(base64Decode(user.avatar.split(',').last));
-                }
-                return NetworkImage(user.avatar);
-              }
 
               return StatefulBuilder(
                 builder: (context, setLocalState) {
@@ -119,7 +111,7 @@ class _SuggestedUsersState extends State<SuggestedUsers> with UtilityMixin {
                           child: user.avatar.isNotEmpty
                               ? CircleAvatar(
                                   radius: 50,
-                                  backgroundImage: buildAvatar(),
+                                  backgroundImage: user.avatarImageProvider,
                                   backgroundColor: Colors.grey.shade200,
                                 )
                               : CircleAvatar(
@@ -156,67 +148,72 @@ class _SuggestedUsersState extends State<SuggestedUsers> with UtilityMixin {
                           ),
                         ),
                         const SizedBox(height: 5),
-                        if (user.mutualFriendsAvatars.isNotEmpty)
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              SizedBox(
-                                height: 20,
-                                width: (user.mutualFriendsAvatars.take(3).length - 1) * 14.0 + 18.0,
-                                child: Stack(
-                                  children: List.generate(
-                                    user.mutualFriendsAvatars.take(3).length,
-                                    (index) {
-                                      final avatarUrl = user.mutualFriendsAvatars[index];
-                                      ImageProvider img;
-                                      if (avatarUrl.startsWith('data:image')) {
-                                        img = MemoryImage(
-                                          base64Decode(avatarUrl.split(',').last),
-                                        );
-                                      } else {
-                                        img = NetworkImage(avatarUrl);
-                                      }
-                                      return Positioned(
-                                        left: index * 14.0,
-                                        child: Container(
-                                          decoration: BoxDecoration(
-                                            shape: BoxShape.circle,
-                                            border: Border.all(
-                                              color: isDarkMode
-                                                  ? const Color(0xFF2A2A2E)
-                                                  : Theme.of(context).colorScheme.primaryContainer,
-                                              width: 1,
+                        if (user.mutualFriends > 0)
+                          if (user.mutualFriendsAvatars.isNotEmpty)
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                SizedBox(
+                                  height: 20,
+                                  width: (user.mutualFriendsAvatars.take(3).length - 1) * 14.0 + 18.0,
+                                  child: Stack(
+                                    children: List.generate(
+                                      user.mutualFriendsAvatars.take(3).length,
+                                      (index) {
+                                        final img = user.mutualImageProviders[index];
+                                        return Positioned(
+                                          left: index * 14.0,
+                                          child: Container(
+                                            decoration: BoxDecoration(
+                                              shape: BoxShape.circle,
+                                              border: Border.all(
+                                                color: isDarkMode
+                                                    ? const Color(0xFF2A2A2E)
+                                                    : Theme.of(context).colorScheme.primaryContainer,
+                                                width: 1,
+                                              ),
+                                            ),
+                                            child: CircleAvatar(
+                                              radius: 9,
+                                              backgroundImage: img,
+                                              backgroundColor: Colors.grey.shade200,
                                             ),
                                           ),
-                                          child: CircleAvatar(
-                                            radius: 9,
-                                            backgroundImage: img,
-                                            backgroundColor: Colors.grey.shade200,
-                                          ),
-                                        ),
-                                      );
-                                    },
+                                        );
+                                      },
+                                    ),
                                   ),
                                 ),
-                              ),
-                              const SizedBox(width: 4),
-                              Flexible(
-                                child: Text(
-                                  '+${user.mutualFriends} mutual',
-                                  overflow: TextOverflow.ellipsis,
-                                  maxLines: 1,
-                                  style: AppTextStyles.subText.copyWith(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w400,
-                                    color: txt.muted,
+                                const SizedBox(width: 4),
+                                Flexible(
+                                  child: Text(
+                                    '+${user.mutualFriends} mutual',
+                                    overflow: TextOverflow.ellipsis,
+                                    maxLines: 1,
+                                    style: AppTextStyles.subText.copyWith(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w400,
+                                      color: txt.muted,
+                                    ),
                                   ),
                                 ),
+                              ],
+                            )
+                          else
+                            Text(
+                              '+${user.mutualFriends} Mutuals',
+                              textAlign: TextAlign.center,
+                              overflow: TextOverflow.ellipsis,
+                              maxLines: 1,
+                              style: AppTextStyles.subText.copyWith(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w400,
+                                color: txt.muted,
                               ),
-                            ],
-                          )
+                            )
                         else
                           Text(
-                            '+${user.mutualFriends} Mutuals',
+                            user.role.isNotEmpty ? user.role : '+${user.mutualFriends} Mutuals',
                             textAlign: TextAlign.center,
                             overflow: TextOverflow.ellipsis,
                             maxLines: 1,

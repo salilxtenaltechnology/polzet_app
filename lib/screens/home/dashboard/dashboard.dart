@@ -66,6 +66,7 @@ class DashboardState extends State<Dashboard> with UtilityMixin {
     setState(() => _isLoadingMore = true);
 
     try {
+      debugPrint('Fetching page: $_nextPage');
       final response = await ApiService.fetchHomeFeedPosts(
         page: _nextPage,
         snapshot: _snapshot,
@@ -74,11 +75,12 @@ class DashboardState extends State<Dashboard> with UtilityMixin {
       if (!mounted) return;
       setState(() {
         posts.addAll(response.results);
-        _nextPage = response.page;
+        _nextPage = response.page != null ? response.page! + 1 : null;
         _snapshot = response.snapshot;
         _hasMoreData = response.hasMore ?? false;
         _isLoadingMore = false;
       });
+      debugPrint('Loaded page, next page is: $_nextPage');
       _updateGloballyChasedUsers();
       _postsStreamController.add(List.from(posts));
     } catch (e) {
@@ -159,9 +161,10 @@ class DashboardState extends State<Dashboard> with UtilityMixin {
       _hasMoreData = true;
 
       final response = await ApiService.fetchHomeFeedPosts();
-      _nextPage = response.page;
+      _nextPage = response.page != null ? response.page! + 1 : null;
       _snapshot = response.snapshot;
       _hasMoreData = response.hasMore ?? false;
+      debugPrint('Initial page loaded, next page is: $_nextPage');
 
       if (mounted) {
         setState(() {
@@ -179,22 +182,24 @@ class DashboardState extends State<Dashboard> with UtilityMixin {
         _savePostsToCache(posts);
         _postsStreamController.add(List.from(posts));
       }
-    } on SocketException {
+    } on SocketException catch (e) {
       debugPrint('No internet connection');
       if (mounted) {
         setState(() {
           isLoading = false;
           isInitialLoad = false;
-          if (posts.isEmpty) errorMessage = 'no_internet';
+          if (posts.isEmpty) errorMessage = 'no_internet: ${e.toString()}';
         });
       }
-    } on TimeoutException {
+    } on TimeoutException catch (e) {
       debugPrint('Request timed out');
       if (mounted) {
         setState(() {
           isLoading = false;
           isInitialLoad = false;
-          if (posts.isEmpty) errorMessage = 'no_internet';
+          if (posts.isEmpty) {
+            errorMessage = 'no_internet: timeout ${e.toString()}';
+          }
         });
       }
     } on DioException catch (e) {
@@ -206,13 +211,13 @@ class DashboardState extends State<Dashboard> with UtilityMixin {
           if (posts.isEmpty) {
             final statusCode = e.response?.statusCode ?? 0;
             if (statusCode >= 500) {
-              errorMessage = 'server_error';
+              errorMessage = 'server_error: status $statusCode';
             } else if (e.type == DioExceptionType.connectionError ||
                 e.type == DioExceptionType.connectionTimeout ||
                 e.type == DioExceptionType.receiveTimeout) {
-              errorMessage = 'no_internet';
+              errorMessage = 'no_internet: timeout ${e.message}';
             } else {
-              errorMessage = 'unknown';
+              errorMessage = 'unknown: status $statusCode ${e.message}';
             }
           }
         });
@@ -223,7 +228,7 @@ class DashboardState extends State<Dashboard> with UtilityMixin {
         setState(() {
           isLoading = false;
           isInitialLoad = false;
-          if (posts.isEmpty) errorMessage = 'unknown';
+          if (posts.isEmpty) errorMessage = 'unknown: ${e.toString()}';
         });
       }
     }
@@ -239,13 +244,12 @@ class DashboardState extends State<Dashboard> with UtilityMixin {
       final fetchedPost = fetchedPostsMap[currentPost.id];
 
       if (fetchedPost != null) {
+        currentPost.isPolledByCurrentUser = fetchedPost.isPolledByCurrentUser;
         if (currentPost.polls.isNotEmpty && fetchedPost.polls.isNotEmpty) {
           for (int j = 0; j < currentPost.polls.length; j++) {
             if (j < fetchedPost.polls.length) {
               final currentPoll = currentPost.polls[j];
               final fetchedPoll = fetchedPost.polls[j];
-              currentPoll.isPolledByCurrentUser =
-                  fetchedPoll.isPolledByCurrentUser;
               currentPoll.totalVotes = fetchedPoll.totalVotes;
               for (int k = 0; k < currentPoll.options.length; k++) {
                 if (k < fetchedPoll.options.length) {
@@ -302,11 +306,12 @@ class DashboardState extends State<Dashboard> with UtilityMixin {
 
     if (errorMessage != null && posts.isEmpty) {
       return ConnectionErrorScreen(
-        type: errorMessage == 'no_internet'
+        type: errorMessage!.startsWith('no_internet')
             ? ConnectionErrorType.noInternet
-            : errorMessage == 'server_error'
+            : errorMessage!.startsWith('server_error')
             ? ConnectionErrorType.serverError
             : ConnectionErrorType.unknown,
+        errorMessage: errorMessage,
         onRetry: () {
           setState(() {
             errorMessage = null;
@@ -340,7 +345,10 @@ class DashboardState extends State<Dashboard> with UtilityMixin {
             );
           }
 
-          final currentPosts = snapshot.data ?? posts;
+          final userProvider = Provider.of<UserProvider>(context);
+          final currentPosts = (snapshot.data ?? posts)
+              .where((post) => !userProvider.deletedPostIds.contains(post.id))
+              .toList();
 
           if (currentPosts.isEmpty) {
             return ListView(
@@ -367,100 +375,105 @@ class DashboardState extends State<Dashboard> with UtilityMixin {
                 );
               }
 
-              final userProvider = Provider.of<UserProvider>(
-                context,
-                listen: false,
-              );
-              final int completion = userProvider.profile_completion ?? 0;
-              final bool showProfileCard = completion < 100;
-
               // Profile completion card at index 3
-              if (index == 3 && showProfileCard) {
-                final bool isDarkMode =
-                    Theme.of(context).brightness == Brightness.dark;
-                return Column(
-                  children: [
-                    HomeFeedPostCard(
-                      key: ValueKey(currentPosts[index].id),
-                      post: currentPosts[index],
-                      onPressed: () {},
-                    ),
-                    Container(
-                      margin: EdgeInsets.only(bottom: 10.h),
-                      padding: const EdgeInsets.all(12).w,
-                      decoration: BoxDecoration(
-                        color: Theme.of(context).colorScheme.primaryContainer,
-                        borderRadius: BorderRadius.circular(AppRadius.card),
-                        border: Border.all(
-                          color: Theme.of(context).colorScheme.outline,
-                          width: 1,
-                        ),
-                        boxShadow: const [
-                          BoxShadow(color: Color(0x06000000), blurRadius: 2),
-                        ],
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+              if (index == 3) {
+                return Consumer<UserProvider>(
+                  builder: (context, userProvider, child) {
+                    final int completion = userProvider.profile_completion ?? 0;
+                    final bool showProfileCard = completion < 100;
+                    if (showProfileCard) {
+                      return Column(
                         children: [
-                          Text(
-                            AppLocalizations.of(context)!.improveyourprofile,
-                            style: AppTextStyles.subText.copyWith(
-                              color: txt.title,
-                              fontSize: 15,
-                              fontWeight: FontWeight.w700,
-                            ),
+                          HomeFeedPostCard(
+                            key: ValueKey(currentPosts[index].id),
+                            post: currentPosts[index],
+                            onPressed: () {},
                           ),
-                          const SizedBox(height: 12),
-                          Text(
-                            '$completion%',
-                            style: AppTextStyles.sectionHeading.copyWith(
-                              color: Theme.of(context).colorScheme.primary,
-                              fontSize: 18,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                          SizedBox(height: 8.h),
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(AppRadius.card),
-                            child: LinearProgressIndicator(
-                              value: completion / 100,
-                              minHeight: 4.h,
-                              backgroundColor: Colors.grey.shade300,
-                              valueColor: const AlwaysStoppedAnimation<Color>(
-                                AppColors.primaryColor,
+                          Container(
+                            margin: EdgeInsets.only(bottom: 10.h),
+                            padding: const EdgeInsets.all(12).w,
+                            decoration: BoxDecoration(
+                              color: Theme.of(context).colorScheme.primaryContainer,
+                              borderRadius: BorderRadius.circular(AppRadius.card),
+                              border: Border.all(
+                                color: Theme.of(context).colorScheme.outline,
+                                width: 1,
                               ),
+                              boxShadow: const [
+                                BoxShadow(color: Color(0x06000000), blurRadius: 2),
+                              ],
                             ),
-                          ),
-                          SizedBox(height: 14.h),
-                          GestureDetector(
-                            onTap: () =>
-                                navigationPush(context, const EditProfile()),
-                            child: Container(
-                              width: double.infinity,
-                              height: 40,
-                              decoration: BoxDecoration(
-                                color: AppColors.primaryColor,
-                                borderRadius: BorderRadius.circular(50.r),
-                              ),
-                              child: Center(
-                                child: Text(
-                                  AppLocalizations.of(
-                                    context,
-                                  )!.completeprofilesetup,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  AppLocalizations.of(context)!.improveyourprofile,
                                   style: AppTextStyles.subText.copyWith(
-                                    color: Colors.white,
-                                    fontSize: 14,
+                                    color: txt.title,
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                                const SizedBox(height: 12),
+                                Text(
+                                  '$completion%',
+                                  style: AppTextStyles.sectionHeading.copyWith(
+                                    color: Theme.of(context).colorScheme.primary,
+                                    fontSize: 18,
                                     fontWeight: FontWeight.w600,
                                   ),
                                 ),
-                              ),
+                                SizedBox(height: 8.h),
+                                ClipRRect(
+                                  borderRadius: BorderRadius.circular(AppRadius.card),
+                                  child: LinearProgressIndicator(
+                                    value: completion / 100,
+                                    minHeight: 4.h,
+                                    backgroundColor: Colors.grey.shade300,
+                                    valueColor: const AlwaysStoppedAnimation<Color>(
+                                      AppColors.primaryColor,
+                                    ),
+                                  ),
+                                ),
+                                SizedBox(height: 14.h),
+                                GestureDetector(
+                                  onTap: () =>
+                                      navigationPush(context, const EditProfile()),
+                                  child: Container(
+                                    width: double.infinity,
+                                    height: 40,
+                                    decoration: BoxDecoration(
+                                      color: AppColors.primaryColor,
+                                      borderRadius: BorderRadius.circular(50.r),
+                                    ),
+                                    child: Center(
+                                      child: Text(
+                                        AppLocalizations.of(
+                                          context,
+                                        )!.completeprofilesetup,
+                                        style: AppTextStyles.subText.copyWith(
+                                          color: Colors.white,
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
+                          const SizedBox(height: 8),
                         ],
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                  ],
+                      );
+                    } else {
+                      return HomeFeedPostCard(
+                        key: ValueKey(currentPosts[index].id),
+                        post: currentPosts[index],
+                        onPressed: () {},
+                      );
+                    }
+                  },
                 );
               }
 

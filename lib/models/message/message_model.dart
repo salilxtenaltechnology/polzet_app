@@ -99,8 +99,8 @@ class MessageItem {
 
   factory MessageItem.fromJson(Map<String, dynamic> json) {
     return MessageItem(
-      id: json['id'] ?? 0,
-      chat: json['chat'] ?? 0,
+      id: json['id'] is int ? json['id'] as int : int.tryParse(json['id']?.toString() ?? '') ?? 0,
+      chat: json['chat'] is int ? json['chat'] as int : int.tryParse(json['chat']?.toString() ?? '') ?? 0,
       sender: MessageSender.fromJson(
         json['sender'] as Map<String, dynamic>? ?? {},
       ),
@@ -119,7 +119,7 @@ class MessageItem {
 }
 
 class MessageSender {
-  final int id;
+  final String id;
   final String username;
   final String? profileImage;
 
@@ -127,7 +127,7 @@ class MessageSender {
 
   factory MessageSender.fromJson(Map<String, dynamic> json) {
     return MessageSender(
-      id: json['id'] ?? 0,
+      id: json['id']?.toString() ?? '',
       username: json['username']?.toString() ?? '',
       profileImage: json['profile_image']?.toString(),
     );

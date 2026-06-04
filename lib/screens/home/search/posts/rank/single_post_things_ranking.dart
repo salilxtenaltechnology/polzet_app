@@ -96,7 +96,7 @@ class _SinglePostThingsRankingState extends State<SinglePostThingsRanking> {
           MaterialPageRoute(
             builder: (_) => RankSubmittedScreen(
               nextScreen: ThingsResultScreen(
-                username: widget.post.user,
+                username: widget.post.user.username,
                 postId: widget.post.id.toString(),
               ),
             ),
@@ -176,7 +176,7 @@ class _SinglePostThingsRankingState extends State<SinglePostThingsRanking> {
 
   Widget _buildPostHeader() {
     final post = widget.post;
-    final username = post.user;
+    final username = post.user.username;
     final initial = username.isNotEmpty ? username[0].toUpperCase() : '?';
 
     return Padding(

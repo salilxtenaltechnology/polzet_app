@@ -24,7 +24,7 @@ class HashtagPostsListModel {
 }
 
 class HashtagPostModel {
-  final int id;
+  final String id;
   final String? description;
   final String createdAt;
   final HashtagPostUser user;
@@ -38,6 +38,7 @@ class HashtagPostModel {
   final int commentsCount;
   final int sharesCount;
   final String followingStatus;
+  final double engagementScore;
 
   HashtagPostModel({
     required this.id,
@@ -54,11 +55,12 @@ class HashtagPostModel {
     required this.commentsCount,
     required this.sharesCount,
     required this.followingStatus,
+    required this.engagementScore,
   });
 
   factory HashtagPostModel.fromJson(Map<String, dynamic> json) {
     return HashtagPostModel(
-      id: json['id'],
+      id: json['id']?.toString() ?? '',
       description: json['description'],
       createdAt: json['created_at'] ?? '',
       user: HashtagPostUser.fromJson(json['user'] ?? {}),
@@ -76,12 +78,13 @@ class HashtagPostModel {
       commentsCount: json['comments_count'] ?? 0,
       sharesCount: json['shares_count'] ?? 0,
       followingStatus: json['following_status'] ?? 'none',
+      engagementScore: (json['engagement_score'] ?? 0.0).toDouble(),
     );
   }
 }
 
 class HashtagPostUser {
-  final int userid;
+  final String userid;
   final String firstName;
   final String lastName;
   final String username;
@@ -99,7 +102,7 @@ class HashtagPostUser {
 
   factory HashtagPostUser.fromJson(Map<String, dynamic> json) {
     return HashtagPostUser(
-      userid: json['userid'] ?? json['id'] ?? json['user_id'] ?? 0,
+      userid: (json['userid'] ?? json['id'] ?? json['user_id'] ?? '').toString(),
       firstName: json['first_name'] ?? '',
       lastName: json['last_name'] ?? '',
       username: json['username'] ?? '',
@@ -110,7 +113,7 @@ class HashtagPostUser {
 }
 
 class HashtagPollModel {
-  final int id;
+  final String id;
   final String question;
   final List<HashtagPollOption> options;
   final bool isPolledByCurrentUser;
@@ -124,7 +127,7 @@ class HashtagPollModel {
 
   factory HashtagPollModel.fromJson(Map<String, dynamic> json) {
     return HashtagPollModel(
-      id: json['id'],
+      id: json['id']?.toString() ?? '',
       question: json['question'] ?? '',
       options: (json['options'] as List? ?? [])
           .map((e) => HashtagPollOption.fromJson(e))
@@ -199,7 +202,7 @@ class HashtagPollImage {
 }
 
 class HashtagPollVoter {
-  final int id;
+  final String id;
   final String username;
   final String firstName;
   final String lastName;
@@ -215,7 +218,7 @@ class HashtagPollVoter {
 
   factory HashtagPollVoter.fromJson(Map<String, dynamic> json) {
     return HashtagPollVoter(
-      id: json['id'],
+      id: json['id']?.toString() ?? '',
       username: json['username'] ?? '',
       firstName: json['first_name'] ?? '',
       lastName: json['last_name'] ?? '',
@@ -225,21 +228,27 @@ class HashtagPollVoter {
 }
 
 class HashtagLikeUser {
-  final int id;
+  final String id;
   final String username;
   final String? profileImage;
+  final String? firstName;
+  final String? lastName;
 
   HashtagLikeUser({
     required this.id,
     required this.username,
     this.profileImage,
+    this.firstName,
+    this.lastName,
   });
 
   factory HashtagLikeUser.fromJson(Map<String, dynamic> json) {
     return HashtagLikeUser(
-      id: json['id'],
+      id: json['id']?.toString() ?? '',
       username: json['username'] ?? '',
       profileImage: json['profile_image'],
+      firstName: json['first_name'],
+      lastName: json['last_name'],
     );
   }
 }

@@ -5,17 +5,20 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:polzet_app/core/constants/app_radius.dart';
 
 import '../../../../../../api/api_config.dart';
 import '../../../../../../api/services/api_service.dart';
+import '../../../../../../core/constants/app_radius.dart';
 import '../../../../../../core/themes/app_text_colors.dart';
 import '../../../../../../core/themes/app_text_styles.dart';
 import '../../../../../../core/utils/bottomsheet_util.dart';
 import '../../../../../../languages/l10n/generated/app_localizations.dart';
+import '../../../../../../mixin/utility_mixins.dart';
 import '../../../../../../models/posts/single_post_model.dart';
 import '../../../../../../widgets/appbar/common_appbar.dart';
+import '../../../../../../widgets/connection/no_internet_screen.dart';
 import '../../../../../../widgets/loader.dart';
+import '../../../../profile/public/public_profile_screen.dart';
 import 'image_preview_screen.dart';
 
 class ImageResultScreen extends StatefulWidget {
@@ -32,7 +35,8 @@ class ImageResultScreen extends StatefulWidget {
   State<ImageResultScreen> createState() => _ImageResultScreenState();
 }
 
-class _ImageResultScreenState extends State<ImageResultScreen> {
+class _ImageResultScreenState extends State<ImageResultScreen>
+    with UtilityMixin {
   final ApiService _apiService = ApiService();
 
   SinglePostModel? _post;
@@ -143,12 +147,16 @@ class _ImageResultScreenState extends State<ImageResultScreen> {
     }
 
     if (_error != null || _post == null) {
-      return Center(
-        child: Text(
-          _error ?? 'Something went wrong.',
-          style: AppTextStyles.subText,
-          textAlign: TextAlign.center,
-        ),
+      return ConnectionErrorScreen(
+        type: ConnectionErrorType.unknown,
+        errorMessage: _error,
+        onRetry: () {
+          setState(() {
+            _error = null;
+            _isLoading = true;
+          });
+          _fetchPost();
+        },
       );
     }
 
@@ -172,7 +180,7 @@ class _ImageResultScreenState extends State<ImageResultScreen> {
     // final id = _post!.id;
     final firstName = _post!.firstName;
     final lastName = _post!.lastName;
-    final username = _post!.user;
+    final username = _post!.user.username;
     final initial = username.isNotEmpty ? username[0].toUpperCase() : 'P';
     // final userProvider = Provider.of<UserProvider>(context, listen: false);
 
@@ -180,21 +188,10 @@ class _ImageResultScreenState extends State<ImageResultScreen> {
       children: [
         GestureDetector(
           onTap: () {
-            // if (userProvider.userId == id) {
-            //   Navigator.of(context).pushAndRemoveUntil(
-            //     MaterialPageRoute(
-            //       builder: (_) => const HomeScreen(initialIndex: 4),
-            //     ),
-            //     (route) => false,
-            //   );
-            // } else {
-            //   Navigator.push(
-            //     context,
-            //     MaterialPageRoute(
-            //       builder: (_) => PublicProfileScreen(userId: id),
-            //     ),
-            //   );
-            // }
+            navigationPush(
+              context,
+              PublicProfileScreen(userId: _post!.user.uuid),
+            );
           },
           child: CircleAvatar(
             radius: 20,

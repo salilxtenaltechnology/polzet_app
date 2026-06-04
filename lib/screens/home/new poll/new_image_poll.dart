@@ -6,6 +6,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:polzet_app/core/constants/app_radius.dart';
+import 'package:provider/provider.dart';
+import '../../../provider/user_provider.dart';
 
 import '../../../api/services/api_service.dart';
 import '../../../api/services/image/image_picker_service.dart';
@@ -30,9 +32,10 @@ class NewImagePoll extends StatefulWidget {
 
 class _NewImagePollState extends State<NewImagePoll> {
   final ApiService service = ApiService();
-  final descriptionController = TextEditingController();
+  final questionController = TextEditingController();
 
-  String descriptionErrorText = '';
+
+  String questionErrorText = '';
   String imageErrorText = '';
   bool isLoading = false;
   bool isUploading = false;
@@ -101,9 +104,9 @@ class _NewImagePollState extends State<NewImagePoll> {
     final accessToken = await SharedPrefService.getToken();
 
     // Validate inputs
-    if (descriptionController.text.trim().isEmpty) {
+    if (questionController.text.trim().isEmpty) {
       setState(() {
-        descriptionErrorText = AppLocalizations.of(
+        questionErrorText = AppLocalizations.of(
           context,
         )!.pleaseenteraquestion;
       });
@@ -135,15 +138,15 @@ class _NewImagePollState extends State<NewImagePoll> {
     setState(() {
       isLoading = true;
       uploadProgress = 0.0;
-      descriptionErrorText = '';
+      questionErrorText = '';
       imageErrorText = '';
     });
 
     try {
       // Upload the poll
       Map<String, dynamic>? result = await ApiService.uploadImagePoll(
-        description: descriptionController.text.trim(),
-        question: '',
+        description: '',
+        question: questionController.text.trim(),
         pollOptions: selectedImages,
         maxOptions: maxImages,
         authToken: accessToken,
@@ -160,12 +163,14 @@ class _NewImagePollState extends State<NewImagePoll> {
       );
 
       if (result != null && mounted) {
-        showToast(message: 'Poll created successfully!');
-        descriptionController.clear();
+        showToast(message: 'New image poll created!');
+        questionController.clear();
         setState(() {
           _images = [null, null];
           uploadProgress = 0.0;
         });
+        // Clear cached posts so the profile screen updates immediately
+        Provider.of<UserProvider>(context, listen: false).clearUserPostsCache();
         Navigator.of(context).pop(result);
       }
     } catch (e) {
@@ -221,26 +226,26 @@ class _NewImagePollState extends State<NewImagePoll> {
         children: [
           SizedBox(height: 10.h),
           Text(
-            AppLocalizations.of(context)!.description,
+            AppLocalizations.of(context)!.question,
             style: CustomTextStyles.lblPrimaryText(context),
           ),
           SizedBox(height: 7.h),
           SecondryTextfield(
-            controller: descriptionController,
-            hintText: AppLocalizations.of(context)!.enteryouranswerhere,
+            controller: questionController,
+            hintText: AppLocalizations.of(context)!.enteryourquestion,
             onChanged: (value) {
-              if (descriptionErrorText.isNotEmpty && value.trim().isNotEmpty) {
+              if (questionErrorText.isNotEmpty && value.trim().isNotEmpty) {
                 setState(() {
-                  descriptionErrorText = '';
+                  questionErrorText = '';
                 });
               }
             },
           ),
-          if (descriptionErrorText.isNotEmpty)
+          if (questionErrorText.isNotEmpty)
             Padding(
               padding: EdgeInsets.only(top: 5.h),
               child: Text(
-                descriptionErrorText,
+                questionErrorText,
                 style: CustomTextStyles.msgErrorText(context),
               ),
             ),
@@ -312,19 +317,19 @@ class _NewImagePollState extends State<NewImagePoll> {
                 icon: Icon(
                   Icons.add,
                   size: 18,
-                  color: Theme.of(context).colorScheme.primary,
+                  color: Theme.of(context).colorScheme.onPrimary,
                 ),
                 label: Text(
                   AppLocalizations.of(context)!.addimage,
                   style: AppTextStyles.bodyText.copyWith(
                     fontSize: 14,
                     fontWeight: FontWeight.w500,
-                    color: Theme.of(context).colorScheme.primary,
+                    color: Theme.of(context).colorScheme.onPrimary,
                   ),
                 ),
                 style: OutlinedButton.styleFrom(
                   side: BorderSide(
-                    color: Theme.of(context).colorScheme.primary.withOpacity(0.8),
+                    color: Theme.of(context).colorScheme.onPrimary.withOpacity(0.8),
                   ),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(AppRadius.button),
@@ -459,7 +464,7 @@ class _NewImagePollState extends State<NewImagePoll> {
 
   @override
   void dispose() {
-    descriptionController.dispose();
+    questionController.dispose();
     super.dispose();
   }
 }

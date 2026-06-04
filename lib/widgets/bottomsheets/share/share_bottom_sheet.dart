@@ -3,7 +3,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:polzet_app/core/constants/feather_icons_compat.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:polzet_app/core/constants/feather_icons_compat.dart'
+    hide FontAwesomeIcons;
 import 'package:url_launcher/url_launcher.dart';
 import '../../../core/themes/app_text_colors.dart';
 import '../../../core/themes/app_text_styles.dart';
@@ -24,7 +26,7 @@ class ShareBottomSheet extends StatefulWidget {
     super.key,
     required this.shareLink,
     required this.username,
-    required this.postId,
+    this.postId = '',
     this.onShareSuccess,
   });
 
@@ -38,11 +40,15 @@ class _ShareBottomSheetState extends State<ShareBottomSheet> {
 
   final ApiService _apiServices = ApiService();
   final Set<dynamic> _selectedUserIds = {};
+  final Set<dynamic> _selectedGroupIds = {};
   bool _isSending = false;
 
-  List<Map<String, dynamic>> _allUsers = [];
-  List<Map<String, dynamic>> _filteredUsers = [];
-  bool _isLoadingUsers = true;
+  static List<Map<String, dynamic>> _cachedTargets = [];
+  static bool _hasLoadedOnce = false;
+
+  List<Map<String, dynamic>> _allUsers = _cachedTargets;
+  List<Map<String, dynamic>> _filteredUsers = _cachedTargets;
+  bool _isLoadingUsers = !_hasLoadedOnce;
 
   @override
   void initState() {
@@ -56,20 +62,49 @@ class _ShareBottomSheetState extends State<ShareBottomSheet> {
       final results = await Future.wait([
         _apiServices.getFollowersList(),
         _apiServices.getFollowingList(),
+        _apiServices.getChatList(),
       ]);
+
+      final followers = results[0];
+      final following = results[1];
+      final chats = results[2];
 
       final seen = <dynamic>{};
       final merged = <Map<String, dynamic>>[];
 
-      for (final user in [...results[0], ...results[1]]) {
-        final id = user['id'];
-        if (id != null && seen.add(id)) merged.add(user);
+      // Add group chats first
+      for (final chat in chats) {
+        if (chat['chat_type']?.toString() == 'group') {
+          final id = chat['id'];
+          if (id != null && seen.add('group_$id')) {
+            merged.add({
+              ...chat,
+              'is_group': true,
+            });
+          }
+        }
       }
+
+      // Add followers/following users
+      for (final user in [...followers, ...following]) {
+        final id = user['id'];
+        if (id != null && seen.add('user_$id')) {
+          merged.add(user);
+        }
+      }
+
+      _cachedTargets = merged;
+      _hasLoadedOnce = true;
 
       if (mounted) {
         setState(() {
           _allUsers = merged;
-          _filteredUsers = merged;
+          final query = _searchController.text.trim().toLowerCase();
+          _filteredUsers = query.isEmpty
+              ? merged
+              : merged
+                    .where((u) => _userName(u).toLowerCase().contains(query))
+                    .toList();
           _isLoadingUsers = false;
         });
       }
@@ -91,18 +126,24 @@ class _ShareBottomSheetState extends State<ShareBottomSheet> {
     });
   }
 
-  String _userName(Map<String, dynamic> user) =>
-      (user['name'] ?? user['username'] ?? user['full_name'] ?? 'Unknown')
-          .toString();
+  String _userName(Map<String, dynamic> item) {
+    if (item['is_group'] == true) {
+      return (item['title'] ?? item['name'] ?? 'Unnamed Group').toString();
+    }
+    return (item['name'] ?? item['username'] ?? item['full_name'] ?? 'Unknown')
+        .toString();
+  }
 
-  String? _userAvatar(Map<String, dynamic> user) =>
-      (user['avatar'] ?? user['profile_picture_url'] ?? user['image'])
-          ?.toString();
+  String? _userAvatar(Map<String, dynamic> item) {
+    if (item['is_group'] == true) {
+      return (item['profile_url'] ?? item['group_picture_url'] ?? item['avatar'])?.toString();
+    }
+    return (item['avatar'] ?? item['profile_picture_url'] ?? item['image'])
+        ?.toString();
+  }
 
   Future<void> _shareToWhatsApp() async {
-    final text = Uri.encodeComponent(
-      widget.shareLink,
-    );
+    final text = Uri.encodeComponent(widget.shareLink);
 
     // Try deep link first (opens WhatsApp directly)
     final whatsappUri = Uri.parse('whatsapp://send?text=$text');
@@ -170,8 +211,11 @@ class _ShareBottomSheetState extends State<ShareBottomSheet> {
   }
 
   Future<void> _shareToGmail() async {
+    final subject = widget.postId.isEmpty
+        ? 'Polzet Profile of @${widget.username}'
+        : 'Post from @${widget.username}';
     final url = Uri.parse(
-      'mailto:?subject=Post from @${widget.username}&body=${Uri.encodeComponent(widget.shareLink)}',
+      'mailto:?subject=${Uri.encodeComponent(subject)}&body=${Uri.encodeComponent(widget.shareLink)}',
     );
     try {
       bool launched = await launchUrl(
@@ -194,7 +238,7 @@ class _ShareBottomSheetState extends State<ShareBottomSheet> {
   }
 
   Future<void> _sendToSelectedUsers() async {
-    if (_selectedUserIds.isEmpty) return;
+    if (_selectedUserIds.isEmpty && _selectedGroupIds.isEmpty) return;
     setState(() => _isSending = true);
 
     try {
@@ -209,33 +253,88 @@ class _ShareBottomSheetState extends State<ShareBottomSheet> {
 
         final chatId = int.tryParse(chatResponse['id']?.toString() ?? '');
         if (chatId != null) {
-          final shareResponse = await _apiServices.sharePostMessage(
-            chatId: chatId,
-            sharedPostId: widget.postId,
-            message: msg,
-          );
-
-          if (shareResponse['status'] == 'success') {
-            anySuccess = true;
-            final newCount = await _apiServices.addShareCount(
-              postId: widget.postId,
+          if (widget.postId.isEmpty) {
+            // Sharing profile: send message with shareLink
+            await _apiServices.sendMessage(
+              chatId: chatId,
+              text: text.isEmpty
+                  ? widget.shareLink
+                  : '$text\n${widget.shareLink}',
             );
-            if (newCount != null && widget.onShareSuccess != null) {
-              widget.onShareSuccess!(newCount);
+            anySuccess = true;
+          } else {
+            // Sharing post
+            final shareResponse = await _apiServices.sharePostMessage(
+              chatId: chatId,
+              sharedPostId: widget.postId,
+              message: msg,
+            );
+
+            if (shareResponse['status'] == 'success') {
+              anySuccess = true;
+              final newCount = await _apiServices.addShareCount(
+                postId: widget.postId,
+              );
+              if (newCount != null && widget.onShareSuccess != null) {
+                widget.onShareSuccess!(newCount);
+              }
+            }
+          }
+        }
+      }
+
+      for (final groupId in _selectedGroupIds) {
+        final chatId = int.tryParse(groupId.toString());
+        if (chatId != null) {
+          if (widget.postId.isEmpty) {
+            // Sharing profile: send message with shareLink
+            await _apiServices.sendMessage(
+              chatId: chatId,
+              text: text.isEmpty
+                  ? widget.shareLink
+                  : '$text\n${widget.shareLink}',
+            );
+            anySuccess = true;
+          } else {
+            // Sharing post
+            final shareResponse = await _apiServices.sharePostMessage(
+              chatId: chatId,
+              sharedPostId: widget.postId,
+              message: msg,
+            );
+
+            if (shareResponse['status'] == 'success') {
+              anySuccess = true;
+              final newCount = await _apiServices.addShareCount(
+                postId: widget.postId,
+              );
+              if (newCount != null && widget.onShareSuccess != null) {
+                widget.onShareSuccess!(newCount);
+              }
             }
           }
         }
       }
 
       if (anySuccess) {
-        showToast(message: 'Post sent');
+        showToast(
+          message: widget.postId.isEmpty ? 'Profile shared' : 'Post sent',
+        );
       } else {
-        showToast(message: 'Failed to share post');
+        showToast(
+          message: widget.postId.isEmpty
+              ? 'Failed to share profile'
+              : 'Failed to share post',
+        );
       }
 
       if (mounted) Navigator.pop(context);
     } catch (e) {
-      showToast(message: 'Failed to share post');
+      showToast(
+        message: widget.postId.isEmpty
+            ? 'Failed to share profile'
+            : 'Failed to share post',
+      );
     } finally {
       if (mounted) {
         setState(() => _isSending = false);
@@ -352,22 +451,31 @@ class _ShareBottomSheetState extends State<ShareBottomSheet> {
                           ),
                       itemCount: _filteredUsers.length,
                       itemBuilder: (context, index) {
-                        final user = _filteredUsers[index];
-                        final avatarUrl = _userAvatar(user);
-                        final name = _userName(user);
+                        final item = _filteredUsers[index];
+                        final avatarUrl = _userAvatar(item);
+                        final name = _userName(item);
+                        final isGroup = item['is_group'] == true;
 
-                        final isSelected = _selectedUserIds.contains(
-                          user['id'],
-                        );
+                        final isSelected = isGroup
+                            ? _selectedGroupIds.contains(item['id'])
+                            : _selectedUserIds.contains(item['id']);
 
                         return GestureDetector(
                           onTap: () {
                             setState(() {
-                              final userId = user['id'];
-                              if (isSelected) {
-                                _selectedUserIds.remove(userId);
+                              final id = item['id'];
+                              if (isGroup) {
+                                if (isSelected) {
+                                  _selectedGroupIds.remove(id);
+                                } else {
+                                  _selectedGroupIds.add(id);
+                                }
                               } else {
-                                _selectedUserIds.add(userId);
+                                if (isSelected) {
+                                  _selectedUserIds.remove(id);
+                                } else {
+                                  _selectedUserIds.add(id);
+                                }
                               }
                             });
                           },
@@ -375,60 +483,91 @@ class _ShareBottomSheetState extends State<ShareBottomSheet> {
                             children: [
                               Stack(
                                 children: [
-                                  Builder(
-                                    builder: (_) {
-                                      final imageBytes = avatarUrl != null
-                                          ? getProfileImage(avatarUrl)
-                                          : null;
-                                      final initial = name.isNotEmpty
-                                          ? name[0].toUpperCase()
-                                          : '?';
+                                  if (isGroup && (avatarUrl == null || avatarUrl.trim().isEmpty))
+                                    _buildGroupAvatarStack(
+                                      members: item['members'] as List?,
+                                      size: 60,
+                                      isDarkMode: isDarkMode,
+                                      context: context,
+                                    )
+                                  else
+                                    Builder(
+                                      builder: (_) {
+                                        final imageBytes = avatarUrl != null
+                                            ? getProfileImage(avatarUrl)
+                                            : null;
+                                        final initial = name.isNotEmpty
+                                            ? name[0].toUpperCase()
+                                            : '?';
 
-                                      return Container(
-                                        height: 60,
-                                        width: 60,
-                                        decoration: BoxDecoration(
-                                          shape: BoxShape.circle,
-                                          color: imageBytes == null
-                                              ? (isDarkMode
-                                                    ? const Color(0xFF343434)
-                                                    : Theme.of(context)
-                                                          .colorScheme
-                                                          .primary
-                                                          .withOpacity(0.1))
-                                              : null,
-                                          image: imageBytes != null
-                                              ? DecorationImage(
-                                                  image: MemoryImage(
-                                                    imageBytes,
+                                        return Container(
+                                          height: 60,
+                                          width: 60,
+                                          decoration: BoxDecoration(
+                                            shape: BoxShape.circle,
+                                            color: imageBytes == null
+                                                ? (isDarkMode
+                                                      ? const Color(0xFF343434)
+                                                      : Theme.of(context)
+                                                            .colorScheme
+                                                            .primary
+                                                            .withOpacity(0.1))
+                                                : null,
+                                            image: imageBytes != null
+                                                ? DecorationImage(
+                                                    image: MemoryImage(
+                                                      imageBytes,
+                                                    ),
+                                                    fit: BoxFit.cover,
+                                                  )
+                                                : null,
+                                            border: Border.all(
+                                              color: Theme.of(context)
+                                                  .colorScheme
+                                                  .onSurface
+                                                  .withOpacity(0.05),
+                                            ),
+                                          ),
+                                          child: imageBytes == null
+                                              ? Center(
+                                                  child: Text(
+                                                    initial,
+                                                    style: TextStyle(
+                                                      color: Theme.of(
+                                                        context,
+                                                      ).colorScheme.onPrimary,
+                                                      fontWeight: FontWeight.w500,
+                                                      fontSize: 24,
+                                                    ),
                                                   ),
-                                                  fit: BoxFit.cover,
                                                 )
                                               : null,
+                                        );
+                                      },
+                                    ),
+                                  if (isGroup && !(avatarUrl == null || avatarUrl.trim().isEmpty))
+                                    Positioned(
+                                      bottom: 0,
+                                      left: 0,
+                                      child: Container(
+                                        decoration: BoxDecoration(
+                                          color: Colors.blueGrey,
+                                          shape: BoxShape.circle,
                                           border: Border.all(
-                                            color: Theme.of(context)
-                                                .colorScheme
-                                                .onSurface
-                                                .withOpacity(0.05),
+                                            color: Theme.of(
+                                              context,
+                                            ).colorScheme.background,
+                                            width: 1.5,
                                           ),
                                         ),
-                                        child: imageBytes == null
-                                            ? Center(
-                                                child: Text(
-                                                  initial,
-                                                  style: TextStyle(
-                                                    color: Theme.of(
-                                                      context,
-                                                    ).colorScheme.onPrimary,
-                                                    fontWeight: FontWeight.w500,
-                                                    fontSize: 24,
-                                                  ),
-                                                ),
-                                              )
-                                            : null,
-                                      );
-                                    },
-                                  ),
+                                        padding: const EdgeInsets.all(4),
+                                        child: const Icon(
+                                          Icons.group,
+                                          color: Colors.white,
+                                          size: 10,
+                                        ),
+                                      ),
+                                    ),
                                   if (isSelected)
                                     Positioned(
                                       bottom: 0,
@@ -467,7 +606,7 @@ class _ShareBottomSheetState extends State<ShareBottomSheet> {
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 textAlign: TextAlign.center,
-                              ),
+                                                            ),
                             ],
                           ),
                         );
@@ -481,7 +620,7 @@ class _ShareBottomSheetState extends State<ShareBottomSheet> {
               height: 1,
             ),
 
-            if (_selectedUserIds.isEmpty)
+            if (_selectedUserIds.isEmpty && _selectedGroupIds.isEmpty)
               // Share Options
               Padding(
                 padding: EdgeInsets.only(
@@ -495,7 +634,7 @@ class _ShareBottomSheetState extends State<ShareBottomSheet> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     _buildShareOption(
-                      iconWidget: const Icon(
+                      iconWidget: const FaIcon(
                         FontAwesomeIcons.whatsapp,
                         color: Color(0xFF25D366),
                         size: 32,
@@ -504,7 +643,7 @@ class _ShareBottomSheetState extends State<ShareBottomSheet> {
                       onTap: _shareToWhatsApp,
                     ),
                     _buildShareOption(
-                      iconWidget: const Icon(
+                      iconWidget: const FaIcon(
                         FontAwesomeIcons.instagram,
                         color: Color(0xFFE1306C),
                         size: 32,
@@ -574,8 +713,8 @@ class _ShareBottomSheetState extends State<ShareBottomSheet> {
                         ),
                         enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(AppRadius.button),
-                          borderSide:  BorderSide(
-                            color:  isDarkMode
+                          borderSide: BorderSide(
+                            color: isDarkMode
                                 ? Theme.of(context).colorScheme.outline
                                 : const Color(0XFFE5E5E5),
                           ),
@@ -672,6 +811,134 @@ class _ShareBottomSheetState extends State<ShareBottomSheet> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildGroupAvatarStack({
+    required List<dynamic>? members,
+    required double size,
+    required bool isDarkMode,
+    required BuildContext context,
+  }) {
+    final List<String?> profileUrls = [];
+    final List<String> initials = [];
+
+    if (members != null) {
+      for (final member in members) {
+        if (profileUrls.length >= 2) break;
+        final user = member is Map ? member['user'] as Map? : null;
+        if (user != null) {
+          final profileUrl = (user['profile_image'] ?? user['profile_picture_url'] ?? user['avatar'])?.toString();
+          final name = (user['name'] ?? user['username'] ?? 'Unknown').toString();
+          profileUrls.add(profileUrl);
+          initials.add(name.isNotEmpty ? name[0].toUpperCase() : '?');
+        }
+      }
+    }
+
+    if (profileUrls.isEmpty) {
+      return Container(
+        width: size,
+        height: size,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: isDarkMode
+              ? const Color(0xFF343434)
+              : Theme.of(context).colorScheme.primary.withOpacity(0.1),
+        ),
+        child: Center(
+          child: Icon(
+            Icons.group,
+            size: size * 0.5,
+            color: Theme.of(context).colorScheme.onPrimary,
+          ),
+        ),
+      );
+    }
+
+    final double circleSize = size * 0.75;
+
+    return SizedBox(
+      width: size,
+      height: size,
+      child: Stack(
+        children: [
+          Positioned(
+            top: 0,
+            left: 0,
+            child: _buildSingleAvatarCircle(
+              profileUrl: profileUrls[0],
+              initial: initials[0],
+              size: circleSize,
+              isDarkMode: isDarkMode,
+              context: context,
+            ),
+          ),
+          if (profileUrls.length > 1)
+            Positioned(
+              bottom: 0,
+              right: 0,
+              child: _buildSingleAvatarCircle(
+                profileUrl: profileUrls[1],
+                initial: initials[1],
+                size: circleSize,
+                isDarkMode: isDarkMode,
+                context: context,
+                hasBorder: true,
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSingleAvatarCircle({
+    required String? profileUrl,
+    required String initial,
+    required double size,
+    required bool isDarkMode,
+    required BuildContext context,
+    bool hasBorder = false,
+  }) {
+    final imageBytes = profileUrl != null ? getProfileImage(profileUrl) : null;
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: imageBytes == null
+            ? (isDarkMode
+                  ? const Color(0xFF343434)
+                  : Theme.of(context).colorScheme.primary.withOpacity(0.1))
+            : null,
+        border: hasBorder
+            ? Border.all(
+                color: Theme.of(context).colorScheme.tertiaryContainer,
+                width: 1.5,
+              )
+            : Border.all(
+                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.05),
+                width: 1,
+              ),
+        image: imageBytes != null
+            ? DecorationImage(
+                image: MemoryImage(imageBytes),
+                fit: BoxFit.cover,
+              )
+            : null,
+      ),
+      child: imageBytes == null
+          ? Center(
+              child: Text(
+                initial,
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onPrimary,
+                  fontWeight: FontWeight.w500,
+                  fontSize: size * 0.4,
+                ),
+              ),
+            )
+          : null,
     );
   }
 }

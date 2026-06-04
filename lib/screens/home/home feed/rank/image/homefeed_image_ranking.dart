@@ -3,17 +3,19 @@
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
-import 'package:polzet_app/core/constants/app_radius.dart';
-import 'package:polzet_app/widgets/appbar/common_appbar.dart';
+import 'package:polzet_app/screens/home/profile/public/public_profile_screen.dart';
 import 'package:showcaseview/showcaseview.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../../../api/api_config.dart';
 import '../../../../../api/services/api_service.dart';
+import '../../../../../core/constants/app_radius.dart';
 import '../../../../../core/themes/app_text_colors.dart';
 import '../../../../../core/themes/app_text_styles.dart';
 import '../../../../../languages/l10n/generated/app_localizations.dart';
+import '../../../../../mixin/utility_mixins.dart';
 import '../../../../../models/posts/homefeed_posts_model.dart';
+import '../../../../../widgets/appbar/common_appbar.dart';
 import '../../../../../widgets/base64/image_convert.dart';
 import '../../../../../widgets/loader.dart';
 import '../submit/rank_submitted_screen.dart';
@@ -48,7 +50,7 @@ class HomefeedImageRanking extends StatefulWidget {
   State<HomefeedImageRanking> createState() => _ImageRankingState();
 }
 
-class _ImageRankingState extends State<HomefeedImageRanking> {
+class _ImageRankingState extends State<HomefeedImageRanking> with UtilityMixin{
   late List<HomeFeedPollOption> _orderedImages;
   bool _hasRanked = false;
   bool _isSubmitting = false;
@@ -90,7 +92,7 @@ class _ImageRankingState extends State<HomefeedImageRanking> {
       if (!mounted) return;
 
       if (result['success'] == true) {
-        widget.poll.isPolledByCurrentUser = true;
+        widget.post.isPolledByCurrentUser = true;
 
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(
@@ -260,7 +262,9 @@ class _ImageRankingState extends State<HomefeedImageRanking> {
           Row(
             children: [
               GestureDetector(
-                onTap: () {},
+                onTap: () {
+                  navigationPush(context, PublicProfileScreen(userId: widget.user.userid));
+                },
                 child: CircleAvatar(
                   radius: 20,
                   backgroundColor: Theme.of(

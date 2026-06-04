@@ -702,10 +702,12 @@ class _SettingsScreenState extends State<SettingsScreen>
         ),
         child: TextField(
           controller: _searchController,
-          cursorColor: Theme.of(context).colorScheme.primary,
+          textAlignVertical: TextAlignVertical.center,
+          cursorColor: Theme.of(context).colorScheme.onPrimary,
+          cursorWidth: 1.5,
           style: TextStyle(
             color: Theme.of(context).colorScheme.onBackground,
-            fontSize: 14,
+            fontSize: 14.5,
             fontWeight: FontWeight.w500,
           ),
           onChanged: (val) {
@@ -722,11 +724,20 @@ class _SettingsScreenState extends State<SettingsScreen>
             ),
             prefixIcon: const Icon(
               Icons.search_rounded,
-              size: 20,
+              size: 22,
               color: Color(0XFF898989),
+            ),
+            prefixIconConstraints: const BoxConstraints(
+              minWidth: 46,
+              minHeight: 46,
             ),
             suffixIcon: _searchController.text.isNotEmpty
                 ? IconButton(
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(
+                      minWidth: 36,
+                      minHeight: 46,
+                    ),
                     icon: const Icon(
                       Icons.close_rounded,
                       color: Color(0XFF898989),
@@ -740,8 +751,13 @@ class _SettingsScreenState extends State<SettingsScreen>
                     },
                   )
                 : null,
+            suffixIconConstraints: const BoxConstraints(
+              minWidth: 36,
+              minHeight: 46,
+            ),
+            isDense: true,
             border: InputBorder.none,
-            contentPadding: const EdgeInsets.symmetric(vertical: 12),
+            contentPadding: const EdgeInsets.only(right: 12),
           ),
         ),
       ),

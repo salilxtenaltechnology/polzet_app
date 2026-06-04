@@ -23,16 +23,12 @@ class NotificationsResponse {
             .toList()
         : <NotificationItem>[];
 
-    final filteredResults = rawResults
-        .where((item) => item.category.toUpperCase() != 'CHAT')
-        .toList();
-
     return NotificationsResponse(
-      count: filteredResults.length,
+      count: rawResults.length,
       unreadCount: _toInt(json['unread_count']),
       page: _toInt(json['page'], defaultValue: 1),
       hasMore: _parseBool(json['has_more']),
-      results: filteredResults,
+      results: rawResults,
     );
   }
 

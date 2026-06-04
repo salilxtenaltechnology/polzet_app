@@ -11,6 +11,7 @@ import 'package:showcaseview/showcaseview.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../api/services/notification/notification_services.dart';
+import 'profile/public/public_profile_screen.dart';
 import '../../core/navigation/notification_router.dart';
 import '../../core/themes/app_text_styles.dart';
 import '../../data/token/shared_preferences.dart';

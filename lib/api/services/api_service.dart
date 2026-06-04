@@ -112,7 +112,7 @@ class ApiService with UtilityMixin {
     // Network & Timeout Errors
     if (e.type == DioExceptionType.connectionTimeout ||
         e.type == DioExceptionType.receiveTimeout) {
-      return 'Connection timeout. Please check your internet connection.';
+      return 'The server is temporarily unavailable due to a connection timeout.';
     }
     if (e.type == DioExceptionType.connectionError) {
       return 'No internet connection available.';
@@ -128,6 +128,14 @@ class ApiService with UtilityMixin {
     }
 
     return defaultMessage;
+  }
+
+  /// Public wrapper for _handleDioError to use in other screens/classes
+  String handleDioError(
+    DioException e, {
+    String defaultMessage = _errorMessageGeneric,
+  }) {
+    return _handleDioError(e, defaultMessage: defaultMessage);
   }
 
   /// Validate file size
@@ -267,6 +275,9 @@ class ApiService with UtilityMixin {
             }
           }
         }
+      }
+      if (passErr == null && emailOrMobileErr == null) {
+        emailOrMobileErr = _handleDioError(e, defaultMessage: 'Login failed');
       }
       if (onError != null) {
         onError(passErr, emailOrMobileErr);
@@ -1748,7 +1759,13 @@ class ApiService with UtilityMixin {
         data: {'user_id': userId?.toString()},
         options: Options(headers: await _getAuthHeaders()),
       );
-      return response.data;
+      if (response.data is Map<String, dynamic>) {
+        return {
+          'success': true,
+          ...response.data as Map<String, dynamic>,
+        };
+      }
+      return {'success': true};
     } on DioException catch (e) {
       return {
         'success': false,
@@ -1765,7 +1782,13 @@ class ApiService with UtilityMixin {
         data: {'user_id': userId?.toString()},
         options: Options(headers: await _getAuthHeaders()),
       );
-      return response.data;
+      if (response.data is Map<String, dynamic>) {
+        return {
+          'success': true,
+          ...response.data as Map<String, dynamic>,
+        };
+      }
+      return {'success': true};
     } on DioException catch (e) {
       return {
         'success': false,
@@ -1856,10 +1879,10 @@ class ApiService with UtilityMixin {
       return [];
     } on DioException catch (e) {
       debugPrint('Error fetching chat list: $e');
-      return [];
+      rethrow;
     } catch (e) {
       debugPrint('Unexpected error fetching chat list: $e');
-      return [];
+      rethrow;
     }
   }
 
@@ -2333,7 +2356,7 @@ class ApiService with UtilityMixin {
           final allPosts = postsData
               .map((json) => PublicPost.fromJson(json))
               .toList();
-          return allPosts.where((post) => post.images.isNotEmpty).toList();
+          return allPosts.where((post) => post.isImagePoll).toList();
         }
         throw Exception('API Error: ${jsonData['message']}');
       }
@@ -2359,8 +2382,7 @@ class ApiService with UtilityMixin {
           final allPosts = postsData
               .map((json) => PublicPost.fromJson(json))
               .toList();
-          // Filter to only return posts that have at least one poll
-          return allPosts.where((post) => post.polls.isNotEmpty).toList();
+          return allPosts.where((post) => post.isTextPoll).toList();
         }
         throw Exception('API Error: ${jsonData['message']}');
       }

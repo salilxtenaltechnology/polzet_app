@@ -45,15 +45,15 @@ class _HashtagPostsListState extends State<HashtagPostsList> {
   final ScrollController _scrollController = ScrollController();
 
   // Per-post like state
-  final Map<int, bool> _likedMap = {};
-  final Map<int, int> _likesCountMap = {};
-  final Map<int, int> _commentsCountMap = {};
-  final Map<int, int> _sharesCountMap = {};
-  final Map<int, List<LikeUser>> _likedUsersMap = {};
-  final Map<int, bool> _likedUsersLoadingMap = {};
+  final Map<String, bool> _likedMap = {};
+  final Map<String, int> _likesCountMap = {};
+  final Map<String, int> _commentsCountMap = {};
+  final Map<String, int> _sharesCountMap = {};
+  final Map<String, List<LikeUser>> _likedUsersMap = {};
+  final Map<String, bool> _likedUsersLoadingMap = {};
 
   // Per-poll vote state
-  final Map<int, int> _selectedVotes = {}; // pollId -> optionId
+  final Map<String, int> _selectedVotes = {}; // pollId -> optionId
   final Map<String, List<int>> _selectedOptions =
       {}; // pollKey -> ordered indices
   final Map<String, bool> _pollVotingStates = {};
@@ -66,7 +66,7 @@ class _HashtagPostsListState extends State<HashtagPostsList> {
   }
 
   void _showAllImagesGrid(
-    int postId,
+    String postId,
     HashtagPollModel poll,
     bool isPolledByCurrentUser,
   ) {
@@ -164,7 +164,7 @@ class _HashtagPostsListState extends State<HashtagPostsList> {
     }
   }
 
-  Future<void> _fetchLikedUsers(int postId) async {
+  Future<void> _fetchLikedUsers(String postId) async {
     if (_likedUsersLoadingMap[postId] == true ||
         _likedUsersMap.containsKey(postId)) {
       return;
@@ -183,7 +183,7 @@ class _HashtagPostsListState extends State<HashtagPostsList> {
     }
   }
 
-  Future<void> _refreshLikedUsersQuietly(int postId) async {
+  Future<void> _refreshLikedUsersQuietly(String postId) async {
     try {
       final users = await ApiService().fetchLikedUsers(postId);
       if (!mounted) return;
@@ -192,7 +192,7 @@ class _HashtagPostsListState extends State<HashtagPostsList> {
   }
 
   // ── Like ───────────────────────────────────────────────────────────────────
-  Future<void> _toggleLike(int postId) async {
+  Future<void> _toggleLike(String postId) async {
     final prev = _likedMap[postId] ?? false;
     final prevCount = _likesCountMap[postId] ?? 0;
 
@@ -213,29 +213,6 @@ class _HashtagPostsListState extends State<HashtagPostsList> {
       }
     }
   }
-
-  // ── Image popup ────────────────────────────────────────────────────────────
-  // void _showAllImagesGrid(
-  //   int postId,
-  //   HashtagPollModel poll,
-  //   bool isPolledByCurrentUser,
-  // ) {
-  //   Navigator.of(context)
-  //       .push(
-  //         MaterialPageRoute(
-  //           builder: (_) => SinglePostImagePopup(
-  //             images: poll.options,
-  //             postId: postId,
-  //             pollId: poll.id,
-  //             onImageTap: (_) {},
-  //             isPolledByCurrentUser: isPolledByCurrentUser,
-  //           ),
-  //         ),
-  //       )
-  //       .then((result) {
-  //         if (result == true) _fetchPosts();
-  //       });
-  // }
 
   // ── Helpers ────────────────────────────────────────────────────────────────
   String _timeAgo(DateTime dt) {
@@ -377,7 +354,7 @@ class _HashtagPostsListState extends State<HashtagPostsList> {
           // Polls
           ...post.polls.map(
             (poll) => isImage
-                ? _buildImagePollBlock(poll, post.id)
+                ? _buildImagePollBlock(poll, post.id, post.isPolledByCurrentUser)
                 : _buildTextPollBlock(poll),
           ),
 
@@ -513,7 +490,11 @@ class _HashtagPostsListState extends State<HashtagPostsList> {
   // ═══════════════════════════════════════════════════════════════════════════
   // IMAGE POLL
   // ═══════════════════════════════════════════════════════════════════════════
-  Widget _buildImagePollBlock(HashtagPollModel poll, int postId) {
+  Widget _buildImagePollBlock(
+    HashtagPollModel poll,
+    String postId,
+    bool isPolledByCurrentUser,
+  ) {
     final validImages = poll.options.where((o) => o.image != null).toList();
     if (validImages.isEmpty) return const SizedBox.shrink();
 
@@ -550,7 +531,7 @@ class _HashtagPostsListState extends State<HashtagPostsList> {
 
           return GestureDetector(
             onTap: () =>
-                _showAllImagesGrid(postId, poll, poll.isPolledByCurrentUser),
+                _showAllImagesGrid(postId, poll, isPolledByCurrentUser),
             child: SizedBox(
               height: imageHeight,
               width: availableWidth,

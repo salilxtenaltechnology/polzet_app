@@ -11,11 +11,14 @@ import '../../../../../../core/constants/app_radius.dart';
 import '../../../../../../core/themes/app_text_colors.dart';
 import '../../../../../../core/themes/app_text_styles.dart';
 import '../../../../../../languages/l10n/generated/app_localizations.dart';
+import '../../../../../../mixin/utility_mixins.dart';
 import '../../../../../../models/posts/single_post_model.dart';
 import '../../../../../../widgets/loader.dart';
 import '../../../../../../api/api_config.dart';
 import '../../../../../../core/utils/bottomsheet_util.dart';
 import '../../../../../../widgets/appbar/common_appbar.dart';
+import '../../../../../../widgets/connection/no_internet_screen.dart';
+import '../../../../profile/public/public_profile_screen.dart';
 
 class ThingsResultScreen extends StatefulWidget {
   final String username;
@@ -31,7 +34,7 @@ class ThingsResultScreen extends StatefulWidget {
   State<ThingsResultScreen> createState() => _ThingsResultScreenState();
 }
 
-class _ThingsResultScreenState extends State<ThingsResultScreen> {
+class _ThingsResultScreenState extends State<ThingsResultScreen> with UtilityMixin {
   final ApiService _apiService = ApiService();
 
   SinglePostModel? _post;
@@ -129,19 +132,6 @@ class _ThingsResultScreenState extends State<ThingsResultScreen> {
     }
   }
 
-  //  void _showThingsPollVotersBottomSheet({
-  //   required int pollId,
-  //   required int optionId,
-  //   required List<SinglePostPollOption> options,
-  // }) {
-  //   BottomSheetUtils.showThingsPollVotersBottomSheet(
-  //     context: context,
-  //     postId: widget.postId,
-  //     pollId: pollId,
-  //     options: options,
-  //   );
-  // }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -159,12 +149,16 @@ class _ThingsResultScreenState extends State<ThingsResultScreen> {
     }
 
     if (_error != null || _post == null) {
-      return Center(
-        child: Text(
-          _error ?? 'Something went wrong.',
-          style: AppTextStyles.subText,
-          textAlign: TextAlign.center,
-        ),
+      return ConnectionErrorScreen(
+        type: ConnectionErrorType.unknown,
+        errorMessage: _error,
+        onRetry: () {
+          setState(() {
+            _error = null;
+            _isLoading = true;
+          });
+          _fetchPost();
+        },
       );
     }
 
@@ -185,29 +179,37 @@ class _ThingsResultScreenState extends State<ThingsResultScreen> {
 
     final firstName = _post!.firstName;
     final lastName = _post!.lastName;
-    final username = _post!.user;
+    final username = _post!.user.username;
     final initial = username.isNotEmpty ? username[0].toUpperCase() : '?';
 
     return Row(
       children: [
-        CircleAvatar(
-          radius: 20,
-          backgroundColor: Theme.of(
-            context,
-          ).colorScheme.onPrimary.withOpacity(0.1),
-          backgroundImage: _profileImageBytes != null
-              ? MemoryImage(_profileImageBytes!)
-              : null,
-          child: _profileImageBytes == null
-              ? Text(
-                  initial,
-                  style: AppTextStyles.subText.copyWith(
-                    color: Theme.of(context).colorScheme.onPrimary,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w600,
-                  ),
-                )
-              : null,
+        GestureDetector(
+          onTap: () {
+            navigationPush(
+              context,
+              PublicProfileScreen(userId: _post!.user.uuid),
+            );
+          },
+          child: CircleAvatar(
+            radius: 20,
+            backgroundColor: Theme.of(
+              context,
+            ).colorScheme.onPrimary.withOpacity(0.1),
+            backgroundImage: _profileImageBytes != null
+                ? MemoryImage(_profileImageBytes!)
+                : null,
+            child: _profileImageBytes == null
+                ? Text(
+                    initial,
+                    style: AppTextStyles.subText.copyWith(
+                      color: Theme.of(context).colorScheme.onPrimary,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  )
+                : null,
+          ),
         ),
         SizedBox(width: 10.w),
         Expanded(

@@ -17,7 +17,9 @@ import '../../../../../../models/posts/homefeed_posts_model.dart';
 import '../../../../../../widgets/appbar/common_appbar.dart';
 import '../../../../../core/themes/app_text_colors.dart';
 import '../../../../../languages/l10n/generated/app_localizations.dart';
+import '../../../../../mixin/utility_mixins.dart';
 import '../../../../../widgets/loader.dart';
+import '../../../profile/public/public_profile_screen.dart';
 import '../submit/rank_submitted_screen.dart';
 import '../result/things/things_result_screen.dart';
 
@@ -37,7 +39,8 @@ class HomefeedThingsRanking extends StatefulWidget {
   State<HomefeedThingsRanking> createState() => _HomefeedThingsRankingState();
 }
 
-class _HomefeedThingsRankingState extends State<HomefeedThingsRanking> {
+class _HomefeedThingsRankingState extends State<HomefeedThingsRanking>
+    with UtilityMixin {
   // Working copy of options — order reflects current user ranking
   late List<HomeFeedPollOption> _rankedOptions;
 
@@ -122,7 +125,7 @@ class _HomefeedThingsRankingState extends State<HomefeedThingsRanking> {
     setState(() => _isSubmitting = false);
 
     if (result['success'] == true) {
-      widget.poll.isPolledByCurrentUser = true;
+      widget.post.isPolledByCurrentUser = true;
 
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(
@@ -160,10 +163,12 @@ class _HomefeedThingsRankingState extends State<HomefeedThingsRanking> {
         }
 
         return SafeArea(
-          top:  false,
+          top: false,
           child: Scaffold(
             backgroundColor: Theme.of(context).colorScheme.background,
-            appBar:  CommonAppBar(title:   AppLocalizations.of(context)!.rankyourchoices,),
+            appBar: CommonAppBar(
+              title: AppLocalizations.of(context)!.rankyourchoices,
+            ),
             body: Column(
               children: [
                 Expanded(
@@ -201,24 +206,32 @@ class _HomefeedThingsRankingState extends State<HomefeedThingsRanking> {
     return Row(
       children: [
         // Avatar
-        CircleAvatar(
-          radius: 20,
-          backgroundColor: Theme.of(
-            context,
-          ).colorScheme.onPrimary.withOpacity(0.1),
-          backgroundImage: _profileImageBytes != null
-              ? MemoryImage(_profileImageBytes!)
-              : null,
-          child: _profileImageBytes == null
-              ? Text(
-                  initial,
-                  style: AppTextStyles.subText.copyWith(
-                    color: Theme.of(context).colorScheme.onPrimary,
-                    fontWeight: FontWeight.w500, 
-                                  fontSize: 18
-                  ),
-                )
-              : null,
+        GestureDetector(
+          onTap: () {
+            navigationPush(
+              context,
+              PublicProfileScreen(userId: widget.user.userid),
+            );
+          },
+          child: CircleAvatar(
+            radius: 20,
+            backgroundColor: Theme.of(
+              context,
+            ).colorScheme.onPrimary.withOpacity(0.1),
+            backgroundImage: _profileImageBytes != null
+                ? MemoryImage(_profileImageBytes!)
+                : null,
+            child: _profileImageBytes == null
+                ? Text(
+                    initial,
+                    style: AppTextStyles.subText.copyWith(
+                      color: Theme.of(context).colorScheme.onPrimary,
+                      fontWeight: FontWeight.w500,
+                      fontSize: 18,
+                    ),
+                  )
+                : null,
+          ),
         ),
 
         SizedBox(width: 10.w),
@@ -287,7 +300,7 @@ class _HomefeedThingsRankingState extends State<HomefeedThingsRanking> {
         ),
         SizedBox(height: 4.h),
         Text(
-           AppLocalizations.of(context)!.holdanddragtorankanswer,
+          AppLocalizations.of(context)!.holdanddragtorankanswer,
           style: AppTextStyles.subText.copyWith(
             fontSize: 13,
             fontWeight: FontWeight.w400,
@@ -377,8 +390,7 @@ class _HomefeedThingsRankingState extends State<HomefeedThingsRanking> {
     return ReorderableDelayedDragStartListener(
       index: index,
       child: Container(
-        height: 45,
-        padding: const EdgeInsets.symmetric(horizontal: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
         decoration: BoxDecoration(
           color: Theme.of(context).colorScheme.primaryContainer,
           borderRadius: BorderRadius.circular(AppRadius.card),
@@ -474,7 +486,7 @@ class _HomefeedThingsRankingState extends State<HomefeedThingsRanking> {
                 child: Loader(color: Colors.white),
               )
             : Text(
-               AppLocalizations.of(context)!.submitranking,
+                AppLocalizations.of(context)!.submitranking,
                 style: AppTextStyles.bodyText.copyWith(
                   fontSize: 15,
                   fontWeight: FontWeight.w500,

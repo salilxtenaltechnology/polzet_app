@@ -36,7 +36,28 @@ class _SocialLoginScreenState extends State<SocialLoginScreen>
         user: user,
         context: context,
         onError: (msg) {
-          if (mounted) setState(() => _errorMessage = msg);
+          if (mounted) {
+            String friendlyMsg = msg;
+            final lower = msg.toLowerCase();
+            if (lower.contains('connection timeout') ||
+                lower.contains('timeout') ||
+                lower.contains('socketexception') ||
+                lower.contains('connection error') ||
+                lower.contains('server not responding') ||
+                lower.contains('connection failed') ||
+                lower.contains('connection refused') ||
+                lower.contains('failed to connect')) {
+              friendlyMsg = 'Internal server is down. Please try again later.';
+            } else {
+              friendlyMsg = friendlyMsg
+                  .replaceAll(RegExp(r'^Login error:\s*'), '')
+                  .replaceAll(RegExp(r'^Exception:\s*'), '');
+            }
+            setState(() {
+              _errorMessage = friendlyMsg;
+              _isGoogleLoading = false;
+            });
+          }
         },
         onLoadingDone: () {
           if (mounted) setState(() => _isGoogleLoading = false);

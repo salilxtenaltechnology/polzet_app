@@ -57,6 +57,31 @@ class HomeScreenState extends State<HomeScreen> with UtilityMixin {
       onPostLinkReceived: (username, postId) {
         _navigateToPostDetail(username, postId);
       },
+      onProfileLinkReceived: (username) {
+        _navigateToProfileDetail(username);
+      },
+    );
+  }
+
+  void _navigateToProfileDetail(String username) async {
+    if (!mounted) return;
+
+    final userProvider = Provider.of<UserProvider>(context, listen: false);
+    final currentUsername = userProvider.username;
+
+    if (currentUsername != null &&
+        currentUsername.toLowerCase() == username.toLowerCase()) {
+      // Pop all other screens to return to the base HomeScreen
+      Navigator.popUntil(context, (route) => route.isFirst);
+      // Navigate to current user profile tab
+      navigateToUserProfile();
+      return;
+    }
+
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => PublicProfileScreen(username: username),
+      ),
     );
   }
 

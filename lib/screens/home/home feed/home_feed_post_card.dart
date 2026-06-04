@@ -18,6 +18,7 @@ import '../../../core/constants/app_radius.dart';
 import '../../../core/themes/app_text_colors.dart';
 import '../../../core/themes/app_text_styles.dart';
 import '../../../mixin/utility_mixins.dart';
+import '../../../models/like/like_uers_model.dart';
 import '../../../models/posts/homefeed_posts_model.dart';
 import '../../../provider/user_provider.dart';
 import '../../../widgets/base64/image_convert.dart';
@@ -54,7 +55,7 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
   late int likesCount;
   late int commentsCount;
   late int sharesCount;
-  late List<HomeFeedLikeUser> viewLikes;
+  List<LikeUser> viewLikes = [];
   late String? user_id;
   bool isLikeLoading = false;
   List<int> randomImageIndices = [];
@@ -82,11 +83,15 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
     isLike = widget.post.isLikedByCurrentUser;
     likesCount = widget.post.likesCount;
     commentsCount = widget.post.commentsCount;
-    viewLikes = List.from(widget.post.viewLikes);
+    viewLikes = [];
     sharesCount = widget.post.sharesCount;
 
     final userProvider = Provider.of<UserProvider>(context, listen: false);
     user_id = userProvider.userId;
+
+    if (likesCount > 0) {
+      _fetchLikedUsersSilently();
+    }
 
     if (widget.post.followingStatus != 'none') {
       HomeFeedPostCard.globallyChasedUserStates[widget.post.user.userid] =
@@ -102,13 +107,11 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
       pollTotalVotes[poll.id.toString()] = poll.totalVotes;
     }
 
-    final alreadyVotedPolls = widget.post.polls
-        .where((p) => p.isPolledByCurrentUser)
-        .toList();
+    final bool alreadyVoted = widget.post.isPolledByCurrentUser;
 
-    if (alreadyVotedPolls.isNotEmpty) {
+    if (alreadyVoted) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        for (final poll in alreadyVotedPolls) {
+        for (final poll in widget.post.polls) {
           //3  _fetchAndApplyPollResults(poll);
         }
       });
@@ -126,6 +129,20 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
     }
   }
 
+  Future<void> _fetchLikedUsersSilently({bool force = false}) async {
+    if (!force && viewLikes.isNotEmpty) return;
+    try {
+      final users = await ApiService().fetchLikedUsers(widget.post.id);
+      if (mounted) {
+        setState(() {
+          viewLikes = users.take(3).toList();
+        });
+      }
+    } catch (e) {
+      debugPrint('Error fetching liked users in HomeFeedPostCard: $e');
+    }
+  }
+
   Future<void> _toggleLike() async {
     if (isLikeLoading) return;
 
@@ -136,7 +153,7 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
 
     final previousIsLike = isLike;
     final previousLikesCount = likesCount;
-    final previousViewLikes = List<HomeFeedLikeUser>.from(viewLikes);
+    final previousViewLikes = List<LikeUser>.from(viewLikes);
 
     setState(() {
       isLike = !isLike;
@@ -144,8 +161,8 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
         likesCount++;
         viewLikes.insert(
           0,
-          HomeFeedLikeUser(
-            id: int.tryParse(currentUserId) ?? 0,
+          LikeUser(
+            id: currentUserId,
             username: currentUsername,
             profileImage: currentUserImage,
           ),
@@ -177,6 +194,16 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
         likesCount = result.likesCount;
       }
     });
+
+    if (result.success) {
+      if (likesCount > 0) {
+        _fetchLikedUsersSilently(force: true);
+      } else {
+        setState(() {
+          viewLikes = [];
+        });
+      }
+    }
   }
 
   Future<String?> _getCurrentUsername() async =>
@@ -227,7 +254,7 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
     HomeFeedPost post,
     HomeFeedPoll poll,
   ) {
-    if (poll.isPolledByCurrentUser) {
+    if (post.isPolledByCurrentUser) {
       Navigator.of(context).push(
         MaterialPageRoute(
           builder: (_) => ImageResultScreen(
@@ -261,7 +288,7 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
   Future<void> _submitPollVotes(HomeFeedPoll poll) async {
     final pollKey = poll.id.toString();
     final previousSelected = List<int>.from(selectedOptions[pollKey] ?? []);
-    final previousIsPolled = poll.isPolledByCurrentUser;
+    final previousIsPolled = widget.post.isPolledByCurrentUser;
     final previousTotalVotes = poll.totalVotes;
     final previousPercentages = poll.options.map((o) => o.percentage).toList();
 
@@ -285,7 +312,7 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
       if (result['success']) {
         if (mounted) {
           setState(() {
-            poll.isPolledByCurrentUser = true;
+            widget.post.isPolledByCurrentUser = true;
             pollResultsLoaded[pollKey] = true;
             pollVotingStates[pollKey] = false;
           });
@@ -299,7 +326,7 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
         );
       } else {
         setState(() {
-          poll.isPolledByCurrentUser = previousIsPolled;
+          widget.post.isPolledByCurrentUser = previousIsPolled;
           poll.totalVotes = previousTotalVotes;
           for (int i = 0; i < poll.options.length; i++) {
             if (i < previousPercentages.length) {
@@ -317,7 +344,7 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
     } catch (e) {
       debugPrint('Error submitting poll votes: $e');
       setState(() {
-        poll.isPolledByCurrentUser = previousIsPolled;
+        widget.post.isPolledByCurrentUser = previousIsPolled;
         poll.totalVotes = previousTotalVotes;
         for (int i = 0; i < poll.options.length; i++) {
           if (i < previousPercentages.length) {
@@ -369,6 +396,7 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
     final txt = AppTextColors.of(context);
     final bool hasPolls = widget.post.polls.isNotEmpty;
     final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final userProvider = Provider.of<UserProvider>(context, listen: false);
 
     final String chaseState =
         HomeFeedPostCard.globallyChasedUserStates[widget.post.user.userid] ??
@@ -494,7 +522,7 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
                       ),
                     ),
                     if (chaseState != 'hidden' &&
-                        widget.post.user.userid != user_id) ...[
+                        widget.post.user.username != userProvider.username) ...[
                       SizedBox(width: 8.w),
                       GestureDetector(
                         onTap: () async {
@@ -799,7 +827,7 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
     final txt = AppTextColors.of(context);
     final displayImages = images.take(4).toList();
     final n = displayImages.length;
-    final hasUserPolled = poll.isPolledByCurrentUser;
+    final hasUserPolled = post.isPolledByCurrentUser;
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -924,11 +952,11 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
         .toList();
     if (validOptions.isEmpty) return const SizedBox.shrink();
 
-    final hasUserPolled = poll.isPolledByCurrentUser;
+    final hasUserPolled = post.isPolledByCurrentUser;
 
     return GestureDetector(
       onTap: () {
-        if (poll.isPolledByCurrentUser) {
+        if (post.isPolledByCurrentUser) {
           navigationPush(
             context,
             ThingsResultScreen(
@@ -1012,13 +1040,14 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
     final double tweenBegin = alreadyAnimated ? cachedPct / 100 : 0.0;
     final int intTweenBegin = alreadyAnimated ? pctRounded : 0;
 
-    final hasUserPolled = poll.isPolledByCurrentUser;
+    final hasUserPolled = widget.post.isPolledByCurrentUser;
 
     return AnimatedContainer(
       duration: const Duration(milliseconds: 250),
       curve: Curves.easeInOut,
-      margin: EdgeInsets.only(bottom: 10.h),
-      height: 40,
+      margin: EdgeInsets.only(
+        bottom: 10.h,
+      ), // padding: const EdgeInsets.symmetric(vertical: 6),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(AppRadius.card),
         color: hasUserPolled
@@ -1029,13 +1058,12 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
                   ? const Color(0xFF242831).withOpacity(0.7)
                   : Colors.white),
         border: Border.all(
-          // color: isDarkMode ? const Color(0xFF30353D) : const Color(0xFFEFEFEF),
           color: Theme.of(context).colorScheme.outline,
           width: 1,
         ),
       ),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6.5),
         child: Row(
           children: [
             Expanded(

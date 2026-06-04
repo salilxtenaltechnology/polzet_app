@@ -1,5 +1,9 @@
 // ignore_for_file: deprecated_member_use
 
+import 'dart:async';
+import 'dart:io';
+
+import 'package:dio/dio.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -16,6 +20,7 @@ import '../../../widgets/custom_card.dart';
 import '../../../core/themes/app_text_styles.dart';
 import '../../../widgets/dialog/custom_diolog.dart';
 import '../../../widgets/loader.dart';
+import '../../../widgets/connection/no_internet_screen.dart';
 
 class InsightsScreen extends StatefulWidget {
   const InsightsScreen({super.key});
@@ -28,6 +33,7 @@ class _InsightsScreenState extends State<InsightsScreen> {
   final ApiService _apiService = ApiService();
   InsightsModel? insightsModel;
   bool _loading = true;
+  String? errorMessage;
 
   @override
   void initState() {
@@ -49,10 +55,58 @@ class _InsightsScreenState extends State<InsightsScreen> {
         setState(() {
           insightsModel = data;
           _loading = false;
+          errorMessage = null;
         });
       }
-    } catch (_) {
-      if (mounted) setState(() => _loading = false);
+    } on SocketException catch (e) {
+      debugPrint('No internet connection');
+      if (mounted) {
+        setState(() {
+          _loading = false;
+          if (insightsModel == null) {
+            errorMessage = 'no_internet: ${e.toString()}';
+          }
+        });
+      }
+    } on TimeoutException catch (e) {
+      debugPrint('Request timed out');
+      if (mounted) {
+        setState(() {
+          _loading = false;
+          if (insightsModel == null) {
+            errorMessage = 'no_internet: timeout ${e.toString()}';
+          }
+        });
+      }
+    } on DioException catch (e) {
+      debugPrint('Dio error: ${e.response?.statusCode} | ${e.type}');
+      if (mounted) {
+        setState(() {
+          _loading = false;
+          if (insightsModel == null) {
+            final statusCode = e.response?.statusCode ?? 0;
+            if (statusCode >= 500) {
+              errorMessage = 'server_error: status $statusCode';
+            } else if (e.type == DioExceptionType.connectionError ||
+                e.type == DioExceptionType.connectionTimeout ||
+                e.type == DioExceptionType.receiveTimeout) {
+              errorMessage = 'no_internet: timeout ${e.message}';
+            } else {
+              errorMessage = 'unknown: status $statusCode ${e.message}';
+            }
+          }
+        });
+      }
+    } catch (e) {
+      debugPrint('Error fetching insights: $e');
+      if (mounted) {
+        setState(() {
+          _loading = false;
+          if (insightsModel == null) {
+            errorMessage = 'unknown: ${e.toString()}';
+          }
+        });
+      }
     }
   }
 
@@ -66,6 +120,27 @@ class _InsightsScreenState extends State<InsightsScreen> {
   @override
   Widget build(BuildContext context) {
     final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
+
+    if (errorMessage != null && insightsModel == null) {
+      return Scaffold(
+        backgroundColor: Theme.of(context).colorScheme.background,
+        body: ConnectionErrorScreen(
+          type: errorMessage!.startsWith('no_internet')
+              ? ConnectionErrorType.noInternet
+              : errorMessage!.startsWith('server_error')
+              ? ConnectionErrorType.serverError
+              : ConnectionErrorType.unknown,
+          errorMessage: errorMessage,
+          onRetry: () {
+            setState(() {
+              errorMessage = null;
+              _loading = true;
+            });
+            _fetchData();
+          },
+        ),
+      );
+    }
 
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.background,

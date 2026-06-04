@@ -410,6 +410,14 @@ class PublicPost {
       'is_polled_by_current_user': is_polled_by_current_user,
     };
   }
+
+  bool get isImagePoll =>
+      polls.isNotEmpty &&
+      polls.any((p) => p.options.any((o) => o.image != null));
+
+  bool get isTextPoll =>
+      polls.isNotEmpty &&
+      polls.any((p) => p.options.any((o) => o.text != null));
 }
 
 class PublicPostImage {

@@ -36,6 +36,30 @@ class ShareService {
     }
   }
 
+  /// Share a profile with deep link
+  ///
+  /// [username] - Username of the profile to share
+  /// [context] - BuildContext for showing bottom sheet
+  static Future<void> shareProfile({
+    required String username,
+    required BuildContext context,
+  }) async {
+    try {
+      final link = DeepLinkService.generateProfileLink(username);
+      BottomSheetUtils.showShareBottomSheet(
+        context: context,
+        shareLink: link,
+        username: username,
+        postId: '',
+      );
+    } catch (e) {
+      debugPrint('Error sharing profile: $e');
+      if (context.mounted) {
+        showToast(message: 'Failed to share profile');
+      }
+    }
+  }
+
   /// Share text content
   ///
   /// [text] - Text to share

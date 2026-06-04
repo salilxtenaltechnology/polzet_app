@@ -42,12 +42,16 @@ class _EmailLoginScreenState extends State<EmailLoginScreen> with UtilityMixin {
   String _errorMessage = '';
 
   Future<void> _loadSavedCredentials() async {
-    final rememberMe = await SharedPrefService.getString('remember_me') == 'true';
+    final rememberMe =
+        await SharedPrefService.getString('remember_me') == 'true';
     if (rememberMe) {
       final savedEmail = await SharedPrefService.getString('saved_email') ?? '';
-      final savedMobile = await SharedPrefService.getString('saved_mobile') ?? '';
-      final savedPassword = await SharedPrefService.getString('saved_password') ?? '';
-      final savedIsEmailTab = await SharedPrefService.getString('saved_is_email_tab') != 'false';
+      final savedMobile =
+          await SharedPrefService.getString('saved_mobile') ?? '';
+      final savedPassword =
+          await SharedPrefService.getString('saved_password') ?? '';
+      final savedIsEmailTab =
+          await SharedPrefService.getString('saved_is_email_tab') != 'false';
 
       if (mounted) {
         setState(() {
@@ -70,7 +74,28 @@ class _EmailLoginScreenState extends State<EmailLoginScreen> with UtilityMixin {
         user: user,
         context: context,
         onError: (msg) {
-          if (mounted) setState(() => _errorMessage = msg);
+          if (mounted) {
+            String friendlyMsg = msg;
+            final lower = msg.toLowerCase();
+            if (lower.contains('connection timeout') ||
+                lower.contains('timeout') ||
+                lower.contains('socketexception') ||
+                lower.contains('connection error') ||
+                lower.contains('server not responding') ||
+                lower.contains('connection failed') ||
+                lower.contains('connection refused') ||
+                lower.contains('failed to connect')) {
+              friendlyMsg = 'Internal server is down. Please try again later.';
+            } else {
+              friendlyMsg = friendlyMsg
+                  .replaceAll(RegExp(r'^Login error:\s*'), '')
+                  .replaceAll(RegExp(r'^Exception:\s*'), '');
+            }
+            setState(() {
+              _errorMessage = friendlyMsg;
+              _isGoogleLoading = false;
+            });
+          }
         },
         onLoadingDone: () {
           if (mounted) setState(() => _isGoogleLoading = false);
@@ -128,10 +153,10 @@ class _EmailLoginScreenState extends State<EmailLoginScreen> with UtilityMixin {
     }
 
     final password = _passwordController.text.trim();
-   if (password.isEmpty) {
-  setState(() => _passwordError = 'Please enter your password');
-  isValid = false;
-}
+    if (password.isEmpty) {
+      setState(() => _passwordError = 'Please enter your password');
+      isValid = false;
+    }
 
     return isValid;
   }
@@ -165,10 +190,22 @@ class _EmailLoginScreenState extends State<EmailLoginScreen> with UtilityMixin {
         onSuccess: () async {
           if (_rememberMe) {
             await SharedPrefService.setString('remember_me', 'true');
-            await SharedPrefService.setString('saved_email', _emailController.text.trim());
-            await SharedPrefService.setString('saved_mobile', _mobileController.text.trim());
-            await SharedPrefService.setString('saved_password', _passwordController.text.trim());
-            await SharedPrefService.setString('saved_is_email_tab', _isEmailTab.toString());
+            await SharedPrefService.setString(
+              'saved_email',
+              _emailController.text.trim(),
+            );
+            await SharedPrefService.setString(
+              'saved_mobile',
+              _mobileController.text.trim(),
+            );
+            await SharedPrefService.setString(
+              'saved_password',
+              _passwordController.text.trim(),
+            );
+            await SharedPrefService.setString(
+              'saved_is_email_tab',
+              _isEmailTab.toString(),
+            );
           } else {
             await SharedPrefService.removeKey('remember_me');
             await SharedPrefService.removeKey('saved_email');
@@ -393,7 +430,7 @@ class _EmailLoginScreenState extends State<EmailLoginScreen> with UtilityMixin {
                   text: TextSpan(
                     style: AppTextStyles.bodyText.copyWith(
                       fontSize: 14.5,
-                      color: txt.muted
+                      color: txt.muted,
                     ),
                     children: [
                       const TextSpan(text: "Don't have an account? "),
@@ -710,7 +747,7 @@ class _EmailLoginScreenState extends State<EmailLoginScreen> with UtilityMixin {
           hintText: 'Enter password',
           hintStyle: AppTextStyles.subText.copyWith(
             fontSize: 14.5,
-           color: isDarkMode
+            color: isDarkMode
                 ? const Color(0XFFB3B3B3)
                 : const Color(0XFF898989),
             fontWeight: FontWeight.w400,

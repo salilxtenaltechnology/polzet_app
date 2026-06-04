@@ -28,12 +28,9 @@ import '../../../widgets/tabbar/indicatore_animation.dart';
 import '../profile/public/public_profile_screen.dart';
 import 'posts/hashtag_posts_list.dart';
 import 'posts/single_post_details.dart';
-import 'package:provider/provider.dart';
-import '../../../provider/user_provider.dart';
 
 // ─── Palette ────────────────────────────────────────────────────────────────
 
-const _accentSoft = Color(0x336C63FF);
 const _textSecondary = Color(0xFF888888);
 
 // ─── Stream controller (static — shared across rebuilds) ─────────────────────
@@ -68,6 +65,7 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen>
   Timer? _debounce;
   Timer? _autoRefreshTimer;
   Future<String?>? _authTokenFuture;
+  bool _forceShowTabs = false;
 
   static const _tabs = ['Top', 'Accounts', 'Polls', 'Photos', 'Tags', 'Places'];
 
@@ -191,6 +189,7 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen>
   }
 
   void _onSearchChanged(String query) {
+    _forceShowTabs = false;
     if (mounted) setState(() {});
     _debounce?.cancel();
     _debounce = Timer(
@@ -265,12 +264,13 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen>
             _buildSearchBar(),
             // Tab bar is driven by _snapshot so it appears as soon as
             // the first stream event arrives.
-            if (_snapshot != null && _searchController.text.trim().isNotEmpty)
+            if (_snapshot != null &&
+                (_searchController.text.trim().isNotEmpty || _forceShowTabs))
               _buildTabBar(),
             Expanded(
               // StreamBuilder wraps the entire body so every push to
               // _searchStream triggers a silent, flicker-free rebuild.
-              child: (_focusNode.hasFocus && _searchController.text.isEmpty)
+              child: (_focusNode.hasFocus && _searchController.text.isEmpty && !_forceShowTabs)
                   ? _buildRecentSearchesList()
                   : StreamBuilder<GlobalSearchModel?>(
                       stream: _searchStream.stream,
@@ -290,7 +290,7 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen>
                         if (snap.data == null) return _buildSearchPrompt();
 
                         final data = snap.data!.data;
-                        if (_searchController.text.trim().isEmpty) {
+                        if (_searchController.text.trim().isEmpty && !_forceShowTabs) {
                           return _buildDefaultSuggestions(
                             data.accounts,
                             data.posts,
@@ -425,11 +425,17 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen>
   // ── Recent Searches ────────────────────────────────────────────────────────
 
   Widget _buildRecentSearchesList() {
+    final txt = AppTextColors.of(context);
     if (_recentSearches.isEmpty) {
       return Center(
         child: Text(
           'No recent searches',
-          style: TextStyle(color: _textSecondary, fontSize: 13.sp),
+          style: AppTextStyles.bodyText.copyWith(
+              color: txt.muted,
+               fontWeight: FontWeight.w400,
+              fontSize: 14,
+              height: 1.4,
+            ),
         ),
       );
     }
@@ -492,35 +498,41 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen>
   // ── Fallback — only shown if API fails on very first open ─────────────────
 
   Widget _buildSearchPrompt() {
+    final txt = AppTextColors.of(context);
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Container(
-            padding: const EdgeInsets.all(24),
-            decoration: const BoxDecoration(
-              color: _accentSoft,
-              shape: BoxShape.circle,
-            ),
-            child: Icon(
-              Icons.search_rounded,
-              color: Theme.of(context).colorScheme.onPrimary,
-              size: 36,
-            ),
-          ),
-          const SizedBox(height: 16),
+          isDarkMode
+              ? const SizedBox()
+              : Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: Image.asset(
+                    Assets.images.noSearchFound.path,
+                    height: 180,
+                    width: 180,
+                    fit: BoxFit.contain,
+                  ),
+                ),
           Text(
             'Search anything',
-            style: TextStyle(
-              fontSize: 17,
+            style: AppTextStyles.sectionHeading.copyWith(
+              fontSize: 18,
               fontWeight: FontWeight.w600,
-              color: Theme.of(context).colorScheme.onBackground,
+              color: txt.title,
+              height: 1.4,
             ),
           ),
           const SizedBox(height: 6),
-          const Text(
+          Text(
             'Find accounts, posts, photos & more',
-            style: TextStyle(color: _textSecondary, fontSize: 13),
+            style: AppTextStyles.bodyText.copyWith(
+              color: txt.muted,
+               fontWeight: FontWeight.w400,
+              fontSize: 13,
+              height: 1.4,
+            ),
           ),
         ],
       ),
@@ -693,16 +705,9 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen>
             itemBuilder: (_, i) {
               final photo = data.photos[i];
               return _buildPhotoCell(data.photos[i], () {
-                final userProvider = Provider.of<UserProvider>(
-                  context,
-                  listen: false,
-                );
-                final currentUsername = userProvider.username ?? '';
-                final String username =
-                    photo.author.username.isNotEmpty &&
-                        photo.author.username != 'user'
-                    ? photo.author.username
-                    : currentUsername;
+                final String username = photo.username.isNotEmpty
+                    ? photo.username
+                    : photo.author.username;
                 navigationPush(
                   context,
                   SinglePostDetails(postId: photo.postId, username: username),
@@ -918,7 +923,10 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen>
               ),
               GestureDetector(
                 onTap: () {
-                  _focusNode.requestFocus();
+                  setState(() {
+                    _forceShowTabs = true;
+                    _tabController.animateTo(2);
+                  });
                 },
                 child: Text(
                   AppLocalizations.of(context)!.seeall,
@@ -966,7 +974,10 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen>
               ),
               GestureDetector(
                 onTap: () {
-                  _focusNode.requestFocus();
+                  setState(() {
+                    _forceShowTabs = true;
+                    _tabController.animateTo(2);
+                  });
                 },
                 child: Text(
                   AppLocalizations.of(context)!.seeall,
@@ -994,17 +1005,30 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen>
     final children = <Widget>[];
 
     if (optionsCount > 0) {
-      children.add(Expanded(child: _buildPopularThingOption(poll.options[0].text ?? '')));
+      children.add(
+        Expanded(child: _buildPopularThingOption(poll.options[0].text ?? '')),
+      );
     }
     if (optionsCount > 1) {
       if (optionsCount == 2) {
         children.add(SizedBox(width: 8.w));
-        children.add(Expanded(child: _buildPopularThingOption(poll.options[1].text ?? '')));
+        children.add(
+          Expanded(child: _buildPopularThingOption(poll.options[1].text ?? '')),
+        );
       } else {
         children.add(SizedBox(width: 8.w));
-        children.add(Expanded(child: _buildPopularThingOption(poll.options[1].text ?? '')));
+        children.add(
+          Expanded(child: _buildPopularThingOption(poll.options[1].text ?? '')),
+        );
         children.add(SizedBox(width: 8.w));
-        children.add(Expanded(child: _buildPopularThingOption('+${optionsCount - 2} more', isMore: true)));
+        children.add(
+          Expanded(
+            child: _buildPopularThingOption(
+              '+${optionsCount - 2} more',
+              isMore: true,
+            ),
+          ),
+        );
       }
     }
 
@@ -1012,10 +1036,7 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen>
       onTap: () {
         navigationPush(
           context,
-          SinglePostDetails(
-            username: post.author.username,
-            postId: post.id,
-          ),
+          SinglePostDetails(username: post.author.username, postId: post.id),
         );
       },
       child: Container(
@@ -1056,17 +1077,17 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen>
   }
 
   Widget _buildPopularThingOption(String text, {bool isMore = false}) {
-      final txt = AppTextColors.of(context);
+    final txt = AppTextColors.of(context);
     return Container(
       width: double.infinity,
-       padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 7.h),
+      padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 7.h),
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.primaryContainer,
         borderRadius: BorderRadius.circular(AppRadius.card),
-         border: Border.all(
-            color: Theme.of(context).colorScheme.outline,
-            width: 1,
-          ),
+        border: Border.all(
+          color: Theme.of(context).colorScheme.outline,
+          width: 1,
+        ),
       ),
       child: Center(
         child: Text(
@@ -1077,7 +1098,7 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen>
           style: TextStyle(
             fontSize: 13.5,
             fontWeight: isMore ? FontWeight.w600 : FontWeight.w400,
-             color: txt.title,
+            color: txt.title,
           ),
         ),
       ),
@@ -1192,7 +1213,8 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen>
     final txt = AppTextColors.of(context);
     final avatar = _avatarProvider(acc.profileImage);
     return GestureDetector(
-      onTap: () => navigationPush(context, PublicProfileScreen(userId: acc.id)),
+      onTap: () =>
+          navigationPush(context, PublicProfileScreen(userId: acc.uuid)),
       child: Padding(
         padding: EdgeInsetsGeometry.symmetric(horizontal: 12.w, vertical: 7),
         child: Row(
@@ -1244,7 +1266,7 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen>
             ),
             const Spacer(),
             ToggleChaseButton(
-              userId: acc.id,
+              userId: acc.uuid,
               username: acc.username,
               followStatus: acc.followStatus,
               isPrivate: acc.isPrivate,
@@ -1310,24 +1332,29 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen>
             padding: EdgeInsets.fromLTRB(10.w, 10.h, 10.w, 0),
             child: Row(
               children: [
-                CircleAvatar(
-                  radius: 19.5,
-                  backgroundColor: Theme.of(
-                    context,
-                  ).colorScheme.primary.withOpacity(0.1),
-                  backgroundImage: _avatarProvider(author.profileImage),
-                  child:
-                      author.profileImage == null ||
-                          author.profileImage!.isEmpty
-                      ? Text(
-                          initial,
-                          style: AppTextStyles.cardTitle.copyWith(
-                            color: Theme.of(context).colorScheme.onPrimary,
-                            fontWeight: FontWeight.w500,
-                            fontSize: 18,
-                          ),
-                        )
-                      : null,
+                GestureDetector(
+                  onTap: () {
+                    navigationPush(context, PublicProfileScreen(userId: author.id));
+                  },
+                  child: CircleAvatar(
+                    radius: 19.5,
+                    backgroundColor: Theme.of(
+                      context,
+                    ).colorScheme.onPrimary.withOpacity(0.1),
+                    backgroundImage: _avatarProvider(author.profileImage),
+                    child:
+                        author.profileImage == null ||
+                            author.profileImage!.isEmpty
+                        ? Text(
+                            initial,
+                            style: AppTextStyles.cardTitle.copyWith(
+                              color: Theme.of(context).colorScheme.onPrimary,
+                              fontWeight: FontWeight.w500,
+                              fontSize: 18,
+                            ),
+                          )
+                        : null,
+                  ),
                 ),
                 SizedBox(width: 8.w),
                 Expanded(
@@ -1596,16 +1623,9 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen>
       itemBuilder: (_, i) {
         final photo = photos[i];
         return _buildPhotoCell(photo, () {
-          final userProvider = Provider.of<UserProvider>(
-            context,
-            listen: false,
-          );
-          final currentUsername = userProvider.username ?? '';
-          final String username =
-              photo.author.username.isNotEmpty &&
-                  photo.author.username != 'user'
-              ? photo.author.username
-              : currentUsername;
+          final String username = photo.username.isNotEmpty
+              ? photo.username
+              : photo.author.username;
           navigationPush(
             context,
             SinglePostDetails(postId: photo.postId, username: username),

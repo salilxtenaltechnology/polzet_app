@@ -81,6 +81,7 @@
                 <data android:scheme="https" />
                 <data android:host="www.polzet.com" />
                 <data android:pathPrefix="/post" />
+                <data android:pathPrefix="/profile" />
             </intent-filter>
     
             <!-- ✅ ADD THIS: Custom Scheme Deep Links -->
@@ -91,6 +92,7 @@
         
                 <data android:scheme="polzet" />
                 <data android:host="post" />
+                <data android:host="profile" />
             </intent-filter>
               
          </activity>

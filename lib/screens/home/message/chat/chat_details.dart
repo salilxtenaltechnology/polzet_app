@@ -31,7 +31,7 @@ class ChatDetails extends StatefulWidget {
   final String? profileUrl;
   final bool isGroupChat;
   final bool isUserBlock;
-  final int? userId;
+  final dynamic userId;
   final int? chatId;
   final Map<String, dynamic>? chat;
 
@@ -325,15 +325,20 @@ class _ChatDetailsState extends State<ChatDetails> with UtilityMixin {
         ? chatName![0].toUpperCase()
         : '?';
 
-    return Scaffold(
-      resizeToAvoidBottomInset: false,
-      backgroundColor: Theme.of(context).colorScheme.background,
-      appBar: AppBar(
-        automaticallyImplyLeading: false,
-        leading: GestureDetector(
-          onTap: () => Navigator.pop(context, _isUserBlock),
-          child: const Icon(Icons.arrow_back_ios),
-        ),
+    return WillPopScope(
+      onWillPop: () async {
+        Navigator.pop(context, _isUserBlock);
+        return false;
+      },
+      child: Scaffold(
+        resizeToAvoidBottomInset: false,
+        backgroundColor: Theme.of(context).colorScheme.background,
+        appBar: AppBar(
+          automaticallyImplyLeading: false,
+          leading: GestureDetector(
+            onTap: () => Navigator.pop(context, _isUserBlock),
+            child: const Icon(Icons.arrow_back_ios),
+          ),
         centerTitle: true,
         backgroundColor: Theme.of(context).colorScheme.background,
         surfaceTintColor: Theme.of(context).colorScheme.background,
@@ -729,8 +734,9 @@ class _ChatDetailsState extends State<ChatDetails> with UtilityMixin {
           ],
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _switchRow(
     String label,

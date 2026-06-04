@@ -14,9 +14,11 @@ import '../../../../../../models/posts/single_post_model.dart';
 import '../../../../../../widgets/loader.dart';
 import '../../../../../core/themes/app_text_colors.dart';
 import '../../../../../languages/l10n/generated/app_localizations.dart';
+import '../../../../../mixin/utility_mixins.dart';
 import '../../../home feed/rank/result/image/image_preview_screen.dart';
 import '../../../home feed/rank/result/image/image_result_screen.dart';
 import '../../../home feed/rank/submit/rank_submitted_screen.dart';
+import '../../../profile/public/public_profile_screen.dart';
 
 class SinglePostImageRanking extends StatefulWidget {
   final SinglePostModel post;
@@ -32,7 +34,7 @@ class SinglePostImageRanking extends StatefulWidget {
   State<SinglePostImageRanking> createState() => _SinglePostImageRankingState();
 }
 
-class _SinglePostImageRankingState extends State<SinglePostImageRanking> {
+class _SinglePostImageRankingState extends State<SinglePostImageRanking> with UtilityMixin {
   late List<SinglePostPollOption> _orderedImages;
   bool _hasRanked = false;
   bool _isSubmitting = false;
@@ -41,6 +43,8 @@ class _SinglePostImageRankingState extends State<SinglePostImageRanking> {
   @override
   void initState() {
     super.initState();
+
+    debugPrint('Single Post User Id : ${widget.post.user.uuid}');
 
     final profileImage = widget.post.profileImage;
     if (profileImage.isNotEmpty) {
@@ -114,7 +118,7 @@ class _SinglePostImageRankingState extends State<SinglePostImageRanking> {
           MaterialPageRoute(
             builder: (_) => RankSubmittedScreen(
               nextScreen: ImageResultScreen(
-                username: widget.post.user,
+                username: widget.post.user.username,
                 postId: widget.post.id.toString(),
               ),
             ),
@@ -195,7 +199,7 @@ class _SinglePostImageRankingState extends State<SinglePostImageRanking> {
   Widget _buildPostHeader() {
     final txt = AppTextColors.of(context);
     final post = widget.post;
-    final username = post.user;
+    final username = post.user.username;
     final initial = username.isNotEmpty ? username[0].toUpperCase() : '?';
 
     return Padding(
@@ -206,24 +210,29 @@ class _SinglePostImageRankingState extends State<SinglePostImageRanking> {
           // User row
           Row(
             children: [
-              CircleAvatar(
-                radius: 20,
-                backgroundColor: Theme.of(
-                  context,
-                ).colorScheme.onPrimary.withOpacity(0.1),
-                backgroundImage: _profileImageBytes != null
-                    ? MemoryImage(_profileImageBytes!)
-                    : null,
-                child: _profileImageBytes == null
-                    ? Text(
-                        initial,
-                        style: AppTextStyles.cardTitle.copyWith(
-                          color: Theme.of(context).colorScheme.onPrimary,
-                          fontWeight: FontWeight.w500,
-                          fontSize: 18,
-                        ),
-                      )
-                    : null,
+              GestureDetector(
+                onTap: () {
+                  navigationPush(context, PublicProfileScreen(userId: post.user.uuid));
+                },
+                child: CircleAvatar(
+                  radius: 20,
+                  backgroundColor: Theme.of(
+                    context,
+                  ).colorScheme.onPrimary.withOpacity(0.1),
+                  backgroundImage: _profileImageBytes != null
+                      ? MemoryImage(_profileImageBytes!)
+                      : null,
+                  child: _profileImageBytes == null
+                      ? Text(
+                          initial,
+                          style: AppTextStyles.cardTitle.copyWith(
+                            color: Theme.of(context).colorScheme.onPrimary,
+                            fontWeight: FontWeight.w500,
+                            fontSize: 18,
+                          ),
+                        )
+                      : null,
+                ),
               ),
               const SizedBox(width: 10),
               Expanded(

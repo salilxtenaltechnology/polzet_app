@@ -129,7 +129,8 @@ class _ImagePostsListState extends State<ImagePostsList> {
     }
   }
 
-  Future<void> _fetchLikedUsersSilently(String postId) async {
+  Future<void> _fetchLikedUsersSilently(String postId, {bool force = false}) async {
+    if (!force && postLikedUsers.containsKey(postId)) return;
     try {
       final users = await ApiService().fetchLikedUsers(postId);
 
@@ -227,7 +228,7 @@ class _ImagePostsListState extends State<ImagePostsList> {
       });
 
       if (result.likesCount > 0) {
-        _fetchLikedUsersSilently(postId);
+        _fetchLikedUsersSilently(postId, force: true);
       } else {
         setState(() {
           postLikedUsers.remove(postId);
@@ -288,6 +289,8 @@ class _ImagePostsListState extends State<ImagePostsList> {
           postLikedUsers.remove(postId);
           likedUsersLoading.remove(postId);
         });
+
+        Provider.of<UserProvider>(context, listen: false).notifyPostDeleted(postId);
 
         showToast(message: 'Post deleted successfully');
       } else {

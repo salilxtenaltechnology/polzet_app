@@ -19,7 +19,7 @@ class HomeFeedResponse {
     return HomeFeedResponse(
       count: json['count'] ?? 0,
       page: json['page'] as int?,
-      hasMore: json['has_more'] as bool?,
+      hasMore: _parseBool(json['has_more']),
       snapshot: json['snapshot']?.toString(),
       results:
           (json['results'] as List<dynamic>?)
@@ -29,6 +29,14 @@ class HomeFeedResponse {
               .toList() ??
           [],
     );
+  }
+
+  static bool? _parseBool(dynamic value) {
+    if (value == null) return null;
+    if (value is bool) return value;
+    if (value is int) return value == 1;
+    if (value is String) return value.toLowerCase() == 'true' || value == '1';
+    return false;
   }
 
   Map<String, dynamic> toJson() {
@@ -53,6 +61,7 @@ class HomeFeedPost {
   final int commentsCount;
   final String followingStatus;
   final int sharesCount;
+  bool isPolledByCurrentUser;
 
   final List<HomeFeedLikeUser> viewLikes;
 
@@ -68,6 +77,7 @@ class HomeFeedPost {
     required this.viewLikes,
     required this.followingStatus,
     required this.sharesCount,
+    required this.isPolledByCurrentUser,
   });
 
   factory HomeFeedPost.fromJson(Map<String, dynamic> json) {
@@ -89,7 +99,8 @@ class HomeFeedPost {
           (item) => HomeFeedLikeUser.fromJson(item),
         ),
         followingStatus: _parseToString(json['following_status']),
-        sharesCount: _parseToInt(json['shares_count'])
+        sharesCount: _parseToInt(json['shares_count']),
+        isPolledByCurrentUser: json['is_polled_by_current_user'] == true,
       );
     } catch (e) {
       debugPrint('Error parsing HomeFeedPost: $e');
@@ -110,7 +121,8 @@ class HomeFeedPost {
       'comments_count': commentsCount,
       'view_likes': viewLikes.map((like) => like.toJson()).toList(),
       'following_status': followingStatus,
-      'shares_count' : sharesCount
+      'shares_count' : sharesCount,
+      'is_polled_by_current_user': isPolledByCurrentUser,
     };
   }
 
@@ -248,7 +260,6 @@ class HomeFeedPoll {
   final List<HomeFeedPollOption> options;
   int totalVotes;
   final int? userVote;
-  bool isPolledByCurrentUser;
 
   HomeFeedPoll({
     required this.id,
@@ -257,7 +268,6 @@ class HomeFeedPoll {
     required this.options,
     required this.totalVotes,
     this.userVote,
-    required this.isPolledByCurrentUser,
   });
 
   factory HomeFeedPoll.fromJson(Map<String, dynamic> json) {
@@ -273,7 +283,6 @@ class HomeFeedPoll {
       userVote: json['user_vote'] != null
           ? _parseToInt(json['user_vote'])
           : null,
-      isPolledByCurrentUser: json['is_polled_by_current_user'] == true,
     );
   }
 
@@ -285,7 +294,6 @@ class HomeFeedPoll {
       'options': options.map((option) => option.toJson()).toList(),
       'total_votes': totalVotes,
       'user_vote': userVote,
-      'is_polled_by_current_user': isPolledByCurrentUser,
     };
   }
 

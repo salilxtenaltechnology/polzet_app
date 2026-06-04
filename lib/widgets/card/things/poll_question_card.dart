@@ -2,6 +2,8 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:provider/provider.dart';
+import '../../../provider/user_provider.dart';
 
 import '../../../api/services/api_service.dart';
 import '../../../api/services/like/like_service.dart';
@@ -230,7 +232,8 @@ class _ThingsQustionsCardState extends State<ThingsQustionsCard> {
     });
   }
 
-  Future<void> _fetchLikedUsersSilently() async {
+  Future<void> _fetchLikedUsersSilently({bool force = false}) async {
+    if (!force && likedUsers.isNotEmpty) return;
     try {
       final users = await ApiService().fetchLikedUsers(widget.post.id);
       if (mounted) {
@@ -266,7 +269,7 @@ class _ThingsQustionsCardState extends State<ThingsQustionsCard> {
       widget.onLikeChanged(widget.post.id, result.isLiked, result.likesCount);
 
       if (result.likesCount > 0) {
-        _fetchLikedUsersSilently();
+        _fetchLikedUsersSilently(force: true);
       } else {
         setState(() => likedUsers = []);
         widget.onLikedUsersUpdated?.call(widget.post.id, []);
@@ -500,6 +503,9 @@ class _ThingsQustionsCardState extends State<ThingsQustionsCard> {
                 showUserDeletePostDiolog(context, () async {
                   Navigator.pop(context);
                   await apiService.userDeletePost(widget.post.id);
+                  if (context.mounted) {
+                    Provider.of<UserProvider>(context, listen: false).notifyPostDeleted(widget.post.id);
+                  }
                   widget.onDelete(widget.post.id);
                 });
               },

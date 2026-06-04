@@ -20,7 +20,7 @@ class PrivateChatProvider extends ChangeNotifier {
   int? get chatId => _chatId;
 
   bool isMemberTyping = false;
-  int? _memberUserId;
+  dynamic _memberUserId;
   Timer? _typingTimer;
   Timer? _pollingTimer;
 
@@ -115,7 +115,7 @@ class PrivateChatProvider extends ChangeNotifier {
   bool _isBlocking = false;
   bool get isBlocking => _isBlocking;
 
-  int? currentUserId;
+  dynamic currentUserId;
 
   void _emitMessages() {
     if (!_messagesStreamController.isClosed) {
@@ -179,7 +179,7 @@ class PrivateChatProvider extends ChangeNotifier {
     }
 
     final userIdStr = await SharedPrefService.getUserId();
-    currentUserId = userIdStr != null ? int.tryParse(userIdStr) : null;
+    currentUserId = userIdStr;
 
     if (isNewChat) {
       _isMemberOnline = false;
@@ -475,96 +475,93 @@ class PrivateChatProvider extends ChangeNotifier {
     }
   }
 
-  void setMemberUserId(int userId) {
+  void setMemberUserId(dynamic userId) {
     _memberUserId = userId;
   }
+  void _onPresenceMessageReceived(dynamic raw) {
+    try {
+      final data = jsonDecode(raw as String) as Map<String, dynamic>;
+      final String type = data['type']?.toString() ?? '';
+      final dynamic userId = data['user_id'];
 
- void _onPresenceMessageReceived(dynamic raw) {
-  try {
-    final data = jsonDecode(raw as String) as Map<String, dynamic>;
-    final String type = data['type']?.toString() ?? '';
-    final int? userId = data['user_id'] is int
-        ? data['user_id'] as int
-        : int.tryParse(data['user_id']?.toString() ?? '');
+      if (type == 'presence_update') {
+        if (userId == null) return;
 
-    if (type == 'presence_update') {
-      if (userId == null) return;
+        // ✅ Skip own presence entirely
+        if (userId.toString() == currentUserId?.toString()) {
+          debugPrint('👤 Skipping own presence_update (userId=$userId)');
+          return;
+        }
 
-      // ✅ Skip own presence entirely
-      if (userId == currentUserId) {
-        debugPrint('👤 Skipping own presence_update (userId=$userId)');
+        // ✅ Only update if it's the member we're chatting with
+        if (userId.toString() == _memberUserId?.toString()) {
+          _isMemberOnline = data['is_online'] == true;
+          debugPrint('👤 Member ($userId) online: $_isMemberOnline');
+          notifyListeners();
+        }
         return;
       }
 
-      // ✅ Only update if it's the member we're chatting with
-      if (userId == _memberUserId) {
-        _isMemberOnline = data['is_online'] == true;
-        debugPrint('👤 Member ($userId) online: $_isMemberOnline');
-        notifyListeners();
-      }
-      return;
-    }
-
-    if (type == 'read_receipt') {
-      if (userId == null || userId == currentUserId) return;
-      if (userId == _memberUserId) {
-        final readAtStr = data['read_at']?.toString();
-        if (readAtStr != null) {
-          final readAtDttm = DateTime.tryParse(readAtStr)?.toLocal();
-          if (readAtDttm != null) {
-            bool changed = false;
-            for (int i = 0; i < _messages.length; i++) {
-              if (_messages[i].isSentByMe && !_messages[i].isRead && !_messages[i].created_at.isAfter(readAtDttm)) {
-                _messages[i] = ChatMessage(
-                  id: _messages[i].id,
-                  text: _messages[i].text,
-                  created_at: _messages[i].created_at,
-                  isSentByMe: true,
-                  isPending: false,
-                  isFailed: false,
-                  isRead: true,
-                );
-                changed = true;
+      if (type == 'read_receipt') {
+        if (userId == null || userId.toString() == currentUserId?.toString()) return;
+        if (userId.toString() == _memberUserId?.toString()) {
+          final readAtStr = data['read_at']?.toString();
+          if (readAtStr != null) {
+            final readAtDttm = DateTime.tryParse(readAtStr)?.toLocal();
+            if (readAtDttm != null) {
+              bool changed = false;
+              for (int i = 0; i < _messages.length; i++) {
+                if (_messages[i].isSentByMe && !_messages[i].isRead && !_messages[i].created_at.isAfter(readAtDttm)) {
+                  _messages[i] = ChatMessage(
+                    id: _messages[i].id,
+                    text: _messages[i].text,
+                    created_at: _messages[i].created_at,
+                    isSentByMe: true,
+                    isPending: false,
+                    isFailed: false,
+                    isRead: true,
+                  );
+                  changed = true;
+                }
               }
-            }
-            if (changed) {
-              _saveCachedMessages();
-              _emitMessages();
+              if (changed) {
+                _saveCachedMessages();
+                _emitMessages();
+              }
             }
           }
         }
+        return;
       }
-      return;
-    }
 
-    if (type == 'typing_status') {
-      if (userId == null || userId == currentUserId) return;
-      if (userId == _memberUserId) {
-        isMemberTyping = data['is_typing'] == true;
-        notifyListeners();
+      if (type == 'typing_status') {
+        if (userId == null || userId.toString() == currentUserId?.toString()) return;
+        if (userId.toString() == _memberUserId?.toString()) {
+          isMemberTyping = data['is_typing'] == true;
+          notifyListeners();
+        }
+        return;
       }
-      return;
-    }
 
-    if (type == 'typing_start' || type == 'typing_stop') {
-      if (userId == null || userId == currentUserId) return;
-      if (userId == _memberUserId) {
-        isMemberTyping = type == 'typing_start';
-        notifyListeners();
+      if (type == 'typing_start' || type == 'typing_stop') {
+        if (userId == null || userId.toString() == currentUserId?.toString()) return;
+        if (userId.toString() == _memberUserId?.toString()) {
+          isMemberTyping = type == 'typing_start';
+          notifyListeners();
+        }
+        return;
       }
-      return;
-    }
 
-    if (type == 'new_message') {
-      _onMessageReceived(raw);
-      return;
-    }
+      if (type == 'new_message') {
+        _onMessageReceived(raw);
+        return;
+      }
 
-    debugPrint('⚠️ Unhandled presence type: $type');
-  } catch (e) {
-    debugPrint('❌ Error parsing presence message: $e');
+      debugPrint('⚠️ Unhandled presence type: $type');
+    } catch (e) {
+      debugPrint('❌ Error parsing presence message: $e');
+    }
   }
-}
 
   void _onMessageReceived(dynamic raw) {
     try {
@@ -587,16 +584,13 @@ class PrivateChatProvider extends ChangeNotifier {
           return;
         }
 
-        int? senderId;
+        dynamic senderId;
         if (msgMap['sender'] is Map) {
-          final dynamic rawSenderId = (msgMap['sender'] as Map)['id'];
-          senderId = rawSenderId is int
-              ? rawSenderId
-              : int.tryParse(rawSenderId?.toString() ?? '');
+          senderId = (msgMap['sender'] as Map)['id'];
         }
 
         final bool isSentByMe =
-            currentUserId != null && senderId == currentUserId;
+            currentUserId != null && senderId?.toString() == currentUserId.toString();
 
         final DateTime serverTimestamp =
             DateTime.tryParse(msgMap['created_at']?.toString() ?? '') ??
@@ -812,7 +806,7 @@ class PrivateChatProvider extends ChangeNotifier {
     }
   }
 
-  Future<Map<String, dynamic>> blockUser(int userId) async {
+  Future<Map<String, dynamic>> blockUser(dynamic userId) async {
     _isBlocking = true;
     notifyListeners();
     try {
@@ -826,7 +820,7 @@ class PrivateChatProvider extends ChangeNotifier {
     }
   }
 
-  Future<Map<String, dynamic>> unblockUser(int userId) async {
+  Future<Map<String, dynamic>> unblockUser(dynamic userId) async {
     _isBlocking = true;
     notifyListeners();
     try {

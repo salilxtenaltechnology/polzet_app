@@ -142,7 +142,7 @@ class IndividualResult {
 }
 
 class PollUser {
-  final int id;
+  final String id;
   final String username;
   final String fullName;
   final String? profilePictureUrl;
@@ -156,7 +156,7 @@ class PollUser {
 
   factory PollUser.fromJson(Map<String, dynamic> json) {
     return PollUser(
-      id: json['id'] ?? 0,
+      id: (json['id'] ?? '').toString(),
       username: json['username'] ?? '',
       fullName: json['full_name'] ?? json['username'] ?? '',
       profilePictureUrl: json['profile_picture_url'],

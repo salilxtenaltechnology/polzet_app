@@ -2,7 +2,10 @@
 
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 
+import '../../../../widgets/connection/no_internet_screen.dart';
+import '../../../../provider/connection_provider.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -57,6 +60,7 @@ class NotificationState extends State<Notifications>
   List<dynamic> incoming = [];
   bool _isDisposed = false;
   int _currentPage = 1;
+  String? errorMessage;
 
   static const String _notificationsCacheKey = 'cached_notifications';
   static const String _friendRequestsCacheKey = 'cached_friend_requests';
@@ -64,6 +68,8 @@ class NotificationState extends State<Notifications>
   static final ValueNotifier<int> unreadNotificationCount = ValueNotifier<int>(
     0,
   );
+  static final ValueNotifier<String?> globalErrorMessage =
+      ValueNotifier<String?>(null);
   static Timer? _globalPollingTimer;
   static List<NotificationItem> globalCachedNotifications = [];
 
@@ -113,11 +119,27 @@ class NotificationState extends State<Notifications>
             .where((n) => !n.isRead)
             .length;
         unreadNotificationCount.value = unreadCount;
+        globalErrorMessage.value = null;
+      }
+    } on DioException catch (e) {
+      if (kDebugMode) {
+        debugPrint('Error fetching global notification count: $e');
+      }
+      final statusCode = e.response?.statusCode ?? 0;
+      if (statusCode >= 500) {
+        globalErrorMessage.value = 'server_error: status $statusCode';
+      } else if (e.type == DioExceptionType.connectionError ||
+          e.type == DioExceptionType.connectionTimeout ||
+          e.type == DioExceptionType.receiveTimeout) {
+        globalErrorMessage.value = 'no_internet: timeout ${e.message}';
+      } else {
+        globalErrorMessage.value = 'unknown: status $statusCode ${e.message}';
       }
     } catch (e) {
       if (kDebugMode) {
         debugPrint('Error fetching global notification count: $e');
       }
+      globalErrorMessage.value = 'unknown: ${e.toString()}';
     }
   }
 
@@ -234,6 +256,7 @@ class NotificationState extends State<Notifications>
     if (_isLoadingFromNetwork) return;
 
     _isLoadingFromNetwork = true;
+    errorMessage = null;
 
     try {
       final headers = await _getAuthHeaders();
@@ -256,13 +279,10 @@ class NotificationState extends State<Notifications>
           Map<String, dynamic>.from(responseData),
         );
 
-        // Build a NEW list — never mutate the existing one so StreamBuilder
-        // always receives a different reference and triggers a rebuild.
         final List<NotificationItem> freshList = List<NotificationItem>.from(
           notificationsResponse.results,
         );
 
-        // Persist using model toJson() so poll_details are cached.
         await _saveNotificationsToCache(freshList, responseData);
 
         if (_isDisposed || _notificationStreamController.isClosed) return;
@@ -284,18 +304,57 @@ class NotificationState extends State<Notifications>
       } else {
         debugPrint('⚠️ Results array is null in response');
       }
+    } on SocketException catch (e) {
+      debugPrint('No internet connection fetching notifications');
+      if (_lastNotifications.isEmpty) {
+        errorMessage = 'no_internet: ${e.toString()}';
+      }
+      if (!_isDisposed && !_notificationStreamController.isClosed) {
+        _notificationStreamController.addError(e);
+      }
+    } on TimeoutException catch (e) {
+      debugPrint('Request timed out fetching notifications');
+      if (_lastNotifications.isEmpty) {
+        errorMessage = 'no_internet: timeout ${e.toString()}';
+      }
+      if (!_isDisposed && !_notificationStreamController.isClosed) {
+        _notificationStreamController.addError(e);
+      }
+    } on DioException catch (e) {
+      debugPrint(
+        'Dio error fetching notifications: ${e.response?.statusCode} | ${e.type}',
+      );
+      if (_lastNotifications.isEmpty) {
+        final statusCode = e.response?.statusCode ?? 0;
+        if (statusCode >= 500) {
+          errorMessage = 'server_error: status $statusCode';
+        } else if (e.type == DioExceptionType.connectionError ||
+            e.type == DioExceptionType.connectionTimeout ||
+            e.type == DioExceptionType.receiveTimeout) {
+          errorMessage = 'no_internet: timeout ${e.message}';
+        } else {
+          errorMessage = 'unknown: status $statusCode ${e.message}';
+        }
+      }
+      if (!_isDisposed && !_notificationStreamController.isClosed) {
+        _notificationStreamController.addError(e);
+      }
     } catch (e, stackTrace) {
       if (kDebugMode) {
         print('❌ Error fetching notifications: $e');
         print('Stack trace: $stackTrace');
       }
-      if (!_isDisposed &&
-          !_notificationStreamController.isClosed &&
-          _notificationStreamController.hasListener) {
+      if (_lastNotifications.isEmpty) {
+        errorMessage = 'unknown: ${e.toString()}';
+      }
+      if (!_isDisposed && !_notificationStreamController.isClosed) {
         _notificationStreamController.addError(e);
       }
     } finally {
-      if (!_isDisposed) _isLoadingFromNetwork = false;
+      if (!_isDisposed) {
+        _isLoadingFromNetwork = false;
+        _checkAutoLoadMore();
+      }
     }
   }
 
@@ -357,8 +416,40 @@ class NotificationState extends State<Notifications>
     } catch (e) {
       if (kDebugMode) print('❌ Error loading more notifications: $e');
     } finally {
-      if (mounted) setState(() => _isLoadingMore = false);
+      if (mounted) {
+        setState(() => _isLoadingMore = false);
+        _checkAutoLoadMore();
+      }
     }
+  }
+
+  void _checkAutoLoadMore() {
+    if (_isDisposed || !mounted) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_isDisposed || !mounted) return;
+
+      bool needsMore = false;
+      if (_tabController.index == 0) {
+        if (_allNotificationsScrollController.hasClients) {
+          final maxScroll =
+              _allNotificationsScrollController.position.maxScrollExtent;
+          if (maxScroll <= 0) needsMore = true;
+        }
+      } else if (_tabController.index == 1) {
+        if (_pollNotificationsScrollController.hasClients) {
+          final maxScroll =
+              _pollNotificationsScrollController.position.maxScrollExtent;
+          if (maxScroll <= 0) needsMore = true;
+        }
+      }
+
+      if (needsMore &&
+          _hasMoreData &&
+          !_isLoadingMore &&
+          !_isLoadingFromNetwork) {
+        _loadMoreNotifications();
+      }
+    });
   }
 
   // ── Scroll listeners ──────────────────────────────────────────────────────
@@ -399,10 +490,15 @@ class NotificationState extends State<Notifications>
       }
 
       if (responseData is Map && responseData['status'] == 'success') {
-        final List<dynamic> rawIncoming = responseData['data']?['incoming'] ?? [];
+        final List<dynamic> rawIncoming =
+            responseData['data']?['incoming'] ?? [];
         incoming = rawIncoming;
         await _saveFriendRequestsToCache(incoming);
-        return incoming.map((e) => IncomingData.fromJson(Map<String, dynamic>.from(e as Map))).toList();
+        return incoming
+            .map(
+              (e) => IncomingData.fromJson(Map<String, dynamic>.from(e as Map)),
+            )
+            .toList();
       } else {
         throw Exception('Failed to load data');
       }
@@ -434,7 +530,9 @@ class NotificationState extends State<Notifications>
         responseData = response.data;
       }
 
-      if (response.statusCode == 200 && responseData is Map && responseData['status'] == 'success') {
+      if (response.statusCode == 200 &&
+          responseData is Map &&
+          responseData['status'] == 'success') {
         showToast(message: 'Friend request accepted successfully!');
         setState(() {
           incoming.removeWhere(
@@ -526,7 +624,11 @@ class NotificationState extends State<Notifications>
         final groupName = notification.meta?.groupName ?? 'the group';
         return 'added you to the group $groupName.';
       case 'NEW_MESSAGE':
-        return 'send you new message.';
+        final msg = notification.message ?? '';
+        if (msg.isNotEmpty) {
+          return msg;
+        }
+        return 'sent you a new message';
       default:
         return 'sent you a notification';
     }
@@ -586,6 +688,8 @@ class NotificationState extends State<Notifications>
     _allNotificationsScrollController.addListener(_onAllNotificationsScroll);
     _pollNotificationsScrollController.addListener(_onPollNotificationsScroll);
 
+    globalErrorMessage.addListener(_onGlobalErrorChanged);
+
     _loadNotificationsFromCache().then((_) => fetchNotifications());
 
     friendRequestsFuture = _loadFriendRequestsFromCache().then((
@@ -598,6 +702,13 @@ class NotificationState extends State<Notifications>
     // Periodic silent refresh every 30s
     _refreshTimer = Timer.periodic(const Duration(seconds: 30), (timer) {
       if (!_isLoadingFromNetwork) fetchNotifications();
+    });
+  }
+
+  void _onGlobalErrorChanged() {
+    if (!mounted) return;
+    setState(() {
+      errorMessage = globalErrorMessage.value;
     });
   }
 
@@ -625,14 +736,19 @@ class NotificationState extends State<Notifications>
   }
 
   void _handleTabSelection() {
-    if (_tabController.index == 0 && !_tabController.indexIsChanging) {
-      if (!_isLoadingFromNetwork) fetchNotifications();
+    if (!_tabController.indexIsChanging) {
+      if (_tabController.index == 0) {
+        if (!_isLoadingFromNetwork) fetchNotifications();
+      } else {
+        _checkAutoLoadMore();
+      }
     }
   }
 
   @override
   void dispose() {
     _isDisposed = true;
+    globalErrorMessage.removeListener(_onGlobalErrorChanged);
     _tabController.dispose();
     _notificationStreamController.close();
     _refreshTimer?.cancel();
@@ -684,7 +800,6 @@ class NotificationState extends State<Notifications>
                   onRefresh: () async {
                     _hasMoreData = true;
                     _currentPage = 1;
-                    _lastNotifications = [];
                     await fetchNotifications();
                   },
                   child: StreamBuilder<List<NotificationItem>>(
@@ -703,12 +818,16 @@ class NotificationState extends State<Notifications>
                         );
                       }
 
-                      if (snapshot.hasError && _lastNotifications.isEmpty) {
+                      if ((snapshot.hasError || errorMessage != null) &&
+                          _lastNotifications.isEmpty) {
                         return _buildErrorWidget();
                       }
 
                       if (snapshot.hasData) {
                         final notifications = snapshot.data!;
+                        WidgetsBinding.instance.addPostFrameCallback((_) {
+                          _checkAutoLoadMore();
+                        });
                         if (notifications.isEmpty) {
                           return SizedBox(
                             width: double.infinity,
@@ -770,10 +889,12 @@ class NotificationState extends State<Notifications>
                               notifications.length + (_hasMoreData ? 1 : 0),
                           itemBuilder: (context, index) {
                             if (index == notifications.length) {
+                              final bool hasScrolled = _allNotificationsScrollController.hasClients &&
+                                  _allNotificationsScrollController.position.pixels > 0;
                               return Center(
                                 child: Padding(
                                   padding: EdgeInsets.all(16.h),
-                                  child: _isLoadingMore
+                                  child: (_isLoadingMore && hasScrolled)
                                       ? Loader(
                                           color: Theme.of(
                                             context,
@@ -897,7 +1018,10 @@ class NotificationState extends State<Notifications>
                         );
                       }
 
-                      if (snapshot.hasError && _lastNotifications.where((n) => n.type == 'VOTE').isEmpty) {
+                      if ((snapshot.hasError || errorMessage != null) &&
+                          _lastNotifications
+                              .where((n) => n.type == 'VOTE')
+                              .isEmpty) {
                         return _buildErrorWidget();
                       }
 
@@ -905,6 +1029,9 @@ class NotificationState extends State<Notifications>
                         final voteNotifications = snapshot.data!
                             .where((n) => n.type == 'VOTE')
                             .toList();
+                        WidgetsBinding.instance.addPostFrameCallback((_) {
+                          _checkAutoLoadMore();
+                        });
 
                         if (voteNotifications.isEmpty) {
                           return SizedBox(
@@ -968,10 +1095,12 @@ class NotificationState extends State<Notifications>
                               voteNotifications.length + (_hasMoreData ? 1 : 0),
                           itemBuilder: (context, index) {
                             if (index == voteNotifications.length) {
+                              final bool hasScrolled = _pollNotificationsScrollController.hasClients &&
+                                  _pollNotificationsScrollController.position.pixels > 0;
                               return Center(
                                 child: Padding(
                                   padding: EdgeInsets.all(16.h),
-                                  child: _isLoadingMore
+                                  child: (_isLoadingMore && hasScrolled)
                                       ? Loader(
                                           color: Theme.of(
                                             context,
@@ -1045,7 +1174,7 @@ class NotificationState extends State<Notifications>
                                               style: TextStyle(
                                                 color: Theme.of(
                                                   context,
-                                                ).colorScheme.primary,
+                                                ).colorScheme.onPrimary,
                                                 fontWeight: FontWeight.w600,
                                                 fontSize: 12.sp,
                                               ),
@@ -1155,7 +1284,10 @@ class NotificationState extends State<Notifications>
             );
           }
 
-          if (snapshot.hasError && _lastNotifications.where((n) => n.type.toUpperCase() == 'FRIEND_REQUEST').isEmpty) {
+          if ((snapshot.hasError || errorMessage != null) &&
+              _lastNotifications
+                  .where((n) => n.type.toUpperCase() == 'FRIEND_REQUEST')
+                  .isEmpty) {
             return _buildErrorWidget();
           }
 
@@ -1284,7 +1416,7 @@ class NotificationState extends State<Notifications>
                     child: Text(
                       AppLocalizations.of(context)!.clearall,
                       style: TextStyle(
-                        color: Theme.of(context).colorScheme.primary,
+                        color: Theme.of(context).colorScheme.onPrimary,
                         fontWeight: FontWeight.w600,
                         fontSize: 12.sp,
                       ),
@@ -1303,18 +1435,29 @@ class NotificationState extends State<Notifications>
   }
 
   Widget _buildErrorWidget() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Text('Error loading notifications'),
-          SizedBox(height: 16.h),
-          ElevatedButton(
-            onPressed: fetchNotifications,
-            child: const Text('Retry'),
-          ),
-        ],
-      ),
+    final isOffline = !Provider.of<ConnectivityProvider>(
+      context,
+      listen: false,
+    ).isOnline;
+    return ConnectionErrorScreen(
+      type:
+          errorMessage != null &&
+              errorMessage!.startsWith('no_internet') &&
+              isOffline
+          ? ConnectionErrorType.noInternet
+          : errorMessage != null && errorMessage!.startsWith('server_error')
+          ? ConnectionErrorType.serverError
+          : ConnectionErrorType.unknown,
+      errorMessage: errorMessage,
+      onRetry: () {
+        setState(() {
+          errorMessage = null;
+          NotificationState.globalErrorMessage.value = null;
+          _currentPage = 1;
+          _lastNotifications = [];
+        });
+        fetchNotifications();
+      },
     );
   }
 
@@ -1326,6 +1469,11 @@ class NotificationState extends State<Notifications>
   }) {
     final txt = AppTextColors.of(context);
     final isFriendRequest = notification.type.toUpperCase() == 'FRIEND_REQUEST';
+    final avatarBytes =
+        (notification.actor.avatarUrl != null &&
+            notification.actor.avatarUrl!.isNotEmpty)
+        ? getUserImage(notification.actor.avatarUrl)
+        : null;
 
     return Dismissible(
       key: Key(notification.id),
@@ -1349,20 +1497,59 @@ class NotificationState extends State<Notifications>
             _markAsRead(notification);
           }
 
-          if (isFriendRequest ||
-              notification.type.toUpperCase() == 'NEW_GROUP_ADDED') {
+          final type = notification.type.toUpperCase();
+          if (type == 'NEW_MESSAGE' || type == 'NEW_GROUP_ADDED') {
+            final chatIdInt = notification.meta?.chatId is int
+                ? notification.meta!.chatId as int
+                : int.tryParse(notification.meta?.chatId?.toString() ?? '');
+            if (notification.meta?.groupName != null &&
+                notification.meta!.groupName!.isNotEmpty) {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => ChangeNotifierProvider(
+                    create: (_) => GroupChatProvider(),
+                    child: GroupChatScreen(
+                      groupName: notification.meta!.groupName!,
+                      chatId: chatIdInt,
+                    ),
+                  ),
+                ),
+              );
+            } else {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => ChangeNotifierProvider(
+                    create: (_) => PrivateChatProvider(),
+                    child: PrivateChatScreen(
+                      memberName: notification.actor.name,
+                      profileUrl: notification.actor.avatarUrl,
+                      userId: int.tryParse(notification.actor.userId),
+                      chatId: chatIdInt,
+                    ),
+                  ),
+                ),
+              );
+            }
             return;
           }
-          if (post != null) {
+
+          if (isFriendRequest) {
+            return;
+          }
+          if (post != null && post.postId.toString().trim().isNotEmpty) {
             navigationPush(
               context,
               SinglePostDetails(username: username, postId: post.postId),
             );
-          } else if (notification.type.toUpperCase() == 'FOLLOW') {
-            navigationPush(
-              context,
-              PublicProfileScreen(userId: notification.actor.userId),
-            );
+          } else if (type == 'FOLLOW') {
+            if (notification.actor.userId.toString().trim().isNotEmpty) {
+              navigationPush(
+                context,
+                PublicProfileScreen(userId: notification.actor.userId),
+              );
+            }
           } else {
             // ScaffoldMessenger.of(
             //   context,
@@ -1393,20 +1580,19 @@ class NotificationState extends State<Notifications>
                 SizedBox(width: 7.w),
               GestureDetector(
                 onTap: () {
-                  navigationPush(
-                    context,
-                    PublicProfileScreen(userId: notification.actor.userId),
-                  );
+                  if (notification.actor.userId.toString().trim().isNotEmpty) {
+                    navigationPush(
+                      context,
+                      PublicProfileScreen(userId: notification.actor.userId),
+                    );
+                  }
                 },
                 child: Stack(
                   clipBehavior: Clip.none,
                   children: [
-                    (notification.actor.avatarUrl != null &&
-                            notification.actor.avatarUrl!.isNotEmpty)
+                    (avatarBytes != null)
                         ? CircleAvatar(
-                            backgroundImage: MemoryImage(
-                              getUserImage(notification.actor.avatarUrl)!,
-                            ),
+                            backgroundImage: MemoryImage(avatarBytes),
                             radius: 17.w,
                             onBackgroundImageError: (exception, stackTrace) {
                               if (kDebugMode) {
@@ -1418,13 +1604,13 @@ class NotificationState extends State<Notifications>
                             radius: 16.5.w,
                             backgroundColor: Theme.of(
                               context,
-                            ).colorScheme.primary.withOpacity(0.15),
+                            ).colorScheme.onPrimary.withOpacity(0.15),
                             child: Text(
                               getInitial(notification.actor.name),
-                              style: TextStyle(
-                                fontSize: 14.sp,
-                                fontWeight: FontWeight.w600,
-                                color: Theme.of(context).colorScheme.primary,
+                              style: AppTextStyles.bodyText.copyWith(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w500,
+                                color: Theme.of(context).colorScheme.onPrimary,
                               ),
                             ),
                           ),
@@ -1434,7 +1620,9 @@ class NotificationState extends State<Notifications>
                         right: -4.w,
                         child: AppIcons.like(),
                       ),
-                    if (notification.type.toUpperCase() == 'COMMENT')
+                    if (notification.type.toUpperCase() == 'COMMENT' ||
+                        notification.type.toUpperCase() == 'NEW_MESSAGE' ||
+                        notification.type.toUpperCase() == 'NEW_GROUP_ADDED')
                       Positioned(
                         bottom: -3.h,
                         right: -4.w,
@@ -1542,23 +1730,28 @@ class NotificationState extends State<Notifications>
                 ),
 
               if (notification.type.toUpperCase() == 'FOLLOW' ||
-                  notification.type.toUpperCase() == 'NEW_GROUP_ADDED')
+                  notification.type.toUpperCase() == 'NEW_GROUP_ADDED' ||
+                  notification.type.toUpperCase() == 'NEW_MESSAGE')
                 GestureDetector(
                   onTap: () {
                     if (!notification.isRead) {
                       _markAsRead(notification);
                     }
-                    if (notification.type.toUpperCase() == 'FOLLOW') {
+                    final chatIdInt = notification.meta?.chatId is int
+                        ? notification.meta!.chatId as int
+                        : int.tryParse(
+                            notification.meta?.chatId?.toString() ?? '',
+                          );
+                    if (notification.meta?.groupName != null &&
+                        notification.meta!.groupName!.isNotEmpty) {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
                           builder: (_) => ChangeNotifierProvider(
-                            create: (_) => PrivateChatProvider(),
-                            child: PrivateChatScreen(
-                              memberName: notification.actor.name,
-                              profileUrl: notification.actor.avatarUrl,
-                              userId: int.tryParse(notification.actor.userId),
-                              chatId: notification.meta?.chatId,
+                            create: (_) => GroupChatProvider(),
+                            child: GroupChatScreen(
+                              groupName: notification.meta!.groupName!,
+                              chatId: chatIdInt,
                             ),
                           ),
                         ),
@@ -1568,12 +1761,12 @@ class NotificationState extends State<Notifications>
                         context,
                         MaterialPageRoute(
                           builder: (_) => ChangeNotifierProvider(
-                            create: (_) => GroupChatProvider(),
-                            child: GroupChatScreen(
-                              groupName:
-                                  notification.meta?.groupName ??
-                                  notification.title,
-                              chatId: notification.meta?.chatId,
+                            create: (_) => PrivateChatProvider(),
+                            child: PrivateChatScreen(
+                              memberName: notification.actor.name,
+                              profileUrl: notification.actor.avatarUrl,
+                              userId: int.tryParse(notification.actor.userId),
+                              chatId: chatIdInt,
                             ),
                           ),
                         ),

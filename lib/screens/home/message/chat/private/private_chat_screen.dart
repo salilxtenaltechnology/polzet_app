@@ -23,6 +23,7 @@ import '../../../home feed/rank/result/image/image_result_screen.dart';
 import '../../../home feed/rank/result/things/things_result_screen.dart';
 import '../../../search/posts/rank/single_post_image_ranking.dart';
 import '../../../search/posts/rank/single_post_things_ranking.dart';
+import '../../../profile/public/public_profile_screen.dart';
 import '../chat_details.dart';
 
 class PrivateChatScreen extends StatefulWidget {
@@ -421,29 +422,39 @@ class _PrivateChatScreenState extends State<PrivateChatScreen>
             // Header
             Padding(
               padding: EdgeInsets.fromLTRB(10.w, 10.h, 10.w, 0),
-              child: Row(
-                children: [
-                  CircleAvatar(
-                    radius: 19,
-                    backgroundColor: Colors.grey[200],
-                    backgroundImage: avatarBytes != null
-                        ? MemoryImage(avatarBytes)
-                        : null,
-                    child: avatarBytes == null
-                        ? Text(
-                            name.isNotEmpty
-                                ? name[0].toUpperCase()
-                                : (username.isNotEmpty
-                                      ? username[0].toUpperCase()
-                                      : '?'),
-                            style: TextStyle(
-                              fontSize: 12.sp,
-                              color: Theme.of(context).colorScheme.primary,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          )
-                        : null,
-                  ),
+              child: GestureDetector(
+                onTap: () {
+                  final userId = user['userid'] ?? user['id'] ?? user['user_id'];
+                  if (userId != null) {
+                    navigationPush(
+                      context,
+                      PublicProfileScreen(userId: userId.toString()),
+                    );
+                  }
+                },
+                child: Row(
+                  children: [
+                    CircleAvatar(
+                      radius: 19,
+                      backgroundColor: Theme.of(context).colorScheme.onPrimary.withOpacity(0.1),
+                      backgroundImage: avatarBytes != null
+                          ? MemoryImage(avatarBytes)
+                          : null,
+                      child: avatarBytes == null
+                          ? Text(
+                              name.isNotEmpty
+                                  ? name[0].toUpperCase()
+                                  : (username.isNotEmpty
+                                        ? username[0].toUpperCase()
+                                        : 'P'),
+                              style: TextStyle(
+                                fontSize: 18,
+                                color: Theme.of(context).colorScheme.onPrimary,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            )
+                          : null,
+                    ),
                   SizedBox(width: 8.w),
                   Expanded(
                     child: Column(
@@ -488,6 +499,7 @@ class _PrivateChatScreenState extends State<PrivateChatScreen>
                 ],
               ),
             ),
+          ),
             Divider(color: Theme.of(context).colorScheme.outlineVariant),
 
             if (description.isNotEmpty && pollTextOptions.isEmpty) ...[
@@ -920,7 +932,7 @@ class _PrivateChatScreenState extends State<PrivateChatScreen>
               Stack(
                 children: [
                   CircleAvatar(
-                    radius: 15,
+                    radius: 19,
                     backgroundColor: Theme.of(
                       context,
                     ).colorScheme.onPrimary.withOpacity(0.1),

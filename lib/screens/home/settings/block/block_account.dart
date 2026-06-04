@@ -23,7 +23,7 @@ class BlockAccounts extends StatefulWidget {
 class _BlockUsersState extends State<BlockAccounts> {
   late Future<Map<String, dynamic>> _blockedUsersFuture;
   final ApiService _apiService = ApiService();
-  final Map<int, bool> _isBlockedMap = {};
+  final Map<dynamic, bool> _isBlockedMap = {};
 
   @override
   void initState() {
@@ -31,7 +31,7 @@ class _BlockUsersState extends State<BlockAccounts> {
     _blockedUsersFuture = _apiService.getBlockedUsers();
   }
 
-  Future<void> _toggleBlock(int userId, bool currentlyBlocked) async {
+  Future<void> _toggleBlock(dynamic userId, bool currentlyBlocked) async {
     setState(() => _isBlockedMap[userId] = !currentlyBlocked);
 
     final result = currentlyBlocked
@@ -96,7 +96,7 @@ class _BlockUsersState extends State<BlockAccounts> {
 
             itemBuilder: (context, index) {
               final user = users[index];
-              final int userId = user['id'];
+              final dynamic userId = user['id'];
               final profilePic = user['profile_picture_url'];
               final bool isBlocked = _isBlockedMap[userId] ?? true;
 

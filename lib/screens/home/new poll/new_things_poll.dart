@@ -4,6 +4,8 @@ import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:provider/provider.dart';
+import '../../../provider/user_provider.dart';
 
 import '../../../api/app_api.dart';
 import '../../../data/token/shared_preferences.dart';
@@ -190,12 +192,6 @@ class _NewThingsPollState extends State<NewThingsPoll> with UtilityMixin {
       for (var option in validOptions) {
         formData.fields.add(MapEntry('poll_options', option));
       }
-
-      if (kDebugMode) {
-        print('Request data: ${formData.fields}');
-        print('Poll options count: ${validOptions.length}');
-      }
-
       // Make API call
       final response = await _dio.post(
         ApiConstants.userPosts,
@@ -207,14 +203,17 @@ class _NewThingsPollState extends State<NewThingsPoll> with UtilityMixin {
       if (response.statusCode == 200 || response.statusCode == 201) {
         if (!mounted) return;
 
-        showToast(message: 'New poll created successfully!');
+        showToast(message: 'New things poll created!');
 
-        if (kDebugMode) {
-          print('Poll created successfully: ${response.data}');
-        }
+
+        // Clear cached posts so the profile screen updates immediately
+        Provider.of<UserProvider>(context, listen: false).clearUserPostsCache();
 
         // Reset form
         _resetForm();
+
+        // Go back to the previous screen
+        Navigator.of(context).pop(true);
       }
     } on DioException catch (e) {
       if (!mounted) return;
@@ -438,21 +437,21 @@ class _NewThingsPollState extends State<NewThingsPoll> with UtilityMixin {
              icon: Icon(
                 Icons.add,
                 size: 18,
-                color: Theme.of(context).colorScheme.primary,
+                color: Theme.of(context).colorScheme.onPrimary,
               ),
               label: Text(
                 AppLocalizations.of(context)!.addoption,
                 style: AppTextStyles.bodyText.copyWith(
                   fontSize: 14,
                   fontWeight: FontWeight.w500,
-                  color: Theme.of(context).colorScheme.primary,
+                  color: Theme.of(context).colorScheme.onPrimary,
                 ),
               ),
               style: OutlinedButton.styleFrom(
                 side: BorderSide(
                   color: Theme.of(
                     context,
-                  ).colorScheme.primary.withOpacity(0.8),
+                  ).colorScheme.onPrimary.withOpacity(0.8),
                 ),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(AppRadius.button),

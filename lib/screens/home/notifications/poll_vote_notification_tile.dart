@@ -5,6 +5,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:polzet_app/screens/home/search/posts/single_post_details.dart';
+import '../home feed/rank/result/image/image_result_screen.dart';
+import '../home feed/rank/result/things/things_result_screen.dart';
 import 'package:provider/provider.dart';
 
 import '../../../api/api_config.dart';
@@ -16,6 +18,7 @@ import '../../../mixin/utility_mixins.dart';
 import '../../../models/notifications/notification_model.dart';
 import '../../../models/posts/single_post_model.dart';
 import '../../../provider/user_provider.dart';
+import '../../../widgets/loader.dart';
 
 class PollVoteNotificationTile extends StatefulWidget {
   final NotificationItem notification;
@@ -88,7 +91,7 @@ class _PollVoteNotificationTileState extends State<PollVoteNotificationTile>
 
   Future<void> _fetchPollDetails({bool forceRefresh = false}) async {
     final dynamic postId = _postId;
-    if (postId == null || postId == 0 || postId == '0') return;
+    if (postId == null || postId == 0 || postId == '0' || postId.toString().trim().isEmpty) return;
 
     // If cached and not forcing refresh, nothing to do
     if (!forceRefresh && _cache.containsKey(postId)) return;
@@ -117,18 +120,18 @@ class _PollVoteNotificationTileState extends State<PollVoteNotificationTile>
       // Store in static cache
       _cache[postId] = post;
 
-      if (kDebugMode) {
-        for (final poll in post.polls) {
-          debugPrint(
-            '   poll ${poll.id} "${poll.question}" | options=${poll.options.length}',
-          );
-          for (final opt in poll.options) {
-            debugPrint(
-              '     opt ${opt.id} votes=${opt.voteCount} pct=${opt.percentage}%',
-            );
-          }
-        }
-      }
+      // if (kDebugMode) {
+      //   for (final poll in post.polls) {
+      //     debugPrint(
+      //       '   poll ${poll.id} "${poll.question}" | options=${poll.options.length}',
+      //     );
+      //     for (final opt in poll.options) {
+      //       debugPrint(
+      //         '     opt ${opt.id} votes=${opt.voteCount} pct=${opt.percentage}%',
+      //       );
+      //     }
+      //   }
+      // }
     } catch (e, st) {
       if (kDebugMode) debugPrint('❌ [Tile #$postId] fetch failed: $e\n$st');
 
@@ -188,7 +191,7 @@ class _PollVoteNotificationTileState extends State<PollVoteNotificationTile>
         borderRadius: BorderRadius.circular(12.r),
         border: Border.all(
           color: _isExpanded
-              ? Theme.of(context).colorScheme.primary
+              ? Theme.of(context).colorScheme.onPrimary.withOpacity(0.5)
               : Theme.of(context).colorScheme.outline,
         ),
       ),
@@ -272,9 +275,9 @@ class _PollVoteNotificationTileState extends State<PollVoteNotificationTile>
               if (_isFetchingPoll)
                 Padding(
                   padding: EdgeInsets.symmetric(vertical: 28.h),
-                  child: CircularProgressIndicator(
-                    color: Theme.of(context).colorScheme.primary,
-                    strokeWidth: 2,
+                  child: Loader(
+                    color: Theme.of(context).colorScheme.onPrimary,
+                    
                   ),
                 )
               else if (_fetchFailed)
@@ -295,7 +298,7 @@ class _PollVoteNotificationTileState extends State<PollVoteNotificationTile>
                 )
               else
                 Padding(
-                  padding: EdgeInsets.fromLTRB(12.w, 10.h, 12.w, 14.h),
+                  padding: EdgeInsets.fromLTRB(12.w, 10.h, 12.w, 0),
                   child: _buildPollContent(context, poll, totalVotes),
                 ),
             ],
@@ -463,11 +466,20 @@ class _PollVoteNotificationTileState extends State<PollVoteNotificationTile>
     return GestureDetector(
       onTap: () {
         final String? postId = widget.notification.meta?.postId?.toString();
+        if (postId == null) return;
 
-        if (postId != null) {
+        final bool isPolled = _cachedPost?.isPolledByCurrentUser == true;
+        final String targetUsername = _cachedPost?.user.username ?? username;
+
+        if (isPolled) {
           navigationPush(
             context,
-            SinglePostDetails(username: username, postId: postId),
+            ThingsResultScreen(username: targetUsername, postId: postId),
+          );
+        } else {
+          navigationPush(
+            context,
+            SinglePostDetails(username: targetUsername, postId: postId),
           );
         }
       },
@@ -514,7 +526,7 @@ class _PollVoteNotificationTileState extends State<PollVoteNotificationTile>
     // final double fillValue = (percentage / 100.0).clamp(0.0, 1.0);
 
     return Padding(
-      padding: EdgeInsets.only(bottom: 12.h),
+      padding: const EdgeInsets.only(bottom: 12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
@@ -625,19 +637,28 @@ class _PollVoteNotificationTileState extends State<PollVoteNotificationTile>
       entries.add(MapEntry(pic, NetworkImage(_resolveImageUrl(pic))));
     }
 
-    final List<MapEntry<String, ImageProvider?>> displayVoters = entries
-        .take(3)
-        .toList();
-    final int extra = entries.length > 3 ? entries.length - 3 : 0;
+    // final List<MapEntry<String, ImageProvider?>> displayVoters = entries
+    //     .take(3)
+    //     .toList();
+    // final int extra = entries.length > 3 ? entries.length - 3 : 0;
 
     return GestureDetector(
       onTap: () {
         final String? postId = widget.notification.meta?.postId?.toString();
+        if (postId == null) return;
 
-        if (postId != null) {
+        final bool isPolled = _cachedPost?.isPolledByCurrentUser == true;
+        final String targetUsername = _cachedPost?.user.username ?? username;
+
+        if (isPolled) {
           navigationPush(
             context,
-            SinglePostDetails(username: username, postId: postId),
+            ImageResultScreen(username: targetUsername, postId: postId),
+          );
+        } else {
+          navigationPush(
+            context,
+            SinglePostDetails(username: targetUsername, postId: postId),
           );
         }
       },
@@ -747,72 +768,72 @@ class _PollVoteNotificationTileState extends State<PollVoteNotificationTile>
               ],
             ),
           ),
-          SizedBox(height: 14.h),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Row(
-                children: [
-                  if (displayVoters.isNotEmpty)
-                    SizedBox(
-                      width: (24 + (displayVoters.length - 1) * 14.0).w,
-                      height: 24.w,
-                      child: Stack(
-                        children: List.generate(displayVoters.length, (i) {
-                          final ImageProvider? provider =
-                              displayVoters[i].value;
-                          if (provider == null) return const SizedBox.shrink();
-                          return Positioned(
-                            left: i * 14.0.w,
-                            child: Container(
-                              width: 24.w,
-                              height: 24.w,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                border: Border.all(
-                                  color: Theme.of(context).colorScheme.surface,
-                                  width: 1.5,
-                                ),
-                                image: DecorationImage(
-                                  image: provider,
-                                  fit: BoxFit.cover,
-                                  onError: (_, __) {},
-                                ),
-                              ),
-                            ),
-                          );
-                        }),
-                      ),
-                    ),
-                  if (extra > 0)
-                    Padding(
-                      padding: EdgeInsets.only(
-                        left: displayVoters.isNotEmpty ? 6.w : 0,
-                      ),
-                      child: Text(
-                        '+$extra',
-                        style: AppTextStyles.subText.copyWith(
-                          color: Theme.of(
-                            context,
-                          ).colorScheme.onBackground.withOpacity(0.6),
-                          fontSize: 13.sp,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-              Text(
-                '$totalVotes votes',
-                style: AppTextStyles.subText.copyWith(
-                  color: Theme.of(
-                    context,
-                  ).colorScheme.onBackground.withOpacity(0.5),
-                  fontSize: 11.sp,
-                ),
-              ),
-            ],
-          ),
+          const SizedBox(height: 12),
+          // Row(
+          //   mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          //   children: [
+          //     Row(
+          //       children: [
+          //         if (displayVoters.isNotEmpty)
+          //           SizedBox(
+          //             width: (24 + (displayVoters.length - 1) * 14.0).w,
+          //             height: 24.w,
+          //             child: Stack(
+          //               children: List.generate(displayVoters.length, (i) {
+          //                 final ImageProvider? provider =
+          //                     displayVoters[i].value;
+          //                 if (provider == null) return const SizedBox.shrink();
+          //                 return Positioned(
+          //                   left: i * 14.0.w,
+          //                   child: Container(
+          //                     width: 24.w,
+          //                     height: 24.w,
+          //                     decoration: BoxDecoration(
+          //                       shape: BoxShape.circle,
+          //                       border: Border.all(
+          //                         color: Theme.of(context).colorScheme.surface,
+          //                         width: 1.5,
+          //                       ),
+          //                       image: DecorationImage(
+          //                         image: provider,
+          //                         fit: BoxFit.cover,
+          //                         onError: (_, __) {},
+          //                       ),
+          //                     ),
+          //                   ),
+          //                 );
+          //               }),
+          //             ),
+          //           ),
+          //         if (extra > 0)
+          //           Padding(
+          //             padding: EdgeInsets.only(
+          //               left: displayVoters.isNotEmpty ? 6.w : 0,
+          //             ),
+          //             child: Text(
+          //               '+$extra',
+          //               style: AppTextStyles.subText.copyWith(
+          //                 color: Theme.of(
+          //                   context,
+          //                 ).colorScheme.onBackground.withOpacity(0.6),
+          //                 fontSize: 13.sp,
+          //                 fontWeight: FontWeight.w500,
+          //               ),
+          //             ),
+          //           ),
+          //       ],
+          //     ),
+          //     Text(
+          //       '$totalVotes votes',
+          //       style: AppTextStyles.subText.copyWith(
+          //         color: Theme.of(
+          //           context,
+          //         ).colorScheme.onBackground.withOpacity(0.5),
+          //         fontSize: 11.sp,
+          //       ),
+          //     ),
+          //   ],
+          // ),
         ],
       ),
     );

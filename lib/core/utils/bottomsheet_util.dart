@@ -82,7 +82,7 @@ class BottomSheetUtils {
     required BuildContext context,
     required String shareLink,
     required String username,
-    required String postId,
+    String postId = '',
     Function(int)? onShareSuccess,
   }) {
     showModalBottomSheet(

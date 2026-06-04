@@ -96,10 +96,10 @@ class SplashScreenState extends State<SplashScreen>
             context,
             listen: false,
           );
-          await userProvider.loadUserData();
+          await userProvider.loadUserData().timeout(const Duration(seconds: 3));
         }
       } catch (e) {
-        return const SocialLoginScreen();
+        debugPrint('Error or timeout loading user data during splash: $e');
       }
 
       final notificationRouter = NotificationRouter();

@@ -1,7 +1,5 @@
 // ignore_for_file: deprecated_member_use
 
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
@@ -85,13 +83,6 @@ class _SuggestedUsersListState extends State<SuggestedUsersList>
                 itemBuilder: (context, i) {
                   final user = users[i];
 
-                  ImageProvider buildAvatar() {
-                    if (user.avatar.startsWith('data:image')) {
-                      return MemoryImage(base64Decode(user.avatar.split(',').last));
-                    }
-                    return NetworkImage(user.avatar);
-                  }
-
                   return StatefulBuilder(
                     builder: (context, setLocalState) {
                       final isChased = _chasedUserIds.contains(user.id);
@@ -141,7 +132,7 @@ class _SuggestedUsersListState extends State<SuggestedUsersList>
                               child: user.avatar.isNotEmpty
                                   ? CircleAvatar(
                                       radius: avatarRadius,
-                                      backgroundImage: buildAvatar(),
+                                      backgroundImage: user.avatarImageProvider,
                                       backgroundColor: isDarkMode
                                           ? Colors.grey.withValues(alpha: 0.1)
                                           : Colors.grey.shade200,
@@ -189,79 +180,83 @@ class _SuggestedUsersListState extends State<SuggestedUsersList>
                             SizedBox(height: spacing2),
 
                             // ── Mutuals ──
-                            if (user.mutualFriendsAvatars.isNotEmpty)
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  SizedBox(
-                                    height: (avatarRadius * 0.35).clamp(12.0, 17.0),
-                                    width:
-                                        (user.mutualFriendsAvatars.take(3).length -
-                                                 1) *
-                                            12.0 +
-                                        18.0,
-                                    child: Stack(
-                                      children: List.generate(
-                                        user.mutualFriendsAvatars.take(3).length,
-                                        (index) {
-                                          final avatarUrl =
-                                              user.mutualFriendsAvatars[index];
-                                          ImageProvider img;
-                                          if (avatarUrl.startsWith('data:image')) {
-                                            img = MemoryImage(
-                                              base64Decode(
-                                                avatarUrl.split(',').last,
-                                              ),
-                                            );
-                                          } else {
-                                            img = NetworkImage(avatarUrl);
-                                          }
-                                          return Positioned(
-                                            left: index * 14.0,
-                                            child: Container(
-                                              decoration: BoxDecoration(
-                                                shape: BoxShape.circle,
-                                                border: Border.all(
-                                                  color: isDarkMode
-                                                      ? const Color(0xFF2A2A2E)
-                                                      : Theme.of(context)
-                                                            .colorScheme
-                                                            .primaryContainer,
-                                                  width: 1,
+                            if (user.mutualFriends > 0)
+                              if (user.mutualFriendsAvatars.isNotEmpty)
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    SizedBox(
+                                      height: (avatarRadius * 0.35).clamp(12.0, 17.0),
+                                      width:
+                                          (user.mutualFriendsAvatars.take(3).length -
+                                                   1) *
+                                              12.0 +
+                                          18.0,
+                                      child: Stack(
+                                        children: List.generate(
+                                          user.mutualFriendsAvatars.take(3).length,
+                                          (index) {
+                                            final img = user.mutualImageProviders[index];
+                                            return Positioned(
+                                              left: index * 14.0,
+                                              child: Container(
+                                                decoration: BoxDecoration(
+                                                  shape: BoxShape.circle,
+                                                  border: Border.all(
+                                                    color: isDarkMode
+                                                        ? const Color(0xFF2A2A2E)
+                                                        : Theme.of(context)
+                                                              .colorScheme
+                                                              .primaryContainer,
+                                                    width: 1,
+                                                  ),
+                                                ),
+                                                child: CircleAvatar(
+                                                  radius: (avatarRadius * 0.16).clamp(5.0, 7.5),
+                                                  backgroundImage: img,
+                                                  backgroundColor:
+                                                      Colors.grey.shade200,
                                                 ),
                                               ),
-                                              child: CircleAvatar(
-                                                radius: (avatarRadius * 0.16).clamp(5.0, 7.5),
-                                                backgroundImage: img,
-                                                backgroundColor:
-                                                    Colors.grey.shade200,
-                                              ),
-                                            ),
-                                          );
-                                        },
+                                            );
+                                          },
+                                        ),
                                       ),
                                     ),
-                                  ),
-                                  const SizedBox(width: 4),
-                                  Flexible(
-                                    child: Text(
-                                      '+${user.mutualFriends} mutual',
-                                      overflow: TextOverflow.ellipsis,
-                                      maxLines: 1,
-                                      style: AppTextStyles.subText.copyWith(
-                                        fontSize: mutualFontSize,
-                                        fontWeight: FontWeight.w400,
-                                        color: isDarkMode
-                                            ? Colors.white.withValues(alpha: 0.4)
-                                            : const Color(0xFF8E8E8E),
+                                    const SizedBox(width: 4),
+                                    Flexible(
+                                      child: Text(
+                                        '+${user.mutualFriends} mutual',
+                                        overflow: TextOverflow.ellipsis,
+                                        maxLines: 1,
+                                        style: AppTextStyles.subText.copyWith(
+                                          fontSize: mutualFontSize,
+                                          fontWeight: FontWeight.w400,
+                                          color: isDarkMode
+                                              ? Colors.white.withValues(alpha: 0.4)
+                                              : const Color(0xFF8E8E8E),
+                                        ),
                                       ),
                                     ),
+                                  ],
+                                )
+                              else
+                                Text(
+                                  '+${user.mutualFriends} Mutuals',
+                                  textAlign: TextAlign.center,
+                                  overflow: TextOverflow.ellipsis,
+                                  maxLines: 1,
+                                  style: AppTextStyles.subText.copyWith(
+                                    fontSize: mutualFontSize,
+                                    fontWeight: FontWeight.w400,
+                                    color: isDarkMode
+                                        ? Colors.white.withValues(alpha: 0.4)
+                                        : const Color(0xFF8E8E8E),
                                   ),
-                                ],
-                              )
+                                )
                             else
                               Text(
-                                '+${user.mutualFriends} Mutuals',
+                                user.role.isNotEmpty ? user.role : '+${user.mutualFriends} Mutuals',
                                 textAlign: TextAlign.center,
                                 overflow: TextOverflow.ellipsis,
                                 maxLines: 1,

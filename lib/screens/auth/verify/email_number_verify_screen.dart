@@ -159,10 +159,13 @@ class _EmailNumberVerifyScreenState extends State<EmailNumberVerifyScreen> {
         });
       }
     } on DioException catch (e) {
+      final statusCode = e.response?.statusCode;
+      final isClientError = statusCode != null && statusCode >= 400 && statusCode < 500;
       setState(() {
-        _isLoginMode = true;
-        _emailOrMobileError =
-            e.response?.data['message'] ?? 'Failed to send OTP';
+        if (isClientError) {
+          _isLoginMode = true;
+        }
+        _emailOrMobileError = ApiService().handleDioError(e, defaultMessage: 'Failed to send OTP');
       });
     } catch (e) {
       setState(() => _emailOrMobileError = 'Connection error: ${e.toString()}');
@@ -210,10 +213,13 @@ class _EmailNumberVerifyScreenState extends State<EmailNumberVerifyScreen> {
         });
       }
     } on DioException catch (e) {
+      final statusCode = e.response?.statusCode;
+      final isClientError = statusCode != null && statusCode >= 400 && statusCode < 500;
       setState(() {
-        _isLoginMode = true;
-        _emailOrMobileError =
-            e.response?.data['message'] ?? 'Failed to send OTP';
+        if (isClientError) {
+          _isLoginMode = true;
+        }
+        _emailOrMobileError = ApiService().handleDioError(e, defaultMessage: 'Failed to send OTP');
       });
     } catch (e) {
       setState(() => _emailOrMobileError = 'Connection error: ${e.toString()}');

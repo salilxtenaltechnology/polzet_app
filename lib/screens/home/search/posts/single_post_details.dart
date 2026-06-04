@@ -5,6 +5,7 @@
 import 'dart:convert';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:polzet_app/screens/home/profile/public/public_profile_screen.dart';
 import 'package:provider/provider.dart';
 import '../../../../provider/user_provider.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -54,7 +55,7 @@ class _SinglePostDetailsState extends State<SinglePostDetails>
   String? _error;
   Future<String?>? _authTokenFuture;
 
-  final Map<int, int> _selectedVotes = {};
+  final Map<String, int> _selectedVotes = {};
 
   Map<String, List<LikeUser>> postLikedUsers = {};
 
@@ -350,30 +351,35 @@ class _SinglePostDetailsState extends State<SinglePostDetails>
 
   Widget _buildHeader(SinglePostModel post) {
     final txt = AppTextColors.of(context);
-    final username = _post!.user;
+    final username = _post!.user.username;
     final initial = username.isNotEmpty ? username[0].toUpperCase() : '?';
     return Padding(
       padding: EdgeInsets.fromLTRB(10.w, 10.h, 10.w, 0),
       child: Row(
         children: [
-          CircleAvatar(
-            radius: 20,
-            backgroundColor: Theme.of(
-              context,
-            ).colorScheme.onPrimary.withOpacity(0.1),
-            backgroundImage: _profileImageBytes != null
-                ? MemoryImage(_profileImageBytes!)
-                : null,
-            child: _profileImageBytes == null
-                ? Text(
-                    initial,
-                    style: AppTextStyles.subText.copyWith(
-                      color: Theme.of(context).colorScheme.onPrimary,
-                      fontWeight: FontWeight.w500,
-                      fontSize: 18,
-                    ),
-                  )
-                : null,
+          GestureDetector(
+            onTap: (){
+              navigationPush(context, PublicProfileScreen(userId: _post!.user.uuid));
+            },
+            child: CircleAvatar(
+              radius: 20,
+              backgroundColor: Theme.of(
+                context,
+              ).colorScheme.onPrimary.withOpacity(0.1),
+              backgroundImage: _profileImageBytes != null
+                  ? MemoryImage(_profileImageBytes!)
+                  : null,
+              child: _profileImageBytes == null
+                  ? Text(
+                      initial,
+                      style: AppTextStyles.subText.copyWith(
+                        color: Theme.of(context).colorScheme.onPrimary,
+                        fontWeight: FontWeight.w500,
+                        fontSize: 18,
+                      ),
+                    )
+                  : null,
+            ),
           ),
 
           SizedBox(width: 8.w),
@@ -391,7 +397,7 @@ class _SinglePostDetailsState extends State<SinglePostDetails>
               Row(
                 children: [
                   Text(
-                    '@${post.user}',
+                    '@${post.user.username}',
                     style: AppTextStyles.bodyText.copyWith(
                       fontSize: 12,
                       fontWeight: FontWeight.w500,
@@ -589,7 +595,7 @@ class _SinglePostDetailsState extends State<SinglePostDetails>
     final totalVotes = int.tryParse(poll.totalVotes) ?? 0;
 
     // ── Show polled UI if: own post OR already voted ─────────────────────────
-    final isOwnPost = _post?.user == widget.username;
+    final isOwnPost = _post?.user.username == widget.username;
     final isPolledByCurrentUser = _post?.isPolledByCurrentUser ?? false;
     final showPolledUi = isOwnPost || isPolledByCurrentUser;
 
@@ -884,7 +890,7 @@ class _SinglePostDetailsState extends State<SinglePostDetails>
             onTap: () => ShareService.sharePost(
               post,
               context: context,
-              usernameOverride: post.user,
+              usernameOverride: post.user.username,
               onShareSuccess: (newCount) {
                 if (mounted) {
                   setState(() {

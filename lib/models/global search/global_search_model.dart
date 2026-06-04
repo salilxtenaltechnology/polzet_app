@@ -76,7 +76,7 @@ class GlobalSearchData {
 
 /* ─── Account ─────*/
 class SearchAccount {
-  final String id;
+  final String uuid;
   final String username;
   final String fullName;
   final String? profileImage;
@@ -86,8 +86,10 @@ class SearchAccount {
   final String followStatus;
   final bool isPrivate;
 
+  String get id => uuid;
+
   SearchAccount({
-    required this.id,
+    required this.uuid,
     required this.username,
     required this.fullName,
     this.profileImage,
@@ -99,7 +101,7 @@ class SearchAccount {
   });
 
   factory SearchAccount.fromJson(Map<String, dynamic> json) {
-    final String parsedId = (json['user_id'] ?? json['id'] ?? '').toString();
+    final String parsedUuid = (json['uuid'] ?? json['id'] ?? '').toString();
     final String firstName = json['first_name'] ?? '';
     final String lastName = json['last_name'] ?? '';
     final String calculatedFullName = json['fullName'] ?? 
@@ -110,7 +112,7 @@ class SearchAccount {
         (status == 'following' || status == 'both');
 
     return SearchAccount(
-      id: parsedId,
+      uuid: parsedUuid,
       username: json['username'] ?? '',
       fullName: calculatedFullName,
       profileImage: profileImg,
@@ -294,21 +296,29 @@ class SearchPhoto {
   final String id;
   final String imageUrl;
   final String postId;
+  final String username;
   final SearchPhotoAuthor author;
 
   SearchPhoto({
     required this.id,
     required this.imageUrl,
     required this.postId,
+    required this.username,
     required this.author,
   });
 
   factory SearchPhoto.fromJson(Map<String, dynamic> json) {
+    final String parsedUsername = json['username'] ?? '';
     return SearchPhoto(
       id: (json['id'] ?? json['image_id'] ?? '').toString(),
       imageUrl: json['imageUrl'] ?? json['image_url'] ?? json['url'] ?? '',
       postId: (json['postId'] ?? json['post_id'] ?? '').toString(),
-      author: SearchPhotoAuthor.fromJson(json['author'] ?? json['user'] ?? {'username': 'user'}),
+      username: parsedUsername,
+      author: SearchPhotoAuthor.fromJson(
+        json['author'] ?? 
+        json['user'] ?? 
+        {'username': parsedUsername.isNotEmpty ? parsedUsername : 'user'}
+      ),
     );
   }
 }

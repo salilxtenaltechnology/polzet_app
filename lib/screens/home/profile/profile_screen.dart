@@ -90,6 +90,18 @@ class _ProfileScreenState extends State<ProfileScreen>
   Map<String, bool> likedUsersLoading = {};
   late final LikeService likeService = LikeService();
 
+  void _initializePostStates(List<UserPostModel> posts) {
+    for (var post in posts) {
+      postLikeStates[post.id] = post.isLiked;
+      postLikeCounts[post.id] = post.likesCount;
+      postCommentsCounts[post.id] = post.commentsCount;
+      postSharesCounts[post.id] = post.sharesCount;
+      if (post.likesCount > 0) {
+        _fetchLikedUsersSilently(post.id);
+      }
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -102,10 +114,16 @@ class _ProfileScreenState extends State<ProfileScreen>
       if (userProvider.cachedThingsPostsMap.containsKey(username)) {
         _thingsPosts = userProvider.cachedThingsPostsMap[username];
         _isLoadingThings = false;
+        if (_thingsPosts != null) {
+          _initializePostStates(_thingsPosts!);
+        }
       }
       if (userProvider.cachedImagesPostsMap.containsKey(username)) {
         _imagesPosts = userProvider.cachedImagesPostsMap[username];
         _isLoadingImages = false;
+        if (_imagesPosts != null) {
+          _initializePostStates(_imagesPosts!);
+        }
       }
       if (userProvider.cachedTotalPollsCountMap.containsKey(username)) {
         _totalPollsCount = userProvider.cachedTotalPollsCountMap[username];
@@ -143,13 +161,7 @@ class _ProfileScreenState extends State<ProfileScreen>
             );
           }).toList();
           userProvider.cachedThingsPostsMap[username] = _thingsPosts!;
-          for (var post in _thingsPosts!) {
-            postLikeStates[post.id] = post.isLiked;
-            postLikeCounts[post.id] = post.likesCount;
-            postCommentsCounts[post.id] = post.commentsCount;
-            postSharesCounts[post.id] = post.sharesCount;
-            if (post.likesCount > 0) _fetchLikedUsersSilently(post.id);
-          }
+          _initializePostStates(_thingsPosts!);
           _isLoadingThings = false;
         });
       }
@@ -167,13 +179,7 @@ class _ProfileScreenState extends State<ProfileScreen>
             );
           }).toList();
           userProvider.cachedImagesPostsMap[username] = _imagesPosts!;
-          for (var post in _imagesPosts!) {
-            postLikeStates[post.id] = post.isLiked;
-            postLikeCounts[post.id] = post.likesCount;
-            postCommentsCounts[post.id] = post.commentsCount;
-            postSharesCounts[post.id] = post.sharesCount;
-            if (post.likesCount > 0) _fetchLikedUsersSilently(post.id);
-          }
+          _initializePostStates(_imagesPosts!);
           _isLoadingImages = false;
         });
       }
@@ -297,7 +303,8 @@ class _ProfileScreenState extends State<ProfileScreen>
     }
   }
 
-  Future<void> _fetchLikedUsersSilently(String postId) async {
+  Future<void> _fetchLikedUsersSilently(String postId, {bool force = false}) async {
+    if (!force && postLikedUsers.containsKey(postId)) return;
     try {
       final users = await ApiService().fetchLikedUsers(postId);
       if (mounted) {
@@ -312,11 +319,38 @@ class _ProfileScreenState extends State<ProfileScreen>
     final currentLikeState = postLikeStates[postId] ?? false;
     final currentLikeCount = postLikeCounts[postId] ?? 0;
 
+    final userProvider = Provider.of<UserProvider>(context, listen: false);
+    final currentUserId = userProvider.userId ?? '';
+    final currentUsername = userProvider.username ?? '';
+    final currentUserFullName = '${userProvider.firstName ?? ''} ${userProvider.lastName ?? ''}'.trim();
+    final currentUserImage = userProvider.profile_picture;
+
+    final previousViewLikes = List<LikeUser>.from(postLikedUsers[postId] ?? []);
+
     setState(() {
       postLikeStates[postId] = !currentLikeState;
       postLikeCounts[postId] = currentLikeState
           ? currentLikeCount - 1
           : currentLikeCount + 1;
+
+      final newLikeState = !currentLikeState;
+      if (newLikeState) {
+        final list = List<LikeUser>.from(postLikedUsers[postId] ?? []);
+        list.insert(
+          0,
+          LikeUser(
+            id: currentUserId,
+            fullName: currentUserFullName.isNotEmpty ? currentUserFullName : currentUsername,
+            username: currentUsername,
+            profileImage: currentUserImage,
+          ),
+        );
+        postLikedUsers[postId] = list.take(3).toList();
+      } else {
+        final list = List<LikeUser>.from(postLikedUsers[postId] ?? []);
+        list.removeWhere((user) => user.username == currentUsername);
+        postLikedUsers[postId] = list;
+      }
     });
 
     try {
@@ -328,21 +362,26 @@ class _ProfileScreenState extends State<ProfileScreen>
       );
 
       if (mounted) {
-        setState(() {
-          postLikeStates[postId] = result.isLiked;
-          postLikeCounts[postId] = result.likesCount;
-        });
-
-        if (result.likesCount > 0) {
-          _fetchLikedUsersSilently(postId);
+        if (!result.success) {
+          setState(() {
+            postLikeStates[postId] = currentLikeState;
+            postLikeCounts[postId] = currentLikeCount;
+            postLikedUsers[postId] = previousViewLikes;
+          });
+          showToast(message: result.message);
         } else {
           setState(() {
-            postLikedUsers.remove(postId);
+            postLikeStates[postId] = result.isLiked;
+            postLikeCounts[postId] = result.likesCount;
           });
-        }
 
-        if (!result.success) {
-          showToast(message: result.message);
+          if (result.likesCount > 0) {
+            _fetchLikedUsersSilently(postId, force: true);
+          } else {
+            setState(() {
+              postLikedUsers.remove(postId);
+            });
+          }
         }
       }
     } catch (e) {
@@ -350,6 +389,7 @@ class _ProfileScreenState extends State<ProfileScreen>
         setState(() {
           postLikeStates[postId] = currentLikeState;
           postLikeCounts[postId] = currentLikeCount;
+          postLikedUsers[postId] = previousViewLikes;
         });
         showToast(message: 'Failed to update like');
       }
@@ -773,7 +813,15 @@ class _ProfileScreenState extends State<ProfileScreen>
                 SizedBox(
                   height: 38,
                   child: OutlinedButton(
-                    onPressed: () {},
+                    onPressed: () {
+                      final username = userProvider.username;
+                      if (username != null && username.isNotEmpty) {
+                        ShareService.shareProfile(
+                          username: username,
+                          context: context,
+                        );
+                      }
+                    },
                     style: OutlinedButton.styleFrom(
                       side: const BorderSide(
                         color: Color(0xFFDDDDDD),
@@ -794,12 +842,12 @@ class _ProfileScreenState extends State<ProfileScreen>
                     ),
                   ),
                 ),
-                const SizedBox(width: 8),
-                const Icon(
-                  FeatherIcons.moreVertical,
-                  size: 25,
-                  color: Color(0XFF727272),
-                ),
+                // const SizedBox(width: 8),
+                // const Icon(
+                //   FeatherIcons.moreVertical,
+                //   size: 25,
+                //   color: Color(0XFF727272),
+                // ),
               ],
             ),
           ),
@@ -1079,40 +1127,39 @@ class _ProfileScreenState extends State<ProfileScreen>
                     ),
                   ],
                 ),
-                if (likesCount > 0) ...[
-                  SizedBox(width: 8.w),
-                  if (viewLikes.isNotEmpty)
-                    GestureDetector(
-                      onTap: () =>
-                          _showLikedUsersBottomSheet(post.id, currentUsername),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        mainAxisAlignment: MainAxisAlignment.start,
-                        children: [
-                          LikeUtils.buildLikeAvatarsStack(
-                            context,
-                            viewLikes,
-                            avatarSize: 14,
-                          ),
-                          SizedBox(width: 5.w),
-                          Expanded(
-                            child: SizedBox(
-                              height: 20.h,
-                              child: Align(
-                                alignment: Alignment.centerLeft,
-                                child: RichText(
-                                  overflow: TextOverflow.ellipsis,
-                                  text: LikeUtils.buildLikedByRichText(
-                                    context,
-                                    viewLikes,
-                                  ),
+                if (likesCount > 0 && viewLikes.isNotEmpty) ...[
+                  SizedBox(height: 5.h),
+                  GestureDetector(
+                    onTap: () =>
+                        _showLikedUsersBottomSheet(post.id, currentUsername),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      mainAxisAlignment: MainAxisAlignment.start,
+                      children: [
+                        LikeUtils.buildLikeAvatarsStack(
+                          context,
+                          viewLikes,
+                          avatarSize: 14,
+                        ),
+                        SizedBox(width: 5.w),
+                        Expanded(
+                          child: SizedBox(
+                            height: 20.h,
+                            child: Align(
+                              alignment: Alignment.centerLeft,
+                              child: RichText(
+                                overflow: TextOverflow.ellipsis,
+                                text: LikeUtils.buildLikedByRichText(
+                                  context,
+                                  viewLikes,
                                 ),
                               ),
                             ),
                           ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
+                  ),
                 ],
               ],
             ),
