@@ -11,7 +11,7 @@ class HomeScreen extends StatefulWidget {
   State<StatefulWidget> createState() => HomeScreenState();
 }
 
-class HomeScreenState extends State<HomeScreen> with UtilityMixin {
+class HomeScreenState extends State<HomeScreen> with UtilityMixin, WidgetsBindingObserver {
   String? firstname;
   String? lastname;
   int pageIndex = 0;
@@ -24,6 +24,7 @@ class HomeScreenState extends State<HomeScreen> with UtilityMixin {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     pageIndex = widget.initialIndex;
     _loadCachedUserData();
     _initializeDeepLinking();
@@ -46,10 +47,23 @@ class HomeScreenState extends State<HomeScreen> with UtilityMixin {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     MessageListState.stopGlobalPolling();
     NotificationState.stopGlobalPolling();
     DeepLinkService().dispose();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      debugPrint('📱 HomeScreen resumed from background: Fetching fresh data...');
+      Future.wait([
+        MessageListState.refreshGlobally(),
+        NotificationState.refreshGlobally(),
+      ]);
+      DashboardState.triggerRefresh();
+    }
   }
 
   void _initializeDeepLinking() {
@@ -368,7 +382,17 @@ class HomeScreenState extends State<HomeScreen> with UtilityMixin {
                         index: pageIndex,
                         bottomNavigationKey: bottomNavigationKey,
                         onTap: (i) {
-                          if (i != 2) setState(() => pageIndex = i);
+                          if (i != 2) {
+                            if (pageIndex == i) {
+                              if (i == 0) {
+                                DashboardState.triggerRefresh();
+                              } else if (i == 1) {
+                                MessageListState.refreshGlobally();
+                              }
+                            } else {
+                              setState(() => pageIndex = i);
+                            }
+                          }
                         },
                         notificationCount: unreadNotificationCount,
                         messageCount: unreadMessageCount,

@@ -32,6 +32,7 @@ import 'chase/user_chase.dart';
 import 'edit_profile/edit_profile.dart';
 import 'rank/image/user_image_ranking.dart';
 import 'rank/things/user_things_ranking.dart';
+import 'widgets/profile_image_preview.dart';
 
 class ProfileScreen extends StatefulWidget {
   final String handle;
@@ -649,7 +650,32 @@ class _ProfileScreenState extends State<ProfileScreen>
       child: Column(
         children: [
           GestureDetector(
-            onTap: () {},
+            onTap: () {
+              final originalImageSource = userProvider.profile_picture_path ?? userProvider.profile_picture;
+              if (originalImageSource == null || originalImageSource.isEmpty) {
+                return;
+              }
+              Navigator.of(context).push(
+                PageRouteBuilder(
+                  opaque: false,
+                  barrierColor: Colors.transparent,
+                  transitionDuration: const Duration(milliseconds: 150),
+                  reverseTransitionDuration: const Duration(milliseconds: 150),
+                  pageBuilder: (context, animation, secondaryAnimation) {
+                    return ProfileImagePreview(
+                      imageSource: originalImageSource,
+                      username: userProvider.username,
+                    );
+                  },
+                  transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                    return FadeTransition(
+                      opacity: animation,
+                      child: child,
+                    );
+                  },
+                ),
+              );
+            },
             child: Stack(
               children: [
                 Container(
@@ -1199,16 +1225,17 @@ class _ProfileScreenState extends State<ProfileScreen>
                           ),
                           Row(
                             children: [
-                              Text(
-                                '${option.percentage.toInt()}%',
-                                style: AppTextStyles.bodyText.copyWith(
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w600,
-                                  color: Theme.of(
-                                    context,
-                                  ).colorScheme.onBackground,
+                              if (option.percentage.toInt() != 0)
+                                Text(
+                                  '${option.percentage.toInt()}%',
+                                  style: AppTextStyles.bodyText.copyWith(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w600,
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onBackground,
+                                  ),
                                 ),
-                              ),
                             ],
                           ),
                         ],

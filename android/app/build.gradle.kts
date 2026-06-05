@@ -34,7 +34,7 @@ android {
         applicationId = "com.polzet_app"
         minSdk = flutter.minSdkVersion
         targetSdk = 35
-        versionCode = 11
+        versionCode = 12
         versionName = "1.1.0"
         multiDexEnabled = true
     }

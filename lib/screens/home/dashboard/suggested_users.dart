@@ -38,7 +38,7 @@ class _SuggestedUsersState extends State<SuggestedUsers> with UtilityMixin {
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return SizedBox(
-            height: 250,
+            height: 258,
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -52,7 +52,7 @@ class _SuggestedUsersState extends State<SuggestedUsers> with UtilityMixin {
         if (snapshot.hasError) {
           debugPrint('❌ Error: ${snapshot.error}');
           return const SizedBox(
-            height: 250,
+            height: 258,
             child: ApiErrorWidget(
               title: 'Ooops!! Something went wrong',
               subtitle: 'Could not load suggested users',
@@ -69,7 +69,7 @@ class _SuggestedUsersState extends State<SuggestedUsers> with UtilityMixin {
             (MediaQuery.of(context).size.width - 16 * 2 - 12) / 2;
 
         return SizedBox(
-          height: 250,
+          height: 258,
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
             physics: const ClampingScrollPhysics(),
@@ -154,15 +154,15 @@ class _SuggestedUsersState extends State<SuggestedUsers> with UtilityMixin {
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
                                 SizedBox(
-                                  height: 20,
-                                  width: (user.mutualFriendsAvatars.take(3).length - 1) * 14.0 + 18.0,
+                                  height: 22.0,
+                                  width: (user.mutualFriendsAvatars.take(3).length - 1) * 13.0 + 20.0,
                                   child: Stack(
                                     children: List.generate(
                                       user.mutualFriendsAvatars.take(3).length,
                                       (index) {
                                         final img = user.mutualImageProviders[index];
                                         return Positioned(
-                                          left: index * 14.0,
+                                          left: index * 12.0,
                                           child: Container(
                                             decoration: BoxDecoration(
                                               shape: BoxShape.circle,

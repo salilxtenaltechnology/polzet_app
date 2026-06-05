@@ -100,6 +100,10 @@ class _SuggestedUsersListState extends State<SuggestedUsersList>
                       final double buttonTopMargin = (itemHeight * 0.05).clamp(4.0, 12.0);
                       final double buttonHeight = (itemHeight * 0.14).clamp(26.0, 32.0);
 
+                      final double mutualAvatarRadius = (avatarRadius * 0.20).clamp(8.0, 10.0);
+                      final double mutualOverlapShift = mutualAvatarRadius * 1.2;
+                      final double mutualContainerHeight = mutualAvatarRadius * 2 + 2.0;
+
                       return Container(
                         padding: EdgeInsets.symmetric(
                           vertical: cardPadding,
@@ -147,7 +151,7 @@ class _SuggestedUsersListState extends State<SuggestedUsersList>
                                       child: Text(
                                         user.username.isNotEmpty
                                             ? user.username[0].toUpperCase()
-                                            : '?',
+                                            : 'P',
                                         style: TextStyle(
                                           fontSize: (avatarRadius * 0.6).sp,
                                           fontWeight: FontWeight.w600,
@@ -186,19 +190,17 @@ class _SuggestedUsersListState extends State<SuggestedUsersList>
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
                                     SizedBox(
-                                      height: (avatarRadius * 0.35).clamp(12.0, 17.0),
-                                      width:
-                                          (user.mutualFriendsAvatars.take(3).length -
-                                                   1) *
-                                              12.0 +
-                                          18.0,
+                                      height: mutualContainerHeight,
+                                      width: (user.mutualFriendsAvatars.take(3).length - 1) *
+                                              mutualOverlapShift +
+                                          mutualContainerHeight,
                                       child: Stack(
                                         children: List.generate(
                                           user.mutualFriendsAvatars.take(3).length,
                                           (index) {
                                             final img = user.mutualImageProviders[index];
                                             return Positioned(
-                                              left: index * 14.0,
+                                              left: index * mutualOverlapShift,
                                               child: Container(
                                                 decoration: BoxDecoration(
                                                   shape: BoxShape.circle,
@@ -212,7 +214,7 @@ class _SuggestedUsersListState extends State<SuggestedUsersList>
                                                   ),
                                                 ),
                                                 child: CircleAvatar(
-                                                  radius: (avatarRadius * 0.16).clamp(5.0, 7.5),
+                                                  radius: mutualAvatarRadius,
                                                   backgroundImage: img,
                                                   backgroundColor:
                                                       Colors.grey.shade200,

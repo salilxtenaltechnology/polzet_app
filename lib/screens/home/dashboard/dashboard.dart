@@ -33,12 +33,32 @@ class DashboardState extends State<Dashboard> with UtilityMixin {
 
   late Future<UserSuggestionsModel> _suggestionsFuture;
 
+  static final StreamController<void> _refreshTriggerController =
+      StreamController<void>.broadcast();
+  StreamSubscription<void>? _refreshSubscription;
+
+  static void triggerRefresh() {
+    _refreshTriggerController.add(null);
+  }
+
   @override
   void initState() {
     super.initState();
     _scrollController.addListener(_onScroll);
     _suggestionsFuture = apiService.fetchUserSuggestions();
     _loadInitialData();
+    _refreshSubscription = _refreshTriggerController.stream.listen((_) {
+      if (mounted) {
+        if (_scrollController.hasClients) {
+          _scrollController.animateTo(
+            0,
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeOut,
+          );
+        }
+        fetchHomeFeed(showLoader: posts.isEmpty);
+      }
+    });
   }
 
   @override
@@ -46,6 +66,7 @@ class DashboardState extends State<Dashboard> with UtilityMixin {
     _scrollController.removeListener(_onScroll);
     _scrollController.dispose();
     _postsStreamController.close();
+    _refreshSubscription?.cancel();
     super.dispose();
   }
 
@@ -119,8 +140,7 @@ class DashboardState extends State<Dashboard> with UtilityMixin {
           final isValid =
               DateTime.now().difference(cacheTime) < _cacheValidDuration;
           if (!isValid) {
-            debugPrint('Cache expired, will fetch fresh data');
-            return;
+            debugPrint('Cache expired, but loading anyway to show UI instantly');
           }
         }
 

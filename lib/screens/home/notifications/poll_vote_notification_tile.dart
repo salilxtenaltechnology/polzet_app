@@ -402,7 +402,7 @@ class _PollVoteNotificationTileState extends State<PollVoteNotificationTile>
         height: 40.w,
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(AppRadius.button),
-          color: Theme.of(context).colorScheme.primary.withOpacity(0.15),
+          color: Theme.of(context).colorScheme.onPrimary.withOpacity(0.15),
         ),
         alignment: Alignment.center,
         child: Text(
@@ -410,7 +410,7 @@ class _PollVoteNotificationTileState extends State<PollVoteNotificationTile>
           style: TextStyle(
             fontSize: 14.sp,
             fontWeight: FontWeight.w600,
-            color: Theme.of(context).colorScheme.primary,
+            color: Theme.of(context).colorScheme.onPrimary.withOpacity(0.8),
           ),
         ),
       );

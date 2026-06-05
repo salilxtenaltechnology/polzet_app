@@ -13,6 +13,7 @@ import '../../../../../../api/services/api_service.dart';
 import '../../../../../../core/themes/app_text_styles.dart';
 import '../../../../../../models/posts/single_post_model.dart';
 import '../../../../../../widgets/loader.dart';
+import '../../../../../core/themes/app_text_colors.dart';
 import '../../../../../languages/l10n/generated/app_localizations.dart';
 import '../../../home feed/rank/result/things/things_result_screen.dart';
 import '../../../home feed/rank/submit/rank_submitted_screen.dart';
@@ -177,7 +178,8 @@ class _SinglePostThingsRankingState extends State<SinglePostThingsRanking> {
   Widget _buildPostHeader() {
     final post = widget.post;
     final username = post.user.username;
-    final initial = username.isNotEmpty ? username[0].toUpperCase() : '?';
+    final initial = username.isNotEmpty ? username[0].toUpperCase() : 'P';
+    final txt = AppTextColors.of(context);
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 12),
@@ -190,7 +192,7 @@ class _SinglePostThingsRankingState extends State<SinglePostThingsRanking> {
                 radius: 20,
                 backgroundColor: Theme.of(
                   context,
-                ).colorScheme.primary.withOpacity(0.15),
+                ).colorScheme.onPrimary.withOpacity(0.15),
                 backgroundImage: _profileImageBytes != null
                     ? MemoryImage(_profileImageBytes!)
                     : null,
@@ -198,7 +200,7 @@ class _SinglePostThingsRankingState extends State<SinglePostThingsRanking> {
                     ? Text(
                         initial,
                         style: AppTextStyles.cardTitle.copyWith(
-                          color: Theme.of(context).colorScheme.primary,
+                          color: Theme.of(context).colorScheme.onPrimary,
                         ),
                       )
                     : null,
@@ -211,7 +213,7 @@ class _SinglePostThingsRankingState extends State<SinglePostThingsRanking> {
                     Text(
                       '${post.firstName} ${post.lastName}'.trim(),
                       style: AppTextStyles.sectionHeading.copyWith(
-                        color: const Color(0xFF2C2C2C),
+                        color: txt.title,
                         fontSize: 14,
                       ),
                     ),
@@ -222,13 +224,13 @@ class _SinglePostThingsRankingState extends State<SinglePostThingsRanking> {
                           style: AppTextStyles.bodyText.copyWith(
                             fontSize: 12,
                             fontWeight: FontWeight.w500,
-                            color: const Color(0xFF595959),
+                            color: txt.body,
                           ),
                         ),
                         Text(
                           '  • ${_timeAgo(post.createdAt)}',
                           style: AppTextStyles.subText.copyWith(
-                            color: const Color(0xFF898989),
+                            color: txt.muted,
                             fontWeight: FontWeight.w400,
                             fontSize: 12,
                           ),
@@ -238,7 +240,6 @@ class _SinglePostThingsRankingState extends State<SinglePostThingsRanking> {
                   ],
                 ),
               ),
-              const Icon(Icons.more_vert, size: 20, color: Color(0xFF727272)),
             ],
           ),
 
@@ -249,8 +250,8 @@ class _SinglePostThingsRankingState extends State<SinglePostThingsRanking> {
               widget.poll.question,
               style: AppTextStyles.bodyText.copyWith(
                 fontSize: 15,
-                fontWeight: FontWeight.w500,
-                color: const Color(0xFF111111),
+                fontWeight: FontWeight.w600,
+                color: Theme.of(context).colorScheme.onBackground,
               ),
             ),
 

@@ -4,6 +4,7 @@
 import 'dart:async';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:intl/intl.dart';
 
@@ -95,14 +96,31 @@ class _RegistrationScreenState extends State<RegistrationScreen>
   // ── Real-time Password Validator ─────────────────────────────────────────────
   void _onFocusChange() {
     if (_passwordFocusNode.hasFocus) {
-      _showOverlay();
+      final text = _passwordCtrl.text;
+      final score = _getStrengthScore(text);
+      if (score < 5) {
+        _showOverlay();
+      } else {
+        _hideOverlay();
+      }
     } else {
       _hideOverlay();
     }
   }
 
   void _onTextChanged() {
-    _overlayEntry?.markNeedsBuild();
+    if (_passwordFocusNode.hasFocus) {
+      final text = _passwordCtrl.text;
+      final score = _getStrengthScore(text);
+      if (score < 5) {
+        _showOverlay();
+        _overlayEntry?.markNeedsBuild();
+      } else {
+        _hideOverlay();
+      }
+    } else {
+      _hideOverlay();
+    }
   }
 
   void _showOverlay() {
@@ -566,6 +584,9 @@ class _RegistrationScreenState extends State<RegistrationScreen>
           child: TextField(
             controller: _firstNameCtrl,
             textCapitalization: TextCapitalization.words,
+            inputFormatters: [
+              FilteringTextInputFormatter.deny(RegExp(r'[0-9]')),
+            ],
             onChanged: (_) => setState(() => _firstNameError = ''),
             cursorColor: Theme.of(
               context,
@@ -589,6 +610,9 @@ class _RegistrationScreenState extends State<RegistrationScreen>
           child: TextField(
             controller: _lastNameCtrl,
             textCapitalization: TextCapitalization.words,
+            inputFormatters: [
+              FilteringTextInputFormatter.deny(RegExp(r'[0-9]')),
+            ],
             onChanged: (_) => setState(() => _lastNameError = ''),
             style: AppTextStyles.subText.copyWith(
               fontSize: 15,
@@ -776,7 +800,6 @@ class _RegistrationScreenState extends State<RegistrationScreen>
               obscureText: _obscurePassword,
               onChanged: (_) {
                 setState(() => _passwordError = '');
-                _overlayEntry?.markNeedsBuild();
               },
               style: const TextStyle(fontSize: 14.5, color: Color(0xFF404040)),
               decoration: _fieldDecoration('Create your password').copyWith(

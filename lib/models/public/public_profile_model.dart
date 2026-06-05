@@ -40,6 +40,7 @@ class ProfileData {
   final int followingCount;
   final int imagePostCount;
   final int textPostCount;
+  final String? profilePicture;
   final String? profilePictureUrl;
   final String? profileThumbnailUrl;
   final String? coverThumbnailUrl;
@@ -67,6 +68,7 @@ class ProfileData {
     required this.followingCount,
     required this.imagePostCount,
     required this.textPostCount,
+    this.profilePicture,
     this.profilePictureUrl,
     this.profileThumbnailUrl,
     this.coverThumbnailUrl,
@@ -81,7 +83,7 @@ class ProfileData {
 
   factory ProfileData.fromJson(Map<String, dynamic> json) {
     return ProfileData(
-      id: (json['id'] ?? '').toString(),
+      id: (json['uuid'] ?? json['id'] ?? '').toString(),
       username: json['username'] ?? '',
       email: json['email'],
       mobileNumber: json['mobile_number'],
@@ -96,6 +98,7 @@ class ProfileData {
       followingCount: _toInt(json['following_count']),
       imagePostCount: _toInt(json['image_post_count']),
       textPostCount: _toInt(json['text_post_count']),
+      profilePicture: json['profile_picture'],
       profilePictureUrl: json['profile_picture_url'],
       profileThumbnailUrl: json['profile_thumbnail_url'],
       coverThumbnailUrl: json['cover_thumbnail_url'],
@@ -132,6 +135,7 @@ class ProfileData {
       'following_count': followingCount,
       'image_post_count': imagePostCount,
       'text_post_count': textPostCount,
+      'profile_picture': profilePicture,
       'profile_picture_url': profilePictureUrl,
       'profile_thumbnail_url': profileThumbnailUrl,
       'cover_thumbnail_url': coverThumbnailUrl,
@@ -161,6 +165,7 @@ class ProfileData {
     int? followingCount,
     int? imagePostCount,
     int? textPostCount,
+    String? profilePicture,
     String? profilePictureUrl,
     String? profileThumbnailUrl,
     String? coverThumbnailUrl,
@@ -188,6 +193,7 @@ class ProfileData {
       followingCount: followingCount ?? this.followingCount,
       imagePostCount: imagePostCount ?? this.imagePostCount,
       textPostCount: textPostCount ?? this.textPostCount,
+      profilePicture: profilePicture ?? this.profilePicture,
       profilePictureUrl: profilePictureUrl ?? this.profilePictureUrl,
       profileThumbnailUrl: profileThumbnailUrl ?? this.profileThumbnailUrl,
       coverThumbnailUrl: coverThumbnailUrl ?? this.coverThumbnailUrl,

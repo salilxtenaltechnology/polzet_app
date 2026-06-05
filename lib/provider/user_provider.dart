@@ -31,6 +31,7 @@ class UserProvider with ChangeNotifier {
 
   // ─── Profile Media ────────────────────────────────────────────
   String? profile_picture;
+  String? profile_picture_path;
   String? profile_thumbnail_url;
   String? cover_photo;
   String? cover_thumbnail_url;
@@ -202,6 +203,7 @@ class UserProvider with ChangeNotifier {
 
     // Profile Media
     profile_picture = data['profile_picture_url'];
+    profile_picture_path = data['profile_picture'];
     profile_thumbnail_url = data['profile_thumbnail_url'];
     cover_photo = data['cover_photo_url'];
     cover_thumbnail_url = data['cover_thumbnail_url'];
@@ -248,6 +250,7 @@ class UserProvider with ChangeNotifier {
     try {
       var data = await apiService.fetchUserData();
       profile_picture = data?['profile_picture_url'];
+      profile_picture_path = data?['profile_picture'];
       profile_thumbnail_url = data?['profile_thumbnail_url'];
       cover_photo = data?['cover_photo_url'];
       cover_thumbnail_url = data?['cover_thumbnail_url'];
@@ -371,6 +374,7 @@ class UserProvider with ChangeNotifier {
     has_google_auth = null;
     has_local_password = null;
     profile_picture = null;
+    profile_picture_path = null;
     profile_thumbnail_url = null;
     cover_photo = null;
     cover_thumbnail_url = null;

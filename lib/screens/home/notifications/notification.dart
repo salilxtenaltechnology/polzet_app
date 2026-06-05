@@ -87,6 +87,10 @@ class NotificationState extends State<Notifications>
     _globalPollingTimer = null;
   }
 
+  static Future<void> refreshGlobally() async {
+    await _fetchUnreadCountGlobally();
+  }
+
   static Future<void> _fetchUnreadCountGlobally() async {
     try {
       final dio = Dio();
@@ -797,6 +801,7 @@ class NotificationState extends State<Notifications>
               controller: _tabController,
               children: [
                 RefreshIndicator(
+                  color: Theme.of(context).colorScheme.onPrimary,
                   onRefresh: () async {
                     _hasMoreData = true;
                     _currentPage = 1;
@@ -813,7 +818,7 @@ class NotificationState extends State<Notifications>
                           !snapshot.hasData) {
                         return Center(
                           child: Loader(
-                            color: Theme.of(context).colorScheme.primary,
+                            color: Theme.of(context).colorScheme.onPrimary,
                           ),
                         );
                       }
@@ -898,7 +903,7 @@ class NotificationState extends State<Notifications>
                                       ? Loader(
                                           color: Theme.of(
                                             context,
-                                          ).colorScheme.primary,
+                                          ).colorScheme.onPrimary,
                                         )
                                       : const SizedBox.shrink(),
                                 ),
@@ -997,6 +1002,7 @@ class NotificationState extends State<Notifications>
 
                 // ── Poll Notifications Tab ───────────────────────────
                 RefreshIndicator(
+                  color: Theme.of(context).colorScheme.onPrimary,
                   onRefresh: () async {
                     _hasMoreData = true;
                     _nextPageUrl = null;
@@ -1013,7 +1019,7 @@ class NotificationState extends State<Notifications>
                           !snapshot.hasData) {
                         return Center(
                           child: Loader(
-                            color: Theme.of(context).colorScheme.primary,
+                            color: Theme.of(context).colorScheme.onPrimary,
                           ),
                         );
                       }
@@ -1104,7 +1110,7 @@ class NotificationState extends State<Notifications>
                                       ? Loader(
                                           color: Theme.of(
                                             context,
-                                          ).colorScheme.primary,
+                                          ).colorScheme.onPrimary,
                                         )
                                       : const SizedBox.shrink(),
                                 ),
@@ -1265,6 +1271,7 @@ class NotificationState extends State<Notifications>
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     final txt = AppTextColors.of(context);
     return RefreshIndicator(
+      color: Theme.of(context).colorScheme.onPrimary,
       onRefresh: () async {
         _hasMoreData = true;
         _currentPage = 1;
@@ -1280,7 +1287,7 @@ class NotificationState extends State<Notifications>
           if (snapshot.connectionState == ConnectionState.waiting &&
               !snapshot.hasData) {
             return Center(
-              child: Loader(color: Theme.of(context).colorScheme.primary),
+              child: Loader(color: Theme.of(context).colorScheme.onPrimary),
             );
           }
 

@@ -36,6 +36,7 @@ class PublicProfileProvider extends ChangeNotifier {
   ProfileData? get userProfile => _userProfile;
   bool get isLoading => _isLoading;
   String? get error => _error;
+  String? resolvedUserId;
 
   /// Fetches public user profile by userId
   Future<void> fetchPublicUserProfile(
@@ -59,6 +60,7 @@ class PublicProfileProvider extends ChangeNotifier {
       if (response.status == 'success') {
         _profileResponse = response;
         _userProfile = response.data;
+        resolvedUserId = userId?.toString();
         _error = null;
         _errorType = ProfileErrorType.none;
       } else {
@@ -131,6 +133,7 @@ class PublicProfileProvider extends ChangeNotifier {
         if (response.status == 'success') {
           _profileResponse = response;
           _userProfile = response.data;
+          resolvedUserId = account.uuid;
           _error = null;
           _errorType = ProfileErrorType.none;
         } else {
@@ -245,6 +248,7 @@ class PublicProfileProvider extends ChangeNotifier {
   void clearProfile() {
     _profileResponse = null;
     _userProfile = null;
+    resolvedUserId = null;
     _error = null;
     _isLoading = false;
     notifyListeners();

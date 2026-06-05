@@ -201,7 +201,7 @@ class _HomefeedThingsRankingState extends State<HomefeedThingsRanking>
   Widget _buildHeader() {
     final txt = AppTextColors.of(context);
     final username = widget.user.username;
-    final initial = username.isNotEmpty ? username[0].toUpperCase() : '?';
+    final initial = username.isNotEmpty ? username[0].toUpperCase() : 'P';
 
     return Row(
       children: [

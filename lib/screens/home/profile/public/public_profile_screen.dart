@@ -27,6 +27,7 @@ import '../../message/chat/private/private_chat_screen.dart';
 import '../rank/image/public_user_image_ranking.dart';
 import '../rank/things/public_user_things_ranking.dart';
 import 'chase/public_chase_list.dart';
+import '../widgets/profile_image_preview.dart';
 
 import '../../../../api/services/api_service.dart';
 import '../../../../models/public/public_profile_model.dart';
@@ -185,7 +186,9 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
           _isProcessingRequest = false;
         });
 
-        final success = await apiService.cancelFriendRequest(resolvedUserId ?? widget.userId);
+        final success = await apiService.cancelFriendRequest(
+          resolvedUserId ?? widget.userId,
+        );
 
         if (!success) {
           setState(() => _localFollowStatus = FollowStatus.pending);
@@ -216,7 +219,9 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
           _isProcessingRequest = false;
         });
 
-        final response = await apiService.unfriend(resolvedUserId ?? widget.userId);
+        final response = await apiService.unfriend(
+          resolvedUserId ?? widget.userId,
+        );
 
         if (response['status'] == 'success') {
           // Confirmed by server → now safe to update server status
@@ -298,7 +303,7 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
       } else if (widget.username != null) {
         await provider.fetchPublicUserProfileByUsername(widget.username!);
         if (provider.userProfile != null) {
-          resolvedUserId = provider.userProfile!.id;
+          resolvedUserId = provider.resolvedUserId;
           _loadData();
         }
       }
@@ -320,10 +325,8 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
     if (isPolledByCurrentUser) {
       Navigator.of(context).push(
         MaterialPageRoute(
-          builder: (_) => ImageResultScreen(
-            username: post.user,
-            postId: post.id,
-          ),
+          builder: (_) =>
+              ImageResultScreen(username: post.user, postId: post.id),
         ),
       );
     } else {
@@ -370,7 +373,10 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
     );
   }
 
-  Future<void> _fetchLikedUsersSilently(String postId, {bool force = false}) async {
+  Future<void> _fetchLikedUsersSilently(
+    String postId, {
+    bool force = false,
+  }) async {
     if (!force && postLikedUsers.containsKey(postId)) return;
     try {
       final users = await ApiService().fetchLikedUsers(postId);
@@ -389,7 +395,8 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
     final userProvider = Provider.of<UserProvider>(context, listen: false);
     final currentUserId = userProvider.userId ?? '';
     final currentUsername = userProvider.username ?? '';
-    final currentUserFullName = '${userProvider.firstName ?? ''} ${userProvider.lastName ?? ''}'.trim();
+    final currentUserFullName =
+        '${userProvider.firstName ?? ''} ${userProvider.lastName ?? ''}'.trim();
     final currentUserImage = userProvider.profile_picture;
 
     setState(() {
@@ -404,7 +411,9 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
           0,
           LikeUser(
             id: currentUserId,
-            fullName: currentUserFullName.isNotEmpty ? currentUserFullName : currentUsername,
+            fullName: currentUserFullName.isNotEmpty
+                ? currentUserFullName
+                : currentUsername,
             username: currentUsername,
             profileImage: currentUserImage,
           ),
@@ -499,19 +508,19 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
         //   'Profile',
         //   style: AppTextStyles.pageTitleTextStyle(context),
         // ),
-        actions:  [
+        actions: [
           Theme(
             data: Theme.of(context).copyWith(
               splashColor: Colors.transparent,
               highlightColor: Colors.transparent,
             ),
             child: PopupMenuButton<String>(
-              icon: const Icon(
+              icon: Icon(
                 FeatherIcons.moreVertical,
                 size: 22,
-                color: Colors.black,
+                color: Theme.of(context).colorScheme.onBackground,
               ),
-              color: Colors.white,
+              color: Theme.of(context).colorScheme.tertiaryContainer,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
@@ -526,7 +535,8 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
                     context: context,
                   );
                 } else if (result == 'Copy Profile Link') {
-                  final link = 'https://www.polzet.com/profile/${profile.username}';
+                  final link =
+                      'https://www.polzet.com/profile/${profile.username}';
                   Clipboard.setData(ClipboardData(text: link)).then((_) {
                     showToast(message: 'Link copied');
                   });
@@ -534,6 +544,7 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
               },
               itemBuilder: (BuildContext context) {
                 PopupMenuItem<String> buildItem(String text) {
+                  final txt = AppTextColors.of(context);
                   return PopupMenuItem<String>(
                     padding: const EdgeInsets.fromLTRB(10, 12, 10, 0),
                     value: text,
@@ -541,11 +552,10 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
                     child: Text(
                       text,
                       style: AppTextStyles.bodyText.copyWith(
-                        color: const  Color(0XFF595959),
+                        color: txt.title,
                         fontWeight: FontWeight.w500,
-                        fontSize: 13.5
-
-                      )
+                        fontSize: 13.5,
+                      ),
                     ),
                   );
                 }
@@ -749,7 +759,7 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
       context,
       listen: false,
     );
-    
+
     if (widget.userId != null) {
       resolvedUserId = widget.userId;
       await publicProfileProvider.fetchPublicUserProfile(
@@ -762,10 +772,10 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
         isRefresh: true,
       );
       if (publicProfileProvider.userProfile != null) {
-        resolvedUserId = publicProfileProvider.userProfile!.id;
+        resolvedUserId = publicProfileProvider.resolvedUserId;
       }
     }
-    
+
     await _loadData(isRefresh: true);
   }
 
@@ -1415,16 +1425,20 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
                         child: FutureBuilder<String?>(
                           future: _authTokenFuture,
                           builder: (context, snapshot) {
-                            if (snapshot.connectionState == ConnectionState.waiting) {
+                            if (snapshot.connectionState ==
+                                ConnectionState.waiting) {
                               return Container(
                                 decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(AppRadius.button),
+                                  borderRadius: BorderRadius.circular(
+                                    AppRadius.button,
+                                  ),
                                   color: Colors.grey[200],
                                 ),
                               );
                             }
                             final token = snapshot.data;
-                            final headers = token != null && imageUrl.contains('/api/')
+                            final headers =
+                                token != null && imageUrl.contains('/api/')
                                 ? {'Authorization': 'Bearer $token'}
                                 : null;
                             return Image.network(
@@ -1482,7 +1496,37 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
       child: Column(
         children: [
           GestureDetector(
-            onTap: () {},
+            onTap: () {
+              if (profile != null) {
+                final originalImageSource = profile.profilePicture ?? profile.profilePictureUrl;
+                if (originalImageSource == null || originalImageSource.isEmpty) {
+                  return;
+                }
+                Navigator.of(context).push(
+                  PageRouteBuilder(
+                    opaque: false,
+                    barrierColor: Colors.transparent,
+                    transitionDuration: const Duration(milliseconds: 150),
+                    reverseTransitionDuration: const Duration(
+                      milliseconds: 150,
+                    ),
+                    pageBuilder: (context, animation, secondaryAnimation) {
+                      return ProfileImagePreview(
+                        imageSource: originalImageSource,
+                        username: profile.username,
+                      );
+                    },
+                    transitionsBuilder:
+                        (context, animation, secondaryAnimation, child) {
+                          return FadeTransition(
+                            opacity: animation,
+                            child: child,
+                          );
+                        },
+                  ),
+                );
+              }
+            },
             child: Stack(
               children: [
                 Container(
@@ -1565,14 +1609,15 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
                   label: AppLocalizations.of(context)!.revibe,
                   onTap: canViewPosts
                       ? () {
+                          final p = profile!;
                           navigationPush(
                             context,
                             PublicChaseList(
-                              userId: profile!.id,
-                              username: profile.username,
+                              userId: userProvider.resolvedUserId ?? p.id,
+                              username: p.username,
                               initialIndex: 1,
-                              chaseList: profile.chaseList,
-                              rechaseList: profile.rechaseList,
+                              chaseList: p.chaseList,
+                              rechaseList: p.rechaseList,
                             ),
                           );
                         }
@@ -1584,14 +1629,15 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
                   label: AppLocalizations.of(context)!.vibe,
                   onTap: canViewPosts
                       ? () {
+                          final p = profile!;
                           navigationPush(
                             context,
                             PublicChaseList(
-                              userId: profile!.id,
-                              username: profile.username,
+                              userId: userProvider.resolvedUserId ?? p.id,
+                              username: p.username,
                               initialIndex: 0,
-                              chaseList: profile.chaseList,
-                              rechaseList: profile.rechaseList,
+                              chaseList: p.chaseList,
+                              rechaseList: p.rechaseList,
                             ),
                           );
                         }
@@ -1669,22 +1715,23 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
                     height: 38,
                     child: OutlinedButton(
                       onPressed: () {
+                        final p = profile!;
                         Navigator.push(
                           context,
                           MaterialPageRoute(
                             builder: (_) => ChangeNotifierProvider(
                               create: (_) => PrivateChatProvider()
                                 ..init(
-                                  memberName: profile.username,
-                                  profileUrl: profile.profilePictureUrl,
-                                  chatId: profile.chatId,
-                                  currentUsername: profile.username,
+                                  memberName: p.username,
+                                  profileUrl: p.profilePictureUrl,
+                                  chatId: p.chatId,
+                                  currentUsername: p.username,
                                 ),
                               child: PrivateChatScreen(
-                                userId: int.tryParse(profile!.id.toString()),
-                                memberName: profile.username,
-                                profileUrl: profile.profilePictureUrl,
-                                chatId: profile.chatId,
+                                userId: userProvider.resolvedUserId ?? p.id,
+                                memberName: p.username,
+                                profileUrl: p.profilePictureUrl,
+                                chatId: p.chatId,
                               ),
                             ),
                           ),

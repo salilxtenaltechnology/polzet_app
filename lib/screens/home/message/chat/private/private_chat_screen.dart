@@ -827,11 +827,11 @@ class _PrivateChatScreenState extends State<PrivateChatScreen>
     if (!isLoading) return const SizedBox.shrink();
     return Padding(
       padding: EdgeInsets.symmetric(vertical: 8.h),
-      child: const Center(
+      child:  Center(
         child: SizedBox(
           width: 20,
           height: 20,
-          child: CircularProgressIndicator(strokeWidth: 2),
+          child: CircularProgressIndicator(strokeWidth: 2, color: Theme.of(context).colorScheme.onPrimary.withOpacity(0.8))
         ),
       ),
     );

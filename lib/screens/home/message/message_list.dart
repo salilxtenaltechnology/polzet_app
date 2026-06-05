@@ -1,8 +1,10 @@
 // ignore_for_file: deprecated_member_use
 
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:dio/dio.dart';
 import 'package:polzet_app/core/constants/feather_icons_compat.dart';
@@ -113,9 +115,41 @@ class MessageListState extends State<MessageList>
     super.dispose();
   }
 
+  static const String _chatsCacheKey = 'cached_chats';
+
+  static Future<void> _loadChatsFromCache() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final cachedData = prefs.getString(_chatsCacheKey);
+      if (cachedData != null && cachedData.isNotEmpty) {
+        final decoded = json.decode(cachedData);
+        if (decoded is List) {
+          _staticChats = List<Map<String, dynamic>>.from(
+            decoded.map((item) => Map<String, dynamic>.from(item as Map)),
+          );
+          _updateUnreadCount();
+          _globalStreamController.add(_staticChats);
+        }
+      }
+    } catch (e) {
+      debugPrint('Error loading chats from cache: $e');
+    }
+  }
+
+  static Future<void> _saveChatsToCache(List<Map<String, dynamic>> chats) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_chatsCacheKey, json.encode(chats));
+    } catch (e) {
+      debugPrint('Error saving chats to cache: $e');
+    }
+  }
+
   static void startGlobalPolling() {
     if (_globalPollingTimer != null) return;
-    _fetchAndPushGlobally();
+    _loadChatsFromCache().then((_) {
+      _fetchAndPushGlobally();
+    });
     _globalPollingTimer = Timer.periodic(
       const Duration(seconds: 15),
       (_) => _fetchAndPushGlobally(),
@@ -127,6 +161,10 @@ class MessageListState extends State<MessageList>
     _globalPollingTimer = null;
   }
 
+  static Future<void> refreshGlobally() async {
+    await _fetchAndPushGlobally();
+  }
+
   static Future<void> _fetchAndPushGlobally() async {
     try {
       final chats = await ApiService().getChatList();
@@ -134,6 +172,7 @@ class MessageListState extends State<MessageList>
       errorMessage = null;
       if (_listsAreDifferent(_staticChats, chats)) {
         _staticChats = chats;
+        _saveChatsToCache(chats);
         _updateUnreadCount();
         _globalStreamController.add(_staticChats);
       } else if (_staticChats.isEmpty) {

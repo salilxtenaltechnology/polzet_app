@@ -3,8 +3,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
+import '../../../../core/themes/app_text_styles.dart';
 import '../../../../languages/l10n/generated/app_localizations.dart';
-import '../../../../widgets/custom_text_styles.dart';
+import '../../../../widgets/appbar/common_appbar.dart';
 import '../../../../widgets/tabbar/indicatore_animation.dart';
 
 class MediaScreen extends StatefulWidget {
@@ -28,20 +29,7 @@ class _MediaScreenState extends State<MediaScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.background,
-      appBar: AppBar(
-        automaticallyImplyLeading: false,
-        toolbarHeight: 25.h,
-        leading: GestureDetector(
-          onTap: () => Navigator.pop(context),
-          child: const Icon(Icons.arrow_back_ios),
-        ),
-        title: Text(
-          widget.memberName!,
-          style: CustomTextStyles.appBarTitleText(context),
-        ),
-        centerTitle: true,
-        backgroundColor: Theme.of(context).colorScheme.background,
-      ),
+      appBar: CommonAppBar(title: widget.memberName!),
       body: Padding(
         padding: EdgeInsets.symmetric(horizontal: 12.w),
         child: Column(
@@ -50,12 +38,15 @@ class _MediaScreenState extends State<MediaScreen>
               controller: _tabController,
               indicatorColor: Theme.of(context).colorScheme.primary,
               indicatorSize: TabBarIndicatorSize.tab,
-              labelColor: Theme.of(context).colorScheme.primary,
-              labelStyle: const TextStyle(fontWeight: FontWeight.w500),
+               labelColor: Theme.of(context).colorScheme.onBackground,
+              labelStyle: AppTextStyles.bodyText.copyWith(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w500,
+                  ),
               dividerColor: Colors.transparent,
               indicator: FadeUnderlineTabIndicator(),
               overlayColor: const WidgetStatePropertyAll(Colors.transparent),
-              unselectedLabelColor: Theme.of(context).colorScheme.onBackground,
+              unselectedLabelColor: const Color(0XFF8E8E8E),
               tabs: [
                 Tab(text: AppLocalizations.of(context)!.media),
                 Tab(text: AppLocalizations.of(context)!.link),

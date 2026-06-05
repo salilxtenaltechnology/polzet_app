@@ -22,6 +22,14 @@
           }
         },
         {
+          "client_id": "470797111076-kp3kdt2qj3atuk6jhiaf5cllu0truidv.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.polzet_app",
+            "certificate_hash": "e752f0712524b34b25e6caf428af42e810d67e63"
+          }
+        },
+        {
           "client_id": "470797111076-q9inr20h5p8rmkqfuis1mm0jv172f1kl.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
