@@ -52,6 +52,8 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen>
     with SingleTickerProviderStateMixin, UtilityMixin {
   // ── Static cache — instant data on re-open ────────────────────────────────
   static GlobalSearchModel? _cachedDefaultResult;
+  static final Map<String, GlobalSearchModel> _tabSearchCache = {};
+  int? _fetchingPage;
 
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _focusNode = FocusNode();
@@ -72,6 +74,112 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen>
   List<RecentSearchModel> _recentSearches = [];
   List<String> _removedSearchIds = [];
 
+  int _currentTabIndex = 0;
+  bool _loadingMore = false;
+
+  bool _shouldCache(String query, String tab) {
+    if (query.isEmpty) {
+      return tab == 'top';
+    }
+    return true;
+  }
+
+  String _getApiTabValue(int index) {
+    if (index < 0 || index >= _tabs.length) return 'top';
+    final tabName = _tabs[index].toLowerCase();
+    if (tabName == 'polls') return 'posts';
+    return tabName;
+  }
+
+  void _handleTabSelection() {
+    if (_tabController.index != _currentTabIndex) {
+      _currentTabIndex = _tabController.index;
+      _fetchingPage = null; // Reset fetching page tracker on tab change!
+      _doSearch(_searchController.text.trim());
+    }
+  }
+
+  Widget _wrapWithScrollListener(Widget child) {
+    return NotificationListener<ScrollNotification>(
+      onNotification: (ScrollNotification scrollInfo) {
+        if (scrollInfo is ScrollUpdateNotification ||
+            scrollInfo is OverscrollNotification) {
+          final metrics = scrollInfo.metrics;
+          if (metrics.pixels >= metrics.maxScrollExtent - 200) {
+            _loadNextPage();
+          }
+        }
+        return true;
+      },
+      child: child,
+    );
+  }
+
+  Future<void> _loadNextPage() async {
+    final currentModel = _snapshot;
+    if (currentModel == null) return;
+    if (_loading || _loadingMore) return;
+
+    final pagination = currentModel.pagination;
+    if (!pagination.hasNext) return;
+
+    final nextPage = pagination.page + 1;
+    if (_fetchingPage == nextPage) return;
+    _fetchingPage = nextPage;
+
+    final tab = _getApiTabValue(_tabController.index);
+    final query = _searchController.text.trim();
+
+    if (mounted) setState(() => _loadingMore = true);
+
+    try {
+      final userId = await SharedPrefService.getUserId();
+      final nextResult = await ApiService().globalSearch(
+        query,
+        tab: tab,
+        page: nextPage,
+        limit: 10,
+        publicId: userId,
+      );
+
+      if (nextResult == null || !mounted) return;
+
+      final currentData = currentModel.data;
+      final nextData = nextResult.data;
+
+      final mergedAccounts = List<SearchAccount>.from(currentData.accounts)
+        ..addAll(nextData.accounts);
+      final mergedPosts = List<SearchPost>.from(currentData.posts)
+        ..addAll(nextData.posts);
+      final mergedPhotos = List<SearchPhoto>.from(currentData.photos)
+        ..addAll(nextData.photos);
+      final mergedHashtags = List<SearchHashtag>.from(currentData.hashtags)
+        ..addAll(nextData.hashtags);
+      final mergedPlaces = List<SearchPlace>.from(currentData.places)
+        ..addAll(nextData.places);
+
+      final updatedModel = GlobalSearchModel(
+        success: nextResult.success,
+        query: nextResult.query,
+        tab: nextResult.tab,
+        pagination: nextResult.pagination,
+        data: GlobalSearchData(
+          accounts: mergedAccounts,
+          posts: mergedPosts,
+          photos: mergedPhotos,
+          hashtags: mergedHashtags,
+          places: mergedPlaces,
+        ),
+      );
+
+      _searchStream.add(updatedModel);
+    } catch (e) {
+      debugPrint('Error loading next page: $e');
+    } finally {
+      if (mounted) setState(() => _loadingMore = false);
+    }
+  }
+
   // ── Lifecycle ─────────────────────────────────────────────────────────────
 
   @override
@@ -79,6 +187,8 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen>
     super.initState();
     _authTokenFuture = SharedPrefService.getToken();
     _tabController = TabController(length: _tabs.length, vsync: this);
+    _currentTabIndex = _tabController.index;
+    _tabController.addListener(_handleTabSelection);
 
     _focusNode.addListener(() {
       if (mounted) setState(() {});
@@ -92,16 +202,15 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen>
       if (mounted) setState(() => _snapshot = data);
     });
 
-    if (_cachedDefaultResult != null) {
-      // Push cache onto the stream immediately — UI renders without a spinner.
-      _snapshot = _cachedDefaultResult;
-      _searchStream.add(_cachedDefaultResult!);
-      // Quietly fetch fresh data in the background.
+    final activeTab = _getApiTabValue(_tabController.index);
+    final cached = _tabSearchCache['$activeTab|'];
+    if (cached != null) {
+      _snapshot = cached;
+      _searchStream.add(cached);
       _silentRefresh();
+      _preloadAllTabs();
     } else {
-      // Very first open — show shimmer until data arrives.
-      setState(() => _loading = true);
-      WidgetsBinding.instance.addPostFrameCallback((_) => _fetchDefault());
+      _preloadAllTabs();
     }
 
     _autoRefreshTimer = Timer.periodic(
@@ -114,6 +223,7 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen>
   void dispose() {
     _searchController.dispose();
     _focusNode.dispose();
+    _tabController.removeListener(_handleTabSelection);
     _tabController.dispose();
     _debounce?.cancel();
     _autoRefreshTimer?.cancel();
@@ -164,16 +274,53 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen>
     await prefs.setStringList('removed_recent_searches', _removedSearchIds);
   }
 
-  /// First-open fetch — shows shimmer, then pushes result to stream.
-  Future<void> _fetchDefault() async {
+  Future<void> _preloadAllTabs() async {
+    final activeTab = _getApiTabValue(_tabController.index);
+    if (!_tabSearchCache.containsKey('$activeTab|')) {
+      if (mounted) setState(() => _loading = true);
+    }
+
     try {
-      final result = await ApiService().globalSearch('');
-      if (!mounted) return;
-      _cachedDefaultResult = result;
-      _searchStream.add(result); // triggers StreamBuilder rebuild
+      final userId = await SharedPrefService.getUserId();
+      await Future.wait([
+        _preloadTab('top', userId),
+        _preloadTab('accounts', userId),
+        _preloadTab('posts', userId),
+        _preloadTab('photos', userId),
+        _preloadTab('tags', userId),
+        _preloadTab('places', userId),
+      ]);
     } catch (_) {
     } finally {
       if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _preloadTab(String tab, String? userId) async {
+    try {
+      final cacheKey = '$tab|';
+      final result = await ApiService().globalSearch(
+        '',
+        tab: tab,
+        page: 1,
+        limit: 10,
+        publicId: userId,
+      );
+      if (result != null) {
+        _tabSearchCache[cacheKey] = result;
+        if (tab == 'top') {
+          _cachedDefaultResult = result;
+        }
+
+        final activeTab = _getApiTabValue(_tabController.index);
+        if (tab == activeTab && _searchController.text.trim().isEmpty) {
+          _snapshot = result;
+          _searchStream.add(result);
+          if (mounted) setState(() {});
+        }
+      }
+    } catch (e) {
+      debugPrint('Error preloading tab $tab: $e');
     }
   }
 
@@ -181,15 +328,37 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen>
     // Only refresh if user hasn't typed a query.
     if (_searchController.text.trim().isNotEmpty) return;
     try {
-      final result = await ApiService().globalSearch('');
+      final userId = await SharedPrefService.getUserId();
+      final tab = _getApiTabValue(_tabController.index);
+      final result = await ApiService().globalSearch(
+        '',
+        tab: tab,
+        page: 1,
+        limit: 10,
+        publicId: userId,
+      );
       if (!mounted) return;
-      _cachedDefaultResult = result;
-      _searchStream.add(result);
+      if (result != null) {
+        if (_shouldCache('', tab)) {
+          _tabSearchCache['$tab|'] = result;
+        }
+        if (tab == 'top') {
+          _cachedDefaultResult = result;
+        }
+      }
+
+      final activeTab = _getApiTabValue(_tabController.index);
+      if (result != null &&
+          result.tab == activeTab &&
+          _searchController.text.trim().isEmpty) {
+        _searchStream.add(result);
+      }
     } catch (_) {}
   }
 
   void _onSearchChanged(String query) {
     _forceShowTabs = false;
+    _fetchingPage = null; // Reset fetching page tracker on query change!
     if (mounted) setState(() {});
     _debounce?.cancel();
     _debounce = Timer(
@@ -202,20 +371,45 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen>
 
   /// Search for an explicit query — pushes result to stream.
   Future<void> _doSearch(String query) async {
-    if (query.isEmpty) {
-      if (_cachedDefaultResult != null) {
-        _searchStream.add(_cachedDefaultResult!);
-      } else {
-        await _fetchDefault();
-      }
-      return;
+    final tab = _getApiTabValue(_tabController.index);
+    final cacheKey = '$tab|$query';
+
+    // If cache exists, push it immediately so the UI transitions instantly.
+    if (_shouldCache(query, tab) && _tabSearchCache.containsKey(cacheKey)) {
+      _snapshot = _tabSearchCache[cacheKey];
+      _searchStream.add(_snapshot);
+      if (mounted) setState(() {});
+    } else {
+      if (mounted) setState(() => _loading = true);
     }
 
-    if (mounted) setState(() => _loading = true);
     try {
-      final result = await ApiService().globalSearch(query);
+      final userId = await SharedPrefService.getUserId();
+      final result = await ApiService().globalSearch(
+        query,
+        tab: tab,
+        page: 1,
+        limit: 10,
+        publicId: userId,
+      );
       if (!mounted) return;
-      _searchStream.add(result);
+
+      if (result != null) {
+        if (_shouldCache(query, tab)) {
+          _tabSearchCache[cacheKey] = result;
+        }
+        if (query.isEmpty && tab == 'top') {
+          _cachedDefaultResult = result;
+        }
+      }
+
+      final activeTab = _getApiTabValue(_tabController.index);
+      final currentQuery = _searchController.text.trim();
+      if (result != null &&
+          result.tab == activeTab &&
+          result.query == currentQuery) {
+        _searchStream.add(result);
+      }
     } catch (_) {
     } finally {
       if (mounted) setState(() => _loading = false);
@@ -270,14 +464,17 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen>
             Expanded(
               // StreamBuilder wraps the entire body so every push to
               // _searchStream triggers a silent, flicker-free rebuild.
-              child: (_focusNode.hasFocus && _searchController.text.isEmpty && !_forceShowTabs)
+              child:
+                  (_focusNode.hasFocus &&
+                      _searchController.text.isEmpty &&
+                      !_forceShowTabs)
                   ? _buildRecentSearchesList()
                   : StreamBuilder<GlobalSearchModel?>(
                       stream: _searchStream.stream,
                       initialData: _cachedDefaultResult,
                       builder: (context, snap) {
                         // First open, no cache — shimmer
-                        if (_loading && snap.data == null) {
+                        if (_loading && _snapshot == null) {
                           // return _buildShimmer();
                           return Center(
                             child: Loader(
@@ -287,10 +484,11 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen>
                         }
 
                         // API error before any data — fallback prompt
-                        if (snap.data == null) return _buildSearchPrompt();
+                        if (_snapshot == null) return _buildSearchPrompt();
 
-                        final data = snap.data!.data;
-                        if (_searchController.text.trim().isEmpty && !_forceShowTabs) {
+                        final data = _snapshot!.data;
+                        if (_searchController.text.trim().isEmpty &&
+                            !_forceShowTabs) {
                           return _buildDefaultSuggestions(
                             data.accounts,
                             data.posts,
@@ -299,17 +497,43 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen>
                         return TabBarView(
                           controller: _tabController,
                           children: [
-                            _buildTopTab(data.accounts),
-                            _buildAccountsList(data.accounts),
-                            _buildPollsList(data.posts),
-                            _buildPhotosList(data.photos),
-                            _buildHashtagsList(data.hashtags),
-                            _buildPlacesList(data.places),
+                            _wrapWithScrollListener(
+                              _buildTopTab(data.accounts),
+                            ),
+                            _wrapWithScrollListener(
+                              _buildAccountsList(data.accounts),
+                            ),
+                            _wrapWithScrollListener(
+                              _buildPollsList(data.posts),
+                            ),
+                            _wrapWithScrollListener(
+                              _buildPhotosList(data.photos),
+                            ),
+                            _wrapWithScrollListener(
+                              _buildHashtagsList(data.hashtags),
+                            ),
+                            _wrapWithScrollListener(
+                              _buildPlacesList(data.places),
+                            ),
                           ],
                         );
                       },
                     ),
             ),
+            if (_loadingMore)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 12.0),
+                child: Center(
+                  child: SizedBox(
+                    width: 20.w,
+                    height: 20.w,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Theme.of(context).colorScheme.onPrimary,
+                    ),
+                  ),
+                ),
+              ),
           ],
         ),
       ),
@@ -431,11 +655,11 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen>
         child: Text(
           'No recent searches',
           style: AppTextStyles.bodyText.copyWith(
-              color: txt.muted,
-               fontWeight: FontWeight.w400,
-              fontSize: 14,
-              height: 1.4,
-            ),
+            color: txt.muted,
+            fontWeight: FontWeight.w400,
+            fontSize: 14,
+            height: 1.4,
+          ),
         ),
       );
     }
@@ -529,7 +753,7 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen>
             'Find accounts, posts, photos & more',
             style: AppTextStyles.bodyText.copyWith(
               color: txt.muted,
-               fontWeight: FontWeight.w400,
+              fontWeight: FontWeight.w400,
               fontSize: 13,
               height: 1.4,
             ),
@@ -1334,7 +1558,10 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen>
               children: [
                 GestureDetector(
                   onTap: () {
-                    navigationPush(context, PublicProfileScreen(userId: author.id));
+                    navigationPush(
+                      context,
+                      PublicProfileScreen(userId: author.id),
+                    );
                   },
                   child: CircleAvatar(
                     radius: 19.5,
@@ -1618,6 +1845,7 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen>
         crossAxisCount: 3,
         crossAxisSpacing: 3,
         mainAxisSpacing: 3,
+        childAspectRatio: 0.7,
       ),
       itemCount: photos.length,
       itemBuilder: (_, i) {

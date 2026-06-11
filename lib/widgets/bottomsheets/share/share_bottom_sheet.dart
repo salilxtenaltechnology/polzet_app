@@ -248,7 +248,7 @@ class _ShareBottomSheetState extends State<ShareBottomSheet> {
       bool anySuccess = false;
       for (final userId in _selectedUserIds) {
         final chatResponse = await _apiServices.createPrivateChatId(
-          withUserId: userId,
+          withUserId: userId.toString(),
         );
 
         final chatId = int.tryParse(chatResponse['id']?.toString() ?? '');

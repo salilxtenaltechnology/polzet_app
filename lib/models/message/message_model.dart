@@ -10,6 +10,7 @@ class ChatMessage {
   final String? senderUsername;
   final String? senderProfileImage;
   final Map<String, dynamic>? sharedPost;
+  final String? senderId;
 
   const ChatMessage({
      this.id,
@@ -22,6 +23,7 @@ class ChatMessage {
     this.senderUsername,
     this.senderProfileImage,
     this.sharedPost,
+    this.senderId,
   });
 
   Map<String, dynamic> toJson() {
@@ -35,6 +37,7 @@ class ChatMessage {
       'senderUsername': senderUsername,
       'senderProfileImage': senderProfileImage,
       'sharedPost': sharedPost,
+      'senderId': senderId,
     };
   }
 
@@ -49,6 +52,7 @@ class ChatMessage {
       senderUsername: json['senderUsername'] as String?,
       senderProfileImage: json['senderProfileImage'] as String?,
       sharedPost: json['sharedPost'] as Map<String, dynamic>?,
+      senderId: json['senderId'] as String?,
     );
   }
 }

@@ -12,6 +12,7 @@ import '../../../../../core/constants/app_radius.dart';
 import '../../../../../core/themes/app_text_colors.dart';
 import '../../../../../core/themes/app_text_styles.dart';
 import '../../../../../api/api_config.dart';
+import '../../../../../api/services/api_service.dart';
 import '../../../../../languages/l10n/generated/app_localizations.dart';
 import '../../../../../mixin/utility_mixins.dart';
 import '../../../../../models/message/message_model.dart';
@@ -61,6 +62,10 @@ class _PrivateChatScreenState extends State<PrivateChatScreen>
   String? _floatingDate;
   final Map<String, GlobalKey> _headerKeys = {};
 
+  int? _resolvedChatId;
+  bool _isLoadingChatId = false;
+  final ApiService _apiService = ApiService();
+
   PrivateChatProvider get provider => context.read<PrivateChatProvider>();
 
   @override
@@ -68,39 +73,72 @@ class _PrivateChatScreenState extends State<PrivateChatScreen>
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _isUserBlock = widget.isUserBlock;
+    _resolvedChatId = widget.chatId == 0 ? null : widget.chatId;
 
-    final userProvider = context.read<UserProvider>();
     _messagesStream = provider.messagesStream;
 
     debugPrint('User id : ${widget.userId}');
+    debugPrint('Chat id : ${widget.chatId}');
 
-    // Track scroll position to know if user is at bottom
     _scrollController.addListener(_onScroll);
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (widget.userId != null) {
-        provider.setMemberUserId(widget.userId!);
+      _initChat();
+    });
+  }
+
+  Future<void> _initChat() async {
+    final userProvider = context.read<UserProvider>();
+
+    if (_resolvedChatId == null && widget.userId != null) {
+      if (mounted) {
+        setState(() {
+          _isLoadingChatId = true;
+        });
       }
-      provider.init(
-        memberName: widget.memberName,
-        profileUrl: widget.profileUrl,
-        chatId: widget.chatId,
-        currentUsername: userProvider.username,
-      );
-
-      _scrollController.addListener(() {
-        if (!_scrollController.hasClients) return;
-        if (_scrollController.position.maxScrollExtent > 0 &&
-            _scrollController.position.pixels >=
-                _scrollController.position.maxScrollExtent - 80) {
-          _loadMoreHistory();
+      try {
+        final chatResponse = await _apiService.createPrivateChatId(
+          withUserId: widget.userId.toString(),
+        );
+        final parsedChatId = int.tryParse(chatResponse['id']?.toString() ?? '');
+        if (mounted) {
+          setState(() {
+            _resolvedChatId = parsedChatId;
+          });
         }
-      });
+      } catch (e) {
+        debugPrint('Error creating/fetching private chat ID: $e');
+      } finally {
+        if (mounted) {
+          setState(() {
+            _isLoadingChatId = false;
+          });
+        }
+      }
+    }
 
-      if (widget.userId != null) {
-        provider.setMemberUserId(widget.userId!);
+    if (widget.userId != null) {
+      provider.setMemberUserId(widget.userId!);
+    }
+    provider.init(
+      memberName: widget.memberName,
+      profileUrl: widget.profileUrl,
+      chatId: _resolvedChatId,
+      currentUsername: userProvider.username,
+    );
+
+    _scrollController.addListener(() {
+      if (!_scrollController.hasClients) return;
+      if (_scrollController.position.maxScrollExtent > 0 &&
+          _scrollController.position.pixels >=
+              _scrollController.position.maxScrollExtent - 80) {
+        _loadMoreHistory();
       }
     });
+
+    if (widget.userId != null) {
+      provider.setMemberUserId(widget.userId!);
+    }
   }
 
   Future<void> _loadMoreHistory() async {
@@ -1061,8 +1099,14 @@ class _PrivateChatScreenState extends State<PrivateChatScreen>
           backgroundColor: Theme.of(context).colorScheme.background,
           surfaceTintColor: Theme.of(context).colorScheme.background,
         ),
-        body: Column(
-          children: [
+        body: _isLoadingChatId
+            ? Center(
+                child: CircularProgressIndicator(
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+              )
+            : Column(
+                children: [
             // ── Connection banner ──────────────────────────────────────────────
             // _buildConnectionBanner(provider),
       

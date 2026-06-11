@@ -37,6 +37,7 @@ import '../../../widgets/tabbar/indicatore_animation.dart';
 import '../message/chat/group/group_chat_screen.dart';
 import '../message/chat/private/private_chat_screen.dart';
 import '../profile/public/public_profile_screen.dart';
+import '../profile/chase/user_chase.dart';
 import '../search/posts/single_post_details.dart';
 import 'poll_vote_notification_tile.dart';
 
@@ -609,24 +610,31 @@ class NotificationState extends State<Notifications>
     switch (notification.type.toUpperCase()) {
       case 'FOLLOW':
         return 'started chasing you';
+      case 'FOLLOW_GROUP':
+        return notification.message ?? 'started chasing you';
       case 'LIKE':
-        return 'liked your post';
+        return 'liked your poll';
+      case 'LIKE_GROUP':
+        return notification.message ?? 'liked your poll';
       case 'COMMENT':
         final message = notification.message ?? '';
         if (message.contains('commented on your post: ')) {
-          final commentText = message.split('commented on your post: ').last;
+          final commentText = message.split('commented on your poll: ').last;
           return 'commented on your post: $commentText';
         }
-        return 'commented on your post';
+        return 'commented on your poll';
       case 'VOTE':
         return 'voted on your poll';
       case 'SHARE':
-        return 'shared your post';
+        return 'shared your poll';
       case 'FRIEND_REQUEST':
         return 'sent you a chase request';
       case 'NEW_GROUP_ADDED':
         final groupName = notification.meta?.groupName ?? 'the group';
         return 'added you to the group $groupName.';
+      case 'GROUP_ADMIN_PROMOTE':
+        final groupName = notification.meta?.groupName ?? 'the group';
+        return 'promoted you to admin of the group $groupName.';
       case 'NEW_MESSAGE':
         final msg = notification.message ?? '';
         if (msg.isNotEmpty) {
@@ -664,15 +672,19 @@ class NotificationState extends State<Notifications>
   Color _getNotificationLineColor(String type) {
     switch (type.toUpperCase()) {
       case 'LIKE':
+      case 'LIKE_GROUP':
         return const Color(0xFFFEA65B);
       case 'COMMENT':
         return const Color(0xFF30AB98);
       case 'FOLLOW':
+      case 'FOLLOW_GROUP':
         return const Color(0xFFF59E0B);
       case 'FRIEND_REQUEST':
         return const Color(0xFF7569D6);
       case 'NEW_GROUP_ADDED':
         return const Color(0xFF25282D);
+      case 'GROUP_ADMIN_PROMOTE':
+        return const Color(0xFF30AB98);
       case 'SHARE':
         return const Color(0xFF4A90E2);
       case 'NEW_MESSAGE':
@@ -894,8 +906,13 @@ class NotificationState extends State<Notifications>
                               notifications.length + (_hasMoreData ? 1 : 0),
                           itemBuilder: (context, index) {
                             if (index == notifications.length) {
-                              final bool hasScrolled = _allNotificationsScrollController.hasClients &&
-                                  _allNotificationsScrollController.position.pixels > 0;
+                              final bool hasScrolled =
+                                  _allNotificationsScrollController
+                                      .hasClients &&
+                                  _allNotificationsScrollController
+                                          .position
+                                          .pixels >
+                                      0;
                               return Center(
                                 child: Padding(
                                   padding: EdgeInsets.all(16.h),
@@ -1101,8 +1118,13 @@ class NotificationState extends State<Notifications>
                               voteNotifications.length + (_hasMoreData ? 1 : 0),
                           itemBuilder: (context, index) {
                             if (index == voteNotifications.length) {
-                              final bool hasScrolled = _pollNotificationsScrollController.hasClients &&
-                                  _pollNotificationsScrollController.position.pixels > 0;
+                              final bool hasScrolled =
+                                  _pollNotificationsScrollController
+                                      .hasClients &&
+                                  _pollNotificationsScrollController
+                                          .position
+                                          .pixels >
+                                      0;
                               return Center(
                                 child: Padding(
                                   padding: EdgeInsets.all(16.h),
@@ -1505,7 +1527,9 @@ class NotificationState extends State<Notifications>
           }
 
           final type = notification.type.toUpperCase();
-          if (type == 'NEW_MESSAGE' || type == 'NEW_GROUP_ADDED') {
+          if (type == 'NEW_MESSAGE' ||
+              type == 'NEW_GROUP_ADDED' ||
+              type == 'GROUP_ADMIN_PROMOTE') {
             final chatIdInt = notification.meta?.chatId is int
                 ? notification.meta!.chatId as int
                 : int.tryParse(notification.meta?.chatId?.toString() ?? '');
@@ -1524,6 +1548,12 @@ class NotificationState extends State<Notifications>
                 ),
               );
             } else {
+              final actorUserIdInt = int.tryParse(notification.actor.userId);
+              final metaSenderIdInt = notification.meta?.senderId is int
+                  ? notification.meta!.senderId as int
+                  : int.tryParse(notification.meta?.senderId?.toString() ?? '');
+              final resolvedUserId = actorUserIdInt ?? metaSenderIdInt;
+
               Navigator.push(
                 context,
                 MaterialPageRoute(
@@ -1532,7 +1562,7 @@ class NotificationState extends State<Notifications>
                     child: PrivateChatScreen(
                       memberName: notification.actor.name,
                       profileUrl: notification.actor.avatarUrl,
-                      userId: int.tryParse(notification.actor.userId),
+                      userId: resolvedUserId,
                       chatId: chatIdInt,
                     ),
                   ),
@@ -1557,6 +1587,22 @@ class NotificationState extends State<Notifications>
                 PublicProfileScreen(userId: notification.actor.userId),
               );
             }
+          } else if (type == 'FOLLOW_GROUP') {
+            final userProvider = Provider.of<UserProvider>(
+              context,
+              listen: false,
+            );
+            navigationPush(
+              context,
+              UserChase(
+                username: userProvider.username ?? '',
+                initialIndex: 0,
+                followerCount: userProvider.followers_count ?? '0',
+                followingCount: userProvider.following_count ?? '0',
+                chaseList: userProvider.chase_list,
+                rechaseList: userProvider.rechase_list,
+              ),
+            );
           } else {
             // ScaffoldMessenger.of(
             //   context,
@@ -1597,7 +1643,20 @@ class NotificationState extends State<Notifications>
                 child: Stack(
                   clipBehavior: Clip.none,
                   children: [
-                    (avatarBytes != null)
+                    (notification.type.toUpperCase() == 'FOLLOW_GROUP')
+                        ? CircleAvatar(
+                            radius: 17.w,
+                            backgroundColor: Theme.of(
+                              context,
+                            ).colorScheme.onPrimary.withOpacity(0.15),
+                            child: Image.asset(
+                              'assets/images/ic_add_user.png',
+                              width: 18.w,
+                              height: 18.h,
+                              color: Theme.of(context).colorScheme.onPrimary,
+                            ),
+                          )
+                        : (avatarBytes != null)
                         ? CircleAvatar(
                             backgroundImage: MemoryImage(avatarBytes),
                             radius: 17.w,
@@ -1621,7 +1680,8 @@ class NotificationState extends State<Notifications>
                               ),
                             ),
                           ),
-                    if (notification.type.toUpperCase() == 'LIKE')
+                    if (notification.type.toUpperCase() == 'LIKE' ||
+                        notification.type.toUpperCase() == 'LIKE_GROUP')
                       Positioned(
                         bottom: -3.h,
                         right: -4.w,
@@ -1677,22 +1737,34 @@ class NotificationState extends State<Notifications>
                           fontSize: 14.5,
                         ),
                         children: <TextSpan>[
-                          TextSpan(
-                            text: notification.actor.name,
-                            style: AppTextStyles.bodyText.copyWith(
-                              color: txt.title,
-                              fontWeight: FontWeight.w600,
-                              fontSize: 14.5,
+                          if (notification.type.toUpperCase() == 'LIKE_GROUP' ||
+                              notification.type.toUpperCase() == 'FOLLOW_GROUP')
+                            TextSpan(
+                              text: getNotificationMessage(notification),
+                              style: AppTextStyles.bodyText.copyWith(
+                                color: txt.title,
+                                fontWeight: FontWeight.w500,
+                                fontSize: 14.5,
+                              ),
+                            )
+                          else ...[
+                            TextSpan(
+                              text: notification.actor.name,
+                              style: AppTextStyles.bodyText.copyWith(
+                                color: txt.title,
+                                fontWeight: FontWeight.w600,
+                                fontSize: 14.5,
+                              ),
                             ),
-                          ),
-                          TextSpan(
-                            text: ' ${getNotificationMessage(notification)}',
-                            style: AppTextStyles.bodyText.copyWith(
-                              color: txt.title,
-                              fontWeight: FontWeight.w500,
-                              fontSize: 14.5,
+                            TextSpan(
+                              text: ' ${getNotificationMessage(notification)}',
+                              style: AppTextStyles.bodyText.copyWith(
+                                color: txt.title,
+                                fontWeight: FontWeight.w500,
+                                fontSize: 14.5,
+                              ),
                             ),
-                          ),
+                          ],
                         ],
                       ),
                     ),
@@ -1738,7 +1810,8 @@ class NotificationState extends State<Notifications>
 
               if (notification.type.toUpperCase() == 'FOLLOW' ||
                   notification.type.toUpperCase() == 'NEW_GROUP_ADDED' ||
-                  notification.type.toUpperCase() == 'NEW_MESSAGE')
+                  notification.type.toUpperCase() == 'NEW_MESSAGE' ||
+                  notification.type.toUpperCase() == 'GROUP_ADMIN_PROMOTE')
                 GestureDetector(
                   onTap: () {
                     if (!notification.isRead) {
@@ -1764,6 +1837,16 @@ class NotificationState extends State<Notifications>
                         ),
                       );
                     } else {
+                      final actorUserIdInt = int.tryParse(
+                        notification.actor.userId,
+                      );
+                      final metaSenderIdInt = notification.meta?.senderId is int
+                          ? notification.meta!.senderId as int
+                          : int.tryParse(
+                              notification.meta?.senderId?.toString() ?? '',
+                            );
+                      final resolvedUserId = actorUserIdInt ?? metaSenderIdInt;
+
                       Navigator.push(
                         context,
                         MaterialPageRoute(
@@ -1772,7 +1855,7 @@ class NotificationState extends State<Notifications>
                             child: PrivateChatScreen(
                               memberName: notification.actor.name,
                               profileUrl: notification.actor.avatarUrl,
-                              userId: int.tryParse(notification.actor.userId),
+                              userId: resolvedUserId,
                               chatId: chatIdInt,
                             ),
                           ),

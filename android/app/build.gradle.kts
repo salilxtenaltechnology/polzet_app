@@ -34,7 +34,7 @@ android {
         applicationId = "com.polzet_app"
         minSdk = flutter.minSdkVersion
         targetSdk = 35
-        versionCode = 12
+        versionCode = 13
         versionName = "1.1.0"
         multiDexEnabled = true
     }
@@ -83,16 +83,21 @@ flutter {
 }
 
 dependencies {
+
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
 
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
     implementation("androidx.core:core-ktx:1.13.1")
+
     implementation("com.google.android.play:app-update-ktx:2.1.0")
     implementation("com.google.android.play:review-ktx:2.0.1")
     implementation("com.google.android.play:feature-delivery:2.1.0")
+
+    // ✅ ADD THIS FOR FIREBASE PHONE AUTH
+    implementation("com.google.android.play:integrity:1.4.0")
+
     implementation("com.google.android.gms:play-services-auth:21.2.0")
-    
-    // ✅ Credential Manager - use double quotes
+
     implementation("androidx.credentials:credentials:1.3.0")
     implementation("androidx.credentials:credentials-play-services-auth:1.3.0")
     implementation("com.google.android.libraries.identity.googleid:googleid:1.1.1")

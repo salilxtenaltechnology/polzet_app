@@ -2,6 +2,7 @@
 import 'package:polzet_app/core/constants/feather_icons_compat.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../../../../core/constants/app_constants.dart';
 import '../../../../widgets/show_toast.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:polzet_app/languages/l10n/generated/app_localizations.dart';
@@ -485,10 +486,14 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
         appBar: AppBar(
           backgroundColor: Theme.of(context).colorScheme.background,
           surfaceTintColor: Theme.of(context).colorScheme.background,
-          toolbarHeight: 35.h,
+         leadingWidth: 48.w,
           elevation: 0,
           automaticallyImplyLeading: true,
-          leading: const PrimaryBackButton(),
+          leading: Padding(
+            padding: EdgeInsets.only(left: 8.w),
+            child: const PrimaryBackButton(),
+          ),
+            toolbarHeight: AppConstants.toolbarHeight.h,
         ),
         body: const ProfileShimmer(),
       );
@@ -499,11 +504,15 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
       appBar: AppBar(
         backgroundColor: Theme.of(context).colorScheme.background,
         surfaceTintColor: Theme.of(context).colorScheme.background,
-        toolbarHeight: 35.h,
+         leadingWidth: 48.w,
         elevation: 0,
         centerTitle: false,
         automaticallyImplyLeading: true,
-        leading: const PrimaryBackButton(),
+        leading: Padding(
+            padding: EdgeInsets.only(left: 8.w),
+            child: const PrimaryBackButton(),
+          ),
+           toolbarHeight: AppConstants.toolbarHeight.h,
         // title: Text(
         //   'Profile',
         //   style: AppTextStyles.pageTitleTextStyle(context),
@@ -1613,7 +1622,7 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
                           navigationPush(
                             context,
                             PublicChaseList(
-                              userId: userProvider.resolvedUserId ?? p.id,
+                              userId: p.userId,
                               username: p.username,
                               initialIndex: 1,
                               chaseList: p.chaseList,
@@ -1633,7 +1642,7 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
                           navigationPush(
                             context,
                             PublicChaseList(
-                              userId: userProvider.resolvedUserId ?? p.id,
+                              userId: p.userId,
                               username: p.username,
                               initialIndex: 0,
                               chaseList: p.chaseList,
@@ -1724,14 +1733,14 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
                                 ..init(
                                   memberName: p.username,
                                   profileUrl: p.profilePictureUrl,
-                                  chatId: p.chatId,
+                                  chatId: p.chatId == 0 ? null : p.chatId,
                                   currentUsername: p.username,
                                 ),
                               child: PrivateChatScreen(
-                                userId: userProvider.resolvedUserId ?? p.id,
+                                userId: widget.userId,
                                 memberName: p.username,
                                 profileUrl: p.profilePictureUrl,
-                                chatId: p.chatId,
+                                chatId: p.chatId == 0 ? null : p.chatId,
                               ),
                             ),
                           ),

@@ -26,6 +26,7 @@ class PublicProfileModel {
 
 class ProfileData {
   final String id;
+  final String userId;
   final String username;
   final String? email;
   final String? mobileNumber;
@@ -54,6 +55,7 @@ class ProfileData {
 
   ProfileData({
     required this.id,
+    required this.userId,
     required this.username,
     this.email,
     this.mobileNumber,
@@ -84,6 +86,7 @@ class ProfileData {
   factory ProfileData.fromJson(Map<String, dynamic> json) {
     return ProfileData(
       id: (json['uuid'] ?? json['id'] ?? '').toString(),
+      userId: (json['id'] ?? json['userid'] ?? json['user_id'] ?? '').toString(),
       username: json['username'] ?? '',
       email: json['email'],
       mobileNumber: json['mobile_number'],
@@ -121,6 +124,7 @@ class ProfileData {
   Map<String, dynamic> toJson() {
     return {
       'id': id,
+      'user_id': userId,
       'username': username,
       'email': email,
       'mobile_number': mobileNumber,
@@ -151,6 +155,7 @@ class ProfileData {
 
   ProfileData copyWith({
     String? id,
+    String? userId,
     String? username,
     String? email,
     String? mobileNumber,
@@ -179,6 +184,7 @@ class ProfileData {
   }) {
     return ProfileData(
       id: id ?? this.id,
+      userId: userId ?? this.userId,
       username: username ?? this.username,
       email: email ?? this.email,
       mobileNumber: mobileNumber ?? this.mobileNumber,

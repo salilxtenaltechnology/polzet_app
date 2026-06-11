@@ -167,3 +167,15 @@
 # ✅ Fluttercandies (Photo Manager, WeChat Assets Picker, WeChat Camera Picker)
 # =========================================================================
 -keep class com.fluttercandies.** { *; }
+
+# =========================================================================
+# ✅ Firebase Auth, App Check & Play Integrity (For Phone OTP & Verification)
+# =========================================================================
+-keep class com.google.firebase.auth.** { *; }
+-dontwarn com.google.firebase.auth.**
+-keep class com.google.firebase.appcheck.** { *; }
+-dontwarn com.google.firebase.appcheck.**
+-keep class com.google.android.play.core.integrity.** { *; }
+-keep class com.google.android.play.integrity.** { *; }
+-dontwarn com.google.android.play.core.integrity.**
+-dontwarn com.google.android.play.integrity.**

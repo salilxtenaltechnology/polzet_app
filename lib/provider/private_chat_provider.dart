@@ -166,11 +166,12 @@ class PrivateChatProvider extends ChangeNotifier {
     int? chatId,
     String? currentUsername,
   }) async {
-    final bool isNewChat = _chatId != chatId; // ← detect chat switch
+    final int? normalizedChatId = chatId == 0 ? null : chatId;
+    final bool isNewChat = _chatId != normalizedChatId; // ← detect chat switch
 
     _memberName = memberName;
     _profileUrl = profileUrl;
-    _chatId = chatId;
+    _chatId = normalizedChatId;
 
     if (currentUsername != null && currentUsername.isNotEmpty) {
       _currentUsername = currentUsername;

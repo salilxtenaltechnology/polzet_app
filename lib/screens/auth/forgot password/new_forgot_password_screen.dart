@@ -1,5 +1,5 @@
-// ignore_for_file: prefer_const_constructors, deprecated_member_use
-
+import 'package:dio/dio.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:polzet_app/mixin/utility_mixins.dart';
 
@@ -106,43 +106,144 @@ class _NewForgotPasswordSceenState extends State<NewForgotPasswordScreen>
 
   Future<void> _mobileSendOtp() async {
     if (_isSendingOtp || !_validate()) return;
-    setState(() => _isSendingOtp = true);
+
+    setState(() {
+      _isSendingOtp = true;
+      _emailOrMobileError = '';
+    });
+
+    bool startedFirebase = false;
 
     try {
-      final phone = _phoneController.text.trim();
+      // Clean phone number — remove spaces, dashes, brackets
+      final cleanPhone = _phoneController.text.trim().replaceAll(
+        RegExp(r'[\s\-().+]'),
+        '',
+      );
 
       final result = await ApiService().forgotPasswordSendOtp(
-        identifier: phone,
+        identifier: cleanPhone,
       );
 
       if (!mounted) return;
 
-      if (result['success'] == true) {
-        navigationPushReplacement(
-          context,
-          ForgotPasswordVerifyScreen(
-            isMobile: true,
-            maskedContact:
-                '${_selectedCountry.dialCode} '
-                '${'*' * (phone.length - 3)}'
-                '${phone.substring(phone.length - 3)}',
-            phoneNumber: phone,
-            countryCode: _selectedCountry.dialCode,
-          ),
-        );
+      final success =
+          result['success'] == true || result['status'] == 'success';
+
+      if (success) {
+        final data = result['data'] ?? {};
+        final String resMessage = (result['message'] ?? '')
+            .toString()
+            .toLowerCase()
+            .trim();
+        final bool requiresFirebase =
+            data['requires_firebase'] == true ||
+            resMessage.contains('firebase') ||
+            resMessage.contains('use firebase client sdk to send otp');
+
+        String resPhone = (data['phone_number'] ?? cleanPhone)
+            .toString()
+            .trim();
+        final String resCountryCode =
+            (data['country_code'] ?? _selectedCountry.dialCode).toString();
+
+        final dialCodeDigits = resCountryCode.replaceAll('+', '');
+        if (resPhone.startsWith(dialCodeDigits)) {
+          resPhone = resPhone.substring(dialCodeDigits.length);
+        } else if (resPhone.startsWith(resCountryCode)) {
+          resPhone = resPhone.substring(resCountryCode.length);
+        }
+
+        final fullPhoneNumber = '$resCountryCode$resPhone';
+
+        debugPrint('📱 requiresFirebase=$requiresFirebase');
+        debugPrint('📱 fullPhoneNumber=$fullPhoneNumber');
+
+        if (requiresFirebase) {
+          startedFirebase = true;
+
+          await FirebaseAuth.instance.verifyPhoneNumber(
+            phoneNumber: fullPhoneNumber,
+            timeout: const Duration(seconds: 60),
+            verificationCompleted: (PhoneAuthCredential credential) {
+              debugPrint('📱 verificationCompleted: $credential');
+            },
+            verificationFailed: (FirebaseAuthException e) {
+              debugPrint('📱 verificationFailed: ${e.code} - ${e.message}');
+              if (mounted) {
+                setState(() {
+                  _isSendingOtp = false;
+                  _emailOrMobileError =
+                      e.message ?? 'Firebase verification failed';
+                });
+              }
+            },
+            codeSent: (String verificationId, int? resendToken) {
+              debugPrint('📱 codeSent: id=$verificationId');
+              if (!mounted) return;
+              setState(() => _isSendingOtp = false);
+
+              navigationPushReplacement(
+                context,
+                ForgotPasswordVerifyScreen(
+                  isMobile: true,
+                  maskedContact:
+                      '$resCountryCode '
+                      '${'*' * (resPhone.length - 3)}'
+                      '${resPhone.substring(resPhone.length - 3)}',
+                  phoneNumber: resPhone,
+                  countryCode: resCountryCode,
+                  verificationId: verificationId,
+                  resendToken: resendToken,
+                ),
+              );
+            },
+            codeAutoRetrievalTimeout: (String verificationId) {
+              debugPrint('📱 codeAutoRetrievalTimeout: $verificationId');
+              if (mounted && _isSendingOtp) {
+                setState(() => _isSendingOtp = false);
+              }
+            },
+          );
+        } else {
+          // Non-Firebase OTP path
+          navigationPushReplacement(
+            context,
+            ForgotPasswordVerifyScreen(
+              isMobile: true,
+              maskedContact:
+                  '$resCountryCode '
+                  '${'*' * (resPhone.length - 3)}'
+                  '${resPhone.substring(resPhone.length - 3)}',
+              phoneNumber: resPhone,
+              countryCode: resCountryCode,
+            ),
+          );
+        }
       } else {
-        setState(
-          () => _emailOrMobileError = result['message'] ?? 'Failed to send OTP',
-        );
+        setState(() {
+          _emailOrMobileError = result['message'] ?? 'Failed to send OTP';
+        });
       }
+    } on DioException catch (e) {
+      setState(() {
+        _emailOrMobileError = ApiService().handleDioError(
+          e,
+          defaultMessage: 'Failed to send OTP',
+        );
+      });
     } catch (e) {
       if (mounted) {
         setState(
-          () => _emailOrMobileError = 'Something went wrong. Please try again.',
+          () => _emailOrMobileError = 'Connection error: ${e.toString()}',
         );
       }
     } finally {
-      if (mounted) setState(() => _isSendingOtp = false);
+      // ✅ Only reset if Firebase was NOT started
+      // Firebase callbacks handle their own loader reset
+      if (!startedFirebase && mounted) {
+        setState(() => _isSendingOtp = false);
+      }
     }
   }
 
@@ -250,18 +351,21 @@ class _NewForgotPasswordSceenState extends State<NewForgotPasswordScreen>
   }
 
   Widget _buildCountryCodeButton() {
-     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     return GestureDetector(
       onTap: _showCountryPicker,
       child: Container(
         height: 48,
         padding: const EdgeInsets.symmetric(horizontal: 12),
         decoration: BoxDecoration(
-         color: Theme.of(context).colorScheme.background,
+          color: Theme.of(context).colorScheme.surface,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: isDarkMode
-                  ? Theme.of(context).colorScheme.outline
-                  : const Color(0xFFDDDDDD), width: 1),
+          border: Border.all(
+            color: isDarkMode
+                ? Theme.of(context).colorScheme.outline
+                : const Color(0xFFDDDDDD),
+            width: 1,
+          ),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -272,7 +376,7 @@ class _NewForgotPasswordSceenState extends State<NewForgotPasswordScreen>
               _selectedCountry.dialCode,
               style: AppTextStyles.subText.copyWith(
                 fontSize: 14.5,
-                color: Theme.of(context).colorScheme.onBackground,
+                color: Theme.of(context).colorScheme.onSurface,
                 fontWeight: FontWeight.w400,
               ),
             ),
@@ -319,11 +423,11 @@ class _NewForgotPasswordSceenState extends State<NewForgotPasswordScreen>
             setState(() => _emailOrMobileError = '');
           }
         },
-        cursorColor: Theme.of(context).colorScheme.onPrimary.withOpacity(0.8),
+        cursorColor: Theme.of(context).colorScheme.onPrimary.withValues(alpha: 0.8),
         cursorWidth: 1.5,
         style: AppTextStyles.subText.copyWith(
           fontSize: 15,
-          color: Theme.of(context).colorScheme.onBackground,
+          color: Theme.of(context).colorScheme.onSurface,
           fontWeight: FontWeight.w400,
         ),
         decoration: InputDecoration(
@@ -351,7 +455,7 @@ class _NewForgotPasswordSceenState extends State<NewForgotPasswordScreen>
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
             borderSide: BorderSide(
-              color: Theme.of(context).colorScheme.onPrimary.withOpacity(0.7),
+              color: Theme.of(context).colorScheme.onPrimary.withValues(alpha: 0.7),
               width: 0.7,
             ),
           ),
@@ -413,7 +517,7 @@ class _NewForgotPasswordSceenState extends State<NewForgotPasswordScreen>
   Widget build(BuildContext context) {
     final txt = AppTextColors.of(context);
     return Scaffold(
-      backgroundColor: Theme.of(context).colorScheme.background,
+      backgroundColor: Theme.of(context).colorScheme.surface,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
@@ -425,7 +529,7 @@ class _NewForgotPasswordSceenState extends State<NewForgotPasswordScreen>
                 'Forgot password',
                 style: AppTextStyles.subSectionHeading.copyWith(
                   fontSize: 23,
-                  color: Theme.of(context).colorScheme.onBackground,
+                  color: Theme.of(context).colorScheme.onSurface,
                 ),
               ),
               const SizedBox(height: 8),

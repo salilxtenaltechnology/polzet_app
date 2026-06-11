@@ -1,6 +1,9 @@
 // ignore_for_file: unused_field, deprecated_member_use, unused_element, library_private_types_in_public_api
+import 'package:firebase_app_check/firebase_app_check.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -20,8 +23,11 @@ import 'provider/private_chat_provider.dart';
 
 import 'provider/user_provider.dart';
 import 'screens/home/home_imports.dart';
+import 'screens/home/profile/chase/user_chase.dart';
 import 'screens/home/message/chat/private/private_chat_screen.dart';
+import 'screens/home/message/chat/group/group_chat_screen.dart';
 import 'screens/home/profile/public/public_profile_screen.dart';
+import 'provider/group_chat_provider.dart';
 import 'screens/splash/splash_screen.dart';
 
 // Background message handler
@@ -41,33 +47,38 @@ void main() async {
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     );
-
-    FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
-
-    final initialMessage = await FirebaseMessaging.instance.getInitialMessage();
-    if (initialMessage != null) {
-      debugPrint('🚀 COLD START: Notification tap detected');
-      debugPrint('   Title: ${initialMessage.notification?.title}');
-      debugPrint('   Body: ${initialMessage.notification?.body}');
-      debugPrint('═══════════════════════════════════════════════════');
-      debugPrint('📋 NOTIFICATION DATA STRUCTURE:');
-      debugPrint('   Keys: ${initialMessage.data.keys.toList()}');
-      initialMessage.data.forEach((key, value) {
-        debugPrint('   $key: $value (${value.runtimeType})');
-      });
-
-      if (initialMessage.data.containsKey('notification')) {
-        debugPrint('   ⚠️ DETECTED NESTED "notification" OBJECT!');
-        debugPrint('   Content: ${initialMessage.data['notification']}');
-      }
-      debugPrint('═══════════════════════════════════════════════════');
-
-      NotificationRouter().setPendingNotification(initialMessage);
-    }
-
     debugPrint('✅ Firebase initialized');
   } catch (e) {
     debugPrint('❌ Firebase initialization error: $e');
+  }
+
+  try {
+    if (kReleaseMode) {
+      await FirebaseAppCheck.instance.activate(
+        androidProvider: AndroidProvider.playIntegrity,
+        appleProvider: AppleProvider.deviceCheck,
+      );
+      debugPrint('✅ App Check activated (production)');
+    } else {
+      await FirebaseAppCheck.instance.activate(
+        androidProvider: AndroidProvider.debug,
+        appleProvider: AppleProvider.debug,
+      );
+      debugPrint('✅ App Check activated (debug)');
+    }
+  } catch (e) {
+    debugPrint('⚠️ App Check failed (non-critical): $e');
+  }
+
+  try {
+    FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+    final initialMessage = await FirebaseMessaging.instance.getInitialMessage();
+    if (initialMessage != null) {
+      NotificationRouter().setPendingNotification(initialMessage);
+    }
+    debugPrint('✅ FCM initialized');
+  } catch (e) {
+    debugPrint('❌ FCM initialization error: $e');
   }
 
   runApp(
@@ -170,23 +181,37 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
 
   Future<void> _loadSavedLanguage() async {
     final languageCode = await SharedPrefService.getLanguage();
+    final String currentLang = languageCode ?? 'en';
     setState(() {
-      _locale = languageCode != null
-          ? Locale(languageCode)
-          : const Locale('en');
+      _locale = Locale(currentLang);
     });
+    try {
+      await FirebaseAuth.instance.setLanguageCode(currentLang);
+    } catch (e) {
+      debugPrint('Error setting Firebase language code: $e');
+    }
   }
 
   void changeLanguage(Locale locale) {
     setState(() {
       _locale = locale;
     });
+    try {
+      FirebaseAuth.instance.setLanguageCode(locale.languageCode);
+    } catch (e) {
+      debugPrint('Error setting Firebase language code: $e');
+    }
   }
 
   void resetLocale() {
     setState(() {
       _locale = const Locale('en');
     });
+    try {
+      FirebaseAuth.instance.setLanguageCode('en');
+    } catch (e) {
+      debugPrint('Error setting Firebase language code: $e');
+    }
   }
 
   void _setupNotificationCallbacks() {
@@ -211,7 +236,8 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
 
     final userProvider = Provider.of<UserProvider>(context, listen: false);
     if (!userProvider.isUserDataValid()) {
-      debugPrint('⏳ UserProvider not ready, waiting...');
+      debugPrint('⏳ UserProvider not ready, triggering silent load...');
+      userProvider.loadUserDataSilently();
       final ready = await userProvider.waitForUserData(
         timeout: const Duration(seconds: 5),
       );
@@ -222,7 +248,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       }
     }
 
-    _navigateToNotificationDestination(context, message.data);
+    _navigateToNotificationDestination(context, message.data, messageId: message.messageId);
   }
 
   void _handleForegroundNotificationTap(NotificationPayload payload) async {
@@ -234,7 +260,8 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
 
     final userProvider = Provider.of<UserProvider>(context, listen: false);
     if (!userProvider.isUserDataValid()) {
-      debugPrint('⏳ UserProvider not ready, waiting...');
+      debugPrint('⏳ UserProvider not ready, triggering silent load...');
+      userProvider.loadUserDataSilently();
       final ready = await userProvider.waitForUserData(
         timeout: const Duration(seconds: 5),
       );
@@ -245,13 +272,19 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       }
     }
 
-    _navigateToNotificationDestination(context, payload.data);
+    _navigateToNotificationDestination(context, payload.data, messageId: payload.id);
   }
 
   void _navigateToNotificationDestination(
     BuildContext context,
-    Map<String, dynamic> rawData,
-  ) {
+    Map<String, dynamic> rawData, {
+    String? messageId,
+  }) {
+    if (messageId != null) {
+      SharedPrefService.setString('last_processed_notification_id', messageId);
+      debugPrint('📬 main.dart: Persisted processed notification ID: $messageId');
+    }
+
     final notificationData = rawData['notification'] is Map
         ? rawData['notification'] as Map<String, dynamic>
         : rawData;
@@ -270,6 +303,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     Widget? destination;
 
     if (type == 'like' ||
+        type == 'like_group' ||
         type == 'comment' ||
         type == 'commetnt' ||
         type == 'vote' ||
@@ -278,6 +312,13 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       debugPrint('   📝 Post notification detected - postId: $postId');
 
       if (postId != null && postId.isNotEmpty && postId != '0') {
+        if (username.isEmpty) {
+          debugPrint(
+            '⚠️ _navigateToNotificationDestination: username is empty, fallback to notifications tab',
+          );
+          _navigateToNotificationsTab(context);
+          return;
+        }
         destination = SinglePostDetails(username: username, postId: postId);
       } else {
         debugPrint('❌ Invalid or missing post_id for type: $type');
@@ -289,26 +330,48 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       } else {
         debugPrint('❌ Invalid or missing sender_id for type: $type');
       }
-    } else if (type == 'new_message') {
-      final senderId = _parseToInt(data['sender_id']);
-      final memberName =
-          data['sender']?.toString() ?? data['sender']?.toString() ?? 'Chat';
-      final profileUrl =
-          data['sender_profile_image']?.toString() ??
-          data['profile_image']?.toString();
-      final chatId = _parseToInt(data['chat_id']);
+    } else if (type == 'follow_group') {
+      destination = UserChase(
+        username: userProvider.username ?? '',
+        initialIndex: 0,
+        followerCount: userProvider.followers_count ?? '0',
+        followingCount: userProvider.following_count ?? '0',
+        chaseList: userProvider.chase_list,
+        rechaseList: userProvider.rechase_list,
+      );
+    } else if (type == 'new_message' ||
+        type == 'new_group_added' ||
+        type == 'group_admin_promote') {
+      final meta = data['meta'] is Map
+          ? data['meta'] as Map<String, dynamic>
+          : null;
+      final senderId = _parseToInt(data['sender_id'] ?? meta?['sender_id']);
+      final memberName = (data['sender'] ?? meta?['sender'] ?? 'Chat')
+          .toString();
+      final profileUrl = (data['sender_profile_image'] ?? data['profile_image'])
+          ?.toString();
+      final chatId = _parseToInt(data['chat_id'] ?? meta?['chat_id']);
+      final groupName =
+          (data['group_name'] ?? meta?['group_name'])?.toString() ?? '';
 
       debugPrint(
-        '   💬 Message notification - name: $memberName, chatId: $chatId',
+        '   💬 Message notification - name: $memberName, chatId: $chatId, groupName: $groupName',
       );
 
       if (chatId > 0) {
-        destination = PrivateChatScreen(
-          userId: senderId,
-          memberName: memberName,
-          profileUrl: profileUrl,
-          chatId: chatId,
-        );
+        if (groupName.isNotEmpty) {
+          destination = ChangeNotifierProvider(
+            create: (_) => GroupChatProvider(),
+            child: GroupChatScreen(groupName: groupName, chatId: chatId),
+          );
+        } else {
+          destination = PrivateChatScreen(
+            userId: senderId,
+            memberName: memberName,
+            profileUrl: profileUrl,
+            chatId: chatId,
+          );
+        }
       } else {
         debugPrint('❌ Invalid or missing chat_id for type: $type');
       }
@@ -328,7 +391,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   void _navigateToNotificationsTab(BuildContext context) {
     debugPrint('🔔 Navigating to notifications tab');
     Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute(builder: (_) => const HomeScreen(initialIndex: 3)),
+      MaterialPageRoute(builder: (_) => const HomeScreen(initialIndex: 0)),
       (route) => false,
     );
   }

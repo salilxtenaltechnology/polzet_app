@@ -1,6 +1,7 @@
 // ignore_for_file: deprecated_member_use, must_be_immutable
 
 import 'dart:typed_data';
+import 'dart:ui';
 
 import 'package:polzet_app/core/constants/feather_icons_compat.dart';
 import 'package:flutter/material.dart';
@@ -11,9 +12,16 @@ import 'package:provider/provider.dart';
 import '../../../../../core/constants/app_radius.dart';
 import '../../../../../core/themes/app_text_colors.dart';
 import '../../../../../core/themes/app_text_styles.dart';
+import '../../../../../api/api_config.dart';
 import '../../../../../languages/l10n/generated/app_localizations.dart';
 import '../../../../../mixin/utility_mixins.dart';
 import '../../../../../models/message/message_model.dart';
+import '../../../../../models/posts/single_post_model.dart';
+import '../../../home feed/rank/result/image/image_result_screen.dart';
+import '../../../home feed/rank/result/things/things_result_screen.dart';
+import '../../../search/posts/rank/single_post_image_ranking.dart';
+import '../../../search/posts/rank/single_post_things_ranking.dart';
+import '../../../profile/public/public_profile_screen.dart';
 import '../../../../../provider/group_chat_provider.dart';
 import '../../../../../provider/user_provider.dart';
 import '../../../../../widgets/base64/image_convert.dart';
@@ -239,6 +247,37 @@ class GroupChatScreenState extends State<GroupChatScreen>
     }
   }
 
+  Color _getUsernameColor(String username) {
+    final colors = [
+      const Color(0xFFE53935), // red
+      const Color(0xFF8E24AA), // purple
+      const Color(0xFF1E88E5), // blue
+      const Color(0xFF00897B), // teal
+      const Color(0xFFF4511E), // deep orange
+      const Color(0xFF6D4C41), // brown
+      const Color(0xFF3949AB), // indigo
+      const Color(0xFF039BE5), // light blue
+      const Color(0xFF43A047), // green
+      const Color(0xFFFFB300), // amber
+    ];
+    int hash = 0;
+    for (int i = 0; i < username.length; i++) {
+      hash = username.codeUnitAt(i) + ((hash << 5) - hash);
+    }
+    final index = hash.abs() % colors.length;
+    return colors[index];
+  }
+
+  void _navigateToPublicProfile(String? userId, String? username) {
+    if (userId == null) return;
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => PublicProfileScreen(userId: userId, username: username),
+      ),
+    );
+  }
+
   Widget _buildMessageStatus(ChatMessage message) {
     if (!message.isSentByMe) return const SizedBox.shrink();
 
@@ -249,6 +288,447 @@ class GroupChatScreenState extends State<GroupChatScreen>
       return Icon(Icons.check, size: 11.sp, color: Colors.white54);
     }
     return Icon(Icons.done_all, size: 11.sp, color: Colors.white70);
+  }
+
+  // ── Shared Post Card ───────────────────────────────────────────────────────
+  Widget _buildSharedPostCard(BuildContext context, ChatMessage message) {
+    final txt = AppTextColors.of(context);
+    final post = message.sharedPost!;
+    final user = post['user'] ?? {};
+    final firstName = user['first_name']?.toString() ?? '';
+    final lastName = user['last_name']?.toString() ?? '';
+    final name = '$firstName $lastName'.trim();
+    final username = user['username']?.toString() ?? '';
+    final avatarUrl = user['profile_image']?.toString();
+    final description = post['description']?.toString() ?? '';
+    final isPolledByCurrentUser = post['is_polled_by_current_user'] == true;
+
+    // Get time ago
+    final dtStr = post['created_at']?.toString() ?? '';
+    final createdAt = DateTime.tryParse(dtStr) ?? DateTime.now();
+    final diff = DateTime.now().difference(createdAt);
+    String timeAgo = '';
+    if (diff.inMinutes < 1) {
+      timeAgo = 'Just now';
+    } else if (diff.inHours < 1) {
+      timeAgo = '${diff.inMinutes} min ago';
+    } else if (diff.inDays < 1) {
+      timeAgo = '${diff.inHours} hr ago';
+    } else {
+      timeAgo = '${diff.inDays}d ago';
+    }
+
+    // Extract images & poll text
+    List<String> imageUrls = [];
+    String pollQuestion = '';
+    List<String> pollTextOptions = [];
+
+    if (post['images'] != null && (post['images'] as List).isNotEmpty) {
+      for (var img in post['images']) {
+        final url = img['image'] ?? img['url'];
+        if (url != null) imageUrls.add(url.toString());
+      }
+    } else if (post['polls'] != null && (post['polls'] as List).isNotEmpty) {
+      final poll = post['polls'][0];
+      pollQuestion = poll['question']?.toString() ?? '';
+      final options = poll['options'] as List? ?? [];
+      for (var opt in options) {
+        if (opt['image'] != null) {
+          final url = opt['image']['url'] ?? opt['image']['thumbnail_url'];
+          if (url != null) imageUrls.add(url.toString());
+        } else if (opt['text'] != null && opt['text'].toString().isNotEmpty) {
+          pollTextOptions.add(opt['text'].toString());
+        }
+      }
+    }
+    imageUrls = imageUrls.where((e) => e.isNotEmpty).toList();
+
+    final avatarBytes = avatarUrl != null ? getProfileImage(avatarUrl) : null;
+
+    return GestureDetector(
+      onTap: () {
+        final isImagePoll = imageUrls.isNotEmpty;
+        final isThingsPoll = pollTextOptions.isNotEmpty;
+
+        if (!isImagePoll && !isThingsPoll) return;
+
+        if (isPolledByCurrentUser) {
+          if (isImagePoll) {
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => ImageResultScreen(
+                  username: username,
+                  postId: post['id'].toString(),
+                ),
+              ),
+            );
+          } else if (isThingsPoll) {
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => ThingsResultScreen(
+                  username: username,
+                  postId: post['id'].toString(),
+                ),
+              ),
+            );
+          }
+        } else {
+          try {
+            final userMap = post['user'] as Map<String, dynamic>? ?? {};
+            final mappedJson = {
+              'id': post['id'],
+              'first_name': userMap['first_name'],
+              'last_name': userMap['last_name'],
+              'user': userMap['username'],
+              'profile_image': userMap['profile_image'],
+              'description': post['description'],
+              'created_at': post['created_at'],
+              'polls': post['polls'],
+              'is_liked': post['is_liked_by_current_user'],
+              'is_polled_by_current_user': post['is_polled_by_current_user'],
+              'location_name': post['location_name'],
+              'comments_count': post['comments_count'],
+              'likes_count': post['likes_count'],
+              'following_status': post['following_status'],
+              'shares_count': post['shares_count'],
+            };
+
+            final singlePost = SinglePostModel.fromJson(mappedJson);
+            if (singlePost.polls.isNotEmpty) {
+              if (isImagePoll) {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => SinglePostImageRanking(
+                      post: singlePost,
+                      poll: singlePost.polls.first,
+                    ),
+                  ),
+                );
+              } else if (isThingsPoll) {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => SinglePostThingsRanking(
+                      post: singlePost,
+                      poll: singlePost.polls.first,
+                    ),
+                  ),
+                );
+              }
+            }
+          } catch (e) {
+            debugPrint('Error parsing shared post for navigation: $e');
+          }
+        }
+      },
+      child: Container(
+        margin: EdgeInsets.only(
+          top: 12,
+          bottom: 12,
+          left: message.isSentByMe ? 50.w : 12.w,
+          right: message.isSentByMe ? 0 : 40.w,
+        ),
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.primaryContainer,
+          borderRadius: BorderRadius.circular(AppRadius.card),
+          border: Border.all(
+            color: Theme.of(context).colorScheme.outline,
+            width: 1,
+          ),
+          boxShadow: const [BoxShadow(color: Color(0x04000000), blurRadius: 2)],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header
+            Padding(
+              padding: EdgeInsets.fromLTRB(10.w, 10.h, 10.w, 0),
+              child: GestureDetector(
+                onTap: () {
+                  final userId =
+                      user['userid'] ?? user['id'] ?? user['user_id'];
+                  if (userId != null) {
+                    _navigateToPublicProfile(userId.toString(), username);
+                  }
+                },
+                child: Row(
+                  children: [
+                    CircleAvatar(
+                      radius: 19,
+                      backgroundColor: Theme.of(
+                        context,
+                      ).colorScheme.onPrimary.withOpacity(0.1),
+                      backgroundImage: avatarBytes != null
+                          ? MemoryImage(avatarBytes)
+                          : null,
+                      child: avatarBytes == null
+                          ? Text(
+                              name.isNotEmpty
+                                  ? name[0].toUpperCase()
+                                  : (username.isNotEmpty
+                                        ? username[0].toUpperCase()
+                                        : 'P'),
+                              style: TextStyle(
+                                fontSize: 18,
+                                color: Theme.of(context).colorScheme.onPrimary,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            )
+                          : null,
+                    ),
+                    SizedBox(width: 8.w),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            name.isNotEmpty ? name : username,
+                            style: AppTextStyles.sectionHeading.copyWith(
+                              color: txt.title,
+                              fontSize: 14,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          Row(
+                            children: [
+                              Flexible(
+                                child: Text(
+                                  '@$username',
+                                  style: AppTextStyles.bodyText.copyWith(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w500,
+                                    color: txt.body,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              Text(
+                                ' • $timeAgo',
+                                style: AppTextStyles.subText.copyWith(
+                                  color: txt.muted,
+                                  fontWeight: FontWeight.w400,
+                                  fontSize: 11.5,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            Divider(color: Theme.of(context).colorScheme.outlineVariant),
+
+            if (description.isNotEmpty && pollTextOptions.isEmpty) ...[
+              Padding(
+                padding: EdgeInsets.fromLTRB(10.w, 0, 10.w, 0),
+                child: Text(
+                  description,
+                  style: AppTextStyles.bodyText.copyWith(
+                    color: txt.heading,
+                    fontWeight: FontWeight.w400,
+                    fontSize: 13.5,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+
+            if (imageUrls.isNotEmpty) ...[
+              SizedBox(height: 10.h),
+              _buildStackedImages(imageUrls),
+            ] else if (pollTextOptions.isNotEmpty) ...[
+              _buildTextPoll(context, pollQuestion, pollTextOptions),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTextPoll(
+    BuildContext context,
+    String question,
+    List<String> options,
+  ) {
+    final txt = AppTextColors.of(context);
+    final displayOptions = options.take(2).toList();
+    final remainingCount = options.length - displayOptions.length;
+
+    return Padding(
+      padding: EdgeInsets.fromLTRB(10.w, 0, 10.w, 10.h),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (question.isNotEmpty) ...[
+            Text(
+              question,
+              style: AppTextStyles.bodyText.copyWith(
+                color: txt.heading,
+                fontWeight: FontWeight.w400,
+                fontSize: 13.5,
+              ),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+            SizedBox(height: 10.h),
+          ],
+          Row(
+            children: [
+              ...displayOptions.map((opt) {
+                return Expanded(
+                  child: Container(
+                    margin: EdgeInsets.only(right: 8.w),
+                    padding: EdgeInsets.symmetric(
+                      horizontal: 8.w,
+                      vertical: 8.h,
+                    ),
+                    decoration: BoxDecoration(
+                      border: Border.all(
+                        color: Theme.of(context).colorScheme.outline,
+                        width: 1,
+                      ),
+                      borderRadius: BorderRadius.circular(AppRadius.card),
+                    ),
+                    alignment: Alignment.center,
+                    child: Text(
+                      opt,
+                      style: AppTextStyles.bodyText.copyWith(
+                        fontSize: 13,
+                        color: txt.heading,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                );
+              }),
+              if (remainingCount > 0)
+                Expanded(
+                  child: Container(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: 8.w,
+                      vertical: 8.h,
+                    ),
+                    decoration: BoxDecoration(
+                      border: Border.all(
+                        color: Theme.of(context).colorScheme.outlineVariant,
+                      ),
+                      borderRadius: BorderRadius.circular(AppRadius.button),
+                    ),
+                    alignment: Alignment.center,
+                    child: Text(
+                      '+$remainingCount more',
+                      style: AppTextStyles.bodyText.copyWith(
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                        color: txt.heading,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStackedImages(List<String> urls) {
+    final displayUrls = urls.take(4).toList();
+    final n = displayUrls.length;
+
+    return Padding(
+      padding: EdgeInsets.fromLTRB(10.w, 0, 10.w, 10.h),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final w = constraints.maxWidth;
+          final h = 140.h;
+
+          final cardWidth = n == 1 ? w : w * 0.55;
+          final spacing = n > 1 ? (w - cardWidth) / (n - 1) : 0.0;
+
+          return SizedBox(
+            height: h,
+            width: w,
+            child: Stack(
+              children: displayUrls
+                  .asMap()
+                  .entries
+                  .map<Widget>((entry) {
+                    final i = entry.key;
+                    final url = entry.value;
+
+                    Widget imageWidget = _buildNetworkImage(url);
+
+                    if (i > 0) {
+                      imageWidget = ImageFiltered(
+                        imageFilter: ImageFilter.blur(sigmaX: 2.0, sigmaY: 2.0),
+                        child: imageWidget,
+                      );
+                    }
+
+                    return Positioned(
+                      left: i * spacing,
+                      top: 0,
+                      bottom: 0,
+                      width: cardWidth,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          border: Border.all(
+                            color: Theme.of(context).colorScheme.outlineVariant,
+                            width: 1,
+                          ),
+                          borderRadius: BorderRadius.circular(AppRadius.button),
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(AppRadius.button),
+                          child: Stack(
+                            fit: StackFit.expand,
+                            children: [imageWidget],
+                          ),
+                        ),
+                      ),
+                    );
+                  })
+                  .toList()
+                  .reversed
+                  .toList(),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildNetworkImage(String url) {
+    final fullUrl = url.startsWith('http')
+        ? url
+        : '${ApiConfig.baseUrlImage}$url';
+    return Image.network(
+      fullUrl,
+      fit: BoxFit.cover,
+      errorBuilder: (context, error, stackTrace) => Container(
+        color: Colors.grey[200],
+        child: const Icon(Icons.broken_image, color: Colors.grey),
+      ),
+      loadingBuilder: (_, child, progress) {
+        if (progress == null) return child;
+        return Center(
+          child: CircularProgressIndicator(
+            value: progress.expectedTotalBytes != null
+                ? progress.cumulativeBytesLoaded / progress.expectedTotalBytes!
+                : null,
+          ),
+        );
+      },
+    );
   }
 
   Widget _buildMessageBubble(BuildContext context, ChatMessage message) {
@@ -262,6 +742,85 @@ class GroupChatScreenState extends State<GroupChatScreen>
     final String initial = (message.senderUsername?.isNotEmpty == true)
         ? message.senderUsername![0].toUpperCase()
         : 'P';
+
+    final bubble = Container(
+      margin: EdgeInsets.symmetric(vertical: 4.h),
+      padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 5.h),
+      constraints: BoxConstraints(
+        maxWidth: MediaQuery.of(context).size.width * 0.65,
+      ),
+      decoration: BoxDecoration(
+        color: message.isSentByMe
+            ? Theme.of(context).colorScheme.primary
+            : (isDarkMode ? const Color(0xFF2A2A2E) : const Color(0xFFF3F4F6)),
+        borderRadius: BorderRadius.only(
+          topLeft: message.isSentByMe
+              ? const Radius.circular(AppRadius.card)
+              : const Radius.circular(0),
+          topRight: const Radius.circular(AppRadius.card),
+          bottomLeft: const Radius.circular(AppRadius.card),
+          bottomRight: message.isSentByMe
+              ? const Radius.circular(0)
+              : const Radius.circular(AppRadius.card),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (!message.isSentByMe && message.senderUsername != null)
+            Padding(
+              padding: EdgeInsets.only(bottom: 3.h),
+              child: GestureDetector(
+                onTap: () => _navigateToPublicProfile(
+                  message.senderId?.toString(),
+                  message.senderUsername,
+                ),
+                child: Text(
+                  message.senderUsername!,
+                  style: TextStyle(
+                    fontSize: 10.sp,
+                    fontWeight: FontWeight.w600,
+                    color: _getUsernameColor(message.senderUsername!),
+                  ),
+                ),
+              ),
+            ),
+          Wrap(
+            alignment: WrapAlignment.end,
+            crossAxisAlignment: WrapCrossAlignment.end,
+            spacing: 4.w,
+            children: [
+              Text(
+                message.text,
+                style: TextStyle(
+                  color: message.isSentByMe
+                      ? Colors.white
+                      : Theme.of(context).colorScheme.onBackground,
+                  fontSize: 10.8.sp,
+                  fontWeight: FontWeight.w400,
+                ),
+              ),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    _formatTime(message.created_at),
+                    style: TextStyle(
+                      fontSize: 8.2.sp,
+                      color: message.isSentByMe
+                          ? const Color(0xBDFFFFFF)
+                          : txt.muted,
+                    ),
+                  ),
+                  SizedBox(width: 3.w),
+                  _buildMessageStatus(message),
+                ],
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
 
     return Align(
       alignment: message.isSentByMe
@@ -277,102 +836,51 @@ class GroupChatScreenState extends State<GroupChatScreen>
             SizedBox(width: 6.w),
             Padding(
               padding: EdgeInsets.only(top: 5.h),
-              child: CircleAvatar(
-                radius: 15,
-                backgroundColor: Theme.of(
-                  context,
-                ).colorScheme.onPrimary.withOpacity(0.1),
-                backgroundImage: avatarBytes != null
-                    ? MemoryImage(avatarBytes)
-                    : null,
-                child: avatarBytes == null
-                    ? Text(
-                        initial,
-                        style: TextStyle(
-                          fontSize: 10.sp,
-                          fontWeight: FontWeight.w600,
-                          color: Theme.of(context).colorScheme.primary,
-                        ),
-                      )
-                    : null,
+              child: GestureDetector(
+                onTap: () => _navigateToPublicProfile(
+                  message.senderId?.toString(),
+                  message.senderUsername,
+                ),
+                child: CircleAvatar(
+                  radius: 17,
+                  backgroundColor: Theme.of(
+                    context,
+                  ).colorScheme.onPrimary.withOpacity(0.1),
+                  backgroundImage: avatarBytes != null
+                      ? MemoryImage(avatarBytes)
+                      : null,
+                  child: avatarBytes == null
+                      ? Text(
+                          initial,
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w500,
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onPrimary.withOpacity(0.8),
+                          ),
+                        )
+                      : null,
+                ),
               ),
             ),
             SizedBox(width: 6.w),
           ],
-          Container(
-            margin: EdgeInsets.symmetric(vertical: 4.h),
-            padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 5.h),
-            constraints: BoxConstraints(
-              maxWidth: MediaQuery.of(context).size.width * 0.65,
-            ),
-            decoration: BoxDecoration(
-              color: message.isSentByMe
-                  ? Theme.of(context).colorScheme.primary
-                  : (isDarkMode
-                        ? const Color(0xFF2A2A2E)
-                        : const Color(0xFFF3F4F6)),
-              borderRadius: BorderRadius.only(
-                topLeft: message.isSentByMe
-                    ? const Radius.circular(AppRadius.card)
-                    : const Radius.circular(0),
-                topRight: const Radius.circular(AppRadius.card),
-                bottomLeft: const Radius.circular(AppRadius.card),
-                bottomRight: message.isSentByMe
-                    ? const Radius.circular(0)
-                    : const Radius.circular(AppRadius.card),
+          if (message.sharedPost != null)
+            Expanded(
+              child: Column(
+                crossAxisAlignment: message.isSentByMe
+                    ? CrossAxisAlignment.end
+                    : CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _buildSharedPostCard(context, message),
+                  if (message.text.isNotEmpty) bubble,
+                ],
               ),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (!message.isSentByMe && message.senderUsername != null)
-                  Padding(
-                    padding: EdgeInsets.only(bottom: 3.h),
-                    child: Text(
-                      message.senderUsername!,
-                      style: TextStyle(
-                        fontSize: 8.sp,
-                        fontWeight: FontWeight.w600,
-                        color: Theme.of(context).colorScheme.primary,
-                      ),
-                    ),
-                  ),
-                Wrap(
-                  alignment: WrapAlignment.end,
-                  crossAxisAlignment: WrapCrossAlignment.end,
-                  spacing: 4.w,
-                  children: [
-                    Text(
-                      message.text,
-                      style: TextStyle(
-                        color: message.isSentByMe
-                            ? Colors.white
-                            : Theme.of(context).colorScheme.onBackground,
-                        fontSize: 10.8.sp,
-                        fontWeight: FontWeight.w400,
-                      ),
-                    ),
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          _formatTime(message.created_at),
-                          style: TextStyle(
-                            fontSize: 8.2.sp,
-                            color: message.isSentByMe
-                                ? const Color(0xBDFFFFFF)
-                                : txt.muted,
-                          ),
-                        ),
-                        SizedBox(width: 3.w),
-                        _buildMessageStatus(message),
-                      ],
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
+            )
+          else
+            bubble,
           if (message.isSentByMe) SizedBox(width: 12.w),
         ],
       ),

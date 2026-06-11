@@ -1,19 +1,21 @@
 // ignore_for_file: deprecated_member_use
 import 'dart:typed_data';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:polzet_app/core/constants/feather_icons_compat.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:polzet_app/api/api_config.dart';
-import 'package:polzet_app/api/services/api_service.dart';
-import 'package:polzet_app/core/constants/app_radius.dart';
-import 'package:polzet_app/core/themes/app_text_colors.dart';
-import 'package:polzet_app/core/themes/app_text_styles.dart';
-import 'package:polzet_app/languages/l10n/generated/app_localizations.dart';
-import 'package:polzet_app/models/poll/poll_results_model.dart';
-import 'package:polzet_app/widgets/base64/image_convert.dart';
-import 'package:polzet_app/widgets/loader.dart';
+import 'package:polzet_app/screens/home/profile/public/public_profile_screen.dart';
 
+import '../../../api/api_config.dart';
+import '../../../api/services/api_service.dart';
+import '../../../core/constants/app_radius.dart';
+import '../../../core/themes/app_text_colors.dart';
+import '../../../core/themes/app_text_styles.dart';
 import '../../../gen/assets.gen.dart';
+import '../../../languages/l10n/generated/app_localizations.dart';
+import '../../../mixin/utility_mixins.dart';
+import '../../../models/poll/poll_results_model.dart';
+import '../../base64/image_convert.dart';
+import '../../loader.dart';
 
 class PollVotersBottomsheet extends StatefulWidget {
   final dynamic postId;
@@ -31,7 +33,8 @@ class PollVotersBottomsheet extends StatefulWidget {
   State<PollVotersBottomsheet> createState() => _PollVotersBottomsheetState();
 }
 
-class _PollVotersBottomsheetState extends State<PollVotersBottomsheet> {
+class _PollVotersBottomsheetState extends State<PollVotersBottomsheet>
+    with UtilityMixin {
   final ApiService _apiService = ApiService();
   final TextEditingController _searchController = TextEditingController();
 
@@ -321,61 +324,74 @@ class _PollVotersBottomsheetState extends State<PollVotersBottomsheet> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             // Voter Info Row
-                            Row(
-                              children: [
-                                CircleAvatar(
-                                  radius: 20,
-                                  backgroundImage: avatarBytes != null
-                                      ? MemoryImage(avatarBytes)
-                                      : null,
-                                  backgroundColor: Theme.of(context).colorScheme.onPrimary.withOpacity(0.1),
-                                  child: avatarBytes == null
-                                      ? Text(
+                            GestureDetector(
+                              onTap: () {
+                                navigationPush(
+                                  context,
+                                  PublicProfileScreen(userId: voter.id),
+                                );
+                              },
+                              child: Row(
+                                children: [
+                                  CircleAvatar(
+                                    radius: 20,
+                                    backgroundImage: avatarBytes != null
+                                        ? MemoryImage(avatarBytes)
+                                        : null,
+                                    backgroundColor: Theme.of(
+                                      context,
+                                    ).colorScheme.onPrimary.withOpacity(0.1),
+                                    child: avatarBytes == null
+                                        ? Text(
+                                            voter.fullName.isNotEmpty
+                                                ? voter.fullName[0]
+                                                      .toUpperCase()
+                                                : voter.username.isNotEmpty
+                                                ? voter.username[0]
+                                                      .toUpperCase()
+                                                : 'P',
+                                            style: AppTextStyles.bodyText
+                                                .copyWith(
+                                                  color: Theme.of(context)
+                                                      .colorScheme
+                                                      .onPrimary
+                                                      .withOpacity(0.7),
+                                                  fontSize: 18,
+                                                  fontWeight: FontWeight.w500,
+                                                ),
+                                          )
+                                        : null,
+                                  ),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
                                           voter.fullName.isNotEmpty
-                                              ? voter.fullName[0].toUpperCase()
-                                              : voter.username.isNotEmpty
-                                              ? voter.username[0].toUpperCase()
-                                              : 'P',
+                                              ? voter.fullName
+                                              : voter.username,
+                                          style: AppTextStyles.sectionHeading
+                                              .copyWith(
+                                                color: txt.title,
+                                                fontSize: 13.5,
+                                              ),
+                                        ),
+                                        Text(
+                                          '@${voter.username}',
                                           style: AppTextStyles.bodyText
                                               .copyWith(
-                                                color: Theme.of(context)
-                                                    .colorScheme
-                                                    .onPrimary
-                                                    .withOpacity(0.7),
-                                                fontSize: 18,
+                                                fontSize: 12,
                                                 fontWeight: FontWeight.w500,
+                                                color: txt.body,
                                               ),
-                                        )
-                                      : null,
-                                ),
-                                const SizedBox(width: 10),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        voter.fullName.isNotEmpty
-                                            ? voter.fullName
-                                            : voter.username,
-                                        style: AppTextStyles.sectionHeading
-                                            .copyWith(
-                                              color: txt.title,
-                                              fontSize: 13.5,
-                                            ),
-                                      ),
-                                      Text(
-                                        '@${voter.username}',
-                                        style: AppTextStyles.bodyText.copyWith(
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.w500,
-                                          color: txt.body,
                                         ),
-                                      ),
-                                    ],
+                                      ],
+                                    ),
                                   ),
-                                ),
-                              ],
+                                ],
+                              ),
                             ),
 
                             const SizedBox(height: 10),

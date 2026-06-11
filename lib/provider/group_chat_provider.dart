@@ -325,6 +325,8 @@ class GroupChatProvider extends ChangeNotifier {
                   : false,
               senderUsername: item.sender.username,
               senderProfileImage: item.sender.profileImage,
+              senderId: item.sender.id,
+              sharedPost: item.sharedPost,
             ),
           )
           .toList()
@@ -378,6 +380,8 @@ class GroupChatProvider extends ChangeNotifier {
                   : false,
               senderUsername: item.sender.username,
               senderProfileImage: item.sender.profileImage,
+              senderId: item.sender.id,
+              sharedPost: item.sharedPost,
             ),
           )
           .toList();
@@ -423,6 +427,8 @@ class GroupChatProvider extends ChangeNotifier {
               isSentByMe: item.isSentBy(_currentUsername),
               senderUsername: item.sender.username,
               senderProfileImage: item.sender.profileImage,
+              senderId: item.sender.id,
+              sharedPost: item.sharedPost,
             ),
           )
           .toList();
@@ -757,6 +763,8 @@ class GroupChatProvider extends ChangeNotifier {
               isPending: false,
               senderUsername: senderUsername,
               senderProfileImage: senderProfileImage,
+              senderId: senderUserId?.toString(),
+              sharedPost: msgMap['shared_post'] as Map<String, dynamic>?,
             );
             _saveCachedMessages();
             _emitMessages();
@@ -773,6 +781,8 @@ class GroupChatProvider extends ChangeNotifier {
             isPending: false,
             senderUsername: senderUsername,
             senderProfileImage: senderProfileImage,
+            senderId: senderUserId?.toString(),
+            sharedPost: msgMap['shared_post'] as Map<String, dynamic>?,
           ),
         );
 
@@ -915,6 +925,7 @@ class GroupChatProvider extends ChangeNotifier {
       isSentByMe: true,
       isPending: true,
       senderUsername: _currentUsername,
+      senderId: _currentUserId?.toString(),
     );
     _messages.add(optimistic);
     _emitMessages();
@@ -939,6 +950,7 @@ class GroupChatProvider extends ChangeNotifier {
             isSentByMe: true,
             isPending: false,
             senderUsername: _currentUsername,
+            senderId: _currentUserId?.toString(),
           );
           _saveCachedMessages();
           _emitMessages();
@@ -957,6 +969,7 @@ class GroupChatProvider extends ChangeNotifier {
           isPending: false,
           isFailed: true,
           senderUsername: _currentUsername,
+          senderId: _currentUserId?.toString(),
         );
         _saveCachedMessages();
         _emitMessages();

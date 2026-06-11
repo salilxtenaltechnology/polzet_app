@@ -57,14 +57,29 @@ class _CreateNewPasswordScreenState extends State<CreateNewPasswordScreen>
   }
 
   void _onFocusChange() {
-    if (_newPwFocusNode.hasFocus) {
-      _showOverlay();
+    if (_newPwFocusNode.hasFocus && _newPwCtrl.text.isNotEmpty) {
+      final score = _getStrengthScore(_newPwCtrl.text);
+      if (score < 5) {
+        _showOverlay();
+      } else {
+        _hideOverlay();
+      }
     } else {
       _hideOverlay();
     }
   }
 
   void _onTextChanged() {
+    if (_newPwFocusNode.hasFocus && _newPwCtrl.text.isNotEmpty) {
+      final score = _getStrengthScore(_newPwCtrl.text);
+      if (score < 5) {
+        _showOverlay();
+      } else {
+        _hideOverlay();
+      }
+    } else {
+      _hideOverlay();
+    }
     _overlayEntry?.markNeedsBuild();
   }
 

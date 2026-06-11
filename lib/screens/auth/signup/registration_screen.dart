@@ -95,7 +95,7 @@ class _RegistrationScreenState extends State<RegistrationScreen>
 
   // ── Real-time Password Validator ─────────────────────────────────────────────
   void _onFocusChange() {
-    if (_passwordFocusNode.hasFocus) {
+    if (_passwordFocusNode.hasFocus && _passwordCtrl.text.isNotEmpty) {
       final text = _passwordCtrl.text;
       final score = _getStrengthScore(text);
       if (score < 5) {
@@ -109,7 +109,7 @@ class _RegistrationScreenState extends State<RegistrationScreen>
   }
 
   void _onTextChanged() {
-    if (_passwordFocusNode.hasFocus) {
+    if (_passwordFocusNode.hasFocus && _passwordCtrl.text.isNotEmpty) {
       final text = _passwordCtrl.text;
       final score = _getStrengthScore(text);
       if (score < 5) {

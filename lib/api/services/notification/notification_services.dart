@@ -139,19 +139,43 @@ class NotificationService {
         title = 'New Chase';
         body = '$sender started chasing you';
         break;
+      case 'FOLLOW_GROUP':
+        title = notificationData['title'] ?? data['title'] ?? 'Followers';
+        break;
       case 'VOTE':
+        final String sender =
+            notificationData['sender']?.toString() ??
+            data['sender']?.toString() ??
+            'Someone';
         title = notificationData['title'] ?? data['title'] ?? 'New Vote';
-        final String? preview = notificationData['message_preview']?.toString() ??
-                                data['message_preview']?.toString();
-        if (preview != null && preview.isNotEmpty) {
-          body = preview;
-        }
+        body = '$sender voted on your poll.';
+        break;
+      case 'GROUP_ADMIN_PROMOTE':
+        title = notificationData['title'] ?? data['title'] ?? 'Group Promotion';
         break;
       case 'LIKE':
+        title = notificationData['title'];
+        body = notificationData['body'];
+        break;
+      case 'LIKE_GROUP':
+        final String sender =
+            notificationData['sender']?.toString() ??
+            data['sender']?.toString() ??
+            'Someone';
         title = notificationData['title'] ?? data['title'] ?? 'New Like';
+        if (body.isEmpty || body.toLowerCase() == 'like') {
+          body = '$sender liked your post.';
+        }
         break;
       case 'COMMENT':
+        final String sender =
+            notificationData['sender']?.toString() ??
+            data['sender']?.toString() ??
+            'Someone';
         title = 'New Comment';
+        if (body.isEmpty || body.toLowerCase() == 'comment') {
+          body = '$sender commented on your post.';
+        }
         break;
       case 'NEW_MESSAGE':
         title = notificationData['title'] ?? data['title'] ?? 'New Message';
@@ -166,9 +190,6 @@ class NotificationService {
   static Future<void> showBackgroundNotification(RemoteMessage message) async {
     debugPrint('🌙 Background Notification Service Triggered');
     debugPrint('   Data: ${message.data}');
-
-
-
 
     if (message.notification != null) {
       debugPrint(
@@ -328,15 +349,6 @@ class NotificationService {
 
       _handleForegroundMessage(message);
     });
-
-    //BACKGROUND tap (app in background) - CRITICAL for navigation
-    FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
-      debugPrint('👆 ===== NOTIFICATION TAPPED (BACKGROUND) =====');
-      debugPrint('Title: ${message.notification?.title}');
-      debugPrint('Data: ${message.data}');
-      debugPrint('===============================================');
-      _handleMessageTap(message);
-    });
   }
 
   void _handleForegroundMessage(RemoteMessage message) {
@@ -363,9 +375,6 @@ class NotificationService {
   // ✅ Extract and customize notification data based on type using helper
   Future<void> _showNativeNotification(RemoteMessage message) async {
     try {
-
-
-
       final content = _getNotificationContent(message.data, message);
 
       // ✅ Skip if no meaningful content
@@ -430,16 +439,6 @@ class NotificationService {
     } catch (e, stackTrace) {
       debugPrint("❌ Error showing notification: $e");
       debugPrint("Stack trace: $stackTrace");
-    }
-  }
-
-  void _handleMessageTap(RemoteMessage message) {
-    final payload = NotificationPayload.fromFCM(message);
-
-    if (_onFCMMessageTap != null) {
-      _onFCMMessageTap!(payload);
-    } else {
-      _pendingTapPayload = payload;
     }
   }
 
@@ -523,9 +522,6 @@ class NotificationService {
   void _handleWebSocketNotification(dynamic body) {
     try {
       final data = jsonDecode(body);
-
-
-
 
       final notificationId = _generateNotificationId(data);
 
@@ -778,24 +774,49 @@ class NotificationPayload {
         title = 'New Chase';
         body = '$sender started chasing you';
         break;
+      case 'FOLLOW_GROUP':
+        title =
+            notificationData['title'] ?? message.data['title'] ?? 'Followers';
+        break;
 
       case 'VOTE':
+        final String sender =
+            notificationData['sender']?.toString() ??
+            message.data['sender']?.toString() ??
+            'Someone';
         title =
             notificationData['title'] ?? message.data['title'] ?? 'New Vote';
-        final String? preview = notificationData['message_preview']?.toString() ??
-                                message.data['message_preview']?.toString();
-        if (preview != null && preview.isNotEmpty) {
-          body = preview;
-        }
+        body = '$sender voted on your poll.';
         break;
 
       case 'LIKE':
+      case 'LIKE_GROUP':
+        final String sender =
+            notificationData['sender']?.toString() ??
+            message.data['sender']?.toString() ??
+            'Someone';
         title =
             notificationData['title'] ?? message.data['title'] ?? 'New Like';
+        if (body.isEmpty || body.toLowerCase() == 'like') {
+          body = '$sender liked your post.';
+        }
         break;
 
       case 'COMMENT':
+        final String sender =
+            notificationData['sender']?.toString() ??
+            message.data['sender']?.toString() ??
+            'Someone';
         title = 'New Comment';
+        if (body.isEmpty || body.toLowerCase() == 'comment') {
+          body = '$sender commented on your post.';
+        }
+        break;
+      case 'GROUP_ADMIN_PROMOTE':
+        title =
+            notificationData['title'] ??
+            message.data['title'] ??
+            'Group Promotion';
         break;
 
       case 'NEW_MESSAGE':
@@ -856,22 +877,43 @@ class NotificationPayload {
         title = 'New Chase';
         body = '$sender started chasing you';
         break;
+      case 'FOLLOW_GROUP':
+        title = notificationData['title'] ?? data['title'] ?? 'Followers';
+        break;
 
       case 'VOTE':
+        final String sender =
+            notificationData['sender']?.toString() ??
+            data['sender']?.toString() ??
+            'Someone';
         title = notificationData['title'] ?? data['title'] ?? 'New Vote';
-        final String? preview = notificationData['message_preview']?.toString() ??
-                                data['message_preview']?.toString();
-        if (preview != null && preview.isNotEmpty) {
-          body = preview;
-        }
+        body = '$sender voted on your poll.';
         break;
 
       case 'LIKE':
+      case 'LIKE_GROUP':
+        final String sender =
+            notificationData['sender']?.toString() ??
+            data['sender']?.toString() ??
+            'Someone';
         title = notificationData['title'] ?? data['title'] ?? 'New Like';
+        if (body.isEmpty || body.toLowerCase() == 'like') {
+          body = '$sender liked your post.';
+        }
         break;
 
       case 'COMMENT':
+        final String sender =
+            notificationData['sender']?.toString() ??
+            data['sender']?.toString() ??
+            'Someone';
         title = 'New Comment';
+        if (body.isEmpty || body.toLowerCase() == 'comment') {
+          body = '$sender commented on your post.';
+        }
+        break;
+      case 'GROUP_ADMIN_PROMOTE':
+        title = notificationData['title'] ?? data['title'] ?? 'Group Promotion';
         break;
 
       case 'NEW_MESSAGE':

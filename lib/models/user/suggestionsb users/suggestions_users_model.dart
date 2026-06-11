@@ -3,14 +3,23 @@ import 'package:flutter/material.dart';
 
 class UserSuggestionsModel {
   final String status;
+  final int page;
+  final bool hasMore;
   final SuggestionsData data;
 
-  UserSuggestionsModel({required this.status, required this.data});
+  UserSuggestionsModel({
+    required this.status,
+    required this.page,
+    required this.hasMore,
+    required this.data,
+  });
 
   factory UserSuggestionsModel.fromJson(Map<String, dynamic> json) {
     return UserSuggestionsModel(
       status: json['status'] ?? '',
-      data: SuggestionsData.fromJson(json['data']),
+      page: json['page'] ?? 1,
+      hasMore: json['has_more'] ?? false,
+      data: SuggestionsData.fromJson(json['data'] ?? {}),
     );
   }
 }

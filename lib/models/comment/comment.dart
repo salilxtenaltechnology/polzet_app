@@ -33,6 +33,7 @@ class CommentsModel {
 class Comments {
   final int id;
   final String user;
+  final String userId;
   final String? profileImage;
   final String text;
   final DateTime createdAt;
@@ -40,6 +41,7 @@ class Comments {
   Comments({
     required this.id,
     required this.user,
+    required this.userId,
     this.profileImage,
     required this.text,
     required this.createdAt,
@@ -49,6 +51,7 @@ class Comments {
     return Comments(
       id: _toInt(json['id']),
       user: json['user']?.toString() ?? '',
+      userId: json['user_id']?.toString() ?? '',
       profileImage: json['profile_image']?.toString(),
       text: json['text']?.toString() ?? '',
       createdAt: DateTime.parse(json['created_at']?.toString() ?? DateTime.now().toIso8601String()),
@@ -58,6 +61,7 @@ class Comments {
   Map<String, dynamic> toJson() => {
         'id': id,
         'user': user,
+        'user_id' : userId,
         'profile_image': profileImage,
         'text': text,
         'created_at': createdAt.toIso8601String(),

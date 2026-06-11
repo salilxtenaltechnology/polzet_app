@@ -288,14 +288,15 @@ class ApiService with UtilityMixin {
 
   Future socialLogin(String googleToken) async {
     try {
-    //  debugPrint('📤 socialLogin token: $googleToken');
+      //  debugPrint('📤 socialLogin token: $googleToken');
 
       final response = await _dio.post(
         ApiConstants.socialAuth,
-        data: FormData.fromMap({  // ← Change this
-        'provider': 'google',
-        'id_token': googleToken,
-      }),
+        data: FormData.fromMap({
+          // ← Change this
+          'provider': 'google',
+          'id_token': googleToken,
+        }),
       );
 
       if (response.statusCode == 200 || response.statusCode == 201) {
@@ -309,14 +310,19 @@ class ApiService with UtilityMixin {
       throw Exception('Unexpected status code: ${response.statusCode}');
     } on DioException catch (e) {
       debugPrint('❌ socialLogin DioException: ${e.message}');
-      debugPrint('❌ socialLogin DioException response data: ${e.response?.data}');
-      debugPrint('❌ socialLogin DioException response statusCode: ${e.response?.statusCode}');
+      debugPrint(
+        '❌ socialLogin DioException response data: ${e.response?.data}',
+      );
+      debugPrint(
+        '❌ socialLogin DioException response statusCode: ${e.response?.statusCode}',
+      );
 
       String errorMessage = 'Social login failed';
       if (e.response?.data != null) {
         final errorData = e.response!.data;
         if (errorData is Map) {
-          errorMessage = errorData['message']?.toString() ??
+          errorMessage =
+              errorData['message']?.toString() ??
               errorData['detail']?.toString() ??
               errorData['error']?.toString() ??
               errorMessage;
@@ -324,7 +330,8 @@ class ApiService with UtilityMixin {
           try {
             final decoded = jsonDecode(errorData);
             if (decoded is Map) {
-              errorMessage = decoded['message']?.toString() ??
+              errorMessage =
+                  decoded['message']?.toString() ??
                   decoded['detail']?.toString() ??
                   decoded['error']?.toString() ??
                   errorMessage;
@@ -437,18 +444,22 @@ class ApiService with UtilityMixin {
 
   // Verify Mobile OTP
   Future<Map<String, dynamic>> verifyMobileOtp({
-    required String phoneNumber,
-    required String countryCode,
-    required String otp,
+    String? phoneNumber,
+    String? countryCode,
+    String? otp,
+    String? idToken,
   }) async {
     try {
+      final Map<String, dynamic> body = idToken != null
+          ? {'id_token': idToken}
+          : {
+              'phone_number': phoneNumber,
+              'country_code': countryCode,
+              'otp': otp,
+            };
       final response = await _dio.post(
         ApiConstants.verifyMobileOtp,
-        data: {
-          'phone_number': phoneNumber,
-          'country_code': countryCode,
-          'otp': otp,
-        },
+        data: body,
       );
       debugPrint('verifyMobileOtp response: ${response.data}');
       return response.data as Map<String, dynamic>;
@@ -484,6 +495,7 @@ class ApiService with UtilityMixin {
         return {
           'success': true,
           'message': data['message'] ?? 'OTP sent successfully',
+          'data': data['data'],
         };
       } else {
         final errors = data['errors'];
@@ -526,12 +538,21 @@ class ApiService with UtilityMixin {
   /// [otp] — 6-digit OTP
   Future<Map<String, dynamic>> forgotPasswordVerifyOtp({
     required String identifier,
-    required String otp,
+    String? otp,
+    String? idToken,
   }) async {
+    debugPrint('BODY = identifier: $identifier, otp: $otp, id_token: $idToken');
     try {
+      final Map<String, dynamic> body = idToken != null
+          ? {
+              'identifier': identifier,
+              'id_token': idToken,
+              if (otp != null) 'otp': otp,
+            }
+          : {'identifier': identifier, 'otp': otp};
       final response = await _dio.post(
         ApiConstants.forgotPasswordVerify,
-        data: {'identifier': identifier, 'otp': otp},
+        data: body,
         options: Options(
           headers: {'Content-Type': 'application/json'},
           responseType: ResponseType.json,
@@ -1112,10 +1133,14 @@ class ApiService with UtilityMixin {
   // ==================== POSTS ====================
 
   // Suggestion users
-  Future<UserSuggestionsModel> fetchUserSuggestions() async {
+  Future<UserSuggestionsModel> fetchUserSuggestions({int? page}) async {
     try {
+      final Map<String, dynamic> queryParams = {};
+      if (page != null) queryParams['page'] = page;
+
       final response = await _dio.get(
         ApiConstants.suggestionUsers,
+        queryParameters: queryParams.isNotEmpty ? queryParams : null,
         options: Options(headers: await _getAuthHeaders()),
       );
 
@@ -1167,9 +1192,13 @@ class ApiService with UtilityMixin {
   }
 
   Future<SinglePostModel> getSinglePost(String username, dynamic postId) async {
+    final cleanUsername = username.trim();
+    if (cleanUsername.isEmpty) {
+      throw Exception('Cannot fetch single post: username is empty');
+    }
     try {
       final response = await _dio.get(
-        '${ApiConstants.singlePost}/$username/$postId/',
+        '${ApiConstants.singlePost}/$cleanUsername/$postId/',
         options: Options(headers: await _getAuthHeaders()),
       );
 
@@ -1186,9 +1215,13 @@ class ApiService with UtilityMixin {
 
   /// Fetch user posts with polls things
   Future<List<UserPostModel>> fetchPostsPolls(String username) async {
+    final cleanUsername = username.trim();
+    if (cleanUsername.isEmpty) {
+      throw Exception('Cannot fetch user posts: username is empty');
+    }
     try {
       final response = await _dio.get(
-        '${ApiConstants.userPosts}/$username',
+        '${ApiConstants.userPosts}/$cleanUsername',
         options: Options(headers: await _getAuthHeaders()),
       );
       final data = response.data['results'] as List<dynamic>;
@@ -1493,17 +1526,24 @@ class ApiService with UtilityMixin {
 
         // If responseData is directly a list
         if (responseData is List) {
-          return responseData.map((e) => Map<String, dynamic>.from(e as Map)).toList();
+          return responseData
+              .map((e) => Map<String, dynamic>.from(e as Map))
+              .toList();
         }
 
         // If responseData is a map, try to extract the list
         if (responseData is Map) {
           // Try different possible keys
-          final list = responseData['data'] ?? responseData['followers'] ?? responseData['results'];
+          final list =
+              responseData['data'] ??
+              responseData['followers'] ??
+              responseData['results'];
 
           // Ensure it's actually a list before converting
           if (list is List) {
-            return list.map((e) => Map<String, dynamic>.from(e as Map)).toList();
+            return list
+                .map((e) => Map<String, dynamic>.from(e as Map))
+                .toList();
           }
         }
       }
@@ -1535,17 +1575,24 @@ class ApiService with UtilityMixin {
 
         // If responseData is directly a list
         if (responseData is List) {
-          return responseData.map((e) => Map<String, dynamic>.from(e as Map)).toList();
+          return responseData
+              .map((e) => Map<String, dynamic>.from(e as Map))
+              .toList();
         }
 
         // If responseData is a map, try to extract the list
         if (responseData is Map) {
           // Try different possible keys
-          final list = responseData['data'] ?? responseData['following'] ?? responseData['results'];
+          final list =
+              responseData['data'] ??
+              responseData['following'] ??
+              responseData['results'];
 
           // Ensure it's actually a list before converting
           if (list is List) {
-            return list.map((e) => Map<String, dynamic>.from(e as Map)).toList();
+            return list
+                .map((e) => Map<String, dynamic>.from(e as Map))
+                .toList();
           }
         }
       }
@@ -1621,11 +1668,23 @@ class ApiService with UtilityMixin {
     }
   }
 
-  Future<GlobalSearchModel?> globalSearch(String query) async {
+  Future<GlobalSearchModel?> globalSearch(
+    String query, {
+    String? tab,
+    int? page,
+    int? limit,
+    String? publicId,
+  }) async {
     try {
+      final Map<String, dynamic> params = {'q': query};
+      if (tab != null) params['tab'] = tab;
+      if (page != null) params['page'] = page;
+      if (limit != null) params['limit'] = limit;
+      if (publicId != null) params['public_id'] = publicId;
+
       final response = await _dio.get(
         ApiConstants.globalSearch,
-        queryParameters: {'q': query},
+        queryParameters: params,
         options: Options(headers: await _getAuthHeaders()),
       );
 
@@ -1760,10 +1819,7 @@ class ApiService with UtilityMixin {
         options: Options(headers: await _getAuthHeaders()),
       );
       if (response.data is Map<String, dynamic>) {
-        return {
-          'success': true,
-          ...response.data as Map<String, dynamic>,
-        };
+        return {'success': true, ...response.data as Map<String, dynamic>};
       }
       return {'success': true};
     } on DioException catch (e) {
@@ -1783,10 +1839,7 @@ class ApiService with UtilityMixin {
         options: Options(headers: await _getAuthHeaders()),
       );
       if (response.data is Map<String, dynamic>) {
-        return {
-          'success': true,
-          ...response.data as Map<String, dynamic>,
-        };
+        return {'success': true, ...response.data as Map<String, dynamic>};
       }
       return {'success': true};
     } on DioException catch (e) {
@@ -1835,7 +1888,9 @@ class ApiService with UtilityMixin {
       debugPrint('title: $title');
       debugPrint('profile_image length: ${profileImage.length}');
       if (profileImage.isNotEmpty) {
-        debugPrint('profile_image preview: ${profileImage.substring(0, profileImage.length > 50 ? 50 : profileImage.length)}...');
+        debugPrint(
+          'profile_image preview: ${profileImage.substring(0, profileImage.length > 50 ? 50 : profileImage.length)}...',
+        );
       }
       debugPrint('members: $members');
       debugPrint('============================');
@@ -1861,9 +1916,14 @@ class ApiService with UtilityMixin {
 
   // Note: Implemented GET Method Chat List
   Future<List<Map<String, dynamic>>> getChatList() async {
+    final response = await getChatListResponse(page: 1);
+    return response['results'] as List<Map<String, dynamic>>;
+  }
+
+  Future<Map<String, dynamic>> getChatListResponse({int page = 1}) async {
     try {
       final response = await _dio.get(
-        ApiConstants.chatList,
+        '${ApiConstants.chatList}?page=$page',
         options: Options(headers: await _getAuthHeaders()),
       );
 
@@ -1871,12 +1931,18 @@ class ApiService with UtilityMixin {
         final data = response.data;
         if (data is Map<String, dynamic>) {
           final list = data['results'];
-          if (list is List) {
-            return List<Map<String, dynamic>>.from(list);
-          }
+          return {
+            'results': list is List ? List<Map<String, dynamic>>.from(list) : <Map<String, dynamic>>[],
+            'next': data['next'],
+            'count': data['count'],
+          };
         }
       }
-      return [];
+      return {
+        'results': <Map<String, dynamic>>[],
+        'next': null,
+        'count': 0,
+      };
     } on DioException catch (e) {
       debugPrint('Error fetching chat list: $e');
       rethrow;
@@ -2090,15 +2156,21 @@ class ApiService with UtilityMixin {
       }
 
       if (responseData is Map) {
-        final Map<String, dynamic> normalized = Map<String, dynamic>.from(responseData);
+        final Map<String, dynamic> normalized = Map<String, dynamic>.from(
+          responseData,
+        );
 
         // Normalize group details keys to match UI expectations
-        normalized['id'] ??= int.tryParse(normalized['uuid']?.toString() ?? '') ?? normalized['id'];
-        normalized['profile_url'] ??= normalized['group_picture_url']?.toString();
+        normalized['id'] ??=
+            int.tryParse(normalized['uuid']?.toString() ?? '') ??
+            normalized['id'];
+        normalized['profile_url'] ??= normalized['group_picture_url']
+            ?.toString();
         normalized['group_picture_url'] ??= normalized['profile_url'];
 
         // Normalize admins to have 'id' key
-        final List<dynamic> admins = normalized['admins'] as List<dynamic>? ?? [];
+        final List<dynamic> admins =
+            normalized['admins'] as List<dynamic>? ?? [];
         final List<Map<String, dynamic>> normalizedAdmins = [];
         final Set<String> adminUuids = {};
 
@@ -2116,12 +2188,14 @@ class ApiService with UtilityMixin {
         normalized['admins'] = normalizedAdmins;
 
         // Normalize members to nested structure: { 'is_admin': bool, 'user': { 'id', 'username', 'profile_image' } }
-        final List<dynamic> members = normalized['members'] as List<dynamic>? ?? [];
+        final List<dynamic> members =
+            normalized['members'] as List<dynamic>? ?? [];
         final List<Map<String, dynamic>> normalizedMembers = [];
 
         for (final member in members) {
           if (member is Map) {
-            final String uuid = (member['uuid'] ?? member['id'] ?? '').toString();
+            final String uuid = (member['uuid'] ?? member['id'] ?? '')
+                .toString();
             final bool isAdmin = adminUuids.contains(uuid);
 
             normalizedMembers.add({
@@ -2129,8 +2203,10 @@ class ApiService with UtilityMixin {
               'user': {
                 'id': uuid,
                 'username': member['username']?.toString() ?? '',
-                'profile_image': member['profile_picture_url']?.toString() ?? member['profile_image']?.toString(),
-              }
+                'profile_image':
+                    member['profile_picture_url']?.toString() ??
+                    member['profile_image']?.toString(),
+              },
             });
           }
         }
@@ -2171,7 +2247,7 @@ class ApiService with UtilityMixin {
   }
 
   Future<Map<String, dynamic>> createPrivateChatId({
-    required dynamic withUserId,
+    required String withUserId,
   }) async {
     try {
       final response = await _dio.post(

@@ -44,12 +44,18 @@ class MessageListState extends State<MessageList>
   final TextEditingController _searchController = TextEditingController();
 
   late final TabController _tabController;
+  late final ScrollController _privateScrollController;
+  late final ScrollController _groupScrollController;
 
   static List<Map<String, dynamic>> _staticChats = [];
   static final Map<String, Uint8List> _staticImageCache = {};
   static bool _everFetched = false;
   static final ValueNotifier<int> unreadMessageCount = ValueNotifier<int>(0);
   static String? errorMessage;
+
+  static int _currentPage = 1;
+  static bool _hasMore = true;
+  static bool _isLoadingMore = false;
 
   static final StreamController<List<Map<String, dynamic>>>
   _globalStreamController =
@@ -100,6 +106,9 @@ class MessageListState extends State<MessageList>
     super.initState();
 
     _tabController = TabController(length: 2, vsync: this);
+    _privateScrollController = ScrollController()
+      ..addListener(_onPrivateScroll);
+    _groupScrollController = ScrollController()..addListener(_onGroupScroll);
 
     if (_staticChats.isNotEmpty) {
       _globalStreamController.add(_staticChats);
@@ -108,10 +117,32 @@ class MessageListState extends State<MessageList>
     startGlobalPolling();
   }
 
+  void _onPrivateScroll() {
+    if (_searchQuery.trim().isNotEmpty) return;
+    if (_privateScrollController.position.pixels >=
+            _privateScrollController.position.maxScrollExtent * 0.8 &&
+        !_isLoadingMore &&
+        _hasMore) {
+      _loadMoreChats();
+    }
+  }
+
+  void _onGroupScroll() {
+    if (_searchQuery.trim().isNotEmpty) return;
+    if (_groupScrollController.position.pixels >=
+            _groupScrollController.position.maxScrollExtent * 0.8 &&
+        !_isLoadingMore &&
+        _hasMore) {
+      _loadMoreChats();
+    }
+  }
+
   @override
   void dispose() {
     _searchController.dispose();
     _tabController.dispose();
+    _privateScrollController.dispose();
+    _groupScrollController.dispose();
     super.dispose();
   }
 
@@ -136,7 +167,9 @@ class MessageListState extends State<MessageList>
     }
   }
 
-  static Future<void> _saveChatsToCache(List<Map<String, dynamic>> chats) async {
+  static Future<void> _saveChatsToCache(
+    List<Map<String, dynamic>> chats,
+  ) async {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(_chatsCacheKey, json.encode(chats));
@@ -161,18 +194,102 @@ class MessageListState extends State<MessageList>
     _globalPollingTimer = null;
   }
 
-  static Future<void> refreshGlobally() async {
-    await _fetchAndPushGlobally();
+  static List<Map<String, dynamic>> _mergeChats(
+    List<Map<String, dynamic>> existing,
+    List<Map<String, dynamic>> page1,
+  ) {
+    final Map<dynamic, Map<String, dynamic>> map = {};
+    for (var item in existing) {
+      final id = item['id'];
+      if (id != null) {
+        map[id] = item;
+      }
+    }
+    for (var item in page1) {
+      final id = item['id'];
+      if (id != null) {
+        map[id] = item;
+      }
+    }
+    final List<Map<String, dynamic>> result = List.from(page1);
+    final Set<dynamic> page1Ids = page1.map((item) => item['id']).toSet();
+    for (var item in existing) {
+      final id = item['id'];
+      if (id != null && !page1Ids.contains(id)) {
+        result.add(item);
+      }
+    }
+    return result;
   }
 
-  static Future<void> _fetchAndPushGlobally() async {
+  static Future<void> _loadMoreChats() async {
+    if (_isLoadingMore || !_hasMore) return;
+
+    _isLoadingMore = true;
+    _globalStreamController.add(_staticChats);
+
     try {
-      final chats = await ApiService().getChatList();
+      final nextPage = _currentPage + 1;
+      final response = await ApiService().getChatListResponse(page: nextPage);
+      final newChats = response['results'] as List<Map<String, dynamic>>;
+      final nextUrl = response['next'];
+
+      if (newChats.isNotEmpty) {
+        final Set<dynamic> existingIds = _staticChats
+            .map((c) => c['id'])
+            .toSet();
+        final List<Map<String, dynamic>> merged = List.from(_staticChats);
+        for (var chat in newChats) {
+          final id = chat['id'];
+          if (id != null && !existingIds.contains(id)) {
+            merged.add(chat);
+          }
+        }
+
+        _staticChats = merged;
+        _currentPage = nextPage;
+        _saveChatsToCache(_staticChats);
+        _updateUnreadCount();
+        _globalStreamController.add(_staticChats);
+      }
+      _hasMore = nextUrl != null;
+    } catch (e) {
+      debugPrint('Error loading more chats: $e');
+    } finally {
+      _isLoadingMore = false;
+      _globalStreamController.add(_staticChats);
+    }
+  }
+
+  static Future<void> refreshGlobally() async {
+    await _fetchAndPushGlobally(resetPagination: true);
+  }
+
+  static Future<void> _fetchAndPushGlobally({
+    bool resetPagination = false,
+  }) async {
+    try {
+      if (resetPagination) {
+        _currentPage = 1;
+        _hasMore = true;
+      }
+      final response = await ApiService().getChatListResponse(page: 1);
+      final chats = response['results'] as List<Map<String, dynamic>>;
+      final nextUrl = response['next'];
+      _hasMore = nextUrl != null;
       _everFetched = true;
       errorMessage = null;
-      if (_listsAreDifferent(_staticChats, chats)) {
-        _staticChats = chats;
-        _saveChatsToCache(chats);
+
+      final List<Map<String, dynamic>> updatedChats;
+      if (resetPagination) {
+        updatedChats = chats;
+      } else {
+        updatedChats = _mergeChats(_staticChats, chats);
+      }
+
+      if (_listsAreDifferent(_staticChats, updatedChats)) {
+        _staticChats = updatedChats;
+        _saveChatsToCache(_staticChats);
         _updateUnreadCount();
         _globalStreamController.add(_staticChats);
       } else if (_staticChats.isEmpty) {
@@ -570,15 +687,32 @@ class MessageListState extends State<MessageList>
     );
   }
 
-  Widget _buildChatList(List<Map<String, dynamic>> chats) {
+  Widget _buildChatList(
+    List<Map<String, dynamic>> chats,
+    ScrollController controller,
+  ) {
     final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final showLoader = _isLoadingMore && _searchQuery.trim().isEmpty;
     return RefreshIndicator(
-      onRefresh: _fetchAndPushGlobally,
+      onRefresh: () => _fetchAndPushGlobally(resetPagination: true),
       color: Theme.of(context).colorScheme.onPrimary,
       child: ListView.builder(
+        controller: controller,
         padding: const EdgeInsets.only(bottom: 100),
-        itemCount: chats.length,
+        itemCount: chats.length + (showLoader ? 1 : 0),
         itemBuilder: (context, i) {
+          if (i == chats.length) {
+            return Padding(
+              padding: const EdgeInsets.symmetric(vertical: 16.0),
+              child: Center(
+                child: SizedBox(
+                  width: 24,
+                  height: 24,
+                  child: Loader(color: Theme.of(context).colorScheme.onPrimary),
+                ),
+              ),
+            );
+          }
           final txt = AppTextColors.of(context);
           final chat = chats[i];
           final avatarUrl = _avatarUrl(chat);
@@ -807,7 +941,10 @@ class MessageListState extends State<MessageList>
       );
     }
 
-    return _buildChatList(chats);
+    final controller = chatType == 'private'
+        ? _privateScrollController
+        : _groupScrollController;
+    return _buildChatList(chats, controller);
   }
 
   int get _unreadChatsCount {
@@ -861,7 +998,7 @@ class MessageListState extends State<MessageList>
 
           if (allChats.isEmpty && !_everFetched) {
             return Center(
-              child: Loader(color: Theme.of(context).colorScheme.primary),
+              child: Loader(color: Theme.of(context).colorScheme.onPrimary),
             );
           }
 

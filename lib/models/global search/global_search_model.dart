@@ -372,9 +372,14 @@ class SearchPagination {
 
   factory SearchPagination.fromJson(Map<String, dynamic> json) {
     return SearchPagination(
-      page: json['page'] ?? 1,
-      limit: json['limit'] ?? 10,
-      hasNext: json['hasNext'] ?? false,
+      page: json['page'] ?? json['current_page'] ?? 1,
+      limit: json['limit'] ?? json['per_page'] ?? 10,
+      hasNext: json['hasNext'] ??
+               json['has_next'] ??
+               json['hasMore'] ??
+               json['has_more'] ??
+               (json['next'] != null) ??
+               false,
     );
   }
 }

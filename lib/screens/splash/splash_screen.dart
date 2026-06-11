@@ -104,10 +104,15 @@ class SplashScreenState extends State<SplashScreen>
 
       final notificationRouter = NotificationRouter();
       Widget? notificationDestination;
+      int initialIndex = 0;
       if (notificationRouter.hasPendingNotification()) {
         notificationDestination = await notificationRouter.resolveDestination(
           context,
         );
+        if (notificationDestination is HomeScreen) {
+          initialIndex = notificationDestination.initialIndex;
+          notificationDestination = null;
+        }
       }
 
       final bool isPinSecurityEnabled = await PinService.isPinSecurityEnabled();
@@ -117,7 +122,7 @@ class SplashScreenState extends State<SplashScreen>
           await BiometricService.isBiometricAvailable();
 
       final homeScreen = HomeScreen(
-        initialIndex: 0,
+        initialIndex: initialIndex,
         pendingDestination: notificationDestination,
       );
 

@@ -5,12 +5,16 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:polzet_app/core/constants/feather_icons_compat.dart';
 import 'package:polzet_app/languages/l10n/generated/app_localizations.dart';
 import 'package:polzet_app/widgets/base64/image_convert.dart';
+import 'package:provider/provider.dart';
 import '../../../../models/comment/comment.dart';
 import '../../../api/services/comment/comment_service.dart';
 import '../../../core/constants/app_radius.dart';
 import '../../../core/themes/app_text_colors.dart';
 import '../../../core/themes/app_text_styles.dart';
 import '../../../gen/assets.gen.dart';
+import '../../../provider/user_provider.dart';
+import '../../../screens/home/home_imports.dart';
+import '../../../screens/home/profile/public/public_profile_screen.dart';
 import '../../dialog/custom_diolog.dart';
 import '../../loader.dart';
 
@@ -172,7 +176,7 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
     final txt = AppTextColors.of(context);
     if (isLoading) {
       return Center(
-        child: Loader(color: Theme.of(context).colorScheme.primary),
+        child: Loader(color: Theme.of(context).colorScheme.onPrimary),
       );
     }
 
@@ -240,6 +244,7 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
         comment.user == widget.currentUsername;
 
     final profileBytes = getProfileImage(comment.profileImage);
+    final userProvider = Provider.of<UserProvider>(context, listen: false);
 
     return Container(
       margin: EdgeInsets.only(bottom: 10.h),
@@ -248,39 +253,40 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
         children: [
           GestureDetector(
             onTap: () {
-              // if (userProvider.userId == comment.id) {
-              //   Navigator.of(context).pushAndRemoveUntil(
-              //     MaterialPageRoute(
-              //       builder: (_) => const HomeScreen(initialIndex: 4),
-              //     ),
-              //     (route) => false,
-              //   );
-              // } else {
-              //   Navigator.push(
-              //     context,
-              //     MaterialPageRoute(
-              //       builder: (_) => PublicProfileScreen(userId: comment.id.toString()),
-              //     ),
-              //   );
-              // }
+              if (userProvider.userId == comment.id.toString()) {
+                Navigator.of(context).pushAndRemoveUntil(
+                  MaterialPageRoute(
+                    builder: (_) => const HomeScreen(initialIndex: 4),
+                  ),
+                  (route) => false,
+                );
+              } else {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => PublicProfileScreen(userId: comment.userId),
+                  ),
+                );
+              }
             },
             child: CircleAvatar(
-              radius: 15.5,
+              radius: 17,
               backgroundColor: isDarkMode
                   ? const Color(0xFF303030)
                   : Theme.of(context).colorScheme.primary.withOpacity(0.1),
               backgroundImage:
                   comment.profileImage != null &&
-                          comment.profileImage!.isNotEmpty &&
-                          profileBytes != null
-                      ? MemoryImage(profileBytes)
-                      : null,
-              onBackgroundImageError: comment.profileImage != null &&
+                      comment.profileImage!.isNotEmpty &&
+                      profileBytes != null
+                  ? MemoryImage(profileBytes)
+                  : null,
+              onBackgroundImageError:
+                  comment.profileImage != null &&
                       comment.profileImage!.isNotEmpty
                   ? (_, __) {}
                   : null,
-              child: comment.profileImage == null ||
-                      comment.profileImage!.isEmpty
+              child:
+                  comment.profileImage == null || comment.profileImage!.isEmpty
                   ? Text(
                       comment.user.isNotEmpty
                           ? comment.user[0].toUpperCase()
@@ -298,90 +304,162 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
           ),
           SizedBox(width: 5.w),
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  padding: EdgeInsets.fromLTRB(10.w, 0.h, 10.w, 5.h),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Text(
-                            comment.user,
-                            style: AppTextStyles.subText.copyWith(
-                              color: Theme.of(context).colorScheme.onBackground,
-                              fontSize: 13,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                          Padding(
-                            padding: EdgeInsets.only(left: 4.w),
-                            child: Text(
-                              ' • ',
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onLongPress: () {
+                if (!isEditing && isCurrentUserComment) {
+                  _showCommentOptions(context, comment);
+                }
+              },
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    padding: EdgeInsets.fromLTRB(10.w, 0.h, 10.w, 5.h),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Text(
+                              comment.user,
                               style: AppTextStyles.subText.copyWith(
-                                fontWeight: FontWeight.w600,
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onBackground,
+                                fontSize: 13.5,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            Padding(
+                              padding: EdgeInsets.only(left: 4.w),
+                              child: Text(
+                                ' • ',
+                                style: AppTextStyles.subText.copyWith(
+                                  fontWeight: FontWeight.w600,
+                                  color: txt.muted,
+                                ),
+                              ),
+                            ),
+                            Text(
+                              _timeAgo(comment.createdAt),
+                              style: AppTextStyles.subText.copyWith(
                                 color: txt.muted,
                               ),
                             ),
-                          ),
-                          Text(
-                            _timeAgo(comment.createdAt),
-                            style: AppTextStyles.subText.copyWith(
-                              color: txt.muted,
-                            ),
-                          ),
-                          const Spacer(),
-                          if (isCurrentUserComment && !isEditing)
-                            Row(
-                              children: [
-                                GestureDetector(
-                                  onTap: () {
-                                    setState(() {
-                                      editingCommentId = comment.id;
-                                      _editCommentController.text =
-                                          comment.text;
-                                    });
-                                  },
-                                  child: Icon(
-                                    Icons.edit,
-                                    size: 16.sp,
-                                    color: Theme.of(
-                                      context,
-                                    ).colorScheme.onSurface.withOpacity(0.7),
-                                  ),
+                            const Spacer(),
+                          ],
+                        ),
+                        isEditing
+                            ? _buildEditCommentField(comment)
+                            : Text(
+                                comment.text,
+                                style: AppTextStyles.subText.copyWith(
+                                  color: txt.body,
+                                  fontSize: 13.5,
+                                  fontWeight: FontWeight.w400,
                                 ),
-                                SizedBox(width: 12.w),
-                                GestureDetector(
-                                  onTap: () => _deleteComment(comment.id),
-                                  child: Icon(
-                                    Icons.delete,
-                                    size: 16.sp,
-                                    color: Colors.red.withOpacity(0.7),
-                                  ),
-                                ),
-                              ],
-                            ),
-                        ],
-                      ),
-                      isEditing
-                          ? _buildEditCommentField(comment)
-                          : Text(
-                              comment.text,
-                              style: AppTextStyles.subText.copyWith(
-                                color: txt.body,
-                                fontSize: 13,
-                                fontWeight: FontWeight.w400,
                               ),
-                            ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  void _showCommentOptions(BuildContext context, Comments comment) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                width: 220.w,
+                decoration: BoxDecoration(
+                  color: isDarkMode ? const Color(0xFF1E1E22) : Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.15),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(16),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _buildPopupItem(
+                        text: 'Edit',
+                        onTap: () {
+                          Navigator.pop(context);
+                          setState(() {
+                            editingCommentId = comment.id;
+                            _editCommentController.text = comment.text;
+                          });
+                        },
+                        isDarkMode: isDarkMode,
+                      ),
+                      const Divider(height: 1, color: Color(0x1F808080)),
+                      _buildPopupItem(
+                        text: 'Delete',
+                        textColor: Colors.red,
+                        onTap: () {
+                          Navigator.pop(context);
+                          _deleteComment(comment.id);
+                        },
+                        isDarkMode: isDarkMode,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildPopupItem({
+    required String text,
+    required VoidCallback onTap,
+    required bool isDarkMode,
+    Color? textColor,
+  }) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        child: Container(
+          width: double.infinity,
+          padding: EdgeInsets.symmetric(vertical: 14.h, horizontal: 16.w),
+          alignment: Alignment.centerLeft,
+          child: Text(
+            text,
+            style: AppTextStyles.bodyText.copyWith(
+              color:
+                  textColor ??
+                  (isDarkMode ? Colors.white : const Color(0xFF2E2E2E)),
+              fontSize: 14.5,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -428,6 +506,7 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
                 AppLocalizations.of(context)!.save,
                 style: AppTextStyles.subText.copyWith(
                   fontWeight: FontWeight.w600,
+                  color: Theme.of(context).colorScheme.primary,
                 ),
               ),
             ),
