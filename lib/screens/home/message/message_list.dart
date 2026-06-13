@@ -3,7 +3,6 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
-import 'dart:typed_data';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:dio/dio.dart';
@@ -13,7 +12,6 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
 
 import '../../../provider/connection_provider.dart';
-
 import '../../../api/services/api_service.dart';
 import '../../../core/constants/app_radius.dart';
 import '../../../core/themes/app_text_colors.dart';
@@ -48,7 +46,6 @@ class MessageListState extends State<MessageList>
   late final ScrollController _groupScrollController;
 
   static List<Map<String, dynamic>> _staticChats = [];
-  static final Map<String, Uint8List> _staticImageCache = {};
   static bool _everFetched = false;
   static final ValueNotifier<int> unreadMessageCount = ValueNotifier<int>(0);
   static String? errorMessage;
@@ -91,14 +88,10 @@ class MessageListState extends State<MessageList>
     _onSearchChanged('');
   }
 
-  Uint8List? _getCachedImage(String? avatarUrl) {
-    if (avatarUrl == null || avatarUrl.trim().isEmpty) return null;
-    if (_staticImageCache.containsKey(avatarUrl)) {
-      return _staticImageCache[avatarUrl];
-    }
-    final bytes = getProfileImage(avatarUrl);
-    if (bytes != null) _staticImageCache[avatarUrl] = bytes;
-    return bytes;
+  ImageProvider? _avatarProvider(String? avatarUrl) {
+    final url = resolveProfileImageUrl(avatarUrl);
+    if (url == null) return null;
+    return NetworkImage(url);
   }
 
   @override
@@ -716,7 +709,7 @@ class MessageListState extends State<MessageList>
           final txt = AppTextColors.of(context);
           final chat = chats[i];
           final avatarUrl = _avatarUrl(chat);
-          final imageBytes = _getCachedImage(avatarUrl);
+          final avatarProvider = _avatarProvider(avatarUrl);
           final title = _chatTitle(chat);
           final unread = _unreadCount(chat);
 
@@ -739,10 +732,8 @@ class MessageListState extends State<MessageList>
                         backgroundColor: isDarkMode
                             ? const Color(0xFF252525)
                             : Theme.of(context).primaryColor.withOpacity(0.08),
-                        backgroundImage: imageBytes != null
-                            ? MemoryImage(imageBytes)
-                            : null,
-                        child: imageBytes == null
+                        backgroundImage: avatarProvider,
+                        child: avatarProvider == null
                             ? Text(
                                 title.isNotEmpty ? title[0].toUpperCase() : '?',
                                 style: AppTextStyles.subText.copyWith(
@@ -1143,13 +1134,13 @@ class MessageListState extends State<MessageList>
     required BuildContext context,
     bool hasBorder = false,
   }) {
-    final imageBytes = _getCachedImage(profileUrl);
+    final avatarProvider = _avatarProvider(profileUrl);
     return Container(
       width: size,
       height: size,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        color: imageBytes == null
+        color: avatarProvider == null
             ? (isDarkMode
                   ? const Color(0xFF252525)
                   : Theme.of(context).primaryColor.withOpacity(0.08))
@@ -1165,11 +1156,11 @@ class MessageListState extends State<MessageList>
                 ).colorScheme.onSurface.withOpacity(0.05),
                 width: 1,
               ),
-        image: imageBytes != null
-            ? DecorationImage(image: MemoryImage(imageBytes), fit: BoxFit.cover)
+        image: avatarProvider != null
+            ? DecorationImage(image: avatarProvider, fit: BoxFit.cover)
             : null,
       ),
-      child: imageBytes == null
+      child: avatarProvider == null
           ? Center(
               child: Text(
                 initial,

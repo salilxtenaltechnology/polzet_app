@@ -3,6 +3,7 @@
 import 'dart:convert';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:polzet_app/core/constants/app_radius.dart';
 import 'package:polzet_app/widgets/appbar/common_appbar.dart';
 
@@ -200,6 +201,23 @@ class _UserImageRankState extends State<UserImageRanking> {
     final username = widget.post.user;
     final initial = username.isNotEmpty ? username[0].toUpperCase() : '?';
 
+    final String? profileUrl = widget.profileImage;
+    ImageProvider? avatarImage;
+    if (_profileImageBytes != null) {
+      avatarImage = MemoryImage(_profileImageBytes!);
+    } else if (profileUrl != null && profileUrl.isNotEmpty) {
+      if (profileUrl.startsWith('http') ||
+          profileUrl.startsWith('/') ||
+          profileUrl.contains('/')) {
+        final imageUrl = profileUrl.startsWith('http')
+            ? profileUrl
+            : (profileUrl.startsWith('/')
+                ? '${ApiConfig.baseUrlImage}$profileUrl'
+                : '${ApiConfig.baseUrlImage}/$profileUrl');
+        avatarImage = CachedNetworkImageProvider(imageUrl);
+      }
+    }
+
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 12),
       child: Column(
@@ -213,10 +231,8 @@ class _UserImageRankState extends State<UserImageRanking> {
                 backgroundColor: Theme.of(
                   context,
                 ).colorScheme.onPrimary.withOpacity(0.1),
-                backgroundImage: _profileImageBytes != null
-                    ? MemoryImage(_profileImageBytes!)
-                    : null,
-                child: _profileImageBytes == null
+                backgroundImage: avatarImage,
+                child: avatarImage == null
                     ? Text(
                         initial,
                         style: AppTextStyles.cardTitle.copyWith(
@@ -353,7 +369,7 @@ class _UserRankImageCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final imageUrl = option.image != null
-        ? '${ApiConfig.baseUrlImage}${option.image!.url}'
+        ? option.image!.resolvedUrl(ApiConfig.baseUrlImage)
         : '';
 
     return ReorderableDragStartListener(
@@ -365,7 +381,7 @@ class _UserRankImageCard extends StatelessWidget {
             onTap: () {
               final urls = allImages
                   .where((o) => o.image != null)
-                  .map((o) => '${ApiConfig.baseUrlImage}${o.image!.url}')
+                  .map((o) => o.image!.resolvedUrl(ApiConfig.baseUrlImage))
                   .toList();
 
               Navigator.of(context).push(
@@ -388,27 +404,20 @@ class _UserRankImageCard extends StatelessWidget {
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(AppRadius.card),
                 child: imageUrl.isNotEmpty
-                    ? Image.network(
-                        imageUrl,
+                    ? CachedNetworkImage(
+                        imageUrl: imageUrl,
                         width: double.infinity,
                         height: 200,
                         fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => _placeholder(),
-                        loadingBuilder: (_, child, progress) {
-                          if (progress == null) return child;
-                          return SizedBox(
-                            height: 200,
-                            child: Center(
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                value: progress.expectedTotalBytes != null
-                                    ? progress.cumulativeBytesLoaded /
-                                          progress.expectedTotalBytes!
-                                    : null,
-                              ),
+                        placeholder: (context, url) => const SizedBox(
+                          height: 200,
+                          child: Center(
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
                             ),
-                          );
-                        },
+                          ),
+                        ),
+                        errorWidget: (_, __, ___) => _placeholder(),
                       )
                     : _placeholder(),
               ),
@@ -451,10 +460,12 @@ class _UserRankImageCard extends StatelessWidget {
         color: Colors.grey.shade200,
         borderRadius: BorderRadius.circular(14),
       ),
-      child: const Icon(
-        Icons.image_not_supported_outlined,
-        color: Colors.grey,
-        size: 40,
+      child: const Center(
+        child: Icon(
+          Icons.image_not_supported_outlined,
+          color: Colors.grey,
+          size: 40,
+        ),
       ),
     );
   }

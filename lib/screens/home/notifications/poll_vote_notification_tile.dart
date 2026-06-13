@@ -180,7 +180,6 @@ class _PollVoteNotificationTileState extends State<PollVoteNotificationTile>
         ? _totalVotesFromPost(fetchedPost)
         : 0;
 
-    final String? postImageUrl = widget.notification.post?.imageUrl;
     final String? avatarUrl = widget.notification.actor.avatarUrl;
 
     return AnimatedContainer(
@@ -210,7 +209,7 @@ class _PollVoteNotificationTileState extends State<PollVoteNotificationTile>
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      _buildLeadingThumbnail(postImageUrl, avatarUrl),
+                      _buildLeadingThumbnail(avatarUrl),
                       SizedBox(width: 12.w),
                       Expanded(
                         child: Column(
@@ -376,8 +375,7 @@ class _PollVoteNotificationTileState extends State<PollVoteNotificationTile>
 
   // ── Leading thumbnail ──────────────────────────────────────────────────────
 
-  Widget _buildLeadingThumbnail(String? postImageUrl, String? avatarUrl) {
-    final bool hasNetworkPost = postImageUrl != null && postImageUrl.isNotEmpty;
+  Widget _buildLeadingThumbnail(String? avatarUrl) {
     final bool hasNetworkAvatar =
         avatarUrl != null &&
         avatarUrl.isNotEmpty &&
@@ -390,7 +388,6 @@ class _PollVoteNotificationTileState extends State<PollVoteNotificationTile>
 
     // ── Check if any real image is available ──
     final bool hasAnyImage =
-        hasNetworkPost ||
         hasNetworkAvatar ||
         (hasBase64Avatar && base64Bytes != null);
 
@@ -417,12 +414,7 @@ class _PollVoteNotificationTileState extends State<PollVoteNotificationTile>
     }
 
     DecorationImage? decorationImage;
-    if (hasNetworkPost) {
-      decorationImage = DecorationImage(
-        image: NetworkImage(_resolveImageUrl(postImageUrl)),
-        fit: BoxFit.cover,
-      );
-    } else if (hasNetworkAvatar) {
+    if (hasNetworkAvatar) {
       decorationImage = DecorationImage(
         image: NetworkImage(avatarUrl),
         fit: BoxFit.cover,
@@ -437,7 +429,7 @@ class _PollVoteNotificationTileState extends State<PollVoteNotificationTile>
         color: Colors.grey.withOpacity(0.2),
         image: decorationImage,
       ),
-      child: (hasBase64Avatar && base64Bytes != null && !hasNetworkPost)
+      child: (hasBase64Avatar && base64Bytes != null)
           ? ClipRRect(
               borderRadius: BorderRadius.circular(AppRadius.button),
               child: Image.memory(

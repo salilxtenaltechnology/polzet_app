@@ -7,6 +7,7 @@ import '../../../../widgets/show_toast.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:polzet_app/languages/l10n/generated/app_localizations.dart';
 import 'package:provider/provider.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../../../../provider/user_provider.dart';
 
 import '../../../../core/constants/app_radius.dart';
@@ -486,14 +487,14 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
         appBar: AppBar(
           backgroundColor: Theme.of(context).colorScheme.background,
           surfaceTintColor: Theme.of(context).colorScheme.background,
-         leadingWidth: 48.w,
+          leadingWidth: 48.w,
           elevation: 0,
           automaticallyImplyLeading: true,
           leading: Padding(
             padding: EdgeInsets.only(left: 8.w),
             child: const PrimaryBackButton(),
           ),
-            toolbarHeight: AppConstants.toolbarHeight.h,
+          toolbarHeight: AppConstants.toolbarHeight.h,
         ),
         body: const ProfileShimmer(),
       );
@@ -504,15 +505,15 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
       appBar: AppBar(
         backgroundColor: Theme.of(context).colorScheme.background,
         surfaceTintColor: Theme.of(context).colorScheme.background,
-         leadingWidth: 48.w,
+        leadingWidth: 48.w,
         elevation: 0,
         centerTitle: false,
         automaticallyImplyLeading: true,
         leading: Padding(
-            padding: EdgeInsets.only(left: 8.w),
-            child: const PrimaryBackButton(),
-          ),
-           toolbarHeight: AppConstants.toolbarHeight.h,
+          padding: EdgeInsets.only(left: 8.w),
+          child: const PrimaryBackButton(),
+        ),
+        toolbarHeight: AppConstants.toolbarHeight.h,
         // title: Text(
         //   'Profile',
         //   style: AppTextStyles.pageTitleTextStyle(context),
@@ -907,24 +908,40 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
                           fontSize: 18,
                         );
                       }
-                      final cachedImage = getConvertImage(
-                        profile.profilePictureUrl,
-                      );
-                      if (cachedImage != null) {
-                        return Image.memory(
-                          cachedImage,
-                          fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => _AvatarPlaceholder(
-                            username: profile.username,
-                            fontSize: 18,
-                          ),
-                        );
-                      } else {
-                        return _AvatarPlaceholder(
-                          username: profile.username,
-                          fontSize: 18,
-                        );
+                      final String profilePic = profile.profilePictureUrl ?? '';
+                      if (profilePic.isNotEmpty) {
+                        final cachedImage = getConvertImage(profilePic);
+                        if (cachedImage != null) {
+                          return Image.memory(
+                            cachedImage,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => _AvatarPlaceholder(
+                              username: profile.username,
+                              fontSize: 18,
+                            ),
+                          );
+                        } else if (profilePic.startsWith('http') ||
+                            profilePic.startsWith('/') ||
+                            profilePic.contains('/')) {
+                          final imageUrl = profilePic.startsWith('http')
+                              ? profilePic
+                              : (profilePic.startsWith('/')
+                                    ? '${ApiConfig.baseUrlImage}$profilePic'
+                                    : '${ApiConfig.baseUrlImage}/$profilePic');
+                          return CachedNetworkImage(
+                            imageUrl: imageUrl,
+                            fit: BoxFit.cover,
+                            errorWidget: (_, __, ___) => _AvatarPlaceholder(
+                              username: profile.username,
+                              fontSize: 18,
+                            ),
+                          );
+                        }
                       }
+                      return _AvatarPlaceholder(
+                        username: profile.username,
+                        fontSize: 18,
+                      );
                     })(),
                   ),
                 ),
@@ -1417,7 +1434,7 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
                 Alignment alignment = alignments[index];
                 double imageWidth = (availableWidth * 0.7) - (index * 8.0);
                 imageWidth = imageWidth < 60.w ? 60.w : imageWidth;
-                final imageUrl = '${ApiConfig.baseUrlImage}${imageData.url}';
+                final imageUrl = imageData.resolvedUrl(ApiConfig.baseUrlImage);
 
                 return Align(
                   alignment: alignment,
@@ -1450,27 +1467,40 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
                                 token != null && imageUrl.contains('/api/')
                                 ? {'Authorization': 'Bearer $token'}
                                 : null;
-                            return Image.network(
-                              imageUrl,
+                            return CachedNetworkImage(
+                              imageUrl: imageUrl,
                               fit: BoxFit.cover,
                               width: double.infinity,
                               height: double.infinity,
-                              headers: headers,
-                              errorBuilder: (context, error, stackTrace) {
-                                return Container(
-                                  decoration: BoxDecoration(
-                                    borderRadius: BorderRadius.circular(
-                                      AppRadius.button,
-                                    ),
-                                    color: Colors.grey[200],
+                              httpHeaders: headers,
+                              placeholder: (context, url) => Container(
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(
+                                    AppRadius.button,
                                   ),
+                                  color: Colors.grey[200],
+                                ),
+                                child: Center(
+                                  child: Loader(
+                                    color: Theme.of(context).colorScheme.primary,
+                                  ),
+                                ),
+                              ),
+                              errorWidget: (context, url, error) => Container(
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(
+                                    AppRadius.button,
+                                  ),
+                                  color: Colors.grey[200],
+                                ),
+                                child: Center(
                                   child: Icon(
-                                    Icons.image_not_supported,
+                                    Icons.image_not_supported_outlined,
                                     color: Colors.grey[600],
                                     size: 30,
                                   ),
-                                );
-                              },
+                                ),
+                              ),
                             );
                           },
                         ),
@@ -1507,8 +1537,10 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
           GestureDetector(
             onTap: () {
               if (profile != null) {
-                final originalImageSource = profile.profilePicture ?? profile.profilePictureUrl;
-                if (originalImageSource == null || originalImageSource.isEmpty) {
+                final originalImageSource =
+                    profile.profilePicture ?? profile.profilePictureUrl;
+                if (originalImageSource == null ||
+                    originalImageSource.isEmpty) {
                   return;
                 }
                 Navigator.of(context).push(
@@ -1556,24 +1588,40 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
                           fontSize: 35,
                         );
                       }
-                      final cachedImage = getConvertImage(
-                        profile.profilePictureUrl,
-                      );
-                      if (cachedImage != null) {
-                        return Image.memory(
-                          cachedImage,
-                          fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => _AvatarPlaceholder(
-                            username: profile.username,
-                            fontSize: 35,
-                          ),
-                        );
-                      } else {
-                        return _AvatarPlaceholder(
-                          username: profile.username,
-                          fontSize: 35,
-                        );
+                      final String profilePic = profile.profilePictureUrl ?? '';
+                      if (profilePic.isNotEmpty) {
+                        final cachedImage = getConvertImage(profilePic);
+                        if (cachedImage != null) {
+                          return Image.memory(
+                            cachedImage,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => _AvatarPlaceholder(
+                              username: profile.username,
+                              fontSize: 35,
+                            ),
+                          );
+                        } else if (profilePic.startsWith('http') ||
+                            profilePic.startsWith('/') ||
+                            profilePic.contains('/')) {
+                          final imageUrl = profilePic.startsWith('http')
+                              ? profilePic
+                              : (profilePic.startsWith('/')
+                                    ? '${ApiConfig.baseUrlImage}$profilePic'
+                                    : '${ApiConfig.baseUrlImage}/$profilePic');
+                          return Image.network(
+                            imageUrl,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => _AvatarPlaceholder(
+                              username: profile.username,
+                              fontSize: 35,
+                            ),
+                          );
+                        }
                       }
+                      return _AvatarPlaceholder(
+                        username: profile.username,
+                        fontSize: 35,
+                      );
                     })(),
                   ),
                 ),

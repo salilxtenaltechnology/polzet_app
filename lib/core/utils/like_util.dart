@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:polzet_app/core/themes/app_text_styles.dart';
+import 'package:polzet_app/api/api_config.dart';
 
 import '../../widgets/base64/image_convert.dart';
 import '../themes/app_text_colors.dart';
@@ -114,7 +115,11 @@ class LikeUtils {
                   backgroundImage:
                       viewLikes[i].profileImage != null &&
                           viewLikes[i].profileImage!.isNotEmpty
-                      ? MemoryImage(getProfileImage(viewLikes[i].profileImage)!)
+                      ? (getProfileImage(viewLikes[i].profileImage) != null
+                          ? MemoryImage(getProfileImage(viewLikes[i].profileImage)!)
+                          : NetworkImage(viewLikes[i].profileImage!.startsWith('http')
+                              ? viewLikes[i].profileImage!
+                              : '${ApiConfig.baseUrlImage}${viewLikes[i].profileImage!}') as ImageProvider)
                       : null,
                   child:
                       viewLikes[i].profileImage == null ||

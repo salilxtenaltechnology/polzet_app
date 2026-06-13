@@ -4,6 +4,7 @@ import 'package:polzet_app/core/constants/feather_icons_compat.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 import '../../../../../api/services/api_service.dart';
 import '../../../../../core/constants/app_radius.dart';
@@ -14,6 +15,7 @@ import '../../../../../mixin/utility_mixins.dart';
 import '../../../../../provider/user_provider.dart';
 import '../../../../../widgets/appbar/common_appbar.dart';
 import '../../../../../widgets/base64/image_convert.dart';
+import 'package:polzet_app/api/api_config.dart';
 import '../../../../../widgets/button/chase/toggle_chase_button.dart';
 import '../../../../../widgets/loader.dart';
 import '../../../../../widgets/tabbar/indicatore_animation.dart';
@@ -408,21 +410,34 @@ class _PublicChaseListState extends State<PublicChaseList>
               color: Theme.of(context).colorScheme.outline,
               width: 0.7,
             ),
-            image: avatarUrl != null && avatarUrl.isNotEmpty
-                ? DecorationImage(
-                    image: MemoryImage(imageBytes!),
-                    fit: BoxFit.cover,
-                  )
-                : null,
-            color: avatarUrl == null
-                ? (isDarkMode
-                      ? const Color(0xFF252525)
-                      : Theme.of(context).primaryColor.withOpacity(0.08))
-                : null,
+            color: isDarkMode
+                ? const Color(0xFF252525)
+                : Theme.of(context).primaryColor.withOpacity(0.08),
           ),
-          child: avatarUrl == null || avatarUrl.isEmpty
-              ? _buildInitialsAvatar(userName)
-              : null,
+          child: ClipOval(
+            child: (() {
+              if (avatarUrl != null && avatarUrl.isNotEmpty) {
+                if (imageBytes != null) {
+                  return Image.memory(
+                    imageBytes,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => _buildInitialsAvatar(userName),
+                  );
+                }
+                final imageUrl = avatarUrl.startsWith('http')
+                    ? avatarUrl
+                    : (avatarUrl.startsWith('/')
+                        ? '${ApiConfig.baseUrlImage}$avatarUrl'
+                        : '${ApiConfig.baseUrlImage}/$avatarUrl');
+                return CachedNetworkImage(
+                  imageUrl: imageUrl,
+                  fit: BoxFit.cover,
+                  errorWidget: (_, __, ___) => _buildInitialsAvatar(userName),
+                );
+              }
+              return _buildInitialsAvatar(userName);
+            })(),
+          ),
         ),
         // Green dot indicator
         if (isOnline)

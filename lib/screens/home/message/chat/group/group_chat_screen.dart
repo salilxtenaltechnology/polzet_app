@@ -1,6 +1,4 @@
 // ignore_for_file: deprecated_member_use, must_be_immutable
-
-import 'dart:typed_data';
 import 'dart:ui';
 
 import 'package:polzet_app/core/constants/feather_icons_compat.dart';
@@ -299,7 +297,19 @@ class GroupChatScreenState extends State<GroupChatScreen>
     final lastName = user['last_name']?.toString() ?? '';
     final name = '$firstName $lastName'.trim();
     final username = user['username']?.toString() ?? '';
-    final avatarUrl = user['profile_image']?.toString();
+    final String? avatarUrlRaw = user['profile_image']?.toString();
+    String? avatarUrl;
+    if (avatarUrlRaw != null && avatarUrlRaw.isNotEmpty) {
+      if (avatarUrlRaw.startsWith('http') || avatarUrlRaw.startsWith('data:image')) {
+        avatarUrl = avatarUrlRaw;
+      } else {
+        if (avatarUrlRaw.startsWith('/')) {
+          avatarUrl = '${ApiConfig.baseUrlImage}$avatarUrlRaw';
+        } else {
+          avatarUrl = '${ApiConfig.baseUrlImage}/$avatarUrlRaw';
+        }
+      }
+    }
     final description = post['description']?.toString() ?? '';
     final isPolledByCurrentUser = post['is_polled_by_current_user'] == true;
 
@@ -343,7 +353,7 @@ class GroupChatScreenState extends State<GroupChatScreen>
     }
     imageUrls = imageUrls.where((e) => e.isNotEmpty).toList();
 
-    final avatarBytes = avatarUrl != null ? getProfileImage(avatarUrl) : null;
+    // Removed base64 decode logic for avatar
 
     return GestureDetector(
       onTap: () {
@@ -457,10 +467,10 @@ class GroupChatScreenState extends State<GroupChatScreen>
                       backgroundColor: Theme.of(
                         context,
                       ).colorScheme.onPrimary.withOpacity(0.1),
-                      backgroundImage: avatarBytes != null
-                          ? MemoryImage(avatarBytes)
+                       backgroundImage: avatarUrl != null
+                          ? NetworkImage(avatarUrl)
                           : null,
-                      child: avatarBytes == null
+                      child: avatarUrl == null
                           ? Text(
                               name.isNotEmpty
                                   ? name[0].toUpperCase()
@@ -734,10 +744,8 @@ class GroupChatScreenState extends State<GroupChatScreen>
   Widget _buildMessageBubble(BuildContext context, ChatMessage message) {
     final txt = AppTextColors.of(context);
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    Uint8List? avatarBytes;
-    if (!message.isSentByMe && message.senderProfileImage != null) {
-      avatarBytes = getProfileImage(message.senderProfileImage!);
-    }
+    final avatarUrl = resolveProfileImageUrl(message.senderProfileImage);
+    final avatarProvider = avatarUrl != null ? NetworkImage(avatarUrl) : null;
 
     final String initial = (message.senderUsername?.isNotEmpty == true)
         ? message.senderUsername![0].toUpperCase()
@@ -846,10 +854,8 @@ class GroupChatScreenState extends State<GroupChatScreen>
                   backgroundColor: Theme.of(
                     context,
                   ).colorScheme.onPrimary.withOpacity(0.1),
-                  backgroundImage: avatarBytes != null
-                      ? MemoryImage(avatarBytes)
-                      : null,
-                  child: avatarBytes == null
+                  backgroundImage: avatarProvider,
+                  child: avatarProvider == null
                       ? Text(
                           initial,
                           style: TextStyle(
@@ -998,7 +1004,8 @@ class GroupChatScreenState extends State<GroupChatScreen>
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
     final provider = context.watch<GroupChatProvider>();
-    final imageBytes = _avatarUrl != null ? getProfileImage(_avatarUrl!) : null;
+    final groupAvatarUrl = resolveProfileImageUrl(_avatarUrl);
+    final groupAvatarProvider = groupAvatarUrl != null ? NetworkImage(groupAvatarUrl) : null;
     final title = provider.groupName ?? widget.groupName ?? 'Chat';
 
     // We count members based on memberPresence since there's no static members list in the provider
@@ -1025,10 +1032,8 @@ class GroupChatScreenState extends State<GroupChatScreen>
                 backgroundColor: Theme.of(
                   context,
                 ).colorScheme.onPrimary.withOpacity(0.1),
-                backgroundImage: imageBytes != null
-                    ? MemoryImage(imageBytes)
-                    : null,
-                child: imageBytes == null
+                backgroundImage: groupAvatarProvider,
+                child: groupAvatarProvider == null
                     ? Text(
                         initial,
                         style: AppTextStyles.cardTitle.copyWith(

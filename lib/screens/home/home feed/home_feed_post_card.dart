@@ -459,10 +459,14 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
                         ).colorScheme.onPrimary.withOpacity(0.1),
                         backgroundImage: _profileImageBytes != null
                             ? MemoryImage(_profileImageBytes!)
-                            : null,
+                            : (widget.post.user.profileImage != null &&
+                                      widget.post.user.profileImage!.isNotEmpty
+                                  ? NetworkImage(widget.post.user.profileImage!)
+                                  : null),
                         child:
-                            widget.post.user.profileImage == null ||
-                                widget.post.user.profileImage!.isEmpty
+                            _profileImageBytes == null &&
+                                (widget.post.user.profileImage == null ||
+                                    widget.post.user.profileImage!.isEmpty)
                             ? Text(
                                 widget.post.user.firstLetter,
                                 style: AppTextStyles.cardTitle.copyWith(
@@ -851,14 +855,16 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
                     final img = entry.value;
 
                     Widget imageWidget = Image.network(
-                      '${ApiConfig.baseUrlImage}${img.url}',
+                      img.resolvedUrl(ApiConfig.baseUrlImage),
                       fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => Icon(
-                        Icons.image_not_supported,
-                        color: Theme.of(
-                          context,
-                        ).colorScheme.onSurface.withOpacity(0.6),
-                        size: 30,
+                      errorBuilder: (_, __, ___) => Center(
+                        child: Icon(
+                          Icons.image_not_supported_outlined,
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onSurface.withOpacity(0.4),
+                          size: 30,
+                        ),
                       ),
                       loadingBuilder: (_, child, progress) {
                         if (progress == null) return child;

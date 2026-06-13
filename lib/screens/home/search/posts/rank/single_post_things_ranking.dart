@@ -8,7 +8,8 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:polzet_app/core/constants/app_radius.dart';
 import 'package:polzet_app/widgets/appbar/common_appbar.dart';
 import 'package:polzet_app/widgets/show_toast.dart';
-
+import 'package:cached_network_image/cached_network_image.dart';
+import '../../../../../../api/api_config.dart';
 import '../../../../../../api/services/api_service.dart';
 import '../../../../../../core/themes/app_text_styles.dart';
 import '../../../../../../models/posts/single_post_model.dart';
@@ -181,6 +182,23 @@ class _SinglePostThingsRankingState extends State<SinglePostThingsRanking> {
     final initial = username.isNotEmpty ? username[0].toUpperCase() : 'P';
     final txt = AppTextColors.of(context);
 
+    final String profileUrl = widget.post.profileImage;
+    ImageProvider? avatarImage;
+    if (_profileImageBytes != null) {
+      avatarImage = MemoryImage(_profileImageBytes!);
+    } else if (profileUrl.isNotEmpty) {
+      if (profileUrl.startsWith('http') ||
+          profileUrl.startsWith('/') ||
+          profileUrl.contains('/')) {
+        final imageUrl = profileUrl.startsWith('http')
+            ? profileUrl
+            : (profileUrl.startsWith('/')
+                ? '${ApiConfig.baseUrlImage}$profileUrl'
+                : '${ApiConfig.baseUrlImage}/$profileUrl');
+        avatarImage = CachedNetworkImageProvider(imageUrl);
+      }
+    }
+
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 12),
       child: Column(
@@ -193,10 +211,8 @@ class _SinglePostThingsRankingState extends State<SinglePostThingsRanking> {
                 backgroundColor: Theme.of(
                   context,
                 ).colorScheme.onPrimary.withOpacity(0.15),
-                backgroundImage: _profileImageBytes != null
-                    ? MemoryImage(_profileImageBytes!)
-                    : null,
-                child: _profileImageBytes == null
+                backgroundImage: avatarImage,
+                child: avatarImage == null
                     ? Text(
                         initial,
                         style: AppTextStyles.cardTitle.copyWith(

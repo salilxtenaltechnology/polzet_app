@@ -1,12 +1,11 @@
 // ignore_for_file: unused_field, must_be_immutable, deprecated_member_use
-
-import 'dart:convert';
 import 'package:polzet_app/core/constants/feather_icons_compat.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:polzet_app/core/constants/app_colors.dart';
 import 'package:polzet_app/widgets/show_toast.dart';
 import 'package:provider/provider.dart';
+import '../../../../../api/api_config.dart';
 
 import '../../../../../core/constants/app_constants.dart';
 import '../../../../../core/constants/app_radius.dart';
@@ -97,6 +96,16 @@ class _GroupMembersState extends State<GroupMembers> {
     final id = context.read<UserProvider>().userId;
     if (id == null) return false;
     return provider.isAdmin(id);
+  }
+
+  ImageProvider? _avatarProvider(String? raw) {
+    if (raw == null || raw.trim().isEmpty) return null;
+    String resolved = raw;
+    if (!resolved.startsWith('http')) {
+      final separator = resolved.startsWith('/') ? '' : '/';
+      resolved = '${ApiConfig.baseUrlImage}$separator$resolved';
+    }
+    return NetworkImage(resolved);
   }
 
   // ── Actions ────────────────────────────────────────────────────────────────
@@ -447,15 +456,9 @@ class _GroupMembersState extends State<GroupMembers> {
                                   // ── Avatar ───────────────────────────────
                                   CircleAvatar(
                                     radius: 13.r,
-                                    backgroundImage: profileImage != null
-                                        ? MemoryImage(
-                                            base64Decode(
-                                              profileImage.split(',').last,
-                                            ),
-                                          )
-                                        : null,
+                                    backgroundImage: _avatarProvider(profileImage),
                                     backgroundColor: Theme.of(context).colorScheme.onPrimary.withOpacity(0.1),
-                                    child: profileImage == null
+                                    child: profileImage == null || profileImage.isEmpty
                                         ? Text(
                                             username.isNotEmpty
                                                 ? username[0].toUpperCase()

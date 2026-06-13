@@ -20,6 +20,7 @@ import '../../../widgets/button/primary_button.dart';
 import '../../../widgets/custom_text_styles.dart';
 import '../../../widgets/dotted_border/dotted_border.dart';
 import '../../../widgets/show_toast.dart';
+import '../../../widgets/dialog/custom_diolog.dart';
 import '../../../widgets/text_field/secondry_textfield.dart';
 import '../../../core/themes/app_text_styles.dart';
 
@@ -52,12 +53,17 @@ class _NewImagePollState extends State<NewImagePoll> {
       );
 
       if (pickedFile != null) {
-        final File? croppedFile = await ImagePickerService.cropImage(
-          pickedFile,
-        );
+        final shouldCrop = await cropImageDiolog(context);
+        if (!mounted) return;
+
+        File finalFile = pickedFile;
+        if (shouldCrop == true) {
+          final croppedFile = await ImagePickerService.cropImage(pickedFile);
+          if (croppedFile != null) finalFile = croppedFile;
+        }
 
         setState(() {
-          _images[index] = croppedFile ?? pickedFile;
+          _images[index] = finalFile;
           if (imageErrorText.isNotEmpty) {
             imageErrorText = '';
           }

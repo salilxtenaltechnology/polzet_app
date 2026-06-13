@@ -112,15 +112,17 @@ class _SuggestedUsersState extends State<SuggestedUsers> with UtilityMixin {
                               ? CircleAvatar(
                                   radius: 50,
                                   backgroundImage: user.avatarImageProvider,
-                                  backgroundColor: Colors.grey.shade200,
+                                  backgroundColor: Theme.of(context)
+                                              .colorScheme
+                                              .onPrimary
+                                              .withOpacity(0.1),
                                 )
                               : CircleAvatar(
                                   radius: 50,
-                                  backgroundColor: isDarkMode
-                                      ? Colors.grey.withOpacity(0.1)
-                                      : Theme.of(
-                                          context,
-                                        ).colorScheme.primary.withOpacity(0.1),
+                                  backgroundColor:  Theme.of(context)
+                                              .colorScheme
+                                              .onPrimary
+                                              .withOpacity(0.1),
                                   child: Text(
                                     user.username.isNotEmpty
                                         ? user.username[0].toUpperCase()
@@ -176,7 +178,10 @@ class _SuggestedUsersState extends State<SuggestedUsers> with UtilityMixin {
                                             child: CircleAvatar(
                                               radius: 9,
                                               backgroundImage: img,
-                                              backgroundColor: Colors.grey.shade200,
+                                              backgroundColor: Theme.of(context)
+                                              .colorScheme
+                                              .onPrimary
+                                              .withOpacity(0.1),
                                             ),
                                           ),
                                         );

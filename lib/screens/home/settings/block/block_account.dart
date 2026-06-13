@@ -12,6 +12,7 @@ import '../../../../core/themes/app_text_styles.dart';
 import '../../../../languages/l10n/generated/app_localizations.dart';
 import '../../../../widgets/appbar/common_appbar.dart';
 import '../../../../widgets/base64/image_convert.dart';
+import 'package:polzet_app/api/api_config.dart';
 
 class BlockAccounts extends StatefulWidget {
   const BlockAccounts({super.key});
@@ -121,11 +122,13 @@ class _BlockUsersState extends State<BlockAccounts> {
                           color: Theme.of(context).colorScheme.outline,
                           width: 0.7,
                         ),
-                        image: profilePic != null
+                        image: profilePic != null && profilePic.toString().isNotEmpty
                             ? DecorationImage(
-                                image: MemoryImage(
-                                  getProfileImage(profilePic)!,
-                                ),
+                                image: getProfileImage(profilePic) != null
+                                    ? MemoryImage(getProfileImage(profilePic)!)
+                                    : NetworkImage(profilePic.toString().startsWith('http')
+                                        ? profilePic.toString()
+                                        : '${ApiConfig.baseUrlImage}$profilePic') as ImageProvider,
                                 fit: BoxFit.cover,
                               )
                             : null,

@@ -61,5 +61,8 @@ class AppTextColors extends ThemeExtension<AppTextColors> {
   // ── Accessor ─────────────────────────────────────────────────────────────
 
   static AppTextColors of(BuildContext context) =>
-      Theme.of(context).extension<AppTextColors>()!;
+      Theme.of(context).extension<AppTextColors>() ??
+      (Theme.of(context).brightness == Brightness.dark
+          ? AppTextColors.dark
+          : AppTextColors.light);
 }

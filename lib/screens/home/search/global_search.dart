@@ -423,7 +423,15 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen>
     if (raw.startsWith('data:image')) {
       return MemoryImage(base64Decode(raw.split(',').last));
     }
-    return NetworkImage(raw);
+    String resolved = raw;
+    if (!resolved.startsWith('http')) {
+      if (resolved.startsWith('/')) {
+        resolved = '${ApiConfig.baseUrlImage}$resolved';
+      } else {
+        resolved = '${ApiConfig.baseUrlImage}/$resolved';
+      }
+    }
+    return NetworkImage(resolved);
   }
 
   String _formatCount(int count) {
@@ -1051,6 +1059,7 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen>
 
   Widget _buildTrendingPollCard(SearchPost post) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final poll = post.polls.isNotEmpty ? post.polls.first : null;
     return GestureDetector(
       onTap: () {
         navigationPush(
@@ -1103,7 +1112,9 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen>
               child: Padding(
                 padding: EdgeInsets.fromLTRB(10.w, 2.h, 10.w, 8.h),
                 child: Text(
-                  post.caption.isNotEmpty ? post.caption : post.title,
+                  post.description.isNotEmpty
+                      ? post.description
+                      : (poll?.question ?? ''),
                   style: AppTextStyles.bodyText.copyWith(
                     fontSize: 14,
                     fontWeight: FontWeight.w500,
@@ -1872,6 +1883,27 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen>
       return errorWidget ??
           const Icon(Icons.broken_image_rounded, color: _textSecondary);
     }
+
+    String resolvedUrl = imageUrl;
+    if (!resolvedUrl.startsWith('http')) {
+      if (resolvedUrl.startsWith('/')) {
+        resolvedUrl = '${ApiConfig.baseUrlImage}$resolvedUrl';
+      } else {
+        resolvedUrl = '${ApiConfig.baseUrlImage}/$resolvedUrl';
+      }
+    }
+
+    // Bypass FutureBuilder if the URL does not point to an API endpoint
+    if (!resolvedUrl.contains('/api/')) {
+      return Image.network(
+        resolvedUrl,
+        fit: fit,
+        errorBuilder: (_, __, ___) =>
+            errorWidget ??
+            const Icon(Icons.broken_image_rounded, color: _textSecondary),
+      );
+    }
+
     return FutureBuilder<String?>(
       future: _authTokenFuture,
       builder: (context, snapshot) {
@@ -1879,11 +1911,11 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen>
           return Container(color: Colors.grey[100]);
         }
         final token = snapshot.data;
-        final headers = token != null && imageUrl.contains('/api/')
+        final headers = token != null && resolvedUrl.contains('/api/')
             ? {'Authorization': 'Bearer $token'}
             : null;
         return Image.network(
-          imageUrl,
+          resolvedUrl,
           fit: fit,
           headers: headers,
           errorBuilder: (_, __, ___) =>

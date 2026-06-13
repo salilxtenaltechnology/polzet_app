@@ -13,6 +13,7 @@ import '../../../models/like/like_uers_model.dart';
 import '../../../provider/user_provider.dart';
 import '../../base64/image_convert.dart';
 import '../../../core/themes/app_text_styles.dart';
+import '../../../api/api_config.dart';
 import '../../loader.dart';
 import '../../../screens/home/home_imports.dart';
 import '../../../screens/home/profile/public/public_profile_screen.dart';
@@ -299,9 +300,11 @@ class _LikedUsersBottomSheetState extends State<LikedUsersBottomSheet> {
                                     backgroundImage:
                                         user.profileImage != null &&
                                             user.profileImage!.isNotEmpty
-                                        ? MemoryImage(
-                                            getProfileImage(user.profileImage)!,
-                                          )
+                                        ? (getProfileImage(user.profileImage) != null
+                                            ? MemoryImage(getProfileImage(user.profileImage)!)
+                                            : NetworkImage(user.profileImage!.startsWith('http')
+                                                ? user.profileImage!
+                                                : '${ApiConfig.baseUrlImage}${user.profileImage!}') as ImageProvider)
                                         : null,
                                     backgroundColor: isDarkMode
                                         ? const Color(0xFF303030)

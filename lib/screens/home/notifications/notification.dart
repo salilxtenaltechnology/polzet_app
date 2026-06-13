@@ -623,6 +623,8 @@ class NotificationState extends State<Notifications>
           return 'commented on your post: $commentText';
         }
         return 'commented on your poll';
+      case 'COMMENT_GROUP':
+        return '${notification.actor.username} commented on your poll';
       case 'VOTE':
         return 'voted on your poll';
       case 'SHARE':
@@ -650,6 +652,13 @@ class NotificationState extends State<Notifications>
     if (imageUrl == null || imageUrl.isEmpty) return null;
     if (_imageCache.containsKey(imageUrl)) return _imageCache[imageUrl];
 
+    // Return null immediately for paths and URLs to avoid throwing FormatException in base64Decode
+    if (imageUrl.startsWith('http') ||
+        imageUrl.startsWith('/') ||
+        (imageUrl.contains('/') && !imageUrl.startsWith('data:image'))) {
+      return null;
+    }
+
     try {
       final base64Data = imageUrl.replaceFirst(
         RegExp(r'data:image/[^;]+;base64,'),
@@ -675,6 +684,7 @@ class NotificationState extends State<Notifications>
       case 'LIKE_GROUP':
         return const Color(0xFFFEA65B);
       case 'COMMENT':
+      case 'COMMENT_GROUP':
         return const Color(0xFF30AB98);
       case 'FOLLOW':
       case 'FOLLOW_GROUP':
@@ -1666,6 +1676,17 @@ class NotificationState extends State<Notifications>
                               }
                             },
                           )
+                        : (notification.actor.avatarUrl != null &&
+                                notification.actor.avatarUrl!.isNotEmpty)
+                        ? CircleAvatar(
+                            backgroundImage: NetworkImage(notification.actor.avatarUrl!),
+                            radius: 17.w,
+                            onBackgroundImageError: (exception, stackTrace) {
+                              if (kDebugMode) {
+                                debugPrint('Error loading avatar: $exception');
+                              }
+                            },
+                          )
                         : CircleAvatar(
                             radius: 16.5.w,
                             backgroundColor: Theme.of(
@@ -1688,6 +1709,7 @@ class NotificationState extends State<Notifications>
                         child: AppIcons.like(),
                       ),
                     if (notification.type.toUpperCase() == 'COMMENT' ||
+                        notification.type.toUpperCase() == 'COMMENT_GROUP' ||
                         notification.type.toUpperCase() == 'NEW_MESSAGE' ||
                         notification.type.toUpperCase() == 'NEW_GROUP_ADDED')
                       Positioned(
@@ -1738,6 +1760,7 @@ class NotificationState extends State<Notifications>
                         ),
                         children: <TextSpan>[
                           if (notification.type.toUpperCase() == 'LIKE_GROUP' ||
+                              notification.type.toUpperCase() == 'COMMENT_GROUP' ||
                               notification.type.toUpperCase() == 'FOLLOW_GROUP')
                             TextSpan(
                               text: getNotificationMessage(notification),

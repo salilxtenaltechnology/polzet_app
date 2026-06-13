@@ -50,7 +50,7 @@ class HomefeedImageRanking extends StatefulWidget {
   State<HomefeedImageRanking> createState() => _ImageRankingState();
 }
 
-class _ImageRankingState extends State<HomefeedImageRanking> with UtilityMixin{
+class _ImageRankingState extends State<HomefeedImageRanking> with UtilityMixin {
   late List<HomeFeedPollOption> _orderedImages;
   bool _hasRanked = false;
   bool _isSubmitting = false;
@@ -263,7 +263,10 @@ class _ImageRankingState extends State<HomefeedImageRanking> with UtilityMixin{
             children: [
               GestureDetector(
                 onTap: () {
-                  navigationPush(context, PublicProfileScreen(userId: widget.user.userid));
+                  navigationPush(
+                    context,
+                    PublicProfileScreen(userId: widget.user.userid),
+                  );
                 },
                 child: CircleAvatar(
                   radius: 20,
@@ -272,8 +275,14 @@ class _ImageRankingState extends State<HomefeedImageRanking> with UtilityMixin{
                   ).colorScheme.onPrimary.withOpacity(0.1),
                   backgroundImage: _profileImageBytes != null
                       ? MemoryImage(_profileImageBytes!)
-                      : null,
-                  child: _profileImageBytes == null
+                      : (widget.user.profileImage != null &&
+                                widget.user.profileImage!.isNotEmpty
+                            ? NetworkImage(widget.user.profileImage!)
+                            : null),
+                  child:
+                      _profileImageBytes == null &&
+                          (widget.user.profileImage == null ||
+                              widget.user.profileImage!.isEmpty)
                       ? Text(
                           widget.user.firstLetter,
                           style: AppTextStyles.subText.copyWith(
@@ -405,7 +414,7 @@ class _RankImageCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final imageUrl = option.image != null
-        ? '${ApiConfig.baseUrlImage}${option.image!.url}'
+        ? option.image!.resolvedUrl(ApiConfig.baseUrlImage)
         : '';
 
     return Stack(
@@ -414,7 +423,7 @@ class _RankImageCard extends StatelessWidget {
           onTap: () {
             final urls = allImages
                 .where((o) => o.image != null)
-                .map((o) => '${ApiConfig.baseUrlImage}${o.image!.url}')
+                .map((o) => o.image!.resolvedUrl(ApiConfig.baseUrlImage))
                 .toList();
 
             Navigator.of(context).push(
@@ -428,6 +437,7 @@ class _RankImageCard extends StatelessWidget {
           child: Container(
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(AppRadius.card),
+              // color: Theme.of(context).colorScheme.background,
               border: Border.all(
                 color: Theme.of(context).colorScheme.outlineVariant,
                 width: 1,
@@ -441,9 +451,9 @@ class _RankImageCard extends StatelessWidget {
                       width: double.infinity,
                       height: 200,
                       fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => _placeholder(),
+                      errorBuilder: (_, __, ___) => _placeholder(context),
                     )
-                  : _placeholder(),
+                  : _placeholder(context),
             ),
           ),
         ),
@@ -480,18 +490,20 @@ class _RankImageCard extends StatelessWidget {
     );
   }
 
-  Widget _placeholder() {
+  Widget _placeholder(BuildContext context) {
     return Container(
       width: double.infinity,
       height: 200,
       decoration: BoxDecoration(
-        color: Colors.grey.shade200,
+        color: Theme.of(context).colorScheme.background,
         borderRadius: BorderRadius.circular(14),
       ),
-      child: const Icon(
-        Icons.image_not_supported_outlined,
-        color: Colors.grey,
-        size: 40,
+      child: Center(
+        child: Icon(
+          Icons.image_not_supported_outlined,
+          color: Theme.of(context).colorScheme.onSurface.withOpacity(0.4),
+          size: 40,
+        ),
       ),
     );
   }

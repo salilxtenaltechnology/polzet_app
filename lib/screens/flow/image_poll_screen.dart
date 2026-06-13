@@ -14,6 +14,7 @@ import '../../core/constants/app_radius.dart';
 import '../../core/themes/app_text_colors.dart';
 import '../../core/themes/app_text_styles.dart';
 import '../../widgets/dotted_border/dotted_border.dart';
+import '../../widgets/dialog/custom_diolog.dart';
 import 'all_set_screen.dart';
 
 /// Image poll option model
@@ -54,12 +55,17 @@ class _ImagePollScreenState extends State<ImagePollScreen> {
       );
 
       if (pickedFile != null) {
-        final File? croppedFile = await ImagePickerService.cropImage(
-          pickedFile,
-        );
+        final shouldCrop = await cropImageDiolog(context);
+        if (!mounted) return;
+
+        File finalFile = pickedFile;
+        if (shouldCrop == true) {
+          final croppedFile = await ImagePickerService.cropImage(pickedFile);
+          if (croppedFile != null) finalFile = croppedFile;
+        }
 
         setState(() {
-          _options[index].image = croppedFile ?? pickedFile;
+          _options[index].image = finalFile;
           if (_imageError.isNotEmpty) _imageError = '';
         });
       }

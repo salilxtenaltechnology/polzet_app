@@ -20,6 +20,7 @@ import '../../../../widgets/country_code/code_bottomsheet.dart';
 import '../../../../widgets/dialog/custom_diolog.dart';
 import '../../../../core/themes/app_text_styles.dart';
 import '../../../../widgets/base64/image_convert.dart';
+import '../../../../api/api_config.dart';
 
 class EditProfile extends StatefulWidget {
   const EditProfile({super.key});
@@ -490,6 +491,23 @@ class _EditProfileState extends State<EditProfile> {
     final profileUrl = userProvider.profile_picture;
     final imageBytes = profileUrl != null ? getProfileImage(profileUrl) : null;
 
+    final ImageProvider avatarImage;
+    if (imageBytes != null) {
+      avatarImage = MemoryImage(imageBytes);
+    } else if (profileUrl != null &&
+        (profileUrl.startsWith('http') ||
+            profileUrl.startsWith('/') ||
+            profileUrl.contains('/'))) {
+      final imageUrl = profileUrl.startsWith('http')
+          ? profileUrl
+          : (profileUrl.startsWith('/')
+                ? '${ApiConfig.baseUrlImage}$profileUrl'
+                : '${ApiConfig.baseUrlImage}/$profileUrl');
+      avatarImage = NetworkImage(imageUrl);
+    } else {
+      avatarImage = AssetImage(Assets.images.icAvatar.path);
+    }
+
     return Center(
       child: Stack(
         clipBehavior: Clip.none,
@@ -497,9 +515,7 @@ class _EditProfileState extends State<EditProfile> {
           CircleAvatar(
             radius: 50,
             backgroundColor: Colors.grey[200],
-            backgroundImage: imageBytes != null
-                ? MemoryImage(imageBytes)
-                : AssetImage(Assets.images.icAvatar.path) as ImageProvider,
+            backgroundImage: avatarImage,
             child: _isUploadingProfile
                 ? Container(
                     width: 100,
@@ -532,7 +548,10 @@ class _EditProfileState extends State<EditProfile> {
                 decoration: BoxDecoration(
                   color: Theme.of(context).colorScheme.primary,
                   shape: BoxShape.circle,
-                  border: Border.all(color: Theme.of(context).colorScheme.background, width: 1.5),
+                  border: Border.all(
+                    color: Theme.of(context).colorScheme.background,
+                    width: 1.5,
+                  ),
                 ),
                 child: Icon(
                   FeatherIcons.camera,

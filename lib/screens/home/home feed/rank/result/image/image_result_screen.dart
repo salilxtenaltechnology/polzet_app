@@ -63,11 +63,14 @@ class _ImageResultScreenState extends State<ImageResultScreen>
       _prepareDisplayData(post);
 
       Uint8List? imageBytes;
-      if (post.profileImage.isNotEmpty) {
+      final imageToDecode = post.user.profileImage.isNotEmpty
+          ? post.user.profileImage
+          : post.profileImage;
+      if (imageToDecode.isNotEmpty) {
         try {
-          final raw = post.profileImage.contains(',')
-              ? post.profileImage.split(',').last
-              : post.profileImage;
+          final raw = imageToDecode.contains(',')
+              ? imageToDecode.split(',').last
+              : imageToDecode;
           imageBytes = base64Decode(raw);
         } catch (_) {
           imageBytes = null;
@@ -200,8 +203,10 @@ class _ImageResultScreenState extends State<ImageResultScreen>
             ).colorScheme.onPrimary.withOpacity(0.15),
             backgroundImage: _profileImageBytes != null
                 ? MemoryImage(_profileImageBytes!)
-                : null,
-            child: _profileImageBytes == null
+                : (_post!.user.profileImage.isNotEmpty
+                    ? NetworkImage(_post!.user.profileImage)
+                    : null),
+            child: _profileImageBytes == null && _post!.user.profileImage.isEmpty
                 ? Text(
                     initial,
                     style: AppTextStyles.subText.copyWith(
@@ -480,17 +485,20 @@ class _ImageResultScreenState extends State<ImageResultScreen>
   // ── Placeholder ───────────────────────────────────────────────────────────
 
   Widget _imagePlaceholder() {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     return Container(
       width: 72.w,
       height: 72.w,
       decoration: BoxDecoration(
-        color: Colors.grey.shade200,
+        color: isDarkMode ? const Color(0xA22E2E2E) : Colors.grey.shade200,
         borderRadius: BorderRadius.circular(10.r),
       ),
-      child: const Icon(
-        Icons.image_not_supported_outlined,
-        color: Colors.grey,
-        size: 28,
+      child: Center(
+        child: Icon(
+          Icons.image_not_supported_outlined,
+          color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5),
+          size: 28,
+        ),
       ),
     );
   }

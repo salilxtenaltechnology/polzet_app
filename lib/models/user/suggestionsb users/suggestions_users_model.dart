@@ -1,5 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import '../../../api/api_config.dart';
+
 
 class UserSuggestionsModel {
   final String status;
@@ -56,6 +58,23 @@ class SuggestedUser {
   final List<String> tags;
   final bool isNew;
 
+  String _resolveImageUrl(String path) {
+    if (path.isEmpty) return '';
+    if (path.startsWith('http://') ||
+        path.startsWith('https://') ||
+        path.startsWith('data:image')) {
+      return path;
+    }
+    final base = ApiConfig.baseUrlImage;
+    if (base.endsWith('/') && path.startsWith('/')) {
+      return base + path.substring(1);
+    } else if (!base.endsWith('/') && !path.startsWith('/')) {
+      return '$base/$path';
+    } else {
+      return base + path;
+    }
+  }
+
   // Cached image providers to prevent reloading/flickering on widget rebuilds
   ImageProvider? _avatarImageProvider;
   ImageProvider get avatarImageProvider {
@@ -64,10 +83,10 @@ class SuggestedUser {
         try {
           _avatarImageProvider = MemoryImage(base64Decode(avatar.split(',').last));
         } catch (_) {
-          _avatarImageProvider = NetworkImage(avatar);
+          _avatarImageProvider = NetworkImage(_resolveImageUrl(avatar));
         }
       } else {
-        _avatarImageProvider = NetworkImage(avatar);
+        _avatarImageProvider = NetworkImage(_resolveImageUrl(avatar));
       }
     }
     return _avatarImageProvider!;
@@ -82,10 +101,10 @@ class SuggestedUser {
           try {
             _mutualImageProviders!.add(MemoryImage(base64Decode(url.split(',').last)));
           } catch (_) {
-            _mutualImageProviders!.add(NetworkImage(url));
+            _mutualImageProviders!.add(NetworkImage(_resolveImageUrl(url)));
           }
         } else {
-          _mutualImageProviders!.add(NetworkImage(url));
+          _mutualImageProviders!.add(NetworkImage(_resolveImageUrl(url)));
         }
       }
     }
@@ -112,8 +131,16 @@ class SuggestedUser {
       role: json['role'] ?? '',
       avatar: json['avatar'] ?? '',
       mutualFriends: json['mutualFriends'] ?? 0,
-      mutualFriendsAvatars: List<String>.from(json['mutualFriendsAvatars'] ?? []),
-      tags: List<String>.from(json['tags'] ?? []),
+      mutualFriendsAvatars: (json['mutualFriendsAvatars'] as List?)
+              ?.where((e) => e != null)
+              .map((e) => e.toString())
+              .toList() ??
+          [],
+      tags: (json['tags'] as List?)
+              ?.where((e) => e != null)
+              .map((e) => e.toString())
+              .toList() ??
+          [],
       isNew: json['isNew'] ?? false,
     );
   }

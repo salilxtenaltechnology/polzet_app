@@ -1,5 +1,7 @@
 // models/single_post/single_post_model.dart
 
+import 'package:polzet_app/api/api_config.dart';
+
 class SinglePostModel {
   final String id;
   final String firstName;
@@ -285,10 +287,20 @@ class SinglePostUser {
   });
 
   factory SinglePostUser.fromJson(Map<String, dynamic> json) {
+    String profileImg = json['profile_image']?.toString() ?? '';
+    if (profileImg.isNotEmpty) {
+      if (!profileImg.startsWith('http') && !profileImg.startsWith('data:image')) {
+        if (profileImg.startsWith('/')) {
+          profileImg = '${ApiConfig.baseUrlImage}$profileImg';
+        } else {
+          profileImg = '${ApiConfig.baseUrlImage}/$profileImg';
+        }
+      }
+    }
     return SinglePostUser(
       uuid: (json['uuid'] ?? json['userid'] ?? json['user_id'] ?? json['id'] ?? '').toString(),
       username: json['username']?.toString() ?? '',
-      profileImage: json['profile_image']?.toString() ?? '',
+      profileImage: profileImg,
     );
   }
 

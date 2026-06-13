@@ -567,6 +567,20 @@ class PollOptionImage {
     required this.thumbnailUrl,
   });
 
+  String resolvedUrl(String baseUrl) {
+    if (url.isEmpty) return '';
+    if (url.startsWith('http') || url.startsWith('data:image')) return url;
+    if (url.startsWith('/')) return '$baseUrl$url';
+    return '$baseUrl/$url';
+  }
+
+  String resolvedThumbnailUrl(String baseUrl) {
+    if (thumbnailUrl.isEmpty) return '';
+    if (thumbnailUrl.startsWith('http') || thumbnailUrl.startsWith('data:image')) return thumbnailUrl;
+    if (thumbnailUrl.startsWith('/')) return '$baseUrl$thumbnailUrl';
+    return '$baseUrl/$thumbnailUrl';
+  }
+
   factory PollOptionImage.fromJson(Map<String, dynamic> json) {
     return PollOptionImage(
       id: json['id'] ?? 0,

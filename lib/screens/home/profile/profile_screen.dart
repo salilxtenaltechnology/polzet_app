@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 import '../../../api/services/api_service.dart';
 import '../../../core/constants/app_icons.dart';
@@ -304,7 +305,10 @@ class _ProfileScreenState extends State<ProfileScreen>
     }
   }
 
-  Future<void> _fetchLikedUsersSilently(String postId, {bool force = false}) async {
+  Future<void> _fetchLikedUsersSilently(
+    String postId, {
+    bool force = false,
+  }) async {
     if (!force && postLikedUsers.containsKey(postId)) return;
     try {
       final users = await ApiService().fetchLikedUsers(postId);
@@ -323,7 +327,8 @@ class _ProfileScreenState extends State<ProfileScreen>
     final userProvider = Provider.of<UserProvider>(context, listen: false);
     final currentUserId = userProvider.userId ?? '';
     final currentUsername = userProvider.username ?? '';
-    final currentUserFullName = '${userProvider.firstName ?? ''} ${userProvider.lastName ?? ''}'.trim();
+    final currentUserFullName =
+        '${userProvider.firstName ?? ''} ${userProvider.lastName ?? ''}'.trim();
     final currentUserImage = userProvider.profile_picture;
 
     final previousViewLikes = List<LikeUser>.from(postLikedUsers[postId] ?? []);
@@ -341,7 +346,9 @@ class _ProfileScreenState extends State<ProfileScreen>
           0,
           LikeUser(
             id: currentUserId,
-            fullName: currentUserFullName.isNotEmpty ? currentUserFullName : currentUsername,
+            fullName: currentUserFullName.isNotEmpty
+                ? currentUserFullName
+                : currentUsername,
             username: currentUsername,
             profileImage: currentUserImage,
           ),
@@ -651,7 +658,9 @@ class _ProfileScreenState extends State<ProfileScreen>
         children: [
           GestureDetector(
             onTap: () {
-              final originalImageSource = userProvider.profile_picture_path ?? userProvider.profile_picture;
+              final originalImageSource =
+                  userProvider.profile_picture_path ??
+                  userProvider.profile_picture;
               if (originalImageSource == null || originalImageSource.isEmpty) {
                 return;
               }
@@ -667,12 +676,10 @@ class _ProfileScreenState extends State<ProfileScreen>
                       username: userProvider.username,
                     );
                   },
-                  transitionsBuilder: (context, animation, secondaryAnimation, child) {
-                    return FadeTransition(
-                      opacity: animation,
-                      child: child,
-                    );
-                  },
+                  transitionsBuilder:
+                      (context, animation, secondaryAnimation, child) {
+                        return FadeTransition(opacity: animation, child: child);
+                      },
                 ),
               );
             },
@@ -684,25 +691,43 @@ class _ProfileScreenState extends State<ProfileScreen>
                   decoration: const BoxDecoration(shape: BoxShape.circle),
                   child: ClipOval(
                     child: (() {
-                      final cachedImage = _getCachedProfileImage(
-                        userProvider.profile_picture,
-                        userProvider,
-                      );
-                      if (cachedImage != null) {
-                        return Image.memory(
-                          cachedImage,
-                          fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => _AvatarPlaceholder(
-                            username: userProvider.username,
-                            fontSize: 35,
-                          ),
+                      final profilePic = userProvider.profile_picture;
+                      if (profilePic != null && profilePic.isNotEmpty) {
+                        final cachedImage = _getCachedProfileImage(
+                          profilePic,
+                          userProvider,
                         );
-                      } else {
-                        return _AvatarPlaceholder(
-                          username: userProvider.username,
-                          fontSize: 35,
-                        );
+                        if (cachedImage != null) {
+                          return Image.memory(
+                            cachedImage,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => _AvatarPlaceholder(
+                              username: userProvider.username,
+                              fontSize: 35,
+                            ),
+                          );
+                        } else if (profilePic.startsWith('http') ||
+                            profilePic.startsWith('/') ||
+                            profilePic.contains('/')) {
+                          final imageUrl = profilePic.startsWith('http')
+                              ? profilePic
+                              : (profilePic.startsWith('/')
+                                    ? '${ApiConfig.baseUrlImage}$profilePic'
+                                    : '${ApiConfig.baseUrlImage}/$profilePic');
+                          return CachedNetworkImage(
+                            imageUrl: imageUrl,
+                            fit: BoxFit.cover,
+                            errorWidget: (_, __, ___) => _AvatarPlaceholder(
+                              username: userProvider.username,
+                              fontSize: 35,
+                            ),
+                          );
+                        }
                       }
+                      return _AvatarPlaceholder(
+                        username: userProvider.username,
+                        fontSize: 35,
+                      );
                     })(),
                   ),
                 ),
@@ -924,25 +949,43 @@ class _ProfileScreenState extends State<ProfileScreen>
                   decoration: const BoxDecoration(shape: BoxShape.circle),
                   child: ClipOval(
                     child: (() {
-                      final cachedImage = _getCachedProfileImage(
-                        userProvider.profile_picture,
-                        userProvider,
-                      );
-                      if (cachedImage != null) {
-                        return Image.memory(
-                          cachedImage,
-                          fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => _AvatarPlaceholder(
-                            username: userProvider.username,
-                            fontSize: 18,
-                          ),
+                      final profilePic = userProvider.profile_picture;
+                      if (profilePic != null && profilePic.isNotEmpty) {
+                        final cachedImage = _getCachedProfileImage(
+                          profilePic,
+                          userProvider,
                         );
-                      } else {
-                        return _AvatarPlaceholder(
-                          username: userProvider.username,
-                          fontSize: 18,
-                        );
+                        if (cachedImage != null) {
+                          return Image.memory(
+                            cachedImage,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => _AvatarPlaceholder(
+                              username: userProvider.username,
+                              fontSize: 18,
+                            ),
+                          );
+                        } else if (profilePic.startsWith('http') ||
+                            profilePic.startsWith('/') ||
+                            profilePic.contains('/')) {
+                          final imageUrl = profilePic.startsWith('http')
+                              ? profilePic
+                              : (profilePic.startsWith('/')
+                                    ? '${ApiConfig.baseUrlImage}$profilePic'
+                                    : '${ApiConfig.baseUrlImage}/$profilePic');
+                          return CachedNetworkImage(
+                            imageUrl: imageUrl,
+                            fit: BoxFit.cover,
+                            errorWidget: (_, __, ___) => _AvatarPlaceholder(
+                              username: userProvider.username,
+                              fontSize: 18,
+                            ),
+                          );
+                        }
                       }
+                      return _AvatarPlaceholder(
+                        username: userProvider.username,
+                        fontSize: 18,
+                      );
                     })(),
                   ),
                 ),
@@ -1335,6 +1378,7 @@ class _ProfileScreenState extends State<ProfileScreen>
     }
 
     List<Alignment> alignments = getAlignments(validImages.length);
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -1370,6 +1414,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                         height: imageHeight,
                         child: Container(
                           decoration: BoxDecoration(
+                            color: Theme.of(context).colorScheme.background,
                             borderRadius: BorderRadius.circular(
                               AppRadius.button,
                             ),
@@ -1378,52 +1423,47 @@ class _ProfileScreenState extends State<ProfileScreen>
                             borderRadius: BorderRadius.circular(
                               AppRadius.button,
                             ),
-                            child: Image.network(
-                              '${ApiConfig.baseUrlImage}${imageData.url}',
+                            child: CachedNetworkImage(
+                              imageUrl: imageData.resolvedUrl(
+                                ApiConfig.baseUrlImage,
+                              ),
                               fit: BoxFit.cover,
                               width: double.infinity,
                               height: double.infinity,
-                              errorBuilder: (context, error, stackTrace) {
-                                return Container(
-                                  decoration: BoxDecoration(
-                                    borderRadius: BorderRadius.circular(
-                                      AppRadius.button,
-                                    ),
-                                    color: Colors.grey[200],
+                              placeholder: (context, url) => Container(
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(20.r),
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.background,
+                                ),
+                                child: Center(
+                                  child: Loader(
+                                    color: Theme.of(context).colorScheme.onPrimary.withOpacity(0.7),
                                   ),
+                                ),
+                              ),
+                              errorWidget: (context, url, error) => Container(
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(
+                                    AppRadius.button,
+                                  ),
+                                  color: isDarkMode
+                                      ? const Color.fromARGB(104, 46, 46, 46)
+                                      : Theme.of(
+                                          context,
+                                        ).colorScheme.background,
+                                ),
+                                child: Center(
                                   child: Icon(
-                                    Icons.image_not_supported,
-                                    color: Colors.grey[600],
+                                    Icons.image_not_supported_outlined,
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onSurface.withOpacity(0.4),
                                     size: 30,
                                   ),
-                                );
-                              },
-                              loadingBuilder:
-                                  (context, child, loadingProgress) {
-                                    if (loadingProgress == null) return child;
-                                    return Container(
-                                      decoration: BoxDecoration(
-                                        borderRadius: BorderRadius.circular(
-                                          20.r,
-                                        ),
-                                        color: Colors.grey[200],
-                                      ),
-                                      child: Center(
-                                        child: CircularProgressIndicator(
-                                          strokeWidth: 2,
-                                          value:
-                                              loadingProgress
-                                                      .expectedTotalBytes !=
-                                                  null
-                                              ? loadingProgress
-                                                        .cumulativeBytesLoaded /
-                                                    loadingProgress
-                                                        .expectedTotalBytes!
-                                              : null,
-                                        ),
-                                      ),
-                                    );
-                                  },
+                                ),
+                              ),
                             ),
                           ),
                         ),

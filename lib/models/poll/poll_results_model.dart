@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:polzet_app/api/api_config.dart';
 
 class PollResultResponse {
   final String status;
@@ -155,11 +156,21 @@ class PollUser {
   });
 
   factory PollUser.fromJson(Map<String, dynamic> json) {
+    String? profilePic = json['profile_picture_url'] as String?;
+    if (profilePic != null && profilePic.isNotEmpty) {
+      if (!profilePic.startsWith('http') && !profilePic.startsWith('data:image')) {
+        if (profilePic.startsWith('/')) {
+          profilePic = '${ApiConfig.baseUrlImage}$profilePic';
+        } else {
+          profilePic = '${ApiConfig.baseUrlImage}/$profilePic';
+        }
+      }
+    }
     return PollUser(
       id: (json['id'] ?? '').toString(),
       username: json['username'] ?? '',
       fullName: json['full_name'] ?? json['username'] ?? '',
-      profilePictureUrl: json['profile_picture_url'],
+      profilePictureUrl: profilePic,
     );
   }
 }

@@ -3,6 +3,7 @@
 import 'package:polzet_app/core/constants/feather_icons_compat.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 import '../../../../api/services/api_service.dart';
 import '../../../../core/constants/app_radius.dart';
@@ -13,6 +14,7 @@ import '../../../../languages/l10n/generated/app_localizations.dart';
 import '../../../../mixin/utility_mixins.dart';
 import '../../../../widgets/appbar/common_appbar.dart';
 import '../../../../widgets/base64/image_convert.dart';
+import 'package:polzet_app/api/api_config.dart';
 import '../../../../widgets/button/chase/toggle_chase_button.dart';
 import '../../../../widgets/tabbar/indicatore_animation.dart';
 import '../public/public_profile_screen.dart';
@@ -218,32 +220,71 @@ class _UserChaseState extends State<UserChase>
                   color: Theme.of(context).colorScheme.outline,
                   width: 0.7,
                 ),
-                image: profilePic != null
-                    ? DecorationImage(
-                        image: MemoryImage(getProfileImage(profilePic)!),
-                        fit: BoxFit.cover,
-                      )
-                    : null,
-                color: profilePic == null
-                    ? (isDarkMode
-                          ? const Color(0xFF252525)
-                          : Theme.of(context).primaryColor.withOpacity(0.08))
-                    : null,
+                color: isDarkMode
+                    ? const Color(0xFF252525)
+                    : Theme.of(context).primaryColor.withOpacity(0.08),
               ),
-              child: profilePic == null
-                  ? Center(
-                      child: Text(
-                        firstLetter,
-                        style: TextStyle(
-                          fontSize: 17,
-                          fontWeight: FontWeight.w500,
-                          color: Theme.of(
-                            context,
-                          ).colorScheme.onPrimary.withOpacity(0.8),
+              child: ClipOval(
+                child: (() {
+                  if (profilePic != null && profilePic.isNotEmpty) {
+                    final bytes = getProfileImage(profilePic);
+                    if (bytes != null) {
+                      return Image.memory(
+                        bytes,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => Center(
+                          child: Text(
+                            firstLetter,
+                            style: TextStyle(
+                              fontSize: 17,
+                              fontWeight: FontWeight.w500,
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onPrimary
+                                  .withOpacity(0.8),
+                            ),
+                          ),
+                        ),
+                      );
+                    }
+                    final imageUrl = profilePic.startsWith('http')
+                        ? profilePic
+                        : (profilePic.startsWith('/')
+                            ? '${ApiConfig.baseUrlImage}$profilePic'
+                            : '${ApiConfig.baseUrlImage}/$profilePic');
+                    return CachedNetworkImage(
+                      imageUrl: imageUrl,
+                      fit: BoxFit.cover,
+                      errorWidget: (_, __, ___) => Center(
+                        child: Text(
+                          firstLetter,
+                          style: TextStyle(
+                            fontSize: 17,
+                            fontWeight: FontWeight.w500,
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onPrimary
+                                .withOpacity(0.8),
+                          ),
                         ),
                       ),
-                    )
-                  : null,
+                    );
+                  }
+                  return Center(
+                    child: Text(
+                      firstLetter,
+                      style: TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.w500,
+                        color: Theme.of(context)
+                            .colorScheme
+                            .onPrimary
+                            .withOpacity(0.8),
+                      ),
+                    ),
+                  );
+                })(),
+              ),
             ),
             const SizedBox(width: 5),
             // Username

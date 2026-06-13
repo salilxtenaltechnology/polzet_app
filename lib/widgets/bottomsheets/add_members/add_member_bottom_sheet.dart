@@ -1,13 +1,14 @@
 // ignore_for_file: deprecated_member_use
 
+import 'dart:convert';
 import 'package:polzet_app/core/constants/feather_icons_compat.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
+import '../../../../api/api_config.dart';
 import '../../../../api/services/api_service.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../mixin/utility_mixins.dart';
-import '../../../../widgets/base64/image_convert.dart';
 import '../../../../widgets/custom_text_styles.dart';
 import '../../../core/constants/app_radius.dart';
 import '../../../core/themes/app_text_colors.dart';
@@ -96,9 +97,18 @@ class _AddMemberBottomSheetState extends State<AddMemberBottomSheet>
     setState(() {
       _filteredUsers = query.isEmpty
           ? _allUsers
-          : _allUsers
-                .where((u) => _userName(u).toLowerCase().contains(query))
-                .toList();
+          : _allUsers.where((u) {
+              final username = (u['username'] as String?)?.toLowerCase() ?? '';
+              final firstName = (u['first_name'] as String?)?.toLowerCase() ?? '';
+              final lastName = (u['last_name'] as String?)?.toLowerCase() ?? '';
+              final fullName = '$firstName $lastName'.trim();
+              final name = (u['name'] as String?)?.toLowerCase() ?? '';
+              return username.contains(query) ||
+                  firstName.contains(query) ||
+                  lastName.contains(query) ||
+                  fullName.contains(query) ||
+                  name.contains(query);
+            }).toList();
     });
   }
 
@@ -118,6 +128,34 @@ class _AddMemberBottomSheetState extends State<AddMemberBottomSheet>
               user['photo'] ??
               user['profile_picture'])
           ?.toString();
+
+  ImageProvider? _avatarProvider(String? raw) {
+    if (raw == null || raw.isEmpty) return null;
+    if (raw.startsWith('data:image')) {
+      try {
+        return MemoryImage(base64Decode(raw.split(',').last));
+      } catch (_) {
+        return null;
+      }
+    }
+    // Check if it is base64 string
+    if (!raw.startsWith('/') && !raw.startsWith('http') && !raw.contains('/')) {
+      try {
+        return MemoryImage(base64Decode(raw.split(',').last));
+      } catch (_) {
+        // Fall through to network
+      }
+    }
+    String resolved = raw;
+    if (!resolved.startsWith('http')) {
+      if (resolved.startsWith('/')) {
+        resolved = '${ApiConfig.baseUrlImage}$resolved';
+      } else {
+        resolved = '${ApiConfig.baseUrlImage}/$resolved';
+      }
+    }
+    return NetworkImage(resolved);
+  }
 
   void _onAdd() {
     final selectedUsers = _allUsers
@@ -290,13 +328,16 @@ class _AddMemberBottomSheetState extends State<AddMemberBottomSheet>
         final id = user['id']?.toString() ?? '';
         final isSelected = _selectedIds.contains(id);
         final avatarUrl = _userAvatar(user);
+        final firstName = user['first_name'] as String? ?? '';
+        final lastName = user['last_name'] as String? ?? '';
+        final username = user['username'] as String? ?? _userName(user);
+        final fullName = '$firstName $lastName'.trim();
 
         return GestureDetector(
           onTap: () => _toggleMember(id),
           child: Container(
-            height: 48,
             width: double.infinity,
-            padding: const EdgeInsets.symmetric(horizontal: 10),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
             decoration: BoxDecoration(
               color: Theme.of(context).colorScheme.primaryContainer,
               borderRadius: BorderRadius.circular(AppRadius.card),
@@ -312,21 +353,17 @@ class _AddMemberBottomSheetState extends State<AddMemberBottomSheet>
               children: [
                 Builder(
                   builder: (_) {
-                    final imageBytes = avatarUrl != null
-                        ? getProfileImage(avatarUrl)
-                        : null;
-                    final initial = _userName(user).trim().isNotEmpty
-                        ? _userName(user).trim()[0].toUpperCase()
+                    final provider = _avatarProvider(avatarUrl);
+                    final initial = username.trim().isNotEmpty
+                        ? username.trim()[0].toUpperCase()
                         : 'P';
                     return CircleAvatar(
-                      radius: 13.r,
-                      backgroundImage: imageBytes != null
-                          ? MemoryImage(imageBytes)
-                          : null,
-                      backgroundColor: imageBytes == null
+                      radius: 19,
+                      backgroundImage: provider,
+                      backgroundColor: provider == null
                           ? Theme.of(context).colorScheme.onPrimary.withOpacity(0.1)
                           : null,
-                      child: imageBytes == null
+                      child: provider == null
                           ? Text(
                               initial,
                               style: TextStyle(
@@ -341,14 +378,44 @@ class _AddMemberBottomSheetState extends State<AddMemberBottomSheet>
                 ),
                 SizedBox(width: 12.w),
                 Expanded(
-                  child: Text(
-                    _userName(user),
-                    style: TextStyle(
-                      color: txt.title,
-                      fontSize: 11.2.sp,
-                      fontWeight: FontWeight.w400,
-                    ),
-                    overflow: TextOverflow.ellipsis,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        username,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: txt.body,
+                          fontSize: 14.5,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      if (fullName.isNotEmpty) ...[
+                        Text(
+                          fullName,
+                          style: TextStyle(
+                            fontSize: 12.5,
+                            color: txt.muted,
+                            fontWeight: FontWeight.w500,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ] else ...[
+                        Text(
+                          username,
+                          style: TextStyle(
+                            fontSize: 12.5,
+                            color: txt.muted,
+                            fontWeight: FontWeight.w500,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ],
                   ),
                 ),
                 AnimatedContainer(

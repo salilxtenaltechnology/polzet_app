@@ -220,8 +220,13 @@ class _HomefeedThingsRankingState extends State<HomefeedThingsRanking>
             ).colorScheme.onPrimary.withOpacity(0.1),
             backgroundImage: _profileImageBytes != null
                 ? MemoryImage(_profileImageBytes!)
-                : null,
-            child: _profileImageBytes == null
+                : (widget.user.profileImage != null &&
+                        widget.user.profileImage!.isNotEmpty
+                    ? NetworkImage(widget.user.profileImage!)
+                    : null),
+            child: _profileImageBytes == null &&
+                    (widget.user.profileImage == null ||
+                        widget.user.profileImage!.isEmpty)
                 ? Text(
                     initial,
                     style: AppTextStyles.subText.copyWith(

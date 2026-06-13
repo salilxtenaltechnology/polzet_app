@@ -9,6 +9,8 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:polzet_app/core/constants/app_radius.dart';
 import 'package:polzet_app/widgets/show_toast.dart';
 
+import 'package:cached_network_image/cached_network_image.dart';
+import '../../../../../../api/api_config.dart';
 import '../../../../../../api/services/api_service.dart';
 import '../../../../../../core/themes/app_text_styles.dart';
 import '../../../../../../models/posts/user_post_model.dart';
@@ -149,6 +151,23 @@ class _UserThingsRankingState extends State<UserThingsRanking> {
     final username = widget.post.user;
     final initial = username.isNotEmpty ? username[0].toUpperCase() : '?';
 
+    final String? profileUrl = widget.profileImage;
+    ImageProvider? avatarImage;
+    if (_profileImageBytes != null) {
+      avatarImage = MemoryImage(_profileImageBytes!);
+    } else if (profileUrl != null && profileUrl.isNotEmpty) {
+      if (profileUrl.startsWith('http') ||
+          profileUrl.startsWith('/') ||
+          profileUrl.contains('/')) {
+        final imageUrl = profileUrl.startsWith('http')
+            ? profileUrl
+            : (profileUrl.startsWith('/')
+                ? '${ApiConfig.baseUrlImage}$profileUrl'
+                : '${ApiConfig.baseUrlImage}/$profileUrl');
+        avatarImage = CachedNetworkImageProvider(imageUrl);
+      }
+    }
+
     return Row(
       children: [
         CircleAvatar(
@@ -156,10 +175,8 @@ class _UserThingsRankingState extends State<UserThingsRanking> {
           backgroundColor: Theme.of(
             context,
           ).colorScheme.onPrimary.withOpacity(0.1),
-          backgroundImage: _profileImageBytes != null
-              ? MemoryImage(_profileImageBytes!)
-              : null,
-          child: _profileImageBytes == null
+          backgroundImage: avatarImage,
+          child: avatarImage == null
               ? Text(
                   initial,
                   style: AppTextStyles.cardTitle.copyWith(

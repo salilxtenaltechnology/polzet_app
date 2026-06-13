@@ -1,6 +1,7 @@
 // ignore_for_file: deprecated_member_use
 
 import 'package:flutter/material.dart';
+import '../../../api/api_config.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
@@ -77,10 +78,7 @@ class _ShareBottomSheetState extends State<ShareBottomSheet> {
         if (chat['chat_type']?.toString() == 'group') {
           final id = chat['id'];
           if (id != null && seen.add('group_$id')) {
-            merged.add({
-              ...chat,
-              'is_group': true,
-            });
+            merged.add({...chat, 'is_group': true});
           }
         }
       }
@@ -134,12 +132,29 @@ class _ShareBottomSheetState extends State<ShareBottomSheet> {
         .toString();
   }
 
-  String? _userAvatar(Map<String, dynamic> item) {
-    if (item['is_group'] == true) {
-      return (item['profile_url'] ?? item['group_picture_url'] ?? item['avatar'])?.toString();
+  String? _resolveProfileUrl(String? url) {
+    if (url == null || url.trim().isEmpty) return null;
+    if (!url.startsWith('http') && !url.startsWith('data:image')) {
+      if (url.startsWith('/')) {
+        return '${ApiConfig.baseUrlImage}$url';
+      } else {
+        return '${ApiConfig.baseUrlImage}/$url';
+      }
     }
-    return (item['avatar'] ?? item['profile_picture_url'] ?? item['image'])
-        ?.toString();
+    return url;
+  }
+
+  String? _userAvatar(Map<String, dynamic> item) {
+    final String? avatar;
+    if (item['is_group'] == true) {
+      avatar =
+          (item['profile_url'] ?? item['group_picture_url'] ?? item['avatar'])
+              ?.toString();
+    } else {
+      avatar = (item['avatar'] ?? item['profile_picture_url'] ?? item['image'])
+          ?.toString();
+    }
+    return _resolveProfileUrl(avatar);
   }
 
   Future<void> _shareToWhatsApp() async {
@@ -483,7 +498,9 @@ class _ShareBottomSheetState extends State<ShareBottomSheet> {
                             children: [
                               Stack(
                                 children: [
-                                  if (isGroup && (avatarUrl == null || avatarUrl.trim().isEmpty))
+                                  if (isGroup &&
+                                      (avatarUrl == null ||
+                                          avatarUrl.trim().isEmpty))
                                     _buildGroupAvatarStack(
                                       members: item['members'] as List?,
                                       size: 60,
@@ -496,6 +513,11 @@ class _ShareBottomSheetState extends State<ShareBottomSheet> {
                                         final imageBytes = avatarUrl != null
                                             ? getProfileImage(avatarUrl)
                                             : null;
+                                        final hasNetworkImage =
+                                            imageBytes == null &&
+                                            avatarUrl != null &&
+                                            avatarUrl.trim().isNotEmpty &&
+                                            avatarUrl.startsWith('http');
                                         final initial = name.isNotEmpty
                                             ? name[0].toUpperCase()
                                             : '?';
@@ -505,7 +527,9 @@ class _ShareBottomSheetState extends State<ShareBottomSheet> {
                                           width: 60,
                                           decoration: BoxDecoration(
                                             shape: BoxShape.circle,
-                                            color: imageBytes == null
+                                            color:
+                                                (imageBytes == null &&
+                                                    !hasNetworkImage)
                                                 ? (isDarkMode
                                                       ? const Color(0xFF343434)
                                                       : Theme.of(context)
@@ -520,7 +544,14 @@ class _ShareBottomSheetState extends State<ShareBottomSheet> {
                                                     ),
                                                     fit: BoxFit.cover,
                                                   )
-                                                : null,
+                                                : (hasNetworkImage
+                                                      ? DecorationImage(
+                                                          image: NetworkImage(
+                                                            avatarUrl,
+                                                          ),
+                                                          fit: BoxFit.cover,
+                                                        )
+                                                      : null),
                                             border: Border.all(
                                               color: Theme.of(context)
                                                   .colorScheme
@@ -528,7 +559,9 @@ class _ShareBottomSheetState extends State<ShareBottomSheet> {
                                                   .withOpacity(0.05),
                                             ),
                                           ),
-                                          child: imageBytes == null
+                                          child:
+                                              (imageBytes == null &&
+                                                  !hasNetworkImage)
                                               ? Center(
                                                   child: Text(
                                                     initial,
@@ -536,7 +569,8 @@ class _ShareBottomSheetState extends State<ShareBottomSheet> {
                                                       color: Theme.of(
                                                         context,
                                                       ).colorScheme.onPrimary,
-                                                      fontWeight: FontWeight.w500,
+                                                      fontWeight:
+                                                          FontWeight.w500,
                                                       fontSize: 24,
                                                     ),
                                                   ),
@@ -545,7 +579,9 @@ class _ShareBottomSheetState extends State<ShareBottomSheet> {
                                         );
                                       },
                                     ),
-                                  if (isGroup && !(avatarUrl == null || avatarUrl.trim().isEmpty))
+                                  if (isGroup &&
+                                      !(avatarUrl == null ||
+                                          avatarUrl.trim().isEmpty))
                                     Positioned(
                                       bottom: 0,
                                       left: 0,
@@ -606,7 +642,7 @@ class _ShareBottomSheetState extends State<ShareBottomSheet> {
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 textAlign: TextAlign.center,
-                                                            ),
+                              ),
                             ],
                           ),
                         );
@@ -828,8 +864,13 @@ class _ShareBottomSheetState extends State<ShareBottomSheet> {
         if (profileUrls.length >= 2) break;
         final user = member is Map ? member['user'] as Map? : null;
         if (user != null) {
-          final profileUrl = (user['profile_image'] ?? user['profile_picture_url'] ?? user['avatar'])?.toString();
-          final name = (user['name'] ?? user['username'] ?? 'Unknown').toString();
+          final profileUrl =
+              (user['profile_image'] ??
+                      user['profile_picture_url'] ??
+                      user['avatar'])
+                  ?.toString();
+          final name = (user['name'] ?? user['username'] ?? 'Unknown')
+              .toString();
           profileUrls.add(profileUrl);
           initials.add(name.isNotEmpty ? name[0].toUpperCase() : '?');
         }
@@ -900,13 +941,21 @@ class _ShareBottomSheetState extends State<ShareBottomSheet> {
     required BuildContext context,
     bool hasBorder = false,
   }) {
-    final imageBytes = profileUrl != null ? getProfileImage(profileUrl) : null;
+    final resolvedUrl = _resolveProfileUrl(profileUrl);
+    final imageBytes = resolvedUrl != null
+        ? getProfileImage(resolvedUrl)
+        : null;
+    final hasNetworkImage =
+        imageBytes == null &&
+        resolvedUrl != null &&
+        resolvedUrl.isNotEmpty &&
+        resolvedUrl.startsWith('http');
     return Container(
       width: size,
       height: size,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        color: imageBytes == null
+        color: (imageBytes == null && !hasNetworkImage)
             ? (isDarkMode
                   ? const Color(0xFF343434)
                   : Theme.of(context).colorScheme.primary.withOpacity(0.1))
@@ -917,17 +966,21 @@ class _ShareBottomSheetState extends State<ShareBottomSheet> {
                 width: 1.5,
               )
             : Border.all(
-                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.05),
+                color: Theme.of(
+                  context,
+                ).colorScheme.onSurface.withOpacity(0.05),
                 width: 1,
               ),
         image: imageBytes != null
-            ? DecorationImage(
-                image: MemoryImage(imageBytes),
-                fit: BoxFit.cover,
-              )
-            : null,
+            ? DecorationImage(image: MemoryImage(imageBytes), fit: BoxFit.cover)
+            : (hasNetworkImage
+                  ? DecorationImage(
+                      image: NetworkImage(resolvedUrl),
+                      fit: BoxFit.cover,
+                    )
+                  : null),
       ),
-      child: imageBytes == null
+      child: (imageBytes == null && !hasNetworkImage)
           ? Center(
               child: Text(
                 initial,

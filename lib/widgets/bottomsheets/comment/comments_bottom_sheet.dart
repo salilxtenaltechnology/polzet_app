@@ -5,6 +5,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:polzet_app/core/constants/feather_icons_compat.dart';
 import 'package:polzet_app/languages/l10n/generated/app_localizations.dart';
 import 'package:polzet_app/widgets/base64/image_convert.dart';
+import 'package:polzet_app/api/api_config.dart';
 import 'package:provider/provider.dart';
 import '../../../../models/comment/comment.dart';
 import '../../../api/services/comment/comment_service.dart';
@@ -129,21 +130,24 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height: MediaQuery.of(context).size.height * 0.75,
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.tertiaryContainer,
-        borderRadius: const BorderRadius.only(
-          topLeft: Radius.circular(AppRadius.modal),
-          topRight: Radius.circular(AppRadius.modal),
+    return SafeArea(
+      top: false,
+      child: Container(
+        height: MediaQuery.of(context).size.height * 0.75,
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.tertiaryContainer,
+          borderRadius: const BorderRadius.only(
+            topLeft: Radius.circular(AppRadius.modal),
+            topRight: Radius.circular(AppRadius.modal),
+          ),
         ),
-      ),
-      child: Column(
-        children: [
-          _buildHeader(),
-          Expanded(child: _buildCommentsList()),
-          _buildCommentInput(),
-        ],
+        child: Column(
+          children: [
+            _buildHeader(),
+            Expanded(child: _buildCommentsList()),
+            _buildCommentInput(),
+          ],
+        ),
       ),
     );
   }
@@ -274,12 +278,27 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
               backgroundColor: isDarkMode
                   ? const Color(0xFF303030)
                   : Theme.of(context).colorScheme.primary.withOpacity(0.1),
-              backgroundImage:
-                  comment.profileImage != null &&
-                      comment.profileImage!.isNotEmpty &&
-                      profileBytes != null
-                  ? MemoryImage(profileBytes)
-                  : null,
+              backgroundImage: (() {
+                if (comment.profileImage == null ||
+                    comment.profileImage!.isEmpty) {
+                  return null;
+                }
+                if (profileBytes != null) {
+                  return MemoryImage(profileBytes) as ImageProvider;
+                }
+                final imgUrl = comment.profileImage!;
+                if (imgUrl.startsWith('http') ||
+                    imgUrl.startsWith('/') ||
+                    imgUrl.contains('/')) {
+                  final imageUrl = imgUrl.startsWith('http')
+                      ? imgUrl
+                      : (imgUrl.startsWith('/')
+                            ? '${ApiConfig.baseUrlImage}$imgUrl'
+                            : '${ApiConfig.baseUrlImage}/$imgUrl');
+                  return NetworkImage(imageUrl) as ImageProvider;
+                }
+                return null;
+              })(),
               onBackgroundImageError:
                   comment.profileImage != null &&
                       comment.profileImage!.isNotEmpty

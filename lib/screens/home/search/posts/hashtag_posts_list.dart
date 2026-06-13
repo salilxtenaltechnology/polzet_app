@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 import '../../../../api/api_config.dart';
 import '../../../../api/services/api_service.dart';
@@ -354,7 +355,11 @@ class _HashtagPostsListState extends State<HashtagPostsList> {
           // Polls
           ...post.polls.map(
             (poll) => isImage
-                ? _buildImagePollBlock(poll, post.id, post.isPolledByCurrentUser)
+                ? _buildImagePollBlock(
+                    poll,
+                    post.id,
+                    post.isPolledByCurrentUser,
+                  )
                 : _buildTextPollBlock(poll),
           ),
 
@@ -417,7 +422,24 @@ class _HashtagPostsListState extends State<HashtagPostsList> {
   // ── Header ─────────────────────────────────────────────────────────────────
   Widget _buildHeader(HashtagPostModel post) {
     final txt = AppTextColors.of(context);
-    final avatarBytes = _decodeBase64(post.user.profileImage);
+    final String? profileUrl = post.user.profileImage;
+    final avatarBytes = _decodeBase64(profileUrl);
+
+    ImageProvider? avatarImage;
+    if (avatarBytes != null) {
+      avatarImage = MemoryImage(avatarBytes);
+    } else if (profileUrl != null && profileUrl.isNotEmpty) {
+      if (profileUrl.startsWith('http') ||
+          profileUrl.startsWith('/') ||
+          profileUrl.contains('/')) {
+        final imageUrl = profileUrl.startsWith('http')
+            ? profileUrl
+            : (profileUrl.startsWith('/')
+                  ? '${ApiConfig.baseUrlImage}$profileUrl'
+                  : '${ApiConfig.baseUrlImage}/$profileUrl');
+        avatarImage = CachedNetworkImageProvider(imageUrl);
+      }
+    }
 
     return Padding(
       padding: EdgeInsets.fromLTRB(10.w, 10.h, 10.w, 0),
@@ -428,10 +450,8 @@ class _HashtagPostsListState extends State<HashtagPostsList> {
             backgroundColor: Theme.of(
               context,
             ).colorScheme.onPrimary.withOpacity(0.1),
-            backgroundImage: avatarBytes != null
-                ? MemoryImage(avatarBytes)
-                : null,
-            child: avatarBytes == null
+            backgroundImage: avatarImage,
+            child: avatarImage == null
                 ? Text(
                     post.user.username.isNotEmpty
                         ? post.user.username[0].toUpperCase()

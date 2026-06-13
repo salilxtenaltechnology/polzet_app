@@ -316,7 +316,19 @@ class _PrivateChatScreenState extends State<PrivateChatScreen>
     final lastName = user['last_name']?.toString() ?? '';
     final name = '$firstName $lastName'.trim();
     final username = user['username']?.toString() ?? '';
-    final avatarUrl = user['profile_image']?.toString();
+    final String? avatarUrlRaw = user['profile_image']?.toString();
+    String? avatarUrl;
+    if (avatarUrlRaw != null && avatarUrlRaw.isNotEmpty) {
+      if (avatarUrlRaw.startsWith('http') || avatarUrlRaw.startsWith('data:image')) {
+        avatarUrl = avatarUrlRaw;
+      } else {
+        if (avatarUrlRaw.startsWith('/')) {
+          avatarUrl = '${ApiConfig.baseUrlImage}$avatarUrlRaw';
+        } else {
+          avatarUrl = '${ApiConfig.baseUrlImage}/$avatarUrlRaw';
+        }
+      }
+    }
     final description = post['description']?.toString() ?? '';
     final isPolledByCurrentUser = post['is_polled_by_current_user'] == true;
 
@@ -360,7 +372,7 @@ class _PrivateChatScreenState extends State<PrivateChatScreen>
     }
     imageUrls = imageUrls.where((e) => e.isNotEmpty).toList();
 
-    final avatarBytes = avatarUrl != null ? getProfileImage(avatarUrl) : null;
+    // Removed base64 decode logic for avatar
 
     return GestureDetector(
       onTap: () {
@@ -475,10 +487,10 @@ class _PrivateChatScreenState extends State<PrivateChatScreen>
                     CircleAvatar(
                       radius: 19,
                       backgroundColor: Theme.of(context).colorScheme.onPrimary.withOpacity(0.1),
-                      backgroundImage: avatarBytes != null
-                          ? MemoryImage(avatarBytes)
+                      backgroundImage: avatarUrl != null
+                          ? NetworkImage(avatarUrl)
                           : null,
-                      child: avatarBytes == null
+                      child: avatarUrl == null
                           ? Text(
                               name.isNotEmpty
                                   ? name[0].toUpperCase()
@@ -947,9 +959,8 @@ class _PrivateChatScreenState extends State<PrivateChatScreen>
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     final provider = context.watch<PrivateChatProvider>();
 
-    final imageBytes = widget.profileUrl != null
-        ? getProfileImage(widget.profileUrl!)
-        : null;
+    final avatarUrl = resolveProfileImageUrl(widget.profileUrl);
+    final avatarProvider = avatarUrl != null ? NetworkImage(avatarUrl) : null;
     final initial = (widget.memberName?.trim().isNotEmpty ?? false)
         ? widget.memberName![0].toUpperCase()
         : '?';
@@ -974,10 +985,8 @@ class _PrivateChatScreenState extends State<PrivateChatScreen>
                     backgroundColor: Theme.of(
                       context,
                     ).colorScheme.onPrimary.withOpacity(0.1),
-                    backgroundImage: imageBytes != null
-                        ? MemoryImage(imageBytes)
-                        : null,
-                    child: imageBytes == null
+                    backgroundImage: avatarProvider,
+                    child: avatarProvider == null
                         ? Text(
                             initial,
                             style: AppTextStyles.cardTitle.copyWith(

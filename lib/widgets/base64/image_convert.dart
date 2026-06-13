@@ -1,9 +1,16 @@
-// ignore_for_file: strict_top_level_inference
-
 import 'dart:typed_data';
 import 'dart:convert';
+import 'package:polzet_app/api/api_config.dart';
 
 final Map<String, Uint8List> _imageCache = {};
+
+String? resolveProfileImageUrl(String? path) {
+  if (path == null || path.trim().isEmpty) return null;
+  if (path.startsWith('http') || path.startsWith('data:image')) return path;
+  final separator = path.startsWith('/') ? '' : '/';
+  return '${ApiConfig.baseUrlImage}$separator$path';
+}
+
 
 Uint8List? getConvertImage(image) {
   if (image == null || image.isEmpty) return null;
@@ -11,6 +18,11 @@ Uint8List? getConvertImage(image) {
     final str = image as String;
     if (_imageCache.containsKey(str)) {
       return _imageCache[str];
+    }
+
+    // Return null immediately for paths and URLs to avoid throwing FormatException in base64Decode
+    if (str.startsWith('/') || str.startsWith('http') || str.contains('/')) {
+      return null;
     }
 
     final idx = str.indexOf('base64,');

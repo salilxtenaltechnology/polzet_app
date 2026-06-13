@@ -1,5 +1,6 @@
 // notification_model.dart
 
+import 'package:polzet_app/api/api_config.dart';
 
 class NotificationsResponse {
   final int count;
@@ -103,7 +104,7 @@ class NotificationItem {
       redirectTo: redirectTo ?? this.redirectTo,
       clickAction: clickAction ?? this.clickAction,
       actor: actor ?? this.actor,
-      post: post ?? this.post, // preserves poll_details on copyWith
+      post: post ?? this.post,
       meta: meta ?? this.meta,
       type: type ?? this.type,
       title: title ?? this.title,
@@ -173,11 +174,21 @@ class NotificationActor {
   });
 
   factory NotificationActor.fromJson(Map<String, dynamic> json) {
+    String? avatar = json['avatar_url'] as String?;
+    if (avatar != null && avatar.isNotEmpty) {
+      if (!avatar.startsWith('http') && !avatar.startsWith('data:image')) {
+        if (avatar.startsWith('/')) {
+          avatar = '${ApiConfig.baseUrlImage}$avatar';
+        } else {
+          avatar = '${ApiConfig.baseUrlImage}/$avatar';
+        }
+      }
+    }
     return NotificationActor(
       userId: (json['user_uuid'] ?? json['user_id'] ?? json['id'] ?? '').toString(),
       name: json['name'] as String? ?? '',
       username: json['username'] as String? ?? '',
-      avatarUrl: json['avatar_url'] as String?,
+      avatarUrl: avatar,
       isOnline: _parseBool(json['is_online']),
     );
   }

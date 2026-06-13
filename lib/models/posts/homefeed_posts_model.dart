@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:polzet_app/api/api_config.dart';
 
 class HomeFeedResponse {
   final int count;
@@ -176,13 +177,22 @@ class HomeFeedLikeUser {
   }
 
   factory HomeFeedLikeUser.fromJson(Map<String, dynamic> json) {
+    String? profileImg = json['profile_picture_url']?.toString() ??
+        json['profile_image']?.toString() ??
+        json['avatar_url']?.toString();
+    if (profileImg != null && profileImg.isNotEmpty) {
+      if (!profileImg.startsWith('http') && !profileImg.startsWith('data:image')) {
+        if (profileImg.startsWith('/')) {
+          profileImg = '${ApiConfig.baseUrlImage}$profileImg';
+        } else {
+          profileImg = '${ApiConfig.baseUrlImage}/$profileImg';
+        }
+      }
+    }
     return HomeFeedLikeUser(
       id: _parseToInt(json['id'] ?? json['user_id']),
       username: _parseToString(json['username'] ?? json['name']),
-      profileImage:
-          json['profile_picture_url']?.toString() ??
-          json['profile_image']?.toString() ??
-          json['avatar_url']?.toString(),
+      profileImage: profileImg,
     );
   }
 
@@ -226,12 +236,22 @@ class HomeFeedUser {
   }
 
   factory HomeFeedUser.fromJson(Map<String, dynamic> json) {
+    String? profileImg = json['profile_image']?.toString();
+    if (profileImg != null && profileImg.isNotEmpty) {
+      if (!profileImg.startsWith('http') && !profileImg.startsWith('data:image')) {
+        if (profileImg.startsWith('/')) {
+          profileImg = '${ApiConfig.baseUrlImage}$profileImg';
+        } else {
+          profileImg = '${ApiConfig.baseUrlImage}/$profileImg';
+        }
+      }
+    }
     return HomeFeedUser(
       userid: _parseToString(json['userid'] ?? json['id'] ?? json['user_id']),
       firstName: _parseToString(json['first_name']),
       lastName: _parseToString(json['last_name']),
       username: _parseToString(json['username']),
-      profileImage: json['profile_image']?.toString(),
+      profileImage: profileImg,
       location: json['location']?.toString(),
     );
   }
@@ -436,6 +456,20 @@ class PollOptionImage {
     required this.voteCount,
     required this.userList,
   });
+
+  String resolvedUrl(String baseUrl) {
+    if (url.isEmpty) return '';
+    if (url.startsWith('http') || url.startsWith('data:image')) return url;
+    if (url.startsWith('/')) return '$baseUrl$url';
+    return '$baseUrl/$url';
+  }
+
+  String resolvedThumbnailUrl(String baseUrl) {
+    if (thumbnailUrl.isEmpty) return '';
+    if (thumbnailUrl.startsWith('http') || thumbnailUrl.startsWith('data:image')) return thumbnailUrl;
+    if (thumbnailUrl.startsWith('/')) return '$baseUrl$thumbnailUrl';
+    return '$baseUrl/$thumbnailUrl';
+  }
 
   factory PollOptionImage.fromJson(Map<String, dynamic> json) {
     return PollOptionImage(

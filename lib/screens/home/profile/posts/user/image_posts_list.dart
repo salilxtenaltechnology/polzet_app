@@ -6,6 +6,7 @@ import 'package:polzet_app/core/constants/feather_icons_compat.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 import '../../../../../api/api_config.dart';
 import '../../../../../api/services/api_service.dart';
@@ -388,21 +389,40 @@ class _ImagePostsListState extends State<ImagePostsList> {
                     backgroundColor: Theme.of(
                       context,
                     ).colorScheme.primary.withOpacity(0.15),
-                    backgroundImage: _profileImageBytes != null
-                        ? MemoryImage(_profileImageBytes!)
-                        : null,
-                    child: _profileImageBytes == null
-                        ? Text(
-                            widget.username?.isNotEmpty == true
-                                ? widget.username![0].toUpperCase()
-                                : '',
-                            style: TextStyle(
-                              fontSize: 15.sp,
-                              fontWeight: FontWeight.w600,
-                              color: Theme.of(context).colorScheme.primary,
-                            ),
-                          )
-                        : null,
+                    backgroundImage: (() {
+                      if (_profileImageBytes != null) {
+                        return MemoryImage(_profileImageBytes!) as ImageProvider;
+                      }
+                      final imgUrl = widget.profileImage;
+                      if (imgUrl != null && imgUrl.isNotEmpty && (imgUrl.startsWith('http') || imgUrl.startsWith('/') || imgUrl.contains('/'))) {
+                        final imageUrl = imgUrl.startsWith('http')
+                            ? imgUrl
+                            : (imgUrl.startsWith('/')
+                                ? '${ApiConfig.baseUrlImage}$imgUrl'
+                                : '${ApiConfig.baseUrlImage}/$imgUrl');
+                        return CachedNetworkImageProvider(imageUrl) as ImageProvider;
+                      }
+                      return null;
+                    })(),
+                    child: (() {
+                      final hasImage = _profileImageBytes != null ||
+                          (widget.profileImage != null &&
+                              widget.profileImage!.isNotEmpty &&
+                              (widget.profileImage!.startsWith('http') ||
+                                  widget.profileImage!.startsWith('/') ||
+                                  widget.profileImage!.contains('/')));
+                      if (hasImage) return null;
+                      return Text(
+                        widget.username?.isNotEmpty == true
+                            ? widget.username![0].toUpperCase()
+                            : '',
+                        style: TextStyle(
+                          fontSize: 15.sp,
+                          fontWeight: FontWeight.w600,
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
+                      );
+                    })(),
                   ),
                   SizedBox(width: 8.w),
                   Column(
@@ -675,52 +695,30 @@ class _ImagePostsListState extends State<ImagePostsList> {
                             borderRadius: BorderRadius.circular(
                               AppRadius.button,
                             ),
-                            child: Image.network(
-                              '${ApiConfig.baseUrlImage}${imageData.url}',
+                            child: CachedNetworkImage(
+                              imageUrl: imageData.resolvedUrl(ApiConfig.baseUrlImage),
                               fit: BoxFit.cover,
                               width: double.infinity,
                               height: double.infinity,
-                              errorBuilder: (context, error, stackTrace) {
-                                return Container(
-                                  decoration: BoxDecoration(
-                                    borderRadius: BorderRadius.circular(
-                                      AppRadius.button,
-                                    ),
-                                    color: Colors.grey[200],
+                              placeholder: (context, url) => Container(
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(20.r),
+                                  color: Colors.grey[200],
+                                ),
+                              ),
+                              errorWidget: (context, url, error) => Container(
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(
+                                    AppRadius.button,
                                   ),
-                                  child: Icon(
-                                    Icons.image_not_supported,
-                                    color: Colors.grey[600],
-                                    size: 30,
-                                  ),
-                                );
-                              },
-                              loadingBuilder:
-                                  (context, child, loadingProgress) {
-                                    if (loadingProgress == null) return child;
-                                    return Container(
-                                      decoration: BoxDecoration(
-                                        borderRadius: BorderRadius.circular(
-                                          20.r,
-                                        ),
-                                        color: Colors.grey[200],
-                                      ),
-                                      child: Center(
-                                        child: CircularProgressIndicator(
-                                          strokeWidth: 2,
-                                          value:
-                                              loadingProgress
-                                                      .expectedTotalBytes !=
-                                                  null
-                                              ? loadingProgress
-                                                        .cumulativeBytesLoaded /
-                                                    loadingProgress
-                                                        .expectedTotalBytes!
-                                              : null,
-                                        ),
-                                      ),
-                                    );
-                                  },
+                                  color: Colors.grey[200],
+                                ),
+                                child: Icon(
+                                  Icons.image_not_supported,
+                                  color: Colors.grey[600],
+                                  size: 30,
+                                ),
+                              ),
                             ),
                           ),
                         ),

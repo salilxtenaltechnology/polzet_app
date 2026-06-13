@@ -106,7 +106,16 @@ class SearchAccount {
     final String lastName = json['last_name'] ?? '';
     final String calculatedFullName = json['fullName'] ?? 
         (firstName.isNotEmpty ? '$firstName $lastName'.trim() : '');
-    final String? profileImg = json['profileImage'] ?? json['avatar_url'];
+    String? profileImg = json['profileImage'] ?? json['avatar_url'] ?? json['profile_image'];
+    if (profileImg != null && profileImg.isNotEmpty) {
+      if (!profileImg.startsWith('http') && !profileImg.startsWith('data:image')) {
+        if (profileImg.startsWith('/')) {
+          profileImg = '${ApiConfig.baseUrlImage}$profileImg';
+        } else {
+          profileImg = '${ApiConfig.baseUrlImage}/$profileImg';
+        }
+      }
+    }
     final String status = json['follow_status'] ?? 'none';
     final bool following = json['isFollowing'] ?? 
         (status == 'following' || status == 'both');
@@ -158,13 +167,17 @@ class SearchPost {
     for (final poll in polls) {
       for (final option in poll.options) {
         if (option.image != null) {
-          final String rawUrl = option.image!.thumbnailUrl.isNotEmpty
-              ? option.image!.thumbnailUrl
-              : option.image!.url;
+          final String rawUrl = option.image!.url.isNotEmpty
+              ? option.image!.url
+              : option.image!.thumbnailUrl;
           if (rawUrl.isEmpty) continue;
-          return rawUrl.startsWith('http')
-              ? rawUrl
-              : '${ApiConfig.baseUrlImage}$rawUrl';
+          if (rawUrl.startsWith('http')) {
+            return rawUrl;
+          }
+          if (rawUrl.startsWith('/')) {
+            return '${ApiConfig.baseUrlImage}$rawUrl';
+          }
+          return '${ApiConfig.baseUrlImage}/$rawUrl';
         }
       }
     }
@@ -205,12 +218,22 @@ class SearchPostAuthor {
   });
 
   factory SearchPostAuthor.fromJson(Map<String, dynamic> json) {
+    String? profileImg = json['profileImage'] ?? json['profile_image'] ?? json['avatar_url'];
+    if (profileImg != null && profileImg.isNotEmpty) {
+      if (!profileImg.startsWith('http') && !profileImg.startsWith('data:image')) {
+        if (profileImg.startsWith('/')) {
+          profileImg = '${ApiConfig.baseUrlImage}$profileImg';
+        } else {
+          profileImg = '${ApiConfig.baseUrlImage}/$profileImg';
+        }
+      }
+    }
     return SearchPostAuthor(
       id: (json['id'] ?? json['userid'] ?? '').toString(),
       username: json['username'] ?? '',
       firstName: json['first_name'] ?? '',
       lastName: json['last_name'] ?? '',
-      profileImage: json['profileImage'] ?? json['profile_image'],
+      profileImage: profileImg,
     );
   }
 }
@@ -260,7 +283,7 @@ class SearchPostPollOption {
       id: json['id'],
       text: json['text'] as String?,
       image: json['image'] != null
-          ? SearchPostPollImage.fromJson(json['image'] as Map<String, dynamic>)
+          ? SearchPostPollImage.fromJson(Map<String, dynamic>.from(json['image']))
           : null,
       voteCount: json['vote_count']?.toString() ?? '0',
       percentage: (json['percentage'] as num?)?.toDouble() ?? 0.0,
@@ -282,10 +305,30 @@ class SearchPostPollImage {
   });
 
   factory SearchPostPollImage.fromJson(Map<String, dynamic> json) {
+    String url = json['url'] ?? '';
+    if (url.isNotEmpty) {
+      if (!url.startsWith('http') && !url.startsWith('data:image')) {
+        if (url.startsWith('/')) {
+          url = '${ApiConfig.baseUrlImage}$url';
+        } else {
+          url = '${ApiConfig.baseUrlImage}/$url';
+        }
+      }
+    }
+    String thumbnailUrl = json['thumbnail_url'] ?? '';
+    if (thumbnailUrl.isNotEmpty) {
+      if (!thumbnailUrl.startsWith('http') && !thumbnailUrl.startsWith('data:image')) {
+        if (thumbnailUrl.startsWith('/')) {
+          thumbnailUrl = '${ApiConfig.baseUrlImage}$thumbnailUrl';
+        } else {
+          thumbnailUrl = '${ApiConfig.baseUrlImage}/$thumbnailUrl';
+        }
+      }
+    }
     return SearchPostPollImage(
       id: json['id'],
-      url: json['url'] ?? '',
-      thumbnailUrl: json['thumbnail_url'] ?? '',
+      url: url,
+      thumbnailUrl: thumbnailUrl,
       order: json['order'] as int? ?? 0,
     );
   }
@@ -309,9 +352,19 @@ class SearchPhoto {
 
   factory SearchPhoto.fromJson(Map<String, dynamic> json) {
     final String parsedUsername = json['username'] ?? '';
+    String imgUrl = json['imageUrl'] ?? json['image_url'] ?? json['url'] ?? '';
+    if (imgUrl.isNotEmpty) {
+      if (!imgUrl.startsWith('http') && !imgUrl.startsWith('data:image')) {
+        if (imgUrl.startsWith('/')) {
+          imgUrl = '${ApiConfig.baseUrlImage}$imgUrl';
+        } else {
+          imgUrl = '${ApiConfig.baseUrlImage}/$imgUrl';
+        }
+      }
+    }
     return SearchPhoto(
       id: (json['id'] ?? json['image_id'] ?? '').toString(),
-      imageUrl: json['imageUrl'] ?? json['image_url'] ?? json['url'] ?? '',
+      imageUrl: imgUrl,
       postId: (json['postId'] ?? json['post_id'] ?? '').toString(),
       username: parsedUsername,
       author: SearchPhotoAuthor.fromJson(

@@ -342,13 +342,16 @@ class _CreateGroupState extends State<CreateGroup> with UtilityMixin {
                     final user = _selectedUsers[index];
                     final id = user['id']?.toString() ?? '';
                     final avatarUrl = _userAvatar(user);
+                    final firstName = user['first_name'] as String? ?? '';
+                    final lastName = user['last_name'] as String? ?? '';
+                    final username = user['username'] as String? ?? _userName(user);
+                    final fullName = '$firstName $lastName'.trim();
 
                     return Container(
-                      height: 50,
                       width: double.infinity,
                       padding: const EdgeInsets.symmetric(
                         horizontal: 10,
-                        vertical: 4,
+                        vertical: 6,
                       ),
                       margin: const EdgeInsets.only(bottom: 5),
                       decoration: BoxDecoration(
@@ -366,23 +369,20 @@ class _CreateGroupState extends State<CreateGroup> with UtilityMixin {
                         children: [
                           Builder(
                             builder: (_) {
-                              final imageBytes = avatarUrl != null
-                                  ? getProfileImage(avatarUrl)
-                                  : null;
-                              final initial = _userName(user).trim().isNotEmpty
-                                  ? _userName(user).trim()[0].toUpperCase()
+                              final resolvedUrl = resolveProfileImageUrl(avatarUrl);
+                              final avatarProvider = resolvedUrl != null ? NetworkImage(resolvedUrl) : null;
+                              final initial = username.trim().isNotEmpty
+                                  ? username.trim()[0].toUpperCase()
                                   : 'P';
                               return CircleAvatar(
                                 radius: 15,
-                                backgroundImage: imageBytes != null
-                                    ? MemoryImage(imageBytes)
-                                    : null,
-                                backgroundColor: imageBytes == null
+                                backgroundImage: avatarProvider,
+                                backgroundColor: avatarProvider == null
                                     ? Theme.of(
                                         context,
                                       ).colorScheme.onPrimary.withOpacity(0.1)
                                     : null,
-                                child: imageBytes == null
+                                child: avatarProvider == null
                                     ? Text(
                                         initial,
                                         style: AppTextStyles.subText.copyWith(
@@ -399,14 +399,44 @@ class _CreateGroupState extends State<CreateGroup> with UtilityMixin {
                           ),
                           SizedBox(width: 12.w),
                           Expanded(
-                            child: Text(
-                              _userName(user),
-                              style: AppTextStyles.bodyText.copyWith(
-                                color: txt.title,
-                                fontWeight: FontWeight.w500,
-                                fontSize: 14,
-                              ),
-                              overflow: TextOverflow.ellipsis,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text(
+                                  username,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: AppTextStyles.bodyText.copyWith(
+                                    color: txt.body,
+                                    fontSize: 14.5,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                                if (fullName.isNotEmpty) ...[
+                                  Text(
+                                    fullName,
+                                    style: AppTextStyles.bodyText.copyWith(
+                                      fontSize: 12.5,
+                                      color: txt.muted,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ] else ...[
+                                  Text(
+                                    username,
+                                    style: AppTextStyles.bodyText.copyWith(
+                                      fontSize: 12.5,
+                                      color: txt.muted,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ],
+                              ],
                             ),
                           ),
                           GestureDetector(

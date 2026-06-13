@@ -6,6 +6,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:polzet_app/widgets/loader.dart';
 
 import '../../../../api/services/api_service.dart';
+import '../../../../api/api_config.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_radius.dart';
 import '../../../../core/themes/app_text_colors.dart';
@@ -65,7 +66,10 @@ class AddMemberState extends State<AddMember> with UtilityMixin {
           merged.add(user);
 
           final username = user['username']?.toString().toLowerCase() ?? '';
-          final name = user['name']?.toString().toLowerCase() ?? user['username']?.toString().toLowerCase() ?? '';
+          final name =
+              user['name']?.toString().toLowerCase() ??
+              user['username']?.toString().toLowerCase() ??
+              '';
 
           final bool isAlreadySelected = widget.alreadySelected.any((sel) {
             final selLower = sel.toLowerCase();
@@ -96,9 +100,19 @@ class AddMemberState extends State<AddMember> with UtilityMixin {
     setState(() {
       _filteredUsers = query.isEmpty
           ? _allUsers
-          : _allUsers
-                .where((u) => _userName(u).toLowerCase().contains(query))
-                .toList();
+          : _allUsers.where((u) {
+              final username = (u['username'] as String?)?.toLowerCase() ?? '';
+              final firstName =
+                  (u['first_name'] as String?)?.toLowerCase() ?? '';
+              final lastName = (u['last_name'] as String?)?.toLowerCase() ?? '';
+              final fullName = '$firstName $lastName'.trim();
+              final name = (u['name'] as String?)?.toLowerCase() ?? '';
+              return username.contains(query) ||
+                  firstName.contains(query) ||
+                  lastName.contains(query) ||
+                  fullName.contains(query) ||
+                  name.contains(query);
+            }).toList();
     });
   }
 
@@ -107,12 +121,25 @@ class AddMemberState extends State<AddMember> with UtilityMixin {
   });
 
   String _userName(Map<String, dynamic> user) =>
-      (user['name'] ?? user['username'] ?? user['full_name'] ?? 'Unknown')
+      (user['name'] ?? user['username'] ?? user['full_name'] ?? 'polzet_user')
           .toString();
 
-  String? _userAvatar(Map<String, dynamic> user) =>
-      (user['avatar'] ?? user['profile_picture_url'] ?? user['image'])
-          ?.toString();
+  String? _resolveProfileUrl(String? url) {
+    if (url == null || url.trim().isEmpty) return null;
+    if (!url.startsWith('http') && !url.startsWith('data:image')) {
+      if (url.startsWith('/')) {
+        return '${ApiConfig.baseUrlImage}$url';
+      } else {
+        return '${ApiConfig.baseUrlImage}/$url';
+      }
+    }
+    return url;
+  }
+
+  String? _userAvatar(Map<String, dynamic> user) {
+    final avatar = (user['avatar'] ?? user['profile_picture_url'] ?? user['image'])?.toString();
+    return _resolveProfileUrl(avatar);
+  }
 
   void _onAdd() {
     final selectedUsers = _allUsers
@@ -261,13 +288,16 @@ class AddMemberState extends State<AddMember> with UtilityMixin {
         final id = user['id']?.toString() ?? '';
         final isSelected = _selectedIds.contains(id);
         final avatarUrl = _userAvatar(user);
+        final firstName = user['first_name'] as String? ?? '';
+        final lastName = user['last_name'] as String? ?? '';
+        final username = user['username'] as String? ?? _userName(user);
+        final fullName = '$firstName $lastName'.trim();
 
         return GestureDetector(
           onTap: () => _toggleMember(id),
           child: Container(
-            height: 50,
             width: double.infinity,
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
             margin: const EdgeInsets.only(bottom: 5),
             decoration: BoxDecoration(
               color: Theme.of(context).colorScheme.primaryContainer,
@@ -287,26 +317,30 @@ class AddMemberState extends State<AddMember> with UtilityMixin {
                     final imageBytes = avatarUrl != null
                         ? getProfileImage(avatarUrl)
                         : null;
-                    final initial = _userName(user).trim().isNotEmpty
-                        ? _userName(user).trim()[0].toUpperCase()
-                        : '?';
+                    final hasNetworkImage = imageBytes == null &&
+                        avatarUrl != null &&
+                        avatarUrl.trim().isNotEmpty &&
+                        avatarUrl.startsWith('http');
+                    final initial = username.trim().isNotEmpty
+                        ? username.trim()[0].toUpperCase()
+                        : 'P';
                     return CircleAvatar(
-                      radius: 15,
+                      radius: 19,
                       backgroundImage: imageBytes != null
                           ? MemoryImage(imageBytes)
-                          : null,
-                      backgroundColor: imageBytes == null
+                          : (hasNetworkImage ? NetworkImage(avatarUrl) : null),
+                      backgroundColor: (imageBytes == null && !hasNetworkImage)
                           ? Theme.of(
                               context,
                             ).colorScheme.onPrimary.withOpacity(0.1)
                           : null,
-                      child: imageBytes == null
+                      child: (imageBytes == null && !hasNetworkImage)
                           ? Text(
                               initial,
                               style: AppTextStyles.subText.copyWith(
                                 color: Theme.of(context).colorScheme.onPrimary,
                                 fontWeight: FontWeight.w500,
-                                fontSize: 13,
+                                fontSize: 17,
                               ),
                             )
                           : null,
@@ -315,14 +349,44 @@ class AddMemberState extends State<AddMember> with UtilityMixin {
                 ),
                 SizedBox(width: 10.w),
                 Expanded(
-                  child: Text(
-                    _userName(user),
-                    style: AppTextStyles.bodyText.copyWith(
-                      color: txt.title,
-                      fontWeight: FontWeight.w500,
-                      fontSize: 14,
-                    ),
-                    overflow: TextOverflow.ellipsis,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        username,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppTextStyles.bodyText.copyWith(
+                          color: txt.body,
+                          fontSize: 14.5,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      if (fullName.isNotEmpty) ...[
+                        Text(
+                          fullName,
+                          style: AppTextStyles.bodyText.copyWith(
+                            fontSize: 12.5,
+                            color: txt.muted,
+                            fontWeight: FontWeight.w500,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ] else ...[
+                        Text(
+                          username,
+                          style: AppTextStyles.bodyText.copyWith(
+                            fontSize: 12.5,
+                            color: txt.muted,
+                            fontWeight: FontWeight.w500,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ],
                   ),
                 ),
                 AnimatedContainer(

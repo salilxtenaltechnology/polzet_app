@@ -1078,6 +1078,7 @@ class ApiService with UtilityMixin {
         ),
       });
 
+
       final response = await _dio.put(
         ApiConstants.profileImage,
         data: formData,
@@ -1352,10 +1353,12 @@ class ApiService with UtilityMixin {
       // Add images
       for (int i = 0; i < pollOptions.length; i++) {
         final imageFile = pollOptions[i];
+        final String ext = path.extension(imageFile.path).toLowerCase();
+        final String subType = ext.startsWith('.') ? ext.substring(1) : 'jpeg';
         final multipartFile = await MultipartFile.fromFile(
           imageFile.path,
           filename: path.basename(imageFile.path),
-          contentType: MediaType('image', 'jpeg'),
+          contentType: MediaType('image', subType == 'jpg' ? 'jpeg' : (subType.isEmpty ? 'jpeg' : subType)),
         );
         formData.files.add(MapEntry('poll_options', multipartFile));
       }

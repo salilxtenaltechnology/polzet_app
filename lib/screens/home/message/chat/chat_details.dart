@@ -1,6 +1,7 @@
 // ignore_for_file: deprecated_member_use
 import 'dart:io';
 
+import '../../../../../api/api_config.dart';
 import 'package:polzet_app/core/constants/feather_icons_compat.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -21,7 +22,6 @@ import '../../../../mixin/utility_mixins.dart';
 import '../../../../provider/group_chat_provider.dart';
 import '../../../../provider/private_chat_provider.dart';
 import '../../../../provider/user_provider.dart';
-import '../../../../widgets/base64/image_convert.dart';
 import '../../../../widgets/dialog/custom_diolog.dart';
 import '../../../../widgets/show_toast.dart';
 import '../../home_imports.dart';
@@ -190,6 +190,16 @@ class _ChatDetailsState extends State<ChatDetails> with UtilityMixin {
     }
   }
 
+  ImageProvider? _avatarProvider(String? raw) {
+    if (raw == null || raw.trim().isEmpty) return null;
+    String resolved = raw;
+    if (!resolved.startsWith('http')) {
+      final separator = resolved.startsWith('/') ? '' : '/';
+      resolved = '${ApiConfig.baseUrlImage}$separator$resolved';
+    }
+    return NetworkImage(resolved);
+  }
+
   Widget _buildSeeAllMembers(
     List<Map<String, dynamic>> members,
     int? chatId,
@@ -227,9 +237,7 @@ class _ChatDetailsState extends State<ChatDetails> with UtilityMixin {
                     preview[i]['user'] as Map? ?? {},
                   );
                   final profileImg = user['profile_image']?.toString();
-                  final imgBytes = profileImg != null && profileImg.isNotEmpty
-                      ? getProfileImage(profileImg)
-                      : null;
+                  final provider = _avatarProvider(profileImg);
                   final username = user['username']?.toString() ?? '?';
                   return Positioned(
                     top: 4.h,
@@ -250,25 +258,23 @@ class _ChatDetailsState extends State<ChatDetails> with UtilityMixin {
                           195,
                           195,
                         ).withOpacity(0.3),
-                        backgroundImage: imgBytes != null
-                            ? MemoryImage(imgBytes)
-                            : null,
-                        child: imgBytes == null
+                        backgroundImage: provider,
+                        child: provider == null
                             ? Text(
                                 username.isNotEmpty
                                     ? username[0].toUpperCase()
                                     : '?',
                                 style: TextStyle(
-                                  fontSize: 10.sp,
+                                  fontSize: 13.sp,
                                   fontWeight: FontWeight.w600,
-                                  color: Colors.white,
+                                  color: AppThemes.lightMode.colorScheme.onPrimary,
                                 ),
                               )
                             : null,
                       ),
                     ),
                   );
-                }),
+                }).toList().reversed.toList(),
               ),
             ),
             const Spacer(),
@@ -324,7 +330,7 @@ class _ChatDetailsState extends State<ChatDetails> with UtilityMixin {
         ? (groupProvider!.chat?['profile_url']?.toString() ?? widget.profileUrl)
         : widget.profileUrl;
 
-    final imageBytes = profileUrl != null ? getProfileImage(profileUrl) : null;
+    final provider = _avatarProvider(profileUrl);
     final initial = (chatName?.trim().isNotEmpty ?? false)
         ? chatName![0].toUpperCase()
         : '?';
@@ -421,7 +427,7 @@ class _ChatDetailsState extends State<ChatDetails> with UtilityMixin {
                         margin: EdgeInsets.only(bottom: 10.h),
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          color: imageBytes == null
+                          color: provider == null
                               ? Theme.of(
                                   context,
                                 ).colorScheme.onPrimary.withOpacity(0.1)
@@ -432,14 +438,14 @@ class _ChatDetailsState extends State<ChatDetails> with UtilityMixin {
                             ).colorScheme.onBackground.withOpacity(0.1),
                             width: 1.w,
                           ),
-                          image: imageBytes != null
+                          image: provider != null
                               ? DecorationImage(
-                                  image: MemoryImage(imageBytes),
+                                  image: provider,
                                   fit: BoxFit.cover,
                                 )
                               : null,
                         ),
-                        child: imageBytes == null
+                        child: provider == null
                             ? Center(
                                 child: Text(
                                   initial,

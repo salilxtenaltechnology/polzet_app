@@ -3,6 +3,7 @@
 import 'dart:convert';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 import '../../../../../../api/api_config.dart';
 import '../../../../../../api/services/api_service.dart';
@@ -199,6 +200,23 @@ class _HashtagsImagePollRankingState extends State<HashtagsImagePollRanking> {
     final username = user.username;
     final initial = username.isNotEmpty ? username[0].toUpperCase() : '?';
 
+    final String? profileUrl = widget.post.user.profileImage;
+    ImageProvider? avatarImage;
+    if (_profileImageBytes != null) {
+      avatarImage = MemoryImage(_profileImageBytes!);
+    } else if (profileUrl != null && profileUrl.isNotEmpty) {
+      if (profileUrl.startsWith('http') ||
+          profileUrl.startsWith('/') ||
+          profileUrl.contains('/')) {
+        final imageUrl = profileUrl.startsWith('http')
+            ? profileUrl
+            : (profileUrl.startsWith('/')
+                ? '${ApiConfig.baseUrlImage}$profileUrl'
+                : '${ApiConfig.baseUrlImage}/$profileUrl');
+        avatarImage = CachedNetworkImageProvider(imageUrl);
+      }
+    }
+
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 12),
       child: Column(
@@ -212,10 +230,8 @@ class _HashtagsImagePollRankingState extends State<HashtagsImagePollRanking> {
                 backgroundColor: Theme.of(
                   context,
                 ).colorScheme.onPrimary.withOpacity(0.1),
-                backgroundImage: _profileImageBytes != null
-                    ? MemoryImage(_profileImageBytes!)
-                    : null,
-                child: _profileImageBytes == null
+                backgroundImage: avatarImage,
+                child: avatarImage == null
                     ? Text(
                         initial,
                         style: AppTextStyles.cardTitle.copyWith(
@@ -453,10 +469,12 @@ class _HashtagRankImageCard extends StatelessWidget {
         color: Colors.grey.shade200,
         borderRadius: BorderRadius.circular(14),
       ),
-      child: const Icon(
-        Icons.image_not_supported_outlined,
-        color: Colors.grey,
-        size: 40,
+      child: const Center(
+        child: Icon(
+          Icons.image_not_supported_outlined,
+          color: Colors.grey,
+          size: 40,
+        ),
       ),
     );
   }

@@ -103,10 +103,15 @@ class ImagePickerService {
   static Future<File?> cropImage(File imageFile) async {
     if (!await imageFile.exists()) return null;
 
+    final String pathLower = imageFile.path.toLowerCase();
+    final ImageCompressFormat format = pathLower.endsWith('.png')
+        ? ImageCompressFormat.png
+        : ImageCompressFormat.jpg;
+
     final croppedFile = await ImageCropper().cropImage(
       sourcePath: imageFile.path,
-      compressFormat: ImageCompressFormat.jpg,
-      compressQuality: 90,
+      compressFormat: format,
+      compressQuality: 100,
       uiSettings: [
         AndroidUiSettings(
           toolbarTitle: 'Crop Image',

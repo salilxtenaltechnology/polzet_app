@@ -88,11 +88,14 @@ class _SinglePostDetailsState extends State<SinglePostDetails>
       );
 
       Uint8List? imageBytes;
-      if (result.profileImage.isNotEmpty) {
+      final imageToDecode = result.user.profileImage.isNotEmpty
+          ? result.user.profileImage
+          : result.profileImage;
+      if (imageToDecode.isNotEmpty) {
         try {
-          final raw = result.profileImage.contains(',')
-              ? result.profileImage.split(',').last
-              : result.profileImage;
+          final raw = imageToDecode.contains(',')
+              ? imageToDecode.split(',').last
+              : imageToDecode;
           imageBytes = base64Decode(raw);
         } catch (_) {
           imageBytes = null;
@@ -358,8 +361,11 @@ class _SinglePostDetailsState extends State<SinglePostDetails>
       child: Row(
         children: [
           GestureDetector(
-            onTap: (){
-              navigationPush(context, PublicProfileScreen(userId: _post!.user.uuid));
+            onTap: () {
+              navigationPush(
+                context,
+                PublicProfileScreen(userId: _post!.user.uuid),
+              );
             },
             child: CircleAvatar(
               radius: 20,
@@ -368,8 +374,11 @@ class _SinglePostDetailsState extends State<SinglePostDetails>
               ).colorScheme.onPrimary.withOpacity(0.1),
               backgroundImage: _profileImageBytes != null
                   ? MemoryImage(_profileImageBytes!)
-                  : null,
-              child: _profileImageBytes == null
+                  : (_post!.user.profileImage.isNotEmpty
+                        ? NetworkImage(_post!.user.profileImage)
+                        : null),
+              child:
+                  _profileImageBytes == null && _post!.user.profileImage.isEmpty
                   ? Text(
                       initial,
                       style: AppTextStyles.subText.copyWith(
@@ -512,17 +521,26 @@ class _SinglePostDetailsState extends State<SinglePostDetails>
                                         ? FutureBuilder<String?>(
                                             future: _authTokenFuture,
                                             builder: (context, snapshot) {
-                                              if (snapshot.connectionState == ConnectionState.waiting) {
+                                              if (snapshot.connectionState ==
+                                                  ConnectionState.waiting) {
                                                 return Container(
                                                   decoration: BoxDecoration(
-                                                    borderRadius: BorderRadius.circular(12.r),
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                          12.r,
+                                                        ),
                                                     color: Colors.grey[200],
                                                   ),
                                                 );
                                               }
                                               final token = snapshot.data;
-                                              final headers = token != null && imageUrl.contains('/api/')
-                                                  ? {'Authorization': 'Bearer $token'}
+                                              final headers =
+                                                  token != null &&
+                                                      imageUrl.contains('/api/')
+                                                  ? {
+                                                      'Authorization':
+                                                          'Bearer $token',
+                                                    }
                                                   : null;
                                               return Image.network(
                                                 imageUrl,

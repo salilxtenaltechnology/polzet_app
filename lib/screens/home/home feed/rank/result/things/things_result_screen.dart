@@ -61,11 +61,14 @@ class _ThingsResultScreenState extends State<ThingsResultScreen> with UtilityMix
       _prepareDisplayData(post);
 
       Uint8List? imageBytes;
-      if (post.profileImage.isNotEmpty) {
+      final imageToDecode = post.user.profileImage.isNotEmpty
+          ? post.user.profileImage
+          : post.profileImage;
+      if (imageToDecode.isNotEmpty) {
         try {
-          final raw = post.profileImage.contains(',')
-              ? post.profileImage.split(',').last
-              : post.profileImage;
+          final raw = imageToDecode.contains(',')
+              ? imageToDecode.split(',').last
+              : imageToDecode;
           imageBytes = base64Decode(raw);
         } catch (_) {
           imageBytes = null;
@@ -198,8 +201,10 @@ class _ThingsResultScreenState extends State<ThingsResultScreen> with UtilityMix
             ).colorScheme.onPrimary.withOpacity(0.1),
             backgroundImage: _profileImageBytes != null
                 ? MemoryImage(_profileImageBytes!)
-                : null,
-            child: _profileImageBytes == null
+                : (_post!.user.profileImage.isNotEmpty
+                    ? NetworkImage(_post!.user.profileImage)
+                    : null),
+            child: _profileImageBytes == null && _post!.user.profileImage.isEmpty
                 ? Text(
                     initial,
                     style: AppTextStyles.subText.copyWith(

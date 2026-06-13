@@ -337,11 +337,18 @@ class _PollVotersBottomsheetState extends State<PollVotersBottomsheet>
                                     radius: 20,
                                     backgroundImage: avatarBytes != null
                                         ? MemoryImage(avatarBytes)
-                                        : null,
+                                        : (voter.profilePictureUrl != null &&
+                                                voter.profilePictureUrl!.isNotEmpty &&
+                                                voter.profilePictureUrl!.startsWith('http')
+                                            ? NetworkImage(voter.profilePictureUrl!)
+                                            : null),
                                     backgroundColor: Theme.of(
                                       context,
                                     ).colorScheme.onPrimary.withOpacity(0.1),
-                                    child: avatarBytes == null
+                                    child: avatarBytes == null &&
+                                            (voter.profilePictureUrl == null ||
+                                                voter.profilePictureUrl!.isEmpty ||
+                                                !voter.profilePictureUrl!.startsWith('http'))
                                         ? Text(
                                             voter.fullName.isNotEmpty
                                                 ? voter.fullName[0]

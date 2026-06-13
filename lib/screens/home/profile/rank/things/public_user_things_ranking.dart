@@ -5,7 +5,8 @@ import 'package:polzet_app/core/constants/feather_icons_compat.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-
+import 'package:cached_network_image/cached_network_image.dart';
+import '../../../../../api/api_config.dart';
 import '../../../../../api/services/api_service.dart';
 import '../../../../../core/constants/app_radius.dart';
 import '../../../../../core/themes/app_text_colors.dart';
@@ -146,6 +147,23 @@ class _PublicUserThingsRankingState extends State<PublicUserThingsRanking> {
     final username = widget.post.user;
     final initial = username.isNotEmpty ? username[0].toUpperCase() : '?';
 
+    final String? profileUrl = widget.profileImage;
+    ImageProvider? avatarImage;
+    if (_profileImageBytes != null) {
+      avatarImage = MemoryImage(_profileImageBytes!);
+    } else if (profileUrl != null && profileUrl.isNotEmpty) {
+      if (profileUrl.startsWith('http') ||
+          profileUrl.startsWith('/') ||
+          profileUrl.contains('/')) {
+        final imageUrl = profileUrl.startsWith('http')
+            ? profileUrl
+            : (profileUrl.startsWith('/')
+                ? '${ApiConfig.baseUrlImage}$profileUrl'
+                : '${ApiConfig.baseUrlImage}/$profileUrl');
+        avatarImage = CachedNetworkImageProvider(imageUrl);
+      }
+    }
+
     return Row(
       children: [
         CircleAvatar(
@@ -153,10 +171,8 @@ class _PublicUserThingsRankingState extends State<PublicUserThingsRanking> {
           backgroundColor: Theme.of(
             context,
           ).colorScheme.onPrimary.withOpacity(0.1),
-          backgroundImage: _profileImageBytes != null
-              ? MemoryImage(_profileImageBytes!)
-              : null,
-          child: _profileImageBytes == null
+          backgroundImage: avatarImage,
+          child: avatarImage == null
               ? Text(
                   initial,
                   style: AppTextStyles.cardTitle.copyWith(

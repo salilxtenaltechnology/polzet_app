@@ -3,6 +3,7 @@
 import 'dart:convert';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:polzet_app/core/constants/app_radius.dart';
 import 'package:polzet_app/widgets/appbar/common_appbar.dart';
 import 'package:polzet_app/widgets/show_toast.dart';
@@ -194,13 +195,28 @@ class _SinglePostImageRankingState extends State<SinglePostImageRanking> with Ut
     );
   }
 
-  // ── Header ─────────────────────────────────────────────────────────────────
-
   Widget _buildPostHeader() {
     final txt = AppTextColors.of(context);
     final post = widget.post;
     final username = post.user.username;
     final initial = username.isNotEmpty ? username[0].toUpperCase() : '?';
+
+    final String profileUrl = widget.post.profileImage;
+    ImageProvider? avatarImage;
+    if (_profileImageBytes != null) {
+      avatarImage = MemoryImage(_profileImageBytes!);
+    } else if (profileUrl.isNotEmpty) {
+      if (profileUrl.startsWith('http') ||
+          profileUrl.startsWith('/') ||
+          profileUrl.contains('/')) {
+        final imageUrl = profileUrl.startsWith('http')
+            ? profileUrl
+            : (profileUrl.startsWith('/')
+                ? '${ApiConfig.baseUrlImage}$profileUrl'
+                : '${ApiConfig.baseUrlImage}/$profileUrl');
+        avatarImage = CachedNetworkImageProvider(imageUrl);
+      }
+    }
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 12),
@@ -219,10 +235,8 @@ class _SinglePostImageRankingState extends State<SinglePostImageRanking> with Ut
                   backgroundColor: Theme.of(
                     context,
                   ).colorScheme.onPrimary.withOpacity(0.1),
-                  backgroundImage: _profileImageBytes != null
-                      ? MemoryImage(_profileImageBytes!)
-                      : null,
-                  child: _profileImageBytes == null
+                  backgroundImage: avatarImage,
+                  child: avatarImage == null
                       ? Text(
                           initial,
                           style: AppTextStyles.cardTitle.copyWith(
@@ -460,10 +474,12 @@ class _SinglePostRankImageCard extends StatelessWidget {
         color: Colors.grey.shade200,
         borderRadius: BorderRadius.circular(14),
       ),
-      child: const Icon(
-        Icons.image_not_supported_outlined,
-        color: Colors.grey,
-        size: 40,
+      child: const Center(
+        child: Icon(
+          Icons.image_not_supported_outlined,
+          color: Colors.grey,
+          size: 40,
+        ),
       ),
     );
   }

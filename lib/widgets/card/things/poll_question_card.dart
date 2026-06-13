@@ -16,6 +16,7 @@ import '../../show_toast.dart';
 import '../../base64/image_convert.dart';
 import '../../../core/utils/bottomsheet_util.dart';
 import '../../../core/utils/like_util.dart';
+import '../../../api/api_config.dart';
 
 class ThingsQustionsCard extends StatefulWidget {
   ThingsQustionsCard({
@@ -445,7 +446,11 @@ class _ThingsQustionsCardState extends State<ThingsQustionsCard> {
               ).colorScheme.primary.withOpacity(0.15),
               backgroundImage:
                   widget.profileImage != null && widget.profileImage!.isNotEmpty
-                  ? MemoryImage(getProfileImage(widget.profileImage)!)
+                  ? (getProfileImage(widget.profileImage) != null
+                      ? MemoryImage(getProfileImage(widget.profileImage)!)
+                      : NetworkImage(widget.profileImage!.startsWith('http')
+                          ? widget.profileImage!
+                          : '${ApiConfig.baseUrlImage}${widget.profileImage!}') as ImageProvider)
                   : null,
               child: widget.profileImage == null || widget.profileImage!.isEmpty
                   ? Text(
