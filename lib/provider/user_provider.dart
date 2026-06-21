@@ -3,7 +3,7 @@
 import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'dart:typed_data';
-import '../api/services/api_service.dart';
+import '../api/services/validator/api_service.dart';
 import '../data/token/shared_preferences.dart';
 import '../models/insights/insights_model.dart';
 import '../models/posts/user_post_model.dart';
@@ -184,12 +184,15 @@ class UserProvider with ChangeNotifier {
     // Basic Info
     userId = data['id']?.toString();
     username = data['username'];
+    if (username != null && username!.isNotEmpty) {
+      SharedPrefService.setString('username', username!);
+    }
     firstName = data['first_name'];
     lastName = data['last_name'];
     email = data['email'];
     if (email != null && email!.isNotEmpty) {
-    SharedPrefService.saveUserEmail(email!);
-  }
+      SharedPrefService.saveUserEmail(email!);
+    }
     bio = data['bio'];
     dob = data['dob'];
     gender = data['gender'];
@@ -203,6 +206,9 @@ class UserProvider with ChangeNotifier {
 
     // Profile Media
     profile_picture = data['profile_picture_url'];
+    if (profile_picture != null && profile_picture!.isNotEmpty) {
+      SharedPrefService.setString('user_profile_pic', profile_picture!);
+    }
     profile_picture_path = data['profile_picture'];
     profile_thumbnail_url = data['profile_thumbnail_url'];
     cover_photo = data['cover_photo_url'];

@@ -16,6 +16,8 @@ import '../../core/navigation/notification_router.dart';
 import '../../core/themes/app_text_styles.dart';
 import '../../data/token/shared_preferences.dart';
 import '../../api/services/link/deeplink_generator_service.dart';
+import '../../api/services/update/app_update_service.dart';
+
 import '../../widgets/show_toast.dart';
 import 'message/group/create_group.dart';
 import 'profile/profile_screen.dart';

@@ -10,6 +10,7 @@ class ChatMessage {
   final String? senderUsername;
   final String? senderProfileImage;
   final Map<String, dynamic>? sharedPost;
+  final Map<String, dynamic>? sharedProfile;
   final String? senderId;
 
   const ChatMessage({
@@ -23,6 +24,7 @@ class ChatMessage {
     this.senderUsername,
     this.senderProfileImage,
     this.sharedPost,
+    this.sharedProfile,
     this.senderId,
   });
 
@@ -37,6 +39,7 @@ class ChatMessage {
       'senderUsername': senderUsername,
       'senderProfileImage': senderProfileImage,
       'sharedPost': sharedPost,
+      'sharedProfile': sharedProfile,
       'senderId': senderId,
     };
   }
@@ -52,6 +55,7 @@ class ChatMessage {
       senderUsername: json['senderUsername'] as String?,
       senderProfileImage: json['senderProfileImage'] as String?,
       sharedPost: json['sharedPost'] as Map<String, dynamic>?,
+      sharedProfile: json['sharedProfile'] as Map<String, dynamic>?,
       senderId: json['senderId'] as String?,
     );
   }
@@ -90,6 +94,7 @@ class MessageItem {
   final DateTime created_at;
   final bool isRead;
   final Map<String, dynamic>? sharedPost;
+  final Map<String, dynamic>? sharedProfile;
 
   MessageItem({
     required this.id,
@@ -99,6 +104,7 @@ class MessageItem {
     required this.created_at,
     this.isRead = false,
     this.sharedPost,
+    this.sharedProfile,
   });
 
   factory MessageItem.fromJson(Map<String, dynamic> json) {
@@ -112,6 +118,7 @@ class MessageItem {
       created_at: DateTime.parse(json['created_at']).toLocal(),
       isRead: json['is_read'] as bool? ?? false,
       sharedPost: json['shared_post'] as Map<String, dynamic>?,
+      sharedProfile: json['shared_profile'] as Map<String, dynamic>?,
     );
   }
 

@@ -11,7 +11,7 @@ import 'package:polzet_app/widgets/show_toast.dart';
 
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../../../../../api/api_config.dart';
-import '../../../../../../api/services/api_service.dart';
+import '../../../../../api/services/validator/api_service.dart';
 import '../../../../../../core/themes/app_text_styles.dart';
 import '../../../../../../models/posts/user_post_model.dart';
 import '../../../../../../widgets/appbar/common_appbar.dart';
@@ -120,28 +120,31 @@ class _UserThingsRankingState extends State<UserThingsRanking> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Theme.of(context).colorScheme.background,
-      appBar:  CommonAppBar(title:  AppLocalizations.of(context)!.rankyourchoices,),
-      body: Column(
-        children: [
-          Expanded(
-            child: ListView(
-              padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
-              children: [
-                _buildHeader(),
-                SizedBox(height: 12.h),
-                _buildQuestion(),
-                SizedBox(height: 16.h),
-                _buildDraggableList(),
-              ],
+    return SafeArea(
+      top: false,
+      child: Scaffold(
+        backgroundColor: Theme.of(context).colorScheme.background,
+        appBar:  CommonAppBar(title:  AppLocalizations.of(context)!.rankyourchoices,),
+        body: Column(
+          children: [
+            Expanded(
+              child: ListView(
+                padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
+                children: [
+                  _buildHeader(),
+                  SizedBox(height: 12.h),
+                  _buildQuestion(),
+                  SizedBox(height: 16.h),
+                  _buildDraggableList(),
+                ],
+              ),
             ),
-          ),
-        ],
-      ),
-      bottomNavigationBar: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 5, 16, 35),
-        child: _buildSubmitButton(),
+          ],
+        ),
+        bottomNavigationBar: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 5, 16, 35),
+          child: _buildSubmitButton(),
+        ),
       ),
     );
   }

@@ -10,7 +10,7 @@ import 'package:polzet_app/widgets/loader.dart';
 import 'package:provider/provider.dart';
 
 import '../../../../../core/constants/app_colors.dart';
-import '../../../../api/services/api_service.dart';
+import '../../../../api/services/validator/api_service.dart';
 import '../../../../api/services/image/image_picker_service.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/themes/app_text_colors.dart';
@@ -29,6 +29,7 @@ import '../media/media_screen.dart';
 import 'group/group_members.dart';
 import '../../profile/widgets/profile_image_preview.dart';
 import '../../profile/public/public_profile_screen.dart';
+import '../message_list.dart';
 
 class ChatDetails extends StatefulWidget {
   final String? chatName;
@@ -121,17 +122,24 @@ class _ChatDetailsState extends State<ChatDetails> with UtilityMixin {
       final File? pickedFile = await ImagePickerService.pickImage(
         context: context,
         allowCamera: true,
+        pickOriginal: true,
       );
-      if (pickedFile == null) return;
+      if (pickedFile == null || !mounted) return;
 
-      final File? croppedFile = await ImagePickerService.cropImage(pickedFile);
-      final File imageFile = croppedFile ?? pickedFile;
+      final shouldCrop = await cropImageDiolog(context);
+      if (!mounted) return;
+
+      File finalFile = pickedFile;
+      if (shouldCrop == true) {
+        final croppedFile = await ImagePickerService.cropImage(pickedFile);
+        if (croppedFile != null) finalFile = croppedFile;
+      }
 
       setState(() => _isUploadingImage = true);
 
       final result = await apiService.uploadGroupProfile(
         chatId: provider.chatId!,
-        imageFile: imageFile,
+        imageFile: finalFile,
       );
 
       if (mounted) {
@@ -149,10 +157,12 @@ class _ChatDetailsState extends State<ChatDetails> with UtilityMixin {
   }
 
   Future<void> _deleteGroup(GroupChatProvider provider) async {
+    final chatId = widget.chatId;
     final result = await provider.deleteGroup();
     if (mounted) {
       Navigator.pop(context);
       if (result['message'] == 'Group deleted successfully') {
+        MessageListState.removeChatLocally(chatId);
         Navigator.pushAndRemoveUntil(
           context,
           MaterialPageRoute(
@@ -171,10 +181,12 @@ class _ChatDetailsState extends State<ChatDetails> with UtilityMixin {
   }
 
   Future<void> _leaveGroup(GroupChatProvider provider) async {
+    final chatId = widget.chatId;
     final result = await provider.leaveGroup();
     if (mounted) {
       Navigator.pop(context);
       if (result['message'] == 'You have left the group.') {
+        MessageListState.removeChatLocally(chatId);
         Navigator.pushAndRemoveUntil(
           context,
           MaterialPageRoute(
@@ -237,8 +249,9 @@ class _ChatDetailsState extends State<ChatDetails> with UtilityMixin {
                     preview[i]['user'] as Map? ?? {},
                   );
                   final profileImg = user['profile_image']?.toString();
-                  final provider = _avatarProvider(profileImg);
-                  final username = user['username']?.toString() ?? '?';
+                  final avatarProvider = (profileImg == null || profileImg.trim().isEmpty)
+                      ? AssetImage(Assets.images.icAvatar.path)
+                      : _avatarProvider(profileImg) as ImageProvider;
                   return Positioned(
                     top: 4.h,
                     left: (i * 13.2).w,
@@ -258,23 +271,11 @@ class _ChatDetailsState extends State<ChatDetails> with UtilityMixin {
                           195,
                           195,
                         ).withOpacity(0.3),
-                        backgroundImage: provider,
-                        child: provider == null
-                            ? Text(
-                                username.isNotEmpty
-                                    ? username[0].toUpperCase()
-                                    : '?',
-                                style: TextStyle(
-                                  fontSize: 13.sp,
-                                  fontWeight: FontWeight.w600,
-                                  color: AppThemes.lightMode.colorScheme.onPrimary,
-                                ),
-                              )
-                            : null,
+                        backgroundImage: avatarProvider,
                       ),
                     ),
                   );
-                }).toList().reversed.toList(),
+                }).toList()
               ),
             ),
             const Spacer(),
@@ -326,9 +327,10 @@ class _ChatDetailsState extends State<ChatDetails> with UtilityMixin {
         ? false
         : privateProvider!.isHideChatHistory;
 
-    final profileUrl = widget.isGroupChat
-        ? (groupProvider!.chat?['profile_url']?.toString() ?? widget.profileUrl)
+    final profileUrlRaw = widget.isGroupChat
+        ? (groupProvider?.chat?['profile_url']?.toString() ?? widget.profileUrl)
         : widget.profileUrl;
+    final profileUrl = profileUrlRaw;
 
     final provider = _avatarProvider(profileUrl);
     final initial = (chatName?.trim().isNotEmpty ?? false)

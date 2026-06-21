@@ -13,7 +13,7 @@ import 'package:polzet_app/languages/l10n/generated/app_localizations.dart';
 import 'package:polzet_app/widgets/loader.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:polzet_app/data/token/shared_preferences.dart';
-import '../../../api/services/api_service.dart';
+import '../../../api/services/validator/api_service.dart';
 import '../../../api/api_config.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_radius.dart';

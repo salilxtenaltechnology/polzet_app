@@ -6,7 +6,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:polzet_app/api/services/api_service.dart';
+import 'package:polzet_app/api/services/validator/api_service.dart';
 import 'package:polzet_app/widgets/show_toast.dart';
 import 'package:provider/provider.dart';
 

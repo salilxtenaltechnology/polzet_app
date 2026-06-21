@@ -1,6 +1,5 @@
 // ignore_for_file: prefer_final_fields, deprecated_member_use
 
-import 'dart:convert';
 import 'dart:io';
 
 import 'package:polzet_app/core/constants/feather_icons_compat.dart';
@@ -9,7 +8,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:polzet_app/languages/l10n/generated/app_localizations.dart';
 import 'package:polzet_app/widgets/loader.dart';
 import 'package:polzet_app/widgets/show_toast.dart';
-import '../../../../api/services/api_service.dart';
+import '../../../../api/services/validator/api_service.dart';
 import '../../../../api/services/image/image_picker_service.dart';
 import '../../../../core/constants/app_radius.dart';
 import '../../../../core/themes/app_text_colors.dart';
@@ -18,6 +17,7 @@ import '../../../../mixin/utility_mixins.dart';
 import '../../../../widgets/appbar/common_appbar.dart';
 import '../../../../widgets/base64/image_convert.dart';
 import '../../../../widgets/button/primary_button.dart';
+import '../../../../widgets/dialog/custom_diolog.dart';
 import '../../../../widgets/text_field/secondry_textfield.dart';
 import 'add_member.dart';
 
@@ -41,7 +41,6 @@ class _CreateGroupState extends State<CreateGroup> with UtilityMixin {
 
   bool _isCreating = false;
   File? _selectedImage;
-  String? _base64ProfileImage;
   String? _groupNameError;
   String? _groupMembersError;
   @override
@@ -70,18 +69,23 @@ class _CreateGroupState extends State<CreateGroup> with UtilityMixin {
   }
 
   Future<void> _pickGroupImage() async {
-    final file = await ImagePickerService.pickImage(context: context);
-    if (file == null) return;
+    final file = await ImagePickerService.pickImage(
+      context: context,
+      pickOriginal: true,
+    );
+    if (file == null || !mounted) return;
 
-    final cropped = await ImagePickerService.cropImage(file);
-    final finalFile = cropped ?? file;
+    final shouldCrop = await cropImageDiolog(context);
+    if (!mounted) return;
 
-    final bytes = await finalFile.readAsBytes();
-    final base64Str = base64Encode(bytes);
+    File finalFile = file;
+    if (shouldCrop == true) {
+      final cropped = await ImagePickerService.cropImage(file);
+      if (cropped != null) finalFile = cropped;
+    }
 
     setState(() {
       _selectedImage = finalFile;
-      _base64ProfileImage = base64Str;
     });
   }
 
@@ -114,12 +118,12 @@ class _CreateGroupState extends State<CreateGroup> with UtilityMixin {
     try {
       final result = await _apiServices.createGroup(
         title: groupName,
-        profileImage: _base64ProfileImage ?? '',
+        profileImage: _selectedImage,
         members: _selectedIds.toList(),
       );
 
       if (result['success'] == true) {
-        if (mounted) Navigator.pop(context, result['chat_id']);
+        if (mounted) Navigator.pop(context, result['chat_id'] ?? true);
       } else {
         showToast(message: 'Failed to create group');
       }

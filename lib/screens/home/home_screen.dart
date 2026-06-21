@@ -34,6 +34,9 @@ class HomeScreenState extends State<HomeScreen> with UtilityMixin, WidgetsBindin
     WidgetsBinding.instance.addPostFrameCallback((_) {
       NotificationService().initialize();
 
+      // Set the flag that home screen is now visible and ready for direct navigation
+      NotificationRouter.isHomeScreenVisible = true;
+
       if (widget.pendingDestination != null) {
         Navigator.of(
           context,
@@ -42,11 +45,15 @@ class HomeScreenState extends State<HomeScreen> with UtilityMixin, WidgetsBindin
       } else if (NotificationRouter().hasPendingNotification()) {
         NotificationRouter().handlePendingNotification(context);
       }
+
+      // Check for app updates (Play Store vs App Side fallback)
+      AppUpdateService().checkForUpdate(context);
     });
   }
 
   @override
   void dispose() {
+    NotificationRouter.isHomeScreenVisible = false;
     WidgetsBinding.instance.removeObserver(this);
     MessageListState.stopGlobalPolling();
     NotificationState.stopGlobalPolling();
@@ -353,12 +360,18 @@ class HomeScreenState extends State<HomeScreen> with UtilityMixin, WidgetsBindin
                         SizedBox(width: 8.w),
                         if (pageIndex == 1)
                           GestureDetector(
-                            onTap: () => Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => const CreateGroup(),
-                              ),
-                            ),
+                            onTap: () async {
+                              final createdChatId = await Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const CreateGroup(),
+                                ),
+                              );
+                              if (createdChatId != null) {
+                                MessageListState.refreshGlobally();
+                                MessageListState.selectTab(1);
+                              }
+                            },
                             child: Assets.images.addGroup.image(
                               width: 28,
                               height: 28,

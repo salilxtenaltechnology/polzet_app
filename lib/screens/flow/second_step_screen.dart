@@ -4,7 +4,7 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 
-import '../../../api/services/api_service.dart';
+import '../../api/services/validator/api_service.dart';
 import '../../../models/user/suggestionsb users/suggestions_users_model.dart';
 import '../../../widgets/loader.dart';
 import '../../../widgets/error/api_error_widget.dart';

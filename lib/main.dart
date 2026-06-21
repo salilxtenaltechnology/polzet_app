@@ -1,4 +1,5 @@
 // ignore_for_file: unused_field, deprecated_member_use, unused_element, library_private_types_in_public_api
+import 'dart:convert';
 import 'package:firebase_app_check/firebase_app_check.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -19,6 +20,7 @@ import 'data/token/shared_preferences.dart';
 import 'firebase_options.dart';
 import 'languages/l10n/generated/app_localizations.dart';
 import 'provider/connection_provider.dart';
+import 'package:polzet_app/widgets/show_toast.dart';
 import 'provider/private_chat_provider.dart';
 
 import 'provider/user_provider.dart';
@@ -228,23 +230,25 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
 
   void _handleBackgroundNotificationTap(RemoteMessage message) async {
     final context = navigatorKey.currentContext;
-    if (context == null || !mounted) {
-      debugPrint('⚠️ Context not ready, storing notification for later');
+    if (context == null || !mounted || !NotificationRouter.isHomeScreenVisible) {
+      debugPrint('⚠️ HomeScreen not visible or context not ready, storing notification for later');
       NotificationRouter().setPendingNotification(message);
       return;
     }
 
-    final userProvider = Provider.of<UserProvider>(context, listen: false);
-    if (!userProvider.isUserDataValid()) {
-      debugPrint('⏳ UserProvider not ready, triggering silent load...');
-      userProvider.loadUserDataSilently();
-      final ready = await userProvider.waitForUserData(
-        timeout: const Duration(seconds: 5),
-      );
-      if (!ready) {
-        debugPrint('❌ Timeout waiting for UserProvider');
-        _navigateToNotificationsTab(context);
-        return;
+    if (_notificationNeedsUserData(message.data)) {
+      final userProvider = Provider.of<UserProvider>(context, listen: false);
+      if (!userProvider.isUserDataValid()) {
+        debugPrint('⏳ UserProvider not ready, triggering silent load...');
+        userProvider.loadUserDataSilently();
+        final ready = await userProvider.waitForUserData(
+          timeout: const Duration(seconds: 5),
+        );
+        if (!ready) {
+          debugPrint('❌ Timeout waiting for UserProvider');
+          _navigateToNotificationsTab(context);
+          return;
+        }
       }
     }
 
@@ -253,50 +257,104 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
 
   void _handleForegroundNotificationTap(NotificationPayload payload) async {
     final context = navigatorKey.currentContext;
-    if (context == null || !mounted) {
-      debugPrint('⚠️ Context not ready for foreground navigation');
+    if (context == null || !mounted || !NotificationRouter.isHomeScreenVisible) {
+      debugPrint('⚠️ HomeScreen not visible or context not ready, storing notification for later');
+      NotificationRouter().setPendingNotification(
+        RemoteMessage(data: payload.data, messageId: payload.id),
+        actionId: payload.actionId,
+        bypassDuplicateCheck: true,
+      );
       return;
     }
 
-    final userProvider = Provider.of<UserProvider>(context, listen: false);
-    if (!userProvider.isUserDataValid()) {
-      debugPrint('⏳ UserProvider not ready, triggering silent load...');
-      userProvider.loadUserDataSilently();
-      final ready = await userProvider.waitForUserData(
-        timeout: const Duration(seconds: 5),
-      );
-      if (!ready) {
-        debugPrint('❌ Timeout waiting for UserProvider');
-        _navigateToNotificationsTab(context);
-        return;
+    if (_notificationNeedsUserData(payload.data)) {
+      final userProvider = Provider.of<UserProvider>(context, listen: false);
+      if (!userProvider.isUserDataValid()) {
+        debugPrint('⏳ UserProvider not ready, triggering silent load...');
+        userProvider.loadUserDataSilently();
+        final ready = await userProvider.waitForUserData(
+          timeout: const Duration(seconds: 5),
+        );
+        if (!ready) {
+          debugPrint('❌ Timeout waiting for UserProvider');
+          _navigateToNotificationsTab(context);
+          return;
+        }
       }
     }
 
-    _navigateToNotificationDestination(context, payload.data, messageId: payload.id);
+    _navigateToNotificationDestination(
+      context,
+      payload.data,
+      messageId: payload.id,
+      actionId: payload.actionId,
+    );
+  }
+
+  bool _notificationNeedsUserData(Map<String, dynamic> rawData) {
+    Map<String, dynamic> payloadMap = Map<String, dynamic>.from(rawData);
+    if (payloadMap.containsKey('data') && payloadMap['data'] is Map) {
+      payloadMap.addAll(Map<String, dynamic>.from(payloadMap['data'] as Map));
+    }
+
+    Map<String, dynamic> notificationData = {};
+    if (payloadMap['notification'] is Map) {
+      notificationData = Map<String, dynamic>.from(payloadMap['notification']);
+    } else if (payloadMap['notification'] is String) {
+      try {
+        notificationData = jsonDecode(payloadMap['notification'] as String) as Map<String, dynamic>;
+      } catch (_) {}
+    } else {
+      notificationData = payloadMap;
+    }
+
+    final Map<String, dynamic> data = {...payloadMap, ...notificationData};
+    final type = (data['type'] ?? '').toString().toLowerCase().trim();
+
+    return (type == 'like' ||
+        type == 'like_group' ||
+        type == 'comment' ||
+        type == 'commetnt' ||
+        type == 'vote' ||
+        type == 'reply' ||
+        type == 'follow_group');
   }
 
   void _navigateToNotificationDestination(
     BuildContext context,
     Map<String, dynamic> rawData, {
     String? messageId,
+    String? actionId,
   }) {
     if (messageId != null) {
       SharedPrefService.setString('last_processed_notification_id', messageId);
       debugPrint('📬 main.dart: Persisted processed notification ID: $messageId');
     }
 
-    final notificationData = rawData['notification'] is Map
-        ? rawData['notification'] as Map<String, dynamic>
-        : rawData;
+    Map<String, dynamic> payloadMap = Map<String, dynamic>.from(rawData);
+    if (payloadMap.containsKey('data') && payloadMap['data'] is Map) {
+      payloadMap.addAll(Map<String, dynamic>.from(payloadMap['data'] as Map));
+    }
 
-    final Map<String, dynamic> data = {...rawData, ...notificationData};
+    Map<String, dynamic> notificationData = {};
+    if (payloadMap['notification'] is Map) {
+      notificationData = Map<String, dynamic>.from(payloadMap['notification']);
+    } else if (payloadMap['notification'] is String) {
+      try {
+        notificationData = jsonDecode(payloadMap['notification'] as String) as Map<String, dynamic>;
+      } catch (_) {}
+    } else {
+      notificationData = payloadMap;
+    }
+
+    final Map<String, dynamic> data = {...payloadMap, ...notificationData};
     final type = (data['type'] ?? '').toString().toLowerCase().trim();
 
     // Read username from provider
     final userProvider = Provider.of<UserProvider>(context, listen: false);
     final String username = userProvider.username ?? '';
 
-    debugPrint('🎯 Navigating to notification type: "$type"');
+    debugPrint('🎯 Navigating to notification type: "$type", action: "$actionId"');
     debugPrint('📋 Full notification data: $data');
     debugPrint('   👤 Username: $username');
 
@@ -323,12 +381,31 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       } else {
         debugPrint('❌ Invalid or missing post_id for type: $type');
       }
-    } else if (type == 'follow') {
-      final String? userId = data['sender_id']?.toString();
+    } else if (actionId == 'view_profile_action' || type == 'follow' || type == 'friend_request' || type == 'friend_requests') {
+      dynamic actorData = data['actor'];
+      if (actorData is String && actorData.isNotEmpty) {
+        try {
+          actorData = jsonDecode(actorData);
+        } catch (_) {}
+      }
+      
+      dynamic metaData = data['meta'];
+      if (metaData is String && metaData.isNotEmpty) {
+        try {
+          metaData = jsonDecode(metaData);
+        } catch (_) {}
+      }
+
+      final String? userId = data['sender_id']?.toString() ??
+          data['sender_uuid']?.toString() ??
+          (actorData is Map ? actorData['user_id']?.toString() ?? actorData['id']?.toString() ?? actorData['user_uuid']?.toString() : null) ??
+          (metaData is Map ? metaData['sender_id']?.toString() : null) ??
+          data['user_id']?.toString() ??
+          data['userId']?.toString();
       if (userId != null && userId.isNotEmpty) {
         destination = PublicProfileScreen(userId: userId);
       } else {
-        debugPrint('❌ Invalid or missing sender_id for type: $type');
+        debugPrint('❌ Invalid or missing sender_id for type: $type, action: $actionId');
       }
     } else if (type == 'follow_group') {
       destination = UserChase(
@@ -348,8 +425,9 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       final senderId = _parseToInt(data['sender_id'] ?? meta?['sender_id']);
       final memberName = (data['sender'] ?? meta?['sender'] ?? 'Chat')
           .toString();
-      final profileUrl = (data['sender_profile_image'] ?? data['profile_image'])
+      final rawProfileUrl = (data['sender_profile_image'] ?? data['profile_image'])
           ?.toString();
+      final profileUrl = (rawProfileUrl == 'null' || rawProfileUrl == '') ? null : rawProfileUrl;
       final chatId = _parseToInt(data['chat_id'] ?? meta?['chat_id']);
       final groupName =
           (data['group_name'] ?? meta?['group_name'])?.toString() ?? '';
@@ -380,6 +458,16 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     }
 
     if (destination != null) {
+      if (destination is SinglePostDetails ||
+          destination is UserChase ||
+          destination is PrivateChatScreen ||
+          destination is GroupChatScreen) {
+        final isOffline = Provider.of<ConnectivityProvider>(context, listen: false).isOffline;
+        if (isOffline) {
+          showToast(message: 'Please check your internet connection');
+          return;
+        }
+      }
       Navigator.of(
         context,
       ).push(MaterialPageRoute(builder: (_) => destination!));

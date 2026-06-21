@@ -175,6 +175,9 @@ class NotificationActor {
 
   factory NotificationActor.fromJson(Map<String, dynamic> json) {
     String? avatar = json['avatar_url'] as String?;
+    if (avatar == 'null' || avatar == 'NULL' || avatar == '') {
+      avatar = null;
+    }
     if (avatar != null && avatar.isNotEmpty) {
       if (!avatar.startsWith('http') && !avatar.startsWith('data:image')) {
         if (avatar.startsWith('/')) {

@@ -5,7 +5,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
 import '../../../provider/user_provider.dart';
 
-import '../../../api/services/api_service.dart';
+import '../../../api/services/validator/api_service.dart';
 import '../../../api/services/like/like_service.dart';
 import '../../../core/constants/app_icons.dart';
 import '../../../core/constants/app_radius.dart';

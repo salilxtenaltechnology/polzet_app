@@ -19,103 +19,106 @@ class NewPollBottomsheet extends StatelessWidget with UtilityMixin {
   @override
   Widget build(BuildContext context) {
     final txt = AppTextColors.of(context);
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(12).w,
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.tertiaryContainer,
-        borderRadius: const BorderRadius.only(
-          topLeft: Radius.circular(AppRadius.modal),
-          topRight: Radius.circular(AppRadius.modal),
+    return SafeArea(
+       top: false,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(12).w,
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.tertiaryContainer,
+          borderRadius: const BorderRadius.only(
+            topLeft: Radius.circular(AppRadius.modal),
+            topRight: Radius.circular(AppRadius.modal),
+          ),
         ),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            height: 2.h,
-            width: 100.w,
-            decoration: BoxDecoration(
-              color: const Color(0x7C868686),
-              borderRadius: BorderRadius.circular(5.r),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              height: 2.h,
+              width: 100.w,
+              decoration: BoxDecoration(
+                color: const Color(0x7C868686),
+                borderRadius: BorderRadius.circular(5.r),
+              ),
             ),
-          ),
-          SizedBox(height: 12.h),
-          Text(
-            AppLocalizations.of(context)!.addnewpoll,
-            style: AppTextStyles.sectionHeading.copyWith(color: txt.title),
-          ),
-          Divider(
-            color: Theme.of(context).colorScheme.outlineVariant,
-            height: 25.h,
-          ),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Column(
-                children: [
-                  GestureDetector(
-                    onTap: () {
-                      Navigator.pop(context);
-                      navigationPush(context, const NewThingsPoll());
-                    },
-                    child: Container(
-                      height: 55.h,
-                      width: 55.w,
-                      padding: const EdgeInsets.all(12).w,
-                      decoration: const BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: AppColors.primaryColor,
+            SizedBox(height: 12.h),
+            Text(
+              AppLocalizations.of(context)!.addnewpoll,
+              style: AppTextStyles.sectionHeading.copyWith(color: txt.title),
+            ),
+            Divider(
+              color: Theme.of(context).colorScheme.outlineVariant,
+              height: 25.h,
+            ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Column(
+                  children: [
+                    GestureDetector(
+                      onTap: () {
+                        Navigator.pop(context);
+                        navigationPush(context, const NewThingsPoll());
+                      },
+                      child: Container(
+                        height: 55.h,
+                        width: 55.w,
+                        padding: const EdgeInsets.all(12).w,
+                        decoration: const BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: AppColors.primaryColor,
+                        ),
+                        child: Assets.images.thingsIcon.image(
+                          color: Colors.white,
+                        ),
                       ),
-                      child: Assets.images.thingsIcon.image(
-                        color: Colors.white,
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      AppLocalizations.of(context)!.answer,
+                      style: AppTextStyles.subText.copyWith(
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w500,
+                        color: txt.heading,
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    AppLocalizations.of(context)!.answer,
-                    style: AppTextStyles.subText.copyWith(
-                      fontSize: 13.5,
-                      fontWeight: FontWeight.w500,
-                      color: txt.heading,
-                    ),
-                  ),
-                ],
-              ),
-              SizedBox(width: 40.w),
-              Column(
-                children: [
-                  GestureDetector(
-                    onTap: () {
-                      Navigator.pop(context);
-                      navigationPush(context, const NewImagePoll());
-                    },
-                    child: Container(
-                      height: 55.h,
-                      width: 55.w,
-                      padding: const EdgeInsets.all(12).w,
-                      decoration: const BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: AppColors.primaryColor,
+                  ],
+                ),
+                SizedBox(width: 40.w),
+                Column(
+                  children: [
+                    GestureDetector(
+                      onTap: () {
+                        Navigator.pop(context);
+                        navigationPush(context, const NewImagePoll());
+                      },
+                      child: Container(
+                        height: 55.h,
+                        width: 55.w,
+                        padding: const EdgeInsets.all(12).w,
+                        decoration: const BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: AppColors.primaryColor,
+                        ),
+                        child: Assets.images.imageIcon.image(color: Colors.white),
                       ),
-                      child: Assets.images.imageIcon.image(color: Colors.white),
                     ),
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    AppLocalizations.of(context)!.image,
-                    style: AppTextStyles.subText.copyWith(
-                      fontSize: 13.5,
-                      fontWeight: FontWeight.w500,
-                      color: txt.heading,
+                    const SizedBox(height: 12),
+                    Text(
+                      AppLocalizations.of(context)!.image,
+                      style: AppTextStyles.subText.copyWith(
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w500,
+                        color: txt.heading,
+                      ),
                     ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ],
+                  ],
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -13,7 +13,7 @@ import '../../../core/themes/app_text_styles.dart';
 import '../../../core/constants/app_radius.dart';
 import '../../../languages/l10n/generated/app_localizations.dart';
 import '../../../widgets/show_toast.dart';
-import '../../../api/services/api_service.dart';
+import '../../../api/services/validator/api_service.dart';
 import '../../../widgets/base64/image_convert.dart';
 import '../../loader.dart';
 
@@ -147,9 +147,7 @@ class _ShareBottomSheetState extends State<ShareBottomSheet> {
   String? _userAvatar(Map<String, dynamic> item) {
     final String? avatar;
     if (item['is_group'] == true) {
-      avatar =
-          (item['profile_url'] ?? item['group_picture_url'] ?? item['avatar'])
-              ?.toString();
+      avatar = item['profile_url']?.toString();
     } else {
       avatar = (item['avatar'] ?? item['profile_picture_url'] ?? item['image'])
           ?.toString();
@@ -368,450 +366,453 @@ class _ShareBottomSheetState extends State<ShareBottomSheet> {
   Widget build(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     final txt = AppTextColors.of(context);
-    return Padding(
-      padding: EdgeInsets.only(
-        bottom: MediaQuery.of(context).viewInsets.bottom,
-      ),
-      child: Container(
-        height: 0.8.sh,
-        decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.tertiaryContainer,
-          borderRadius: const BorderRadius.only(
-            topLeft: Radius.circular(AppRadius.modal),
-            topRight: Radius.circular(AppRadius.modal),
-          ),
+    return SafeArea(
+       top: false,
+      child: Padding(
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(context).viewInsets.bottom,
         ),
-        child: Column(
-          children: [
-            // Drag Handle
-            const SizedBox(height: 10),
-            Center(
-              child: Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: const Color(0XFF767676),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-              ),
+        child: Container(
+          height: 0.8.sh,
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.tertiaryContainer,
+            borderRadius: const BorderRadius.only(
+              topLeft: Radius.circular(AppRadius.modal),
+              topRight: Radius.circular(AppRadius.modal),
             ),
-            const SizedBox(height: 15),
-
-            // Search Bar
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 15),
-              child: Container(
-                height: 45,
-                decoration: BoxDecoration(
-                  color: isDarkMode ? const Color(0xFF1F1F23) : Colors.white,
-                  borderRadius: BorderRadius.circular(AppRadius.button),
-                  border: Border.all(
-                    color: Theme.of(
-                      context,
-                    ).colorScheme.onSurface.withOpacity(0.1),
-                  ),
-                ),
-                child: TextField(
-                  controller: _searchController,
-                  decoration: InputDecoration(
-                    hintText: AppLocalizations.of(context)!.searchusers,
-                    hintStyle: AppTextStyles.bodyText.copyWith(
-                      color: const Color(0XFF898989),
-                      fontSize: 14.5,
-                    ),
-                    prefixIcon: const Icon(
-                      FeatherIcons.search,
-                      size: 18,
-                      color: Color(0XFF898989),
-                    ),
-                    border: InputBorder.none,
-                    contentPadding: const EdgeInsets.only(top: 10, bottom: 10),
-                  ),
-                  style: AppTextStyles.bodyText.copyWith(
-                    color: Theme.of(context).colorScheme.onSurface,
-                    fontSize: 14.5,
+          ),
+          child: Column(
+            children: [
+              // Drag Handle
+              const SizedBox(height: 10),
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: const Color(0XFF767676),
+                    borderRadius: BorderRadius.circular(10),
                   ),
                 ),
               ),
-            ),
-            const SizedBox(height: 20),
-
-            // Users Grid
-            Expanded(
-              child: _isLoadingUsers
-                  ? Center(
-                      child: Loader(
-                        color: Theme.of(context).colorScheme.onPrimary,
-                      ),
-                    )
-                  : _filteredUsers.isEmpty
-                  ? Center(
-                      child: Text(
-                        AppLocalizations.of(context)!.nousersfound,
-                        style: AppTextStyles.bodyText.copyWith(
-                          color: Theme.of(
-                            context,
-                          ).colorScheme.onSurface.withOpacity(0.5),
-                        ),
-                      ),
-                    )
-                  : GridView.builder(
-                      padding: const EdgeInsets.symmetric(horizontal: 15),
-                      gridDelegate:
-                          const SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 4,
-                            mainAxisSpacing: 15,
-                            crossAxisSpacing: 10,
-                            childAspectRatio: 0.8,
-                          ),
-                      itemCount: _filteredUsers.length,
-                      itemBuilder: (context, index) {
-                        final item = _filteredUsers[index];
-                        final avatarUrl = _userAvatar(item);
-                        final name = _userName(item);
-                        final isGroup = item['is_group'] == true;
-
-                        final isSelected = isGroup
-                            ? _selectedGroupIds.contains(item['id'])
-                            : _selectedUserIds.contains(item['id']);
-
-                        return GestureDetector(
-                          onTap: () {
-                            setState(() {
-                              final id = item['id'];
-                              if (isGroup) {
-                                if (isSelected) {
-                                  _selectedGroupIds.remove(id);
-                                } else {
-                                  _selectedGroupIds.add(id);
-                                }
-                              } else {
-                                if (isSelected) {
-                                  _selectedUserIds.remove(id);
-                                } else {
-                                  _selectedUserIds.add(id);
-                                }
-                              }
-                            });
-                          },
-                          child: Column(
-                            children: [
-                              Stack(
-                                children: [
-                                  if (isGroup &&
-                                      (avatarUrl == null ||
-                                          avatarUrl.trim().isEmpty))
-                                    _buildGroupAvatarStack(
-                                      members: item['members'] as List?,
-                                      size: 60,
-                                      isDarkMode: isDarkMode,
-                                      context: context,
-                                    )
-                                  else
-                                    Builder(
-                                      builder: (_) {
-                                        final imageBytes = avatarUrl != null
-                                            ? getProfileImage(avatarUrl)
-                                            : null;
-                                        final hasNetworkImage =
-                                            imageBytes == null &&
-                                            avatarUrl != null &&
-                                            avatarUrl.trim().isNotEmpty &&
-                                            avatarUrl.startsWith('http');
-                                        final initial = name.isNotEmpty
-                                            ? name[0].toUpperCase()
-                                            : '?';
-
-                                        return Container(
-                                          height: 60,
-                                          width: 60,
-                                          decoration: BoxDecoration(
-                                            shape: BoxShape.circle,
-                                            color:
-                                                (imageBytes == null &&
-                                                    !hasNetworkImage)
-                                                ? (isDarkMode
-                                                      ? const Color(0xFF343434)
-                                                      : Theme.of(context)
-                                                            .colorScheme
-                                                            .primary
-                                                            .withOpacity(0.1))
-                                                : null,
-                                            image: imageBytes != null
-                                                ? DecorationImage(
-                                                    image: MemoryImage(
-                                                      imageBytes,
-                                                    ),
-                                                    fit: BoxFit.cover,
-                                                  )
-                                                : (hasNetworkImage
-                                                      ? DecorationImage(
-                                                          image: NetworkImage(
-                                                            avatarUrl,
-                                                          ),
-                                                          fit: BoxFit.cover,
-                                                        )
-                                                      : null),
-                                            border: Border.all(
-                                              color: Theme.of(context)
-                                                  .colorScheme
-                                                  .onSurface
-                                                  .withOpacity(0.05),
-                                            ),
-                                          ),
-                                          child:
-                                              (imageBytes == null &&
-                                                  !hasNetworkImage)
-                                              ? Center(
-                                                  child: Text(
-                                                    initial,
-                                                    style: TextStyle(
-                                                      color: Theme.of(
-                                                        context,
-                                                      ).colorScheme.onPrimary,
-                                                      fontWeight:
-                                                          FontWeight.w500,
-                                                      fontSize: 24,
-                                                    ),
-                                                  ),
-                                                )
-                                              : null,
-                                        );
-                                      },
-                                    ),
-                                  if (isGroup &&
-                                      !(avatarUrl == null ||
-                                          avatarUrl.trim().isEmpty))
-                                    Positioned(
-                                      bottom: 0,
-                                      left: 0,
-                                      child: Container(
-                                        decoration: BoxDecoration(
-                                          color: Colors.blueGrey,
-                                          shape: BoxShape.circle,
-                                          border: Border.all(
-                                            color: Theme.of(
-                                              context,
-                                            ).colorScheme.background,
-                                            width: 1.5,
-                                          ),
-                                        ),
-                                        padding: const EdgeInsets.all(4),
-                                        child: const Icon(
-                                          Icons.group,
-                                          color: Colors.white,
-                                          size: 10,
-                                        ),
-                                      ),
-                                    ),
-                                  if (isSelected)
-                                    Positioned(
-                                      bottom: 0,
-                                      right: 0,
-                                      child: Container(
-                                        decoration: BoxDecoration(
-                                          color: Theme.of(
-                                            context,
-                                          ).colorScheme.primary,
-                                          shape: BoxShape.circle,
-                                          border: Border.all(
-                                            color: Theme.of(
-                                              context,
-                                            ).colorScheme.background,
-                                            width: 1.5,
-                                          ),
-                                        ),
-                                        padding: const EdgeInsets.all(4),
-                                        child: const Icon(
-                                          Icons.check,
-                                          color: Colors.white,
-                                          size: 12,
-                                        ),
-                                      ),
-                                    ),
-                                ],
-                              ),
-                              const SizedBox(height: 8),
-                              Text(
-                                name,
-                                style: AppTextStyles.bodyText.copyWith(
-                                  fontSize: 12.5,
-                                  fontWeight: FontWeight.w400,
-                                  color: txt.title,
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                textAlign: TextAlign.center,
-                              ),
-                            ],
-                          ),
-                        );
-                      },
-                    ),
-            ),
-
-            // Divider
-            Divider(
-              color: Theme.of(context).colorScheme.outlineVariant,
-              height: 1,
-            ),
-
-            if (_selectedUserIds.isEmpty && _selectedGroupIds.isEmpty)
-              // Share Options
+              const SizedBox(height: 15),
+      
+              // Search Bar
               Padding(
-                padding: EdgeInsets.only(
-                  top: 5.h,
-                  bottom: 15.h,
-                  left: 20,
-                  right: 20,
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildShareOption(
-                      iconWidget: const FaIcon(
-                        FontAwesomeIcons.whatsapp,
-                        color: Color(0xFF25D366),
-                        size: 32,
-                      ),
-                      label: 'Whatsapp',
-                      onTap: _shareToWhatsApp,
+                padding: const EdgeInsets.symmetric(horizontal: 15),
+                child: Container(
+                  height: 45,
+                  decoration: BoxDecoration(
+                    color: isDarkMode ? const Color(0xFF1F1F23) : Colors.white,
+                    borderRadius: BorderRadius.circular(AppRadius.button),
+                    border: Border.all(
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.onSurface.withOpacity(0.1),
                     ),
-                    _buildShareOption(
-                      iconWidget: const FaIcon(
-                        FontAwesomeIcons.instagram,
-                        color: Color(0xFFE1306C),
-                        size: 32,
-                      ),
-                      label: 'Instagram',
-                      onTap: _shareToInstagram,
-                    ),
-                    _buildShareOption(
-                      iconWidget: Image.asset(
-                        'assets/images/ic_google.png',
-                        height: 30,
-                        width: 30,
-                      ),
-                      label: 'Gmail',
-                      onTap: _shareToGmail,
-                    ),
-                    _buildShareOption(
-                      iconWidget: Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: isDarkMode
-                              ? const Color(0xFF343434)
-                              : Theme.of(
-                                  context,
-                                ).colorScheme.primary.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Icon(
-                          FeatherIcons.link,
-                          color: Theme.of(context).colorScheme.onPrimary,
-                          size: 20,
-                        ),
-                      ),
-                      label: 'Copy link',
-                      onTap: _copyLink,
-                    ),
-                  ],
-                ),
-              )
-            else
-              // Send Message Area
-              Padding(
-                padding: EdgeInsets.only(
-                  top: 15.h,
-                  bottom: 30.h,
-                  left: 20,
-                  right: 20,
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    TextField(
-                      controller: _messageController,
-                      decoration: InputDecoration(
-                        hintText: 'Write a message.....',
-                        hintStyle: AppTextStyles.bodyText.copyWith(
-                          color: const Color(0XFF898989),
-                          fontSize: 14.5,
-                        ),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(AppRadius.button),
-                          borderSide: BorderSide(
-                            color: isDarkMode
-                                ? Theme.of(context).colorScheme.outline
-                                : const Color(0XFFE5E5E5),
-                          ),
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(AppRadius.button),
-                          borderSide: BorderSide(
-                            color: isDarkMode
-                                ? Theme.of(context).colorScheme.outline
-                                : const Color(0XFFE5E5E5),
-                          ),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(AppRadius.button),
-                          borderSide: BorderSide(
-                            color: Theme.of(context).colorScheme.primary,
-                          ),
-                        ),
-                        filled: true,
-                        fillColor: Colors.transparent,
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 15,
-                          vertical: 12,
-                        ),
-                      ),
-                      style: AppTextStyles.bodyText.copyWith(
-                        color: Theme.of(context).colorScheme.onSurface,
+                  ),
+                  child: TextField(
+                    controller: _searchController,
+                    decoration: InputDecoration(
+                      hintText: AppLocalizations.of(context)!.searchusers,
+                      hintStyle: AppTextStyles.bodyText.copyWith(
+                        color: const Color(0XFF898989),
                         fontSize: 14.5,
                       ),
-                    ),
-                    const SizedBox(height: 15),
-                    SizedBox(
-                      width: double.infinity,
-                      height: 48,
-                      child: ElevatedButton(
-                        onPressed: _isSending ? null : _sendToSelectedUsers,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Theme.of(
-                            context,
-                          ).colorScheme.primary,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(
-                              AppRadius.button,
-                            ),
-                          ),
-                          elevation: 0,
-                        ),
-                        child: _isSending
-                            ? const SizedBox(
-                                height: 20,
-                                width: 20,
-                                child: CircularProgressIndicator(
-                                  color: Colors.white,
-                                  strokeWidth: 2,
-                                ),
-                              )
-                            : Text(
-                                'Send',
-                                style: AppTextStyles.bodyText.copyWith(
-                                  color: Colors.white,
-                                  fontSize: 16,
-                                ),
-                              ),
+                      prefixIcon: const Icon(
+                        FeatherIcons.search,
+                        size: 18,
+                        color: Color(0XFF898989),
                       ),
+                      border: InputBorder.none,
+                      contentPadding: const EdgeInsets.only(top: 10, bottom: 10),
                     ),
-                  ],
+                    style: AppTextStyles.bodyText.copyWith(
+                      color: Theme.of(context).colorScheme.onSurface,
+                      fontSize: 14.5,
+                    ),
+                  ),
                 ),
               ),
-          ],
+              const SizedBox(height: 20),
+      
+              // Users Grid
+              Expanded(
+                child: _isLoadingUsers
+                    ? Center(
+                        child: Loader(
+                          color: Theme.of(context).colorScheme.onPrimary,
+                        ),
+                      )
+                    : _filteredUsers.isEmpty
+                    ? Center(
+                        child: Text(
+                          AppLocalizations.of(context)!.nousersfound,
+                          style: AppTextStyles.bodyText.copyWith(
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurface.withOpacity(0.5),
+                          ),
+                        ),
+                      )
+                    : GridView.builder(
+                        padding: const EdgeInsets.symmetric(horizontal: 15),
+                        gridDelegate:
+                            const SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: 4,
+                              mainAxisSpacing: 15,
+                              crossAxisSpacing: 10,
+                              childAspectRatio: 0.8,
+                            ),
+                        itemCount: _filteredUsers.length,
+                        itemBuilder: (context, index) {
+                          final item = _filteredUsers[index];
+                          final avatarUrl = _userAvatar(item);
+                          final name = _userName(item);
+                          final isGroup = item['is_group'] == true;
+      
+                          final isSelected = isGroup
+                              ? _selectedGroupIds.contains(item['id'])
+                              : _selectedUserIds.contains(item['id']);
+      
+                          return GestureDetector(
+                            onTap: () {
+                              setState(() {
+                                final id = item['id'];
+                                if (isGroup) {
+                                  if (isSelected) {
+                                    _selectedGroupIds.remove(id);
+                                  } else {
+                                    _selectedGroupIds.add(id);
+                                  }
+                                } else {
+                                  if (isSelected) {
+                                    _selectedUserIds.remove(id);
+                                  } else {
+                                    _selectedUserIds.add(id);
+                                  }
+                                }
+                              });
+                            },
+                            child: Column(
+                              children: [
+                                Stack(
+                                  children: [
+                                    if (isGroup &&
+                                        (avatarUrl == null ||
+                                            avatarUrl.trim().isEmpty))
+                                      _buildGroupAvatarStack(
+                                        members: item['members'] as List?,
+                                        size: 60,
+                                        isDarkMode: isDarkMode,
+                                        context: context,
+                                      )
+                                    else
+                                      Builder(
+                                        builder: (_) {
+                                          final imageBytes = avatarUrl != null
+                                              ? getProfileImage(avatarUrl)
+                                              : null;
+                                          final hasNetworkImage =
+                                              imageBytes == null &&
+                                              avatarUrl != null &&
+                                              avatarUrl.trim().isNotEmpty &&
+                                              avatarUrl.startsWith('http');
+                                          final initial = name.isNotEmpty
+                                              ? name[0].toUpperCase()
+                                              : '?';
+      
+                                          return Container(
+                                            height: 60,
+                                            width: 60,
+                                            decoration: BoxDecoration(
+                                              shape: BoxShape.circle,
+                                              color:
+                                                  (imageBytes == null &&
+                                                      !hasNetworkImage)
+                                                  ? (isDarkMode
+                                                        ? const Color(0xFF343434)
+                                                        : Theme.of(context)
+                                                              .colorScheme
+                                                              .primary
+                                                              .withOpacity(0.1))
+                                                  : null,
+                                              image: imageBytes != null
+                                                  ? DecorationImage(
+                                                      image: MemoryImage(
+                                                        imageBytes,
+                                                      ),
+                                                      fit: BoxFit.cover,
+                                                    )
+                                                  : (hasNetworkImage
+                                                        ? DecorationImage(
+                                                            image: NetworkImage(
+                                                              avatarUrl,
+                                                            ),
+                                                            fit: BoxFit.cover,
+                                                          )
+                                                        : null),
+                                              border: Border.all(
+                                                color: Theme.of(context)
+                                                    .colorScheme
+                                                    .onSurface
+                                                    .withOpacity(0.05),
+                                              ),
+                                            ),
+                                            child:
+                                                (imageBytes == null &&
+                                                    !hasNetworkImage)
+                                                ? Center(
+                                                    child: Text(
+                                                      initial,
+                                                      style: TextStyle(
+                                                        color: Theme.of(
+                                                          context,
+                                                        ).colorScheme.onPrimary,
+                                                        fontWeight:
+                                                            FontWeight.w500,
+                                                        fontSize: 24,
+                                                      ),
+                                                    ),
+                                                  )
+                                                : null,
+                                          );
+                                        },
+                                      ),
+                                    if (isGroup &&
+                                        !(avatarUrl == null ||
+                                            avatarUrl.trim().isEmpty))
+                                      Positioned(
+                                        bottom: 0,
+                                        left: 0,
+                                        child: Container(
+                                          decoration: BoxDecoration(
+                                            color: Colors.blueGrey,
+                                            shape: BoxShape.circle,
+                                            border: Border.all(
+                                              color: Theme.of(
+                                                context,
+                                              ).colorScheme.background,
+                                              width: 1.5,
+                                            ),
+                                          ),
+                                          padding: const EdgeInsets.all(4),
+                                          child: const Icon(
+                                            Icons.group,
+                                            color: Colors.white,
+                                            size: 10,
+                                          ),
+                                        ),
+                                      ),
+                                    if (isSelected)
+                                      Positioned(
+                                        bottom: 0,
+                                        right: 0,
+                                        child: Container(
+                                          decoration: BoxDecoration(
+                                            color: Theme.of(
+                                              context,
+                                            ).colorScheme.primary,
+                                            shape: BoxShape.circle,
+                                            border: Border.all(
+                                              color: Theme.of(
+                                                context,
+                                              ).colorScheme.background,
+                                              width: 1.5,
+                                            ),
+                                          ),
+                                          padding: const EdgeInsets.all(4),
+                                          child: const Icon(
+                                            Icons.check,
+                                            color: Colors.white,
+                                            size: 12,
+                                          ),
+                                        ),
+                                      ),
+                                  ],
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  name,
+                                  style: AppTextStyles.bodyText.copyWith(
+                                    fontSize: 12.5,
+                                    fontWeight: FontWeight.w400,
+                                    color: txt.title,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  textAlign: TextAlign.center,
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
+              ),
+      
+              // Divider
+              Divider(
+                color: Theme.of(context).colorScheme.outlineVariant,
+                height: 1,
+              ),
+      
+              if (_selectedUserIds.isEmpty && _selectedGroupIds.isEmpty)
+                // Share Options
+                Padding(
+                  padding: EdgeInsets.only(
+                    top: 5.h,
+                    bottom: 15.h,
+                    left: 20,
+                    right: 20,
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildShareOption(
+                        iconWidget: const FaIcon(
+                          FontAwesomeIcons.whatsapp,
+                          color: Color(0xFF25D366),
+                          size: 32,
+                        ),
+                        label: 'Whatsapp',
+                        onTap: _shareToWhatsApp,
+                      ),
+                      _buildShareOption(
+                        iconWidget: const FaIcon(
+                          FontAwesomeIcons.instagram,
+                          color: Color(0xFFE1306C),
+                          size: 32,
+                        ),
+                        label: 'Instagram',
+                        onTap: _shareToInstagram,
+                      ),
+                      _buildShareOption(
+                        iconWidget: Image.asset(
+                          'assets/images/ic_google.png',
+                          height: 30,
+                          width: 30,
+                        ),
+                        label: 'Gmail',
+                        onTap: _shareToGmail,
+                      ),
+                      _buildShareOption(
+                        iconWidget: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: isDarkMode
+                                ? const Color(0xFF343434)
+                                : Theme.of(
+                                    context,
+                                  ).colorScheme.primary.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Icon(
+                            FeatherIcons.link,
+                            color: Theme.of(context).colorScheme.onPrimary,
+                            size: 20,
+                          ),
+                        ),
+                        label: 'Copy link',
+                        onTap: _copyLink,
+                      ),
+                    ],
+                  ),
+                )
+              else
+                // Send Message Area
+                Padding(
+                  padding: EdgeInsets.only(
+                    top: 15.h,
+                    bottom: 30.h,
+                    left: 20,
+                    right: 20,
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      TextField(
+                        controller: _messageController,
+                        decoration: InputDecoration(
+                          hintText: 'Write a message.....',
+                          hintStyle: AppTextStyles.bodyText.copyWith(
+                            color: const Color(0XFF898989),
+                            fontSize: 14.5,
+                          ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(AppRadius.button),
+                            borderSide: BorderSide(
+                              color: isDarkMode
+                                  ? Theme.of(context).colorScheme.outline
+                                  : const Color(0XFFE5E5E5),
+                            ),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(AppRadius.button),
+                            borderSide: BorderSide(
+                              color: isDarkMode
+                                  ? Theme.of(context).colorScheme.outline
+                                  : const Color(0XFFE5E5E5),
+                            ),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(AppRadius.button),
+                            borderSide: BorderSide(
+                              color: Theme.of(context).colorScheme.primary,
+                            ),
+                          ),
+                          filled: true,
+                          fillColor: Colors.transparent,
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 15,
+                            vertical: 12,
+                          ),
+                        ),
+                        style: AppTextStyles.bodyText.copyWith(
+                          color: Theme.of(context).colorScheme.onSurface,
+                          fontSize: 14.5,
+                        ),
+                      ),
+                      const SizedBox(height: 15),
+                      SizedBox(
+                        width: double.infinity,
+                        height: 48,
+                        child: ElevatedButton(
+                          onPressed: _isSending ? null : _sendToSelectedUsers,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Theme.of(
+                              context,
+                            ).colorScheme.primary,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(
+                                AppRadius.button,
+                              ),
+                            ),
+                            elevation: 0,
+                          ),
+                          child: _isSending
+                              ? const SizedBox(
+                                  height: 20,
+                                  width: 20,
+                                  child: CircularProgressIndicator(
+                                    color: Colors.white,
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                              : Text(
+                                  'Send',
+                                  style: AppTextStyles.bodyText.copyWith(
+                                    color: Colors.white,
+                                    fontSize: 16,
+                                  ),
+                                ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+            ],
+          ),
         ),
       ),
     );

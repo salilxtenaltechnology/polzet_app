@@ -5,6 +5,8 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:polzet_app/core/themes/app_text_styles.dart';
 import 'package:polzet_app/api/api_config.dart';
 
+import 'package:polzet_app/gen/assets.gen.dart';
+
 import '../../widgets/base64/image_convert.dart';
 import '../themes/app_text_colors.dart';
 
@@ -120,19 +122,8 @@ class LikeUtils {
                           : NetworkImage(viewLikes[i].profileImage!.startsWith('http')
                               ? viewLikes[i].profileImage!
                               : '${ApiConfig.baseUrlImage}${viewLikes[i].profileImage!}') as ImageProvider)
-                      : null,
-                  child:
-                      viewLikes[i].profileImage == null ||
-                          viewLikes[i].profileImage!.isEmpty
-                      ? Text(
-                          viewLikes[i].firstLetter,
-                          style: TextStyle(
-                            fontSize: (avatarSize * 0.6).sp,
-                            fontWeight: FontWeight.w600,
-                            color: Theme.of(context).colorScheme.primary,
-                          ),
-                        )
-                      : null,
+                      : AssetImage(Assets.images.icAvatar.path),
+                  child: null,
                 ),
               ),
             ),

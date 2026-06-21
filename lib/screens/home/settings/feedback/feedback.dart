@@ -9,7 +9,7 @@ import 'package:polzet_app/core/constants/app_radius.dart';
 import 'package:polzet_app/widgets/show_toast.dart';
 import 'package:provider/provider.dart';
 
-import '../../../../api/services/api_service.dart';
+import '../../../../api/services/validator/api_service.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/themes/app_text_colors.dart';
 import '../../../../core/themes/app_text_styles.dart';

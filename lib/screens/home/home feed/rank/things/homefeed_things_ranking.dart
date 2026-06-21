@@ -11,7 +11,7 @@ import 'package:polzet_app/widgets/show_toast.dart';
 import 'package:showcaseview/showcaseview.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../../../../../../api/services/api_service.dart';
+import '../../../../../api/services/validator/api_service.dart';
 import '../../../../../../core/themes/app_text_styles.dart';
 import '../../../../../../models/posts/homefeed_posts_model.dart';
 import '../../../../../../widgets/appbar/common_appbar.dart';

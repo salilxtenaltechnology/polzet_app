@@ -12,7 +12,8 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
 
 import '../../../provider/connection_provider.dart';
-import '../../../api/services/api_service.dart';
+import '../../../api/api_config.dart';
+import '../../../api/services/validator/api_service.dart';
 import '../../../core/constants/app_radius.dart';
 import '../../../core/themes/app_text_colors.dart';
 import '../../../gen/assets.gen.dart';
@@ -21,7 +22,6 @@ import '../../../mixin/utility_mixins.dart';
 import '../../../provider/group_chat_provider.dart';
 import '../../../provider/private_chat_provider.dart';
 import '../../../provider/user_provider.dart';
-import '../../../widgets/base64/image_convert.dart';
 import '../../../core/themes/app_text_styles.dart';
 import '../../../widgets/loader.dart';
 import '../../../widgets/connection/no_internet_screen.dart';
@@ -44,6 +44,8 @@ class MessageListState extends State<MessageList>
   late final TabController _tabController;
   late final ScrollController _privateScrollController;
   late final ScrollController _groupScrollController;
+
+  static MessageListState? activeState;
 
   static List<Map<String, dynamic>> _staticChats = [];
   static bool _everFetched = false;
@@ -89,14 +91,17 @@ class MessageListState extends State<MessageList>
   }
 
   ImageProvider? _avatarProvider(String? avatarUrl) {
-    final url = resolveProfileImageUrl(avatarUrl);
-    if (url == null) return null;
+    final url = _resolveProfileUrl(avatarUrl);
+    if (url == null) {
+      return null;
+    }
     return NetworkImage(url);
   }
 
   @override
   void initState() {
     super.initState();
+    activeState = this;
 
     _tabController = TabController(length: 2, vsync: this);
     _privateScrollController = ScrollController()
@@ -132,6 +137,9 @@ class MessageListState extends State<MessageList>
 
   @override
   void dispose() {
+    if (activeState == this) {
+      activeState = null;
+    }
     _searchController.dispose();
     _tabController.dispose();
     _privateScrollController.dispose();
@@ -258,6 +266,19 @@ class MessageListState extends State<MessageList>
     await _fetchAndPushGlobally(resetPagination: true);
   }
 
+  static void selectTab(int index) {
+    activeState?._tabController.animateTo(index);
+  }
+
+  static void removeChatLocally(dynamic chatId) {
+    if (chatId == null) return;
+    final idStr = chatId.toString();
+    _staticChats.removeWhere((c) => c['id']?.toString() == idStr);
+    _saveChatsToCache(_staticChats);
+    _updateUnreadCount();
+    _globalStreamController.add(_staticChats);
+  }
+
   static Future<void> _fetchAndPushGlobally({
     bool resetPagination = false,
   }) async {
@@ -352,7 +373,9 @@ class MessageListState extends State<MessageList>
     for (int i = 0; i < a.length; i++) {
       if (a[i]['id'] != b[i]['id'] ||
           a[i]['unread_count'] != b[i]['unread_count'] ||
-          a[i]['updated_at'] != b[i]['updated_at']) {
+          a[i]['updated_at'] != b[i]['updated_at'] ||
+          a[i]['profile_url'] != b[i]['profile_url'] ||
+          a[i]['title'] != b[i]['title']) {
         return true;
       }
     }
@@ -416,31 +439,46 @@ class MessageListState extends State<MessageList>
     }
   }
 
+  String? _resolveProfileUrl(String? url) {
+    if (url == null || url.trim().isEmpty || url == 'null') return null;
+    if (!url.startsWith('http') && !url.startsWith('data:image')) {
+      final separator = url.startsWith('/') ? '' : '/';
+      return '${ApiConfig.baseUrlImage}$separator$url';
+    }
+    return url;
+  }
+
   String? _avatarUrl(Map<String, dynamic> chat) {
     final chatType = chat['chat_type']?.toString();
+    final String? avatar;
     if (chatType == 'group') {
-      final profileUrl = chat['profile_url']?.toString();
-      return (profileUrl != null && profileUrl.trim().isNotEmpty)
-          ? profileUrl
-          : null;
-    }
-    final userProvider = Provider.of<UserProvider>(context, listen: false);
-    final currentUserId = userProvider.userId;
-    final currentUsername = userProvider.username;
-    final members = chat['members'] as List?;
-    if (members == null || members.isEmpty) return null;
-    for (final m in members) {
-      final user = (m as Map<String, dynamic>)['user'] as Map<String, dynamic>?;
-      final username = user?['username']?.toString();
-      if (user?['id']?.toString() != currentUserId &&
-          (currentUsername == null || username != currentUsername)) {
-        return user?['profile_image']?.toString();
+      avatar = chat['profile_url']?.toString();
+    } else {
+      final userProvider = Provider.of<UserProvider>(context, listen: false);
+      final currentUserId = userProvider.userId;
+      final currentUsername = userProvider.username;
+      final members = chat['members'] as List?;
+      if (members == null || members.isEmpty) {
+        avatar = null;
+      } else {
+        String? foundAvatar;
+        for (final m in members) {
+          final user =
+              (m as Map<String, dynamic>)['user'] as Map<String, dynamic>?;
+          final username = user?['username']?.toString();
+          if (user?['id']?.toString() != currentUserId &&
+              (currentUsername == null || username != currentUsername)) {
+            foundAvatar = user?['profile_image']?.toString();
+            break;
+          }
+        }
+        avatar =
+            foundAvatar ??
+            (members.first as Map<String, dynamic>)['user']?['profile_image']
+                ?.toString();
       }
     }
-    final user =
-        (members.first as Map<String, dynamic>)['user']
-            as Map<String, dynamic>?;
-    return user?['profile_image']?.toString();
+    return _resolveProfileUrl(avatar);
   }
 
   bool _isOtherMemberOnline(Map<String, dynamic> chat) {
@@ -716,15 +754,37 @@ class MessageListState extends State<MessageList>
           return ListTile(
             onTap: () => _openChat(chat, title, avatarUrl),
             contentPadding: EdgeInsets.symmetric(horizontal: 10.w),
-            leading:
-                chat['chat_type'] == 'group' &&
-                    (avatarUrl == null || avatarUrl.trim().isEmpty)
-                ? _buildGroupAvatarStack(
-                    members: chat['members'] as List?,
-                    size: 55,
-                    isDarkMode: isDarkMode,
-                    context: context,
-                  )
+            leading: chat['chat_type'] == 'group'
+                ? (avatarUrl == null || avatarUrl.trim().isEmpty
+                      ? _buildGroupAvatarStack(
+                          members: chat['members'] as List?,
+                          size: 55,
+                          isDarkMode: isDarkMode,
+                          context: context,
+                        )
+                      : CircleAvatar(
+                          radius: 19.r,
+                          backgroundColor: isDarkMode
+                              ? const Color(0xFF252525)
+                              : Theme.of(
+                                  context,
+                                ).primaryColor.withOpacity(0.08),
+                          backgroundImage: avatarProvider,
+                          child: avatarProvider == null
+                              ? Text(
+                                  title.isNotEmpty
+                                      ? title[0].toUpperCase()
+                                      : '?',
+                                  style: AppTextStyles.subText.copyWith(
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onPrimary.withOpacity(0.8),
+                                    fontWeight: FontWeight.w500,
+                                    fontSize: 24,
+                                  ),
+                                )
+                              : null,
+                        ))
                 : Stack(
                     children: [
                       CircleAvatar(
@@ -1134,7 +1194,10 @@ class MessageListState extends State<MessageList>
     required BuildContext context,
     bool hasBorder = false,
   }) {
-    final avatarProvider = _avatarProvider(profileUrl);
+    final ImageProvider? avatarProvider =
+        (profileUrl == null || profileUrl.trim().isEmpty)
+        ? AssetImage(Assets.images.icAvatar.path)
+        : _avatarProvider(profileUrl);
     return Container(
       width: size,
       height: size,

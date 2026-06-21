@@ -9,7 +9,7 @@ import 'package:provider/provider.dart';
 import 'dart:convert';
 
 
-import '../../../api/services/api_service.dart';
+import '../../../api/services/validator/api_service.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_radius.dart';
 import '../../../core/themes/app_text_colors.dart';

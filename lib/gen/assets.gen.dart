@@ -73,6 +73,14 @@ class $AssetsImagesGen {
   /// File path: assets/images/bg.png
   AssetGenImage get bg => const AssetGenImage('assets/images/bg.png');
 
+  /// File path: assets/images/bg_chat_dark.png
+  AssetGenImage get bgChatDark =>
+      const AssetGenImage('assets/images/bg_chat_dark.png');
+
+  /// File path: assets/images/bg_chat_light.png
+  AssetGenImage get bgChatLight =>
+      const AssetGenImage('assets/images/bg_chat_light.png');
+
   /// File path: assets/images/bg_spalsh.png
   AssetGenImage get bgSpalsh =>
       const AssetGenImage('assets/images/bg_spalsh.png');
@@ -121,6 +129,10 @@ class $AssetsImagesGen {
   /// File path: assets/images/ic_avatar.png
   AssetGenImage get icAvatar =>
       const AssetGenImage('assets/images/ic_avatar.png');
+
+  /// File path: assets/images/ic_avatar_square.png
+  AssetGenImage get icAvatarSquare =>
+      const AssetGenImage('assets/images/ic_avatar_square.png');
 
   /// File path: assets/images/ic_block_account.png
   AssetGenImage get icBlockAccount =>
@@ -308,6 +320,8 @@ class $AssetsImagesGen {
     addGroup,
     addImage,
     bg,
+    bgChatDark,
+    bgChatLight,
     bgSpalsh,
     celebration,
     comments,
@@ -321,6 +335,7 @@ class $AssetsImagesGen {
     icAddUser,
     icAppForeground,
     icAvatar,
+    icAvatarSquare,
     icBlockAccount,
     icDarkmode,
     icDelete,

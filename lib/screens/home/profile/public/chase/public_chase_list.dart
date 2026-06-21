@@ -6,7 +6,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
-import '../../../../../api/services/api_service.dart';
+import '../../../../../api/services/validator/api_service.dart';
 import '../../../../../core/constants/app_radius.dart';
 import '../../../../../core/themes/app_text_colors.dart';
 import '../../../../../core/themes/app_text_styles.dart';

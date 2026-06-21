@@ -10,7 +10,7 @@ import 'package:polzet_app/screens/home/settings/privacy/privacy_policy.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../../api/services/api_service.dart';
+import '../../api/services/validator/api_service.dart';
 import '../../core/constants/app_colors.dart';
 import '../../provider/user_provider.dart';
 import '../flow/flow_screens.dart';

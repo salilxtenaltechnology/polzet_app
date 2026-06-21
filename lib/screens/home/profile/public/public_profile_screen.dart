@@ -21,6 +21,8 @@ import '../../../../data/token/shared_preferences.dart';
 import '../../../../widgets/button/back_button.dart';
 import '../../../../widgets/loader.dart';
 import '../../../../widgets/shimmer/profile_simmer.dart';
+import '../../../../widgets/connection/no_internet_screen.dart';
+import '../../../../provider/connection_provider.dart';
 import '../../../../widgets/tabbar/indicatore_animation.dart';
 import '../../../../widgets/base64/image_convert.dart';
 import '../../home feed/rank/result/image/image_result_screen.dart';
@@ -31,7 +33,7 @@ import '../rank/things/public_user_things_ranking.dart';
 import 'chase/public_chase_list.dart';
 import '../widgets/profile_image_preview.dart';
 
-import '../../../../api/services/api_service.dart';
+import '../../../../api/services/validator/api_service.dart';
 import '../../../../models/public/public_profile_model.dart';
 import '../../../../core/constants/app_icons.dart';
 import '../../../../api/api_config.dart';
@@ -497,6 +499,36 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
           toolbarHeight: AppConstants.toolbarHeight.h,
         ),
         body: const ProfileShimmer(),
+      );
+    }
+
+    if (publicProfileProvider.error != null) {
+      final isOffline = Provider.of<ConnectivityProvider>(context, listen: false).isOffline;
+      return Scaffold(
+        backgroundColor: Theme.of(context).colorScheme.background,
+        appBar: AppBar(
+          backgroundColor: Theme.of(context).colorScheme.background,
+          surfaceTintColor: Theme.of(context).colorScheme.background,
+          leadingWidth: 48.w,
+          elevation: 0,
+          automaticallyImplyLeading: true,
+          leading: Padding(
+            padding: EdgeInsets.only(left: 8.w),
+            child: const PrimaryBackButton(),
+          ),
+          toolbarHeight: AppConstants.toolbarHeight.h,
+        ),
+        body: ConnectionErrorScreen(
+          type: publicProfileProvider.errorType == ProfileErrorType.noInternet || isOffline
+              ? ConnectionErrorType.noInternet
+              : publicProfileProvider.errorType == ProfileErrorType.serverError
+                  ? ConnectionErrorType.serverError
+                  : ConnectionErrorType.unknown,
+          errorMessage: publicProfileProvider.error,
+          onRetry: () {
+            _handleRefresh();
+          },
+        ),
       );
     }
 

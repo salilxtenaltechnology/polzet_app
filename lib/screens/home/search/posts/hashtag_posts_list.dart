@@ -7,7 +7,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
 import '../../../../api/api_config.dart';
-import '../../../../api/services/api_service.dart';
+import '../../../../api/services/validator/api_service.dart';
 import '../../../../api/services/like/like_service.dart';
 import '../../../../api/services/share/share_service.dart';
 import '../../../../core/constants/app_icons.dart';

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../models/comment/comment.dart';
 import '../../../widgets/show_toast.dart';
-import '../api_service.dart';
+import '../validator/api_service.dart';
 
 class CommentsService {
   // Singleton instance

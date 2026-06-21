@@ -5,7 +5,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 
-import '../../../api/services/api_service.dart';
+import '../../api/services/validator/api_service.dart';
 import '../../../data/token/shared_preferences.dart';
 import '../home/home_imports.dart';
 import 'first_step_screen.dart';

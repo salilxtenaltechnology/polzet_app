@@ -9,7 +9,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:polzet_app/widgets/show_toast.dart';
 import 'package:provider/provider.dart';
 
-import '../../../../api/services/api_service.dart';
+import '../../../api/services/validator/api_service.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../languages/l10n/generated/app_localizations.dart';
 import '../../../../provider/user_provider.dart';

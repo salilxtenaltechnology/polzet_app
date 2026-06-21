@@ -140,7 +140,9 @@ class DashboardState extends State<Dashboard> with UtilityMixin {
           final isValid =
               DateTime.now().difference(cacheTime) < _cacheValidDuration;
           if (!isValid) {
-            debugPrint('Cache expired, but loading anyway to show UI instantly');
+            debugPrint(
+              'Cache expired, but loading anyway to show UI instantly',
+            );
           }
         }
 
@@ -343,12 +345,7 @@ class DashboardState extends State<Dashboard> with UtilityMixin {
     }
 
     if (posts.isEmpty && !isLoading) {
-      return ListView(
-        children: [
-          SizedBox(height: 200.h),
-          const Center(child: Text('No posts available')),
-        ],
-      );
+      return const Center(child: Text('No posts available'));
     }
 
     return RefreshIndicator(
@@ -413,21 +410,30 @@ class DashboardState extends State<Dashboard> with UtilityMixin {
                             margin: EdgeInsets.only(bottom: 10.h),
                             padding: const EdgeInsets.all(12).w,
                             decoration: BoxDecoration(
-                              color: Theme.of(context).colorScheme.primaryContainer,
-                              borderRadius: BorderRadius.circular(AppRadius.card),
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.primaryContainer,
+                              borderRadius: BorderRadius.circular(
+                                AppRadius.card,
+                              ),
                               border: Border.all(
                                 color: Theme.of(context).colorScheme.outline,
                                 width: 1,
                               ),
                               boxShadow: const [
-                                BoxShadow(color: Color(0x06000000), blurRadius: 2),
+                                BoxShadow(
+                                  color: Color(0x06000000),
+                                  blurRadius: 2,
+                                ),
                               ],
                             ),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  AppLocalizations.of(context)!.improveyourprofile,
+                                  AppLocalizations.of(
+                                    context,
+                                  )!.improveyourprofile,
                                   style: AppTextStyles.subText.copyWith(
                                     color: txt.title,
                                     fontSize: 15,
@@ -438,27 +444,34 @@ class DashboardState extends State<Dashboard> with UtilityMixin {
                                 Text(
                                   '$completion%',
                                   style: AppTextStyles.sectionHeading.copyWith(
-                                    color: Theme.of(context).colorScheme.primary,
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.primary,
                                     fontSize: 18,
                                     fontWeight: FontWeight.w600,
                                   ),
                                 ),
                                 SizedBox(height: 8.h),
                                 ClipRRect(
-                                  borderRadius: BorderRadius.circular(AppRadius.card),
+                                  borderRadius: BorderRadius.circular(
+                                    AppRadius.card,
+                                  ),
                                   child: LinearProgressIndicator(
                                     value: completion / 100,
                                     minHeight: 4.h,
                                     backgroundColor: Colors.grey.shade300,
-                                    valueColor: const AlwaysStoppedAnimation<Color>(
-                                      AppColors.primaryColor,
-                                    ),
+                                    valueColor:
+                                        const AlwaysStoppedAnimation<Color>(
+                                          AppColors.primaryColor,
+                                        ),
                                   ),
                                 ),
                                 SizedBox(height: 14.h),
                                 GestureDetector(
-                                  onTap: () =>
-                                      navigationPush(context, const EditProfile()),
+                                  onTap: () => navigationPush(
+                                    context,
+                                    const EditProfile(),
+                                  ),
                                   child: Container(
                                     width: double.infinity,
                                     height: 40,

@@ -6,7 +6,7 @@ import 'package:polzet_app/core/constants/feather_icons_compat.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
-import '../../../api/services/api_service.dart';
+import '../../api/services/validator/api_service.dart';
 import '../../../api/services/image/image_picker_service.dart';
 import '../../../data/token/shared_preferences.dart';
 import '../../../widgets/show_toast.dart';

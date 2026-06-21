@@ -2,7 +2,7 @@
 import 'package:polzet_app/core/constants/feather_icons_compat.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:polzet_app/api/services/api_service.dart';
+import 'package:polzet_app/api/services/validator/api_service.dart';
 import 'package:provider/provider.dart';
 
 import '../../../core/constants/app_radius.dart';

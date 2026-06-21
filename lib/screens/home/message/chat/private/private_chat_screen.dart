@@ -5,6 +5,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:intl/intl.dart';
+import 'package:polzet_app/gen/assets.gen.dart';
 import 'package:polzet_app/widgets/base64/image_convert.dart';
 import 'package:provider/provider.dart';
 
@@ -12,7 +13,7 @@ import '../../../../../core/constants/app_radius.dart';
 import '../../../../../core/themes/app_text_colors.dart';
 import '../../../../../core/themes/app_text_styles.dart';
 import '../../../../../api/api_config.dart';
-import '../../../../../api/services/api_service.dart';
+import '../../../../../api/services/validator/api_service.dart';
 import '../../../../../languages/l10n/generated/app_localizations.dart';
 import '../../../../../mixin/utility_mixins.dart';
 import '../../../../../models/message/message_model.dart';
@@ -319,7 +320,8 @@ class _PrivateChatScreenState extends State<PrivateChatScreen>
     final String? avatarUrlRaw = user['profile_image']?.toString();
     String? avatarUrl;
     if (avatarUrlRaw != null && avatarUrlRaw.isNotEmpty) {
-      if (avatarUrlRaw.startsWith('http') || avatarUrlRaw.startsWith('data:image')) {
+      if (avatarUrlRaw.startsWith('http') ||
+          avatarUrlRaw.startsWith('data:image')) {
         avatarUrl = avatarUrlRaw;
       } else {
         if (avatarUrlRaw.startsWith('/')) {
@@ -474,7 +476,8 @@ class _PrivateChatScreenState extends State<PrivateChatScreen>
               padding: EdgeInsets.fromLTRB(10.w, 10.h, 10.w, 0),
               child: GestureDetector(
                 onTap: () {
-                  final userId = user['userid'] ?? user['id'] ?? user['user_id'];
+                  final userId =
+                      user['userid'] ?? user['id'] ?? user['user_id'];
                   if (userId != null) {
                     navigationPush(
                       context,
@@ -486,7 +489,9 @@ class _PrivateChatScreenState extends State<PrivateChatScreen>
                   children: [
                     CircleAvatar(
                       radius: 19,
-                      backgroundColor: Theme.of(context).colorScheme.onPrimary.withOpacity(0.1),
+                      backgroundColor: Theme.of(
+                        context,
+                      ).colorScheme.onPrimary.withOpacity(0.1),
                       backgroundImage: avatarUrl != null
                           ? NetworkImage(avatarUrl)
                           : null,
@@ -505,51 +510,51 @@ class _PrivateChatScreenState extends State<PrivateChatScreen>
                             )
                           : null,
                     ),
-                  SizedBox(width: 8.w),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          name.isNotEmpty ? name : username,
-                          style: AppTextStyles.sectionHeading.copyWith(
-                            color: txt.title,
-                            fontSize: 14,
+                    SizedBox(width: 8.w),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            name.isNotEmpty ? name : username,
+                            style: AppTextStyles.sectionHeading.copyWith(
+                              color: txt.title,
+                              fontSize: 14,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        Row(
-                          children: [
-                            Flexible(
-                              child: Text(
-                                '@$username',
-                                style: AppTextStyles.bodyText.copyWith(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w500,
-                                  color: txt.body,
+                          Row(
+                            children: [
+                              Flexible(
+                                child: Text(
+                                  '@$username',
+                                  style: AppTextStyles.bodyText.copyWith(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w500,
+                                    color: txt.body,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
                                 ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
                               ),
-                            ),
-                            Text(
-                              ' • $timeAgo',
-                              style: AppTextStyles.subText.copyWith(
-                                color: txt.muted,
-                                fontWeight: FontWeight.w400,
-                                fontSize: 11.5,
+                              Text(
+                                ' • $timeAgo',
+                                style: AppTextStyles.subText.copyWith(
+                                  color: txt.muted,
+                                  fontWeight: FontWeight.w400,
+                                  fontSize: 11.5,
+                                ),
                               ),
-                            ),
-                          ],
-                        ),
-                      ],
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
-          ),
             Divider(color: Theme.of(context).colorScheme.outlineVariant),
 
             if (description.isNotEmpty && pollTextOptions.isEmpty) ...[
@@ -574,6 +579,101 @@ class _PrivateChatScreenState extends State<PrivateChatScreen>
             ] else if (pollTextOptions.isNotEmpty) ...[
               _buildTextPoll(context, pollQuestion, pollTextOptions),
             ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSharedProfileCard(BuildContext context, ChatMessage message) {
+    final txt = AppTextColors.of(context);
+    final profile = message.sharedProfile!;
+    final userId = profile['user_id']?.toString() ?? '';
+    final firstName = profile['first_name']?.toString() ?? '';
+    final lastName = profile['last_name']?.toString() ?? '';
+    final name = '$firstName $lastName'.trim();
+    final username = profile['username']?.toString() ?? '';
+    final profileUrlRaw = profile['profile_url']?.toString();
+    final avatarUrl = resolveProfileImageUrl(profileUrlRaw);
+
+    final displayName = name.isNotEmpty ? name : username;
+
+    return GestureDetector(
+      onTap: () {
+        if (userId.isNotEmpty) {
+          navigationPush(context, PublicProfileScreen(userId: userId));
+        }
+      },
+      child: Container(
+        margin: EdgeInsets.only(
+          top: 4.h,
+          bottom: 12.h,
+          left: message.isSentByMe ? 120.w : 12.w,
+          right: message.isSentByMe ? 12.w : 120.w,
+        ),
+        padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.primaryContainer,
+          borderRadius: BorderRadius.circular(AppRadius.card),
+          border: Border.all(
+            color: Theme.of(context).colorScheme.outline,
+            width: 1,
+          ),
+          boxShadow: const [BoxShadow(color: Color(0x04000000), blurRadius: 2)],
+        ),
+        child: Row(
+          children: [
+            CircleAvatar(
+              radius: 21,
+              backgroundColor: Theme.of(
+                context,
+              ).colorScheme.onPrimary.withOpacity(0.1),
+              backgroundImage: avatarUrl != null
+                  ? NetworkImage(avatarUrl)
+                  : null,
+              child: avatarUrl == null
+                  ? Text(
+                      displayName.isNotEmpty
+                          ? displayName[0].toUpperCase()
+                          : 'P',
+                      style: TextStyle(
+                        fontSize: 18,
+                        color: Theme.of(context).colorScheme.onPrimary,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    )
+                  : null,
+            ),
+            SizedBox(width: 10.w),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    displayName,
+                    style: AppTextStyles.sectionHeading.copyWith(
+                      color: Theme.of(context).colorScheme.onBackground,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  SizedBox(height: 2.h),
+                  Text(
+                    '@$username',
+                    style: AppTextStyles.bodyText.copyWith(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w400,
+                      color: txt.muted,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            ),
           ],
         ),
       ),
@@ -869,6 +969,18 @@ class _PrivateChatScreenState extends State<PrivateChatScreen>
       );
     }
 
+    if (message.sharedProfile != null) {
+      return Column(
+        crossAxisAlignment: message.isSentByMe
+            ? CrossAxisAlignment.end
+            : CrossAxisAlignment.start,
+        children: [
+          _buildSharedProfileCard(context, message),
+          if (message.text.isNotEmpty) bubble,
+        ],
+      );
+    }
+
     return bubble;
   }
 
@@ -877,11 +989,14 @@ class _PrivateChatScreenState extends State<PrivateChatScreen>
     if (!isLoading) return const SizedBox.shrink();
     return Padding(
       padding: EdgeInsets.symmetric(vertical: 8.h),
-      child:  Center(
+      child: Center(
         child: SizedBox(
           width: 20,
           height: 20,
-          child: CircularProgressIndicator(strokeWidth: 2, color: Theme.of(context).colorScheme.onPrimary.withOpacity(0.8))
+          child: CircularProgressIndicator(
+            strokeWidth: 2,
+            color: Theme.of(context).colorScheme.onPrimary.withOpacity(0.8),
+          ),
         ),
       ),
     );
@@ -1086,7 +1201,9 @@ class _PrivateChatScreenState extends State<PrivateChatScreen>
                                     Text(
                                       p.isMemberOnline
                                           ? AppLocalizations.of(context)!.online
-                                          : AppLocalizations.of(context)!.offline,
+                                          : AppLocalizations.of(
+                                              context,
+                                            )!.offline,
                                       style: AppTextStyles.subText.copyWith(
                                         color: p.isMemberOnline
                                             ? Colors.green
@@ -1108,208 +1225,289 @@ class _PrivateChatScreenState extends State<PrivateChatScreen>
           backgroundColor: Theme.of(context).colorScheme.background,
           surfaceTintColor: Theme.of(context).colorScheme.background,
         ),
-        body: _isLoadingChatId
-            ? Center(
-                child: CircularProgressIndicator(
-                  color: Theme.of(context).colorScheme.primary,
-                ),
-              )
-            : Column(
-                children: [
-            // ── Connection banner ──────────────────────────────────────────────
-            // _buildConnectionBanner(provider),
-      
-            // ── History error banner ───────────────────────────────────────────
-            if (provider.historyError != null)
-              Container(
-                width: double.infinity,
-                padding: EdgeInsets.symmetric(vertical: 6.h, horizontal: 12.w),
-                color: Theme.of(context).colorScheme.error,
-                child: Row(
+        body: Container(
+          decoration: BoxDecoration(
+            image: DecorationImage(
+              image: isDarkMode
+                  ? AssetImage(Assets.images.bgChatDark.path)
+                  : AssetImage(Assets.images.bgChatLight.path),
+              fit: BoxFit.cover,
+            ),
+          ),
+          child: _isLoadingChatId
+              ? Center(
+                  child: CircularProgressIndicator(
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                )
+              : Column(
                   children: [
-                    Icon(
-                      Icons.error_outline,
-                      size: 14.sp,
-                      color: Theme.of(context).colorScheme.error,
-                    ),
-                    SizedBox(width: 6.w),
-                    Expanded(
-                      child: Text(
-                        'Failed to load messages. Tap to retry.',
-                        style: TextStyle(
-                          fontSize: 10.5.sp,
-                          color: Theme.of(context).colorScheme.error,
+                    // ── Connection banner ──────────────────────────────────────────────
+                    // _buildConnectionBanner(provider),
+
+                    // ── History error banner ───────────────────────────────────────────
+                    if (provider.historyError != null)
+                      Container(
+                        width: double.infinity,
+                        padding: EdgeInsets.symmetric(
+                          vertical: 6.h,
+                          horizontal: 12.w,
+                        ),
+                        color: Theme.of(context).colorScheme.error,
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.error_outline,
+                              size: 14.sp,
+                              color: Theme.of(context).colorScheme.error,
+                            ),
+                            SizedBox(width: 6.w),
+                            Expanded(
+                              child: Text(
+                                'Failed to load messages. Tap to retry.',
+                                style: TextStyle(
+                                  fontSize: 10.5.sp,
+                                  color: Theme.of(context).colorScheme.error,
+                                ),
+                              ),
+                            ),
+                            GestureDetector(
+                              onTap: () => provider.fetchMessageHistory(),
+                              child: Icon(
+                                Icons.refresh,
+                                size: 16.sp,
+                                color: Theme.of(context).colorScheme.error,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                    ),
-                    GestureDetector(
-                      onTap: () => provider.fetchMessageHistory(),
-                      child: Icon(
-                        Icons.refresh,
-                        size: 16.sp,
-                        color: Theme.of(context).colorScheme.error,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-      
-            // ── Message list ───────────────────────────────────────────────────
-            Expanded(
-              child: Stack(
-                children: [
-                  StreamBuilder<List<ChatMessage>>(
-                    stream: _messagesStream,
-                    initialData: context.read<PrivateChatProvider>().messages,
-                    builder: (context, snapshot) {
-                      final messages = snapshot.data ?? [];
-                      final isLoading = context
-                          .read<PrivateChatProvider>()
-                          .isLoadingHistory;
-      
-                      // Auto-scroll logic
-                      if (messages.length > _previousMessageCount) {
-                        if (_previousMessageCount == 0) {
-                          // First load!
-                          WidgetsBinding.instance.addPostFrameCallback((_) {
-                            if (_isAtBottom ||
-                                (messages.isNotEmpty &&
-                                    messages.last.isSentByMe)) {
-                              _scrollToBottom();
-                              context.read<PrivateChatProvider>().markAsRead();
-                            }
-                          });
-                        } else {
-                          // Find how many new messages were newly added to the end (new incoming messages)
-                          int newAppendedCount = 0;
-                          for (int i = messages.length - 1; i >= 0; i--) {
-                            final m = messages[i];
-                            if (_previousLastMessage != null &&
-                                m.text == _previousLastMessage!.text &&
-                                m.created_at ==
-                                    _previousLastMessage!.created_at) {
-                              break; // found the old boundary
-                            }
-                            newAppendedCount++;
-                          }
-      
-                          // If messages were added at the end, trigger badge / scroll
-                          // Note: If newAppendedCount == 0, it means it was an older history fetch at the top, so we ignore it completely!
-                          if (newAppendedCount > 0 &&
-                              newAppendedCount < messages.length) {
-                            final lastIsMe = messages.last.isSentByMe;
-                            WidgetsBinding.instance.addPostFrameCallback((_) {
-                              if (_isAtBottom || lastIsMe) {
-                                _scrollToBottom();
-                                context.read<PrivateChatProvider>().markAsRead();
-                              } else {
-                                setState(() => _unreadCount += newAppendedCount);
-                              }
-                            });
-                          }
-                        }
-                      }
-      
-                      _previousMessageCount = messages.length;
-                      _previousLastMessage = messages.isNotEmpty
-                          ? messages.last
-                          : null;
-      
-                      WidgetsBinding.instance.addPostFrameCallback((_) {
-                        if (!mounted) return;
-                        _updateFloatingDate();
-      
-                        // Auto-fetch more history if the layout is underfilled (e.g., large screen or few messages)
-                        if (_scrollController.hasClients) {
-                          final maxScroll =
-                              _scrollController.position.maxScrollExtent;
-                          if (maxScroll <= 50 &&
-                              !context
-                                  .read<PrivateChatProvider>()
-                                  .isLoadingHistory) {
-                            context
+
+                    // ── Message list ───────────────────────────────────────────────────
+                    Expanded(
+                      child: Stack(
+                        children: [
+                          StreamBuilder<List<ChatMessage>>(
+                            stream: _messagesStream,
+                            initialData: context
                                 .read<PrivateChatProvider>()
-                                .fetchMoreHistory();
-                          }
-                        }
-                      });
-      
-                      if (messages.isEmpty && !isLoading) {
-                        return Center(
-                          child: Text(
-                            AppLocalizations.of(
-                                  context,
-                                )?.nomessagesyetstarttheconversation ??
-                                'No messages yet...',
-                            textAlign: TextAlign.center,
-                            style: AppTextStyles.bodyText.copyWith(
-                              fontSize: 12.5,
-                              color: txt.muted,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        );
-                      }
-      
-                      final reversedMessages = messages.reversed.toList();
-                      return ListView.builder(
-                        reverse: true,
-                        controller: _scrollController,
-                        padding: EdgeInsets.symmetric(vertical: 8.h),
-                        itemCount: reversedMessages.length + 1,
-                        itemBuilder: (ctx, index) {
-                          if (index == reversedMessages.length) {
-                            return _buildHistoryLoader(isLoading);
-                          }
-      
-                          final message = reversedMessages[index];
-                          bool showHeader = false;
-                          bool isAbsoluteOldestMessage = false;
-      
-                          if (index == reversedMessages.length - 1) {
-                            showHeader = true;
-                            isAbsoluteOldestMessage = true;
-                          } else {
-                            final previousMessage = reversedMessages[index + 1];
-                            showHeader = !_isSameDay(
-                              message.created_at,
-                              previousMessage.created_at,
-                            );
-                          }
-      
-                          if (showHeader) {
-                            final dateStr = _getDateSeparator(message.created_at);
-                            if (!_headerKeys.containsKey(dateStr)) {
-                              _headerKeys[dateStr] = GlobalKey(
-                                debugLabel: dateStr,
-                              );
-                            }
-      
-                            bool hideInlineDate =
-                                isAbsoluteOldestMessage &&
-                                context
-                                    .read<PrivateChatProvider>()
-                                    .hasMoreHistory;
-      
-                            if (hideInlineDate) {
-                              return Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  SizedBox(
-                                    key: _headerKeys[dateStr],
-                                    height: 0,
-                                    width: 0,
+                                .messages,
+                            builder: (context, snapshot) {
+                              final messages = snapshot.data ?? [];
+                              final isLoading = context
+                                  .read<PrivateChatProvider>()
+                                  .isLoadingHistory;
+
+                              // Auto-scroll logic
+                              if (messages.length > _previousMessageCount) {
+                                if (_previousMessageCount == 0) {
+                                  // First load!
+                                  WidgetsBinding.instance.addPostFrameCallback((
+                                    _,
+                                  ) {
+                                    if (_isAtBottom ||
+                                        (messages.isNotEmpty &&
+                                            messages.last.isSentByMe)) {
+                                      _scrollToBottom();
+                                      context
+                                          .read<PrivateChatProvider>()
+                                          .markAsRead();
+                                    }
+                                  });
+                                } else {
+                                  // Find how many new messages were newly added to the end (new incoming messages)
+                                  int newAppendedCount = 0;
+                                  for (
+                                    int i = messages.length - 1;
+                                    i >= 0;
+                                    i--
+                                  ) {
+                                    final m = messages[i];
+                                    if (_previousLastMessage != null &&
+                                        m.text == _previousLastMessage!.text &&
+                                        m.created_at ==
+                                            _previousLastMessage!.created_at) {
+                                      break; // found the old boundary
+                                    }
+                                    newAppendedCount++;
+                                  }
+
+                                  // If messages were added at the end, trigger badge / scroll
+                                  // Note: If newAppendedCount == 0, it means it was an older history fetch at the top, so we ignore it completely!
+                                  if (newAppendedCount > 0 &&
+                                      newAppendedCount < messages.length) {
+                                    final lastIsMe = messages.last.isSentByMe;
+                                    WidgetsBinding.instance
+                                        .addPostFrameCallback((_) {
+                                          if (_isAtBottom || lastIsMe) {
+                                            _scrollToBottom();
+                                            context
+                                                .read<PrivateChatProvider>()
+                                                .markAsRead();
+                                          } else {
+                                            setState(
+                                              () => _unreadCount +=
+                                                  newAppendedCount,
+                                            );
+                                          }
+                                        });
+                                  }
+                                }
+                              }
+
+                              _previousMessageCount = messages.length;
+                              _previousLastMessage = messages.isNotEmpty
+                                  ? messages.last
+                                  : null;
+
+                              WidgetsBinding.instance.addPostFrameCallback((_) {
+                                if (!mounted) return;
+                                _updateFloatingDate();
+
+                                // Auto-fetch more history if the layout is underfilled (e.g., large screen or few messages)
+                                if (_scrollController.hasClients) {
+                                  final maxScroll = _scrollController
+                                      .position
+                                      .maxScrollExtent;
+                                  if (maxScroll <= 50 &&
+                                      !context
+                                          .read<PrivateChatProvider>()
+                                          .isLoadingHistory) {
+                                    context
+                                        .read<PrivateChatProvider>()
+                                        .fetchMoreHistory();
+                                  }
+                                }
+                              });
+
+                              if (messages.isEmpty && !isLoading) {
+                                return Center(
+                                  child: Text(
+                                    AppLocalizations.of(
+                                          context,
+                                        )?.nomessagesyetstarttheconversation ??
+                                        'No messages yet...',
+                                    textAlign: TextAlign.center,
+                                    style: AppTextStyles.bodyText.copyWith(
+                                      fontSize: 12.5,
+                                      color: txt.muted,
+                                      fontWeight: FontWeight.w500,
+                                    ),
                                   ),
-                                  _buildMessageBubble(ctx, message),
-                                ],
+                                );
+                              }
+
+                              final reversedMessages = messages.reversed
+                                  .toList();
+                              return ListView.builder(
+                                reverse: true,
+                                controller: _scrollController,
+                                padding: EdgeInsets.symmetric(vertical: 8.h),
+                                itemCount: reversedMessages.length + 1,
+                                itemBuilder: (ctx, index) {
+                                  if (index == reversedMessages.length) {
+                                    return _buildHistoryLoader(isLoading);
+                                  }
+
+                                  final message = reversedMessages[index];
+                                  bool showHeader = false;
+                                  bool isAbsoluteOldestMessage = false;
+
+                                  if (index == reversedMessages.length - 1) {
+                                    showHeader = true;
+                                    isAbsoluteOldestMessage = true;
+                                  } else {
+                                    final previousMessage =
+                                        reversedMessages[index + 1];
+                                    showHeader = !_isSameDay(
+                                      message.created_at,
+                                      previousMessage.created_at,
+                                    );
+                                  }
+
+                                  if (showHeader) {
+                                    final dateStr = _getDateSeparator(
+                                      message.created_at,
+                                    );
+                                    if (!_headerKeys.containsKey(dateStr)) {
+                                      _headerKeys[dateStr] = GlobalKey(
+                                        debugLabel: dateStr,
+                                      );
+                                    }
+
+                                    bool hideInlineDate =
+                                        isAbsoluteOldestMessage &&
+                                        context
+                                            .read<PrivateChatProvider>()
+                                            .hasMoreHistory;
+
+                                    if (hideInlineDate) {
+                                      return Column(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          SizedBox(
+                                            key: _headerKeys[dateStr],
+                                            height: 0,
+                                            width: 0,
+                                          ),
+                                          _buildMessageBubble(ctx, message),
+                                        ],
+                                      );
+                                    }
+
+                                    return Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Container(
+                                          key: _headerKeys[dateStr],
+                                          margin: EdgeInsets.symmetric(
+                                            vertical: 10.h,
+                                          ),
+                                          padding: EdgeInsets.symmetric(
+                                            horizontal: 10.w,
+                                            vertical: 3.h,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: isDarkMode
+                                                ? Theme.of(context)
+                                                      .colorScheme
+                                                      .secondaryContainer
+                                                : const Color(0xFFF2F2F2),
+                                            borderRadius: BorderRadius.circular(
+                                              5.r,
+                                            ),
+                                          ),
+                                          child: Text(
+                                            dateStr,
+                                            style: TextStyle(
+                                              fontSize: 9.sp,
+                                              fontWeight: FontWeight.w500,
+                                              color: txt.body,
+                                            ),
+                                          ),
+                                        ),
+                                        _buildMessageBubble(ctx, message),
+                                      ],
+                                    );
+                                  }
+
+                                  return _buildMessageBubble(ctx, message);
+                                },
                               );
-                            }
-      
-                            return Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Container(
-                                  key: _headerKeys[dateStr],
+                            },
+                          ),
+
+                          // ── Scroll-to-bottom FAB ─────────────────────────────────
+                          _buildScrollToBottomButton(),
+
+                          // ── Sticky Floating Date Header ─────────────────────────
+                          if (_floatingDate != null)
+                            Positioned(
+                              top: -10.h,
+                              left: 0,
+                              right: 0,
+                              child: Center(
+                                child: Container(
                                   margin: EdgeInsets.symmetric(vertical: 10.h),
                                   padding: EdgeInsets.symmetric(
                                     horizontal: 10.w,
@@ -1324,7 +1522,7 @@ class _PrivateChatScreenState extends State<PrivateChatScreen>
                                     borderRadius: BorderRadius.circular(5.r),
                                   ),
                                   child: Text(
-                                    dateStr,
+                                    _floatingDate ?? '',
                                     style: TextStyle(
                                       fontSize: 9.sp,
                                       fontWeight: FontWeight.w500,
@@ -1332,132 +1530,100 @@ class _PrivateChatScreenState extends State<PrivateChatScreen>
                                     ),
                                   ),
                                 ),
-                                _buildMessageBubble(ctx, message),
-                              ],
-                            );
-                          }
-      
-                          return _buildMessageBubble(ctx, message);
-                        },
-                      );
-                    },
-                  ),
-      
-                  // ── Scroll-to-bottom FAB ─────────────────────────────────
-                  _buildScrollToBottomButton(),
-      
-                  // ── Sticky Floating Date Header ─────────────────────────
-                  if (_floatingDate != null)
-                    Positioned(
-                      top: -10.h,
-                      left: 0,
-                      right: 0,
-                      child: Center(
-                        child: Container(
-                          margin: EdgeInsets.symmetric(vertical: 10.h),
-                          padding: EdgeInsets.symmetric(
-                            horizontal: 10.w,
-                            vertical: 3.h,
-                          ),
-                          decoration: BoxDecoration(
-                            color: isDarkMode
-                                ? Theme.of(context).colorScheme.secondaryContainer
-                                : const Color(0xFFF2F2F2),
-                            borderRadius: BorderRadius.circular(5.r),
-                          ),
-                          child: Text(
-                            _floatingDate ?? '',
-                            style: TextStyle(
-                              fontSize: 9.sp,
-                              fontWeight: FontWeight.w500,
-                              color: txt.body,
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+
+                    // ── Input bar ─────────────────────────────────────────────────────
+                    Container(
+                      width: double.infinity,
+                      margin: const EdgeInsets.fromLTRB(5, 5, 12, 15).w,
+                      padding: const EdgeInsets.symmetric(horizontal: 10),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Expanded(
+                            child: TextField(
+                              controller: _messageController,
+                              onChanged: (_) => context
+                                  .read<PrivateChatProvider>()
+                                  .onUserTyping(),
+                              cursorColor: Theme.of(
+                                context,
+                              ).colorScheme.onPrimary.withOpacity(0.8),
+                              cursorWidth: 1.5,
+                              maxLines: 5,
+                              minLines: 1,
+                              keyboardType: TextInputType.multiline,
+                              textInputAction: TextInputAction.newline,
+                              decoration: InputDecoration(
+                                filled: true, 
+                                fillColor: Theme.of(context).colorScheme.background,
+                                border: InputBorder.none,
+                                hintText:
+                                    '${AppLocalizations.of(context)?.message}...',
+                                hintStyle: AppTextStyles.bodyText.copyWith(
+                                  color: const Color(0XFF898989),
+                                  fontWeight: FontWeight.w400,
+                                  fontSize: 14,
+                                ),
+                                contentPadding: EdgeInsets.symmetric(
+                                  horizontal: 16.w,
+                                  vertical: 10.h,
+                                ),
+                                enabledBorder: OutlineInputBorder(
+                                  borderSide: BorderSide(
+                                    color: isDarkMode
+                                        ? Theme.of(context).colorScheme.outline
+                                        : const Color(0xFFDDDDDD),
+                                    width: 1,
+                                  ),
+                                  borderRadius: BorderRadius.circular(
+                                    AppRadius.card,
+                                  ),
+                                ),
+                                focusedBorder: OutlineInputBorder(
+                                  borderSide: BorderSide(
+                                    color: isDarkMode
+                                        ? Theme.of(context).colorScheme.outline
+                                        : const Color(0xFFDDDDDD),
+                                    width: 1,
+                                  ),
+                                  borderRadius: BorderRadius.circular(
+                                    AppRadius.card,
+                                  ),
+                                ),
+                              ),
+                              style: AppTextStyles.bodyText.copyWith(
+                                color: txt.title,
+                                fontWeight: FontWeight.w500,
+                                fontSize: 15,
+                              ),
                             ),
                           ),
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-            ),
-      
-            // ── Input bar ─────────────────────────────────────────────────────
-            Container(
-              height: 45,
-              width: double.infinity,
-              margin: const EdgeInsets.fromLTRB(5, 5, 12, 15).w,
-              padding: EdgeInsets.symmetric(horizontal: 10.w),
-              // decoration: BoxDecoration(
-              //   color: Theme.of(context).colorScheme.tertiaryContainer,
-              //   borderRadius: BorderRadius.circular(AppRadius.button),
-              // ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: _messageController,
-                      onChanged: (_) =>
-                          context.read<PrivateChatProvider>().onUserTyping(),
-                      cursorColor: Theme.of(
-                        context,
-                      ).colorScheme.onPrimary.withOpacity(0.8),
-                      cursorWidth: 1.5,
-                      decoration: InputDecoration(
-                        border: InputBorder.none,
-                        hintText: '${AppLocalizations.of(context)?.message}...',
-                        hintStyle: AppTextStyles.bodyText.copyWith(
-                          color: const Color(0XFF898989),
-                          fontWeight: FontWeight.w400,
-                          fontSize: 14,
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderSide: BorderSide(
-                            color: isDarkMode
-                                ? Theme.of(context).colorScheme.outline
-                                : const Color(0xFFDDDDDD),
-      
-                            width: 1,
+                          GestureDetector(
+                            onTap: _sendMessage,
+                            child: Container(
+                              margin: const EdgeInsets.only(left: 12),
+                              padding: EdgeInsets.all(8.w),
+                              decoration: BoxDecoration(
+                                color: Theme.of(context).colorScheme.primary,
+                                shape: BoxShape.circle,
+                              ),
+                              child: Icon(
+                                FeatherIcons.send,
+                                size: 17.spMax,
+                                color: Colors.white,
+                              ),
+                            ),
                           ),
-                          borderRadius: BorderRadius.circular(AppRadius.button),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderSide: BorderSide(
-                            color: isDarkMode
-                                ? Theme.of(context).colorScheme.outline
-                                : const Color(0xFFDDDDDD),
-                            width: 1,
-                          ),
-                          borderRadius: BorderRadius.circular(AppRadius.button),
-                        ),
-                      ),
-                      onSubmitted: (_) => _sendMessage(),
-                      textInputAction: TextInputAction.send,
-                      style: AppTextStyles.bodyText.copyWith(
-                        color: txt.title,
-                        fontWeight: FontWeight.w500,
-                        fontSize: 15,
+                        ],
                       ),
                     ),
-                  ),
-                  GestureDetector(
-                    onTap: _sendMessage,
-                    child: Container(
-                      margin: const EdgeInsets.only(left: 12),
-                      padding: EdgeInsets.all(6.w),
-                      decoration: BoxDecoration(
-                        color: Theme.of(context).colorScheme.primary,
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(
-                        FeatherIcons.send,
-                        size: 16.spMax,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
+                  ],
+                ),
         ),
       ),
     );

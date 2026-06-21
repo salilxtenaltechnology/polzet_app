@@ -8,9 +8,10 @@ import 'package:polzet_app/screens/home/search/posts/single_post_details.dart';
 import '../home feed/rank/result/image/image_result_screen.dart';
 import '../home feed/rank/result/things/things_result_screen.dart';
 import 'package:provider/provider.dart';
+import 'package:polzet_app/gen/assets.gen.dart';
 
 import '../../../api/api_config.dart';
-import '../../../api/services/api_service.dart';
+import '../../../api/services/validator/api_service.dart';
 import '../../../core/constants/app_radius.dart';
 import '../../../core/themes/app_text_colors.dart';
 import '../../../core/themes/app_text_styles.dart';
@@ -391,23 +392,17 @@ class _PollVoteNotificationTileState extends State<PollVoteNotificationTile>
         hasNetworkAvatar ||
         (hasBase64Avatar && base64Bytes != null);
 
-    // ── Fallback: first letter of actor name ──
+    // ── Fallback: default avatar asset ──
     if (!hasAnyImage) {
-      final String initial = getInitial(widget.notification.actor.name);
       return Container(
-        width: 40.w,
-        height: 40.w,
+        width: 33.w,
+        height: 33.w,
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(AppRadius.button),
-          color: Theme.of(context).colorScheme.onPrimary.withOpacity(0.15),
-        ),
-        alignment: Alignment.center,
-        child: Text(
-          initial,
-          style: TextStyle(
-            fontSize: 14.sp,
-            fontWeight: FontWeight.w600,
-            color: Theme.of(context).colorScheme.onPrimary.withOpacity(0.8),
+          color: Colors.grey.withOpacity(0.2),
+          image: DecorationImage(
+            image: AssetImage(Assets.images.icAvatarSquare.path),
+            fit: BoxFit.cover,
           ),
         ),
       );

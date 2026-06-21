@@ -8,7 +8,7 @@ import 'package:web_socket_channel/web_socket_channel.dart';
 import 'package:web_socket_channel/status.dart' as status;
 import '../../models/message/message_model.dart';
 import '../../data/token/shared_preferences.dart';
-import '../api/services/api_service.dart';
+import '../api/services/validator/api_service.dart';
 
 class PrivateChatProvider extends ChangeNotifier {
   String? _memberName;
@@ -238,6 +238,7 @@ class PrivateChatProvider extends ChangeNotifier {
                   ? item.isSentBy(_currentUsername)
                   : false,
               sharedPost: item.sharedPost,
+              sharedProfile: item.sharedProfile,
             ),
           )
           .toList()
@@ -295,6 +296,7 @@ class PrivateChatProvider extends ChangeNotifier {
                   ? item.isSentBy(_currentUsername)
                   : false,
               sharedPost: item.sharedPost,
+              sharedProfile: item.sharedProfile,
             ),
           )
           .toList();
@@ -340,6 +342,7 @@ class PrivateChatProvider extends ChangeNotifier {
               isRead: item.isRead,
               isSentByMe: item.isSentBy(_currentUsername),
               sharedPost: item.sharedPost,
+              sharedProfile: item.sharedProfile,
             ),
           )
           .toList();
@@ -609,6 +612,8 @@ class PrivateChatProvider extends ChangeNotifier {
               created_at: serverTimestamp,
               isSentByMe: true,
               isPending: false,
+              sharedPost: msgMap['shared_post'] as Map<String, dynamic>?,
+              sharedProfile: msgMap['shared_profile'] as Map<String, dynamic>?,
             );
             _saveCachedMessages();
             _emitMessages();
@@ -624,6 +629,7 @@ class PrivateChatProvider extends ChangeNotifier {
             isSentByMe: isSentByMe,
             isPending: false,
             sharedPost: msgMap['shared_post'] as Map<String, dynamic>?,
+            sharedProfile: msgMap['shared_profile'] as Map<String, dynamic>?,
           ),
         );
         _saveCachedMessages();

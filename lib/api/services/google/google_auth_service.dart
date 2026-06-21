@@ -9,7 +9,7 @@ import 'package:polzet_app/core/constants/feather_icons_compat.dart';
 import '../../../data/token/shared_preferences.dart';
 import '../../../screens/home/home_imports.dart';
 import '../../../screens/terms_acceptance/terms_acceptance.dart';
-import '../api_service.dart';
+import '../validator/api_service.dart';
 import '../fcm/fcm_service.dart';
 import '../notification/notification_services.dart';
 

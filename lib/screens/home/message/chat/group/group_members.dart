@@ -1,6 +1,7 @@
 // ignore_for_file: unused_field, must_be_immutable, deprecated_member_use
 import 'package:polzet_app/core/constants/feather_icons_compat.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:polzet_app/core/constants/app_colors.dart';
 import 'package:polzet_app/widgets/show_toast.dart';
@@ -48,6 +49,16 @@ class _GroupMembersState extends State<GroupMembers> {
   }
 
   // ── Helpers ────────────────────────────────────────────────────────────────
+
+  String _formatJoinedDate(String? joinedAtStr) {
+    if (joinedAtStr == null) return '';
+    try {
+      final dt = DateTime.parse(joinedAtStr);
+      return DateFormat('dd MMM yyyy').format(dt);
+    } catch (e) {
+      return '';
+    }
+  }
 
   /// Extracts the nested user map from a member entry
   /// Structure: { user: { id, username, profile_image }, is_admin: bool }
@@ -199,53 +210,85 @@ class _GroupMembersState extends State<GroupMembers> {
           top: Radius.circular(AppRadius.modal),
         ),
       ),
-      builder: (_) => Padding(
-        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 20.h),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Center(
-              child: Container(
-                height: 4.h,
-                width: 40.w,
-                decoration: BoxDecoration(
-                  color: Colors.grey.withOpacity(0.3),
-                  borderRadius: BorderRadius.circular(10.r),
+      builder: (_) => SafeArea(
+        top: false,
+        child: Padding(
+          padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 20.h),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  height: 4.h,
+                  width: 40.w,
+                  decoration: BoxDecoration(
+                    color: Colors.grey.withOpacity(0.3),
+                    borderRadius: BorderRadius.circular(10.r),
+                  ),
                 ),
               ),
-            ),
-            SizedBox(height: 10.h),
-            Text(
-              username,
-              style: TextStyle(
-                color: txt.title,
-                fontSize: 13.sp,
-                fontWeight: FontWeight.w600,
+              SizedBox(height: 10.h),
+              Text(
+                username,
+                style: TextStyle(
+                  color: txt.title,
+                  fontSize: 13.sp,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
-            ),
-            SizedBox(height: 5.h),
+              SizedBox(height: 5.h),
 
-            if (!isAdmin) ...[
+              if (!isAdmin) ...[
+                GestureDetector(
+                  onTap: () {
+                    Navigator.pop(context);
+                    _makeAdmin(userId, username);
+                  },
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(vertical: 10.h),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.admin_panel_settings_outlined,
+                          size: 20.spMax,
+                          color: AppColors.primaryColor,
+                        ),
+                        SizedBox(width: 12.w),
+                        Text(
+                          AppLocalizations.of(context)!.makeadmin,
+                          style: TextStyle(
+                            color: AppColors.primaryColor,
+                            fontSize: 12.sp,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                Divider(color: Theme.of(context).colorScheme.outlineVariant),
+              ],
+
               GestureDetector(
                 onTap: () {
                   Navigator.pop(context);
-                  _makeAdmin(userId, username);
+                  _removeMember(userId, username);
                 },
                 child: Padding(
                   padding: EdgeInsets.symmetric(vertical: 10.h),
                   child: Row(
                     children: [
                       Icon(
-                        Icons.admin_panel_settings_outlined,
+                        Icons.person_remove_outlined,
                         size: 20.spMax,
-                        color: AppColors.primaryColor,
+                        color: Theme.of(context).colorScheme.error,
                       ),
                       SizedBox(width: 12.w),
                       Text(
-                        AppLocalizations.of(context)!.makeadmin,
+                        AppLocalizations.of(context)!.removefromgroup,
                         style: TextStyle(
-                          color: AppColors.primaryColor,
+                          color: Theme.of(context).colorScheme.error,
                           fontSize: 12.sp,
                           fontWeight: FontWeight.w500,
                         ),
@@ -254,38 +297,9 @@ class _GroupMembersState extends State<GroupMembers> {
                   ),
                 ),
               ),
-              Divider(color: Theme.of(context).colorScheme.outlineVariant),
+              SizedBox(height: 8.h),
             ],
-
-            GestureDetector(
-              onTap: () {
-                Navigator.pop(context);
-                _removeMember(userId, username);
-              },
-              child: Padding(
-                padding: EdgeInsets.symmetric(vertical: 10.h),
-                child: Row(
-                  children: [
-                    Icon(
-                      Icons.person_remove_outlined,
-                      size: 20.spMax,
-                      color: Theme.of(context).colorScheme.error,
-                    ),
-                    SizedBox(width: 12.w),
-                    Text(
-                      AppLocalizations.of(context)!.removefromgroup,
-                      style: TextStyle(
-                        color: Theme.of(context).colorScheme.error,
-                        fontSize: 12.sp,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            SizedBox(height: 8.h),
-          ],
+          ),
         ),
       ),
     );
@@ -418,6 +432,20 @@ class _GroupMembersState extends State<GroupMembers> {
                         final bool isSelf =
                             memberId?.toString() == currentUserId;
 
+                        final String? joinedAtVal =
+                            member['joined_at']?.toString() ??
+                            user['joined_at']?.toString();
+                        final String joinedDate = _formatJoinedDate(
+                          joinedAtVal,
+                        );
+
+                        final presence = provider.memberPresence[memberId];
+                        final bool isOnline =
+                            isSelf ||
+                            (presence?.isOnline ??
+                                (member['is_online'] == true ||
+                                    user['is_online'] == true));
+
                         return Padding(
                           padding: EdgeInsets.only(bottom: 10.h),
                           child: GestureDetector(
@@ -426,11 +454,10 @@ class _GroupMembersState extends State<GroupMembers> {
                                       _showOptions(memberId!, username, isAdmin)
                                 : null,
                             child: Container(
-                              height: 40.h,
                               width: double.infinity,
                               padding: const EdgeInsets.symmetric(
                                 horizontal: 10,
-                                vertical: 4,
+                                vertical: 6,
                               ),
                               margin: const EdgeInsets.only(bottom: 5),
                               decoration: BoxDecoration(
@@ -455,10 +482,16 @@ class _GroupMembersState extends State<GroupMembers> {
                                 children: [
                                   // ── Avatar ───────────────────────────────
                                   CircleAvatar(
-                                    radius: 13.r,
-                                    backgroundImage: _avatarProvider(profileImage),
-                                    backgroundColor: Theme.of(context).colorScheme.onPrimary.withOpacity(0.1),
-                                    child: profileImage == null || profileImage.isEmpty
+                                    radius: 18,
+                                    backgroundImage: _avatarProvider(
+                                      profileImage,
+                                    ),
+                                    backgroundColor: Theme.of(
+                                      context,
+                                    ).colorScheme.onPrimary.withOpacity(0.1),
+                                    child:
+                                        profileImage == null ||
+                                            profileImage.isEmpty
                                         ? Text(
                                             username.isNotEmpty
                                                 ? username[0].toUpperCase()
@@ -475,16 +508,58 @@ class _GroupMembersState extends State<GroupMembers> {
                                   ),
                                   SizedBox(width: 10.w),
 
-                                  // ── Username ─────────────────────────────
+                                  // ── Details (Username + Status / Date) ───
                                   Expanded(
-                                    child: Text(
-                                      username,
-                                      style: TextStyle(
-                                        color: txt.title,
-                                        fontSize: 11.2.sp,
-                                        fontWeight: FontWeight.w400,
-                                      ),
-                                      overflow: TextOverflow.ellipsis,
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: [
+                                        Text(
+                                          username,
+                                          style: TextStyle(
+                                            color: txt.title,
+                                            fontSize: 11.2.sp,
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                        SizedBox(height: 2.h),
+                                        Row(
+                                          children: [
+                                            Text(
+                                              isOnline ? 'Online' : 'Offline',
+                                              style: TextStyle(
+                                                color: isOnline
+                                                    ? const Color(0XFF16A34A)
+                                                    : txt.muted,
+                                                fontSize: 9.2.sp,
+                                                fontWeight: FontWeight.w400,
+                                              ),
+                                            ),
+                                            if (joinedDate.isNotEmpty) ...[
+                                              SizedBox(width: 6.w),
+                                              Text(
+                                                '•',
+                                                style: TextStyle(
+                                                  color: txt.muted,
+                                                  fontSize: 9.2.sp,
+                                                ),
+                                              ),
+                                              SizedBox(width: 6.w),
+                                              Text(
+                                                'Joined $joinedDate',
+                                                style: TextStyle(
+                                                  color: txt.muted,
+                                                  fontSize: 9.2.sp,
+                                                  fontWeight: FontWeight.w400,
+                                                ),
+                                              ),
+                                            ],
+                                          ],
+                                        ),
+                                      ],
                                     ),
                                   ),
 

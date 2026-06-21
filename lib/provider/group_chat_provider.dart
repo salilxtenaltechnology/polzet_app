@@ -9,7 +9,7 @@ import 'package:web_socket_channel/web_socket_channel.dart';
 import 'package:web_socket_channel/status.dart' as status;
 import '../../models/message/message_model.dart';
 import '../../data/token/shared_preferences.dart';
-import '../api/services/api_service.dart';
+import '../api/services/validator/api_service.dart';
 
 class GroupMemberPresence {
   final dynamic userId;
@@ -327,6 +327,7 @@ class GroupChatProvider extends ChangeNotifier {
               senderProfileImage: item.sender.profileImage,
               senderId: item.sender.id,
               sharedPost: item.sharedPost,
+              sharedProfile: item.sharedProfile,
             ),
           )
           .toList()
@@ -382,6 +383,7 @@ class GroupChatProvider extends ChangeNotifier {
               senderProfileImage: item.sender.profileImage,
               senderId: item.sender.id,
               sharedPost: item.sharedPost,
+              sharedProfile: item.sharedProfile,
             ),
           )
           .toList();
@@ -429,6 +431,7 @@ class GroupChatProvider extends ChangeNotifier {
               senderProfileImage: item.sender.profileImage,
               senderId: item.sender.id,
               sharedPost: item.sharedPost,
+              sharedProfile: item.sharedProfile,
             ),
           )
           .toList();
@@ -765,6 +768,7 @@ class GroupChatProvider extends ChangeNotifier {
               senderProfileImage: senderProfileImage,
               senderId: senderUserId?.toString(),
               sharedPost: msgMap['shared_post'] as Map<String, dynamic>?,
+              sharedProfile: msgMap['shared_profile'] as Map<String, dynamic>?,
             );
             _saveCachedMessages();
             _emitMessages();
@@ -783,6 +787,7 @@ class GroupChatProvider extends ChangeNotifier {
             senderProfileImage: senderProfileImage,
             senderId: senderUserId?.toString(),
             sharedPost: msgMap['shared_post'] as Map<String, dynamic>?,
+            sharedProfile: msgMap['shared_profile'] as Map<String, dynamic>?,
           ),
         );
 
@@ -1097,6 +1102,41 @@ class GroupChatProvider extends ChangeNotifier {
     if (_chatId == null) return;
     try {
       final freshChat = await ApiService().getGroupChatInfo(chatId: _chatId!);
+
+      // Preserve joined_at from existing members (since the group info API does not return it)
+      if (_chat != null && _chat!['members'] != null && freshChat['members'] != null) {
+        final Map<String, String> existingJoinedAtMap = {};
+        for (final m in _chat!['members']) {
+          if (m is Map) {
+            final user = m['user'] as Map?;
+            final dynamic uid = user?['id']?.toString();
+            final String? joinedAt = m['joined_at']?.toString() ?? user?['joined_at']?.toString();
+            if (uid != null && joinedAt != null) {
+              existingJoinedAtMap[uid] = joinedAt;
+            }
+          }
+        }
+
+        final List<dynamic> freshMembers = freshChat['members'] as List<dynamic>;
+        for (int i = 0; i < freshMembers.length; i++) {
+          final m = freshMembers[i];
+          if (m is Map) {
+            final user = m['user'] as Map?;
+            final dynamic uid = user?['id']?.toString();
+            if (uid != null && existingJoinedAtMap.containsKey(uid)) {
+              final Map<String, dynamic> mutableMember = Map<String, dynamic>.from(m);
+              mutableMember['joined_at'] = existingJoinedAtMap[uid];
+              if (user != null) {
+                final Map<String, dynamic> mutableUser = Map<String, dynamic>.from(user);
+                mutableUser['joined_at'] = existingJoinedAtMap[uid];
+                mutableMember['user'] = mutableUser;
+              }
+              freshMembers[i] = mutableMember;
+            }
+          }
+        }
+      }
+
       _chat = freshChat;
 
       _syncAdminIds();

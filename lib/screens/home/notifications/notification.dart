@@ -15,7 +15,7 @@ import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../../api/app_api.dart';
-import '../../../../api/services/api_service.dart';
+import '../../../api/services/validator/api_service.dart';
 import '../../../../data/token/shared_preferences.dart';
 import '../../../../provider/user_provider.dart';
 import '../../../../provider/private_chat_provider.dart';
@@ -1227,14 +1227,21 @@ class NotificationState extends State<Notifications>
                                     key: Key(notification.id),
                                     direction: DismissDirection.endToStart,
                                     background: Container(
-                                      color: const Color(0xFFCA382D),
+                                      color: Colors.transparent,
                                       alignment: Alignment.centerRight,
                                       padding: EdgeInsets.symmetric(
                                         horizontal: 20.w,
                                       ),
-                                      child: const Icon(
-                                        Icons.delete,
-                                        color: Colors.white,
+                                      child: Padding(
+                                        padding: const EdgeInsets.only(
+                                          right: 12,
+                                        ),
+                                        child: Image.asset(
+                                          Assets.images.icDelete.path,
+                                          height: 24,
+                                          width: 24,
+                                          color: const Color(0xFFCA382D),
+                                        ),
                                       ),
                                     ),
                                     confirmDismiss: (direction) async {
@@ -1518,10 +1525,18 @@ class NotificationState extends State<Notifications>
       key: Key(notification.id),
       direction: DismissDirection.endToStart,
       background: Container(
-        color: const Color(0xFFCA382D),
+        color: Colors.transparent,
         alignment: Alignment.centerRight,
         padding: EdgeInsets.symmetric(horizontal: 20.w),
-        child: const Icon(Icons.delete, color: Colors.white),
+        child: Padding(
+          padding: const EdgeInsets.only(right: 12),
+          child: Image.asset(
+            Assets.images.icDelete.path,
+            height: 24,
+            width: 24,
+            color: const Color(0xFFCA382D),
+          ),
+        ),
       ),
       confirmDismiss: (direction) async {
         final bool? result = await showDeleteNotificationsDiolog(context);
@@ -1583,9 +1598,23 @@ class NotificationState extends State<Notifications>
           }
 
           if (isFriendRequest) {
+            if (notification.actor.userId.toString().trim().isNotEmpty) {
+              navigationPush(
+                context,
+                PublicProfileScreen(userId: notification.actor.userId),
+              );
+            }
             return;
           }
           if (post != null && post.postId.toString().trim().isNotEmpty) {
+            final isOffline = Provider.of<ConnectivityProvider>(
+              context,
+              listen: false,
+            ).isOffline;
+            if (isOffline) {
+              showToast(message: 'Please check your internet connection');
+              return;
+            }
             navigationPush(
               context,
               SinglePostDetails(username: username, postId: post.postId),
@@ -1677,9 +1706,11 @@ class NotificationState extends State<Notifications>
                             },
                           )
                         : (notification.actor.avatarUrl != null &&
-                                notification.actor.avatarUrl!.isNotEmpty)
+                              notification.actor.avatarUrl!.isNotEmpty)
                         ? CircleAvatar(
-                            backgroundImage: NetworkImage(notification.actor.avatarUrl!),
+                            backgroundImage: NetworkImage(
+                              notification.actor.avatarUrl!,
+                            ),
                             radius: 17.w,
                             onBackgroundImageError: (exception, stackTrace) {
                               if (kDebugMode) {
@@ -1688,18 +1719,10 @@ class NotificationState extends State<Notifications>
                             },
                           )
                         : CircleAvatar(
-                            radius: 16.5.w,
-                            backgroundColor: Theme.of(
-                              context,
-                            ).colorScheme.onPrimary.withOpacity(0.15),
-                            child: Text(
-                              getInitial(notification.actor.name),
-                              style: AppTextStyles.bodyText.copyWith(
-                                fontSize: 18,
-                                fontWeight: FontWeight.w500,
-                                color: Theme.of(context).colorScheme.onPrimary,
-                              ),
+                            backgroundImage: AssetImage(
+                              Assets.images.icAvatar.path,
                             ),
+                            radius: 17.w,
                           ),
                     if (notification.type.toUpperCase() == 'LIKE' ||
                         notification.type.toUpperCase() == 'LIKE_GROUP')
@@ -1760,7 +1783,8 @@ class NotificationState extends State<Notifications>
                         ),
                         children: <TextSpan>[
                           if (notification.type.toUpperCase() == 'LIKE_GROUP' ||
-                              notification.type.toUpperCase() == 'COMMENT_GROUP' ||
+                              notification.type.toUpperCase() ==
+                                  'COMMENT_GROUP' ||
                               notification.type.toUpperCase() == 'FOLLOW_GROUP')
                             TextSpan(
                               text: getNotificationMessage(notification),

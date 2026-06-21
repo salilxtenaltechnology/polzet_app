@@ -12,30 +12,30 @@ import 'package:provider/provider.dart';
 import 'package:path/path.dart' as path;
 import 'package:http/http.dart' as http;
 
-import '../../data/token/shared_preferences.dart';
-import '../../mixin/utility_mixins.dart';
-import '../../models/global search/global_search_model.dart';
-import '../../models/global search/recent_search.dart';
-import '../../models/insights/insights_model.dart';
-import '../../models/like/like_uers_model.dart';
-import '../../models/message/message_model.dart';
-import '../../models/poll/poll_results_model.dart';
-import '../../models/posts/homefeed_posts_model.dart';
-import '../../models/posts/single_post_model.dart';
-import '../../models/posts/user_post_model.dart';
-import '../../models/public/public_profile_model.dart';
-import '../../models/search/hashtag/hashtag_posts_list_model.dart';
-import '../../models/user/suggestionsb users/suggestions_users_model.dart';
-import '../../models/voters/top_voters_model.dart';
-import '../../provider/connection_provider.dart';
-import '../../provider/user_provider.dart';
-import '../../screens/home/home_imports.dart';
-import '../../screens/terms_acceptance/terms_acceptance.dart';
-import '../../widgets/show_toast.dart';
-import '../api_config.dart';
-import '../app_api.dart';
-import 'fcm/fcm_service.dart';
-import 'notification/notification_services.dart';
+import '../../../data/token/shared_preferences.dart';
+import '../../../mixin/utility_mixins.dart';
+import '../../../models/global search/global_search_model.dart';
+import '../../../models/global search/recent_search.dart';
+import '../../../models/insights/insights_model.dart';
+import '../../../models/like/like_uers_model.dart';
+import '../../../models/message/message_model.dart';
+import '../../../models/poll/poll_results_model.dart';
+import '../../../models/posts/homefeed_posts_model.dart';
+import '../../../models/posts/single_post_model.dart';
+import '../../../models/posts/user_post_model.dart';
+import '../../../models/public/public_profile_model.dart';
+import '../../../models/search/hashtag/hashtag_posts_list_model.dart';
+import '../../../models/user/suggestionsb users/suggestions_users_model.dart';
+import '../../../models/voters/top_voters_model.dart';
+import '../../../provider/connection_provider.dart';
+import '../../../provider/user_provider.dart';
+import '../../../screens/home/home_imports.dart';
+import '../../../screens/terms_acceptance/terms_acceptance.dart';
+import '../../../widgets/show_toast.dart';
+import '../../api_config.dart';
+import '../../app_api.dart';
+import '../fcm/fcm_service.dart';
+import '../notification/notification_services.dart';
 
 class ApiService with UtilityMixin {
   final SharedPrefService _prefService = SharedPrefService();
@@ -1876,37 +1876,48 @@ class ApiService with UtilityMixin {
 
   Future<Map<String, dynamic>> createGroup({
     required String title,
-    required String profileImage,
+    required File? profileImage,
     required List<dynamic> members,
   }) async {
     try {
-      final body = {
+      final Map<String, dynamic> map = {
         'title': title,
-        if (profileImage.isNotEmpty)
-          'profile_image': 'data:image/jpeg;base64,$profileImage',
         'members': members,
       };
 
+      if (profileImage != null) {
+        final String ext = path.extension(profileImage.path).toLowerCase();
+        final String subType = ext.startsWith('.') ? ext.substring(1) : 'jpeg';
+        map['profile_image'] = await MultipartFile.fromFile(
+          profileImage.path,
+          filename: path.basename(profileImage.path),
+          contentType: MediaType(
+            'image',
+            subType == 'jpg' ? 'jpeg' : (subType.isEmpty ? 'jpeg' : subType),
+          ),
+        );
+      }
+
+      final formData = FormData.fromMap(map);
+
       debugPrint('=== CREATE GROUP REQUEST ===');
       debugPrint('title: $title');
-      debugPrint('profile_image length: ${profileImage.length}');
-      if (profileImage.isNotEmpty) {
-        debugPrint(
-          'profile_image preview: ${profileImage.substring(0, profileImage.length > 50 ? 50 : profileImage.length)}...',
-        );
+      if (profileImage != null) {
+        debugPrint('profile_image path: ${profileImage.path}');
       }
       debugPrint('members: $members');
       debugPrint('============================');
 
       final response = await _dio.post(
         ApiConstants.createGroup,
-        data: body,
+        data: formData,
         options: Options(headers: await _getAuthHeaders()),
       );
 
-      if (response.statusCode == 200) {
+      if (response.statusCode == 200 || response.statusCode == 201) {
         final data = response.data as Map<String, dynamic>;
-        return {'success': true, 'chat_id': data['chat_id']};
+        final chatId = data['chat_id'] ?? data['id'] ?? data['data']?['id'] ?? data['data']?['chat_id'];
+        return {'success': true, 'chat_id': chatId};
       }
       return {'success': false, 'message': 'Failed to create group'};
     } on DioException catch (e) {
@@ -2002,13 +2013,23 @@ class ApiService with UtilityMixin {
   }) async {
     final accessToken = await SharedPrefService.getToken();
     try {
-      final bytes = await imageFile.readAsBytes();
-      final base64String = base64Encode(bytes);
-      final base64WithPrefix = 'data:image/jpeg;base64,$base64String';
+      final String ext = path.extension(imageFile.path).toLowerCase();
+      final String subType = ext.startsWith('.') ? ext.substring(1) : 'jpeg';
+
+      final formData = FormData.fromMap({
+        'group_picture': await MultipartFile.fromFile(
+          imageFile.path,
+          filename: path.basename(imageFile.path),
+          contentType: MediaType(
+            'image',
+            subType == 'jpg' ? 'jpeg' : (subType.isEmpty ? 'jpeg' : subType),
+          ),
+        ),
+      });
 
       final response = await _dio.post(
         '${ApiConstants.uploadGroupProfile}/$chatId/update_picture',
-        data: {'group_picture': base64WithPrefix},
+        data: formData,
         options: Options(headers: {'Authorization': 'Bearer $accessToken'}),
       );
       return response.data as Map<String, dynamic>;
@@ -2197,18 +2218,27 @@ class ApiService with UtilityMixin {
 
         for (final member in members) {
           if (member is Map) {
-            final String uuid = (member['uuid'] ?? member['id'] ?? '')
+            final String uuid = (member['uuid'] ?? member['id'] ?? (member['user']?['id'] ?? ''))
                 .toString();
             final bool isAdmin = adminUuids.contains(uuid);
+            final String? joinedAt = member['joined_at']?.toString() ?? member['user']?['joined_at']?.toString();
+            final bool? isOnline = member['is_online'] as bool? ?? member['user']?['is_online'] as bool?;
+            final bool? isBlock = member['is_block'] as bool? ?? member['user']?['is_block'] as bool?;
 
             normalizedMembers.add({
               'is_admin': isAdmin,
+              'joined_at': joinedAt,
+              'is_online': isOnline,
+              'is_block': isBlock,
               'user': {
                 'id': uuid,
-                'username': member['username']?.toString() ?? '',
+                'username': member['username']?.toString() ?? (member['user']?['username']?.toString() ?? ''),
                 'profile_image':
                     member['profile_picture_url']?.toString() ??
-                    member['profile_image']?.toString(),
+                    member['profile_image']?.toString() ??
+                    member['user']?['profile_image']?.toString(),
+                'joined_at': joinedAt,
+                'is_online': isOnline,
               },
             });
           }

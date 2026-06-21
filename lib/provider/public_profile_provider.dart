@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../api/services/api_service.dart';
+import '../api/services/validator/api_service.dart';
 import '../models/public/public_profile_model.dart';
 import '../models/global search/global_search_model.dart';
 

@@ -9,7 +9,7 @@ import 'package:polzet_app/core/constants/app_radius.dart';
 import 'package:provider/provider.dart';
 import '../../../provider/user_provider.dart';
 
-import '../../../api/services/api_service.dart';
+import '../../../api/services/validator/api_service.dart';
 import '../../../api/services/image/image_picker_service.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../data/token/shared_preferences.dart';

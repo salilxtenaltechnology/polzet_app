@@ -16,14 +16,15 @@ class ImagePickerService {
   static Future<File?> pickImage({
     required BuildContext context,
     bool allowCamera = true,
+    bool pickOriginal = false,
   }) async {
     final source = await _showImageSourceDialog(context, allowCamera);
     if (source == null) return null;
 
     if (source == 'camera') {
-      return await _pickFromCamera(context);
+      return await _pickFromCamera(context, pickOriginal: pickOriginal);
     } else {
-      return await _pickFromGallery(context);
+      return await _pickFromGallery(context, pickOriginal: pickOriginal);
     }
   }
 
@@ -77,15 +78,21 @@ class ImagePickerService {
     );
   }
 
-  static Future<File?> _pickFromCamera(BuildContext context) async {
+  static Future<File?> _pickFromCamera(
+    BuildContext context, {
+    bool pickOriginal = false,
+  }) async {
     final AssetEntity? asset = await CameraPicker.pickFromCamera(
       context,
       pickerConfig: const CameraPickerConfig(enableRecording: false),
     );
-    return await asset?.file;
+    return await (pickOriginal ? asset?.originFile : asset?.file);
   }
 
-  static Future<File?> _pickFromGallery(BuildContext context) async {
+  static Future<File?> _pickFromGallery(
+    BuildContext context, {
+    bool pickOriginal = false,
+  }) async {
     final List<AssetEntity>? assets = await AssetPicker.pickAssets(
       context,
       pickerConfig: const AssetPickerConfig(
@@ -95,7 +102,7 @@ class ImagePickerService {
       ),
     );
     if (assets != null && assets.isNotEmpty) {
-      return await assets.first.file;
+      return await (pickOriginal ? assets.first.originFile : assets.first.file);
     }
     return null;
   }

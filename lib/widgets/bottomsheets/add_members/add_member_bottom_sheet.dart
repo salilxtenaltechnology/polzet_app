@@ -6,7 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../../../api/api_config.dart';
-import '../../../../api/services/api_service.dart';
+import '../../../api/services/validator/api_service.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../mixin/utility_mixins.dart';
 import '../../../../widgets/custom_text_styles.dart';
@@ -180,125 +180,128 @@ class _AddMemberBottomSheetState extends State<AddMemberBottomSheet>
   Widget build(BuildContext context) {
     final txt = AppTextColors.of(context);
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    return Container(
-      height: MediaQuery.of(context).size.height * 0.85,
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.tertiaryContainer,
-        borderRadius: const BorderRadius.only(
-          topLeft: Radius.circular(AppRadius.modal),
-          topRight: Radius.circular(AppRadius.modal),
+    return SafeArea(
+       top: false,
+      child: Container(
+        height: MediaQuery.of(context).size.height * 0.85,
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.tertiaryContainer,
+          borderRadius: const BorderRadius.only(
+            topLeft: Radius.circular(AppRadius.modal),
+            topRight: Radius.circular(AppRadius.modal),
+          ),
         ),
-      ),
-      child: Column(
-        children: [
-          Container(
-            margin: EdgeInsets.only(top: 10.h),
-            height: 4.h,
-            width: 40.w,
-            decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.outline.withOpacity(0.4),
-              borderRadius: BorderRadius.circular(4.r),
-            ),
-          ),
-          Container(
-            padding: EdgeInsets.symmetric(vertical: 12.h),
-            margin: EdgeInsets.symmetric(horizontal: 10.w),
-            width: double.infinity,
-            decoration: BoxDecoration(
-              border: Border(
-                bottom: BorderSide(
-                  color: Theme.of(context).colorScheme.outlineVariant,
-                  width: 1,
-                ),
-              ),
-            ),
-            child: Center(
-              child: Text(
-                AppLocalizations.of(context)!.addmember,
-                style: AppTextStyles.sectionHeading.copyWith(color: txt.title),
-              ),
-            ),
-          ),
-          Padding(
-            padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
-            child: Container(
-              height: 43,
+        child: Column(
+          children: [
+            Container(
+              margin: EdgeInsets.only(top: 10.h),
+              height: 4.h,
+              width: 40.w,
               decoration: BoxDecoration(
-                color: isDarkMode ? const Color(0xFF1F1F23) : Colors.white,
-                borderRadius: BorderRadius.circular(AppRadius.button),
+                color: Theme.of(context).colorScheme.outline.withOpacity(0.4),
+                borderRadius: BorderRadius.circular(4.r),
               ),
-              child: TextField(
-                controller: _searchController,
-                cursorColor: Theme.of(context).colorScheme.onPrimary.withOpacity(0.8),
-              cursorWidth: 1.5,
-                decoration: InputDecoration(
-                  contentPadding: EdgeInsets.only(
-                    right: 12.w,
-                    left: 12.w,
-                    top: 10.h,
-                  ),
-                  hintText: AppLocalizations.of(context)!.searchusers,
-                  hintStyle: CustomTextStyles.lblPrimaryHintText(context),
-                  border: InputBorder.none,
-                  prefixIcon: Icon(
-                    FeatherIcons.search,
-                    size: 17.spMax,
-                    color: const Color(0XFF898989),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderSide: BorderSide(
-                      color: Theme.of(context).colorScheme.outline,
-                    ),
-                    borderRadius: BorderRadius.circular(9),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderSide: BorderSide(
-                      color: Theme.of(context).colorScheme.outline,
-                      width: 0.7,
-                    ),
-                    borderRadius: BorderRadius.circular(9),
+            ),
+            Container(
+              padding: EdgeInsets.symmetric(vertical: 12.h),
+              margin: EdgeInsets.symmetric(horizontal: 10.w),
+              width: double.infinity,
+              decoration: BoxDecoration(
+                border: Border(
+                  bottom: BorderSide(
+                    color: Theme.of(context).colorScheme.outlineVariant,
+                    width: 1,
                   ),
                 ),
-                style: TextStyle(
-                  color: txt.title,
-                  fontWeight: FontWeight.w500,
-                  fontSize: 14,
+              ),
+              child: Center(
+                child: Text(
+                  AppLocalizations.of(context)!.addmember,
+                  style: AppTextStyles.sectionHeading.copyWith(color: txt.title),
                 ),
               ),
             ),
-          ),
-          Expanded(
-            child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: 12.w),
-              child: _buildUserList(),
-            ),
-          ),
-          Container(
-            color: Theme.of(context).colorScheme.tertiaryContainer,
-            padding: EdgeInsets.fromLTRB(12.w, 5.h, 12.w, 16.h),
-            child: GestureDetector(
-              onTap: _selectedIds.isEmpty ? null : _onAdd,
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
               child: Container(
-                width: double.infinity,
-                height: 40.h,
+                height: 43,
                 decoration: BoxDecoration(
-                  color: _selectedIds.isEmpty
-                      ? AppColors.primaryColor.withOpacity(0.4)
-                      : AppColors.primaryColor,
+                  color: isDarkMode ? const Color(0xFF1F1F23) : Colors.white,
                   borderRadius: BorderRadius.circular(AppRadius.button),
                 ),
-                child: Center(
-                  child: Text(
-                    _selectedIds.isEmpty
-                        ? AppLocalizations.of(context)!.add
-                        : '${AppLocalizations.of(context)!.add} (${_selectedIds.length})',
-                    style: CustomTextStyles.btnPrimaryText,
+                child: TextField(
+                  controller: _searchController,
+                  cursorColor: Theme.of(context).colorScheme.onPrimary.withOpacity(0.8),
+                cursorWidth: 1.5,
+                  decoration: InputDecoration(
+                    contentPadding: EdgeInsets.only(
+                      right: 12.w,
+                      left: 12.w,
+                      top: 10.h,
+                    ),
+                    hintText: AppLocalizations.of(context)!.searchusers,
+                    hintStyle: CustomTextStyles.lblPrimaryHintText(context),
+                    border: InputBorder.none,
+                    prefixIcon: Icon(
+                      FeatherIcons.search,
+                      size: 17.spMax,
+                      color: const Color(0XFF898989),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderSide: BorderSide(
+                        color: Theme.of(context).colorScheme.outline,
+                      ),
+                      borderRadius: BorderRadius.circular(9),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderSide: BorderSide(
+                        color: Theme.of(context).colorScheme.outline,
+                        width: 0.7,
+                      ),
+                      borderRadius: BorderRadius.circular(9),
+                    ),
+                  ),
+                  style: TextStyle(
+                    color: txt.title,
+                    fontWeight: FontWeight.w500,
+                    fontSize: 14,
                   ),
                 ),
               ),
             ),
-          ),
-        ],
+            Expanded(
+              child: Padding(
+                padding: EdgeInsets.symmetric(horizontal: 12.w),
+                child: _buildUserList(),
+              ),
+            ),
+            Container(
+              color: Theme.of(context).colorScheme.tertiaryContainer,
+              padding: EdgeInsets.fromLTRB(12.w, 5.h, 12.w, 16.h),
+              child: GestureDetector(
+                onTap: _selectedIds.isEmpty ? null : _onAdd,
+                child: Container(
+                  width: double.infinity,
+                  height: 40.h,
+                  decoration: BoxDecoration(
+                    color: _selectedIds.isEmpty
+                        ? AppColors.primaryColor.withOpacity(0.4)
+                        : AppColors.primaryColor,
+                    borderRadius: BorderRadius.circular(AppRadius.button),
+                  ),
+                  child: Center(
+                    child: Text(
+                      _selectedIds.isEmpty
+                          ? AppLocalizations.of(context)!.add
+                          : '${AppLocalizations.of(context)!.add} (${_selectedIds.length})',
+                      style: CustomTextStyles.btnPrimaryText,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
