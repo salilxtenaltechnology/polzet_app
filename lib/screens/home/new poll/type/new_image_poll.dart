@@ -7,22 +7,22 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:polzet_app/core/constants/app_radius.dart';
 import 'package:provider/provider.dart';
-import '../../../provider/user_provider.dart';
+import '../../../../provider/user_provider.dart';
 
-import '../../../api/services/validator/api_service.dart';
-import '../../../api/services/image/image_picker_service.dart';
-import '../../../core/constants/app_colors.dart';
-import '../../../data/token/shared_preferences.dart';
-import '../../../gen/assets.gen.dart';
-import '../../../languages/l10n/generated/app_localizations.dart';
-import '../../../widgets/appbar/common_appbar.dart';
-import '../../../widgets/button/primary_button.dart';
-import '../../../widgets/custom_text_styles.dart';
-import '../../../widgets/dotted_border/dotted_border.dart';
-import '../../../widgets/show_toast.dart';
-import '../../../widgets/dialog/custom_diolog.dart';
-import '../../../widgets/text_field/secondry_textfield.dart';
-import '../../../core/themes/app_text_styles.dart';
+import '../../../../api/api_service.dart';
+import '../../../../api/services/image/image_picker_service.dart';
+import '../../../../core/constants/app_colors.dart';
+import '../../../../data/token/shared_preferences.dart';
+import '../../../../gen/assets.gen.dart';
+import '../../../../languages/l10n/generated/app_localizations.dart';
+import '../../../../widgets/appbar/common_appbar.dart';
+import '../../../../widgets/button/primary_button.dart';
+import '../../../../widgets/custom_text_styles.dart';
+import '../../../../widgets/dotted_border/dotted_border.dart';
+import '../../../../widgets/show_toast.dart';
+import '../../../../widgets/dialog/custom_diolog.dart';
+import '../../../../widgets/text_field/secondry_textfield.dart';
+import '../../../../core/themes/app_text_styles.dart';
 
 class NewImagePoll extends StatefulWidget {
   const NewImagePoll({super.key});
@@ -34,7 +34,7 @@ class NewImagePoll extends StatefulWidget {
 class _NewImagePollState extends State<NewImagePoll> {
   final ApiService service = ApiService();
   final questionController = TextEditingController();
-
+  final descriptionController = TextEditingController();
 
   String questionErrorText = '';
   String imageErrorText = '';
@@ -76,6 +76,12 @@ class _NewImagePollState extends State<NewImagePoll> {
 
   void removeImage(int index) {
     setState(() {
+      _images[index] = null;
+    });
+  }
+
+  void removeImageSlot(int index) {
+    setState(() {
       _images.removeAt(index);
       if (_images.isEmpty) {
         _images.add(null);
@@ -112,9 +118,7 @@ class _NewImagePollState extends State<NewImagePoll> {
     // Validate inputs
     if (questionController.text.trim().isEmpty) {
       setState(() {
-        questionErrorText = AppLocalizations.of(
-          context,
-        )!.pleaseenteraquestion;
+        questionErrorText = AppLocalizations.of(context)!.pleaseenteraquestion;
       });
       return;
     }
@@ -151,8 +155,8 @@ class _NewImagePollState extends State<NewImagePoll> {
     try {
       // Upload the poll
       Map<String, dynamic>? result = await ApiService.uploadImagePoll(
-        description: '',
         question: questionController.text.trim(),
+        description: descriptionController.text.trim(),
         pollOptions: selectedImages,
         maxOptions: maxImages,
         authToken: accessToken,
@@ -171,6 +175,7 @@ class _NewImagePollState extends State<NewImagePoll> {
       if (result != null && mounted) {
         showToast(message: 'New image poll created!');
         questionController.clear();
+        descriptionController.clear();
         setState(() {
           _images = [null, null];
           uploadProgress = 0.0;
@@ -256,7 +261,23 @@ class _NewImagePollState extends State<NewImagePoll> {
               ),
             ),
           SizedBox(height: 20.h),
-          
+          Text(
+            'Description & Hashtags (Optional)',
+            style: CustomTextStyles.lblPrimaryText(context),
+          ),
+          SizedBox(height: 7.h),
+          SecondryTextfield(
+            controller: descriptionController,
+            hintText: 'Type description or hashtags',
+            maxLines: 5,
+          minLines: 3,
+          ),
+          SizedBox(height: 20.h),
+          Text(
+            AppLocalizations.of(context)!.polloptions,
+            style: CustomTextStyles.lblPrimaryText(context),
+          ),
+          SizedBox(height: 10.h),
           // Image grid (2 per row)
           ...rows.map((row) {
             return Padding(
@@ -273,15 +294,43 @@ class _NewImagePollState extends State<NewImagePoll> {
                         child: Stack(
                           children: [
                             _buildImageOption(context, i),
-                            if (_images.length > 2)
+                            if (_images[i] != null)
                               Positioned(
-                                top: 5.h,
-                                right: 5.w,
+                                top: 8.h,
+                                right: 8.w,
                                 child: GestureDetector(
                                   onTap: () => removeImage(i),
                                   child: Container(
-                                    width: 20.w,
-                                    height: 20.h,
+                                    width: 18.w,
+                                    height: 18.h,
+                                    decoration: const BoxDecoration(
+                                      color: AppColors.primaryColor,
+                                      shape: BoxShape.circle,
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.black26,
+                                          blurRadius: 4,
+                                          offset: Offset(0, 2),
+                                        ),
+                                      ],
+                                    ),
+                                    child: Icon(
+                                      Icons.close,
+                                      color: Colors.white,
+                                      size: 12.sp,
+                                    ),
+                                  ),
+                                ),
+                              )
+                            else if (_images.length > 2)
+                              Positioned(
+                                top: 8.h,
+                                right: 8.w,
+                                child: GestureDetector(
+                                  onTap: () => removeImageSlot(i),
+                                  child: Container(
+                                    width: 18.w,
+                                    height: 18.h,
                                     decoration: const BoxDecoration(
                                       color: AppColors.primaryColor,
                                       shape: BoxShape.circle,
@@ -306,8 +355,7 @@ class _NewImagePollState extends State<NewImagePoll> {
                       ),
                     );
                   }),
-                  if (row.length == 1)
-                    const Expanded(child: SizedBox()),
+                  if (row.length == 1) const Expanded(child: SizedBox()),
                 ],
               ),
             );
@@ -335,7 +383,9 @@ class _NewImagePollState extends State<NewImagePoll> {
                 ),
                 style: OutlinedButton.styleFrom(
                   side: BorderSide(
-                    color: Theme.of(context).colorScheme.onPrimary.withOpacity(0.8),
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.onPrimary.withOpacity(0.8),
                   ),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(AppRadius.button),
@@ -359,8 +409,8 @@ class _NewImagePollState extends State<NewImagePoll> {
         ],
       ),
       bottomNavigationBar: BottomAppBar(
-        padding: EdgeInsets.zero,
-        height: 50.h,
+        padding: const EdgeInsets.only(bottom: 20),
+        height: 70.h,
         color: Theme.of(context).colorScheme.background,
         child: PrimaryButton(
           title: AppLocalizations.of(context)!.addpoll,
@@ -379,56 +429,49 @@ class _NewImagePollState extends State<NewImagePoll> {
         aspectRatio: 1.3,
 
         child: hasImage
-            ? CustomPaint(
-              painter: DottedBorderPainter(
-                color: Theme.of(context).colorScheme.onPrimary.withOpacity(0.4),
-                strokeWidth: 1.5,
-                gap: 5,
-              ),
-              child: Padding(
+            ? Padding(
                 padding: const EdgeInsets.all(5),
                 child: ClipRRect(
-                    borderRadius: BorderRadius.circular(AppRadius.button),
-                    child: Stack(
-                      children: [
-                        Positioned.fill(
-                          child: Image.file(_images[index]!, fit: BoxFit.cover),
-                        ),
-                        Positioned(
-                          bottom: 0,
-                          left: 0,
-                          right: 0,
-                          child: Container(
-                            padding: EdgeInsets.symmetric(
-                              vertical: 8.h,
-                              horizontal: 10.w,
-                            ),
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                begin: Alignment.bottomCenter,
-                                end: Alignment.topCenter,
-                                colors: [
-                                  Colors.black.withOpacity(0.7),
-                                  Colors.transparent,
-                                ],
-                              ),
-                            ),
-                            child: Text(
-                              _getOptionText(context, index),
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 12.sp,
-                                fontWeight: FontWeight.w600,
-                              ),
-                              textAlign: TextAlign.center,
+                  borderRadius: BorderRadius.circular(AppRadius.button),
+                  child: Stack(
+                    children: [
+                      Positioned.fill(
+                        child: Image.file(_images[index]!, fit: BoxFit.cover),
+                      ),
+                      Positioned(
+                        bottom: 0,
+                        left: 0,
+                        right: 0,
+                        child: Container(
+                          padding: EdgeInsets.symmetric(
+                            vertical: 8.h,
+                            horizontal: 10.w,
+                          ),
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.bottomCenter,
+                              end: Alignment.topCenter,
+                              colors: [
+                                Colors.black.withOpacity(0.7),
+                                Colors.transparent,
+                              ],
                             ),
                           ),
+                          child: Text(
+                            _getOptionText(context, index),
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 12.sp,
+                              fontWeight: FontWeight.w600,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
-              ),
-            )
+                ),
+              )
             : CustomPaint(
                 painter: DottedBorderPainter(
                   color: Theme.of(

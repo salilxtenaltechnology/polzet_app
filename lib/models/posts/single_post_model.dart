@@ -11,6 +11,8 @@ class SinglePostModel {
   final String description;
   final String createdAt;
   final List<SinglePostPoll> polls;
+  final List<SinglePostImage> images;
+  final List<SinglePostLike> viewLikes;
   final bool isLiked;
   final bool isPolledByCurrentUser;
   final String? locationName;
@@ -28,6 +30,8 @@ class SinglePostModel {
     required this.description,
     required this.createdAt,
     required this.polls,
+    required this.images,
+    required this.viewLikes,
     required this.isLiked,
     required this.isPolledByCurrentUser,
     this.locationName,
@@ -57,24 +61,37 @@ class SinglePostModel {
               ?.map((e) => SinglePostPoll.fromJson(e as Map<String, dynamic>))
               .toList() ??
           [],
-          isLiked: json['is_liked'] as bool? ?? false,
+      images:
+          (json['images'] as List<dynamic>?)
+              ?.map((e) => SinglePostImage.fromJson(Map<String, dynamic>.from(e as Map)))
+              .toList() ??
+          [],
+      viewLikes:
+          (json['view_likes'] as List<dynamic>?)
+              ?.map((e) => SinglePostLike.fromJson(Map<String, dynamic>.from(e as Map)))
+              .toList() ??
+          [],
+      isLiked: json['is_liked'] as bool? ?? false,
       isPolledByCurrentUser: json['is_polled_by_current_user'] as bool? ?? false,
       locationName: json['location_name'] as String?,
       commentsCount: json['comments_count'] as int? ?? 0,
       likesCount: json['likes_count'] as int? ?? 0,
       followingStatus: json['following_status'] as String? ?? 'none',
       sharesCount: json['shares_count'] as int? ?? 0,
-      
     );
   }
 
   Map<String, dynamic> toJson() => {
     'id': id,
+    'first_name': firstName,
+    'last_name': lastName,
     'user': user.toJson(),
-    'profile_image' : profileImage,
+    'profile_image': profileImage,
     'description': description,
     'created_at': createdAt,
     'polls': polls.map((e) => e.toJson()).toList(),
+    'images': images.map((e) => e.toJson()).toList(),
+    'view_likes': viewLikes.map((e) => e.toJson()).toList(),
     'is_liked': isLiked,
     'is_polled_by_current_user': isPolledByCurrentUser,
     'location_name': locationName,
@@ -90,21 +107,30 @@ class SinglePostModel {
 
   bool get isTextPoll =>
       polls.isNotEmpty &&
-      polls.every((p) => p.options.every((o) => o.text != null));
+      polls.every((p) => p.options.every((o) => o.text != null && o.image == null));
 }
 
 
 class SinglePostPoll {
   final String id;
+  final String type;
+  final String pollType;
+  final String votingType;
+  final bool isAnonymous;
+  final Map<String, dynamic> settings;
   final String question;
   final int maxOptions;
   final List<SinglePostPollOption> options;
   final String totalVotes;
-  final int?
-  userVote;
+  final int? userVote;
 
-  const SinglePostPoll({
+  SinglePostPoll({
     required this.id,
+    required this.type,
+    required this.pollType,
+    required this.votingType,
+    required this.isAnonymous,
+    required this.settings,
     required this.question,
     required this.maxOptions,
     required this.options,
@@ -113,24 +139,38 @@ class SinglePostPoll {
   });
 
   factory SinglePostPoll.fromJson(Map<String, dynamic> json) {
+    final String totalVotesVal = json['total_votes']?.toString() ?? '0';
+    final List<SinglePostPollOption> optionsVal =
+        (json['options'] as List<dynamic>?)
+            ?.map(
+              (e) => SinglePostPollOption.fromJson(e as Map<String, dynamic>),
+            )
+            .toList() ??
+        [];
     return SinglePostPoll(
       id: json['id']?.toString() ?? '',
+      type: json['type'] as String? ?? 'text',
+      pollType: json['poll_type'] as String? ?? '',
+      votingType: json['voting_type'] as String? ?? 'single_choice',
+      isAnonymous: json['is_anonymous'] as bool? ?? false,
+      settings: json['settings'] is Map
+          ? Map<String, dynamic>.from(json['settings'] as Map)
+          : {},
       question: json['question'] as String? ?? '',
       maxOptions: json['max_options'] as int? ?? 1,
-      options:
-          (json['options'] as List<dynamic>?)
-              ?.map(
-                (e) => SinglePostPollOption.fromJson(e as Map<String, dynamic>),
-              )
-              .toList() ??
-          [],
-      totalVotes: json['total_votes']?.toString() ?? '0',
+      options: optionsVal,
+      totalVotes: totalVotesVal,
       userVote: json['user_vote'] as int?,
     );
   }
 
   Map<String, dynamic> toJson() => {
     'id': id,
+    'type': type,
+    'poll_type': pollType,
+    'voting_type': votingType,
+    'is_anonymous': isAnonymous,
+    'settings': settings,
     'question': question,
     'max_options': maxOptions,
     'options': options.map((e) => e.toJson()).toList(),
@@ -146,16 +186,20 @@ class SinglePostPollOption {
   final dynamic id;
   final String? text;
   final SinglePostPollImage? image;
-  final String voteCount;
+  String voteCount;
   final double percentage;
+  final double score;
+  final Map<String, dynamic> rankDistribution;
   final List<SinglePostVoter> voters;
 
-  const SinglePostPollOption({
+  SinglePostPollOption({
     required this.id,
     this.text,
     this.image,
     required this.voteCount,
     required this.percentage,
+    required this.score,
+    required this.rankDistribution,
     required this.voters,
   });
 
@@ -168,6 +212,10 @@ class SinglePostPollOption {
           : null,
       voteCount: json['vote_count']?.toString() ?? '0',
       percentage: (json['percentage'] as num?)?.toDouble() ?? 0.0,
+      score: (json['score'] as num?)?.toDouble() ?? 0.0,
+      rankDistribution: json['rank_distribution'] is Map
+          ? Map<String, dynamic>.from(json['rank_distribution'] as Map)
+          : {},
       voters:
           (json['voters'] as List<dynamic>?)
               ?.map((e) => SinglePostVoter.fromJson(e as Map<String, dynamic>))
@@ -182,6 +230,8 @@ class SinglePostPollOption {
     'image': image?.toJson(),
     'vote_count': voteCount,
     'percentage': percentage,
+    'score': score,
+    'rank_distribution': rankDistribution,
     'voters': voters.map((e) => e.toJson()).toList(),
   };
 }
@@ -202,6 +252,47 @@ class SinglePostPollImage {
 
   factory SinglePostPollImage.fromJson(Map<String, dynamic> json) {
     return SinglePostPollImage(
+      id: json['id'],
+      order: json['order'] as int? ?? 0,
+      url: json['url'] as String? ?? '',
+      thumbnailUrl: json['thumbnail_url'] as String? ?? '',
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'order': order,
+    'url': url,
+    'thumbnail_url': thumbnailUrl,
+  };
+
+  String resolvedUrl(String baseUrl) {
+    if (url.startsWith('http')) return url;
+    return '$baseUrl$url';
+  }
+
+  String resolvedThumbnailUrl(String baseUrl) {
+    if (thumbnailUrl.startsWith('http')) return thumbnailUrl;
+    return '$baseUrl$thumbnailUrl';
+  }
+}
+
+
+class SinglePostImage {
+  final dynamic id;
+  final int order;
+  final String url;
+  final String thumbnailUrl;
+
+  const SinglePostImage({
+    required this.id,
+    required this.order,
+    required this.url,
+    required this.thumbnailUrl,
+  });
+
+  factory SinglePostImage.fromJson(Map<String, dynamic> json) {
+    return SinglePostImage(
       id: json['id'],
       order: json['order'] as int? ?? 0,
       url: json['url'] as String? ?? '',
@@ -271,6 +362,46 @@ class SinglePostVoter {
       return '${firstName[0]}${lastName[0]}'.toUpperCase();
     }
     return username.isNotEmpty ? username[0].toUpperCase() : '?';
+  }
+}
+
+
+class SinglePostLike {
+  final dynamic id;
+  final String username;
+  final String firstName;
+  final String lastName;
+  final String? profilePictureUrl;
+
+  const SinglePostLike({
+    required this.id,
+    required this.username,
+    required this.firstName,
+    required this.lastName,
+    this.profilePictureUrl,
+  });
+
+  factory SinglePostLike.fromJson(Map<String, dynamic> json) {
+    return SinglePostLike(
+      id: json['id'],
+      username: json['username']?.toString() ?? '',
+      firstName: json['first_name']?.toString() ?? '',
+      lastName: json['last_name']?.toString() ?? '',
+      profilePictureUrl: json['profile_picture_url'] as String?,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'username': username,
+    'first_name': firstName,
+    'last_name': lastName,
+    'profile_picture_url': profilePictureUrl,
+  };
+
+  String get displayName {
+    final full = '$firstName $lastName'.trim();
+    return full.isNotEmpty ? full : username;
   }
 }
 

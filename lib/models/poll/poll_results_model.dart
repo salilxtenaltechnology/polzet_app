@@ -115,10 +115,12 @@ class PollOption {
 class IndividualResult {
   final PollUser user;
   final List<UserRank> ranks;
+  final String? votedAt;
 
   IndividualResult({
     required this.user,
     required this.ranks,
+    this.votedAt,
   });
 
   factory IndividualResult.fromJson(Map<String, dynamic> json) {
@@ -138,6 +140,7 @@ class IndividualResult {
     return IndividualResult(
       user: PollUser.fromJson(json['user'] ?? {}),
       ranks: parsedRanks,
+      votedAt: json['voted_at']?.toString() ?? json['created_at']?.toString(),
     );
   }
 }

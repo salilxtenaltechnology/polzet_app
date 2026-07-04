@@ -268,7 +268,7 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (_) => PublicProfileScreen(userId: comment.userId),
+                    builder: (_) => PublicProfileScreen(userId: comment.userId, username: comment.user),
                   ),
                 );
               }

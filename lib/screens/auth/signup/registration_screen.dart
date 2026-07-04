@@ -9,7 +9,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:intl/intl.dart';
 
 import '../../../api/app_api.dart';
-import '../../../api/services/validator/api_service.dart';
+import '../../../api/api_service.dart';
 import '../../../core/themes/app_text_colors.dart';
 import '../../../core/themes/app_text_styles.dart';
 import '../../../languages/l10n/generated/app_localizations.dart';
@@ -197,7 +197,9 @@ class _RegistrationScreenState extends State<RegistrationScreen>
     }
 
     final cardBgColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
-    final neutralColor = isDark ? const Color(0xFF333333) : const Color(0xFFE5E5E5);
+    final neutralColor = isDark
+        ? const Color(0xFF333333)
+        : const Color(0xFFE5E5E5);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -259,15 +261,35 @@ class _RegistrationScreenState extends State<RegistrationScreen>
                 }),
               ),
               SizedBox(height: 18.h),
-              _buildRequirementRow('8 - 10 characters', _hasLength(text), isDark),
+              _buildRequirementRow(
+                '8 - 10 characters',
+                _hasLength(text),
+                isDark,
+              ),
               SizedBox(height: 10.h),
-              _buildRequirementRow('At least 1 uppercase letter', _hasUppercase(text), isDark),
+              _buildRequirementRow(
+                'At least 1 uppercase letter',
+                _hasUppercase(text),
+                isDark,
+              ),
               SizedBox(height: 10.h),
-              _buildRequirementRow('At least 1 lowercase letter', _hasLowercase(text), isDark),
+              _buildRequirementRow(
+                'At least 1 lowercase letter',
+                _hasLowercase(text),
+                isDark,
+              ),
               SizedBox(height: 10.h),
-              _buildRequirementRow('At least 1 number', _hasNumber(text), isDark),
+              _buildRequirementRow(
+                'At least 1 number',
+                _hasNumber(text),
+                isDark,
+              ),
               SizedBox(height: 10.h),
-              _buildRequirementRow('At least 1 special character', _hasSpecialChar(text), isDark),
+              _buildRequirementRow(
+                'At least 1 special character',
+                _hasSpecialChar(text),
+                isDark,
+              ),
             ],
           ),
         ),
@@ -399,8 +421,9 @@ class _RegistrationScreenState extends State<RegistrationScreen>
           !_hasLowercase(pw) ||
           !_hasNumber(pw) ||
           !_hasSpecialChar(pw)) {
-        _passwordError = AppLocalizations.of(context)!
-            .mustbeeightpluscharacterswithaletternumberandspecialcharacter;
+        _passwordError = AppLocalizations.of(
+          context,
+        )!.mustbeeightpluscharacterswithaletternumberandspecialcharacter;
         ok = false;
       }
 
@@ -714,43 +737,48 @@ class _RegistrationScreenState extends State<RegistrationScreen>
           child: TextField(
             controller: _usernameCtrl,
             onChanged: _onUsernameChanged,
-            cursorColor: Theme.of(context).colorScheme.onPrimary.withOpacity(0.8),
-        cursorWidth: 1.5,
-        style: AppTextStyles.subText.copyWith(
-          fontSize: 15,
-          color: Theme.of(context).colorScheme.onBackground,
-          fontWeight: FontWeight.w400,
-        ),
+            inputFormatters: [LengthLimitingTextInputFormatter(20)],
+            cursorColor: Theme.of(
+              context,
+            ).colorScheme.onPrimary.withOpacity(0.8),
+            cursorWidth: 1.5,
+            style: AppTextStyles.subText.copyWith(
+              fontSize: 15,
+              color: Theme.of(context).colorScheme.onBackground,
+              fontWeight: FontWeight.w400,
+            ),
             decoration: InputDecoration(
               hintText: 'Enter a valid username',
               hintStyle: AppTextStyles.subText.copyWith(
-            fontSize: 14.5,
-            color: isDarkMode
-                ? const Color(0XFFB3B3B3)
-                : const Color(0XFF898989),
-            fontWeight: FontWeight.w400,
-          ),
+                fontSize: 14.5,
+                color: isDarkMode
+                    ? const Color(0XFFB3B3B3)
+                    : const Color(0XFF898989),
+                fontWeight: FontWeight.w400,
+              ),
               contentPadding: const EdgeInsets.symmetric(
                 horizontal: 16,
                 vertical: 14,
               ),
               suffixIcon: suffixIcon,
               enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide(
-              color: isDarkMode
-                  ? Theme.of(context).colorScheme.outline
-                  : const Color(0xFFDDDDDD),
-              width: 0.7,
-            ),
-          ),
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(
+                  color: isDarkMode
+                      ? Theme.of(context).colorScheme.outline
+                      : const Color(0xFFDDDDDD),
+                  width: 0.7,
+                ),
+              ),
               focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide(
-              color: Theme.of(context).colorScheme.onPrimary.withOpacity(0.7),
-              width: 0.7,
-            ),
-          ),
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.onPrimary.withOpacity(0.7),
+                  width: 0.7,
+                ),
+              ),
               errorBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
                 borderSide: BorderSide(
@@ -758,7 +786,6 @@ class _RegistrationScreenState extends State<RegistrationScreen>
                   width: 0.7,
                 ),
               ),
-            
             ),
           ),
         ),

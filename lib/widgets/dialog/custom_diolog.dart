@@ -5,6 +5,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:lottie/lottie.dart';
 
 import '../../gen/assets.gen.dart';
+import 'anonymous_poll/add_anonymous_poll.dart';
 import 'block_user_diolog.dart';
 import 'business/switch_business_acc_diolog.dart';
 import 'crop_image_diolog.dart';
@@ -65,6 +66,17 @@ Future<bool?> cropImageDiolog(BuildContext context) {
 //   diologanimation(context, ClearSearchHistoryDiolog(onPressed: onTap));
 // }
 
+void showAnonymousPollOption(
+  BuildContext context,
+  VoidCallback onTapThings,
+  VoidCallback onTapImage,
+) {
+  diologanimation(
+    context,
+    AddAnonymousPoll(onPressedThings: onTapThings, onPressedImage: onTapImage),
+  );
+}
+
 // delete comment diolog
 void showDeleteCommentDiolog(BuildContext context, VoidCallback onTap) {
   diologanimation(context, DeleteCommentDiolog(onPressed: onTap));
@@ -79,7 +91,6 @@ void showSwitchToBusinessDiolog(BuildContext context, VoidCallback onTap) {
 void showLogoutDiolog(BuildContext context, VoidCallback onTap) {
   diologanimation(context, LogoutDialog(onPressed: onTap));
 }
-
 
 // block user diolog
 showBlockUserDiolog(BuildContext context, VoidCallback onTap, bool isBlock) {

@@ -6,7 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../../../api/api_config.dart';
-import '../../../api/services/validator/api_service.dart';
+import '../../../api/api_service.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../mixin/utility_mixins.dart';
 import '../../../../widgets/custom_text_styles.dart';

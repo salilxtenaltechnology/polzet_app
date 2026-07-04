@@ -230,8 +230,12 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
 
   void _handleBackgroundNotificationTap(RemoteMessage message) async {
     final context = navigatorKey.currentContext;
-    if (context == null || !mounted || !NotificationRouter.isHomeScreenVisible) {
-      debugPrint('⚠️ HomeScreen not visible or context not ready, storing notification for later');
+    if (context == null ||
+        !mounted ||
+        !NotificationRouter.isHomeScreenVisible) {
+      debugPrint(
+        '⚠️ HomeScreen not visible or context not ready, storing notification for later',
+      );
       NotificationRouter().setPendingNotification(message);
       return;
     }
@@ -252,13 +256,21 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       }
     }
 
-    _navigateToNotificationDestination(context, message.data, messageId: message.messageId);
+    _navigateToNotificationDestination(
+      context,
+      message.data,
+      messageId: message.messageId,
+    );
   }
 
   void _handleForegroundNotificationTap(NotificationPayload payload) async {
     final context = navigatorKey.currentContext;
-    if (context == null || !mounted || !NotificationRouter.isHomeScreenVisible) {
-      debugPrint('⚠️ HomeScreen not visible or context not ready, storing notification for later');
+    if (context == null ||
+        !mounted ||
+        !NotificationRouter.isHomeScreenVisible) {
+      debugPrint(
+        '⚠️ HomeScreen not visible or context not ready, storing notification for later',
+      );
       NotificationRouter().setPendingNotification(
         RemoteMessage(data: payload.data, messageId: payload.id),
         actionId: payload.actionId,
@@ -302,7 +314,9 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       notificationData = Map<String, dynamic>.from(payloadMap['notification']);
     } else if (payloadMap['notification'] is String) {
       try {
-        notificationData = jsonDecode(payloadMap['notification'] as String) as Map<String, dynamic>;
+        notificationData =
+            jsonDecode(payloadMap['notification'] as String)
+                as Map<String, dynamic>;
       } catch (_) {}
     } else {
       notificationData = payloadMap;
@@ -328,7 +342,9 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   }) {
     if (messageId != null) {
       SharedPrefService.setString('last_processed_notification_id', messageId);
-      debugPrint('📬 main.dart: Persisted processed notification ID: $messageId');
+      debugPrint(
+        '📬 main.dart: Persisted processed notification ID: $messageId',
+      );
     }
 
     Map<String, dynamic> payloadMap = Map<String, dynamic>.from(rawData);
@@ -341,7 +357,9 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       notificationData = Map<String, dynamic>.from(payloadMap['notification']);
     } else if (payloadMap['notification'] is String) {
       try {
-        notificationData = jsonDecode(payloadMap['notification'] as String) as Map<String, dynamic>;
+        notificationData =
+            jsonDecode(payloadMap['notification'] as String)
+                as Map<String, dynamic>;
       } catch (_) {}
     } else {
       notificationData = payloadMap;
@@ -354,7 +372,9 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     final userProvider = Provider.of<UserProvider>(context, listen: false);
     final String username = userProvider.username ?? '';
 
-    debugPrint('🎯 Navigating to notification type: "$type", action: "$actionId"');
+    debugPrint(
+      '🎯 Navigating to notification type: "$type", action: "$actionId"',
+    );
     debugPrint('📋 Full notification data: $data');
     debugPrint('   👤 Username: $username');
 
@@ -381,14 +401,17 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       } else {
         debugPrint('❌ Invalid or missing post_id for type: $type');
       }
-    } else if (actionId == 'view_profile_action' || type == 'follow' || type == 'friend_request' || type == 'friend_requests') {
+    } else if (actionId == 'view_profile_action' ||
+        type == 'follow' ||
+        type == 'friend_request' ||
+        type == 'friend_requests') {
       dynamic actorData = data['actor'];
       if (actorData is String && actorData.isNotEmpty) {
         try {
           actorData = jsonDecode(actorData);
         } catch (_) {}
       }
-      
+
       dynamic metaData = data['meta'];
       if (metaData is String && metaData.isNotEmpty) {
         try {
@@ -396,16 +419,43 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
         } catch (_) {}
       }
 
-      final String? userId = data['sender_id']?.toString() ??
+      final String? userId =
+          data['sender_id']?.toString() ??
           data['sender_uuid']?.toString() ??
-          (actorData is Map ? actorData['user_id']?.toString() ?? actorData['id']?.toString() ?? actorData['user_uuid']?.toString() : null) ??
+          (actorData is Map
+              ? actorData['user_id']?.toString() ??
+                    actorData['id']?.toString() ??
+                    actorData['user_uuid']?.toString()
+              : null) ??
           (metaData is Map ? metaData['sender_id']?.toString() : null) ??
           data['user_id']?.toString() ??
           data['userId']?.toString();
-      if (userId != null && userId.isNotEmpty) {
-        destination = PublicProfileScreen(userId: userId);
+      final String? senderUsername =
+          data['sender_username']?.toString() ??
+          (actorData is Map
+              ? actorData['username']?.toString() ??
+                    actorData['sender']?.toString() ??
+                    actorData['sender_username']?.toString() ??
+                    actorData['sender_name']?.toString()
+              : null) ??
+          (metaData is Map
+              ? metaData['sender_username']?.toString() ??
+                    metaData['username']?.toString() ??
+                    metaData['sender']?.toString()
+              : null) ??
+          data['username']?.toString() ??
+          data['sender']?.toString() ??
+          data['sender_name']?.toString();
+      if ((userId != null && userId.isNotEmpty) ||
+          (senderUsername != null && senderUsername.isNotEmpty)) {
+        destination = PublicProfileScreen(
+          userId: userId,
+          username: senderUsername,
+        );
       } else {
-        debugPrint('❌ Invalid or missing sender_id for type: $type, action: $actionId');
+        debugPrint(
+          '❌ Invalid or missing sender_id/username for type: $type, action: $actionId',
+        );
       }
     } else if (type == 'follow_group') {
       destination = UserChase(
@@ -425,9 +475,11 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       final senderId = _parseToInt(data['sender_id'] ?? meta?['sender_id']);
       final memberName = (data['sender'] ?? meta?['sender'] ?? 'Chat')
           .toString();
-      final rawProfileUrl = (data['sender_profile_image'] ?? data['profile_image'])
-          ?.toString();
-      final profileUrl = (rawProfileUrl == 'null' || rawProfileUrl == '') ? null : rawProfileUrl;
+      final rawProfileUrl =
+          (data['sender_profile_image'] ?? data['profile_image'])?.toString();
+      final profileUrl = (rawProfileUrl == 'null' || rawProfileUrl == '')
+          ? null
+          : rawProfileUrl;
       final chatId = _parseToInt(data['chat_id'] ?? meta?['chat_id']);
       final groupName =
           (data['group_name'] ?? meta?['group_name'])?.toString() ?? '';
@@ -462,7 +514,10 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
           destination is UserChase ||
           destination is PrivateChatScreen ||
           destination is GroupChatScreen) {
-        final isOffline = Provider.of<ConnectivityProvider>(context, listen: false).isOffline;
+        final isOffline = Provider.of<ConnectivityProvider>(
+          context,
+          listen: false,
+        ).isOffline;
         if (isOffline) {
           showToast(message: 'Please check your internet connection');
           return;

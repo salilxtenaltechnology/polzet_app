@@ -12,19 +12,24 @@ class SecondryTextfield extends StatelessWidget {
     required this.hintText,
     this.suffixIcon,
     this.onChanged,
+    this.maxLines = 1,
+    this.minLines,
   });
 
   final TextEditingController controller;
   final String hintText;
   final IconButton? suffixIcon;
   final Function(String)? onChanged;
+  final int? maxLines;
+  final int? minLines;
 
   @override
   Widget build(BuildContext context) {
     return TextField(
       controller: controller,
       keyboardType: TextInputType.multiline,
-      maxLines: 1,
+      maxLines: maxLines,
+      minLines: minLines,
       onChanged: onChanged,
       style: AppTextStyles.subText.copyWith(
         fontSize: 15,

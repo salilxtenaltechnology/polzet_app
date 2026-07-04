@@ -13,7 +13,7 @@ import 'package:image/image.dart' as img;
 
 import '../../../data/token/shared_preferences.dart';
 import '../fcm/fcm_service.dart';
-import '../validator/api_service.dart';
+import '../../api_service.dart';
 import 'package:http/http.dart' as http;
 import '../../api_config.dart';
 

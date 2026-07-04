@@ -6,7 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:polzet_app/screens/home/profile/public/public_profile_screen.dart';
 
 import '../../../api/api_config.dart';
-import '../../../api/services/validator/api_service.dart';
+import '../../../api/api_service.dart';
 import '../../../core/constants/app_radius.dart';
 import '../../../core/themes/app_text_colors.dart';
 import '../../../core/themes/app_text_styles.dart';
@@ -21,12 +21,14 @@ class PollVotersBottomsheet extends StatefulWidget {
   final dynamic postId;
   final String question;
   final String? pollImageUrl;
+  final String? pollType;
 
   const PollVotersBottomsheet({
     super.key,
     required this.postId,
     required this.question,
     this.pollImageUrl,
+    this.pollType,
   });
 
   @override
@@ -54,6 +56,21 @@ class _PollVotersBottomsheetState extends State<PollVotersBottomsheet>
   void dispose() {
     _searchController.dispose();
     super.dispose();
+  }
+
+  String _timeAgo(DateTime dt) {
+    try {
+      final diff = DateTime.now().difference(dt.toLocal());
+      if (diff.inSeconds < 60) return 'Just now';
+      if (diff.inMinutes < 60) return '${diff.inMinutes} min ago';
+      if (diff.inHours < 24) return '${diff.inHours} h ago';
+      if (diff.inDays < 7) return '${diff.inDays} d ago';
+      if (diff.inDays < 30) return '${(diff.inDays / 7).floor()} w ago';
+      if (diff.inDays < 365) return '${(diff.inDays / 30).floor()} mo ago';
+      return '${(diff.inDays / 365).floor()} y ago';
+    } catch (_) {
+      return '';
+    }
   }
 
   Future<void> _fetchVoterResults() async {
@@ -301,6 +318,268 @@ class _PollVotersBottomsheetState extends State<PollVotersBottomsheet>
                         }
                       }
 
+                      final timeAgoText = result.votedAt != null
+                          ? _timeAgo(
+                              DateTime.tryParse(result.votedAt!) ??
+                                  DateTime.now(),
+                            )
+                          : '';
+
+                      if (widget.pollType == 'hot_take') {
+                        final votedText = result.ranks.isNotEmpty
+                            ? (result.ranks.first.text ?? '')
+                            : '';
+                        final isAgree = votedText.toLowerCase() == 'agree';
+                        final isDisagree =
+                            votedText.toLowerCase() == 'disagree';
+
+                        return Container(
+                          margin: EdgeInsets.symmetric(
+                            horizontal: 16.w,
+                            vertical: 8.h,
+                          ),
+                          padding: EdgeInsets.symmetric(
+                            horizontal: 16.w,
+                            vertical: 16.h,
+                          ),
+                          decoration: BoxDecoration(
+                            color: isDarkMode
+                                ? const Color(0xFF1E1E1E)
+                                : Colors.white,
+
+                            borderRadius: BorderRadius.circular(AppRadius.card),
+                            border: Border.all(
+                              color: Theme.of(context).colorScheme.outline,
+                              width: 1,
+                            ),
+                            boxShadow: const [
+                              BoxShadow(
+                                color: Color(0x06000000),
+                                blurRadius: 2,
+                              ),
+                            ],
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // Voter Info Row
+                              GestureDetector(
+                                onTap: () {
+                                  navigationPush(
+                                    context,
+                                    PublicProfileScreen(
+                                      userId: voter.id,
+                                      username: voter.username,
+                                    ),
+                                  );
+                                },
+                                child: Row(
+                                  children: [
+                                    CircleAvatar(
+                                      radius: 20,
+                                      backgroundImage: avatarBytes != null
+                                          ? MemoryImage(avatarBytes)
+                                          : (voter.profilePictureUrl != null &&
+                                                    voter
+                                                        .profilePictureUrl!
+                                                        .isNotEmpty &&
+                                                    voter.profilePictureUrl!
+                                                        .startsWith('http')
+                                                ? NetworkImage(
+                                                    voter.profilePictureUrl!,
+                                                  )
+                                                : null),
+                                      backgroundColor: Theme.of(
+                                        context,
+                                      ).colorScheme.onPrimary.withOpacity(0.1),
+                                      child:
+                                          avatarBytes == null &&
+                                              (voter.profilePictureUrl ==
+                                                      null ||
+                                                  voter
+                                                      .profilePictureUrl!
+                                                      .isEmpty ||
+                                                  !voter.profilePictureUrl!
+                                                      .startsWith('http'))
+                                          ? Text(
+                                              voter.fullName.isNotEmpty
+                                                  ? voter.fullName[0]
+                                                        .toUpperCase()
+                                                  : voter.username.isNotEmpty
+                                                  ? voter.username[0]
+                                                        .toUpperCase()
+                                                  : 'P',
+                                              style: AppTextStyles.bodyText
+                                                  .copyWith(
+                                                    color: Theme.of(context)
+                                                        .colorScheme
+                                                        .onPrimary
+                                                        .withOpacity(0.7),
+                                                    fontSize: 18,
+                                                    fontWeight: FontWeight.w500,
+                                                  ),
+                                            )
+                                          : null,
+                                    ),
+                                    SizedBox(width: 12.w),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            voter.fullName.isNotEmpty
+                                                ? voter.fullName
+                                                : voter.username,
+                                            style: AppTextStyles.sectionHeading
+                                                .copyWith(
+                                                  color: txt.title,
+                                                  fontSize: 13.5,
+                                                ),
+                                          ),
+
+                                          Row(
+                                            children: [
+                                              Text(
+                                                '@${voter.username}',
+                                                style: AppTextStyles.bodyText
+                                                    .copyWith(
+                                                      fontSize: 12,
+                                                      fontWeight:
+                                                          FontWeight.w500,
+                                                      color: txt.body,
+                                                    ),
+                                              ),
+                                              if (timeAgoText.isNotEmpty) ...[
+                                                Text(
+                                                  ' • ',
+                                                  style: TextStyle(
+                                                    fontSize: 13.sp,
+                                                    fontWeight: FontWeight.w400,
+                                                    color: isDarkMode
+                                                        ? const Color(
+                                                            0xFFA1A1AA,
+                                                          )
+                                                        : const Color(
+                                                            0xFF71717A,
+                                                          ),
+                                                  ),
+                                                ),
+                                                Text(
+                                                  timeAgoText,
+                                                  style: TextStyle(
+                                                    fontSize: 13.sp,
+                                                    fontWeight: FontWeight.w400,
+                                                    color: isDarkMode
+                                                        ? const Color(
+                                                            0xFFA1A1AA,
+                                                          )
+                                                        : const Color(
+                                                            0xFF71717A,
+                                                          ),
+                                                  ),
+                                                ),
+                                              ],
+                                            ],
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              SizedBox(height: 16.h),
+                              // Agree / Disagree Badge Container
+                              if (isAgree)
+                                Container(
+                                  width: double.infinity,
+                                  height: 45,
+                                  decoration: BoxDecoration(
+                                    color: isDarkMode
+                                        ? const Color(0xFF101F1B)
+                                        : const Color(0xFFECFDF5),
+                                    border: Border.all(
+                                      color: isDarkMode
+                                          ? const Color(0xFF19322A)
+                                          : Colors.transparent,
+                                      width: 1.5,
+                                    ),
+                                    borderRadius: BorderRadius.circular(
+                                      AppRadius.card,
+                                    ),
+                                  ),
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Image.asset(
+                                        Assets.images.icAgree.path,
+                                        height: 22,
+                                        width: 22,
+                                      ),
+                                      SizedBox(width: 10.w),
+                                      Text(
+                                        'Agree',
+                                        style: AppTextStyles.sectionHeading
+                                            .copyWith(
+                                              color: isDarkMode
+                                                  ? const Color(0xFF10B981)
+                                                  : const Color(0xFF059669),
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.w400,
+                                            ),
+                                      ),
+                                    ],
+                                  ),
+                                )
+                              else if (isDisagree)
+                                Container(
+                                  width: double.infinity,
+                                  height: 45,
+                                  decoration: BoxDecoration(
+                                    color: isDarkMode
+                                        ? const Color(0xFF201315)
+                                        : const Color(0xFFFDE5E5),
+                                    border: Border.all(
+                                      color: isDarkMode
+                                          ? const Color(
+                                              0xFFCB5B5B,
+                                            ).withOpacity(0.5)
+                                          : Colors.transparent,
+                                      width: 1,
+                                    ),
+                                    borderRadius: BorderRadius.circular(
+                                      AppRadius.card,
+                                    ),
+                                  ),
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Image.asset(
+                                        Assets.images.icDisagree.path,
+                                        height: 22,
+                                        width: 22,
+                                      ),
+                                      SizedBox(width: 8.w),
+                                      Text(
+                                        'Disagree',
+                                        style: AppTextStyles.sectionHeading
+                                            .copyWith(
+                                              color: isDarkMode
+                                                  ? const Color(0xFFE53E3E)
+                                                  : const Color(0xFFC81E1E),
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.w400,
+                                            ),
+                                      ),
+                                    ],
+                                  ),
+                                )
+                              else
+                                const SizedBox.shrink(),
+                            ],
+                          ),
+                        );
+                      }
                       return Container(
                         margin: EdgeInsets.symmetric(
                           horizontal: 10.w,
@@ -328,7 +607,10 @@ class _PollVotersBottomsheetState extends State<PollVotersBottomsheet>
                               onTap: () {
                                 navigationPush(
                                   context,
-                                  PublicProfileScreen(userId: voter.id),
+                                  PublicProfileScreen(
+                                    userId: voter.id,
+                                    username: voter.username,
+                                  ),
                                 );
                               },
                               child: Row(
@@ -338,17 +620,26 @@ class _PollVotersBottomsheetState extends State<PollVotersBottomsheet>
                                     backgroundImage: avatarBytes != null
                                         ? MemoryImage(avatarBytes)
                                         : (voter.profilePictureUrl != null &&
-                                                voter.profilePictureUrl!.isNotEmpty &&
-                                                voter.profilePictureUrl!.startsWith('http')
-                                            ? NetworkImage(voter.profilePictureUrl!)
-                                            : null),
+                                                  voter
+                                                      .profilePictureUrl!
+                                                      .isNotEmpty &&
+                                                  voter.profilePictureUrl!
+                                                      .startsWith('http')
+                                              ? NetworkImage(
+                                                  voter.profilePictureUrl!,
+                                                )
+                                              : null),
                                     backgroundColor: Theme.of(
                                       context,
                                     ).colorScheme.onPrimary.withOpacity(0.1),
-                                    child: avatarBytes == null &&
+                                    child:
+                                        avatarBytes == null &&
                                             (voter.profilePictureUrl == null ||
-                                                voter.profilePictureUrl!.isEmpty ||
-                                                !voter.profilePictureUrl!.startsWith('http'))
+                                                voter
+                                                    .profilePictureUrl!
+                                                    .isEmpty ||
+                                                !voter.profilePictureUrl!
+                                                    .startsWith('http'))
                                         ? Text(
                                             voter.fullName.isNotEmpty
                                                 ? voter.fullName[0]
@@ -400,11 +691,169 @@ class _PollVotersBottomsheetState extends State<PollVotersBottomsheet>
                                 ],
                               ),
                             ),
-
                             const SizedBox(height: 10),
-
                             // Horizontally Scrollable / Row of Ranked Choices
                             (() {
+                              if (widget.pollType == 'this_or_that' ||
+                                  widget.pollType == 'battle') {
+                                if (result.ranks.isEmpty) {
+                                  return const SizedBox.shrink();
+                                }
+                                return Column(
+                                  children: result.ranks.map((rankItem) {
+                                    final hasImage =
+                                        rankItem.imageUrl != null &&
+                                        rankItem.imageUrl!.isNotEmpty;
+                                    if (hasImage) {
+                                      final optImgUrl =
+                                          rankItem.imageUrl!.startsWith('http')
+                                          ? rankItem.imageUrl!
+                                          : ApiConfig.baseUrlImage +
+                                                rankItem.imageUrl!;
+                                      return Padding(
+                                        padding: EdgeInsets.zero,
+                                        child: Stack(
+                                          children: [
+                                            ClipRRect(
+                                              borderRadius:
+                                                  BorderRadius.circular(10.r),
+                                              child: SizedBox(
+                                                width: double.infinity,
+                                                height: 130.h,
+                                                child: Image.network(
+                                                  optImgUrl,
+                                                  fit: BoxFit.cover,
+                                                  errorBuilder:
+                                                      (
+                                                        context,
+                                                        error,
+                                                        stackTrace,
+                                                      ) => Container(
+                                                        color: isDarkMode
+                                                            ? const Color(
+                                                                0xFF38383C,
+                                                              )
+                                                            : Colors
+                                                                  .grey
+                                                                  .shade100,
+                                                        child: Icon(
+                                                          Icons
+                                                              .image_not_supported,
+                                                          color: txt.muted,
+                                                          size: 24.sp,
+                                                        ),
+                                                      ),
+                                                ),
+                                              ),
+                                            ),
+                                            Positioned(
+                                              top: 10.h,
+                                              right: 10.w,
+                                              child: Container(
+                                                padding: EdgeInsets.symmetric(
+                                                  horizontal: 12.w,
+                                                  vertical: 4.h,
+                                                ),
+                                                decoration: BoxDecoration(
+                                                  color: const Color(
+                                                    0xFF9E2C43,
+                                                  ),
+                                                  borderRadius:
+                                                      BorderRadius.circular(
+                                                        20.r,
+                                                      ),
+                                                ),
+                                                child: Text(
+                                                  'Choose this',
+                                                  style: AppTextStyles.bodyText.copyWith(
+                                                    color: Colors.white,
+                                                    fontSize: 12,
+                                                    fontWeight: FontWeight.w500,
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      );
+                                    } else {
+                                      return Padding(
+                                        padding: EdgeInsets.only(
+                                          top: 6.h,
+                                          bottom: 6.h,
+                                        ),
+                                        child: Container(
+                                          width: double.infinity,
+                                          padding: EdgeInsets.symmetric(
+                                            horizontal: 12.w,
+                                            vertical: 8.h,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: isDarkMode
+                                                ? const Color(
+                                                    0xFF38383C,
+                                                  ).withOpacity(0.4)
+                                                : Colors.white,
+                                            borderRadius: BorderRadius.circular(
+                                              AppRadius.card,
+                                            ),
+                                            border: Border.all(
+                                              color: isDarkMode
+                                                  ? Theme.of(
+                                                      context,
+                                                    ).colorScheme.outline
+                                                  : const Color(0xFFE5E5E5),
+                                              width: 1,
+                                            ),
+                                          ),
+                                          child: Row(
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.spaceBetween,
+                                            children: [
+                                              Expanded(
+                                                child: Text(
+                                                  rankItem.text ?? '',
+                                                 style: AppTextStyles.bodyText
+                                                    .copyWith(
+                                                      fontSize: 12.5,
+                                                      fontWeight:
+                                                          FontWeight.w400,
+                                                      color: txt.title,
+                                                    ),
+                                                ),
+                                              ),
+                                              Container(
+                                                padding: EdgeInsets.symmetric(
+                                                  horizontal: 12.w,
+                                                  vertical: 4.h,
+                                                ),
+                                                decoration: BoxDecoration(
+                                                  color: const Color(
+                                                    0xFF9E2C43,
+                                                  ),
+                                                  borderRadius:
+                                                      BorderRadius.circular(
+                                                        20.r,
+                                                      ),
+                                                ),
+                                                child: Text(
+                                                  'Choose this',
+                                                 style: AppTextStyles.bodyText.copyWith(
+                                                    color: Colors.white,
+                                                    fontSize: 12,
+                                                    fontWeight: FontWeight.w500,
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      );
+                                    }
+                                  }).toList(),
+                                );
+                              }
+
                               final sortedRanks = List<UserRank>.from(
                                 result.ranks,
                               )..sort((a, b) => a.rank.compareTo(b.rank));

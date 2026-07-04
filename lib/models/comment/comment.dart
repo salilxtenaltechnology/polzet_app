@@ -48,11 +48,27 @@ class Comments {
   });
 
   factory Comments.fromJson(Map<String, dynamic> json) {
+    String parsedUser = '';
+    String parsedUserId = '';
+    String? parsedProfileImage;
+
+    final userVal = json['user'];
+    if (userVal is Map) {
+      final userMap = Map<String, dynamic>.from(userVal);
+      parsedUser = userMap['username']?.toString() ?? userMap['name']?.toString() ?? '';
+      parsedUserId = userMap['uuid']?.toString() ?? userMap['id']?.toString() ?? '';
+      parsedProfileImage = userMap['avatar_url']?.toString() ?? userMap['profile_image']?.toString();
+    } else {
+      parsedUser = userVal?.toString() ?? '';
+      parsedUserId = json['user_id']?.toString() ?? '';
+      parsedProfileImage = json['profile_image']?.toString();
+    }
+
     return Comments(
       id: _toInt(json['id']),
-      user: json['user']?.toString() ?? '',
-      userId: json['user_id']?.toString() ?? '',
-      profileImage: json['profile_image']?.toString(),
+      user: parsedUser,
+      userId: parsedUserId,
+      profileImage: parsedProfileImage,
       text: json['text']?.toString() ?? '',
       createdAt: DateTime.parse(json['created_at']?.toString() ?? DateTime.now().toIso8601String()),
     );

@@ -50,7 +50,6 @@ class ApiConstants {
   static String deletePost = "$baseUrl/posts";
   static String chaseList = "$baseUrl/friends/followers";
   static String reChaseList = "$baseUrl/friends/following";
-  static String publicProfile = "$baseUrl/users";
   static String homeFeed = "$baseUrl/home_feed";
   static String singlePost = "$baseUrl/posts";
   static String insights = "$baseUrl/insights";

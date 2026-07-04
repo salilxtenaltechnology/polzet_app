@@ -7,12 +7,12 @@ import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
 import '../../../../../api/api_config.dart';
-import '../../../../../api/services/validator/api_service.dart';
+import '../../../../../api/api_service.dart';
 import '../../../../../core/constants/app_radius.dart';
 import '../../../../../core/themes/app_text_colors.dart';
 import '../../../../../core/themes/app_text_styles.dart';
 import '../../../../../languages/l10n/generated/app_localizations.dart';
-import '../../../../../models/public/public_profile_model.dart';
+import '../../../../../models/posts/user_post_model.dart';
 import '../../../../../widgets/appbar/common_appbar.dart';
 import '../../../../../widgets/loader.dart';
 import '../../../home feed/rank/result/image/image_preview_screen.dart';
@@ -23,8 +23,8 @@ class PublicUserImageRanking extends StatefulWidget {
   final String? firstName;
   final String? lastName;
   final String? profileImage;
-  final PublicPost post;
-  final PublicPoll poll;
+  final UserPostModel post;
+  final UserPollQuestion poll;
   const PublicUserImageRanking({
     super.key,
     required this.firstName,
@@ -39,7 +39,7 @@ class PublicUserImageRanking extends StatefulWidget {
 }
 
 class _PublicUserImageRankingState extends State<PublicUserImageRanking> {
-  late List<PublicPollOption> _orderedImages;
+  late List<UserPollOption> _orderedImages;
 
   bool _hasRanked = false;
   bool _isSubmitting = false;
@@ -257,7 +257,7 @@ class _PublicUserImageRankingState extends State<PublicUserImageRanking> {
                           ),
                         ),
                         Text(
-                          '  • ${_timeAgo(widget.post.createdAt)}',
+                          '  • ${_timeAgo(widget.post.createdAt.toIso8601String())}',
                           style: AppTextStyles.subText.copyWith(
                             color: txt.muted,
                             fontWeight: FontWeight.w400,
@@ -336,9 +336,9 @@ class _PublicUserImageRankingState extends State<PublicUserImageRanking> {
 }
 
 class _UserRankImageCard extends StatelessWidget {
-  final PublicPollOption option;
+  final UserPollOption option;
   final int? rank;
-  final List<PublicPollOption> allImages;
+  final List<UserPollOption> allImages;
   final int index;
 
   const _UserRankImageCard({

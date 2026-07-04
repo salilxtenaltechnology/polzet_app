@@ -13,7 +13,7 @@ import '../../../../../core/constants/app_radius.dart';
 import '../../../../../core/themes/app_text_colors.dart';
 import '../../../../../core/themes/app_text_styles.dart';
 import '../../../../../api/api_config.dart';
-import '../../../../../api/services/validator/api_service.dart';
+import '../../../../../api/api_service.dart';
 import '../../../../../languages/l10n/generated/app_localizations.dart';
 import '../../../../../mixin/utility_mixins.dart';
 import '../../../../../models/message/message_model.dart';
@@ -30,6 +30,7 @@ import '../chat_details.dart';
 
 class PrivateChatScreen extends StatefulWidget {
   final String? memberName;
+  final String? username;
   final String? profileUrl;
   final dynamic userId;
   final int? chatId;
@@ -38,6 +39,7 @@ class PrivateChatScreen extends StatefulWidget {
   const PrivateChatScreen({
     super.key,
     required this.memberName,
+    this.username,
     required this.profileUrl,
     required this.userId,
     this.chatId,
@@ -481,7 +483,7 @@ class _PrivateChatScreenState extends State<PrivateChatScreen>
                   if (userId != null) {
                     navigationPush(
                       context,
-                      PublicProfileScreen(userId: userId.toString()),
+                      PublicProfileScreen(userId: userId.toString(), username: username),
                     );
                   }
                 },
@@ -601,7 +603,10 @@ class _PrivateChatScreenState extends State<PrivateChatScreen>
     return GestureDetector(
       onTap: () {
         if (userId.isNotEmpty) {
-          navigationPush(context, PublicProfileScreen(userId: userId));
+          navigationPush(
+            context,
+            PublicProfileScreen(userId: userId, username: username),
+          );
         }
       },
       child: Container(
@@ -1150,6 +1155,7 @@ class _PrivateChatScreenState extends State<PrivateChatScreen>
                         child: ChatDetails(
                           userId: widget.userId,
                           chatName: widget.memberName,
+                          username: widget.username,
                           profileUrl: widget.profileUrl,
                           isGroupChat: false,
                           isUserBlock: _isUserBlock,

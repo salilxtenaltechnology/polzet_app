@@ -20,6 +20,7 @@ class FeatherIcons {
   static const IconData volume2 = Icons.volume_up_outlined;
   static const IconData shield = Icons.shield_outlined;
   static const IconData eye = Icons.visibility_outlined;
+  static const IconData eyeOff = Icons.visibility_off_outlined;
   static const IconData userPlus = Icons.person_add_outlined;
   static const IconData smile = Icons.sentiment_satisfied_alt;
   static const IconData share = Icons.share_outlined;

@@ -5,7 +5,8 @@ import 'package:polzet_app/api/api_config.dart';
 final Map<String, Uint8List> _imageCache = {};
 
 String? resolveProfileImageUrl(String? path) {
-  if (path == null || path.trim().isEmpty) return null;
+  if (path == null || path.trim().isEmpty || path.trim() == 'null') return null;
+  if (path.startsWith('assets/')) return path;
   if (path.startsWith('http') || path.startsWith('data:image')) return path;
   final separator = path.startsWith('/') ? '' : '/';
   return '${ApiConfig.baseUrlImage}$separator$path';

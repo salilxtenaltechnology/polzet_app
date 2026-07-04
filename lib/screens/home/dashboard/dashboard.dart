@@ -32,6 +32,7 @@ class DashboardState extends State<Dashboard> with UtilityMixin {
   static const Duration _cacheValidDuration = Duration(minutes: 10);
 
   late Future<UserSuggestionsModel> _suggestionsFuture;
+  UserProvider? _userProvider;
 
   static final StreamController<void> _refreshTriggerController =
       StreamController<void>.broadcast();
@@ -62,11 +63,37 @@ class DashboardState extends State<Dashboard> with UtilityMixin {
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final userProvider = Provider.of<UserProvider>(context);
+    if (_userProvider != userProvider) {
+      _userProvider?.removeListener(_onUserProviderChanged);
+      _userProvider = userProvider;
+      _userProvider?.addListener(_onUserProviderChanged);
+    }
+  }
+
+  void _onUserProviderChanged() {
+    if (_userProvider != null && _userProvider!.deletedPostIds.isNotEmpty) {
+      final deletedIds = _userProvider!.deletedPostIds;
+      final originalLength = posts.length;
+      setState(() {
+        posts.removeWhere((post) => deletedIds.contains(post.id));
+      });
+      if (posts.length != originalLength) {
+        _savePostsToCache(posts);
+        _postsStreamController.add(List.from(posts));
+      }
+    }
+  }
+
+  @override
   void dispose() {
     _scrollController.removeListener(_onScroll);
     _scrollController.dispose();
     _postsStreamController.close();
     _refreshSubscription?.cancel();
+    _userProvider?.removeListener(_onUserProviderChanged);
     super.dispose();
   }
 
@@ -190,11 +217,7 @@ class DashboardState extends State<Dashboard> with UtilityMixin {
 
       if (mounted) {
         setState(() {
-          if (!showLoader && posts.isNotEmpty) {
-            _mergePostsData(response.results);
-          } else {
-            posts = response.results;
-          }
+          posts = response.results;
           isLoading = false;
           isInitialLoad = false;
           errorMessage = null;
@@ -254,39 +277,6 @@ class DashboardState extends State<Dashboard> with UtilityMixin {
         });
       }
     }
-  }
-
-  void _mergePostsData(List<HomeFeedPost> fetchedPosts) {
-    Map<String, HomeFeedPost> fetchedPostsMap = {
-      for (var post in fetchedPosts) post.id: post,
-    };
-
-    for (int i = 0; i < posts.length; i++) {
-      final currentPost = posts[i];
-      final fetchedPost = fetchedPostsMap[currentPost.id];
-
-      if (fetchedPost != null) {
-        currentPost.isPolledByCurrentUser = fetchedPost.isPolledByCurrentUser;
-        if (currentPost.polls.isNotEmpty && fetchedPost.polls.isNotEmpty) {
-          for (int j = 0; j < currentPost.polls.length; j++) {
-            if (j < fetchedPost.polls.length) {
-              final currentPoll = currentPost.polls[j];
-              final fetchedPoll = fetchedPost.polls[j];
-              currentPoll.totalVotes = fetchedPoll.totalVotes;
-              for (int k = 0; k < currentPoll.options.length; k++) {
-                if (k < fetchedPoll.options.length) {
-                  currentPoll.options[k].percentage =
-                      fetchedPoll.options[k].percentage;
-                }
-              }
-            }
-          }
-        }
-        fetchedPostsMap.remove(currentPost.id);
-      }
-    }
-
-    posts.insertAll(0, fetchedPostsMap.values);
   }
 
   void updatePostInStream(HomeFeedPost updatedPost) {

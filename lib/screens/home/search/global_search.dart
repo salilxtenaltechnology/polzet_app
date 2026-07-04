@@ -13,7 +13,7 @@ import 'package:polzet_app/languages/l10n/generated/app_localizations.dart';
 import 'package:polzet_app/widgets/loader.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:polzet_app/data/token/shared_preferences.dart';
-import '../../../api/services/validator/api_service.dart';
+import '../../../api/api_service.dart';
 import '../../../api/api_config.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_radius.dart';
@@ -1449,7 +1449,7 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen>
     final avatar = _avatarProvider(acc.profileImage);
     return GestureDetector(
       onTap: () =>
-          navigationPush(context, PublicProfileScreen(userId: acc.uuid)),
+          navigationPush(context, PublicProfileScreen(userId: acc.uuid, username: acc.username)),
       child: Padding(
         padding: EdgeInsetsGeometry.symmetric(horizontal: 12.w, vertical: 7),
         child: Row(
@@ -1571,7 +1571,7 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen>
                   onTap: () {
                     navigationPush(
                       context,
-                      PublicProfileScreen(userId: author.id),
+                      PublicProfileScreen(userId: author.id, username: author.username),
                     );
                   },
                   child: CircleAvatar(

@@ -63,7 +63,7 @@ class UserPostModel {
     required this.comments,
     required this.likesCount,
     required this.isLiked,
-    required this.commentCount, 
+    required this.commentCount,
     required this.sharesCount,
     required this.locationName,
     required this.is_polled_by_current_user,
@@ -76,7 +76,9 @@ class UserPostModel {
           ? (json['user']['username'] ?? '').toString()
           : (json['user'] ?? '').toString(),
       description: json['description']?.toString() ?? '',
-      createdAt: DateTime.parse(json['created_at']?.toString() ?? DateTime.now().toIso8601String()),
+      createdAt: DateTime.parse(
+        json['created_at']?.toString() ?? DateTime.now().toIso8601String(),
+      ),
       images:
           (json['images'] as List<dynamic>?)
               ?.map((e) => PostImage.fromJson(e as Map<String, dynamic>))
@@ -97,7 +99,7 @@ class UserPostModel {
       commentCount: _toInt(json['comments_count']),
       sharesCount: _toInt(json['shares_count']),
       is_polled_by_current_user: _parseBool(json['is_polled_by_current_user']),
-      locationName: json['location_name']?.toString() ?? ''
+      locationName: json['location_name']?.toString() ?? '',
     );
   }
 
@@ -113,9 +115,17 @@ class UserPostModel {
 
   bool get hasPollImages {
     return polls.any(
-      (poll) => poll.options?.any((option) => option.image != null) ?? false,
+      (poll) => poll.options.any((option) => option.image != null),
     );
   }
+
+  bool get isImagePoll =>
+      polls.isNotEmpty &&
+      polls.any((p) => p.options.any((o) => o.image != null));
+
+  bool get isTextPoll =>
+      polls.isNotEmpty &&
+      polls.every((p) => p.options.every((o) => o.text != null && o.image == null));
 
   Map<String, dynamic> toJson() {
     return {
@@ -127,10 +137,10 @@ class UserPostModel {
       'polls': polls.map((e) => e.toJson()).toList(),
       'comments': comments.map((e) => e.toJson()).toList(),
       'likes_count': likesCount,
-      'comments_count' : commentCount, 
-      'shares_count' : sharesCount,
+      'comments_count': commentCount,
+      'shares_count': sharesCount,
       'is_liked': isLiked,
-      'location_name' : locationName
+      'location_name': locationName,
     };
   }
 
@@ -143,7 +153,7 @@ class UserPostModel {
     List<UserPollQuestion>? polls,
     List<Comment>? comments,
     int? likesCount,
-    int? commentCount, 
+    int? commentCount,
     int? sharesCount,
     bool? isLiked,
     bool? is_polled_by_current_user,
@@ -163,7 +173,7 @@ class UserPostModel {
       isLiked: isLiked ?? this.isLiked,
       is_polled_by_current_user:
           is_polled_by_current_user ?? this.is_polled_by_current_user,
-      locationName: locationName ?? this.locationName
+      locationName: locationName ?? this.locationName,
     );
   }
 }
@@ -207,29 +217,55 @@ class PostImage {
 class UserPollQuestion {
   final String id;
   final String question;
+  final String type;
+  final String pollType;
+  final String vottingType;
   final int maxOptions;
-  final List<UserPollOption>? options;
-  final String totalVotes;
+  final List<UserPollOption> options;
+  String totalVotes;
   final int? userVote;
 
   UserPollQuestion({
     required this.id,
     required this.question,
+    required this.type,
+    required this.pollType,
+    required this.vottingType,
     required this.maxOptions,
-    this.options,
+    required this.options,
     required this.totalVotes,
     this.userVote,
   });
 
   factory UserPollQuestion.fromJson(Map<String, dynamic> json) {
+    final List<UserPollOption> optionsVal = (json['options'] as List<dynamic>?)
+        ?.map((e) => UserPollOption.fromJson(e as Map<String, dynamic>))
+        .toList() ?? [];
+
+    String totalVotesVal = json['total_votes']?.toString() ?? '0';
+    if (totalVotesVal == '0' || totalVotesVal.isEmpty) {
+      int sum = 0;
+      for (var option in optionsVal) {
+        sum += int.tryParse(option.voteCount) ?? 0;
+      }
+      if (sum > 0) {
+        totalVotesVal = sum.toString();
+      }
+    }
+
+    for (var option in optionsVal) {
+      option.voteCount = totalVotesVal;
+    }
+
     return UserPollQuestion(
       id: (json['id'] ?? '').toString(),
       question: (json['question'] ?? '').toString(),
+      type: (json['type'] ?? '').toString(),
+      pollType: (json['poll_type'] ?? '').toString(),
+      vottingType: (json['voting_type'] ?? '').toString(),
       maxOptions: _toInt(json['max_options']),
-      options: (json['options'] as List<dynamic>?)
-          ?.map((e) => UserPollOption.fromJson(e as Map<String, dynamic>))
-          .toList(),
-      totalVotes: json['total_votes']?.toString() ?? '0',
+      options: optionsVal,
+      totalVotes: totalVotesVal,
       userVote: _toIntNullable(json['user_vote']),
     );
   }
@@ -238,8 +274,11 @@ class UserPollQuestion {
     return {
       'id': id,
       'question': question,
+      'type': type,
+      'poll_type': pollType,
+      'voting_type': vottingType,
       'max_options': maxOptions,
-      'options': options?.map((e) => e.toJson()).toList(),
+      'options': options.map((e) => e.toJson()).toList(),
       'total_votes': totalVotes,
       'user_vote': userVote,
     };
@@ -250,7 +289,7 @@ class UserPollOption {
   final int id;
   final String? text;
   final PollOptionImage? image;
-  final String voteCount;
+  String voteCount;
   double percentage;
   final List<dynamic> voters;
 
@@ -264,12 +303,13 @@ class UserPollOption {
   });
 
   factory UserPollOption.fromJson(Map<String, dynamic> json) {
+    final imageVal = json['image'] != null
+        ? PollOptionImage.fromJson(json['image'] as Map<String, dynamic>)
+        : null;
     return UserPollOption(
       id: _toInt(json['id']),
       text: json['text']?.toString(),
-      image: json['image'] != null
-          ? PollOptionImage.fromJson(json['image'] as Map<String, dynamic>)
-          : null,
+      image: imageVal,
       voteCount: json['vote_count']?.toString() ?? '0',
       percentage: (json['percentage'] ?? 0).toDouble(),
       voters: json['voters'] as List<dynamic>? ?? [],
@@ -310,7 +350,10 @@ class PollOptionImage {
 
   String resolvedThumbnailUrl(String baseUrl) {
     if (thumbnailUrl.isEmpty) return '';
-    if (thumbnailUrl.startsWith('http') || thumbnailUrl.startsWith('data:image')) return thumbnailUrl;
+    if (thumbnailUrl.startsWith('http') ||
+        thumbnailUrl.startsWith('data:image')) {
+      return thumbnailUrl;
+    }
     if (thumbnailUrl.startsWith('/')) return '$baseUrl$thumbnailUrl';
     return '$baseUrl/$thumbnailUrl';
   }

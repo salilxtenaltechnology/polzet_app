@@ -7,7 +7,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import '../../../api/services/validator/api_service.dart';
+import '../../../api/api_service.dart';
 import '../../../core/constants/app_radius.dart';
 import '../../../core/themes/app_text_colors.dart';
 import '../../../core/themes/app_text_styles.dart';

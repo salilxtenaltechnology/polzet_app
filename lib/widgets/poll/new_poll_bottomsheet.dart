@@ -10,8 +10,8 @@ import '../../core/themes/app_text_styles.dart';
 import '../../gen/assets.gen.dart';
 import '../../languages/l10n/generated/app_localizations.dart';
 import '../../mixin/utility_mixins.dart';
-import '../../screens/home/new poll/new_image_poll.dart';
-import '../../screens/home/new poll/new_things_poll.dart';
+import '../../screens/home/new poll/type/new_image_poll.dart';
+import '../../screens/home/new poll/type/new_text_poll.dart';
 
 class NewPollBottomsheet extends StatelessWidget with UtilityMixin {
   const NewPollBottomsheet({super.key});
@@ -59,7 +59,7 @@ class NewPollBottomsheet extends StatelessWidget with UtilityMixin {
                     GestureDetector(
                       onTap: () {
                         Navigator.pop(context);
-                        navigationPush(context, const NewThingsPoll());
+                        navigationPush(context, const NewTextPoll());
                       },
                       child: Container(
                         height: 55.h,

@@ -4,7 +4,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:polzet_app/gen/assets.gen.dart';
 
-import '../../../api/services/validator/api_service.dart';
+import '../../../api/api_service.dart';
 import '../../../core/themes/app_text_colors.dart';
 import '../../../core/themes/app_text_styles.dart';
 

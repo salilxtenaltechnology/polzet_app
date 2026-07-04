@@ -13,9 +13,10 @@ import '../../../core/themes/app_text_styles.dart';
 import '../../../core/constants/app_radius.dart';
 import '../../../languages/l10n/generated/app_localizations.dart';
 import '../../../widgets/show_toast.dart';
-import '../../../api/services/validator/api_service.dart';
+import '../../../api/api_service.dart';
 import '../../../widgets/base64/image_convert.dart';
 import '../../loader.dart';
+import '../../../gen/assets.gen.dart';
 
 class ShareBottomSheet extends StatefulWidget {
   final String shareLink;
@@ -133,7 +134,12 @@ class _ShareBottomSheetState extends State<ShareBottomSheet> {
   }
 
   String? _resolveProfileUrl(String? url) {
-    if (url == null || url.trim().isEmpty) return null;
+    if (url == null || url.trim().isEmpty || url.trim().toLowerCase() == 'null') {
+      return null;
+    }
+    if (url.startsWith('assets/')) {
+      return url;
+    }
     if (!url.startsWith('http') && !url.startsWith('data:image')) {
       if (url.startsWith('/')) {
         return '${ApiConfig.baseUrlImage}$url';
@@ -146,13 +152,22 @@ class _ShareBottomSheetState extends State<ShareBottomSheet> {
 
   String? _userAvatar(Map<String, dynamic> item) {
     final String? avatar;
-    if (item['is_group'] == true) {
-      avatar = item['profile_url']?.toString();
+    final isGroup =
+        item['is_group'] == true || item['chat_type']?.toString() == 'group';
+    if (isGroup) {
+      avatar =
+          item['avatar_url']?.toString() ?? item['profile_url']?.toString();
+      return _resolveProfileUrl(avatar);
     } else {
-      avatar = (item['avatar'] ?? item['profile_picture_url'] ?? item['image'])
-          ?.toString();
+      avatar =
+          (item['profile_url'] ??
+                  item['avatar_url'] ??
+                  item['avatar'] ??
+                  item['profile_picture_url'] ??
+                  item['image'])
+              ?.toString();
+      return _resolveProfileUrl(avatar);
     }
-    return _resolveProfileUrl(avatar);
   }
 
   Future<void> _shareToWhatsApp() async {
@@ -367,7 +382,7 @@ class _ShareBottomSheetState extends State<ShareBottomSheet> {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     final txt = AppTextColors.of(context);
     return SafeArea(
-       top: false,
+      top: false,
       child: Padding(
         padding: EdgeInsets.only(
           bottom: MediaQuery.of(context).viewInsets.bottom,
@@ -396,7 +411,7 @@ class _ShareBottomSheetState extends State<ShareBottomSheet> {
                 ),
               ),
               const SizedBox(height: 15),
-      
+
               // Search Bar
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 15),
@@ -425,7 +440,10 @@ class _ShareBottomSheetState extends State<ShareBottomSheet> {
                         color: Color(0XFF898989),
                       ),
                       border: InputBorder.none,
-                      contentPadding: const EdgeInsets.only(top: 10, bottom: 10),
+                      contentPadding: const EdgeInsets.only(
+                        top: 10,
+                        bottom: 10,
+                      ),
                     ),
                     style: AppTextStyles.bodyText.copyWith(
                       color: Theme.of(context).colorScheme.onSurface,
@@ -435,7 +453,7 @@ class _ShareBottomSheetState extends State<ShareBottomSheet> {
                 ),
               ),
               const SizedBox(height: 20),
-      
+
               // Users Grid
               Expanded(
                 child: _isLoadingUsers
@@ -470,11 +488,11 @@ class _ShareBottomSheetState extends State<ShareBottomSheet> {
                           final avatarUrl = _userAvatar(item);
                           final name = _userName(item);
                           final isGroup = item['is_group'] == true;
-      
+
                           final isSelected = isGroup
                               ? _selectedGroupIds.contains(item['id'])
                               : _selectedUserIds.contains(item['id']);
-      
+
                           return GestureDetector(
                             onTap: () {
                               setState(() {
@@ -518,10 +536,18 @@ class _ShareBottomSheetState extends State<ShareBottomSheet> {
                                               avatarUrl != null &&
                                               avatarUrl.trim().isNotEmpty &&
                                               avatarUrl.startsWith('http');
+                                          final hasAssetImage =
+                                              imageBytes == null &&
+                                              !hasNetworkImage &&
+                                              avatarUrl != null &&
+                                              avatarUrl.trim().isNotEmpty &&
+                                              (avatarUrl.contains('assets/') ||
+                                                  avatarUrl.endsWith('.png') ||
+                                                  avatarUrl.endsWith('.jpg'));
                                           final initial = name.isNotEmpty
                                               ? name[0].toUpperCase()
                                               : '?';
-      
+
                                           return Container(
                                             height: 60,
                                             width: 60,
@@ -529,9 +555,12 @@ class _ShareBottomSheetState extends State<ShareBottomSheet> {
                                               shape: BoxShape.circle,
                                               color:
                                                   (imageBytes == null &&
-                                                      !hasNetworkImage)
+                                                      !hasNetworkImage &&
+                                                      !hasAssetImage)
                                                   ? (isDarkMode
-                                                        ? const Color(0xFF343434)
+                                                        ? const Color(
+                                                            0xFF343434,
+                                                          )
                                                         : Theme.of(context)
                                                               .colorScheme
                                                               .primary
@@ -551,7 +580,16 @@ class _ShareBottomSheetState extends State<ShareBottomSheet> {
                                                             ),
                                                             fit: BoxFit.cover,
                                                           )
-                                                        : null),
+                                                        : (hasAssetImage
+                                                              ? DecorationImage(
+                                                                  image:
+                                                                      AssetImage(
+                                                                        avatarUrl,
+                                                                      ),
+                                                                  fit: BoxFit
+                                                                      .cover,
+                                                                )
+                                                              : null)),
                                               border: Border.all(
                                                 color: Theme.of(context)
                                                     .colorScheme
@@ -561,7 +599,8 @@ class _ShareBottomSheetState extends State<ShareBottomSheet> {
                                             ),
                                             child:
                                                 (imageBytes == null &&
-                                                    !hasNetworkImage)
+                                                    !hasNetworkImage &&
+                                                    !hasAssetImage)
                                                 ? Center(
                                                     child: Text(
                                                       initial,
@@ -649,13 +688,13 @@ class _ShareBottomSheetState extends State<ShareBottomSheet> {
                         },
                       ),
               ),
-      
+
               // Divider
               Divider(
                 color: Theme.of(context).colorScheme.outlineVariant,
                 height: 1,
               ),
-      
+
               if (_selectedUserIds.isEmpty && _selectedGroupIds.isEmpty)
                 // Share Options
                 Padding(
@@ -740,7 +779,9 @@ class _ShareBottomSheetState extends State<ShareBottomSheet> {
                             fontSize: 14.5,
                           ),
                           border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(AppRadius.button),
+                            borderRadius: BorderRadius.circular(
+                              AppRadius.button,
+                            ),
                             borderSide: BorderSide(
                               color: isDarkMode
                                   ? Theme.of(context).colorScheme.outline
@@ -748,7 +789,9 @@ class _ShareBottomSheetState extends State<ShareBottomSheet> {
                             ),
                           ),
                           enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(AppRadius.button),
+                            borderRadius: BorderRadius.circular(
+                              AppRadius.button,
+                            ),
                             borderSide: BorderSide(
                               color: isDarkMode
                                   ? Theme.of(context).colorScheme.outline
@@ -756,7 +799,9 @@ class _ShareBottomSheetState extends State<ShareBottomSheet> {
                             ),
                           ),
                           focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(AppRadius.button),
+                            borderRadius: BorderRadius.circular(
+                              AppRadius.button,
+                            ),
                             borderSide: BorderSide(
                               color: Theme.of(context).colorScheme.primary,
                             ),
@@ -865,11 +910,18 @@ class _ShareBottomSheetState extends State<ShareBottomSheet> {
         if (profileUrls.length >= 2) break;
         final user = member is Map ? member['user'] as Map? : null;
         if (user != null) {
-          final profileUrl =
-              (user['profile_image'] ??
+          String? profileUrl =
+              (user['avatar_url'] ??
+                      user['profile_image'] ??
                       user['profile_picture_url'] ??
                       user['avatar'])
                   ?.toString();
+          final resolved = _resolveProfileUrl(profileUrl);
+          if (resolved == null || resolved.trim().isEmpty) {
+            profileUrl = Assets.images.icAvatar.path;
+          } else {
+            profileUrl = resolved;
+          }
           final name = (user['name'] ?? user['username'] ?? 'Unknown')
               .toString();
           profileUrls.add(profileUrl);
@@ -878,24 +930,10 @@ class _ShareBottomSheetState extends State<ShareBottomSheet> {
       }
     }
 
-    if (profileUrls.isEmpty) {
-      return Container(
-        width: size,
-        height: size,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: isDarkMode
-              ? const Color(0xFF343434)
-              : Theme.of(context).colorScheme.primary.withOpacity(0.1),
-        ),
-        child: Center(
-          child: Icon(
-            Icons.group,
-            size: size * 0.5,
-            color: Theme.of(context).colorScheme.onPrimary,
-          ),
-        ),
-      );
+    // Ensure we always have at least 2 items to show the stacked preview (overlapping circles)
+    while (profileUrls.length < 2) {
+      profileUrls.add(Assets.images.icAvatar.path);
+      initials.add('?');
     }
 
     final double circleSize = size * 0.75;
@@ -916,19 +954,18 @@ class _ShareBottomSheetState extends State<ShareBottomSheet> {
               context: context,
             ),
           ),
-          if (profileUrls.length > 1)
-            Positioned(
-              bottom: 0,
-              right: 0,
-              child: _buildSingleAvatarCircle(
-                profileUrl: profileUrls[1],
-                initial: initials[1],
-                size: circleSize,
-                isDarkMode: isDarkMode,
-                context: context,
-                hasBorder: true,
-              ),
+          Positioned(
+            bottom: 0,
+            right: 0,
+            child: _buildSingleAvatarCircle(
+              profileUrl: profileUrls[1],
+              initial: initials[1],
+              size: circleSize,
+              isDarkMode: isDarkMode,
+              context: context,
+              hasBorder: true,
             ),
+          ),
         ],
       ),
     );
@@ -942,6 +979,8 @@ class _ShareBottomSheetState extends State<ShareBottomSheet> {
     required BuildContext context,
     bool hasBorder = false,
   }) {
+    // Note: profileUrl might already be the asset path Assets.images.icAvatar.path.
+    // _resolveProfileUrl returns it as-is if it is not relative, or resolves if relative.
     final resolvedUrl = _resolveProfileUrl(profileUrl);
     final imageBytes = resolvedUrl != null
         ? getProfileImage(resolvedUrl)
@@ -951,12 +990,20 @@ class _ShareBottomSheetState extends State<ShareBottomSheet> {
         resolvedUrl != null &&
         resolvedUrl.isNotEmpty &&
         resolvedUrl.startsWith('http');
+    final hasAssetImage =
+        imageBytes == null &&
+        !hasNetworkImage &&
+        resolvedUrl != null &&
+        resolvedUrl.trim().isNotEmpty &&
+        (resolvedUrl.contains('assets/') ||
+            resolvedUrl.endsWith('.png') ||
+            resolvedUrl.endsWith('.jpg'));
     return Container(
       width: size,
       height: size,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        color: (imageBytes == null && !hasNetworkImage)
+        color: (imageBytes == null && !hasNetworkImage && !hasAssetImage)
             ? (isDarkMode
                   ? const Color(0xFF343434)
                   : Theme.of(context).colorScheme.primary.withOpacity(0.1))
@@ -979,9 +1026,14 @@ class _ShareBottomSheetState extends State<ShareBottomSheet> {
                       image: NetworkImage(resolvedUrl),
                       fit: BoxFit.cover,
                     )
-                  : null),
+                  : (hasAssetImage
+                        ? DecorationImage(
+                            image: AssetImage(resolvedUrl),
+                            fit: BoxFit.cover,
+                          )
+                        : null)),
       ),
-      child: (imageBytes == null && !hasNetworkImage)
+      child: (imageBytes == null && !hasNetworkImage && !hasAssetImage)
           ? Center(
               child: Text(
                 initial,

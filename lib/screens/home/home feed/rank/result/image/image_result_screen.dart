@@ -5,9 +5,11 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:provider/provider.dart';
+import '../../../../../../provider/user_provider.dart';
 
 import '../../../../../../api/api_config.dart';
-import '../../../../../../api/services/validator/api_service.dart';
+import '../../../../../../api/api_service.dart';
 import '../../../../../../core/constants/app_radius.dart';
 import '../../../../../../core/themes/app_text_colors.dart';
 import '../../../../../../core/themes/app_text_styles.dart';
@@ -106,13 +108,10 @@ class _ImageResultScreenState extends State<ImageResultScreen>
     _sortedOptions = List<SinglePostPollOption>.from(poll.options)
       ..sort((a, b) => b.percentage.compareTo(a.percentage));
 
-    final parsedTotal = int.tryParse(poll.totalVotes) ?? 0;
-    _totalVotes = parsedTotal > 0
-        ? parsedTotal
-        : _sortedOptions.fold(
-            0,
-            (sum, o) => sum + (int.tryParse(o.voteCount) ?? 0),
-          );
+    _totalVotes = poll.options.fold(
+      0,
+      (sum, o) => sum + (int.tryParse(o.voteCount) ?? 0),
+    );
   }
 
   String timeAgo(String createdAt) {
@@ -193,7 +192,7 @@ class _ImageResultScreenState extends State<ImageResultScreen>
           onTap: () {
             navigationPush(
               context,
-              PublicProfileScreen(userId: _post!.user.uuid),
+              PublicProfileScreen(userId: _post!.user.uuid, username: username),
             );
           },
           child: CircleAvatar(
@@ -204,9 +203,10 @@ class _ImageResultScreenState extends State<ImageResultScreen>
             backgroundImage: _profileImageBytes != null
                 ? MemoryImage(_profileImageBytes!)
                 : (_post!.user.profileImage.isNotEmpty
-                    ? NetworkImage(_post!.user.profileImage)
-                    : null),
-            child: _profileImageBytes == null && _post!.user.profileImage.isEmpty
+                      ? NetworkImage(_post!.user.profileImage)
+                      : null),
+            child:
+                _profileImageBytes == null && _post!.user.profileImage.isEmpty
                 ? Text(
                     initial,
                     style: AppTextStyles.subText.copyWith(
@@ -265,6 +265,15 @@ class _ImageResultScreenState extends State<ImageResultScreen>
                 : null;
             if (poll == null) return;
 
+            if (poll.pollType == 'anonymous') {
+              final userProvider = Provider.of<UserProvider>(
+                context,
+                listen: false,
+              );
+              final isOwner = _post?.user.uuid == userProvider.userId;
+              if (!isOwner) return;
+            }
+
             final firstOptionImage = poll.options.isNotEmpty == true
                 ? poll.options
                       .firstWhere(
@@ -280,6 +289,7 @@ class _ImageResultScreenState extends State<ImageResultScreen>
               postId: _post!.id,
               question: poll.question,
               pollImageUrl: firstOptionImage,
+              pollType: poll.pollType,
             );
           },
           child: Text(
@@ -327,6 +337,15 @@ class _ImageResultScreenState extends State<ImageResultScreen>
       onTap: () {
         if (poll == null) return;
 
+        if (poll.pollType == 'anonymous') {
+          final userProvider = Provider.of<UserProvider>(
+            context,
+            listen: false,
+          );
+          final isOwner = _post?.user.uuid == userProvider.userId;
+          if (!isOwner) return;
+        }
+
         final firstOptionImage = poll.options.isNotEmpty == true
             ? poll.options
                   .firstWhere(
@@ -344,6 +363,7 @@ class _ImageResultScreenState extends State<ImageResultScreen>
           postId: _post!.id,
           question: poll.question,
           pollImageUrl: pollImageUrl,
+          pollType: poll.pollType,
         );
       },
       child: Container(
@@ -460,9 +480,7 @@ class _ImageResultScreenState extends State<ImageResultScreen>
                           ),
                         ),
                       ),
-
                       SizedBox(width: 10.w),
-
                       Text(
                         '$votes ${AppLocalizations.of(context)!.votes}',
                         style: AppTextStyles.subText.copyWith(

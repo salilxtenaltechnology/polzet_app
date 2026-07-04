@@ -6,7 +6,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:polzet_app/core/constants/feather_icons_compat.dart';
 import 'package:local_auth/local_auth.dart';
 
-import '../../../../api/services/validator/api_service.dart';
+import '../../../../api/api_service.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_radius.dart';
 import '../../../../core/themes/app_text_colors.dart';

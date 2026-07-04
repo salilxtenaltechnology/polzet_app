@@ -8,7 +8,7 @@ import 'package:showcaseview/showcaseview.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../../../api/api_config.dart';
-import '../../../../../api/services/validator/api_service.dart';
+import '../../../../../api/api_service.dart';
 import '../../../../../core/constants/app_radius.dart';
 import '../../../../../core/themes/app_text_colors.dart';
 import '../../../../../core/themes/app_text_styles.dart';
@@ -265,7 +265,7 @@ class _ImageRankingState extends State<HomefeedImageRanking> with UtilityMixin {
                 onTap: () {
                   navigationPush(
                     context,
-                    PublicProfileScreen(userId: widget.user.userid),
+                    PublicProfileScreen(userId: widget.user.userid, username: widget.user.username),
                   );
                 },
                 child: CircleAvatar(

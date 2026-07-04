@@ -12,30 +12,30 @@ import 'package:provider/provider.dart';
 import 'package:path/path.dart' as path;
 import 'package:http/http.dart' as http;
 
-import '../../../data/token/shared_preferences.dart';
-import '../../../mixin/utility_mixins.dart';
-import '../../../models/global search/global_search_model.dart';
-import '../../../models/global search/recent_search.dart';
-import '../../../models/insights/insights_model.dart';
-import '../../../models/like/like_uers_model.dart';
-import '../../../models/message/message_model.dart';
-import '../../../models/poll/poll_results_model.dart';
-import '../../../models/posts/homefeed_posts_model.dart';
-import '../../../models/posts/single_post_model.dart';
-import '../../../models/posts/user_post_model.dart';
-import '../../../models/public/public_profile_model.dart';
-import '../../../models/search/hashtag/hashtag_posts_list_model.dart';
-import '../../../models/user/suggestionsb users/suggestions_users_model.dart';
-import '../../../models/voters/top_voters_model.dart';
-import '../../../provider/connection_provider.dart';
-import '../../../provider/user_provider.dart';
-import '../../../screens/home/home_imports.dart';
-import '../../../screens/terms_acceptance/terms_acceptance.dart';
-import '../../../widgets/show_toast.dart';
-import '../../api_config.dart';
-import '../../app_api.dart';
-import '../fcm/fcm_service.dart';
-import '../notification/notification_services.dart';
+import '../data/token/shared_preferences.dart';
+import '../mixin/utility_mixins.dart';
+import '../models/global search/global_search_model.dart';
+import '../models/global search/recent_search.dart';
+import '../models/insights/insights_model.dart';
+import '../models/like/like_uers_model.dart';
+import '../models/message/message_model.dart';
+import '../models/poll/poll_results_model.dart';
+import '../models/posts/homefeed_posts_model.dart';
+import '../models/posts/single_post_model.dart';
+import '../models/posts/user_post_model.dart';
+import '../models/public/public_profile_model.dart';
+import '../models/search/hashtag/hashtag_posts_list_model.dart';
+import '../models/user/suggestionsb users/suggestions_users_model.dart';
+import '../models/voters/top_voters_model.dart';
+import '../provider/connection_provider.dart';
+import '../provider/user_provider.dart';
+import '../screens/home/home_imports.dart';
+import '../screens/terms_acceptance/terms_acceptance.dart';
+import '../widgets/show_toast.dart';
+import 'api_config.dart';
+import 'app_api.dart';
+import 'services/fcm/fcm_service.dart';
+import 'services/notification/notification_services.dart';
 
 class ApiService with UtilityMixin {
   final SharedPrefService _prefService = SharedPrefService();
@@ -1078,7 +1078,6 @@ class ApiService with UtilityMixin {
         ),
       });
 
-
       final response = await _dio.put(
         ApiConstants.profileImage,
         data: formData,
@@ -1132,6 +1131,39 @@ class ApiService with UtilityMixin {
   }
 
   // ==================== POSTS ====================
+
+  // Battel poll
+  Future<Map<String, dynamic>> createBattlePoll({
+    required String description,
+    required String question,
+    required List<String> pollOptions,
+  }) async {
+    try {
+      final formData = FormData();
+
+      formData.fields
+        ..add(MapEntry('question', question))
+        ..add(MapEntry('description', description))
+        ..add(const MapEntry('poll_type', 'battle'))
+        ..add(const MapEntry('voting_type', 'single_choice'));
+
+      for (final option in pollOptions) {
+        formData.fields.add(MapEntry('poll_options', option));
+      }
+
+      final response = await _dio.post(
+        '${ApiConfig.baseUrl}/posts',
+        data: formData,
+        options: Options(headers: await _getAuthHeaders()),
+      );
+
+      return response.data as Map<String, dynamic>;
+    } on DioException catch (e) {
+      throw Exception(
+        e.response?.data?['message'] ?? 'Failed to create battle poll',
+      );
+    }
+  }
 
   // Suggestion users
   Future<UserSuggestionsModel> fetchUserSuggestions({int? page}) async {
@@ -1225,8 +1257,8 @@ class ApiService with UtilityMixin {
         '${ApiConstants.userPosts}/$cleanUsername',
         options: Options(headers: await _getAuthHeaders()),
       );
-      final data = response.data['results'] as List<dynamic>;
-      return data.map((e) => UserPostModel.fromJson(e)).toList();
+      final postResponse = UserPostResponse.fromJson(response.data as Map<String, dynamic>);
+      return postResponse.results;
     } on DioException catch (e) {
       debugPrint('Error fetching posts: $e');
       rethrow;
@@ -1246,8 +1278,8 @@ class ApiService with UtilityMixin {
         '${ApiConstants.userPosts}/$username',
         options: Options(headers: await _getAuthHeaders()),
       );
-      final data = response.data['results'] as List<dynamic>;
-      return data.map((e) => UserPostModel.fromJson(e)).toList();
+      final postResponse = UserPostResponse.fromJson(response.data as Map<String, dynamic>);
+      return postResponse.results;
     } on DioException catch (e) {
       debugPrint('Error fetching image posts: $e');
       rethrow;
@@ -1347,8 +1379,22 @@ class ApiService with UtilityMixin {
       formData.fields.addAll([
         MapEntry('description', description),
         MapEntry('question', question),
-        MapEntry('max_options', maxOptions.toString()),
+        const MapEntry('poll_type', "image"),
+        const MapEntry('voting_type', "single_choice"),
+        const MapEntry('max_options', "4"),
       ]);
+
+      // Add blank poll_options for each image option
+      for (int i = 0; i < pollOptions.length; i++) {
+        formData.fields.add(const MapEntry('poll_options', ''));
+      }
+
+      // Add image indices as [0, 1, ...]
+      final List<int> indices = List.generate(
+        pollOptions.length,
+        (index) => index,
+      );
+      formData.fields.add(MapEntry('image_indices', jsonEncode(indices)));
 
       // Add images
       for (int i = 0; i < pollOptions.length; i++) {
@@ -1358,9 +1404,12 @@ class ApiService with UtilityMixin {
         final multipartFile = await MultipartFile.fromFile(
           imageFile.path,
           filename: path.basename(imageFile.path),
-          contentType: MediaType('image', subType == 'jpg' ? 'jpeg' : (subType.isEmpty ? 'jpeg' : subType)),
+          contentType: MediaType(
+            'image',
+            subType == 'jpg' ? 'jpeg' : (subType.isEmpty ? 'jpeg' : subType),
+          ),
         );
-        formData.files.add(MapEntry('poll_options', multipartFile));
+        formData.files.add(MapEntry('images', multipartFile));
       }
 
       // Headers
@@ -1880,15 +1929,12 @@ class ApiService with UtilityMixin {
     required List<dynamic> members,
   }) async {
     try {
-      final Map<String, dynamic> map = {
-        'title': title,
-        'members': members,
-      };
+      final Map<String, dynamic> map = {'title': title, 'members': members};
 
       if (profileImage != null) {
         final String ext = path.extension(profileImage.path).toLowerCase();
         final String subType = ext.startsWith('.') ? ext.substring(1) : 'jpeg';
-        map['profile_image'] = await MultipartFile.fromFile(
+        map['group_picture'] = await MultipartFile.fromFile(
           profileImage.path,
           filename: path.basename(profileImage.path),
           contentType: MediaType(
@@ -1916,7 +1962,11 @@ class ApiService with UtilityMixin {
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         final data = response.data as Map<String, dynamic>;
-        final chatId = data['chat_id'] ?? data['id'] ?? data['data']?['id'] ?? data['data']?['chat_id'];
+        final chatId =
+            data['chat_id'] ??
+            data['id'] ??
+            data['data']?['id'] ??
+            data['data']?['chat_id'];
         return {'success': true, 'chat_id': chatId};
       }
       return {'success': false, 'message': 'Failed to create group'};
@@ -1946,17 +1996,15 @@ class ApiService with UtilityMixin {
         if (data is Map<String, dynamic>) {
           final list = data['results'];
           return {
-            'results': list is List ? List<Map<String, dynamic>>.from(list) : <Map<String, dynamic>>[],
+            'results': list is List
+                ? List<Map<String, dynamic>>.from(list)
+                : <Map<String, dynamic>>[],
             'next': data['next'],
             'count': data['count'],
           };
         }
       }
-      return {
-        'results': <Map<String, dynamic>>[],
-        'next': null,
-        'count': 0,
-      };
+      return {'results': <Map<String, dynamic>>[], 'next': null, 'count': 0};
     } on DioException catch (e) {
       debugPrint('Error fetching chat list: $e');
       rethrow;
@@ -2218,12 +2266,21 @@ class ApiService with UtilityMixin {
 
         for (final member in members) {
           if (member is Map) {
-            final String uuid = (member['uuid'] ?? member['id'] ?? (member['user']?['id'] ?? ''))
-                .toString();
+            final String uuid =
+                (member['uuid'] ??
+                        member['id'] ??
+                        (member['user']?['id'] ?? ''))
+                    .toString();
             final bool isAdmin = adminUuids.contains(uuid);
-            final String? joinedAt = member['joined_at']?.toString() ?? member['user']?['joined_at']?.toString();
-            final bool? isOnline = member['is_online'] as bool? ?? member['user']?['is_online'] as bool?;
-            final bool? isBlock = member['is_block'] as bool? ?? member['user']?['is_block'] as bool?;
+            final String? joinedAt =
+                member['joined_at']?.toString() ??
+                member['user']?['joined_at']?.toString();
+            final bool? isOnline =
+                member['is_online'] as bool? ??
+                member['user']?['is_online'] as bool?;
+            final bool? isBlock =
+                member['is_block'] as bool? ??
+                member['user']?['is_block'] as bool?;
 
             normalizedMembers.add({
               'is_admin': isAdmin,
@@ -2232,7 +2289,9 @@ class ApiService with UtilityMixin {
               'is_block': isBlock,
               'user': {
                 'id': uuid,
-                'username': member['username']?.toString() ?? (member['user']?['username']?.toString() ?? ''),
+                'username':
+                    member['username']?.toString() ??
+                    (member['user']?['username']?.toString() ?? ''),
                 'profile_image':
                     member['profile_picture_url']?.toString() ??
                     member['profile_image']?.toString() ??
@@ -2399,11 +2458,16 @@ class ApiService with UtilityMixin {
   // ==================== PUBLIC PROFILES ====================
 
   /// Get user public profile
-  static Future<PublicProfileModel> getUserPublicProfile(dynamic userId) async {
+  static Future<PublicProfileModel> getUserPublicProfile(
+    dynamic username,
+  ) async {
     try {
       final accessToken = await SharedPrefService.getToken();
+      debugPrint(
+        'getUserPublicProfile request URL: ${ApiConstants.baseUrl}/profile/$username',
+      );
       final response = await _dio.get(
-        '${ApiConstants.publicProfile}/$userId/profile',
+        '${ApiConstants.baseUrl}/profile/$username',
         options: Options(
           headers: {
             'Authorization': 'Bearer $accessToken',
@@ -2414,14 +2478,29 @@ class ApiService with UtilityMixin {
 
       if (response.statusCode == 200) {
         final data = response.data;
-        // debugPrint('Public profile data: $data');
-        if (data['status'] == 'success') {
-          return PublicProfileModel.fromJson(data);
+        if (data is Map) {
+          final mapData = Map<String, dynamic>.from(data);
+          if (mapData.containsKey('status')) {
+            if (mapData['status'] == 'success') {
+              return PublicProfileModel.fromJson(mapData);
+            }
+            throw Exception('API returned error: ${mapData['message']}');
+          } else {
+            // If the response is the direct profile JSON, wrap it
+            return PublicProfileModel.fromJson({
+              'status': 'success',
+              'message': '',
+              'data': mapData,
+            });
+          }
         }
-        throw Exception('API returned error: ${data['message']}');
+        throw Exception('Invalid response format');
       }
       throw Exception('Failed to load user profile: ${response.statusCode}');
     } on DioException catch (e) {
+      debugPrint(
+        'getUserPublicProfile DioException: ${e.message}, response: ${e.response?.data}',
+      );
       throw Exception('Network error: $e');
     }
   }
@@ -2451,21 +2530,20 @@ class ApiService with UtilityMixin {
   }
 
   /// Fetch posts with images
-  Future<List<PublicPost>> fetchPostsWithImages(dynamic userId) async {
+  Future<List<UserPostModel>> fetchPostsWithImages(dynamic username) async {
     try {
       final response = await _dio.get(
-        '${ApiConstants.publicProfile}/$userId/profile',
+        '${ApiConstants.baseUrl}/profile/$username',
         options: Options(headers: await _getAuthHeaders()),
       );
 
       if (response.statusCode == 200) {
         final jsonData = response.data;
         if (jsonData['status'] == 'success') {
-          final postsData = jsonData['data']['posts']['results'] as List;
-          final allPosts = postsData
-              .map((json) => PublicPost.fromJson(json))
-              .toList();
-          return allPosts.where((post) => post.isImagePoll).toList();
+          final postResponse = UserPostResponse.fromJson(
+            jsonData['data']['posts'] as Map<String, dynamic>,
+          );
+          return postResponse.results.where((post) => post.isImagePoll).toList();
         }
         throw Exception('API Error: ${jsonData['message']}');
       }
@@ -2477,21 +2555,20 @@ class ApiService with UtilityMixin {
   }
 
   /// Fetch public posts with polls
-  Future<List<PublicPost>> fetchPublicPostsPolls(dynamic userId) async {
+  Future<List<UserPostModel>> fetchPublicPostsPolls(dynamic username) async {
     try {
       final response = await _dio.get(
-        '${ApiConstants.publicProfile}/$userId/profile',
+        '${ApiConstants.baseUrl}/profile/$username',
         options: Options(headers: await _getAuthHeaders()),
       );
 
       if (response.statusCode == 200) {
         final jsonData = response.data;
         if (jsonData['status'] == 'success') {
-          final postsData = jsonData['data']['posts']['results'] as List;
-          final allPosts = postsData
-              .map((json) => PublicPost.fromJson(json))
-              .toList();
-          return allPosts.where((post) => post.isTextPoll).toList();
+          final postResponse = UserPostResponse.fromJson(
+            jsonData['data']['posts'] as Map<String, dynamic>,
+          );
+          return postResponse.results.where((post) => post.isTextPoll).toList();
         }
         throw Exception('API Error: ${jsonData['message']}');
       }
@@ -2928,6 +3005,81 @@ class ApiService with UtilityMixin {
       return {'success': false, 'message': 'An unexpected error occurred'};
     }
   }
+
+  static Future<Map<String, dynamic>> voteOnPollSingle({
+    required dynamic postId,
+    required List<Map<String, int>> votes,
+  }) async {
+    try {
+      final accessToken = await SharedPrefService.getToken();
+
+      if (accessToken == null || accessToken.isEmpty) {
+        return {'success': false, 'message': 'Authentication token not found'};
+      }
+
+      final response = await _dio.post(
+        '${ApiConstants.baseUrl}/posts/$postId/vote',
+        data: {"votes": votes},
+        options: Options(
+          headers: {
+            'Authorization': 'Bearer $accessToken',
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+          },
+        ),
+      );
+
+      debugPrint("Image vote : $response");
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return {
+          'success': true,
+          'message': response.data['message'] ?? 'Votes saved successfully',
+          'data': response.data['data'],
+        };
+      } else {
+        return {
+          'success': false,
+          'message': response.data['message'] ?? 'Failed to submit votes',
+          'status_code': response.statusCode,
+        };
+      }
+    } on DioException catch (e) {
+      if (kDebugMode) {
+        print('DioException submitting votes: ${e.message}');
+        print('Response: ${e.response?.data}');
+      }
+
+      if (e.response?.statusCode == 401) {
+        return {
+          'success': false,
+          'message': 'Unauthorized. Please login again.',
+        };
+      } else if (e.response?.statusCode == 400) {
+        return {
+          'success': false,
+          'message': e.response?.data['message'] ?? 'Invalid vote data',
+        };
+      } else if (e.type == DioExceptionType.connectionTimeout) {
+        return {
+          'success': false,
+          'message':
+              'Connection timeout. Please check your internet connection',
+        };
+      } else {
+        return {
+          'success': false,
+          'message': e.response?.data['message'] ?? 'Network error',
+        };
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error submitting votes: $e');
+      }
+      return {'success': false, 'message': 'An unexpected error occurred'};
+    }
+  }
+
   // ==================== INSIGHTS ====================
 
   Future<InsightsModel> getInsightsData() async {

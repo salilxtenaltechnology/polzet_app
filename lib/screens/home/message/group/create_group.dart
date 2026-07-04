@@ -8,7 +8,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:polzet_app/languages/l10n/generated/app_localizations.dart';
 import 'package:polzet_app/widgets/loader.dart';
 import 'package:polzet_app/widgets/show_toast.dart';
-import '../../../../api/services/validator/api_service.dart';
+import '../../../../api/api_service.dart';
 import '../../../../api/services/image/image_picker_service.dart';
 import '../../../../core/constants/app_radius.dart';
 import '../../../../core/themes/app_text_colors.dart';

@@ -4,8 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
 import '../../../provider/user_provider.dart';
+import '../../../languages/l10n/generated/app_localizations.dart';
 
-import '../../../api/services/validator/api_service.dart';
+import '../../../api/api_service.dart';
 import '../../../api/services/like/like_service.dart';
 import '../../../core/constants/app_icons.dart';
 import '../../../core/constants/app_radius.dart';
@@ -103,7 +104,7 @@ class _ThingsQustionsCardState extends State<ThingsQustionsCard> {
     if (!selectedOptions.containsKey(pollKey)) return false;
     final validCount =
         poll.options
-            ?.where((o) => o.text != null && o.text!.isNotEmpty)
+            .where((o) => o.text != null && o.text!.isNotEmpty)
             .length ??
         0;
     return selectedOptions[pollKey]!.length == validCount;
@@ -134,7 +135,7 @@ class _ThingsQustionsCardState extends State<ThingsQustionsCard> {
     final previousPolled = widget.pollPolledStates[pollKey] ?? false;
     final previousPercentages =
         poll.options
-            ?.map((o) => widget.localPercentages[o.id] ?? o.percentage)
+            .map((o) => widget.localPercentages[o.id] ?? o.percentage)
             .toList() ??
         [];
 
@@ -148,7 +149,7 @@ class _ThingsQustionsCardState extends State<ThingsQustionsCard> {
     try {
       final List<Map<String, int>> votes = [];
       for (int i = 0; i < previousSelected.length; i++) {
-        final option = poll.options![previousSelected[i]];
+        final option = poll.options[previousSelected[i]];
         votes.add({'option_id': option.id, 'rank': i + 1});
       }
 
@@ -221,9 +222,9 @@ class _ThingsQustionsCardState extends State<ThingsQustionsCard> {
     if (!mounted) return;
     widget.onPollPolledStateChanged(pollKey, previousPolled);
     final Map<int, double> reverted = {};
-    for (int i = 0; i < (poll.options?.length ?? 0); i++) {
+    for (int i = 0; i < (poll.options.length ?? 0); i++) {
       if (i < previousPercentages.length) {
-        reverted[poll.options![i].id] = previousPercentages[i];
+        reverted[poll.options[i].id] = previousPercentages[i];
       }
     }
     widget.onPercentagesUpdated(reverted);
@@ -519,26 +520,41 @@ class _ThingsQustionsCardState extends State<ThingsQustionsCard> {
           ],
         ),
         SizedBox(height: 5.h),
-        Text(
-          pollQuestion.question,
-          style: TextStyle(
-            color: Theme.of(context).colorScheme.onBackground,
-            fontSize: 11.sp,
-            fontWeight: FontWeight.w500,
-          ),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Expanded(
+              child: Text(
+                pollQuestion.question,
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onBackground,
+                  fontSize: 11.sp,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+            SizedBox(width: 8.w),
+            Text(
+              '${pollQuestion.totalVotes} ${AppLocalizations.of(context)!.votes}',
+              style: TextStyle(
+                fontSize: 11.sp,
+                fontWeight: FontWeight.w500,
+                color: Theme.of(context).colorScheme.primary,
+              ),
+            ),
+          ],
         ),
         SizedBox(height: 8.h),
-        if (pollQuestion.options != null)
-          ...pollQuestion.options!.asMap().entries.map(
-            (entry) => _buildPollOption(
-              pollQuestion.options![entry.key],
-              totalVotes,
-              context,
-              entry.key,
-              pollQuestion,
-              showPercentage: hasUserPolled,
-            ),
+        ...pollQuestion.options.asMap().entries.map(
+          (entry) => _buildPollOption(
+            pollQuestion.options[entry.key],
+            totalVotes,
+            context,
+            entry.key,
+            pollQuestion,
+            showPercentage: hasUserPolled,
           ),
+        ),
 
         AnimatedSwitcher(
           duration: const Duration(milliseconds: 300),

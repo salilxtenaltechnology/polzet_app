@@ -232,10 +232,17 @@ class NotificationRouter {
             data['userId']?.toString();
         debugPrint('   👤 Follow/Request notification - userId: $userId');
 
-        if (userId != null && userId.isNotEmpty) {
-          return PublicProfileScreen(userId: userId);
+        final String? senderUsername = data['sender_username']?.toString() ??
+            (actorData is Map ? actorData['username']?.toString() ?? actorData['sender']?.toString() ?? actorData['sender_username']?.toString() ?? actorData['sender_name']?.toString() : null) ??
+            (metaData is Map ? metaData['sender_username']?.toString() ?? metaData['username']?.toString() ?? metaData['sender']?.toString() : null) ??
+            data['username']?.toString() ??
+            data['sender']?.toString() ??
+            data['sender_name']?.toString();
+
+        if ((userId != null && userId.isNotEmpty) || (senderUsername != null && senderUsername.isNotEmpty)) {
+          return PublicProfileScreen(userId: userId, username: senderUsername);
         } else {
-          debugPrint('❌ Invalid sender_id for type: $type');
+          debugPrint('❌ Invalid sender_id/username for type: $type');
           debugPrint('   Available keys: ${data.keys.toList()}');
         }
       } else if (type == 'follow_group') {
@@ -255,6 +262,7 @@ class NotificationRouter {
         final groupName = (data['group_name'] ?? meta?['group_name'])?.toString() ?? '';
         final senderId = _parseToInt(data['sender_id'] ?? meta?['sender_id']);
         final memberName = (data['sender'] ?? meta?['sender'] ?? 'Chat').toString();
+        final username = (data['sender_username'] ?? data['username'] ?? meta?['sender_username'] ?? meta?['username'])?.toString();
         final rawProfileUrl = (data['sender_profile_image'] ?? data['profile_image'])?.toString();
         final profileUrl = (rawProfileUrl == 'null' || rawProfileUrl == '') ? null : rawProfileUrl;
 
@@ -273,6 +281,7 @@ class NotificationRouter {
               child: PrivateChatScreen(
                 userId: senderId,
                 memberName: memberName,
+                username: username,
                 profileUrl: profileUrl,
                 chatId: chatId,
               ),
@@ -396,6 +405,7 @@ class NotificationRouter {
     final groupName = (data['group_name'] ?? meta?['group_name'])?.toString() ?? '';
     final senderId = _parseToInt(data['sender_id'] ?? meta?['sender_id']);
     final memberName = (data['sender'] ?? meta?['sender'] ?? 'Chat').toString();
+    final username = (data['sender_username'] ?? data['username'] ?? meta?['sender_username'] ?? meta?['username'])?.toString();
     final rawProfileUrl = (data['sender_profile_image'] ?? data['profile_image'])?.toString();
     final profileUrl = (rawProfileUrl == 'null' || rawProfileUrl == '') ? null : rawProfileUrl;
 
@@ -420,6 +430,7 @@ class NotificationRouter {
               child: PrivateChatScreen(
                 userId: senderId,
                 memberName: memberName,
+                username: username,
                 profileUrl: profileUrl,
                 chatId: chatId,
               ),
@@ -486,10 +497,17 @@ class NotificationRouter {
         data['user_id']?.toString() ??
         data['userId']?.toString();
 
-    if (userId != null && userId.isNotEmpty) {
+    final String? senderUsername = data['sender_username']?.toString() ??
+        (actorData is Map ? actorData['username']?.toString() ?? actorData['sender']?.toString() ?? actorData['sender_username']?.toString() ?? actorData['sender_name']?.toString() : null) ??
+        (metaData is Map ? metaData['sender_username']?.toString() ?? metaData['username']?.toString() ?? metaData['sender']?.toString() : null) ??
+        data['username']?.toString() ??
+        data['sender']?.toString() ??
+        data['sender_name']?.toString();
+
+    if ((userId != null && userId.isNotEmpty) || (senderUsername != null && senderUsername.isNotEmpty)) {
       Navigator.of(
         context,
-      ).push(MaterialPageRoute(builder: (_) => PublicProfileScreen(userId: userId)));
+      ).push(MaterialPageRoute(builder: (_) => PublicProfileScreen(userId: userId, username: senderUsername)));
     } else {
       _navigateToNotificationsTab(context);
     }

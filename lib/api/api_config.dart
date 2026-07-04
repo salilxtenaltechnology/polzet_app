@@ -5,8 +5,7 @@ class ApiConfig {
   // testbackend.polzet.in : For Test
   // www.polzet.com : Official Domain
 
-  static String domainUrl =
-      'testbackend.polzet.in';
+  static String domainUrl = 'prodbackend.polzet.in';
 
   static String get baseUrl {
     const protocol = useHttps ? 'https' : 'http';
@@ -25,12 +24,10 @@ class ApiConfig {
     return 'https://$domain';
   }
 }
- 
 
 // https://prodbackend.polzet.in
 
 // dart run build_runner build
 // Add language new texts : flutter gen-l10n
-
 
 // flutter run 2>&1 | grep -v "BLASTBufferQueue"

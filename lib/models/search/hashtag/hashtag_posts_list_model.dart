@@ -114,12 +114,22 @@ class HashtagPostUser {
 
 class HashtagPollModel {
   final String id;
+  final String type;
+  final String pollType;
+  final String voteType;
+  final bool isAnonymous;
+  final Map<String, dynamic> settings;
   final String question;
   final List<HashtagPollOption> options;
   final bool isPolledByCurrentUser;
 
   HashtagPollModel({
     required this.id,
+    required this.type,
+    required this.pollType,
+    required this.voteType,
+    required this.isAnonymous,
+    required this.settings,
     required this.question,
     required this.options,
     required this.isPolledByCurrentUser,
@@ -128,6 +138,11 @@ class HashtagPollModel {
   factory HashtagPollModel.fromJson(Map<String, dynamic> json) {
     return HashtagPollModel(
       id: json['id']?.toString() ?? '',
+      type: json['type'] ?? '',
+      pollType: json['poll_type'] ?? '',
+      voteType: json['voting_type'] ?? '',
+      isAnonymous: json['is_anonymous'] ?? false,
+      settings: json['settings'] as Map<String, dynamic>? ?? {},
       question: json['question'] ?? '',
       options: (json['options'] as List? ?? [])
           .map((e) => HashtagPollOption.fromJson(e))

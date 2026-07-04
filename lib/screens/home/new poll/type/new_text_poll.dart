@@ -5,28 +5,28 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
-import '../../../provider/user_provider.dart';
+import '../../../../provider/user_provider.dart';
 
-import '../../../api/app_api.dart';
-import '../../../data/token/shared_preferences.dart';
-import '../../../languages/l10n/generated/app_localizations.dart';
-import '../../../mixin/utility_mixins.dart';
-import '../../../widgets/appbar/common_appbar.dart';
-import '../../../widgets/custom_text_styles.dart';
-import '../../../widgets/show_toast.dart';
-import '../../../widgets/loader.dart';
-import '../../../widgets/text_field/secondry_textfield.dart';
-import '../../../core/constants/app_radius.dart';
-import '../../../core/themes/app_text_styles.dart';
+import '../../../../api/app_api.dart';
+import '../../../../data/token/shared_preferences.dart';
+import '../../../../languages/l10n/generated/app_localizations.dart';
+import '../../../../mixin/utility_mixins.dart';
+import '../../../../widgets/appbar/common_appbar.dart';
+import '../../../../widgets/custom_text_styles.dart';
+import '../../../../widgets/show_toast.dart';
+import '../../../../widgets/loader.dart';
+import '../../../../widgets/text_field/secondry_textfield.dart';
+import '../../../../core/constants/app_radius.dart';
+import '../../../../core/themes/app_text_styles.dart';
 
-class NewThingsPoll extends StatefulWidget {
-  const NewThingsPoll({super.key});
+class NewTextPoll extends StatefulWidget {
+  const NewTextPoll({super.key});
 
   @override
-  State<NewThingsPoll> createState() => _NewThingsPollState();
+  State<NewTextPoll> createState() => _NewThingsPollState();
 }
 
-class _NewThingsPollState extends State<NewThingsPoll> with UtilityMixin {
+class _NewThingsPollState extends State<NewTextPoll> with UtilityMixin {
   // Constants
   static const int minOptions = 2;
   static const int maxOptions = 4;
@@ -183,8 +183,10 @@ class _NewThingsPollState extends State<NewThingsPoll> with UtilityMixin {
       final validOptions = _getValidOptions();
 
       final formData = FormData.fromMap({
-        "description": descriptionController.text.trim(),
         "question": questionController.text.trim(),
+        "description": descriptionController.text.trim(),
+        "poll_type": "text",
+        "voting_type": "ranking",
         "max_options": maxOptions.toString(),
       });
 
@@ -204,7 +206,6 @@ class _NewThingsPollState extends State<NewThingsPoll> with UtilityMixin {
         if (!mounted) return;
 
         showToast(message: 'New things poll created!');
-
 
         // Clear cached posts so the profile screen updates immediately
         Provider.of<UserProvider>(context, listen: false).clearUserPostsCache();
@@ -321,14 +322,14 @@ class _NewThingsPollState extends State<NewThingsPoll> with UtilityMixin {
 
             // Question Field
             _buildQuestionField(),
+            SizedBox(height: 20.h),
 
-            SizedBox(height: 15.h),
             // Description Field
-            //_buildDescriptionField(),
-            //SizedBox(height: 15.h),
+            _buildDescriptionField(),
+            SizedBox(height: 20.h),
+
             // Poll Options
             _buildPollOptionsSection(),
-
             SizedBox(height: 20.h),
           ],
         ),
@@ -349,11 +350,11 @@ class _NewThingsPollState extends State<NewThingsPoll> with UtilityMixin {
               foregroundColor: Colors.white,
               elevation: 0,
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(14),
+                borderRadius: BorderRadius.circular(AppRadius.button),
               ),
             ),
             child: _isLoading
-                ?  SizedBox(
+                ? SizedBox(
                     width: 22,
                     height: 22,
                     child: Loader(color: Colors.white),
@@ -402,13 +403,15 @@ class _NewThingsPollState extends State<NewThingsPoll> with UtilityMixin {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          AppLocalizations.of(context)!.description,
+          'Description & Hashtags (Optional)',
           style: CustomTextStyles.lblPrimaryText(context),
         ),
         SizedBox(height: 7.h),
         SecondryTextfield(
           controller: descriptionController,
-          hintText: AppLocalizations.of(context)!.enteryouranswerhere,
+          hintText: 'Type description or hashtags',
+          maxLines: 5,
+          minLines: 3,
         ),
       ],
     );
@@ -434,7 +437,7 @@ class _NewThingsPollState extends State<NewThingsPoll> with UtilityMixin {
             height: 45,
             child: OutlinedButton.icon(
               onPressed: addOptionField,
-             icon: Icon(
+              icon: Icon(
                 Icons.add,
                 size: 18,
                 color: Theme.of(context).colorScheme.onPrimary,

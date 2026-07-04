@@ -5,8 +5,10 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:provider/provider.dart';
+import '../../../../../../provider/user_provider.dart';
 
-import '../../../../../../api/services/validator/api_service.dart';
+import '../../../../../../api/api_service.dart';
 import '../../../../../../core/constants/app_radius.dart';
 import '../../../../../../core/themes/app_text_colors.dart';
 import '../../../../../../core/themes/app_text_styles.dart';
@@ -34,7 +36,8 @@ class ThingsResultScreen extends StatefulWidget {
   State<ThingsResultScreen> createState() => _ThingsResultScreenState();
 }
 
-class _ThingsResultScreenState extends State<ThingsResultScreen> with UtilityMixin {
+class _ThingsResultScreenState extends State<ThingsResultScreen>
+    with UtilityMixin {
   final ApiService _apiService = ApiService();
 
   SinglePostModel? _post;
@@ -108,13 +111,10 @@ class _ThingsResultScreenState extends State<ThingsResultScreen> with UtilityMix
     _sortedOptions = List<SinglePostPollOption>.from(textOptions)
       ..sort((a, b) => b.percentage.compareTo(a.percentage));
 
-    final parsedTotal = int.tryParse(poll.totalVotes) ?? 0;
-    _totalVotes = parsedTotal > 0
-        ? parsedTotal
-        : _sortedOptions.fold(
-            0,
-            (sum, o) => sum + (int.tryParse(o.voteCount) ?? 0),
-          );
+    _totalVotes = poll.options.fold(
+      0,
+      (sum, o) => sum + (int.tryParse(o.voteCount) ?? 0),
+    );
   }
 
   String timeAgo(String createdAt) {
@@ -139,7 +139,7 @@ class _ThingsResultScreenState extends State<ThingsResultScreen> with UtilityMix
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.background,
-      appBar:  CommonAppBar(title: AppLocalizations.of(context)!.pollresult),
+      appBar: CommonAppBar(title: AppLocalizations.of(context)!.pollresult),
       body: _buildBody(),
     );
   }
@@ -191,7 +191,7 @@ class _ThingsResultScreenState extends State<ThingsResultScreen> with UtilityMix
           onTap: () {
             navigationPush(
               context,
-              PublicProfileScreen(userId: _post!.user.uuid),
+              PublicProfileScreen(userId: _post!.user.uuid, username: username),
             );
           },
           child: CircleAvatar(
@@ -202,9 +202,10 @@ class _ThingsResultScreenState extends State<ThingsResultScreen> with UtilityMix
             backgroundImage: _profileImageBytes != null
                 ? MemoryImage(_profileImageBytes!)
                 : (_post!.user.profileImage.isNotEmpty
-                    ? NetworkImage(_post!.user.profileImage)
-                    : null),
-            child: _profileImageBytes == null && _post!.user.profileImage.isEmpty
+                      ? NetworkImage(_post!.user.profileImage)
+                      : null),
+            child:
+                _profileImageBytes == null && _post!.user.profileImage.isEmpty
                 ? Text(
                     initial,
                     style: AppTextStyles.subText.copyWith(
@@ -255,14 +256,25 @@ class _ThingsResultScreenState extends State<ThingsResultScreen> with UtilityMix
         // Total votes
         GestureDetector(
           onTap: () {
-            final poll = _post?.polls.isNotEmpty == true ? _post!.polls.first : null;
+            final poll = _post?.polls.isNotEmpty == true
+                ? _post!.polls.first
+                : null;
             if (poll == null) return;
 
+            if (poll.pollType == 'anonymous') {
+              final userProvider = Provider.of<UserProvider>(context, listen: false);
+              final isOwner = _post?.user.uuid == userProvider.userId;
+              if (!isOwner) return;
+            }
+
             final firstOptionImage = poll.options.isNotEmpty == true
-                ? poll.options.firstWhere(
-                    (o) => o.image != null,
-                    orElse: () => poll.options.first,
-                  ).image?.resolvedUrl(ApiConfig.baseUrlImage)
+                ? poll.options
+                      .firstWhere(
+                        (o) => o.image != null,
+                        orElse: () => poll.options.first,
+                      )
+                      .image
+                      ?.resolvedUrl(ApiConfig.baseUrlImage)
                 : null;
 
             BottomSheetUtils.showPollVotersBottomSheet(
@@ -270,6 +282,7 @@ class _ThingsResultScreenState extends State<ThingsResultScreen> with UtilityMix
               postId: _post!.id,
               question: poll.question,
               pollImageUrl: firstOptionImage,
+              pollType: poll.pollType,
             );
           },
           child: Text(
@@ -277,9 +290,7 @@ class _ThingsResultScreenState extends State<ThingsResultScreen> with UtilityMix
             style: AppTextStyles.subText.copyWith(
               fontSize: 12.7,
               fontWeight: FontWeight.w600,
-              color: Theme.of(context)
-                  .colorScheme
-                  .onPrimary, 
+              color: Theme.of(context).colorScheme.onPrimary,
             ),
           ),
         ),
@@ -321,14 +332,20 @@ class _ThingsResultScreenState extends State<ThingsResultScreen> with UtilityMix
       onTap: () {
         if (poll == null) return;
 
+        if (poll.pollType == 'anonymous') {
+          final userProvider = Provider.of<UserProvider>(context, listen: false);
+          final isOwner = _post?.user.uuid == userProvider.userId;
+          if (!isOwner) return;
+        }
+
         final firstOptionImage = poll.options.isNotEmpty == true
             ? poll.options
-                .firstWhere(
-                  (o) => o.image != null,
-                  orElse: () => poll.options.first,
-                )
-                .image
-                ?.resolvedUrl(ApiConfig.baseUrlImage)
+                  .firstWhere(
+                    (o) => o.image != null,
+                    orElse: () => poll.options.first,
+                  )
+                  .image
+                  ?.resolvedUrl(ApiConfig.baseUrlImage)
             : null;
 
         BottomSheetUtils.showPollVotersBottomSheet(
@@ -336,6 +353,7 @@ class _ThingsResultScreenState extends State<ThingsResultScreen> with UtilityMix
           postId: _post!.id,
           question: poll.question,
           pollImageUrl: firstOptionImage,
+          pollType: poll.pollType,
         );
       },
       child: Container(
@@ -392,7 +410,9 @@ class _ThingsResultScreenState extends State<ThingsResultScreen> with UtilityMix
                       builder: (_, value, __) => LinearProgressIndicator(
                         value: value,
                         minHeight: 10,
-                        backgroundColor: isDarkMode ? const Color(0xFF2D2D2D): const Color(0xFFF6F3F2),
+                        backgroundColor: isDarkMode
+                            ? const Color(0xFF2D2D2D)
+                            : const Color(0xFFF6F3F2),
                         valueColor: AlwaysStoppedAnimation<Color>(
                           Theme.of(context).colorScheme.primary,
                         ),

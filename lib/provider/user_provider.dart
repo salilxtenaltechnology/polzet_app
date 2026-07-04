@@ -3,7 +3,7 @@
 import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'dart:typed_data';
-import '../api/services/validator/api_service.dart';
+import '../api/api_service.dart';
 import '../data/token/shared_preferences.dart';
 import '../models/insights/insights_model.dart';
 import '../models/posts/user_post_model.dart';
@@ -90,8 +90,7 @@ class UserProvider with ChangeNotifier {
         if (post.polls.isEmpty) return false;
         return post.polls.every(
           (poll) =>
-              poll.options != null &&
-              poll.options!.every(
+              poll.options.every(
                 (o) => o.text != null && o.text!.isNotEmpty,
               ),
         );
@@ -104,7 +103,7 @@ class UserProvider with ChangeNotifier {
       final images = await apiService.fetchPostsImages(currentUsername);
       cachedImagesPostsMap[currentUsername] = images.where((post) {
         return post.polls.any(
-          (poll) => poll.options?.any((o) => o.image != null) ?? false,
+          (poll) => poll.options.any((o) => o.image != null) ?? false,
         );
       }).toList();
     } catch (e) {
@@ -144,8 +143,11 @@ class UserProvider with ChangeNotifier {
     notifyListeners();
 
     try {
-      var data = await apiService.fetchUserData();
-      await apiService.getFollowersList();
+      final results = await Future.wait([
+        apiService.fetchUserData(),
+        apiService.getFollowersList(),
+      ]);
+      var data = results[0] as Map<String, dynamic>?;
       _mapDataToFields(data);
       _isInitialLoadComplete = true;
       isLoading = false;

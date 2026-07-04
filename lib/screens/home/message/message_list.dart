@@ -13,7 +13,7 @@ import 'package:provider/provider.dart';
 
 import '../../../provider/connection_provider.dart';
 import '../../../api/api_config.dart';
-import '../../../api/services/validator/api_service.dart';
+import '../../../api/api_service.dart';
 import '../../../core/constants/app_radius.dart';
 import '../../../core/themes/app_text_colors.dart';
 import '../../../gen/assets.gen.dart';
@@ -375,6 +375,8 @@ class MessageListState extends State<MessageList>
           a[i]['unread_count'] != b[i]['unread_count'] ||
           a[i]['updated_at'] != b[i]['updated_at'] ||
           a[i]['profile_url'] != b[i]['profile_url'] ||
+          a[i]['avatar_url'] != b[i]['avatar_url'] ||
+          a[i]['display_name'] != b[i]['display_name'] ||
           a[i]['title'] != b[i]['title']) {
         return true;
       }
@@ -386,6 +388,10 @@ class MessageListState extends State<MessageList>
     if (chat['title'] != null && (chat['title'] as String).trim().isNotEmpty) {
       return chat['title'] as String;
     }
+    if (chat['display_name'] != null &&
+        chat['display_name'].toString().trim().isNotEmpty) {
+      return chat['display_name'].toString();
+    }
     final userProvider = Provider.of<UserProvider>(context, listen: false);
     final currentUserId = userProvider.userId;
     final currentUsername = userProvider.username;
@@ -394,7 +400,7 @@ class MessageListState extends State<MessageList>
       for (final m in members) {
         final user =
             (m as Map<String, dynamic>)['user'] as Map<String, dynamic>?;
-        final id = user?['id'];
+        final id = user?['uuid'] ?? user?['id'];
         final username = user?['username']?.toString();
         if (id != null &&
             id.toString() != currentUserId &&
@@ -441,6 +447,7 @@ class MessageListState extends State<MessageList>
 
   String? _resolveProfileUrl(String? url) {
     if (url == null || url.trim().isEmpty || url == 'null') return null;
+    if (url.startsWith('assets/')) return url;
     if (!url.startsWith('http') && !url.startsWith('data:image')) {
       final separator = url.startsWith('/') ? '' : '/';
       return '${ApiConfig.baseUrlImage}$separator$url';
@@ -450,32 +457,51 @@ class MessageListState extends State<MessageList>
 
   String? _avatarUrl(Map<String, dynamic> chat) {
     final chatType = chat['chat_type']?.toString();
-    final String? avatar;
+    String? avatar;
     if (chatType == 'group') {
-      avatar = chat['profile_url']?.toString();
+      avatar =
+          chat['avatar_url']?.toString() ?? chat['profile_url']?.toString();
     } else {
-      final userProvider = Provider.of<UserProvider>(context, listen: false);
-      final currentUserId = userProvider.userId;
-      final currentUsername = userProvider.username;
-      final members = chat['members'] as List?;
-      if (members == null || members.isEmpty) {
-        avatar = null;
-      } else {
-        String? foundAvatar;
-        for (final m in members) {
-          final user =
-              (m as Map<String, dynamic>)['user'] as Map<String, dynamic>?;
-          final username = user?['username']?.toString();
-          if (user?['id']?.toString() != currentUserId &&
-              (currentUsername == null || username != currentUsername)) {
-            foundAvatar = user?['profile_image']?.toString();
-            break;
+      avatar =
+          chat['profile_url']?.toString() ?? chat['avatar_url']?.toString();
+      if (avatar == null || avatar.trim().isEmpty || avatar == 'null') {
+        final userProvider = Provider.of<UserProvider>(context, listen: false);
+        final currentUserId = userProvider.userId;
+        final currentUsername = userProvider.username;
+        final members = chat['members'] as List?;
+        if (members != null && members.isNotEmpty) {
+          String? foundAvatar;
+          for (final m in members) {
+            if (m is Map<String, dynamic>) {
+              final user = m['user'] as Map<String, dynamic>?;
+              if (user != null) {
+                final username = user['username']?.toString();
+                final userId = user['uuid'] ?? user['id'];
+                if (userId?.toString() != currentUserId &&
+                    (currentUsername == null || username != currentUsername)) {
+                  foundAvatar =
+                      (user['avatar_url'] ??
+                              user['profile_image'] ??
+                              user['profile_picture_url'] ??
+                              user['avatar'])
+                          ?.toString();
+                  break;
+                }
+              }
+            }
           }
+          avatar =
+              foundAvatar ??
+              (members.first as Map<String, dynamic>)['user']?['avatar_url']
+                  ?.toString() ??
+              (members.first as Map<String, dynamic>)['user']?['profile_image']
+                  ?.toString() ??
+              (members.first
+                      as Map<String, dynamic>)['user']?['profile_picture_url']
+                  ?.toString() ??
+              (members.first as Map<String, dynamic>)['user']?['avatar']
+                  ?.toString();
         }
-        avatar =
-            foundAvatar ??
-            (members.first as Map<String, dynamic>)['user']?['profile_image']
-                ?.toString();
       }
     }
     return _resolveProfileUrl(avatar);
@@ -491,7 +517,8 @@ class MessageListState extends State<MessageList>
       final member = m as Map<String, dynamic>;
       final user = member['user'] as Map<String, dynamic>?;
       final username = user?['username']?.toString();
-      if (user?['id']?.toString() != currentUserId &&
+      final id = user?['uuid'] ?? user?['id'];
+      if (id?.toString() != currentUserId &&
           (currentUsername == null || username != currentUsername)) {
         return (member['is_online'] as bool?) ?? false;
       }
@@ -522,7 +549,8 @@ class MessageListState extends State<MessageList>
       final member = m as Map<String, dynamic>;
       final user = member['user'] as Map<String, dynamic>?;
       final username = user?['username']?.toString();
-      if (user?['id']?.toString() != currentUserId &&
+      final id = user?['uuid'] ?? user?['id'];
+      if (id?.toString() != currentUserId &&
           (currentUsername == null || username != currentUsername)) {
         return (member['is_block'] as bool?) ?? false;
       }
@@ -540,12 +568,32 @@ class MessageListState extends State<MessageList>
       final member = m as Map<String, dynamic>;
       final user = member['user'] as Map<String, dynamic>?;
       final username = user?['username']?.toString();
-      if (user?['id']?.toString() != currentUserId &&
+      final id = user?['uuid'] ?? user?['id'];
+      if (id?.toString() != currentUserId &&
           (currentUsername == null || username != currentUsername)) {
-        return user?['id'];
+        return id;
       }
     }
     return null;
+  }
+
+  String? _getOtherUsername(Map<String, dynamic> chat) {
+    final userProvider = Provider.of<UserProvider>(context, listen: false);
+    final currentUserId = userProvider.userId;
+    final currentUsername = userProvider.username;
+    final members = chat['members'] as List?;
+    if (members == null) return null;
+    for (final m in members) {
+      final member = m as Map<String, dynamic>;
+      final user = member['user'] as Map<String, dynamic>?;
+      final username = user?['username']?.toString();
+      final id = user?['uuid'] ?? user?['id'];
+      if (id?.toString() != currentUserId &&
+          (currentUsername == null || username != currentUsername)) {
+        return username;
+      }
+    }
+    return chat['display_name']?.toString();
   }
 
   Future<void> _openChat(
@@ -605,6 +653,7 @@ class MessageListState extends State<MessageList>
             child: PrivateChatScreen(
               userId: _getOtherUserId(chat),
               memberName: title,
+              username: _getOtherUsername(chat),
               profileUrl: avatarUrl,
               chatId: chatId,
               isUserBlock: isBlocked,
@@ -774,7 +823,7 @@ class MessageListState extends State<MessageList>
                               ? Text(
                                   title.isNotEmpty
                                       ? title[0].toUpperCase()
-                                      : '?',
+                                      : 'P',
                                   style: AppTextStyles.subText.copyWith(
                                     color: Theme.of(
                                       context,
@@ -795,7 +844,7 @@ class MessageListState extends State<MessageList>
                         backgroundImage: avatarProvider,
                         child: avatarProvider == null
                             ? Text(
-                                title.isNotEmpty ? title[0].toUpperCase() : '?',
+                                title.isNotEmpty ? title[0].toUpperCase() : 'P',
                                 style: AppTextStyles.subText.copyWith(
                                   color: Theme.of(
                                     context,
@@ -1118,7 +1167,8 @@ class MessageListState extends State<MessageList>
         final user = member is Map ? member['user'] as Map? : null;
         if (user != null) {
           final profileUrl =
-              (user['profile_image'] ??
+              (user['avatar_url'] ??
+                      user['profile_image'] ??
                       user['profile_picture_url'] ??
                       user['avatar'])
                   ?.toString();

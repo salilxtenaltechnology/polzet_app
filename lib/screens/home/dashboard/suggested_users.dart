@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:polzet_app/core/themes/app_text_styles.dart';
 
-import '../../../api/services/validator/api_service.dart';
+import '../../../api/api_service.dart';
 import '../../../core/constants/app_radius.dart';
 import '../../../core/themes/app_text_colors.dart';
 import '../../../mixin/utility_mixins.dart';
@@ -106,7 +106,10 @@ class _SuggestedUsersState extends State<SuggestedUsers> with UtilityMixin {
                         GestureDetector(
                           onTap: () => navigationPush(
                             context,
-                            PublicProfileScreen(userId: user.id.toString()),
+                            PublicProfileScreen(
+                              userId: user.id.toString(),
+                              username: user.username,
+                            ),
                           ),
                           child: user.avatar.isNotEmpty
                               ? CircleAvatar(

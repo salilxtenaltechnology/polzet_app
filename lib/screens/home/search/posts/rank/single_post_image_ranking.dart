@@ -9,7 +9,7 @@ import 'package:polzet_app/widgets/appbar/common_appbar.dart';
 import 'package:polzet_app/widgets/show_toast.dart';
 
 import '../../../../../../api/api_config.dart';
-import '../../../../../api/services/validator/api_service.dart';
+import '../../../../../api/api_service.dart';
 import '../../../../../../core/themes/app_text_styles.dart';
 import '../../../../../../models/posts/single_post_model.dart';
 import '../../../../../../widgets/loader.dart';
@@ -228,7 +228,7 @@ class _SinglePostImageRankingState extends State<SinglePostImageRanking> with Ut
             children: [
               GestureDetector(
                 onTap: () {
-                  navigationPush(context, PublicProfileScreen(userId: post.user.uuid));
+                  navigationPush(context, PublicProfileScreen(userId: post.user.uuid, username: username));
                 },
                 child: CircleAvatar(
                   radius: 20,

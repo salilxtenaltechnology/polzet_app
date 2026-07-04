@@ -9,10 +9,13 @@ import 'package:polzet_app/screens/home/profile/public/public_profile_screen.dar
 import 'package:provider/provider.dart';
 import '../../../../provider/user_provider.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import '../../../../languages/l10n/generated/app_localizations.dart';
 import 'package:intl/intl.dart';
+import 'package:polzet_app/widgets/image/app_cached_network_image.dart';
+import 'package:polzet_app/widgets/show_toast.dart';
 
 import '../../../../api/api_config.dart';
-import '../../../../api/services/validator/api_service.dart';
+import '../../../../api/api_service.dart';
 import '../../../../api/services/like/like_service.dart';
 import '../../../../api/services/share/share_service.dart';
 import '../../../../core/constants/app_icons.dart';
@@ -31,6 +34,7 @@ import '../../home feed/rank/result/things/things_result_screen.dart';
 import 'rank/single_post_image_ranking.dart';
 import 'rank/single_post_things_ranking.dart';
 import 'package:polzet_app/data/token/shared_preferences.dart';
+import 'package:polzet_app/gen/assets.gen.dart';
 
 const _textSecondary = Color(0xFF888888);
 
@@ -76,11 +80,13 @@ class _SinglePostDetailsState extends State<SinglePostDetails>
     _fetchPost();
   }
 
-  Future<void> _fetchPost() async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
+  Future<void> _fetchPost({bool showLoading = true}) async {
+    if (showLoading) {
+      setState(() {
+        _loading = true;
+        _error = null;
+      });
+    }
     try {
       final result = await ApiService().getSinglePost(
         widget.username,
@@ -119,9 +125,11 @@ class _SinglePostDetailsState extends State<SinglePostDetails>
       await _fetchLikedUsers(result.id.toString());
     } catch (e) {
       if (!mounted) return;
-      setState(() => _error = e.toString());
+      if (showLoading) {
+        setState(() => _error = e.toString());
+      }
     } finally {
-      if (mounted) setState(() => _loading = false);
+      if (showLoading && mounted) setState(() => _loading = false);
     }
   }
 
@@ -239,6 +247,1617 @@ class _SinglePostDetailsState extends State<SinglePostDetails>
     return count.toString();
   }
 
+  bool _hasImageOptions(SinglePostPoll poll) =>
+      poll.options.any((o) => o.image != null);
+
+  bool _hasTextOptions(SinglePostPoll poll) =>
+      poll.options.any((o) => o.text != null && o.text!.isNotEmpty);
+
+  Widget _buildQuestionRow(
+    BuildContext context,
+    SinglePostPoll poll,
+    AppTextColors txt, {
+    VoidCallback? onVotesTap,
+  }) {
+    final int totalVotes = poll.options.fold<int>(
+      0,
+      (sum, opt) => sum + (int.tryParse(opt.voteCount) ?? 0),
+    );
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          child: Text(
+            poll.question,
+            style: AppTextStyles.bodyText.copyWith(
+              color: txt.heading,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ),
+        if (totalVotes > 0) ...[
+          SizedBox(width: 8.w),
+          GestureDetector(
+            onTap: onVotesTap,
+            behavior: HitTestBehavior.opaque,
+            child: Text(
+              '$totalVotes ${AppLocalizations.of(context)!.votes}',
+              style: AppTextStyles.bodyText.copyWith(
+                color: Theme.of(context).colorScheme.onPrimary,
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
+  Future<void> _submitSinglePollVote(
+    SinglePostPoll poll,
+    dynamic optionId,
+  ) async {
+    try {
+      final int optId = optionId is int
+          ? optionId
+          : int.tryParse(optionId.toString()) ?? 0;
+
+      final List<Map<String, int>> votes = [
+        {'option_id': optId, 'rank': 1},
+      ];
+
+      final result = await ApiService.voteOnPollSingle(
+        postId: _post!.id,
+        votes: votes,
+      );
+
+      if (result['success'] == true) {
+        showToast(message: 'Vote submitted successfully!');
+        _fetchPost(showLoading: false);
+      } else {
+        showToast(
+          message:
+              result['message'] ?? 'Failed to submit vote. Please try again.',
+        );
+      }
+    } catch (e) {
+      showToast(message: 'An error occurred. Please try again.');
+    }
+  }
+
+  Widget _buildAnonymousOptionCard(
+    BuildContext context,
+    SinglePostPollOption option,
+    int index,
+    bool hasUserPolled,
+  ) {
+    Widget imageWidget = const SizedBox.shrink();
+    if (option.image != null) {
+      imageWidget = AppCachedNetworkImage(
+        imageUrl: option.image!.resolvedUrl(ApiConfig.baseUrlImage),
+        fit: BoxFit.cover,
+      );
+    }
+
+    return SizedBox(
+      height: 150.h,
+      child: Container(
+        decoration: BoxDecoration(
+          border: Border.all(
+            color: Theme.of(context).colorScheme.outlineVariant,
+            width: 1,
+          ),
+          borderRadius: BorderRadius.circular(AppRadius.button),
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(AppRadius.button),
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              imageWidget,
+              Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      Colors.transparent,
+                      Colors.black.withOpacity(0.60),
+                    ],
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                  ),
+                ),
+              ),
+              if (hasUserPolled)
+                Positioned(
+                  bottom: 2,
+                  left: 8.w,
+                  right: 8.w,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        option.text ?? '',
+                        textAlign: TextAlign.center,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppTextStyles.bodyText.copyWith(
+                          fontSize: 13.5,
+                          fontWeight: FontWeight.w500,
+                          color: Colors.white,
+                        ),
+                      ),
+                      Text(
+                        '${option.percentage.round()}%',
+                        textAlign: TextAlign.center,
+                        style: AppTextStyles.bodyText.copyWith(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              else
+                Positioned(
+                  bottom: 5.h,
+                  left: 8.w,
+                  right: 8.w,
+                  child: Text(
+                    option.text ?? '',
+                    textAlign: TextAlign.center,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTextStyles.bodyText.copyWith(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHotTakePollSection(
+    BuildContext context,
+    SinglePostPoll poll,
+    SinglePostModel post, {
+    bool showQuestion = true,
+  }) {
+    final txt = AppTextColors.of(context);
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+
+    final double pct1 = poll.options.isNotEmpty
+        ? poll.options[0].percentage
+        : 0.0;
+    final double pct2 = poll.options.length > 1
+        ? poll.options[1].percentage
+        : 0.0;
+
+    final firstImage = poll.options.isEmpty
+        ? null
+        : (poll.options
+              .firstWhere((o) => o.image != null, orElse: () => poll.options[0])
+              .image);
+
+    return GestureDetector(
+      onTap: () {
+        // Do not open ThingsResultScreen
+      },
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (showQuestion && poll.question.isNotEmpty) ...[
+              SizedBox(height: 5.h),
+              _buildQuestionRow(
+                context,
+                poll,
+                txt,
+                onVotesTap: () {
+                  BottomSheetUtils.showPollVotersBottomSheet(
+                    context: context,
+                    postId: post.id.toString(),
+                    question: poll.question,
+                    pollType: poll.pollType,
+                  );
+                },
+              ),
+            ],
+            if (showQuestion && poll.question.isNotEmpty)
+              const SizedBox(height: 12),
+            if (firstImage != null) ...[
+              GestureDetector(
+                onTap: () {},
+                child: Container(
+                  margin: const EdgeInsets.only(bottom: 12),
+                  height: 150.h,
+                  width: double.infinity,
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(AppRadius.button),
+                    child: AppCachedNetworkImage(
+                      imageUrl: firstImage.resolvedUrl(ApiConfig.baseUrlImage),
+                      fit: BoxFit.cover,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+            SizedBox(
+              height: 50,
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () {
+                        if (!post.isPolledByCurrentUser) {
+                          final optionId = poll.options.isNotEmpty
+                              ? poll.options[0].id
+                              : null;
+                          if (optionId != null) {
+                            _submitSinglePollVote(poll, optionId);
+                          }
+                        }
+                      },
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: isDarkMode
+                              ? const Color(0xFF101F1B)
+                              : const Color(0xFFECFDF5),
+                          border: Border.all(
+                            color: isDarkMode
+                                ? const Color(0xFF19322A)
+                                : Colors.transparent,
+                            width: 1.5,
+                          ),
+                          borderRadius: BorderRadius.circular(AppRadius.card),
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(10.r),
+                          child: Stack(
+                            children: [
+                              if (post.isPolledByCurrentUser)
+                                Positioned.fill(
+                                  child: Align(
+                                    alignment: Alignment.centerLeft,
+                                    child: FractionallySizedBox(
+                                      widthFactor: pct1 / 100.0,
+                                      child: Container(
+                                        color: isDarkMode
+                                            ? const Color(0xFF0F3A2E)
+                                            : const Color(
+                                                0xFF16A34A,
+                                              ).withOpacity(0.2),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              Center(
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                  ),
+                                  child: Row(
+                                    mainAxisAlignment:
+                                        post.isPolledByCurrentUser
+                                        ? MainAxisAlignment.start
+                                        : MainAxisAlignment.center,
+                                    children: [
+                                      Image.asset(
+                                        Assets.images.icAgree.path,
+                                        height: 22,
+                                        width: 22,
+                                      ),
+                                      SizedBox(width: 10.w),
+                                      Text(
+                                        'Agree',
+                                        style: AppTextStyles.sectionHeading
+                                            .copyWith(
+                                              color: isDarkMode
+                                                  ? const Color(0xFF10B981)
+                                                  : const Color(0xFF059669),
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.w400,
+                                            ),
+                                      ),
+                                      if (post.isPolledByCurrentUser) ...[
+                                        const Spacer(),
+                                        Text(
+                                          '${pct1.round()}%',
+                                          style: AppTextStyles.sectionHeading
+                                              .copyWith(
+                                                color: isDarkMode
+                                                    ? const Color(0xFF10B981)
+                                                    : const Color(0xFF059669),
+                                                fontSize: 14,
+                                                fontWeight: FontWeight.w500,
+                                              ),
+                                        ),
+                                      ],
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  SizedBox(width: 10.w),
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () {
+                        if (!post.isPolledByCurrentUser) {
+                          final optionId = poll.options.length > 1
+                              ? poll.options[1].id
+                              : null;
+                          if (optionId != null) {
+                            _submitSinglePollVote(poll, optionId);
+                          }
+                        }
+                      },
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: isDarkMode
+                              ? const Color(0xFF201315)
+                              : const Color(0xFFFDE5E5),
+                          border: Border.all(
+                            color: isDarkMode
+                                ? const Color(0xFFCB5B5B).withOpacity(0.5)
+                                : Colors.transparent,
+                            width: 1,
+                          ),
+                          borderRadius: BorderRadius.circular(AppRadius.card),
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(AppRadius.card),
+                          child: Stack(
+                            children: [
+                              if (post.isPolledByCurrentUser)
+                                Positioned.fill(
+                                  child: Align(
+                                    alignment: Alignment.centerLeft,
+                                    child: FractionallySizedBox(
+                                      widthFactor: pct2 / 100.0,
+                                      child: Container(
+                                        color: isDarkMode
+                                            ? const Color(0xFF4C1D24)
+                                            : const Color(0xFFFECACA),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              Center(
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                  ),
+                                  child: Row(
+                                    mainAxisAlignment:
+                                        post.isPolledByCurrentUser
+                                        ? MainAxisAlignment.start
+                                        : MainAxisAlignment.center,
+                                    children: [
+                                      Image.asset(
+                                        Assets.images.icDisagree.path,
+                                        height: 22,
+                                        width: 22,
+                                      ),
+                                      SizedBox(width: 10.w),
+                                      Text(
+                                        'Disagree',
+                                        style: AppTextStyles.sectionHeading
+                                            .copyWith(
+                                              color: isDarkMode
+                                                  ? const Color(0xFFE53E3E)
+                                                  : const Color(0xFFC81E1E),
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.w400,
+                                            ),
+                                      ),
+                                      if (post.isPolledByCurrentUser) ...[
+                                        const Spacer(),
+                                        Text(
+                                          '${pct2.round()}%',
+                                          style: AppTextStyles.sectionHeading
+                                              .copyWith(
+                                                color: isDarkMode
+                                                    ? const Color(0xFFE53E3E)
+                                                    : const Color(0xFFC81E1E),
+                                                fontSize: 14,
+                                                fontWeight: FontWeight.w500,
+                                              ),
+                                        ),
+                                      ],
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 5),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBattlePollSection(
+    BuildContext context,
+    SinglePostPoll poll,
+    SinglePostModel post, {
+    bool showQuestion = true,
+  }) {
+    final txt = AppTextColors.of(context);
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+
+    final option1 = poll.options.isNotEmpty ? poll.options[0].text ?? '' : '';
+    final option2 = poll.options.length > 1 ? poll.options[1].text ?? '' : '';
+
+    final double pct1 = poll.options.isNotEmpty
+        ? poll.options[0].percentage
+        : 0.0;
+    final double pct2 = poll.options.length > 1
+        ? poll.options[1].percentage
+        : 0.0;
+
+    final hasImages = _hasImageOptions(poll);
+
+    return GestureDetector(
+      onTap: () {
+        if (post.isPolledByCurrentUser) {
+          if (hasImages) {
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (context) => ImageResultScreen(
+                  username: post.user.username,
+                  postId: post.id.toString(),
+                ),
+              ),
+            );
+          } else {
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (context) => ThingsResultScreen(
+                  username: post.user.username,
+                  postId: post.id.toString(),
+                ),
+              ),
+            );
+          }
+        }
+      },
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (showQuestion && poll.question.isNotEmpty) ...[
+              SizedBox(height: 5.h),
+              _buildQuestionRow(context, poll, txt),
+            ],
+            if (showQuestion && poll.question.isNotEmpty)
+              const SizedBox(height: 12),
+            if (hasImages) ...[
+              GestureDetector(
+                onTap: post.isPolledByCurrentUser ? null : () {},
+                child: SizedBox(
+                  height: 150.h,
+                  child: Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Expanded(
+                            child: GestureDetector(
+                              onTap: post.isPolledByCurrentUser
+                                  ? null
+                                  : () {
+                                      final optionId = poll.options.isNotEmpty
+                                          ? poll.options[0].id
+                                          : null;
+                                      if (optionId != null) {
+                                        _submitSinglePollVote(poll, optionId);
+                                      }
+                                    },
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onPrimary.withOpacity(0.10),
+                                  border: Border.all(
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.outline,
+                                    width: 1.2,
+                                  ),
+                                  borderRadius: BorderRadius.circular(
+                                    AppRadius.card,
+                                  ),
+                                ),
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(
+                                    AppRadius.card - 1.2,
+                                  ),
+                                  child: Stack(
+                                    fit: StackFit.expand,
+                                    children: [
+                                      if (poll.options.isNotEmpty &&
+                                          poll.options[0].image != null)
+                                        AppCachedNetworkImage(
+                                          imageUrl: poll.options[0].image!
+                                              .resolvedUrl(
+                                                ApiConfig.baseUrlImage,
+                                              ),
+                                          fit: BoxFit.cover,
+                                          showSpinnerPlaceholder: true,
+                                        ),
+                                      Container(
+                                        decoration: BoxDecoration(
+                                          gradient: LinearGradient(
+                                            colors: [
+                                              Colors.transparent,
+                                              Colors.black.withOpacity(0.60),
+                                            ],
+                                            begin: Alignment.topCenter,
+                                            end: Alignment.bottomCenter,
+                                          ),
+                                        ),
+                                      ),
+                                      if (post.isPolledByCurrentUser)
+                                        Positioned(
+                                          bottom: 2.h,
+                                          left: 8.w,
+                                          right: 8.w,
+                                          child: Column(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              Text(
+                                                option1,
+                                                textAlign: TextAlign.center,
+                                                maxLines: 2,
+                                                overflow: TextOverflow.ellipsis,
+                                                style: AppTextStyles.bodyText
+                                                    .copyWith(
+                                                      fontSize: 13.5,
+                                                      fontWeight:
+                                                          FontWeight.w500,
+                                                      color: Colors.white,
+                                                    ),
+                                              ),
+                                              Text(
+                                                '${pct1.round()}%',
+                                                textAlign: TextAlign.center,
+                                                style: AppTextStyles.bodyText
+                                                    .copyWith(
+                                                      fontSize: 16,
+                                                      fontWeight:
+                                                          FontWeight.w700,
+                                                      color: Colors.white,
+                                                    ),
+                                              ),
+                                            ],
+                                          ),
+                                        )
+                                      else
+                                        Positioned(
+                                          bottom: 5.h,
+                                          left: 8.w,
+                                          right: 8.w,
+                                          child: Text(
+                                            option1,
+                                            textAlign: TextAlign.center,
+                                            maxLines: 2,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: AppTextStyles.bodyText
+                                                .copyWith(
+                                                  fontSize: 14,
+                                                  fontWeight: FontWeight.w600,
+                                                  color: Colors.white,
+                                                ),
+                                          ),
+                                        ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: GestureDetector(
+                              onTap: post.isPolledByCurrentUser
+                                  ? null
+                                  : () {
+                                      final optionId = poll.options.length > 1
+                                          ? poll.options[1].id
+                                          : null;
+                                      if (optionId != null) {
+                                        _submitSinglePollVote(poll, optionId);
+                                      }
+                                    },
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onPrimary.withOpacity(0.10),
+                                  border: Border.all(
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.outline,
+                                    width: 1.2,
+                                  ),
+                                  borderRadius: BorderRadius.circular(
+                                    AppRadius.card,
+                                  ),
+                                ),
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(
+                                    AppRadius.card - 1.2,
+                                  ),
+                                  child: Stack(
+                                    fit: StackFit.expand,
+                                    children: [
+                                      if (poll.options.length > 1 &&
+                                          poll.options[1].image != null)
+                                        AppCachedNetworkImage(
+                                          imageUrl: poll.options[1].image!
+                                              .resolvedUrl(
+                                                ApiConfig.baseUrlImage,
+                                              ),
+                                          fit: BoxFit.cover,
+                                          showSpinnerPlaceholder: true,
+                                        ),
+                                      Container(
+                                        decoration: BoxDecoration(
+                                          gradient: LinearGradient(
+                                            colors: [
+                                              Colors.transparent,
+                                              Colors.black.withOpacity(0.60),
+                                            ],
+                                            begin: Alignment.topCenter,
+                                            end: Alignment.bottomCenter,
+                                          ),
+                                        ),
+                                      ),
+                                      if (post.isPolledByCurrentUser)
+                                        Positioned(
+                                          bottom: 2.h,
+                                          left: 8.w,
+                                          right: 8.w,
+                                          child: Column(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              Text(
+                                                option2,
+                                                textAlign: TextAlign.center,
+                                                maxLines: 2,
+                                                overflow: TextOverflow.ellipsis,
+                                                style: AppTextStyles.bodyText
+                                                    .copyWith(
+                                                      fontSize: 13.5,
+                                                      fontWeight:
+                                                          FontWeight.w500,
+                                                      color: Colors.white,
+                                                    ),
+                                              ),
+                                              Text(
+                                                '${pct2.round()}%',
+                                                textAlign: TextAlign.center,
+                                                style: AppTextStyles.bodyText
+                                                    .copyWith(
+                                                      fontSize: 16,
+                                                      fontWeight:
+                                                          FontWeight.w700,
+                                                      color: Colors.white,
+                                                    ),
+                                              ),
+                                            ],
+                                          ),
+                                        )
+                                      else
+                                        Positioned(
+                                          bottom: 5.h,
+                                          left: 8.w,
+                                          right: 8.w,
+                                          child: Text(
+                                            option2,
+                                            textAlign: TextAlign.center,
+                                            maxLines: 2,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: AppTextStyles.bodyText
+                                                .copyWith(
+                                                  fontSize: 14,
+                                                  fontWeight: FontWeight.w600,
+                                                  color: Colors.white,
+                                                ),
+                                          ),
+                                        ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      Center(
+                        child: Container(
+                          width: 36.w,
+                          height: 36.h,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            gradient: LinearGradient(
+                              colors: isDarkMode
+                                  ? const [Color(0xFFFFFFFF), Color(0xFFFCFCFC)]
+                                  : const [
+                                      Color(0xFF111111),
+                                      Color(0xFF2C2C2C),
+                                    ],
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                            ),
+                            border: Border.all(
+                              color: isDarkMode
+                                  ? const Color(0xFF2E323D)
+                                  : const Color(0xFFE5E7EB),
+                              width: 1,
+                            ),
+                          ),
+                          alignment: Alignment.center,
+                          child: Text(
+                            'Vs',
+                            style: TextStyle(
+                              color: isDarkMode ? Colors.black : Colors.white,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ] else ...[
+              SizedBox(
+                height: post.isPolledByCurrentUser ? 70 : 60,
+                child: Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Expanded(
+                          child: GestureDetector(
+                            onTap: () {
+                              if (!post.isPolledByCurrentUser) {
+                                final optionId = poll.options.isNotEmpty
+                                    ? poll.options[0].id
+                                    : null;
+                                if (optionId != null) {
+                                  _submitSinglePollVote(poll, optionId);
+                                }
+                              }
+                            },
+                            child: Container(
+                              alignment: Alignment.center,
+                              decoration: BoxDecoration(
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onPrimary.withOpacity(0.10),
+                                border: Border.all(
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onPrimary.withOpacity(0.2),
+                                  width: 1.2,
+                                ),
+                                borderRadius: BorderRadius.circular(
+                                  AppRadius.card,
+                                ),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.center,
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  if (post.isPolledByCurrentUser) ...[
+                                    Text(
+                                      '${pct1.round()}%',
+                                      style: AppTextStyles.bodyText.copyWith(
+                                        color: Theme.of(
+                                          context,
+                                        ).colorScheme.onBackground,
+                                        fontSize: 17,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ],
+                                  Text(
+                                    option1,
+                                    style: AppTextStyles.sectionHeading
+                                        .copyWith(
+                                          color: txt.title,
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w400,
+                                        ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                        SizedBox(width: 18.w),
+                        Expanded(
+                          child: GestureDetector(
+                            onTap: () {
+                              if (!post.isPolledByCurrentUser) {
+                                final optionId = poll.options.length > 1
+                                    ? poll.options[1].id
+                                    : null;
+                                if (optionId != null) {
+                                  _submitSinglePollVote(poll, optionId);
+                                }
+                              }
+                            },
+                            child: Container(
+                              alignment: Alignment.center,
+                              decoration: BoxDecoration(
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onPrimary.withOpacity(0.10),
+                                border: Border.all(
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onPrimary.withOpacity(0.2),
+                                  width: 1.2,
+                                ),
+                                borderRadius: BorderRadius.circular(
+                                  AppRadius.card,
+                                ),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.center,
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  if (post.isPolledByCurrentUser) ...[
+                                    SizedBox(height: 4.h),
+                                    Text(
+                                      '${pct2.round()}%',
+                                      style: AppTextStyles.bodyText.copyWith(
+                                        color: Theme.of(
+                                          context,
+                                        ).colorScheme.onBackground,
+                                        fontSize: 17,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ],
+                                  Text(
+                                    option2,
+                                    style: AppTextStyles.sectionHeading
+                                        .copyWith(
+                                          color: txt.title,
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w400,
+                                        ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    Center(
+                      child: Container(
+                        width: 36.w,
+                        height: 36.h,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          gradient: LinearGradient(
+                            colors: isDarkMode
+                                ? const [
+                                    Color(0xFFFFFFFF), // 0%
+                                    Color(0xFFFCFCFC), // 100%
+                                  ]
+                                : const [Color(0xFF111111), Color(0xFF2C2C2C)],
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                          ),
+                          border: Border.all(
+                            color: isDarkMode
+                                ? const Color(0xFF2E323D)
+                                : const Color(0xFFE5E7EB),
+                            width: 1,
+                          ),
+                        ),
+                        alignment: Alignment.center,
+                        child: Text(
+                          'Vs',
+                          style: TextStyle(
+                            color: isDarkMode ? Colors.black : Colors.white,
+                            fontStyle: FontStyle.italic,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+            const SizedBox(height: 5),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildThisOrThatPollSection(
+    BuildContext context,
+    SinglePostPoll poll,
+    SinglePostModel post, {
+    bool showQuestion = true,
+  }) {
+    final txt = AppTextColors.of(context);
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+
+    final option1 = poll.options.isNotEmpty ? poll.options[0].text ?? '' : '';
+    final option2 = poll.options.length > 1 ? poll.options[1].text ?? '' : '';
+
+    final double pct1 = poll.options.isNotEmpty
+        ? poll.options[0].percentage
+        : 0.0;
+    final double pct2 = poll.options.length > 1
+        ? poll.options[1].percentage
+        : 0.0;
+
+    final hasImages = _hasImageOptions(poll);
+
+    return GestureDetector(
+      onTap: () {
+        if (post.isPolledByCurrentUser) {
+          if (hasImages) {
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (context) => ImageResultScreen(
+                  username: post.user.username,
+                  postId: post.id.toString(),
+                ),
+              ),
+            );
+          } else {
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (context) => ThingsResultScreen(
+                  username: post.user.username,
+                  postId: post.id.toString(),
+                ),
+              ),
+            );
+          }
+        }
+      },
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (showQuestion && poll.question.isNotEmpty) ...[
+              SizedBox(height: 5.h),
+              _buildQuestionRow(context, poll, txt),
+            ],
+            if (showQuestion && poll.question.isNotEmpty)
+              const SizedBox(height: 12),
+            if (hasImages) ...[
+              GestureDetector(
+                onTap: post.isPolledByCurrentUser ? null : () {},
+                child: SizedBox(
+                  height: 150.h,
+                  child: Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Expanded(
+                            child: GestureDetector(
+                              onTap: post.isPolledByCurrentUser
+                                  ? null
+                                  : () {
+                                      final optionId = poll.options.isNotEmpty
+                                          ? poll.options[0].id
+                                          : null;
+                                      if (optionId != null) {
+                                        _submitSinglePollVote(poll, optionId);
+                                      }
+                                    },
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onPrimary.withOpacity(0.10),
+                                  border: Border.all(
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.outline,
+                                    width: 1.2,
+                                  ),
+                                  borderRadius: BorderRadius.circular(
+                                    AppRadius.card,
+                                  ),
+                                ),
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(
+                                    AppRadius.card - 1.2,
+                                  ),
+                                  child: Stack(
+                                    fit: StackFit.expand,
+                                    children: [
+                                      if (poll.options.isNotEmpty &&
+                                          poll.options[0].image != null)
+                                        AppCachedNetworkImage(
+                                          imageUrl: poll.options[0].image!
+                                              .resolvedUrl(
+                                                ApiConfig.baseUrlImage,
+                                              ),
+                                          fit: BoxFit.cover,
+                                          showSpinnerPlaceholder: true,
+                                        ),
+                                      Container(
+                                        decoration: BoxDecoration(
+                                          gradient: LinearGradient(
+                                            colors: [
+                                              Colors.transparent,
+                                              Colors.black.withOpacity(0.60),
+                                            ],
+                                            begin: Alignment.topCenter,
+                                            end: Alignment.bottomCenter,
+                                          ),
+                                        ),
+                                      ),
+                                      if (post.isPolledByCurrentUser)
+                                        Positioned(
+                                          bottom: 2,
+                                          left: 8.w,
+                                          right: 8.w,
+                                          child: Column(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              Text(
+                                                option1,
+                                                textAlign: TextAlign.center,
+                                                maxLines: 2,
+                                                overflow: TextOverflow.ellipsis,
+                                                style: AppTextStyles.bodyText
+                                                    .copyWith(
+                                                      fontSize: 13.5,
+                                                      fontWeight:
+                                                          FontWeight.w500,
+                                                      color: Colors.white,
+                                                    ),
+                                              ),
+                                              Text(
+                                                '${pct1.round()}%',
+                                                textAlign: TextAlign.center,
+                                                style: AppTextStyles.bodyText
+                                                    .copyWith(
+                                                      fontSize: 16,
+                                                      fontWeight:
+                                                          FontWeight.w700,
+                                                      color: Colors.white,
+                                                    ),
+                                              ),
+                                            ],
+                                          ),
+                                        )
+                                      else
+                                        Positioned(
+                                          bottom: 5.h,
+                                          left: 8.w,
+                                          right: 8.w,
+                                          child: Text(
+                                            option1,
+                                            textAlign: TextAlign.center,
+                                            maxLines: 2,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: AppTextStyles.bodyText
+                                                .copyWith(
+                                                  fontSize: 14,
+                                                  fontWeight: FontWeight.w600,
+                                                  color: Colors.white,
+                                                ),
+                                          ),
+                                        ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: GestureDetector(
+                              onTap: post.isPolledByCurrentUser
+                                  ? null
+                                  : () {
+                                      final optionId = poll.options.length > 1
+                                          ? poll.options[1].id
+                                          : null;
+                                      if (optionId != null) {
+                                        _submitSinglePollVote(poll, optionId);
+                                      }
+                                    },
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onPrimary.withOpacity(0.10),
+                                  border: Border.all(
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.outline,
+                                    width: 1.2,
+                                  ),
+                                  borderRadius: BorderRadius.circular(
+                                    AppRadius.card,
+                                  ),
+                                ),
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(
+                                    AppRadius.card - 1.2,
+                                  ),
+                                  child: Stack(
+                                    fit: StackFit.expand,
+                                    children: [
+                                      if (poll.options.length > 1 &&
+                                          poll.options[1].image != null)
+                                        AppCachedNetworkImage(
+                                          imageUrl: poll.options[1].image!
+                                              .resolvedUrl(
+                                                ApiConfig.baseUrlImage,
+                                              ),
+                                          fit: BoxFit.cover,
+                                          showSpinnerPlaceholder: true,
+                                        ),
+                                      Container(
+                                        decoration: BoxDecoration(
+                                          gradient: LinearGradient(
+                                            colors: [
+                                              Colors.transparent,
+                                              Colors.black.withOpacity(0.60),
+                                            ],
+                                            begin: Alignment.topCenter,
+                                            end: Alignment.bottomCenter,
+                                          ),
+                                        ),
+                                      ),
+                                      if (post.isPolledByCurrentUser)
+                                        Positioned(
+                                          bottom: 2,
+                                          left: 8.w,
+                                          right: 8.w,
+                                          child: Column(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              Text(
+                                                option2,
+                                                textAlign: TextAlign.center,
+                                                maxLines: 2,
+                                                overflow: TextOverflow.ellipsis,
+                                                style: AppTextStyles.bodyText
+                                                    .copyWith(
+                                                      fontSize: 13.5,
+                                                      fontWeight:
+                                                          FontWeight.w500,
+                                                      color: Colors.white,
+                                                    ),
+                                              ),
+                                              Text(
+                                                '${pct2.round()}%',
+                                                textAlign: TextAlign.center,
+                                                style: AppTextStyles.bodyText
+                                                    .copyWith(
+                                                      fontSize: 16,
+                                                      fontWeight:
+                                                          FontWeight.w700,
+                                                      color: Colors.white,
+                                                    ),
+                                              ),
+                                            ],
+                                          ),
+                                        )
+                                      else
+                                        Positioned(
+                                          bottom: 5.h,
+                                          left: 8.w,
+                                          right: 8.w,
+                                          child: Text(
+                                            option2,
+                                            textAlign: TextAlign.center,
+                                            maxLines: 2,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: AppTextStyles.bodyText
+                                                .copyWith(
+                                                  fontSize: 14,
+                                                  fontWeight: FontWeight.w600,
+                                                  color: Colors.white,
+                                                ),
+                                          ),
+                                        ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      Center(
+                        child: Container(
+                          width: 36.w,
+                          height: 36.h,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            gradient: LinearGradient(
+                              colors: isDarkMode
+                                  ? const [Color(0xFFFFFFFF), Color(0xFFFCFCFC)]
+                                  : const [
+                                      Color(0xFF111111),
+                                      Color(0xFF2C2C2C),
+                                    ],
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                            ),
+                            border: Border.all(
+                              color: isDarkMode
+                                  ? const Color(0xFF2E323D)
+                                  : const Color(0xFFE5E7EB),
+                              width: 1,
+                            ),
+                          ),
+                          alignment: Alignment.center,
+                          child: Text(
+                            'Or',
+                            style: TextStyle(
+                              color: isDarkMode ? Colors.black : Colors.white,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 10),
+            ] else ...[
+              SizedBox(
+                height: post.isPolledByCurrentUser ? 70 : 50,
+                child: Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Expanded(
+                          child: GestureDetector(
+                            onTap: () {
+                              if (!post.isPolledByCurrentUser) {
+                                final optionId = poll.options.isNotEmpty
+                                    ? poll.options[0].id
+                                    : null;
+                                if (optionId != null) {
+                                  _submitSinglePollVote(poll, optionId);
+                                }
+                              }
+                            },
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: isDarkMode
+                                    ? const Color(0xFF242831)
+                                    : Colors.white,
+                                border: Border.all(
+                                  color: Theme.of(context).colorScheme.outline,
+                                  width: 1.5,
+                                ),
+                                borderRadius: BorderRadius.circular(
+                                  AppRadius.card,
+                                ),
+                              ),
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Text(
+                                    option1,
+                                    style: AppTextStyles.sectionHeading
+                                        .copyWith(
+                                          color: isDarkMode
+                                              ? Colors.white
+                                              : const Color(0xFF1F2937),
+                                          fontSize: 14.5,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                  ),
+                                  if (post.isPolledByCurrentUser) ...[
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      '${pct1.round()}%',
+                                      style: AppTextStyles.bodyText.copyWith(
+                                        color: isDarkMode
+                                            ? Colors.white
+                                            : const Color(0xFF1F2937),
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ],
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                        SizedBox(width: 16.w),
+                        Expanded(
+                          child: GestureDetector(
+                            onTap: () {
+                              if (!post.isPolledByCurrentUser) {
+                                final optionId = poll.options.length > 1
+                                    ? poll.options[1].id
+                                    : null;
+                                if (optionId != null) {
+                                  _submitSinglePollVote(poll, optionId);
+                                }
+                              }
+                            },
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: isDarkMode
+                                    ? const Color(0xFF242831)
+                                    : Colors.white,
+                                border: Border.all(
+                                  color: Theme.of(context).colorScheme.outline,
+                                  width: 1.5,
+                                ),
+                                borderRadius: BorderRadius.circular(
+                                  AppRadius.card,
+                                ),
+                              ),
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Text(
+                                    option2,
+                                    style: AppTextStyles.sectionHeading
+                                        .copyWith(
+                                          color: isDarkMode
+                                              ? Colors.white
+                                              : const Color(0xFF1F2937),
+                                          fontSize: 14.5,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                  ),
+                                  if (post.isPolledByCurrentUser) ...[
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      '${pct2.round()}%',
+                                      style: AppTextStyles.bodyText.copyWith(
+                                        color: isDarkMode
+                                            ? Colors.white
+                                            : const Color(0xFF1F2937),
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ],
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    Center(
+                      child: Container(
+                        width: 36.w,
+                        height: 36.h,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          gradient: LinearGradient(
+                            colors: isDarkMode
+                                ? const [Color(0xFFFFFFFF), Color(0xFFFCFCFC)]
+                                : const [Color(0xFF111111), Color(0xFF2C2C2C)],
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                          ),
+                          border: Border.all(
+                            color: isDarkMode
+                                ? const Color(0xFF2E323D)
+                                : const Color(0xFFE5E7EB),
+                            width: 1,
+                          ),
+                        ),
+                        alignment: Alignment.center,
+                        child: Text(
+                          'Or',
+                          style: TextStyle(
+                            color: isDarkMode ? Colors.black : Colors.white,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAnonymousImageTextPollSection(
+    BuildContext context,
+    SinglePostPoll poll,
+    SinglePostModel post, {
+    bool showQuestion = true,
+  }) {
+    final txt = AppTextColors.of(context);
+    final validOptions = poll.options
+        .where((o) => o.image != null && o.text != null && o.text!.isNotEmpty)
+        .toList();
+
+    if (validOptions.isEmpty) return const SizedBox.shrink();
+
+    final hasUserPolled = post.isPolledByCurrentUser;
+
+    Widget optionsWidget;
+    if (validOptions.length == 4) {
+      optionsWidget = Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: _buildAnonymousOptionCard(
+                  context,
+                  validOptions[0],
+                  0,
+                  hasUserPolled,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _buildAnonymousOptionCard(
+                  context,
+                  validOptions[1],
+                  1,
+                  hasUserPolled,
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: 12.h),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: _buildAnonymousOptionCard(
+                  context,
+                  validOptions[2],
+                  2,
+                  hasUserPolled,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _buildAnonymousOptionCard(
+                  context,
+                  validOptions[3],
+                  3,
+                  hasUserPolled,
+                ),
+              ),
+            ],
+          ),
+        ],
+      );
+    } else if (validOptions.length == 3) {
+      optionsWidget = Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: _buildAnonymousOptionCard(
+              context,
+              validOptions[0],
+              0,
+              hasUserPolled,
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: _buildAnonymousOptionCard(
+              context,
+              validOptions[1],
+              1,
+              hasUserPolled,
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: _buildAnonymousOptionCard(
+              context,
+              validOptions[2],
+              2,
+              hasUserPolled,
+            ),
+          ),
+        ],
+      );
+    } else {
+      optionsWidget = Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: List.generate(validOptions.length, (index) {
+          return Expanded(
+            child: Padding(
+              padding: EdgeInsets.only(
+                right: index < validOptions.length - 1 ? 10 : 0,
+              ),
+              child: _buildAnonymousOptionCard(
+                context,
+                validOptions[index],
+                index,
+                hasUserPolled,
+              ),
+            ),
+          );
+        }),
+      );
+    }
+
+    return GestureDetector(
+      onTap: () => _showAllImagesGrid(post.id, poll),
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(10.w, 0, 10.w, 0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (showQuestion && poll.question.isNotEmpty) ...[
+              SizedBox(height: 5.h),
+              _buildQuestionRow(context, poll, txt),
+            ],
+            if (showQuestion && poll.question.isNotEmpty)
+              SizedBox(height: 12.h),
+            optionsWidget,
+            SizedBox(height: 5.h),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -262,7 +1881,7 @@ class _SinglePostDetailsState extends State<SinglePostDetails>
       color: Theme.of(context).colorScheme.primary,
       onRefresh: _fetchPost,
       child: ListView(
-        padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 12.h),
+        padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 5.h),
         children: [_buildPostCard(post)],
       ),
     );
@@ -287,25 +1906,78 @@ class _SinglePostDetailsState extends State<SinglePostDetails>
         children: [
           _buildHeader(post),
           Divider(color: Theme.of(context).colorScheme.outlineVariant),
-          if (post.isImagePoll && post.description.isNotEmpty) ...[
+          if (post.polls.isNotEmpty &&
+              post.polls.first.question.isNotEmpty) ...[
             Padding(
-              padding: EdgeInsets.fromLTRB(10.w, 5.h, 10.w, 0),
-              child: Text(
+              padding: EdgeInsets.fromLTRB(10.w, 2.h, 10.w, 5.h),
+              child: _buildQuestionRow(
+                context,
+                post.polls.first,
+                AppTextColors.of(context),
+                onVotesTap: post.polls.first.pollType == 'hot_take'
+                    ? () {
+                        BottomSheetUtils.showPollVotersBottomSheet(
+                          context: context,
+                          postId: post.id.toString(),
+                          question: post.polls.first.question,
+                          pollType: post.polls.first.pollType,
+                        );
+                      }
+                    : null,
+              ),
+            ),
+          ],
+          if (post.description.isNotEmpty) ...[
+            Padding(
+              padding: EdgeInsets.fromLTRB(10.w, 0, 10.w, 2.h),
+              child: _buildDescriptionWithHashtags(
+                context,
                 post.description,
-                style: AppTextStyles.bodyText.copyWith(
-                  fontSize: 14.5,
-                  fontWeight: FontWeight.w600,
-                  color: Theme.of(context).colorScheme.onBackground,
-                ),
+                AppTextColors.of(context),
               ),
             ),
           ],
           SizedBox(height: 5.h),
-          ...post.polls.map(
-            (poll) => post.isImagePoll
-                ? _buildImagePollBlock(poll, post.id, post)
-                : _buildTextPollBlock(poll),
-          ),
+          ...post.polls.asMap().entries.map((entry) {
+            final index = entry.key;
+            final poll = entry.value;
+            final showQuestion = index > 0;
+            if (poll.pollType == 'battle') {
+              return _buildBattlePollSection(
+                context,
+                poll,
+                post,
+                showQuestion: showQuestion,
+              );
+            } else if (poll.pollType == 'hot_take') {
+              return _buildHotTakePollSection(
+                context,
+                poll,
+                post,
+                showQuestion: showQuestion,
+              );
+            } else if (poll.pollType == 'this_or_that') {
+              return _buildThisOrThatPollSection(
+                context,
+                poll,
+                post,
+                showQuestion: showQuestion,
+              );
+            } else if (poll.pollType == 'anonymous' &&
+                _hasImageOptions(poll) &&
+                _hasTextOptions(poll)) {
+              return _buildAnonymousImageTextPollSection(
+                context,
+                poll,
+                post,
+                showQuestion: showQuestion,
+              );
+            } else {
+              return post.isImagePoll
+                  ? _buildImagePollBlock(poll, post.id, post)
+                  : _buildTextPollBlock(poll, showQuestion: showQuestion);
+            }
+          }),
           const SizedBox(height: 10),
           _buildInteractionBar(post),
           if ((postLikedUsers[post.id.toString()] ?? []).isNotEmpty) ...[
@@ -364,7 +2036,10 @@ class _SinglePostDetailsState extends State<SinglePostDetails>
             onTap: () {
               navigationPush(
                 context,
-                PublicProfileScreen(userId: _post!.user.uuid),
+                PublicProfileScreen(
+                  userId: _post!.user.uuid,
+                  username: username,
+                ),
               );
             },
             child: CircleAvatar(
@@ -607,10 +2282,12 @@ class _SinglePostDetailsState extends State<SinglePostDetails>
   // TEXT POLL  — mirrors QuestionsPostsList._buildPollBlock style exactly
   // ═══════════════════════════════════════════════════════════════════════════
 
-  // Replace _buildTextPollBlock with this updated version
-  Widget _buildTextPollBlock(SinglePostPoll poll) {
+  Widget _buildTextPollBlock(SinglePostPoll poll, {bool showQuestion = true}) {
     final hasUserPolled = _selectedVotes.containsKey(poll.id);
-    final totalVotes = int.tryParse(poll.totalVotes) ?? 0;
+    final totalVotes = poll.options.fold<int>(
+      0,
+      (sum, opt) => sum + (int.tryParse(opt.voteCount) ?? 0),
+    );
 
     // ── Show polled UI if: own post OR already voted ─────────────────────────
     final isOwnPost = _post?.user.username == widget.username;
@@ -622,17 +2299,35 @@ class _SinglePostDetailsState extends State<SinglePostDetails>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          GestureDetector(
-            onTap: () => _navigateTextPoll(poll),
-            child: Text(
-              poll.question,
-              style: AppTextStyles.bodyText.copyWith(
-                color: Theme.of(context).colorScheme.onBackground,
-                fontWeight: FontWeight.w500,
-              ),
+          if (showQuestion) ...[
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () => _navigateTextPoll(poll),
+                    child: Text(
+                      poll.question,
+                      style: AppTextStyles.bodyText.copyWith(
+                        color: Theme.of(context).colorScheme.onBackground,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ),
+                SizedBox(width: 8.w),
+                Text(
+                  '$totalVotes ${AppLocalizations.of(context)!.votes}',
+                  style: AppTextStyles.subText.copyWith(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                ),
+              ],
             ),
-          ),
-          const SizedBox(height: 12),
+            const SizedBox(height: 12),
+          ],
           if (showPolledUi)
             // ── Own post or already voted → show result bars ───────────────
             _buildTextPolledOptions(poll, () => _navigateTextPoll(poll))
@@ -818,16 +2513,6 @@ class _SinglePostDetailsState extends State<SinglePostDetails>
                         ],
                       ),
                     ],
-                  ),
-                ),
-                SizedBox(width: 15.w),
-                // ── Vote count ───────────────────────────────────────────────
-                Text(
-                  '${option.voteCount} votes',
-                  style: AppTextStyles.subText.copyWith(
-                    fontSize: 12.5,
-                    fontWeight: FontWeight.w400,
-                    color: const Color(0xFF8E8E8E),
                   ),
                 ),
               ],
@@ -1073,5 +2758,59 @@ class _SinglePostDetailsState extends State<SinglePostDetails>
         ],
       ),
     );
+  }
+
+  Widget _buildDescriptionWithHashtags(
+    BuildContext context,
+    String description,
+    AppTextColors txt,
+  ) {
+    if (!description.contains('#')) {
+      return Text(
+        description,
+        style: AppTextStyles.bodyText.copyWith(
+          color: txt.body,
+          fontSize: 14,
+          fontWeight: FontWeight.w400,
+        ),
+      );
+    }
+
+    final RegExp exp = RegExp(r'(#[a-zA-Z0-9_]+)');
+    final List<TextSpan> spans = [];
+
+    description.splitMapJoin(
+      exp,
+      onMatch: (Match match) {
+        spans.add(
+          TextSpan(
+            text: match.group(0),
+            style: AppTextStyles.bodyText.copyWith(
+              color: Theme.of(context).colorScheme.onPrimary,
+              fontSize: 16,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        );
+        return '';
+      },
+      onNonMatch: (String text) {
+        if (text.isNotEmpty) {
+          spans.add(
+            TextSpan(
+              text: text,
+              style: AppTextStyles.bodyText.copyWith(
+                color: txt.body,
+                fontSize: 14,
+                fontWeight: FontWeight.w400,
+              ),
+            ),
+          );
+        }
+        return '';
+      },
+    );
+
+    return RichText(text: TextSpan(children: spans));
   }
 }

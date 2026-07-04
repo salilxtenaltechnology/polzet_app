@@ -9,7 +9,7 @@ import 'package:web_socket_channel/web_socket_channel.dart';
 import 'package:web_socket_channel/status.dart' as status;
 import '../../models/message/message_model.dart';
 import '../../data/token/shared_preferences.dart';
-import '../api/services/validator/api_service.dart';
+import '../api/api_service.dart';
 
 class GroupMemberPresence {
   final dynamic userId;

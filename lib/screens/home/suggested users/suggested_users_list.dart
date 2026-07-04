@@ -3,7 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
-import '../../../api/services/validator/api_service.dart';
+import '../../../api/api_service.dart';
 import '../../../core/constants/app_radius.dart';
 import '../../../core/themes/app_text_styles.dart';
 import '../../../languages/l10n/generated/app_localizations.dart';
@@ -229,6 +229,7 @@ class _SuggestedUsersListState extends State<SuggestedUsersList>
                                     context,
                                     PublicProfileScreen(
                                       userId: user.id.toString(),
+                                      username: user.username,
                                     ),
                                   ),
                                   child: user.avatar.isNotEmpty

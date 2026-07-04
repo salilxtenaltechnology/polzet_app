@@ -11,7 +11,7 @@ import 'package:polzet_app/core/constants/app_radius.dart';
 import 'package:polzet_app/mixin/utility_mixins.dart';
 import '../../../api/services/fcm/fcm_service.dart';
 import '../../../api/services/notification/notification_services.dart';
-import '../../../api/services/validator/api_service.dart';
+import '../../../api/api_service.dart';
 import '../../../core/themes/app_text_colors.dart';
 import '../../../core/themes/app_text_styles.dart';
 import '../../../widgets/loader.dart';

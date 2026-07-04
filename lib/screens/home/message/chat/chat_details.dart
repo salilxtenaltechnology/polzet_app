@@ -10,7 +10,7 @@ import 'package:polzet_app/widgets/loader.dart';
 import 'package:provider/provider.dart';
 
 import '../../../../../core/constants/app_colors.dart';
-import '../../../../api/services/validator/api_service.dart';
+import '../../../../api/api_service.dart';
 import '../../../../api/services/image/image_picker_service.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/themes/app_text_colors.dart';
@@ -33,6 +33,7 @@ import '../message_list.dart';
 
 class ChatDetails extends StatefulWidget {
   final String? chatName;
+  final String? username;
   final String? profileUrl;
   final bool isGroupChat;
   final bool isUserBlock;
@@ -43,6 +44,7 @@ class ChatDetails extends StatefulWidget {
   const ChatDetails({
     super.key,
     required this.chatName,
+    this.username,
     required this.profileUrl,
     this.chat,
     required this.isGroupChat,
@@ -203,13 +205,132 @@ class _ChatDetailsState extends State<ChatDetails> with UtilityMixin {
   }
 
   ImageProvider? _avatarProvider(String? raw) {
-    if (raw == null || raw.trim().isEmpty) return null;
+    if (raw == null || raw.trim().isEmpty || raw.trim() == 'null') return null;
     String resolved = raw;
     if (!resolved.startsWith('http')) {
       final separator = resolved.startsWith('/') ? '' : '/';
       resolved = '${ApiConfig.baseUrlImage}$separator$resolved';
     }
     return NetworkImage(resolved);
+  }
+
+  Widget _buildGroupAvatarStack({
+    required List<dynamic>? members,
+    required double size,
+    required bool isDarkMode,
+    required BuildContext context,
+  }) {
+    final List<String?> profileUrls = [];
+    final List<String> initials = [];
+
+    if (members != null) {
+      for (final member in members) {
+        if (profileUrls.length >= 2) break;
+        final user = member is Map ? member['user'] as Map? : null;
+        if (user != null) {
+          String? profileUrl =
+              (user['avatar_url'] ??
+                      user['profile_image'] ??
+                      user['profile_picture_url'] ??
+                      user['avatar'])
+                  ?.toString();
+          if (profileUrl != null && profileUrl.trim().isNotEmpty && profileUrl != 'null') {
+            if (!profileUrl.startsWith('http') && !profileUrl.startsWith('data:image')) {
+              final separator = profileUrl.startsWith('/') ? '' : '/';
+              profileUrl = '${ApiConfig.baseUrlImage}$separator$profileUrl';
+            }
+          } else {
+            profileUrl = Assets.images.icAvatar.path;
+          }
+          final name = (user['name'] ?? user['username'] ?? 'Unknown')
+              .toString();
+          profileUrls.add(profileUrl);
+          initials.add(name.isNotEmpty ? name[0].toUpperCase() : '?');
+        }
+      }
+    }
+
+    // Ensure we always have at least 2 items to show the stacked preview (overlapping circles)
+    while (profileUrls.length < 2) {
+      profileUrls.add(Assets.images.icAvatar.path);
+      initials.add('?');
+    }
+
+    final double circleSize = size * 0.75;
+
+    return SizedBox(
+      width: size,
+      height: size,
+      child: Stack(
+        children: [
+          Positioned(
+            top: 0,
+            left: 0,
+            child: _buildSingleAvatarCircle(
+              profileUrl: profileUrls[0],
+              initial: initials[0],
+              size: circleSize,
+              isDarkMode: isDarkMode,
+              context: context,
+            ),
+          ),
+          Positioned(
+            bottom: 0,
+            right: 0,
+            child: _buildSingleAvatarCircle(
+              profileUrl: profileUrls[1],
+              initial: initials[1],
+              size: circleSize,
+              isDarkMode: isDarkMode,
+              context: context,
+              hasBorder: true,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSingleAvatarCircle({
+    required String? profileUrl,
+    required String initial,
+    required double size,
+    required bool isDarkMode,
+    required BuildContext context,
+    bool hasBorder = false,
+  }) {
+    final ImageProvider? avatarProvider =
+        (profileUrl == null || profileUrl.trim().isEmpty || profileUrl == 'null' || profileUrl == Assets.images.icAvatar.path)
+        ? AssetImage(Assets.images.icAvatar.path)
+        : _avatarProvider(profileUrl);
+
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: avatarProvider == null
+            ? (isDarkMode
+                ? const Color(0xFF252525)
+                : Theme.of(context).primaryColor.withOpacity(0.08))
+            : null,
+        border: hasBorder
+            ? Border.all(
+                color: Theme.of(context).colorScheme.background,
+                width: 1.5,
+              )
+            : Border.all(
+                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.05),
+                width: 1,
+              ),
+        image: avatarProvider != null
+            ? DecorationImage(
+                image: avatarProvider,
+                fit: BoxFit.cover,
+              )
+            : null,
+      ),
+    );
   }
 
   Widget _buildSeeAllMembers(
@@ -249,7 +370,8 @@ class _ChatDetailsState extends State<ChatDetails> with UtilityMixin {
                     preview[i]['user'] as Map? ?? {},
                   );
                   final profileImg = user['profile_image']?.toString();
-                  final avatarProvider = (profileImg == null || profileImg.trim().isEmpty)
+                  final avatarProvider =
+                      (profileImg == null || profileImg.trim().isEmpty)
                       ? AssetImage(Assets.images.icAvatar.path)
                       : _avatarProvider(profileImg) as ImageProvider;
                   return Positioned(
@@ -275,7 +397,7 @@ class _ChatDetailsState extends State<ChatDetails> with UtilityMixin {
                       ),
                     ),
                   );
-                }).toList()
+                }).toList(),
               ),
             ),
             const Spacer(),
@@ -371,7 +493,10 @@ class _ChatDetailsState extends State<ChatDetails> with UtilityMixin {
                   if (widget.userId != null) {
                     navigationPush(
                       context,
-                      PublicProfileScreen(userId: widget.userId.toString()),
+                      PublicProfileScreen(
+                        userId: widget.userId.toString(),
+                        username: widget.username ?? widget.chatName,
+                      ),
                     );
                   }
                 },
@@ -425,43 +550,50 @@ class _ChatDetailsState extends State<ChatDetails> with UtilityMixin {
                     child: SizedBox(
                       height: 90.h,
                       width: 90.w,
-                      child: Container(
-                        margin: EdgeInsets.only(bottom: 10.h),
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: provider == null
-                              ? Theme.of(
-                                  context,
-                                ).colorScheme.onPrimary.withOpacity(0.1)
-                              : null,
-                          border: Border.all(
-                            color: Theme.of(
-                              context,
-                            ).colorScheme.onBackground.withOpacity(0.1),
-                            width: 1.w,
-                          ),
-                          image: provider != null
-                              ? DecorationImage(
-                                  image: provider,
-                                  fit: BoxFit.cover,
-                                )
-                              : null,
-                        ),
-                        child: provider == null
-                            ? Center(
-                                child: Text(
-                                  initial,
-                                  style: AppTextStyles.cardTitle.copyWith(
-                                    fontSize: 30,
-                                    fontWeight: FontWeight.w600,
-                                    color: Theme.of(
-                                      context,
-                                    ).colorScheme.onPrimary,
-                                  ),
+                      child: widget.isGroupChat && (profileUrl == null || profileUrl.trim().isEmpty || profileUrl == 'null')
+                          ? _buildGroupAvatarStack(
+                              members: members,
+                              size: 90.w,
+                              isDarkMode: Theme.of(context).brightness == Brightness.dark,
+                              context: context,
+                            )
+                          : Container(
+                              margin: EdgeInsets.only(bottom: 10.h),
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: provider == null
+                                    ? Theme.of(
+                                        context,
+                                      ).colorScheme.onPrimary.withOpacity(0.1)
+                                    : null,
+                                border: Border.all(
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onBackground.withOpacity(0.1),
+                                  width: 1.w,
                                 ),
-                              )
-                            : null,
-                      ),
+                                image: provider != null
+                                    ? DecorationImage(
+                                        image: provider,
+                                        fit: BoxFit.cover,
+                                      )
+                                    : null,
+                              ),
+                              child: provider == null
+                                  ? Center(
+                                      child: Text(
+                                        initial,
+                                        style: AppTextStyles.cardTitle.copyWith(
+                                          fontSize: 30,
+                                          fontWeight: FontWeight.w600,
+                                          color: Theme.of(
+                                            context,
+                                          ).colorScheme.onPrimary,
+                                        ),
+                                      ),
+                                    )
+                                  : null,
+                            ),
                     ),
                   ),
 

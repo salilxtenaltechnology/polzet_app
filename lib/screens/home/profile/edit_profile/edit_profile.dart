@@ -5,10 +5,11 @@ import 'dart:io';
 import 'package:polzet_app/core/constants/feather_icons_compat.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
-import '../../../../api/services/validator/api_service.dart';
+import '../../../../api/api_service.dart';
 import '../../../../api/services/image/image_picker_service.dart';
 import '../../../../core/constants/app_radius.dart';
 import '../../../../gen/assets.gen.dart';
@@ -34,6 +35,7 @@ class _EditProfileState extends State<EditProfile> {
   final TextEditingController _firstNameController = TextEditingController();
   final TextEditingController _lastNameController = TextEditingController();
   final TextEditingController _usernameController = TextEditingController();
+  final TextEditingController _bioController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
@@ -45,10 +47,11 @@ class _EditProfileState extends State<EditProfile> {
   DateTime? _dob;
   bool _hasChanges = false;
 
-  String _selectedGender = 'Other';
+  String _selectedGender = 'Prefer not to say';
   String _originalFirstName = '';
   String _originalLastName = '';
   String _originalUsername = '';
+  String _originalBio = '';
   String _originalDob = '';
   String _originalGender = '';
 
@@ -56,7 +59,7 @@ class _EditProfileState extends State<EditProfile> {
   String _lastNameErrorText = '';
   String _usernameErrorText = '';
 
-  final List<String> _genderOptions = ['Male', 'Female', 'Other'];
+  final List<String> _genderOptions = ['Male', 'Female', 'Prefer not to say'];
 
   Country _selectedCountry = Country(
     name: 'India',
@@ -75,6 +78,7 @@ class _EditProfileState extends State<EditProfile> {
     _firstNameController.addListener(_onFieldChanged);
     _lastNameController.addListener(_onFieldChanged);
     _usernameController.addListener(_onFieldChanged);
+    _bioController.addListener(_onFieldChanged);
   }
 
   void _onFieldChanged() {
@@ -105,6 +109,7 @@ class _EditProfileState extends State<EditProfile> {
         _firstNameController.text != _originalFirstName ||
         _lastNameController.text != _originalLastName ||
         _usernameController.text != _originalUsername ||
+        _bioController.text != _originalBio ||
         dobStr != _originalDob ||
         _selectedGender != _originalGender;
 
@@ -120,18 +125,20 @@ class _EditProfileState extends State<EditProfile> {
     _firstNameController.text = userProvider.firstName ?? '';
     _lastNameController.text = userProvider.lastName ?? '';
     _usernameController.text = userProvider.username ?? '';
+    _bioController.text = userProvider.bio ?? '';
     _emailController.text = userProvider.email ?? '';
     _phoneController.text = userProvider.mobile_number ?? '';
     _dob = userProvider.dob != null ? DateTime.parse(userProvider.dob!) : null;
-    final rawGender = userProvider.gender ?? 'Other';
+    final rawGender = userProvider.gender ?? 'Prefer not to say';
     _selectedGender = _genderOptions.firstWhere(
       (g) => g.toLowerCase() == rawGender.toLowerCase(),
-      orElse: () => 'Other',
+      orElse: () => 'Prefer not to say',
     );
 
     _originalFirstName = _firstNameController.text;
     _originalLastName = _lastNameController.text;
     _originalUsername = _usernameController.text;
+    _originalBio = _bioController.text;
     _originalDob = _dob != null ? DateFormat('yyyy-MM-dd').format(_dob!) : '';
     _originalGender = _selectedGender;
   }
@@ -141,6 +148,7 @@ class _EditProfileState extends State<EditProfile> {
     _firstNameController.dispose();
     _lastNameController.dispose();
     _usernameController.dispose();
+    _bioController.dispose();
     _passwordController.dispose();
     _emailController.dispose();
     _phoneController.dispose();
@@ -213,14 +221,14 @@ class _EditProfileState extends State<EditProfile> {
     bool profileUpdated = false;
     bool usernameUpdated = false;
 
+    final bioStr = _bioController.text.trim();
     final dobStr = _dob != null ? DateFormat('yyyy-MM-dd').format(_dob!) : '';
 
     if (firstName != _originalFirstName ||
         lastName != _originalLastName ||
+        bioStr != _originalBio ||
         dobStr != _originalDob ||
         _selectedGender != _originalGender) {
-      final bioStr =
-          Provider.of<UserProvider>(context, listen: false).bio ?? '';
       final profileError = await ApiService().updateProfile(
         firstName: firstName,
         lastName: lastName,
@@ -233,6 +241,7 @@ class _EditProfileState extends State<EditProfile> {
         profileUpdated = true;
         _originalFirstName = firstName;
         _originalLastName = lastName;
+        _originalBio = bioStr;
         _originalDob = dobStr;
         _originalGender = _selectedGender;
       }
@@ -333,21 +342,47 @@ class _EditProfileState extends State<EditProfile> {
     required String hint,
     TextInputType keyboardType = TextInputType.text,
     String errorText = '',
+    int? maxLines = 1,
+    int? maxLength,
+    List<TextInputFormatter>? inputFormatters,
   }) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         SizedBox(
-          height: 48,
+          height: maxLines == 1 ? 48 : null,
           child: TextField(
             controller: controller,
             keyboardType: keyboardType,
+            maxLines: maxLines,
+            maxLength: maxLength,
+            inputFormatters: inputFormatters,
             style: AppTextStyles.subText.copyWith(
               fontSize: 15,
               color: Theme.of(context).colorScheme.onBackground,
               fontWeight: FontWeight.w400,
             ),
+            buildCounter: maxLength != null
+                ? (
+                    context, {
+                    required currentLength,
+                    required isFocused,
+                    required maxLength,
+                  }) {
+                    return Align(
+                      alignment: Alignment.centerRight,
+                      child: Text(
+                        '$currentLength/$maxLength',
+                        style: AppTextStyles.subText.copyWith(
+                          fontSize: 12,
+                          color: const Color(0XFF898989),
+                          fontWeight: FontWeight.w400,
+                        ),
+                      ),
+                    );
+                  }
+                : null,
             decoration: InputDecoration(
               hintText: hint,
               hintStyle: AppTextStyles.subText.copyWith(
@@ -678,6 +713,21 @@ class _EditProfileState extends State<EditProfile> {
             controller: _usernameController,
             hint: AppLocalizations.of(context)!.enterusername,
             errorText: _usernameErrorText,
+            inputFormatters: [
+              LengthLimitingTextInputFormatter(20),
+            ],
+          ),
+          const SizedBox(height: 16),
+
+          // ── Bio ─────────────────────────────────────────────────────────
+          _buildFieldLabel(AppLocalizations.of(context)!.bio),
+          const SizedBox(height: 6),
+          _buildTextField(
+            controller: _bioController,
+            hint: AppLocalizations.of(context)!.enterbio,
+            maxLines: 3,
+            maxLength: 150,
+            keyboardType: TextInputType.multiline,
           ),
           const SizedBox(height: 16),
 

@@ -11,7 +11,7 @@ import 'package:provider/provider.dart';
 import 'package:polzet_app/gen/assets.gen.dart';
 
 import '../../../api/api_config.dart';
-import '../../../api/services/validator/api_service.dart';
+import '../../../api/api_service.dart';
 import '../../../core/constants/app_radius.dart';
 import '../../../core/themes/app_text_colors.dart';
 import '../../../core/themes/app_text_styles.dart';
@@ -92,7 +92,12 @@ class _PollVoteNotificationTileState extends State<PollVoteNotificationTile>
 
   Future<void> _fetchPollDetails({bool forceRefresh = false}) async {
     final dynamic postId = _postId;
-    if (postId == null || postId == 0 || postId == '0' || postId.toString().trim().isEmpty) return;
+    if (postId == null ||
+        postId == 0 ||
+        postId == '0' ||
+        postId.toString().trim().isEmpty) {
+      return;
+    }
 
     // If cached and not forcing refresh, nothing to do
     if (!forceRefresh && _cache.containsKey(postId)) return;
@@ -275,10 +280,7 @@ class _PollVoteNotificationTileState extends State<PollVoteNotificationTile>
               if (_isFetchingPoll)
                 Padding(
                   padding: EdgeInsets.symmetric(vertical: 28.h),
-                  child: Loader(
-                    color: Theme.of(context).colorScheme.onPrimary,
-                    
-                  ),
+                  child: Loader(color: Theme.of(context).colorScheme.onPrimary),
                 )
               else if (_fetchFailed)
                 _buildErrorRow(context)
@@ -351,6 +353,37 @@ class _PollVoteNotificationTileState extends State<PollVoteNotificationTile>
   ) {
     final userProvider = Provider.of<UserProvider>(context, listen: false);
     final String username = userProvider.username ?? '';
+
+    final String pType = poll.pollType.toLowerCase();
+    final bool isBattle = pType == 'battle' || pType == 'battel';
+    final bool isThisOrThat =
+        pType == 'this_or_that' ||
+        pType == 'this or that' ||
+        pType == 'this-or-that';
+
+    final bool isHotTake = pType == 'hot_take' ||
+        pType == 'hot take' ||
+        pType == 'hot-take';
+
+    if (isBattle || isThisOrThat) {
+      final bool hasImages = poll.options.any((o) => o.image != null);
+      if (hasImages) {
+        return _buildBattleOrThisOrThatPoll(
+          context,
+          poll,
+          totalVotes,
+          username,
+          isBattle: isBattle,
+        );
+      } else {
+        return _buildTextPoll(context, poll, totalVotes, username);
+      }
+    }
+
+    if (isHotTake) {
+      return _buildHotTakePoll(context, poll, totalVotes, username);
+    }
+
     final bool hasAnyImage = poll.options.any((o) => o.image != null);
     final bool hasAnyText = poll.options.any(
       (o) => o.text != null && o.text!.isNotEmpty,
@@ -374,6 +407,226 @@ class _PollVoteNotificationTileState extends State<PollVoteNotificationTile>
     );
   }
 
+  Widget _buildHotTakePoll(
+    BuildContext context,
+    SinglePostPoll poll,
+    int totalVotes,
+    String username,
+  ) {
+    final firstImage = poll.options.isEmpty
+        ? null
+        : (poll.options
+              .firstWhere((o) => o.image != null, orElse: () => poll.options[0])
+              .image);
+
+    final double maxPercentage = poll.options.isEmpty
+        ? 0.0
+        : poll.options
+            .map((o) => o.percentage)
+            .reduce((a, b) => a > b ? a : b);
+
+    return GestureDetector(
+      onTap: () {
+        final String? postId = widget.notification.meta?.postId?.toString();
+        if (postId == null) return;
+
+        final bool isPolled = _cachedPost?.isPolledByCurrentUser == true;
+        final String targetUsername = _cachedPost?.user.username ?? username;
+
+        if (isPolled) {
+          navigationPush(
+            context,
+            ThingsResultScreen(username: targetUsername, postId: postId),
+          );
+        } else {
+          navigationPush(
+            context,
+            SinglePostDetails(username: targetUsername, postId: postId),
+          );
+        }
+      },
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (poll.question.isNotEmpty) ...[
+            Text(
+              poll.question,
+              style: AppTextStyles.cardTitle.copyWith(
+                color: Theme.of(context).colorScheme.onBackground,
+                fontWeight: FontWeight.w600,
+                fontSize: 12.sp,
+              ),
+            ),
+            SizedBox(height: 12.h),
+          ],
+          if (firstImage != null) ...[
+            Container(
+              margin: const EdgeInsets.only(bottom: 12),
+              height: 150.h,
+              width: double.infinity,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(10.r),
+                child: _pollImageBox(
+                  firstImage.resolvedUrl(ApiConfig.baseUrlImage),
+                  borderRadius: 10.r,
+                ),
+              ),
+            ),
+          ],
+          ...poll.options.map(
+            (o) => _buildTextOptionRow(
+              context,
+              o,
+              totalVotes,
+              o.percentage == maxPercentage,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBattleOrThisOrThatPoll(
+    BuildContext context,
+    SinglePostPoll poll,
+    int totalVotes,
+    String username, {
+    required bool isBattle,
+  }) {
+    final List<SinglePostPollOption> options = poll.options;
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+
+    const bool shouldBlurOption0 = true;
+    const bool shouldBlurOption1 = true;
+
+    return GestureDetector(
+      onTap: () {
+        final String? postId = widget.notification.meta?.postId?.toString();
+        if (postId == null) return;
+
+        final bool isPolled = _cachedPost?.isPolledByCurrentUser == true;
+        final String targetUsername = _cachedPost?.user.username ?? username;
+
+        final bool hasImages = options.any((o) => o.image != null);
+
+        if (isPolled) {
+          if (hasImages) {
+            navigationPush(
+              context,
+              ImageResultScreen(username: targetUsername, postId: postId),
+            );
+          } else {
+            navigationPush(
+              context,
+              ThingsResultScreen(username: targetUsername, postId: postId),
+            );
+          }
+        } else {
+          navigationPush(
+            context,
+            SinglePostDetails(username: targetUsername, postId: postId),
+          );
+        }
+      },
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (poll.question.isNotEmpty) ...[
+            Text(
+              poll.question,
+              style: AppTextStyles.cardTitle.copyWith(
+                color: Theme.of(context).colorScheme.onBackground,
+                fontWeight: FontWeight.w600,
+                fontSize: 12.sp,
+              ),
+            ),
+            SizedBox(height: 12.h),
+          ],
+          SizedBox(
+            height: 150.h,
+            child: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Expanded(
+                      child: options.isNotEmpty && options[0].image != null
+                          ? _pollImageBox(
+                              options[0].image!.resolvedUrl(
+                                ApiConfig.baseUrlImage,
+                              ),
+                              borderRadius: 10.r,
+                              shouldBlur: shouldBlurOption0,
+                            )
+                          : Container(
+                              decoration: BoxDecoration(
+                                color: Colors.grey.withOpacity(0.15),
+                                borderRadius: BorderRadius.circular(10.r),
+                              ),
+                            ),
+                    ),
+                    SizedBox(width: 10.w),
+                    Expanded(
+                      child: options.length > 1 && options[1].image != null
+                          ? _pollImageBox(
+                              options[1].image!.resolvedUrl(
+                                ApiConfig.baseUrlImage,
+                              ),
+                              borderRadius: 10.r,
+                              shouldBlur: shouldBlurOption1,
+                            )
+                          : Container(
+                              decoration: BoxDecoration(
+                                color: Colors.grey.withOpacity(0.15),
+                                borderRadius: BorderRadius.circular(10.r),
+                              ),
+                            ),
+                    ),
+                  ],
+                ),
+                Center(
+                  child: Container(
+                    width: 36.w,
+                    height: 36.w,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: LinearGradient(
+                        colors: isDarkMode
+                            ? const [Color(0xFFFFFFFF), Color(0xFFFCFCFC)]
+                            : const [Color(0xFF111111), Color(0xFF2C2C2C)],
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                      ),
+                      border: Border.all(
+                        color: isDarkMode
+                            ? const Color(0xFF2E323D)
+                            : const Color(0xFFE5E7EB),
+                        width: 1,
+                      ),
+                    ),
+                    alignment: Alignment.center,
+                    child: Text(
+                      isBattle ? 'Vs' : 'Or',
+                      style: TextStyle(
+                        color: isDarkMode ? Colors.black : Colors.white,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+        ],
+      ),
+    );
+  }
+
   // ── Leading thumbnail ──────────────────────────────────────────────────────
 
   Widget _buildLeadingThumbnail(String? avatarUrl) {
@@ -389,8 +642,7 @@ class _PollVoteNotificationTileState extends State<PollVoteNotificationTile>
 
     // ── Check if any real image is available ──
     final bool hasAnyImage =
-        hasNetworkAvatar ||
-        (hasBase64Avatar && base64Bytes != null);
+        hasNetworkAvatar || (hasBase64Avatar && base64Bytes != null);
 
     // ── Fallback: default avatar asset ──
     if (!hasAnyImage) {
@@ -685,26 +937,12 @@ class _PollVoteNotificationTileState extends State<PollVoteNotificationTile>
                       children: [
                         if (options[1].image != null)
                           Expanded(
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(10.r),
-                              child: Stack(
-                                fit: StackFit.expand,
-                                children: [
-                                  _pollImageBox(
-                                    options[1].image!.resolvedUrl(
-                                      ApiConfig.baseUrlImage,
-                                    ),
-                                    borderRadius: 10.r,
-                                  ),
-                                  BackdropFilter(
-                                    filter: ImageFilter.blur(
-                                      sigmaX: 1.5,
-                                      sigmaY: 1.5,
-                                    ),
-                                    child: Container(color: Colors.transparent),
-                                  ),
-                                ],
+                            child: _pollImageBox(
+                              options[1].image!.resolvedUrl(
+                                ApiConfig.baseUrlImage,
                               ),
+                              borderRadius: 10.r,
+                              shouldBlur: true,
                             ),
                           ),
                         if (options.length > 2 && options[2].image != null) ...[
@@ -720,13 +958,7 @@ class _PollVoteNotificationTileState extends State<PollVoteNotificationTile>
                                       ApiConfig.baseUrlImage,
                                     ),
                                     borderRadius: 10.r,
-                                  ),
-                                  BackdropFilter(
-                                    filter: ImageFilter.blur(
-                                      sigmaX: 2.5,
-                                      sigmaY: 2.5,
-                                    ),
-                                    child: Container(color: Colors.transparent),
+                                    shouldBlur: true,
                                   ),
                                   if (options.length > 3)
                                     Container(
@@ -828,8 +1060,12 @@ class _PollVoteNotificationTileState extends State<PollVoteNotificationTile>
 
   // ── Poll image box helper ──────────────────────────────────────────────────
 
-  Widget _pollImageBox(String url, {required double borderRadius}) {
-    return Container(
+  Widget _pollImageBox(
+    String url, {
+    required double borderRadius,
+    bool shouldBlur = false,
+  }) {
+    final Widget imageWidget = Container(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(borderRadius),
         color: Colors.grey.withOpacity(0.15),
@@ -838,6 +1074,23 @@ class _PollVoteNotificationTileState extends State<PollVoteNotificationTile>
           fit: BoxFit.cover,
           onError: (_, __) {},
         ),
+      ),
+    );
+
+    if (!shouldBlur) return imageWidget;
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(borderRadius),
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          imageWidget,
+
+          BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 1.5, sigmaY: 1.5),
+            child: Container(color: Colors.transparent),
+          ),
+        ],
       ),
     );
   }

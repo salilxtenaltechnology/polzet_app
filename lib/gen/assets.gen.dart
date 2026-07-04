@@ -122,6 +122,14 @@ class $AssetsImagesGen {
   AssetGenImage get icAddUser =>
       const AssetGenImage('assets/images/ic_add_user.png');
 
+  /// File path: assets/images/ic_agree.png
+  AssetGenImage get icAgree =>
+      const AssetGenImage('assets/images/ic_agree.png');
+
+  /// File path: assets/images/ic_anonymous.png
+  AssetGenImage get icAnonymous =>
+      const AssetGenImage('assets/images/ic_anonymous.png');
+
   /// File path: assets/images/ic_app_foreground.png
   AssetGenImage get icAppForeground =>
       const AssetGenImage('assets/images/ic_app_foreground.png');
@@ -134,9 +142,17 @@ class $AssetsImagesGen {
   AssetGenImage get icAvatarSquare =>
       const AssetGenImage('assets/images/ic_avatar_square.png');
 
+  /// File path: assets/images/ic_battel.png
+  AssetGenImage get icBattel =>
+      const AssetGenImage('assets/images/ic_battel.png');
+
   /// File path: assets/images/ic_block_account.png
   AssetGenImage get icBlockAccount =>
       const AssetGenImage('assets/images/ic_block_account.png');
+
+  /// File path: assets/images/ic_camera.png
+  AssetGenImage get icCamera =>
+      const AssetGenImage('assets/images/ic_camera.png');
 
   /// File path: assets/images/ic_darkmode.png
   AssetGenImage get icDarkmode =>
@@ -145,6 +161,10 @@ class $AssetsImagesGen {
   /// File path: assets/images/ic_delete.png
   AssetGenImage get icDelete =>
       const AssetGenImage('assets/images/ic_delete.png');
+
+  /// File path: assets/images/ic_disagree.png
+  AssetGenImage get icDisagree =>
+      const AssetGenImage('assets/images/ic_disagree.png');
 
   /// File path: assets/images/ic_feedback.png
   AssetGenImage get icFeedback =>
@@ -157,6 +177,13 @@ class $AssetsImagesGen {
   /// File path: assets/images/ic_help_support.png
   AssetGenImage get icHelpSupport =>
       const AssetGenImage('assets/images/ic_help_support.png');
+
+  /// File path: assets/images/ic_hot.png
+  AssetGenImage get icHot => const AssetGenImage('assets/images/ic_hot.png');
+
+  /// File path: assets/images/ic_image_poll.png
+  AssetGenImage get icImagePoll =>
+      const AssetGenImage('assets/images/ic_image_poll.png');
 
   /// File path: assets/images/ic_language.png
   AssetGenImage get icLanguage =>
@@ -184,6 +211,14 @@ class $AssetsImagesGen {
   /// File path: assets/images/ic_terms_conditions.png
   AssetGenImage get icTermsConditions =>
       const AssetGenImage('assets/images/ic_terms_conditions.png');
+
+  /// File path: assets/images/ic_text_poll.png
+  AssetGenImage get icTextPoll =>
+      const AssetGenImage('assets/images/ic_text_poll.png');
+
+  /// File path: assets/images/ic_this_that.png
+  AssetGenImage get icThisThat =>
+      const AssetGenImage('assets/images/ic_this_that.png');
 
   /// File path: assets/images/ic_user.png
   AssetGenImage get icUser => const AssetGenImage('assets/images/ic_user.png');
@@ -333,15 +368,22 @@ class $AssetsImagesGen {
     heart,
     icAccountPrivacy,
     icAddUser,
+    icAgree,
+    icAnonymous,
     icAppForeground,
     icAvatar,
     icAvatarSquare,
+    icBattel,
     icBlockAccount,
+    icCamera,
     icDarkmode,
     icDelete,
+    icDisagree,
     icFeedback,
     icGoogle,
     icHelpSupport,
+    icHot,
+    icImagePoll,
     icLanguage,
     icMessage,
     icNotifications,
@@ -349,6 +391,8 @@ class $AssetsImagesGen {
     icSecurity,
     icSplash,
     icTermsConditions,
+    icTextPoll,
+    icThisThat,
     icUser,
     icVote,
     iconBackground,

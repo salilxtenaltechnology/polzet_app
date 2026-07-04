@@ -15,7 +15,7 @@ import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../../api/app_api.dart';
-import '../../../api/services/validator/api_service.dart';
+import '../../../api/api_service.dart';
 import '../../../../data/token/shared_preferences.dart';
 import '../../../../provider/user_provider.dart';
 import '../../../../provider/private_chat_provider.dart';
@@ -27,6 +27,8 @@ import '../../../core/themes/app_text_styles.dart';
 import '../../../languages/l10n/generated/app_localizations.dart';
 import '../../../mixin/utility_mixins.dart';
 import '../../../models/notifications/notification_model.dart';
+import 'package:polzet_app/api/api_config.dart';
+import 'package:polzet_app/models/posts/single_post_model.dart';
 import '../../../models/request/incoming_request.dart';
 import '../../../widgets/appbar/common_appbar.dart';
 import '../../../widgets/button/request/friend_request_button.dart';
@@ -1521,6 +1523,14 @@ class NotificationState extends State<Notifications>
         ? getUserImage(notification.actor.avatarUrl)
         : null;
 
+    Widget? rightSideImage;
+    if (!isFriendRequest && notification.post != null) {
+      rightSideImage = NotificationRightSideImage(
+        notification: notification,
+        username: username?.toString() ?? '',
+      );
+    }
+
     return Dismissible(
       key: Key(notification.id),
       direction: DismissDirection.endToStart,
@@ -1586,6 +1596,7 @@ class NotificationState extends State<Notifications>
                     create: (_) => PrivateChatProvider(),
                     child: PrivateChatScreen(
                       memberName: notification.actor.name,
+                      username: notification.actor.username,
                       profileUrl: notification.actor.avatarUrl,
                       userId: resolvedUserId,
                       chatId: chatIdInt,
@@ -1601,7 +1612,10 @@ class NotificationState extends State<Notifications>
             if (notification.actor.userId.toString().trim().isNotEmpty) {
               navigationPush(
                 context,
-                PublicProfileScreen(userId: notification.actor.userId),
+                PublicProfileScreen(
+                  userId: notification.actor.userId,
+                  username: notification.actor.username,
+                ),
               );
             }
             return;
@@ -1623,7 +1637,10 @@ class NotificationState extends State<Notifications>
             if (notification.actor.userId.toString().trim().isNotEmpty) {
               navigationPush(
                 context,
-                PublicProfileScreen(userId: notification.actor.userId),
+                PublicProfileScreen(
+                  userId: notification.actor.userId,
+                  username: notification.actor.username,
+                ),
               );
             }
           } else if (type == 'FOLLOW_GROUP') {
@@ -1675,7 +1692,10 @@ class NotificationState extends State<Notifications>
                   if (notification.actor.userId.toString().trim().isNotEmpty) {
                     navigationPush(
                       context,
-                      PublicProfileScreen(userId: notification.actor.userId),
+                      PublicProfileScreen(
+                        userId: notification.actor.userId,
+                        username: notification.actor.username,
+                      ),
                     );
                   }
                 },
@@ -1839,21 +1859,7 @@ class NotificationState extends State<Notifications>
                 ),
               ),
 
-              if (!isFriendRequest &&
-                  notification.post != null &&
-                  notification.post!.imageUrl != null &&
-                  notification.post!.imageUrl!.isNotEmpty)
-                Container(
-                  width: 35.w,
-                  height: 38.h,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(AppRadius.button),
-                    image: DecorationImage(
-                      image: NetworkImage(notification.post!.imageUrl!),
-                      fit: BoxFit.cover,
-                    ),
-                  ),
-                ),
+              if (rightSideImage != null) rightSideImage,
 
               if (notification.type.toUpperCase() == 'FOLLOW' ||
                   notification.type.toUpperCase() == 'NEW_GROUP_ADDED' ||
@@ -1901,6 +1907,7 @@ class NotificationState extends State<Notifications>
                             create: (_) => PrivateChatProvider(),
                             child: PrivateChatScreen(
                               memberName: notification.actor.name,
+                              username: notification.actor.username,
                               profileUrl: notification.actor.avatarUrl,
                               userId: resolvedUserId,
                               chatId: chatIdInt,
@@ -2048,5 +2055,272 @@ class NotificationState extends State<Notifications>
       fetchNotifications();
       showToast(message: 'Error deleting notification');
     }
+  }
+}
+
+class NotificationRightSideImage extends StatefulWidget {
+  final NotificationItem notification;
+  final String username;
+
+  const NotificationRightSideImage({
+    super.key,
+    required this.notification,
+    required this.username,
+  });
+
+  @override
+  State<NotificationRightSideImage> createState() =>
+      _NotificationRightSideImageState();
+}
+
+class _NotificationRightSideImageState
+    extends State<NotificationRightSideImage> {
+  static final Map<String, SinglePostModel> _postCache = {};
+  static final Set<String> _fetchingIds = {};
+
+  bool _loading = false;
+  SinglePostModel? _fetchedPost;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadPostDetails();
+  }
+
+  String _getPollType() {
+    final post = widget.notification.post;
+    if (post == null) return '';
+
+    // 1. Try from pollDetails inside notification's post
+    if (post.pollDetails.isNotEmpty) {
+      return post.pollDetails.first.polltype;
+    }
+
+    // 2. Try from fetched post (SinglePostModel)
+    if (_fetchedPost != null && _fetchedPost!.polls.isNotEmpty) {
+      return _fetchedPost!.polls.first.pollType;
+    }
+
+    // 3. Try from postType directly
+    return post.postType;
+  }
+
+  Future<void> _loadPostDetails() async {
+    final post = widget.notification.post;
+    if (post == null) return;
+
+    final postId = post.postId;
+    final pType = _getPollType().toLowerCase();
+    final isBattle = pType == 'battle' || pType == 'battel';
+    final isThisOrThat =
+        pType == 'this_or_that' ||
+        pType == 'this or that' ||
+        pType == 'this-or-that';
+
+    if (!isBattle && !isThisOrThat) return;
+
+    // Check if options already have images in the notification model directly
+    final hasImagesInModel =
+        post.pollDetails.isNotEmpty &&
+        post.pollDetails.first.options.where((o) => o.image != null).length >=
+            2;
+    if (hasImagesInModel) return;
+
+    // Check static cache
+    if (_postCache.containsKey(postId)) {
+      if (mounted) {
+        setState(() {
+          _fetchedPost = _postCache[postId];
+        });
+      }
+      return;
+    }
+
+    if (_fetchingIds.contains(postId)) {
+      _waitForCache(postId);
+      return;
+    }
+
+    _fetchingIds.add(postId);
+    if (mounted) {
+      setState(() {
+        _loading = true;
+      });
+    }
+
+    try {
+      final fetched = await ApiService().getSinglePost(widget.username, postId);
+      _postCache[postId] = fetched;
+      if (mounted) {
+        setState(() {
+          _fetchedPost = fetched;
+          _loading = false;
+        });
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('Error fetching single post in notification tile: $e');
+      }
+      if (mounted) {
+        setState(() {
+          _loading = false;
+        });
+      }
+    } finally {
+      _fetchingIds.remove(postId);
+    }
+  }
+
+  void _waitForCache(String postId) async {
+    int attempts = 0;
+    while (attempts < 20) {
+      await Future.delayed(const Duration(milliseconds: 200));
+      if (!mounted) return;
+      if (_postCache.containsKey(postId)) {
+        setState(() {
+          _fetchedPost = _postCache[postId];
+        });
+        return;
+      }
+      attempts++;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final post = widget.notification.post;
+    if (post == null) return const SizedBox.shrink();
+
+    final pType = _getPollType().toLowerCase();
+    final isBattle = pType == 'battle' || pType == 'battel';
+    final isThisOrThat =
+        pType == 'this_or_that' ||
+        pType == 'this or that' ||
+        pType == 'this-or-that';
+
+    if (!isBattle && !isThisOrThat) {
+      return _buildSingleImage(post.imageUrl);
+    }
+
+    List<String> imageUrls = [];
+
+    // 1. Try from notification post model directly first (since it is local and synchronous)
+    final pollDetails = post.pollDetails;
+    if (pollDetails.isNotEmpty) {
+      final pollDetail = pollDetails.first;
+      final optionImages = pollDetail.options
+          .where((opt) => opt.image != null)
+          .map((opt) => opt.image!)
+          .toList();
+      if (optionImages.length >= 2) {
+        imageUrls = optionImages
+            .map((img) => img.resolvedUrl(ApiConfig.baseUrlImage))
+            .toList();
+      }
+    }
+
+    // 2. Try from fetched post (SinglePostModel)
+    if (imageUrls.length < 2 && _fetchedPost != null) {
+      final polls = _fetchedPost!.polls;
+      if (polls.isNotEmpty) {
+        final poll = polls.first;
+        final options = poll.options;
+        for (final opt in options) {
+          if (opt.image != null) {
+            imageUrls.add(opt.image!.resolvedUrl(ApiConfig.baseUrlImage));
+          }
+        }
+      }
+    }
+
+    if (imageUrls.length >= 2) {
+      final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+      return Container(
+        width: 62.w,
+        height: 35.h,
+        margin: EdgeInsets.only(left: 2.w),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(AppRadius.button),
+          border: Border.all(
+            color: Theme.of(context).colorScheme.outline.withOpacity(0.5),
+            width: 1,
+          ),
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(AppRadius.button - 1),
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  SizedBox(
+                    width: 30.w,
+                    height: 35.h,
+                    child: Image.network(
+                      imageUrls[0],
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) =>
+                          Container(color: Colors.grey),
+                    ),
+                  ),
+                  SizedBox(
+                    width: 30.w,
+                    height: 35.h,
+                    child: Image.network(
+                      imageUrls[1],
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) =>
+                          Container(color: Colors.grey),
+                    ),
+                  ),
+                ],
+              ),
+              Container(
+                width: 18.w,
+                height: 18.w,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: isDarkMode
+                        ? const [Color(0xFFFFFFFF), Color(0xFFFCFCFC)]
+                        : const [Color(0xFF111111), Color(0xFF2C2C2C)],
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                  ),
+                  shape: BoxShape.circle,
+                ),
+                alignment: Alignment.center,
+                child: Text(
+                  isBattle ? 'Vs' : 'Or',
+                  style: TextStyle(
+                    color: isDarkMode ? Colors.black : Colors.white,
+                    fontSize: 8.sp,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+    return _buildSingleImage(post.imageUrl);
+  }
+
+  Widget _buildSingleImage(String? imageUrl) {
+    if (imageUrl != null && imageUrl.isNotEmpty) {
+      return Container(
+        width: 35.w,
+        height: 38.h,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(AppRadius.button),
+          image: DecorationImage(
+            image: NetworkImage(imageUrl),
+            fit: BoxFit.cover,
+          ),
+        ),
+      );
+    }
+    return const SizedBox.shrink();
   }
 }

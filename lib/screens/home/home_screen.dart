@@ -11,7 +11,8 @@ class HomeScreen extends StatefulWidget {
   State<StatefulWidget> createState() => HomeScreenState();
 }
 
-class HomeScreenState extends State<HomeScreen> with UtilityMixin, WidgetsBindingObserver {
+class HomeScreenState extends State<HomeScreen>
+    with UtilityMixin, WidgetsBindingObserver {
   String? firstname;
   String? lastname;
   int pageIndex = 0;
@@ -64,7 +65,9 @@ class HomeScreenState extends State<HomeScreen> with UtilityMixin, WidgetsBindin
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
-      debugPrint('📱 HomeScreen resumed from background: Fetching fresh data...');
+      debugPrint(
+        '📱 HomeScreen resumed from background: Fetching fresh data...',
+      );
       Future.wait([
         MessageListState.refreshGlobally(),
         NotificationState.refreshGlobally(),
@@ -110,10 +113,8 @@ class HomeScreenState extends State<HomeScreen> with UtilityMixin, WidgetsBindin
     if (!mounted) return;
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (context) => SinglePostDetails(
-          username: username,
-          postId: postId,
-        ),
+        builder: (context) =>
+            SinglePostDetails(username: username, postId: postId),
       ),
     );
   }
@@ -409,8 +410,11 @@ class HomeScreenState extends State<HomeScreen> with UtilityMixin, WidgetsBindin
                         },
                         notificationCount: unreadNotificationCount,
                         messageCount: unreadMessageCount,
-                        onAddTap: () =>
-                            BottomSheetUtils.showNewPollBottomSheet(context),
+                        // onAddTap: () =>
+                        //     BottomSheetUtils.showNewPollBottomSheet(context),
+                        onAddTap: () {
+                          navigationPush(context, const AddNewPoll());
+                        },
                         addFabShowcaseKey: _addFabShowcaseKey,
                         insightsShowcaseKey: _insightsShowcaseKey,
                       );

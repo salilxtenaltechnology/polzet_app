@@ -53,6 +53,7 @@ class BottomSheetUtils {
     required dynamic postId,
     required String question,
     String? pollImageUrl,
+    String? pollType,
   }) {
     showModalBottomSheet(
       context: context,
@@ -62,6 +63,7 @@ class BottomSheetUtils {
         postId: postId,
         question: question,
         pollImageUrl: pollImageUrl,
+        pollType: pollType,
       ),
     );
   }

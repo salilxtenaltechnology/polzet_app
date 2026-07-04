@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
-import '../../../../api/services/validator/api_service.dart';
+import '../../../../api/api_service.dart';
 import '../../../../core/constants/app_radius.dart';
 import '../../../../core/themes/app_text_colors.dart';
 import '../../../../core/themes/app_text_styles.dart';
@@ -203,7 +203,10 @@ class _UserChaseState extends State<UserChase>
     final isPrivate = user['is_private'] == true;
 
     return GestureDetector(
-      onTap: () => navigationPush(context, PublicProfileScreen(userId: userId)),
+      onTap: () => navigationPush(
+        context,
+        PublicProfileScreen(userId: userId, username: username),
+      ),
       child: Padding(
         padding: EdgeInsetsGeometry.symmetric(horizontal: 10.w, vertical: 10),
         child: Row(

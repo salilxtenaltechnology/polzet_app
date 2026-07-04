@@ -46,7 +46,7 @@ class SplashScreenState extends State<SplashScreen>
 
     // ── Logo Animations ──
     _logoController = AnimationController(
-      duration: const Duration(milliseconds: 1000),
+      duration: const Duration(milliseconds: 600),
       vsync: this,
     );
     _logoScale = Tween<double>(begin: 0.05, end: 1.0).animate(
@@ -59,7 +59,7 @@ class SplashScreenState extends State<SplashScreen>
 
     // ── Text Animations ──
     _textController = AnimationController(
-      duration: const Duration(milliseconds: 800),
+      duration: const Duration(milliseconds: 500),
       vsync: this,
     );
     _textOpacity = Tween<double>(
@@ -76,8 +76,10 @@ class SplashScreenState extends State<SplashScreen>
 
   Future<void> _playAnimations() async {
     try {
-      await _logoController.forward().orCancel;
-      await _textController.forward().orCancel;
+      await Future.wait([
+        _logoController.forward().orCancel,
+        _textController.forward().orCancel,
+      ]);
     } catch (e) {
       debugPrint('Animation interrupted: $e');
     } finally {
@@ -149,7 +151,7 @@ class SplashScreenState extends State<SplashScreen>
 
   Future<void> _handleAnimationComplete() async {
     // Wait for minimum time AND initialization
-    await Future.delayed(const Duration(milliseconds: 400));
+    await Future.delayed(const Duration(milliseconds: 100));
 
     if (!mounted) return;
 

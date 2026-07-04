@@ -6,7 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
 import '../../../../../../api/api_config.dart';
-import '../../../../../api/services/validator/api_service.dart';
+import '../../../../../api/api_service.dart';
 import '../../../../../../core/themes/app_text_styles.dart';
 import '../../../../../../widgets/loader.dart';
 import '../../../../../core/constants/app_radius.dart';

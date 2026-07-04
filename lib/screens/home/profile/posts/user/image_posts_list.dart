@@ -9,7 +9,7 @@ import 'package:provider/provider.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
 import '../../../../../api/api_config.dart';
-import '../../../../../api/services/validator/api_service.dart';
+import '../../../../../api/api_service.dart';
 import '../../../../../api/services/like/like_service.dart';
 import '../../../../../api/services/share/share_service.dart';
 import '../../../../../core/constants/app_icons.dart';
@@ -346,7 +346,7 @@ class _ImagePostsListState extends State<ImagePostsList> {
 
         bool hasImages = imagePost.polls.any(
           (poll) =>
-              poll.options?.any((option) => option.image != null) ?? false,
+              poll.options.any((option) => option.image != null) ?? false,
         );
 
         if (!hasImages) {
@@ -614,12 +614,10 @@ class _ImagePostsListState extends State<ImagePostsList> {
     UserPollQuestion? firstPollWithImages;
 
     for (var poll in polls) {
-      if (poll.options != null) {
-        for (var option in poll.options!) {
-          if (option.image != null) {
-            validImages.add(option.image!);
-            firstPollWithImages ??= poll;
-          }
+      for (var option in poll.options) {
+        if (option.image != null) {
+          validImages.add(option.image!);
+          firstPollWithImages ??= poll;
         }
       }
     }

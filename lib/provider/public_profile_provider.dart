@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../api/services/validator/api_service.dart';
+import '../api/api_service.dart';
 import '../models/public/public_profile_model.dart';
 import '../models/global search/global_search_model.dart';
 
@@ -40,10 +40,10 @@ class PublicProfileProvider extends ChangeNotifier {
 
   /// Fetches public user profile by userId
   Future<void> fetchPublicUserProfile(
-    dynamic userId, {
+    dynamic username, {
     bool isRefresh = false,
   }) async {
-    if (_userProfile != null && _userProfile!.id != userId) {
+    if (_userProfile != null && _userProfile!.username!= username) {
       _userProfile = null;
       _profileResponse = null;
     }
@@ -55,12 +55,12 @@ class PublicProfileProvider extends ChangeNotifier {
     }
 
     try {
-      final response = await ApiService.getUserPublicProfile(userId);
+      final response = await ApiService.getUserPublicProfile(username);
 
       if (response.status == 'success') {
         _profileResponse = response;
         _userProfile = response.data;
-        resolvedUserId = userId?.toString();
+        resolvedUserId = username?.toString();
         _error = null;
         _errorType = ProfileErrorType.none;
       } else {

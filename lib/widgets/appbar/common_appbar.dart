@@ -33,12 +33,12 @@ class CommonAppBar extends StatelessWidget implements PreferredSizeWidget {
           : null,
       leadingWidth: showBackButton ? 48.w : 0,
       centerTitle: false,
-      titleSpacing: showBackButton ? 4.w : 16.w,
+      titleSpacing: showBackButton ? 4.w : 10.w,
       title: Text(
         title,
         style: AppTextStyles.pageTitleTextStyle(
           context,
-        ).copyWith(fontSize: 17.8.sp),
+        ).copyWith(fontSize: 17.sp),
       ),
       backgroundColor: Theme.of(context).colorScheme.background,
       surfaceTintColor: Theme.of(context).colorScheme.background,

@@ -12,7 +12,7 @@ import 'package:provider/provider.dart';
 
 import '../../../provider/user_provider.dart';
 
-import '../../../api/services/validator/api_service.dart';
+import '../../../api/api_service.dart';
 import '../../../gen/assets.gen.dart';
 import '../../../languages/l10n/generated/app_localizations.dart';
 import '../../../models/insights/insights_model.dart';

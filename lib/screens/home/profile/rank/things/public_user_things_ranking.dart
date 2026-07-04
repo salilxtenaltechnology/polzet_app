@@ -7,12 +7,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../../../../api/api_config.dart';
-import '../../../../../api/services/validator/api_service.dart';
+import '../../../../../api/api_service.dart';
 import '../../../../../core/constants/app_radius.dart';
 import '../../../../../core/themes/app_text_colors.dart';
 import '../../../../../core/themes/app_text_styles.dart';
 import '../../../../../languages/l10n/generated/app_localizations.dart';
-import '../../../../../models/public/public_profile_model.dart';
+import '../../../../../models/posts/user_post_model.dart';
 import '../../../../../widgets/appbar/common_appbar.dart';
 import '../../../../../widgets/loader.dart';
 import '../../../home feed/rank/result/things/things_result_screen.dart';
@@ -22,8 +22,8 @@ class PublicUserThingsRanking extends StatefulWidget {
   final String? firstName;
   final String? lastName;
   final String? profileImage;
-  final PublicPost post;
-  final PublicPoll poll;
+  final UserPostModel post;
+  final UserPollQuestion poll;
   const PublicUserThingsRanking({
     super.key,
     required this.firstName,
@@ -39,7 +39,7 @@ class PublicUserThingsRanking extends StatefulWidget {
 }
 
 class _PublicUserThingsRankingState extends State<PublicUserThingsRanking> {
-  late List<PublicPollOption> _rankedOptions;
+  late List<UserPollOption> _rankedOptions;
   bool _hasInteracted = false;
   bool _isSubmitting = false;
   Uint8List? _profileImageBytes;
@@ -158,8 +158,8 @@ class _PublicUserThingsRankingState extends State<PublicUserThingsRanking> {
         final imageUrl = profileUrl.startsWith('http')
             ? profileUrl
             : (profileUrl.startsWith('/')
-                ? '${ApiConfig.baseUrlImage}$profileUrl'
-                : '${ApiConfig.baseUrlImage}/$profileUrl');
+                  ? '${ApiConfig.baseUrlImage}$profileUrl'
+                  : '${ApiConfig.baseUrlImage}/$profileUrl');
         avatarImage = CachedNetworkImageProvider(imageUrl);
       }
     }
@@ -209,7 +209,7 @@ class _PublicUserThingsRankingState extends State<PublicUserThingsRanking> {
                     ),
                   ),
                   Text(
-                    '  • ${_timeAgo(widget.post.createdAt)}',
+                    '  • ${_timeAgo(widget.post.createdAt.toIso8601String())}',
                     style: AppTextStyles.subText.copyWith(
                       color: txt.muted,
                       fontWeight: FontWeight.w400,
@@ -282,7 +282,7 @@ class _PublicUserThingsRankingState extends State<PublicUserThingsRanking> {
   }
 
   Widget _buildOptionCard(
-    PublicPollOption option,
+    UserPollOption option,
     int index, {
     required Key key,
   }) {

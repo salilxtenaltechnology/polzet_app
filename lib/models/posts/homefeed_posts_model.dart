@@ -122,7 +122,7 @@ class HomeFeedPost {
       'comments_count': commentsCount,
       'view_likes': viewLikes.map((like) => like.toJson()).toList(),
       'following_status': followingStatus,
-      'shares_count' : sharesCount,
+      'shares_count': sharesCount,
       'is_polled_by_current_user': isPolledByCurrentUser,
     };
   }
@@ -177,11 +177,13 @@ class HomeFeedLikeUser {
   }
 
   factory HomeFeedLikeUser.fromJson(Map<String, dynamic> json) {
-    String? profileImg = json['profile_picture_url']?.toString() ??
+    String? profileImg =
+        json['profile_picture_url']?.toString() ??
         json['profile_image']?.toString() ??
         json['avatar_url']?.toString();
     if (profileImg != null && profileImg.isNotEmpty) {
-      if (!profileImg.startsWith('http') && !profileImg.startsWith('data:image')) {
+      if (!profileImg.startsWith('http') &&
+          !profileImg.startsWith('data:image')) {
         if (profileImg.startsWith('/')) {
           profileImg = '${ApiConfig.baseUrlImage}$profileImg';
         } else {
@@ -238,7 +240,8 @@ class HomeFeedUser {
   factory HomeFeedUser.fromJson(Map<String, dynamic> json) {
     String? profileImg = json['profile_image']?.toString();
     if (profileImg != null && profileImg.isNotEmpty) {
-      if (!profileImg.startsWith('http') && !profileImg.startsWith('data:image')) {
+      if (!profileImg.startsWith('http') &&
+          !profileImg.startsWith('data:image')) {
         if (profileImg.startsWith('/')) {
           profileImg = '${ApiConfig.baseUrlImage}$profileImg';
         } else {
@@ -276,6 +279,9 @@ class HomeFeedUser {
 class HomeFeedPoll {
   final String id;
   final String question;
+  final String type;
+  final String pollType;
+  final String vottingType;
   final int maxOptions;
   final List<HomeFeedPollOption> options;
   int totalVotes;
@@ -284,6 +290,9 @@ class HomeFeedPoll {
   HomeFeedPoll({
     required this.id,
     required this.question,
+    required this.type,
+    required this.pollType,
+    required this.vottingType,
     required this.maxOptions,
     required this.options,
     required this.totalVotes,
@@ -294,6 +303,9 @@ class HomeFeedPoll {
     return HomeFeedPoll(
       id: _parseToString(json['id']),
       question: _parseToString(json['question']),
+      type: _parseToString(json['type']),
+      pollType: _parseToString(json['poll_type']),
+      vottingType: _parseToString(json['voting_type']),
       maxOptions: _parseToInt(json['max_options']),
       options: _parseList<HomeFeedPollOption>(
         json['options'],
@@ -310,6 +322,9 @@ class HomeFeedPoll {
     return {
       'id': id,
       'question': question,
+      'type': type,
+      'poll_type': pollType,
+      'voting_type': vottingType,
       'max_options': maxOptions,
       'options': options.map((option) => option.toJson()).toList(),
       'total_votes': totalVotes,
@@ -355,7 +370,8 @@ class HomeFeedPollOption {
   final int id;
   final String? text;
   final PollOptionImage? image;
-  final int voteCount;
+  int voteCount;
+  final int originalVoteCount;
   final int score;
   double percentage;
   int rank1Count;
@@ -367,6 +383,7 @@ class HomeFeedPollOption {
     this.text,
     this.image,
     required this.voteCount,
+    required this.originalVoteCount,
     required this.score,
     required this.percentage,
     this.rank1Count = 0,
@@ -375,13 +392,15 @@ class HomeFeedPollOption {
   });
 
   factory HomeFeedPollOption.fromJson(Map<String, dynamic> json) {
+    final parsedVoteCount = _parseToInt(json['vote_count']);
     return HomeFeedPollOption(
       id: _parseToInt(json['id']),
       text: json['text']?.toString(),
       image: json['image'] != null
           ? PollOptionImage.fromJson(json['image'] as Map<String, dynamic>)
           : null,
-      voteCount: _parseToInt(json['vote_count']),
+      voteCount: parsedVoteCount,
+      originalVoteCount: parsedVoteCount,
       score: _parseToInt(json['score']),
       percentage: _parseToDouble(json['percentage']),
       userList: _parseList<HomeFeedLikeUser>(
@@ -466,7 +485,10 @@ class PollOptionImage {
 
   String resolvedThumbnailUrl(String baseUrl) {
     if (thumbnailUrl.isEmpty) return '';
-    if (thumbnailUrl.startsWith('http') || thumbnailUrl.startsWith('data:image')) return thumbnailUrl;
+    if (thumbnailUrl.startsWith('http') ||
+        thumbnailUrl.startsWith('data:image')) {
+      return thumbnailUrl;
+    }
     if (thumbnailUrl.startsWith('/')) return '$baseUrl$thumbnailUrl';
     return '$baseUrl/$thumbnailUrl';
   }

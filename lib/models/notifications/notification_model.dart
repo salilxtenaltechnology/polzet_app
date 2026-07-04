@@ -20,8 +20,8 @@ class NotificationsResponse {
   factory NotificationsResponse.fromJson(Map<String, dynamic> json) {
     final rawResults = (json['results'] is List)
         ? (json['results'] as List)
-            .map((e) => NotificationItem.fromJson(_asMap(e)))
-            .toList()
+              .map((e) => NotificationItem.fromJson(_asMap(e)))
+              .toList()
         : <NotificationItem>[];
 
     return NotificationsResponse(
@@ -119,14 +119,14 @@ class NotificationItem {
       category: json['category'] as String? ?? '',
       priority: json['priority'] as String? ?? 'normal',
       isRead: _parseBool(json['is_read']),
-      createdAt: DateTime.tryParse(json['created_at']?.toString() ?? '') ?? DateTime.now(),
+      createdAt:
+          DateTime.tryParse(json['created_at']?.toString() ?? '') ??
+          DateTime.now(),
       timeAgo: json['time_ago'] as String? ?? '',
       message: json['message'] as String?,
       redirectTo: json['redirect_to'] as String?,
       clickAction: json['click_action'] as String?,
-      actor: NotificationActor.fromJson(
-        _asMap(json['actor']),
-      ),
+      actor: NotificationActor.fromJson(_asMap(json['actor'])),
       post: json['post'] != null
           ? NotificationPost.fromJson(_asMap(json['post']))
           : null,
@@ -188,7 +188,8 @@ class NotificationActor {
       }
     }
     return NotificationActor(
-      userId: (json['user_uuid'] ?? json['user_id'] ?? json['id'] ?? '').toString(),
+      userId: (json['user_uuid'] ?? json['user_id'] ?? json['id'] ?? '')
+          .toString(),
       name: json['name'] as String? ?? '',
       username: json['username'] as String? ?? '',
       avatarUrl: avatar,
@@ -225,24 +226,21 @@ class NotificationPost {
   factory NotificationPost.fromJson(Map<String, dynamic> json) {
     List<dynamic>? rawPollDetails;
 
-    final dynamic raw = json['poll_details'];
+    final dynamic raw = json['poll_details'] ?? json['polls'];
     if (raw is List) {
       rawPollDetails = raw;
     }
 
     return NotificationPost(
-      postId: (json['post_uuid'] ?? json['post_id'] ?? json['id'] ?? '').toString(),
+      postId: (json['post_uuid'] ?? json['post_id'] ?? json['id'] ?? '')
+          .toString(),
       title: json['title'] as String? ?? '',
       description: json['description'] as String? ?? '',
       imageUrl: json['image_url'] as String?,
       postType: json['post_type'] as String? ?? '',
       pollDetails: rawPollDetails != null
           ? rawPollDetails
-                .map(
-                  (e) => NotificationPollDetail.fromJson(
-                    _asMap(e),
-                  ),
-                )
+                .map((e) => NotificationPollDetail.fromJson(_asMap(e)))
                 .toList()
           : [],
     );
@@ -260,12 +258,22 @@ class NotificationPost {
 
 class NotificationPollDetail {
   final String id;
+  final String type;
+  final String polltype;
+  final String voteType;
+  final bool isAnonymous;
+  final Map<String, dynamic> settings;
   final String question;
   final List<NotificationPollOption> options;
   final bool isPolledByCurrentUser;
 
   NotificationPollDetail({
     required this.id,
+    required this.type,
+    required this.polltype,
+    required this.voteType,
+    required this.isAnonymous,
+    required this.settings,
     required this.question,
     required this.options,
     required this.isPolledByCurrentUser,
@@ -274,16 +282,19 @@ class NotificationPollDetail {
   factory NotificationPollDetail.fromJson(Map<String, dynamic> json) {
     return NotificationPollDetail(
       id: (json['id'] ?? '').toString(),
+      type: json['type'] as String? ?? '',
+      polltype: (json['polltype'] ?? json['poll_type'] ?? json['type'] ?? '')
+          .toString(),
+      voteType: json['vote_type'] as String? ?? '',
+      isAnonymous: _parseBool(json['is_anonymous']),
+      settings: json['settings'] as Map<String, dynamic>? ?? {},
       question: json['question'] as String? ?? '',
       options: (json['options'] is List)
           ? (json['options'] as List)
-              .map(
-                (e) => NotificationPollOption.fromJson(_asMap(e)),
-              )
-              .toList()
+                .map((e) => NotificationPollOption.fromJson(_asMap(e)))
+                .toList()
           : [],
-      isPolledByCurrentUser:
-          _parseBool(json['is_polled_by_current_user']),
+      isPolledByCurrentUser: _parseBool(json['is_polled_by_current_user']),
     );
   }
 
@@ -326,16 +337,14 @@ class NotificationPollOption {
       id: json['id'],
       text: json['text'] as String?,
       image: json['image'] != null
-          ? NotificationPollImage.fromJson(
-              _asMap(json['image']),
-            )
+          ? NotificationPollImage.fromJson(_asMap(json['image']))
           : null,
       voteCount: voteCountStr,
       percentage: _toDouble(json['percentage']),
       voters: (json['voters'] is List)
           ? (json['voters'] as List)
-              .map((e) => NotificationPollVoter.fromJson(_asMap(e)))
-              .toList()
+                .map((e) => NotificationPollVoter.fromJson(_asMap(e)))
+                .toList()
           : [],
       score: _toInt(json['score']),
       rankDistribution: (json['rank_distribution'] is Map)
@@ -386,6 +395,16 @@ class NotificationPollImage {
     'url': url,
     'thumbnail_url': thumbnailUrl,
   };
+
+  String resolvedUrl(String baseUrl) {
+    if (url.startsWith('http')) return url;
+    return '$baseUrl$url';
+  }
+
+  String resolvedThumbnailUrl(String baseUrl) {
+    if (thumbnailUrl.startsWith('http')) return thumbnailUrl;
+    return '$baseUrl$thumbnailUrl';
+  }
 }
 
 class NotificationPollVoter {
@@ -471,7 +490,9 @@ class NotificationMeta {
       messagePreview: json['message_preview'] as String?,
       groupName: json['group_name'] as String?,
       count: parsedCount,
-      secondaryUsers: json['secondary_users'] is List ? (json['secondary_users'] as List) : [],
+      secondaryUsers: json['secondary_users'] is List
+          ? (json['secondary_users'] as List)
+          : [],
       requestId: json['request_id'],
     );
   }
