@@ -134,6 +134,10 @@ class $AssetsImagesGen {
   AssetGenImage get icAppForeground =>
       const AssetGenImage('assets/images/ic_app_foreground.png');
 
+  /// File path: assets/images/ic_assistant.png
+  AssetGenImage get icAssistant =>
+      const AssetGenImage('assets/images/ic_assistant.png');
+
   /// File path: assets/images/ic_avatar.png
   AssetGenImage get icAvatar =>
       const AssetGenImage('assets/images/ic_avatar.png');
@@ -149,6 +153,9 @@ class $AssetsImagesGen {
   /// File path: assets/images/ic_block_account.png
   AssetGenImage get icBlockAccount =>
       const AssetGenImage('assets/images/ic_block_account.png');
+
+  /// File path: assets/images/ic_book.png
+  AssetGenImage get icBook => const AssetGenImage('assets/images/ic_book.png');
 
   /// File path: assets/images/ic_camera.png
   AssetGenImage get icCamera =>
@@ -166,9 +173,19 @@ class $AssetsImagesGen {
   AssetGenImage get icDisagree =>
       const AssetGenImage('assets/images/ic_disagree.png');
 
+  /// File path: assets/images/ic_fashion.png
+  AssetGenImage get icFashion =>
+      const AssetGenImage('assets/images/ic_fashion.png');
+
   /// File path: assets/images/ic_feedback.png
   AssetGenImage get icFeedback =>
       const AssetGenImage('assets/images/ic_feedback.png');
+
+  /// File path: assets/images/ic_food.png
+  AssetGenImage get icFood => const AssetGenImage('assets/images/ic_food.png');
+
+  /// File path: assets/images/ic_game.png
+  AssetGenImage get icGame => const AssetGenImage('assets/images/ic_game.png');
 
   /// File path: assets/images/ic_google.png
   AssetGenImage get icGoogle =>
@@ -193,6 +210,10 @@ class $AssetsImagesGen {
   AssetGenImage get icMessage =>
       const AssetGenImage('assets/images/ic_message.png');
 
+  /// File path: assets/images/ic_movie.png
+  AssetGenImage get icMovie =>
+      const AssetGenImage('assets/images/ic_movie.png');
+
   /// File path: assets/images/ic_notifications.png
   AssetGenImage get icNotifications =>
       const AssetGenImage('assets/images/ic_notifications.png');
@@ -208,6 +229,14 @@ class $AssetsImagesGen {
   AssetGenImage get icSplash =>
       const AssetGenImage('assets/images/ic_splash.png');
 
+  /// File path: assets/images/ic_sports.png
+  AssetGenImage get icSports =>
+      const AssetGenImage('assets/images/ic_sports.png');
+
+  /// File path: assets/images/ic_technology.png
+  AssetGenImage get icTechnology =>
+      const AssetGenImage('assets/images/ic_technology.png');
+
   /// File path: assets/images/ic_terms_conditions.png
   AssetGenImage get icTermsConditions =>
       const AssetGenImage('assets/images/ic_terms_conditions.png');
@@ -219,6 +248,10 @@ class $AssetsImagesGen {
   /// File path: assets/images/ic_this_that.png
   AssetGenImage get icThisThat =>
       const AssetGenImage('assets/images/ic_this_that.png');
+
+  /// File path: assets/images/ic_travel.png
+  AssetGenImage get icTravel =>
+      const AssetGenImage('assets/images/ic_travel.png');
 
   /// File path: assets/images/ic_user.png
   AssetGenImage get icUser => const AssetGenImage('assets/images/ic_user.png');
@@ -371,28 +404,37 @@ class $AssetsImagesGen {
     icAgree,
     icAnonymous,
     icAppForeground,
+    icAssistant,
     icAvatar,
     icAvatarSquare,
     icBattel,
     icBlockAccount,
+    icBook,
     icCamera,
     icDarkmode,
     icDelete,
     icDisagree,
+    icFashion,
     icFeedback,
+    icFood,
+    icGame,
     icGoogle,
     icHelpSupport,
     icHot,
     icImagePoll,
     icLanguage,
     icMessage,
+    icMovie,
     icNotifications,
     icPoll,
     icSecurity,
     icSplash,
+    icSports,
+    icTechnology,
     icTermsConditions,
     icTextPoll,
     icThisThat,
+    icTravel,
     icUser,
     icVote,
     iconBackground,

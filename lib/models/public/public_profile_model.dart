@@ -45,8 +45,6 @@ class ProfileData {
   final String? profilePictureUrl;
   final String? profileThumbnailUrl;
   final String? coverThumbnailUrl;
-  final List<ChaseUser>? chaseList;
-  final List<RechaseUser>? rechaseList;
   final bool isPrivate;
   final bool isFriend;
   final String followStatus;
@@ -73,8 +71,6 @@ class ProfileData {
     this.profilePictureUrl,
     this.profileThumbnailUrl,
     this.coverThumbnailUrl,
-    this.chaseList,
-    this.rechaseList,
     required this.isPrivate,
     required this.isFriend,
     required this.followStatus,
@@ -103,12 +99,6 @@ class ProfileData {
       profilePictureUrl: json['profile_picture_url'],
       profileThumbnailUrl: json['profile_thumbnail_url'],
       coverThumbnailUrl: json['cover_thumbnail_url'],
-      chaseList: (json['chase_list'] as List<dynamic>?)
-          ?.map((e) => ChaseUser.fromJson(e as Map<String, dynamic>))
-          .toList(),
-      rechaseList: (json['rechase_list'] as List<dynamic>?)
-          ?.map((e) => RechaseUser.fromJson(e as Map<String, dynamic>))
-          .toList(),
       isPrivate: json['is_private'] ?? false,
       isFriend: json['is_friend'] ?? false,
       followStatus: json['follow_status'] ?? '',
@@ -138,8 +128,6 @@ class ProfileData {
       'profile_picture_url': profilePictureUrl,
       'profile_thumbnail_url': profileThumbnailUrl,
       'cover_thumbnail_url': coverThumbnailUrl,
-      'chase_list': chaseList?.map((e) => e.toJson()).toList(),
-      'rechase_list': rechaseList?.map((e) => e.toJson()).toList(),
       'is_private': isPrivate,
       'is_friend': isFriend,
       'follow_status': followStatus,
@@ -168,8 +156,6 @@ class ProfileData {
     String? profilePictureUrl,
     String? profileThumbnailUrl,
     String? coverThumbnailUrl,
-    List<ChaseUser>? chaseList,
-    List<RechaseUser>? rechaseList,
     bool? isPrivate,
     bool? isFriend,
     String? followStatus,
@@ -196,8 +182,6 @@ class ProfileData {
       profilePictureUrl: profilePictureUrl ?? this.profilePictureUrl,
       profileThumbnailUrl: profileThumbnailUrl ?? this.profileThumbnailUrl,
       coverThumbnailUrl: coverThumbnailUrl ?? this.coverThumbnailUrl,
-      chaseList: chaseList ?? this.chaseList,
-      rechaseList: rechaseList ?? this.rechaseList,
       isPrivate: isPrivate ?? this.isPrivate,
       isFriend: isFriend ?? this.isFriend,
       followStatus: followStatus ?? this.followStatus,
@@ -206,121 +190,11 @@ class ProfileData {
   }
 }
 
-class ChaseUser {
-  final String userId;
-  final String firstName;
-  final String lastName;
-  final String username;
-  final String? avatarUrl;
-  final bool isOnline;
-  final String followStatus;
-  final bool isPrivate;
 
-  ChaseUser({
-    required this.userId,
-    required this.firstName,
-    required this.lastName,
-    required this.username,
-    this.avatarUrl,
-    required this.isOnline,
-    required this.followStatus,
-    required this.isPrivate,
-  });
-
-  factory ChaseUser.fromJson(Map<String, dynamic> json) {
-    return ChaseUser(
-      userId: (json['uuid'] ?? json['user_id'] ?? json['id'] ?? '').toString(),
-      firstName: json['first_name'] ?? '',
-      lastName: json['last_name'] ?? '',
-      username: json['username'] ?? '',
-      avatarUrl: json['avatar_url'],
-      isOnline: json['is_online'] ?? false,
-      followStatus: json['follow_status'] ?? '',
-      isPrivate: json['is_private'] ?? false,
-    );
-  }
-
-  Map<String, dynamic> toJson() {
-    return {
-      'user_id': userId,
-      'first_name': firstName,
-      'last_name': lastName,
-      'username': username,
-      'avatar_url': avatarUrl,
-      'is_online': isOnline,
-      'follow_status': followStatus,
-      'is_private': isPrivate,
-    };
-  }
-}
-
-class RechaseUser {
-  final String userId;
-  final String firstName;
-  final String lastName;
-  final String username;
-  final String? avatarUrl;
-  final bool isOnline;
-  final String followStatus;
-  final bool isPrivate;
-
-  RechaseUser({
-    required this.userId,
-    required this.firstName,
-    required this.lastName,
-    required this.username,
-    this.avatarUrl,
-    required this.isOnline,
-    required this.followStatus,
-    required this.isPrivate,
-  });
-
-  factory RechaseUser.fromJson(Map<String, dynamic> json) {
-    return RechaseUser(
-      userId: (json['uuid'] ?? json['user_id'] ?? json['id'] ?? '').toString(),
-      firstName: json['first_name'] ?? '',
-      lastName: json['last_name'] ?? '',
-      username: json['username'] ?? '',
-      avatarUrl: json['avatar_url'],
-      isOnline: json['is_online'] ?? false,
-      followStatus: json['follow_status'] ?? '',
-      isPrivate: json['is_private'] ?? false,
-    );
-  }
-
-  Map<String, dynamic> toJson() {
-    return {
-      'user_id': userId,
-      'first_name': firstName,
-      'last_name': lastName,
-      'username': username,
-      'avatar_url': avatarUrl,
-      'is_online': isOnline,
-      'follow_status': followStatus,
-      'is_private': isPrivate,
-    };
-  }
-}
-
-
-int? _toIntNullable(dynamic value) {
-  if (value == null) return null;
-  if (value is int) return value;
-  if (value is String) return int.tryParse(value);
-  return int.tryParse(value.toString());
-}
 
 int _toInt(dynamic value, {int defaultValue = 0}) {
   if (value == null) return defaultValue;
   if (value is int) return value;
   if (value is String) return int.tryParse(value) ?? defaultValue;
   return int.tryParse(value.toString()) ?? defaultValue;
-}
-
-double _toDouble(dynamic value, {double defaultValue = 0.0}) {
-  if (value == null) return defaultValue;
-  if (value is double) return value;
-  if (value is int) return value.toDouble();
-  if (value is String) return double.tryParse(value) ?? defaultValue;
-  return double.tryParse(value.toString()) ?? defaultValue;
 }

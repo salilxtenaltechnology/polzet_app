@@ -12,7 +12,7 @@ class HomeScreen extends StatefulWidget {
 }
 
 class HomeScreenState extends State<HomeScreen>
-    with UtilityMixin, WidgetsBindingObserver {
+    with UtilityMixin, WidgetsBindingObserver, SingleTickerProviderStateMixin {
   String? firstname;
   String? lastname;
   int pageIndex = 0;
@@ -22,9 +22,25 @@ class HomeScreenState extends State<HomeScreen>
   bool _showcaseChecked = false;
   DateTime? _lastPressed;
 
+  late final AnimationController _appBarController;
+  late final Animation<double> _appBarHeightAnimation;
+  bool _isAppBarVisible = true;
+
   @override
   void initState() {
     super.initState();
+    _appBarController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 200),
+    );
+    _appBarHeightAnimation =
+        Tween<double>(begin: 0.0, end: 42.h).animate(
+          CurvedAnimation(parent: _appBarController, curve: Curves.easeInOut),
+        )..addListener(() {
+          setState(() {});
+        });
+    _appBarController.value = 1.0;
+
     WidgetsBinding.instance.addObserver(this);
     pageIndex = widget.initialIndex;
     _loadCachedUserData();
@@ -54,6 +70,7 @@ class HomeScreenState extends State<HomeScreen>
 
   @override
   void dispose() {
+    _appBarController.dispose();
     NotificationRouter.isHomeScreenVisible = false;
     WidgetsBinding.instance.removeObserver(this);
     MessageListState.stopGlobalPolling();
@@ -73,6 +90,7 @@ class HomeScreenState extends State<HomeScreen>
         NotificationState.refreshGlobally(),
       ]);
       DashboardState.triggerRefresh();
+      _setAppBarVisible(true);
     }
   }
 
@@ -145,11 +163,23 @@ class HomeScreenState extends State<HomeScreen>
   void navigateToNotifications() {
     setState(() => pageIndex = 3);
     bottomNavigationKey.currentState?.setPage(3);
+    _setAppBarVisible(true);
   }
 
   void navigateToUserProfile() {
     setState(() => pageIndex = 4);
     bottomNavigationKey.currentState?.setPage(4);
+    _setAppBarVisible(true);
+  }
+
+  void _setAppBarVisible(bool visible) {
+    if (_isAppBarVisible == visible) return;
+    _isAppBarVisible = visible;
+    if (visible) {
+      _appBarController.forward();
+    } else {
+      _appBarController.reverse();
+    }
   }
 
   @override
@@ -203,189 +233,249 @@ class HomeScreenState extends State<HomeScreen>
               backgroundColor: Theme.of(context).colorScheme.background,
               appBar: pageIndex == 4
                   ? null
-                  : AppBar(
-                      backgroundColor: Theme.of(context).colorScheme.background,
-                      surfaceTintColor: Theme.of(
-                        context,
-                      ).colorScheme.background,
-                      automaticallyImplyLeading: false,
-                      toolbarHeight: 42.h,
-                      title: pageIndex == 0
-                          ? Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  AppLocalizations.of(context)!.hello,
-                                  style: AppTextStyles.cardTitle.copyWith(
-                                    color: Theme.of(
-                                      context,
-                                    ).colorScheme.primary,
-                                  ),
-                                ),
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      userProvider.isLoading
-                                          ? firstname ?? ''
-                                          : (userProvider.firstName ?? ''),
-                                      style: AppTextStyles.bodyText.copyWith(
-                                        color: Theme.of(
-                                          context,
-                                        ).colorScheme.onBackground,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
-                                    SizedBox(width: 5.w),
-                                    Text(
-                                      userProvider.isLoading
-                                          ? lastname ?? ''
-                                          : ((userProvider.lastName ?? '')
-                                                    .isNotEmpty
-                                                ? "${userProvider.lastName} 👋"
-                                                : " "),
-                                      style: AppTextStyles.bodyText.copyWith(
-                                        color: Theme.of(
-                                          context,
-                                        ).colorScheme.onBackground,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            )
-                          : pageIndex == 1
-                          ? Text(
-                              AppLocalizations.of(context)!.messages,
-                              style: AppTextStyles.pageTitleTextStyle(context),
-                            )
-                          : pageIndex == 3
-                          ? Text(
-                              AppLocalizations.of(context)!.insights,
-                              style: AppTextStyles.pageTitleTextStyle(context),
-                            )
-                          : null,
-                      // centerTitle: pageIndex == 2 ? false : true,
-                      centerTitle: false,
-                      actions: [
-                        if (pageIndex == 0)
-                          // AppIcons(
-                          //   onTap: () {
-                          //   ConnectivityOverlay.showTestSheet(context, 'server');
-                          //     showModalBottomSheet(
-                          //       context: context,
-                          //       isScrollControlled: true, // ← required for tall sheets
-                          //       backgroundColor: Colors.transparent,
-                          //       builder: (_) => const FeedbackBottomsheet(),
-                          //     );
-                          //   },
-                          //   icon: Icons.feedback,
-                          // ),
-                          // if (pageIndex == 0)
-                          //   AppIcons(
-                          //     onTap: () {
-                          //       navigationPush(context, const FlowScreen());
-                          //     },
-                          //     icon: Icons.person,
-                          //   ),
-                          // SizedBox(width: 9.w),
-                          if (pageIndex == 0)
-                            AppIcons(
-                              onTap: () => navigationPush(
+                  : PreferredSize(
+                      preferredSize: Size.fromHeight(
+                        _appBarHeightAnimation.value,
+                      ),
+                      child: SizedBox(
+                        height:
+                            _appBarHeightAnimation.value +
+                            MediaQuery.of(context).padding.top,
+                        child: SingleChildScrollView(
+                          physics: const NeverScrollableScrollPhysics(),
+                          child: SizedBox(
+                            height: 42.h + MediaQuery.of(context).padding.top,
+                            child: AppBar(
+                              backgroundColor: Theme.of(
                                 context,
-                                const GlobalSearchScreen(),
-                              ),
-                              icon: FeatherIcons.search,
-                            ),
-                        SizedBox(width: 9.w),
-                        if (pageIndex == 0)
-                          ValueListenableBuilder<int>(
-                            valueListenable:
-                                NotificationState.unreadNotificationCount,
-                            builder: (context, unreadCount, _) {
-                              return GestureDetector(
-                                onTap: () {
-                                  navigationPush(
-                                    context,
-                                    const Notifications(),
-                                  );
-                                },
-                                child: Stack(
-                                  clipBehavior: Clip.none,
-                                  children: [
-                                    AppIcons(
-                                      onTap: () {
-                                        navigationPush(
-                                          context,
-                                          const Notifications(),
-                                        );
-                                      },
-                                      icon: FeatherIcons.bell,
-                                    ),
-                                    if (unreadCount > 0)
-                                      Positioned(
-                                        top: -8,
-                                        right: -7,
-                                        child: Container(
-                                          width: 19.5,
-                                          height: 19.5,
-                                          decoration: BoxDecoration(
-                                            color: const Color(0xFFB82B53),
-                                            shape: BoxShape.circle,
-                                            border: Border.all(
-                                              color: Theme.of(
-                                                context,
-                                              ).colorScheme.background,
-                                              width: 1.5,
-                                            ),
-                                          ),
-                                          child: Center(
-                                            child: Text(
-                                              unreadCount.toString(),
-                                              style: AppTextStyles.subText
+                              ).colorScheme.background,
+                              surfaceTintColor: Theme.of(
+                                context,
+                              ).colorScheme.background,
+                              automaticallyImplyLeading: false,
+                              toolbarHeight: 42.h,
+                              title: pageIndex == 0
+                                  ? Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          AppLocalizations.of(context)!.hello,
+                                          style: AppTextStyles.cardTitle
+                                              .copyWith(
+                                                color: Theme.of(
+                                                  context,
+                                                ).colorScheme.primary,
+                                              ),
+                                        ),
+                                        Row(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              userProvider.isLoading
+                                                  ? firstname ?? ''
+                                                  : (userProvider.firstName ??
+                                                        ''),
+                                              style: AppTextStyles.bodyText
                                                   .copyWith(
-                                                    color: Colors.white,
-                                                    fontWeight: FontWeight.w500,
-                                                    fontSize: 9.8,
+                                                    color: Theme.of(
+                                                      context,
+                                                    ).colorScheme.onBackground,
+                                                    fontWeight: FontWeight.w600,
                                                   ),
                                             ),
-                                          ),
+                                            SizedBox(width: 5.w),
+                                            Text(
+                                              userProvider.isLoading
+                                                  ? lastname ?? ''
+                                                  : ((userProvider.lastName ??
+                                                                '')
+                                                            .isNotEmpty
+                                                        ? "${userProvider.lastName} 👋"
+                                                        : " "),
+                                              style: AppTextStyles.bodyText
+                                                  .copyWith(
+                                                    color: Theme.of(
+                                                      context,
+                                                    ).colorScheme.onBackground,
+                                                    fontWeight: FontWeight.w600,
+                                                  ),
+                                            ),
+                                          ],
                                         ),
+                                      ],
+                                    )
+                                  : pageIndex == 1
+                                  ? Text(
+                                      AppLocalizations.of(context)!.messages,
+                                      style: AppTextStyles.pageTitleTextStyle(
+                                        context,
                                       ),
-                                  ],
-                                ),
-                              );
-                            },
-                          ),
-                        SizedBox(width: 8.w),
-                        if (pageIndex == 1)
-                          GestureDetector(
-                            onTap: () async {
-                              final createdChatId = await Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => const CreateGroup(),
-                                ),
-                              );
-                              if (createdChatId != null) {
-                                MessageListState.refreshGlobally();
-                                MessageListState.selectTab(1);
-                              }
-                            },
-                            child: Assets.images.addGroup.image(
-                              width: 28,
-                              height: 28,
-                              fit: BoxFit.contain,
-                              color: Theme.of(context).colorScheme.onBackground,
+                                    )
+                                  : pageIndex == 3
+                                  ? Text(
+                                      AppLocalizations.of(context)!.insights,
+                                      style: AppTextStyles.pageTitleTextStyle(
+                                        context,
+                                      ),
+                                    )
+                                  : null,
+                              // centerTitle: pageIndex == 2 ? false : true,
+                              centerTitle: false,
+                              actions: [
+                                if (pageIndex == 0)
+                                  // AppIcons(
+                                  //   onTap: () {
+                                  //   ConnectivityOverlay.showTestSheet(context, 'server');
+                                  //     showModalBottomSheet(
+                                  //       context: context,
+                                  //       isScrollControlled: true, // ← required for tall sheets
+                                  //       backgroundColor: Colors.transparent,
+                                  //       builder: (_) => const FeedbackBottomsheet(),
+                                  //     );
+                                  //   },
+                                  //   icon: Icons.feedback,
+                                  // ),
+                                  // if (pageIndex == 0)
+                                  //   AppIcons(
+                                  //     onTap: () {
+                                  //       navigationPush(context, const FlowScreen());
+                                  //     },
+                                  //     icon: Icons.person,
+                                  //   ),
+                                  // SizedBox(width: 9.w),
+                                  if (pageIndex == 0)
+                                    AppIcons(
+                                      onTap: () => navigationPush(
+                                        context,
+                                        const GlobalSearchScreen(),
+                                      ),
+                                      icon: FeatherIcons.search,
+                                    ),
+                                SizedBox(width: 9.w),
+                                if (pageIndex == 0)
+                                  ValueListenableBuilder<int>(
+                                    valueListenable: NotificationState
+                                        .unreadNotificationCount,
+                                    builder: (context, unreadCount, _) {
+                                      return GestureDetector(
+                                        onTap: () {
+                                          navigationPush(
+                                            context,
+                                            const Notifications(),
+                                          );
+                                        },
+                                        child: Stack(
+                                          clipBehavior: Clip.none,
+                                          children: [
+                                            AppIcons(
+                                              onTap: () {
+                                                navigationPush(
+                                                  context,
+                                                  const Notifications(),
+                                                );
+                                              },
+                                              icon: FeatherIcons.bell,
+                                            ),
+                                            if (unreadCount > 0)
+                                              Positioned(
+                                                top: -8,
+                                                right: -7,
+                                                child: Container(
+                                                  width: 19.5,
+                                                  height: 19.5,
+                                                  decoration: BoxDecoration(
+                                                    color: const Color(
+                                                      0xFFB82B53,
+                                                    ),
+                                                    shape: BoxShape.circle,
+                                                    border: Border.all(
+                                                      color: Theme.of(
+                                                        context,
+                                                      ).colorScheme.background,
+                                                      width: 1.5,
+                                                    ),
+                                                  ),
+                                                  child: Center(
+                                                    child: Text(
+                                                      unreadCount.toString(),
+                                                      style: AppTextStyles
+                                                          .subText
+                                                          .copyWith(
+                                                            color: Colors.white,
+                                                            fontWeight:
+                                                                FontWeight.w500,
+                                                            fontSize: 9.8,
+                                                          ),
+                                                    ),
+                                                  ),
+                                                ),
+                                              ),
+                                          ],
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                SizedBox(width: 8.w),
+                                if (pageIndex == 1)
+                                  GestureDetector(
+                                    onTap: () async {
+                                      final createdChatId =
+                                          await Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (_) =>
+                                                  const CreateGroup(),
+                                            ),
+                                          );
+                                      if (createdChatId != null) {
+                                        MessageListState.refreshGlobally();
+                                        MessageListState.selectTab(1);
+                                      }
+                                    },
+                                    child: Assets.images.addGroup.image(
+                                      width: 28,
+                                      height: 28,
+                                      fit: BoxFit.contain,
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.onBackground,
+                                    ),
+                                  ),
+                                SizedBox(width: 9.w),
+                              ],
                             ),
                           ),
-                        SizedBox(width: 9.w),
-                      ],
+                        ),
+                      ),
                     ),
               body: pageIndex == 4
                   ? screens[pageIndex]
-                  : SafeArea(bottom: false, child: screens[pageIndex]),
+                  : SafeArea(
+                      bottom: false,
+                      child: NotificationListener<ScrollNotification>(
+                        onNotification: (ScrollNotification notification) {
+                          if (pageIndex == 0 &&
+                              notification.metrics.axis == Axis.vertical) {
+                            if (notification is ScrollUpdateNotification) {
+                              final delta = notification.scrollDelta ?? 0.0;
+                              final pixels = notification.metrics.pixels;
+
+                              if (pixels <= 0) {
+                                _setAppBarVisible(true);
+                              } else if (delta > 5.0) {
+                                _setAppBarVisible(false);
+                              } else if (delta < -5.0) {
+                                _setAppBarVisible(true);
+                              }
+                            }
+                          }
+                          return false;
+                        },
+                        child: screens[pageIndex],
+                      ),
+                    ),
               bottomNavigationBar: ValueListenableBuilder<int>(
                 valueListenable: NotificationState.unreadNotificationCount,
                 builder: (context, unreadNotificationCount, _) {
@@ -405,6 +495,7 @@ class HomeScreenState extends State<HomeScreen>
                               }
                             } else {
                               setState(() => pageIndex = i);
+                              _setAppBarVisible(true);
                             }
                           }
                         },
@@ -413,7 +504,15 @@ class HomeScreenState extends State<HomeScreen>
                         // onAddTap: () =>
                         //     BottomSheetUtils.showNewPollBottomSheet(context),
                         onAddTap: () {
-                          navigationPush(context, const AddNewPoll());
+                          // navigationPush(context, const AddNewPoll());
+                          Navigator.push(
+                            context,
+                            PageTransition(
+                              type: PageTransitionType.topToBottom,
+                              duration: const Duration(microseconds: 200),
+                              child: const AddNewPoll(),
+                            ),
+                          );
                         },
                         addFabShowcaseKey: _addFabShowcaseKey,
                         insightsShowcaseKey: _insightsShowcaseKey,

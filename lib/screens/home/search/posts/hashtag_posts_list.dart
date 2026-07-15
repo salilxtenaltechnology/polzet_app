@@ -568,9 +568,8 @@ class _HashtagPostsListState extends State<HashtagPostsList> {
         onTap: () {
           Navigator.of(context).push(
             MaterialPageRoute(
-              builder: (context) => PublicProfileScreen(
-                username: post.user.username,
-              ),
+              builder: (context) =>
+                  PublicProfileScreen(username: post.user.username),
             ),
           );
         },
@@ -601,7 +600,9 @@ class _HashtagPostsListState extends State<HashtagPostsList> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  '${post.user.firstName} ${post.user.lastName}'.trim().isNotEmpty
+                  '${post.user.firstName} ${post.user.lastName}'
+                          .trim()
+                          .isNotEmpty
                       ? '${post.user.firstName} ${post.user.lastName}'.trim()
                       : post.user.username,
                   style: TextStyle(
@@ -615,7 +616,8 @@ class _HashtagPostsListState extends State<HashtagPostsList> {
                     Text(
                       post.user.username.isNotEmpty
                           ? '@${post.user.username}'
-                          : '${post.user.firstName} ${post.user.lastName}'.trim(),
+                          : '${post.user.firstName} ${post.user.lastName}'
+                                .trim(),
                       style: AppTextStyles.bodyText.copyWith(
                         fontSize: 12,
                         fontWeight: FontWeight.w500,
@@ -957,7 +959,7 @@ class _HashtagPostsListState extends State<HashtagPostsList> {
                 onTap: () {},
                 child: Container(
                   margin: const EdgeInsets.only(bottom: 12),
-                  height: 150.h,
+                  height: 165.h,
                   width: double.infinity,
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(AppRadius.button),
@@ -1237,7 +1239,7 @@ class _HashtagPostsListState extends State<HashtagPostsList> {
               GestureDetector(
                 onTap: post.isPolledByCurrentUser ? null : () {},
                 child: SizedBox(
-                  height: 150.h,
+                  height: 165.h,
                   child: Stack(
                     clipBehavior: Clip.none,
                     children: [
@@ -1269,15 +1271,15 @@ class _HashtagPostsListState extends State<HashtagPostsList> {
                                     color: Theme.of(
                                       context,
                                     ).colorScheme.outline,
-                                    width: 1.2,
+                                    width: 1,
                                   ),
                                   borderRadius: BorderRadius.circular(
-                                    AppRadius.card,
+                                    AppRadius.button,
                                   ),
                                 ),
                                 child: ClipRRect(
                                   borderRadius: BorderRadius.circular(
-                                    AppRadius.card - 1.2,
+                                    AppRadius.button,
                                   ),
                                   child: Stack(
                                     fit: StackFit.expand,
@@ -1388,15 +1390,15 @@ class _HashtagPostsListState extends State<HashtagPostsList> {
                                     color: Theme.of(
                                       context,
                                     ).colorScheme.outline,
-                                    width: 1.2,
+                                    width: 1,
                                   ),
                                   borderRadius: BorderRadius.circular(
-                                    AppRadius.card,
+                                    AppRadius.button,
                                   ),
                                 ),
                                 child: ClipRRect(
                                   borderRadius: BorderRadius.circular(
-                                    AppRadius.card - 1.2,
+                                    AppRadius.button,
                                   ),
                                   child: Stack(
                                     fit: StackFit.expand,
@@ -1764,7 +1766,7 @@ class _HashtagPostsListState extends State<HashtagPostsList> {
               GestureDetector(
                 onTap: post.isPolledByCurrentUser ? null : () {},
                 child: SizedBox(
-                  height: 150.h,
+                  height: 165.h,
                   child: Stack(
                     clipBehavior: Clip.none,
                     children: [
@@ -1796,15 +1798,15 @@ class _HashtagPostsListState extends State<HashtagPostsList> {
                                     color: Theme.of(
                                       context,
                                     ).colorScheme.outline,
-                                    width: 1.2,
+                                    width: 1,
                                   ),
                                   borderRadius: BorderRadius.circular(
-                                    AppRadius.card,
+                                    AppRadius.button,
                                   ),
                                 ),
                                 child: ClipRRect(
                                   borderRadius: BorderRadius.circular(
-                                    AppRadius.card - 1.2,
+                                    AppRadius.button,
                                   ),
                                   child: Stack(
                                     fit: StackFit.expand,
@@ -1915,15 +1917,15 @@ class _HashtagPostsListState extends State<HashtagPostsList> {
                                     color: Theme.of(
                                       context,
                                     ).colorScheme.outline,
-                                    width: 1.2,
+                                    width: 1,
                                   ),
                                   borderRadius: BorderRadius.circular(
-                                    AppRadius.card,
+                                    AppRadius.button,
                                   ),
                                 ),
                                 child: ClipRRect(
                                   borderRadius: BorderRadius.circular(
-                                    AppRadius.card - 1.2,
+                                    AppRadius.button,
                                   ),
                                   child: Stack(
                                     fit: StackFit.expand,
@@ -2406,7 +2408,7 @@ class _HashtagPostsListState extends State<HashtagPostsList> {
       child: LayoutBuilder(
         builder: (context, constraints) {
           final availableWidth = constraints.maxWidth;
-          final imageHeight = 150.h;
+          final imageHeight = 165.h;
 
           return GestureDetector(
             onTap: () =>
@@ -2441,7 +2443,7 @@ class _HashtagPostsListState extends State<HashtagPostsList> {
                             ),
                             border: Border.all(
                               color: Theme.of(context).colorScheme.outline,
-                              width: 1.2,
+                              width: 1,
                             ),
                           ),
                           child: ClipRRect(
@@ -2576,18 +2578,18 @@ class _HashtagPostsListState extends State<HashtagPostsList> {
   }) {
     final bool isDark = Theme.of(context).brightness == Brightness.dark;
     final double percentage = option.percentage;
-
+    final txt = AppTextColors.of(context);
     return AnimatedContainer(
       duration: const Duration(milliseconds: 250),
       curve: Curves.easeInOut,
       margin: EdgeInsets.only(bottom: 10.h),
-      height: 27.h,
+      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 6.5),
       width: double.infinity,
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF242831) : const Color(0xFFF5F6F7),
-        borderRadius: BorderRadius.circular(AppRadius.button),
+        borderRadius: BorderRadius.circular(AppRadius.card),
+        color: isDark ? const Color(0xFF242831).withOpacity(0.7) : Colors.white,
         border: Border.all(
-          color: isDark ? const Color(0xFF30353D) : const Color(0xFFE8E8E8),
+          color: Theme.of(context).colorScheme.outline,
           width: 1,
         ),
       ),
@@ -2622,10 +2624,10 @@ class _HashtagPostsListState extends State<HashtagPostsList> {
                 Expanded(
                   child: Text(
                     option.text ?? '',
-                    style: TextStyle(
-                      color: Theme.of(context).colorScheme.onBackground,
-                      fontSize: 10.5.sp,
-                      fontWeight: FontWeight.w500,
+                    style: AppTextStyles.subText.copyWith(
+                      color: txt.title,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w400,
                     ),
                   ),
                 ),

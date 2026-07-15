@@ -69,6 +69,14 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen>
   Future<String?>? _authTokenFuture;
   bool _forceShowTabs = false;
 
+  int _currentHintIndex = 0;
+  Timer? hintTimer;
+  final List<String> _hintTexts = [
+    'Search polls, friends and hashtags...',
+    'Look up accounts, tags or places...',
+    'Find trending topics...',
+  ];
+
   static const _tabs = ['Top', 'Accounts', 'Polls', 'Photos', 'Tags', 'Places'];
 
   List<RecentSearchModel> _recentSearches = [];
@@ -217,6 +225,17 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen>
       const Duration(seconds: 60),
       (_) => _silentRefresh(),
     );
+    _startHintAnimation();
+  }
+
+  void _startHintAnimation() {
+    hintTimer = Timer.periodic(const Duration(seconds: 3), (timer) {
+      if (mounted) {
+        setState(() {
+          _currentHintIndex = (_currentHintIndex + 1) % _hintTexts.length;
+        });
+      }
+    });
   }
 
   @override
@@ -579,9 +598,7 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen>
                 ),
                 onChanged: _onSearchChanged,
                 decoration: InputDecoration(
-                  hintText: AppLocalizations.of(
-                    context,
-                  )!.searchaccountspostsplaces,
+                  hintText: _hintTexts[_currentHintIndex],
                   hintStyle: AppTextStyles.bodyText.copyWith(
                     color: const Color(0XFF898989),
                     fontWeight: FontWeight.w400,
@@ -1448,8 +1465,10 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen>
     final txt = AppTextColors.of(context);
     final avatar = _avatarProvider(acc.profileImage);
     return GestureDetector(
-      onTap: () =>
-          navigationPush(context, PublicProfileScreen(userId: acc.uuid, username: acc.username)),
+      onTap: () => navigationPush(
+        context,
+        PublicProfileScreen(userId: acc.uuid, username: acc.username),
+      ),
       child: Padding(
         padding: EdgeInsetsGeometry.symmetric(horizontal: 12.w, vertical: 7),
         child: Row(
@@ -1476,30 +1495,35 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen>
                   : null,
             ),
             SizedBox(width: 7.w),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  acc.username,
-                  style: AppTextStyles.bodyText.copyWith(
-                    color: txt.body,
-                    fontSize: 14.5,
-                    fontWeight: FontWeight.w500,
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    acc.username,
+                    style: AppTextStyles.bodyText.copyWith(
+                      color: txt.body,
+                      fontSize: 14.5,
+                      fontWeight: FontWeight.w500,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
-                  overflow: TextOverflow.ellipsis,
-                ),
-                Text(
-                  acc.fullName.isEmpty ? acc.username : acc.fullName,
-                  //   '@${acc.username} · ${_formatCount(acc.followersCount)} chases',
-                  style: AppTextStyles.bodyText.copyWith(
-                    fontSize: 12.5,
-                    color: txt.muted,
-                    fontWeight: FontWeight.w500,
+                  Text(
+                    acc.fullName.isEmpty ? acc.username : acc.fullName,
+                    //   '@${acc.username} · ${_formatCount(acc.followersCount)} chases',
+                    style: AppTextStyles.bodyText.copyWith(
+                      fontSize: 12.5,
+                      color: txt.muted,
+                      fontWeight: FontWeight.w500,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-            const Spacer(),
+            SizedBox(width: 8.w),
             ToggleChaseButton(
               userId: acc.uuid,
               username: acc.username,
@@ -1571,7 +1595,10 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen>
                   onTap: () {
                     navigationPush(
                       context,
-                      PublicProfileScreen(userId: author.id, username: author.username),
+                      PublicProfileScreen(
+                        userId: author.id,
+                        username: author.username,
+                      ),
                     );
                   },
                   child: CircleAvatar(
@@ -1651,19 +1678,17 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen>
             },
             child: Padding(
               padding: EdgeInsets.fromLTRB(10.w, 0, 10.w, 0),
-              child: Text(
+              child: _buildDescriptionWithHashtags(
+                context,
                 post.description.isNotEmpty
                     ? post.description
                     : (poll?.question ?? ''),
-                style: AppTextStyles.bodyText.copyWith(
-                  color: txt.heading,
-                  fontWeight: FontWeight.w500,
-                ),
+                txt,
               ),
             ),
           ),
 
-          const SizedBox(height: 12),
+          const SizedBox(height: 8),
 
           // Poll Content (Image Stack or Text Options)
           if (poll != null) ...[
@@ -1673,6 +1698,68 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen>
               _buildSearchTextOptions(poll, post),
           ],
         ],
+      ),
+    );
+  }
+
+  Widget _buildDescriptionWithHashtags(
+    BuildContext context,
+    String description,
+    AppTextColors txt,
+  ) {
+    if (!description.contains('#')) {
+      return Text(
+        description,
+        style: AppTextStyles.bodyText.copyWith(
+          color: txt.body,
+          fontSize: 14.5,
+          fontWeight: FontWeight.w500,
+        ),
+      );
+    }
+
+    final RegExp exp = RegExp(r'(#[a-zA-Z0-9_]+)');
+    final List<TextSpan> spans = [];
+
+    description.splitMapJoin(
+      exp,
+      onMatch: (Match match) {
+        spans.add(
+          TextSpan(
+            text: match.group(0),
+             style: AppTextStyles.bodyText.copyWith(
+              color: Theme.of(context).colorScheme.onPrimary,
+              fontSize: 15,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        );
+        return '';
+      },
+      onNonMatch: (String text) {
+        if (text.isNotEmpty) {
+          spans.add(
+            TextSpan(
+              text: text,
+               style: AppTextStyles.bodyText.copyWith(
+                color: txt.title,
+                fontSize: 14.5,
+                fontWeight: FontWeight.w400,
+              ),
+            ),
+          );
+        }
+        return '';
+      },
+    );
+
+    return RichText(
+      text: TextSpan(
+        style: AppTextStyles.bodyText.copyWith(
+          color: txt.heading,
+          fontWeight: FontWeight.w500,
+        ),
+        children: spans,
       ),
     );
   }
@@ -1689,7 +1776,7 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen>
       child: LayoutBuilder(
         builder: (context, constraints) {
           final w = constraints.maxWidth;
-          final h = 150.h;
+          final h = 165.h;
           final cardWidth = n == 1 ? w : w * 0.55;
           final spacing = n > 1 ? (w - cardWidth) / (n - 1) : 0.0;
 
@@ -1761,10 +1848,10 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen>
                               ).colorScheme.outlineVariant,
                               width: 1,
                             ),
-                            borderRadius: BorderRadius.circular(13),
+                            borderRadius: BorderRadius.circular(AppRadius.button),
                           ),
                           child: ClipRRect(
-                            borderRadius: BorderRadius.circular(10.r),
+                            borderRadius: BorderRadius.circular(AppRadius.button),
                             child: imageWidget,
                           ),
                         ),

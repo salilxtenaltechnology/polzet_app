@@ -122,7 +122,7 @@ class _SinglePostDetailsState extends State<SinglePostDetails>
         }
       });
 
-      await _fetchLikedUsers(result.id.toString());
+      await _fetchLikedUsers(result.id.toString(), force: true);
     } catch (e) {
       if (!mounted) return;
       if (showLoading) {
@@ -148,7 +148,7 @@ class _SinglePostDetailsState extends State<SinglePostDetails>
             ),
           )
           .then((result) {
-            if (result == true) _fetchPost();
+            if (result == true) _fetchPost(showLoading: false);
           });
     } else {
       Navigator.of(context)
@@ -159,17 +159,20 @@ class _SinglePostDetailsState extends State<SinglePostDetails>
             ),
           )
           .then((result) {
-            if (result == true) _fetchPost();
+            if (result == true) _fetchPost(showLoading: false);
           });
     }
   }
 
   // Add this method to _SinglePostDetailsState
   void _navigateTextPoll(SinglePostPoll poll) {
+    final userProvider = Provider.of<UserProvider>(context, listen: false);
+    final currentUsername = userProvider.username ?? '';
+    final isOwnPost = _post?.user.username == currentUsername;
     final isPolledByCurrentUser = _post?.isPolledByCurrentUser ?? false;
 
-    if (isPolledByCurrentUser) {
-      // Already voted → show results
+    if (isOwnPost || isPolledByCurrentUser) {
+      // Already voted or own post → show results
       Navigator.of(context)
           .push(
             MaterialPageRoute(
@@ -180,7 +183,7 @@ class _SinglePostDetailsState extends State<SinglePostDetails>
             ),
           )
           .then((result) {
-            if (result == true) _fetchPost();
+            if (result == true) _fetchPost(showLoading: false);
           });
     } else {
       // Not yet polled → SinglePostThingsRanking
@@ -192,14 +195,14 @@ class _SinglePostDetailsState extends State<SinglePostDetails>
             ),
           )
           .then((result) {
-            if (result == true) _fetchPost();
+            if (result == true) _fetchPost(showLoading: false);
           });
     }
   }
 
-  Future<void> _fetchLikedUsers(String postId) async {
+  Future<void> _fetchLikedUsers(String postId, {bool force = false}) async {
     if (likedUsersLoading[postId] == true ||
-        postLikedUsers.containsKey(postId)) {
+        (!force && postLikedUsers.containsKey(postId))) {
       return;
     }
 
@@ -342,7 +345,7 @@ class _SinglePostDetailsState extends State<SinglePostDetails>
     }
 
     return SizedBox(
-      height: 150.h,
+      height: 165.h,
       child: Container(
         decoration: BoxDecoration(
           border: Border.all(
@@ -478,7 +481,7 @@ class _SinglePostDetailsState extends State<SinglePostDetails>
                 onTap: () {},
                 child: Container(
                   margin: const EdgeInsets.only(bottom: 12),
-                  height: 150.h,
+                  height: 165.h,
                   width: double.infinity,
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(AppRadius.button),
@@ -758,7 +761,7 @@ class _SinglePostDetailsState extends State<SinglePostDetails>
               GestureDetector(
                 onTap: post.isPolledByCurrentUser ? null : () {},
                 child: SizedBox(
-                  height: 150.h,
+                  height: 165.h,
                   child: Stack(
                     clipBehavior: Clip.none,
                     children: [
@@ -786,15 +789,15 @@ class _SinglePostDetailsState extends State<SinglePostDetails>
                                     color: Theme.of(
                                       context,
                                     ).colorScheme.outline,
-                                    width: 1.2,
+                                    width: 1,
                                   ),
                                   borderRadius: BorderRadius.circular(
-                                    AppRadius.card,
+                                    AppRadius.button,
                                   ),
                                 ),
                                 child: ClipRRect(
                                   borderRadius: BorderRadius.circular(
-                                    AppRadius.card - 1.2,
+                                    AppRadius.button,
                                   ),
                                   child: Stack(
                                     fit: StackFit.expand,
@@ -902,15 +905,15 @@ class _SinglePostDetailsState extends State<SinglePostDetails>
                                     color: Theme.of(
                                       context,
                                     ).colorScheme.outline,
-                                    width: 1.2,
+                                    width: 1,
                                   ),
                                   borderRadius: BorderRadius.circular(
-                                    AppRadius.card,
+                                    AppRadius.button,
                                   ),
                                 ),
                                 child: ClipRRect(
                                   borderRadius: BorderRadius.circular(
-                                    AppRadius.card - 1.2,
+                                    AppRadius.button,
                                   ),
                                   child: Stack(
                                     fit: StackFit.expand,
@@ -1067,7 +1070,7 @@ class _SinglePostDetailsState extends State<SinglePostDetails>
                                   color: Theme.of(
                                     context,
                                   ).colorScheme.onPrimary.withOpacity(0.2),
-                                  width: 1.2,
+                                  width: 1,
                                 ),
                                 borderRadius: BorderRadius.circular(
                                   AppRadius.card,
@@ -1126,7 +1129,7 @@ class _SinglePostDetailsState extends State<SinglePostDetails>
                                   color: Theme.of(
                                     context,
                                   ).colorScheme.onPrimary.withOpacity(0.2),
-                                  width: 1.2,
+                                  width: 1,
                                 ),
                                 borderRadius: BorderRadius.circular(
                                   AppRadius.card,
@@ -1271,7 +1274,7 @@ class _SinglePostDetailsState extends State<SinglePostDetails>
               GestureDetector(
                 onTap: post.isPolledByCurrentUser ? null : () {},
                 child: SizedBox(
-                  height: 150.h,
+                  height: 165.h,
                   child: Stack(
                     clipBehavior: Clip.none,
                     children: [
@@ -1299,15 +1302,15 @@ class _SinglePostDetailsState extends State<SinglePostDetails>
                                     color: Theme.of(
                                       context,
                                     ).colorScheme.outline,
-                                    width: 1.2,
+                                    width: 1,
                                   ),
                                   borderRadius: BorderRadius.circular(
-                                    AppRadius.card,
+                                    AppRadius.button,
                                   ),
                                 ),
                                 child: ClipRRect(
                                   borderRadius: BorderRadius.circular(
-                                    AppRadius.card - 1.2,
+                                    AppRadius.button,
                                   ),
                                   child: Stack(
                                     fit: StackFit.expand,
@@ -1415,15 +1418,15 @@ class _SinglePostDetailsState extends State<SinglePostDetails>
                                     color: Theme.of(
                                       context,
                                     ).colorScheme.outline,
-                                    width: 1.2,
+                                    width: 1,
                                   ),
                                   borderRadius: BorderRadius.circular(
-                                    AppRadius.card,
+                                    AppRadius.button,
                                   ),
                                 ),
                                 child: ClipRRect(
                                   borderRadius: BorderRadius.circular(
-                                    AppRadius.card - 1.2,
+                                    AppRadius.button,
                                   ),
                                   child: Stack(
                                     fit: StackFit.expand,
@@ -1878,8 +1881,8 @@ class _SinglePostDetailsState extends State<SinglePostDetails>
   Widget _buildBody() {
     final post = _post!;
     return RefreshIndicator(
-      color: Theme.of(context).colorScheme.primary,
-      onRefresh: _fetchPost,
+      color: Theme.of(context).colorScheme.onPrimary,
+      onRefresh: () => _fetchPost(showLoading: false),
       child: ListView(
         padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 5.h),
         children: [_buildPostCard(post)],
@@ -2150,7 +2153,7 @@ class _SinglePostDetailsState extends State<SinglePostDetails>
           LayoutBuilder(
             builder: (context, constraints) {
               final availableWidth = constraints.maxWidth;
-              final imageHeight = 150.h;
+              final imageHeight = 165.h;
               return GestureDetector(
                 onTap: () => _showAllImagesGrid(postId, poll),
                 child: SizedBox(
@@ -2182,7 +2185,7 @@ class _SinglePostDetailsState extends State<SinglePostDetails>
                                 ),
                                 border: Border.all(
                                   color: Theme.of(context).colorScheme.outline,
-                                  width: 1.2,
+                                  width: 1,
                                 ),
                               ),
                               child: ClipRRect(
@@ -2202,7 +2205,7 @@ class _SinglePostDetailsState extends State<SinglePostDetails>
                                                   decoration: BoxDecoration(
                                                     borderRadius:
                                                         BorderRadius.circular(
-                                                          12.r,
+                                                          AppRadius.button,
                                                         ),
                                                     color: Colors.grey[200],
                                                   ),
@@ -2283,16 +2286,16 @@ class _SinglePostDetailsState extends State<SinglePostDetails>
   // ═══════════════════════════════════════════════════════════════════════════
 
   Widget _buildTextPollBlock(SinglePostPoll poll, {bool showQuestion = true}) {
-    final hasUserPolled = _selectedVotes.containsKey(poll.id);
+    final userProvider = Provider.of<UserProvider>(context, listen: false);
+    final currentUsername = userProvider.username ?? '';
+    final isOwnPost = _post?.user.username == currentUsername;
+    final hasUserPolled = _post?.isPolledByCurrentUser ?? false;
+    final isSingleChoice = poll.votingType == 'single_choice';
+
     final totalVotes = poll.options.fold<int>(
       0,
       (sum, opt) => sum + (int.tryParse(opt.voteCount) ?? 0),
     );
-
-    // ── Show polled UI if: own post OR already voted ─────────────────────────
-    final isOwnPost = _post?.user.username == widget.username;
-    final isPolledByCurrentUser = _post?.isPolledByCurrentUser ?? false;
-    final showPolledUi = isOwnPost || isPolledByCurrentUser;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 10),
@@ -2328,11 +2331,8 @@ class _SinglePostDetailsState extends State<SinglePostDetails>
             ),
             const SizedBox(height: 12),
           ],
-          if (showPolledUi)
-            // ── Own post or already voted → show result bars ───────────────
-            _buildTextPolledOptions(poll, () => _navigateTextPoll(poll))
-          else
-            // ── Other user's post, not yet voted → show plain options ──────
+          if (isOwnPost)
+            // ── Own post → show text option rows with percentage ───────────
             ...poll.options.asMap().entries.map(
               (e) => GestureDetector(
                 onTap: () => _navigateTextPoll(poll),
@@ -2341,11 +2341,142 @@ class _SinglePostDetailsState extends State<SinglePostDetails>
                   optionIndex: e.key,
                   poll: poll,
                   totalVotes: totalVotes,
-                  showPercentage: hasUserPolled,
+                  showPercentage: true,
+                ),
+              ),
+            )
+          else
+            // ── Other user's post → show poll option style as per home feed ─
+            ...poll.options.asMap().entries.map((entry) {
+              if (entry.value.text == null || entry.value.text!.isEmpty) {
+                return const SizedBox.shrink();
+              }
+              final optionIndex = entry.key;
+              final option = entry.value;
+
+              return GestureDetector(
+                onTap: hasUserPolled
+                    ? () {
+                        Navigator.of(context)
+                            .push(
+                              MaterialPageRoute(
+                                builder: (context) => ThingsResultScreen(
+                                  username: widget.username,
+                                  postId: _post!.id.toString(),
+                                ),
+                              ),
+                            )
+                            .then((result) {
+                              if (result == true) {
+                                _fetchPost(showLoading: false);
+                              }
+                            });
+                      }
+                    : (isSingleChoice
+                          ? () {
+                              _submitSinglePollVote(poll, option.id);
+                            }
+                          : () {
+                              Navigator.of(context)
+                                  .push(
+                                    MaterialPageRoute(
+                                      builder: (context) =>
+                                          SinglePostThingsRanking(
+                                            post: _post!,
+                                            poll: poll,
+                                          ),
+                                    ),
+                                  )
+                                  .then((result) {
+                                    if (result == true) {
+                                      _fetchPost(showLoading: false);
+                                    }
+                                  });
+                            }),
+                child: _buildPollOption(
+                  option: option,
+                  optionIndex: optionIndex,
+                  poll: poll,
+                  hasUserPolled: hasUserPolled,
+                ),
+              );
+            }),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPollOption({
+    required SinglePostPollOption option,
+    required int optionIndex,
+    required SinglePostPoll poll,
+    required bool hasUserPolled,
+  }) {
+    final txt = AppTextColors.of(context);
+    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
+
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 250),
+      curve: Curves.easeInOut,
+      margin: EdgeInsets.only(bottom: 10.h),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(AppRadius.card),
+        color: hasUserPolled
+            ? (isDarkMode
+                  ? const Color(0XFF2A2026).withOpacity(0.7)
+                  : const Color(0xFFFCF9F9))
+            : (isDarkMode
+                  ? const Color(0xFF242831).withOpacity(0.7)
+                  : Colors.white),
+        border: Border.all(
+          color: Theme.of(context).colorScheme.outline,
+          width: 1,
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6.5),
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(
+                option.text ?? '',
+                style: AppTextStyles.subText.copyWith(
+                  color: txt.title,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w400,
                 ),
               ),
             ),
-        ],
+            if (hasUserPolled)
+              poll.votingType == 'single_choice'
+                  ? Text(
+                      '${option.percentage.round()}%',
+                      style: AppTextStyles.bodyText.copyWith(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                    )
+                  : Container(
+                      height: 28,
+                      width: 28,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                      child: Center(
+                        child: Text(
+                          '${optionIndex + 1}',
+                          style: AppTextStyles.subText.copyWith(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ),
+          ],
+        ),
       ),
     );
   }

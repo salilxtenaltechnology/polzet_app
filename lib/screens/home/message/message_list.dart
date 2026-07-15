@@ -462,12 +462,29 @@ class MessageListState extends State<MessageList>
       avatar =
           chat['avatar_url']?.toString() ?? chat['profile_url']?.toString();
     } else {
+      final userProvider = Provider.of<UserProvider>(context, listen: false);
+      final currentUserId = userProvider.userId;
+      final currentUsername = userProvider.username;
+      final currentUserProfilePic = userProvider.profile_picture;
+
+      bool isCurrentUserAvatar(String? url) {
+        if (url == null || url.trim().isEmpty || url == 'null') return false;
+        if (currentUserProfilePic != null && currentUserProfilePic.trim().isNotEmpty) {
+          if (url == currentUserProfilePic) return true;
+          final resolvedUrl = _resolveProfileUrl(url);
+          final resolvedCurrent = _resolveProfileUrl(currentUserProfilePic);
+          if (resolvedUrl != null && resolvedUrl == resolvedCurrent) return true;
+        }
+        return false;
+      }
+
       avatar =
           chat['profile_url']?.toString() ?? chat['avatar_url']?.toString();
-      if (avatar == null || avatar.trim().isEmpty || avatar == 'null') {
-        final userProvider = Provider.of<UserProvider>(context, listen: false);
-        final currentUserId = userProvider.userId;
-        final currentUsername = userProvider.username;
+
+      if (avatar == null ||
+          avatar.trim().isEmpty ||
+          avatar == 'null' ||
+          isCurrentUserAvatar(avatar)) {
         final members = chat['members'] as List?;
         if (members != null && members.isNotEmpty) {
           String? foundAvatar;
@@ -490,17 +507,9 @@ class MessageListState extends State<MessageList>
               }
             }
           }
-          avatar =
-              foundAvatar ??
-              (members.first as Map<String, dynamic>)['user']?['avatar_url']
-                  ?.toString() ??
-              (members.first as Map<String, dynamic>)['user']?['profile_image']
-                  ?.toString() ??
-              (members.first
-                      as Map<String, dynamic>)['user']?['profile_picture_url']
-                  ?.toString() ??
-              (members.first as Map<String, dynamic>)['user']?['avatar']
-                  ?.toString();
+          avatar = foundAvatar;
+        } else {
+          avatar = null;
         }
       }
     }

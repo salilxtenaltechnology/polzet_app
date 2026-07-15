@@ -310,6 +310,7 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
         await provider.fetchPublicUserProfile(widget.username!);
         if (provider.userProfile != null) {
           resolvedUserId = provider.userProfile!.id;
+          _fetchCounts();
           _loadData();
         }
       } else if (widget.userId != null && widget.userId!.isNotEmpty) {
@@ -341,6 +342,7 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
         await provider.fetchPublicUserProfile(lookupKey);
         if (provider.userProfile != null) {
           resolvedUserId = provider.userProfile!.id;
+          _fetchCounts();
           _loadData();
         }
       }
@@ -826,6 +828,29 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
     );
   }
 
+  Future<void> _fetchCounts() async {
+    final targetId = resolvedUserId ?? widget.userId;
+    if (targetId == null || targetId.isEmpty) return;
+    if (!mounted) return;
+    try {
+      final results = await Future.wait([
+        apiService.fetchChaseList(targetUserId: targetId, page: 1),
+        apiService.fetchRechaseList(targetUserId: targetId, page: 1),
+      ]);
+
+      if (results[0] != null && results[1] != null && mounted) {
+        final chase = int.tryParse(results[0]!['count']?.toString() ?? '') ?? 0;
+        final rechase =
+            int.tryParse(results[1]!['count']?.toString() ?? '') ?? 0;
+
+        final provider = context.read<PublicProfileProvider>();
+        provider.updateCounts(followersCount: chase, followingCount: rechase);
+      }
+    } catch (e) {
+      debugPrint('Error fetching public chase/rechase counts: $e');
+    }
+  }
+
   Future<void> _handleRefresh() async {
     _serverFollowStatus = null;
     _localFollowStatus = null;
@@ -852,6 +877,7 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
       }
     }
 
+    await _fetchCounts();
     await _loadData(isRefresh: true);
   }
 
@@ -1141,9 +1167,9 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
                         child: Text(
                           poll.question,
                           style: AppTextStyles.bodyText.copyWith(
+                            color: txt.heading,
                             fontSize: 14.5,
                             fontWeight: FontWeight.w500,
-                            color: txt.title,
                           ),
                         ),
                       ),
@@ -1190,17 +1216,17 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
                         ),
                         fit: BoxFit.cover,
                         width: double.infinity,
-                        height: 150.h,
+                        height: 165.h,
                         placeholder: (context, url) => Container(
                           color: Theme.of(context).colorScheme.background,
-                          height: 150.h,
+                          height: 165.h,
                           child: const Center(
                             child: CircularProgressIndicator(),
                           ),
                         ),
                         errorWidget: (context, url, error) => Container(
                           color: Theme.of(context).colorScheme.background,
-                          height: 150.h,
+                          height: 165.h,
                           child: const Icon(Icons.error),
                         ),
                       ),
@@ -1533,7 +1559,7 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
                                   ? null
                                   : () {},
                               child: SizedBox(
-                                height: 150.h,
+                                height: 165.h,
                                 child: Stack(
                                   clipBehavior: Clip.none,
                                   children: [
@@ -1569,17 +1595,17 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
                                                   color: Theme.of(
                                                     context,
                                                   ).colorScheme.outline,
-                                                  width: 1.2,
+                                                  width: 1,
                                                 ),
                                                 borderRadius:
                                                     BorderRadius.circular(
-                                                      AppRadius.card,
+                                                      AppRadius.button,
                                                     ),
                                               ),
                                               child: ClipRRect(
                                                 borderRadius:
                                                     BorderRadius.circular(
-                                                      AppRadius.card - 1.2,
+                                                      AppRadius.button,
                                                     ),
                                                 child: Stack(
                                                   fit: StackFit.expand,
@@ -1728,17 +1754,17 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
                                                   color: Theme.of(
                                                     context,
                                                   ).colorScheme.outline,
-                                                  width: 1.2,
+                                                  width: 1,
                                                 ),
                                                 borderRadius:
                                                     BorderRadius.circular(
-                                                      AppRadius.card,
+                                                      AppRadius.button,
                                                     ),
                                               ),
                                               child: ClipRRect(
                                                 borderRadius:
                                                     BorderRadius.circular(
-                                                      AppRadius.card - 1.2,
+                                                      AppRadius.button,
                                                     ),
                                                 child: Stack(
                                                   fit: StackFit.expand,
@@ -2133,9 +2159,9 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
                         child: Text(
                           poll.question,
                           style: AppTextStyles.bodyText.copyWith(
-                            fontSize: 14.5,
-                            fontWeight: FontWeight.w600,
-                            color: Theme.of(context).colorScheme.onBackground,
+                            color: txt.heading,
+              fontSize: 14.5,
+              fontWeight: FontWeight.w500,
                           ),
                         ),
                       ),
@@ -2525,7 +2551,7 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
     return LayoutBuilder(
       builder: (context, constraints) {
         double availableWidth = constraints.maxWidth;
-        double imageHeight = 150.h;
+        double imageHeight = 165.h;
 
         return GestureDetector(
           onTap: () => _showAllImagesGrid(
@@ -2538,89 +2564,106 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
             height: imageHeight,
             width: availableWidth,
             child: Stack(
-              children: validImages.asMap().entries.map<Widget>((entry) {
-                int index = entry.key;
-                PollOptionImage imageData = entry.value;
-                Alignment alignment = alignments[index];
-                double imageWidth = (availableWidth * 0.7) - (index * 8.0);
-                imageWidth = imageWidth < 60.w ? 60.w : imageWidth;
-                final imageUrl = imageData.resolvedUrl(ApiConfig.baseUrlImage);
+              children: validImages
+                  .asMap()
+                  .entries
+                  .map<Widget>((entry) {
+                    int index = entry.key;
+                    PollOptionImage imageData = entry.value;
+                    Alignment alignment = alignments[index];
+                    double imageWidth = (availableWidth * 0.7) - (index * 8.0);
+                    imageWidth = imageWidth < 60.w ? 60.w : imageWidth;
+                    final imageUrl = imageData.resolvedUrl(
+                      ApiConfig.baseUrlImage,
+                    );
 
-                return Align(
-                  alignment: alignment,
-                  child: Container(
-                    margin: EdgeInsets.symmetric(horizontal: 3.w),
-                    width: imageWidth,
-                    height: imageHeight,
-                    child: Container(
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(AppRadius.button),
-                      ),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(AppRadius.button),
-                        child: FutureBuilder<String?>(
-                          future: _authTokenFuture,
-                          builder: (context, snapshot) {
-                            if (snapshot.connectionState ==
-                                ConnectionState.waiting) {
-                              return Container(
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(
-                                    AppRadius.button,
+                    return Align(
+                      alignment: alignment,
+                      child: Container(
+                        margin: EdgeInsets.symmetric(horizontal: 3.w),
+                        width: imageWidth,
+                        height: imageHeight,
+                        child: Container(
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(
+                              AppRadius.button,
+                            ),
+                            border: Border.all(
+                              color: Theme.of(context).colorScheme.outline,
+                              width: 1,
+                            ),
+                          ),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(
+                              AppRadius.button,
+                            ),
+                            child: FutureBuilder<String?>(
+                              future: _authTokenFuture,
+                              builder: (context, snapshot) {
+                                if (snapshot.connectionState ==
+                                    ConnectionState.waiting) {
+                                  return Container(
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(
+                                        AppRadius.button,
+                                      ),
+                                      color: Colors.grey[200],
+                                    ),
+                                  );
+                                }
+                                final token = snapshot.data;
+                                final headers =
+                                    token != null && imageUrl.contains('/api/')
+                                    ? {'Authorization': 'Bearer $token'}
+                                    : null;
+                                return CachedNetworkImage(
+                                  imageUrl: imageUrl,
+                                  fit: BoxFit.cover,
+                                  width: double.infinity,
+                                  height: double.infinity,
+                                  httpHeaders: headers,
+                                  placeholder: (context, url) => Container(
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(
+                                        AppRadius.button,
+                                      ),
+                                      color: Colors.grey[200],
+                                    ),
+                                    child: Center(
+                                      child: Loader(
+                                        color: Theme.of(
+                                          context,
+                                        ).colorScheme.primary,
+                                      ),
+                                    ),
                                   ),
-                                  color: Colors.grey[200],
-                                ),
-                              );
-                            }
-                            final token = snapshot.data;
-                            final headers =
-                                token != null && imageUrl.contains('/api/')
-                                ? {'Authorization': 'Bearer $token'}
-                                : null;
-                            return CachedNetworkImage(
-                              imageUrl: imageUrl,
-                              fit: BoxFit.cover,
-                              width: double.infinity,
-                              height: double.infinity,
-                              httpHeaders: headers,
-                              placeholder: (context, url) => Container(
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(
-                                    AppRadius.button,
-                                  ),
-                                  color: Colors.grey[200],
-                                ),
-                                child: Center(
-                                  child: Loader(
-                                    color: Theme.of(
-                                      context,
-                                    ).colorScheme.primary,
-                                  ),
-                                ),
-                              ),
-                              errorWidget: (context, url, error) => Container(
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(
-                                    AppRadius.button,
-                                  ),
-                                  color: Colors.grey[200],
-                                ),
-                                child: Center(
-                                  child: Icon(
-                                    Icons.image_not_supported_outlined,
-                                    color: Colors.grey[600],
-                                    size: 30,
-                                  ),
-                                ),
-                              ),
-                            );
-                          },
+                                  errorWidget: (context, url, error) =>
+                                      Container(
+                                        decoration: BoxDecoration(
+                                          borderRadius: BorderRadius.circular(
+                                            AppRadius.button,
+                                          ),
+                                          color: Colors.grey[200],
+                                        ),
+                                        child: Center(
+                                          child: Icon(
+                                            Icons.image_not_supported_outlined,
+                                            color: Colors.grey[600],
+                                            size: 30,
+                                          ),
+                                        ),
+                                      ),
+                                );
+                              },
+                            ),
+                          ),
                         ),
                       ),
-                    ),
-                  ),
-                );
-              }).toList(),
+                    );
+                  })
+                  .toList()
+                  .reversed
+                  .toList(),
             ),
           ),
         );
@@ -2780,7 +2823,7 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 _StatCard(
-                  value: profile?.rechaseList?.length.toString() ?? '0',
+                  value: (profile?.followingCount ?? 0).toString(),
                   label: AppLocalizations.of(context)!.revibe,
                   onTap: canViewPosts
                       ? () {
@@ -2791,16 +2834,16 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
                               userId: p.userId,
                               username: p.username,
                               initialIndex: 1,
-                              chaseList: p.chaseList,
-                              rechaseList: p.rechaseList,
                             ),
-                          );
+                          ).then((_) {
+                            _fetchCounts();
+                          });
                         }
                       : null,
                 ),
                 const SizedBox(width: 15),
                 _StatCard(
-                  value: profile?.chaseList?.length.toString() ?? '0',
+                  value: (profile?.followersCount ?? 0).toString(),
                   label: AppLocalizations.of(context)!.vibe,
                   onTap: canViewPosts
                       ? () {
@@ -2811,10 +2854,10 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
                               userId: p.userId,
                               username: p.username,
                               initialIndex: 0,
-                              chaseList: p.chaseList,
-                              rechaseList: p.rechaseList,
                             ),
-                          );
+                          ).then((_) {
+                            _fetchCounts();
+                          });
                         }
                       : null,
                 ),
@@ -3160,7 +3203,8 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
                     poll.question,
                     style: AppTextStyles.bodyText.copyWith(
                       color: txt.heading,
-                      fontWeight: FontWeight.w500,
+              fontSize: 14.5,
+              fontWeight: FontWeight.w500,
                     ),
                   ),
                 ),
@@ -3212,11 +3256,11 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
     }
 
     return SizedBox(
-      height: 150.h,
+      height: 165.h,
       child: Container(
         decoration: BoxDecoration(
           border: Border.all(
-            color: Theme.of(context).colorScheme.outlineVariant,
+            color: Theme.of(context).colorScheme.outline,
             width: 1,
           ),
           borderRadius: BorderRadius.circular(AppRadius.button),
@@ -3349,6 +3393,7 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
                     poll.question,
                     style: AppTextStyles.bodyText.copyWith(
                       color: txt.heading,
+                      fontSize: 14.5,
                       fontWeight: FontWeight.w500,
                     ),
                   ),
@@ -3393,7 +3438,7 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
                 }
               },
               child: SizedBox(
-                height: 150.h,
+                height: 165.h,
                 child: Stack(
                   clipBehavior: Clip.none,
                   children: [
@@ -3427,15 +3472,15 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
                                 ).colorScheme.onPrimary.withOpacity(0.10),
                                 border: Border.all(
                                   color: Theme.of(context).colorScheme.outline,
-                                  width: 1.2,
+                                  width: 1,
                                 ),
                                 borderRadius: BorderRadius.circular(
-                                  AppRadius.card,
+                                  AppRadius.button,
                                 ),
                               ),
                               child: ClipRRect(
                                 borderRadius: BorderRadius.circular(
-                                  AppRadius.card - 1.2,
+                                  AppRadius.button,
                                 ),
                                 child: Stack(
                                   fit: StackFit.expand,
@@ -3547,15 +3592,15 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
                                 ).colorScheme.onPrimary.withOpacity(0.10),
                                 border: Border.all(
                                   color: Theme.of(context).colorScheme.outline,
-                                  width: 1.2,
+                                  width: 1,
                                 ),
                                 borderRadius: BorderRadius.circular(
-                                  AppRadius.card,
+                                  AppRadius.button,
                                 ),
                               ),
                               child: ClipRRect(
                                 borderRadius: BorderRadius.circular(
-                                  AppRadius.card - 1.2,
+                                  AppRadius.button,
                                 ),
                                 child: Stack(
                                   fit: StackFit.expand,

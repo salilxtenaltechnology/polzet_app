@@ -124,7 +124,9 @@ class _UserThingsRankingState extends State<UserThingsRanking> {
       top: false,
       child: Scaffold(
         backgroundColor: Theme.of(context).colorScheme.background,
-        appBar:  CommonAppBar(title:  AppLocalizations.of(context)!.rankyourchoices,),
+        appBar: CommonAppBar(
+          title: AppLocalizations.of(context)!.rankyourchoices,
+        ),
         body: Column(
           children: [
             Expanded(
@@ -165,8 +167,8 @@ class _UserThingsRankingState extends State<UserThingsRanking> {
         final imageUrl = profileUrl.startsWith('http')
             ? profileUrl
             : (profileUrl.startsWith('/')
-                ? '${ApiConfig.baseUrlImage}$profileUrl'
-                : '${ApiConfig.baseUrlImage}/$profileUrl');
+                  ? '${ApiConfig.baseUrlImage}$profileUrl'
+                  : '${ApiConfig.baseUrlImage}/$profileUrl');
         avatarImage = CachedNetworkImageProvider(imageUrl);
       }
     }
@@ -304,8 +306,7 @@ class _UserThingsRankingState extends State<UserThingsRanking> {
         child: ReorderableDelayedDragStartListener(
           index: index,
           child: Container(
-            height: 45,
-            padding: const EdgeInsets.symmetric(horizontal: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
             decoration: BoxDecoration(
               color: Theme.of(context).colorScheme.primaryContainer,
               borderRadius: BorderRadius.circular(AppRadius.card),

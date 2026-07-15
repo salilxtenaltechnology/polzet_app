@@ -301,8 +301,7 @@ class _SinglePostThingsRankingState extends State<SinglePostThingsRanking> {
         child: ReorderableDragStartListener(
           index: index,
           child: Container(
-            height: 45,
-            padding: const EdgeInsets.symmetric(horizontal: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
             decoration: BoxDecoration(
               color: Theme.of(context).colorScheme.primaryContainer,
               borderRadius: BorderRadius.circular(AppRadius.card),

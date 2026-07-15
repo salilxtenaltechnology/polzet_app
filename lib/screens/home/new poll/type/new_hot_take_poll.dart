@@ -1,5 +1,6 @@
 // ignore_for_file: deprecated_member_use, use_build_context_synchronously
 
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -12,6 +13,7 @@ import 'package:http_parser/http_parser.dart';
 import 'package:path/path.dart' as path;
 import 'package:provider/provider.dart';
 
+import '../../../../api/api_service.dart';
 import '../../../../api/app_api.dart';
 import '../../../../api/services/image/image_picker_service.dart';
 import '../../../../core/themes/app_text_colors.dart';
@@ -36,6 +38,7 @@ class NewHotTakePoll extends StatefulWidget {
 }
 
 class _NewHotTakePollState extends State<NewHotTakePoll> {
+  final ApiService service = ApiService();
   final TextEditingController questionController = TextEditingController();
   final TextEditingController descriptionController = TextEditingController();
   final _dio = Dio();
@@ -43,8 +46,94 @@ class _NewHotTakePollState extends State<NewHotTakePoll> {
   String questionErrorText = '';
   File? _image;
 
+  bool _isGeneratingQuestion = false;
+  bool _hasGeneratedQuestion = false;
+
+  // Hint animation state
+  int _currentHintIndex = 0;
+  Timer? _hintTimer;
+  final List<String> _hintTexts = [
+    'Please enter a question',
+    'Please enter a topic',
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    questionController.addListener(_clearQuestionError);
+    _startHintAnimation();
+  }
+
+  void _startHintAnimation() {
+    _hintTimer = Timer.periodic(const Duration(seconds: 3), (timer) {
+      if (mounted) {
+        setState(() {
+          _currentHintIndex = (_currentHintIndex + 1) % _hintTexts.length;
+        });
+      }
+    });
+  }
+
+  void _clearQuestionError() {
+    if (questionErrorText.isNotEmpty &&
+        questionController.text.trim().isNotEmpty) {
+      setState(() {
+        questionErrorText = '';
+      });
+    }
+  }
+
+  Future<void> generateQuestion() async {
+    final query = questionController.text.trim();
+
+    if (query.isEmpty) {
+      setState(() {
+        questionErrorText = 'Please enter a topic';
+      });
+      return;
+    }
+
+    setState(() {
+      _isGeneratingQuestion = true;
+    });
+
+    try {
+      final response = await service.generateQuestion(input: query);
+      debugPrint('generateQuestion response: $response');
+      final questionText = response['question']?.toString();
+      if (questionText != null && questionText.trim().isNotEmpty) {
+        setState(() {
+          questionController.text = questionText;
+          // Move cursor to the end
+          questionController.selection = TextSelection.fromPosition(
+            TextPosition(offset: questionController.text.length),
+          );
+          _hasGeneratedQuestion = true;
+        });
+        _clearQuestionError();
+        showToast(message: 'Question generated!');
+      } else {
+        showToast(
+          message:
+              response['message']?.toString() ?? 'Failed to generate question',
+        );
+      }
+    } catch (e) {
+      debugPrint('generateQuestion error: $e');
+      showToast(message: e.toString().replaceAll('Exception: ', ''));
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isGeneratingQuestion = false;
+        });
+      }
+    }
+  }
+
   @override
   void dispose() {
+    _hintTimer?.cancel();
+    questionController.removeListener(_clearQuestionError);
     questionController.dispose();
     descriptionController.dispose();
     super.dispose();
@@ -178,21 +267,53 @@ class _NewHotTakePollState extends State<NewHotTakePoll> {
                 ),
               ),
               SizedBox(height: 20.h),
-              Text(
-                'Your hot take',
-                style: CustomTextStyles.lblPrimaryText(context),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Your hot take',
+                    style: CustomTextStyles.lblPrimaryText(context),
+                  ),
+                  GestureDetector(
+                    onTap: _isGeneratingQuestion ? null : generateQuestion,
+                    child: Row(
+                      children: [
+                        _isGeneratingQuestion
+                            ? SizedBox(
+                                width: 12.w,
+                                height: 12.h,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 1.5,
+                                  color: Theme.of(context).colorScheme.onPrimary,
+                                ),
+                              )
+                            : Assets.images.icAssistant.image(
+                                width: 14.w,
+                                height: 14.h,
+                                color: Theme.of(context).colorScheme.onPrimary,
+                              ),
+                        const SizedBox(width: 5),
+                        Text(
+                          _isGeneratingQuestion
+                              ? 'Generating...'
+                              : _hasGeneratedQuestion
+                              ? 'Regenerate Question'
+                              : 'Generate Question',
+                          style: AppTextStyles.bodyText.copyWith(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                            color: Theme.of(context).colorScheme.onPrimary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
               SizedBox(height: 7.h),
               SecondryTextfield(
                 controller: questionController,
-                hintText: 'Type question or topic',
-                onChanged: (value) {
-                  if (questionErrorText.isNotEmpty && value.trim().isNotEmpty) {
-                    setState(() {
-                      questionErrorText = '';
-                    });
-                  }
-                },
+                hintText: _hintTexts[_currentHintIndex],
               ),
               if (questionErrorText.isNotEmpty)
                 Padding(
@@ -212,7 +333,7 @@ class _NewHotTakePollState extends State<NewHotTakePoll> {
                 controller: descriptionController,
                 hintText: 'Type description or hashtags',
                 maxLines: 5,
-                minLines: 3,
+                minLines: 1,
               ),
               SizedBox(height: 20.h),
               Text(

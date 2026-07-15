@@ -331,7 +331,8 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
         type == 'commetnt' ||
         type == 'vote' ||
         type == 'reply' ||
-        type == 'follow_group');
+        type == 'follow_group' ||
+        type == 'new_post');
   }
 
   void _navigateToNotificationDestination(
@@ -385,19 +386,22 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
         type == 'comment' ||
         type == 'commetnt' ||
         type == 'vote' ||
-        type == 'reply') {
+        type == 'reply' ||
+        type == 'new_post') {
       final String? postId = data['post_id']?.toString();
       debugPrint('   📝 Post notification detected - postId: $postId');
 
       if (postId != null && postId.isNotEmpty && postId != '0') {
-        if (username.isEmpty) {
+        final String postSender = (type == 'new_post') ? (data['sender']?.toString() ?? '') : '';
+        final String postUsername = postSender.isNotEmpty ? postSender : username;
+        if (postUsername.isEmpty) {
           debugPrint(
             '⚠️ _navigateToNotificationDestination: username is empty, fallback to notifications tab',
           );
           _navigateToNotificationsTab(context);
           return;
         }
-        destination = SinglePostDetails(username: username, postId: postId);
+        destination = SinglePostDetails(username: postUsername, postId: postId);
       } else {
         debugPrint('❌ Invalid or missing post_id for type: $type');
       }
@@ -463,8 +467,6 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
         initialIndex: 0,
         followerCount: userProvider.followers_count ?? '0',
         followingCount: userProvider.following_count ?? '0',
-        chaseList: userProvider.chase_list,
-        rechaseList: userProvider.rechase_list,
       );
     } else if (type == 'new_message' ||
         type == 'new_group_added' ||

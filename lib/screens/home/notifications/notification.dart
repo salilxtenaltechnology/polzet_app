@@ -645,6 +645,8 @@ class NotificationState extends State<Notifications>
           return msg;
         }
         return 'sent you a new message';
+      case 'NEW_POST':
+        return 'added new poll';
       default:
         return 'sent you a notification';
     }
@@ -1620,6 +1622,29 @@ class NotificationState extends State<Notifications>
             }
             return;
           }
+          if (type == 'NEW_POST') {
+            final targetUsername = notification.actor.username.isNotEmpty
+                ? notification.actor.username
+                : (notification.meta?.sender?.toString() ?? '');
+            final targetPostId =
+                post?.postId ?? notification.meta?.postId?.toString();
+            if (targetPostId != null && targetPostId.trim().isNotEmpty) {
+              final isOffline = Provider.of<ConnectivityProvider>(
+                context,
+                listen: false,
+              ).isOffline;
+              if (isOffline) {
+                showToast(message: 'Please check your internet connection');
+                return;
+              }
+              debugPrint('$targetUsername $targetPostId');
+              navigationPush(
+                context,
+                SinglePostDetails(username: targetUsername, postId: targetPostId),
+              );
+            }
+            return;
+          }
           if (post != null && post.postId.toString().trim().isNotEmpty) {
             final isOffline = Provider.of<ConnectivityProvider>(
               context,
@@ -1655,8 +1680,6 @@ class NotificationState extends State<Notifications>
                 initialIndex: 0,
                 followerCount: userProvider.followers_count ?? '0',
                 followingCount: userProvider.following_count ?? '0',
-                chaseList: userProvider.chase_list,
-                rechaseList: userProvider.rechase_list,
               ),
             );
           } else {

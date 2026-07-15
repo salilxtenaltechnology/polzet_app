@@ -36,6 +36,12 @@ class FontAwesomeIcons {
 /// Compatibility layer for PageTransitionType.
 enum PageTransitionType {
   fade,
+  rightToLeftJoined,
+  rightToLeftWithFade, 
+  leftToRightWithFade,
+  topToBottomJoined, 
+  bottomToTopJoined, 
+  topToBottom
 }
 
 /// Compatibility layer for PageTransition that mimics the behavior using Flutter's native PageRouteBuilder.

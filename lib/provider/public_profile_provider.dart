@@ -245,6 +245,16 @@ class PublicProfileProvider extends ChangeNotifier {
     }
   }
 
+  void updateCounts({required int followersCount, required int followingCount}) {
+    if (_userProfile != null) {
+      _userProfile = _userProfile!.copyWith(
+        followersCount: followersCount,
+        followingCount: followingCount,
+      );
+      notifyListeners();
+    }
+  }
+
   void clearProfile() {
     _profileResponse = null;
     _userProfile = null;

@@ -135,13 +135,44 @@ class _ProfileScreenState extends State<ProfileScreen>
     }
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      _fetchCounts();
       _fetchPosts();
     });
+  }
+
+  Future<void> _fetchCounts() async {
+    if (!mounted) return;
+    try {
+      final userProvider = Provider.of<UserProvider>(context, listen: false);
+      final myUserId = userProvider.userId ?? '';
+      if (myUserId.isEmpty) return;
+
+      final results = await Future.wait([
+        apiService.fetchChaseList(targetUserId: myUserId, page: 1),
+        apiService.fetchRechaseList(targetUserId: myUserId, page: 1),
+      ]);
+
+      if (results[0] != null && results[1] != null && mounted) {
+        final chase = int.tryParse(results[0]!['count']?.toString() ?? '') ?? 0;
+        final rechase =
+            int.tryParse(results[1]!['count']?.toString() ?? '') ?? 0;
+
+        userProvider.cachedChaseCount = chase;
+        userProvider.cachedRechaseCount = rechase;
+        userProvider.updateUserFields({
+          'followers_count': chase.toString(),
+          'following_count': rechase.toString(),
+        });
+      }
+    } catch (e) {
+      debugPrint('Error fetching chase/rechase counts: $e');
+    }
   }
 
   Future<void> _handleRefresh() async {
     final userProvider = Provider.of<UserProvider>(context, listen: false);
     await userProvider.loadUserDataSilently();
+    await _fetchCounts();
     await _fetchPosts();
   }
 
@@ -603,6 +634,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                             _thingsPosts![index],
                             isImage: false,
                             userProvider: userProvider,
+                            index: index,
                           );
                         },
                       ),
@@ -665,6 +697,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                             _imagesPosts![index],
                             isImage: true,
                             userProvider: userProvider,
+                            index: index,
                           );
                         },
                       ),
@@ -842,45 +875,37 @@ class _ProfileScreenState extends State<ProfileScreen>
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 _StatCard(
-                  value: userProvider.isLoading
-                      ? '-'
-                      : (userProvider.counts?['rechasing']?.toString() ?? '0'),
+                  value: userProvider.following_count ?? '0',
                   label: AppLocalizations.of(context)!.revibe,
-                  onTap: () => navigationPush(
-                    context,
-                    UserChase(
-                      username: userProvider.username ?? '-',
-                      followingCount:
-                          (userProvider.counts?['rechasing']?.toString() ??
-                          '0'),
-                      followerCount:
-                          (userProvider.counts?['chasing']?.toString() ?? '0'),
-                      initialIndex: 1,
-                      chaseList: userProvider.chase_list,
-                      rechaseList: userProvider.rechase_list,
-                    ),
-                  ),
+                  onTap: () =>
+                      navigationPush(
+                        context,
+                        UserChase(
+                          username: userProvider.username ?? '-',
+                          followingCount: userProvider.following_count ?? '0',
+                          followerCount: userProvider.followers_count ?? '0',
+                          initialIndex: 1,
+                        ),
+                      ).then((_) {
+                        _fetchCounts();
+                      }),
                 ),
                 const SizedBox(width: 15),
                 _StatCard(
-                  value: userProvider.isLoading
-                      ? '-'
-                      : (userProvider.counts?['chasing']?.toString() ?? '0'),
+                  value: userProvider.followers_count ?? '0',
                   label: AppLocalizations.of(context)!.vibe,
-                  onTap: () => navigationPush(
-                    context,
-                    UserChase(
-                      username: userProvider.username ?? '-',
-                      followingCount:
-                          (userProvider.counts?['rechasing']?.toString() ??
-                          '0'),
-                      followerCount:
-                          (userProvider.counts?['chasing']?.toString() ?? '0'),
-                      initialIndex: 0,
-                      chaseList: userProvider.chase_list,
-                      rechaseList: userProvider.rechase_list,
-                    ),
-                  ),
+                  onTap: () =>
+                      navigationPush(
+                        context,
+                        UserChase(
+                          username: userProvider.username ?? '-',
+                          followingCount: userProvider.following_count ?? '0',
+                          followerCount: userProvider.followers_count ?? '0',
+                          initialIndex: 0,
+                        ),
+                      ).then((_) {
+                        _fetchCounts();
+                      }),
                 ),
                 const SizedBox(width: 15),
                 _StatCard(
@@ -1038,6 +1063,7 @@ class _ProfileScreenState extends State<ProfileScreen>
     UserPostModel post, {
     required bool isImage,
     required UserProvider userProvider,
+    int index = 0,
   }) {
     final txt = AppTextColors.of(context);
     if (post.polls.isEmpty) return const SizedBox.shrink();
@@ -1067,308 +1093,294 @@ class _ProfileScreenState extends State<ProfileScreen>
     final viewLikes = postLikedUsers[post.id] ?? [];
     final currentUsername = userProvider.username ?? '';
 
-    return Container(
-      margin: EdgeInsets.only(bottom: 20.h),
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.primaryContainer,
-        borderRadius: BorderRadius.circular(AppRadius.card),
-        border: Border.all(
-          color: Theme.of(context).colorScheme.outline,
-          width: 1,
+    return ProfilePostCardAnimation(
+      index: index,
+      child: Container(
+        margin: EdgeInsets.only(bottom: 20.h),
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.primaryContainer,
+          borderRadius: BorderRadius.circular(AppRadius.card),
+          border: Border.all(
+            color: Theme.of(context).colorScheme.outline,
+            width: 1,
+          ),
+          boxShadow: const [BoxShadow(color: Color(0x06000000), blurRadius: 2)],
         ),
-        boxShadow: const [BoxShadow(color: Color(0x06000000), blurRadius: 2)],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: EdgeInsets.fromLTRB(10.w, 10.h, 10.w, 0),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Container(
-                  width: 42,
-                  height: 42,
-                  decoration: const BoxDecoration(shape: BoxShape.circle),
-                  child: ClipOval(
-                    child: (() {
-                      final profilePic = userProvider.profile_picture;
-                      if (profilePic != null && profilePic.isNotEmpty) {
-                        final cachedImage = _getCachedProfileImage(
-                          profilePic,
-                          userProvider,
-                        );
-                        if (cachedImage != null) {
-                          return Image.memory(
-                            cachedImage,
-                            fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) => _AvatarPlaceholder(
-                              username: userProvider.username,
-                              fontSize: 18,
-                            ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: EdgeInsets.fromLTRB(10.w, 10.h, 10.w, 0),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Container(
+                    width: 42,
+                    height: 42,
+                    decoration: const BoxDecoration(shape: BoxShape.circle),
+                    child: ClipOval(
+                      child: (() {
+                        final profilePic = userProvider.profile_picture;
+                        if (profilePic != null && profilePic.isNotEmpty) {
+                          final cachedImage = _getCachedProfileImage(
+                            profilePic,
+                            userProvider,
                           );
-                        } else if (profilePic.startsWith('http') ||
-                            profilePic.startsWith('/') ||
-                            profilePic.contains('/')) {
-                          final imageUrl = profilePic.startsWith('http')
-                              ? profilePic
-                              : (profilePic.startsWith('/')
-                                    ? '${ApiConfig.baseUrlImage}$profilePic'
-                                    : '${ApiConfig.baseUrlImage}/$profilePic');
-                          return CachedNetworkImage(
-                            imageUrl: imageUrl,
-                            fit: BoxFit.cover,
-                            errorWidget: (_, __, ___) => _AvatarPlaceholder(
-                              username: userProvider.username,
-                              fontSize: 18,
-                            ),
-                          );
+                          if (cachedImage != null) {
+                            return Image.memory(
+                              cachedImage,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) => _AvatarPlaceholder(
+                                username: userProvider.username,
+                                fontSize: 18,
+                              ),
+                            );
+                          } else if (profilePic.startsWith('http') ||
+                              profilePic.startsWith('/') ||
+                              profilePic.contains('/')) {
+                            final imageUrl = profilePic.startsWith('http')
+                                ? profilePic
+                                : (profilePic.startsWith('/')
+                                      ? '${ApiConfig.baseUrlImage}$profilePic'
+                                      : '${ApiConfig.baseUrlImage}/$profilePic');
+                            return CachedNetworkImage(
+                              imageUrl: imageUrl,
+                              fit: BoxFit.cover,
+                              errorWidget: (_, __, ___) => _AvatarPlaceholder(
+                                username: userProvider.username,
+                                fontSize: 18,
+                              ),
+                            );
+                          }
                         }
-                      }
-                      return _AvatarPlaceholder(
-                        username: userProvider.username,
-                        fontSize: 18,
-                      );
-                    })(),
-                  ),
-                ),
-                const SizedBox(width: 7),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      userProvider.isLoading
-                          ? '-'
-                          : (userProvider.firstName != null &&
-                                    userProvider.firstName!.isNotEmpty
-                                ? '${userProvider.firstName} ${userProvider.lastName ?? ''}'
-                                      .trim()
-                                : (userProvider.username ?? 'Polzet User')),
-                      style: AppTextStyles.sectionHeading.copyWith(
-                        color: txt.title,
-                        fontSize: 14,
-                      ),
+                        return _AvatarPlaceholder(
+                          username: userProvider.username,
+                          fontSize: 18,
+                        );
+                      })(),
                     ),
+                  ),
+                  const SizedBox(width: 7),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        userProvider.isLoading
+                            ? '-'
+                            : (userProvider.firstName != null &&
+                                      userProvider.firstName!.isNotEmpty
+                                  ? '${userProvider.firstName} ${userProvider.lastName ?? ''}'
+                                        .trim()
+                                  : (userProvider.username ?? 'Polzet User')),
+                        style: AppTextStyles.sectionHeading.copyWith(
+                          color: txt.title,
+                          fontSize: 14,
+                        ),
+                      ),
 
-                    //const SizedBox(height: 2),
+                      //const SizedBox(height: 2),
+                      Row(
+                        children: [
+                          Text(
+                            userProvider.isLoading
+                                ? '-'
+                                : (userProvider.username != null
+                                      ? '@${userProvider.username}'
+                                      : '@polzet_user'),
+                            style: AppTextStyles.bodyText.copyWith(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                              color: txt.body,
+                            ),
+                          ),
+                          Text(
+                            '  • ${_timeAgo(post.createdAt)}',
+                            style: AppTextStyles.subText.copyWith(
+                              color: txt.muted,
+                              fontWeight: FontWeight.w400,
+                              fontSize: 11.5,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                  const Spacer(),
+                  GestureDetector(
+                    onTap: () {
+                      showUserDeletePostDiolog(context, () {
+                        Navigator.pop(context);
+                        _deletePost(post.id);
+                      });
+                    },
+                    child: const Icon(
+                      FeatherIcons.moreVertical,
+                      size: 22,
+                      color: Color(0xFF727272),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Divider(color: Theme.of(context).colorScheme.outlineVariant),
+            Padding(
+              padding: EdgeInsets.fromLTRB(10.w, 5.h, 10.w, 10.h),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (poll.pollType == 'hot_take') ...[
                     Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          userProvider.isLoading
-                              ? '-'
-                              : (userProvider.username != null
-                                    ? '@${userProvider.username}'
-                                    : '@polzet_user'),
-                          style: AppTextStyles.bodyText.copyWith(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w500,
-                            color: txt.body,
+                        Expanded(
+                          child: Text(
+                            poll.question,
+                            style: AppTextStyles.bodyText.copyWith(
+                              fontSize: 14.5,
+                              fontWeight: FontWeight.w500,
+                              color: txt.title,
+                            ),
                           ),
                         ),
+                        SizedBox(width: 8.w),
                         Text(
-                          '  • ${_timeAgo(post.createdAt)}',
+                          '${poll.totalVotes} ${AppLocalizations.of(context)!.votes}',
                           style: AppTextStyles.subText.copyWith(
-                            color: txt.muted,
-                            fontWeight: FontWeight.w400,
-                            fontSize: 11.5,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                            color: Theme.of(context).colorScheme.onPrimary,
                           ),
                         ),
                       ],
                     ),
-                  ],
-                ),
-                const Spacer(),
-                GestureDetector(
-                  onTap: () {
-                    showUserDeletePostDiolog(context, () {
-                      Navigator.pop(context);
-                      _deletePost(post.id);
-                    });
-                  },
-                  child: const Icon(
-                    FeatherIcons.moreVertical,
-                    size: 22,
-                    color: Color(0xFF727272),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Divider(color: Theme.of(context).colorScheme.outlineVariant),
-          Padding(
-            padding: EdgeInsets.fromLTRB(10.w, 5.h, 10.w, 10.h),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (poll.pollType == 'hot_take') ...[
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(
-                        child: Text(
-                          poll.question,
-                          style: AppTextStyles.bodyText.copyWith(
-                            fontSize: 14.5,
-                            fontWeight: FontWeight.w500,
-                            color: txt.title,
-                          ),
-                        ),
+                    if (post.description.isNotEmpty) ...[
+                      SizedBox(height: 5.h),
+                      _buildDescriptionWithHashtags(
+                        context,
+                        post.description,
+                        txt,
                       ),
-                      SizedBox(width: 8.w),
-                      Text(
-                        '${poll.totalVotes} ${AppLocalizations.of(context)!.votes}',
-                        style: AppTextStyles.subText.copyWith(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w500,
-                          color: Theme.of(context).colorScheme.onPrimary,
+                    ],
+                    if (firstImage != null) ...[
+                      SizedBox(height: 12.h),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(AppRadius.button),
+                        child: CachedNetworkImage(
+                          imageUrl: firstImage.resolvedUrl(
+                            ApiConfig.baseUrlImage,
+                          ),
+                          fit: BoxFit.cover,
+                          width: double.infinity,
+                          height: 150.h,
+                          placeholder: (context, url) => Container(
+                            color: Theme.of(context).colorScheme.background,
+                            height: 150.h,
+                            child: const Center(
+                              child: CircularProgressIndicator(),
+                            ),
+                          ),
+                          errorWidget: (context, url, error) => Container(
+                            color: Theme.of(context).colorScheme.background,
+                            height: 150.h,
+                            child: const Icon(Icons.error),
+                          ),
                         ),
                       ),
                     ],
-                  ),
-                  if (post.description.isNotEmpty) ...[
-                    SizedBox(height: 5.h),
-                    _buildDescriptionWithHashtags(
-                      context,
-                      post.description,
-                      txt,
-                    ),
-                  ],
-                  if (firstImage != null) ...[
-                    SizedBox(height: 12.h),
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(AppRadius.button),
-                      child: CachedNetworkImage(
-                        imageUrl: firstImage.resolvedUrl(
-                          ApiConfig.baseUrlImage,
-                        ),
-                        fit: BoxFit.cover,
-                        width: double.infinity,
-                        height: 150.h,
-                        placeholder: (context, url) => Container(
-                          color: Theme.of(context).colorScheme.background,
-                          height: 150.h,
-                          child: const Center(
-                            child: CircularProgressIndicator(),
-                          ),
-                        ),
-                        errorWidget: (context, url, error) => Container(
-                          color: Theme.of(context).colorScheme.background,
-                          height: 150.h,
-                          child: const Icon(Icons.error),
-                        ),
-                      ),
-                    ),
-                  ],
-                  const SizedBox(height: 15),
-                  GestureDetector(
-                    onTap: () {
-                      if (post.is_polled_by_current_user) {
-                        Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (_) => ThingsResultScreen(
-                              username: post.user,
-                              postId: post.id,
+                    const SizedBox(height: 15),
+                    GestureDetector(
+                      onTap: () {
+                        if (post.is_polled_by_current_user) {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => ThingsResultScreen(
+                                username: post.user,
+                                postId: post.id,
+                              ),
                             ),
-                          ),
-                        );
-                      }
-                    },
-                    child: SizedBox(
-                      height: 50,
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          Expanded(
-                            child: GestureDetector(
-                              onTap: () {
-                                if (!post.is_polled_by_current_user) {
-                                  final optionId =
-                                      (poll.options != null &&
-                                          poll.options!.isNotEmpty)
-                                      ? poll.options![0].id
-                                      : null;
-                                  if (optionId != null) {
-                                    _submitSinglePollVote(poll, optionId, post);
+                          );
+                        }
+                      },
+                      child: SizedBox(
+                        height: 50,
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Expanded(
+                              child: GestureDetector(
+                                onTap: () {
+                                  if (!post.is_polled_by_current_user) {
+                                    final optionId =
+                                        (poll.options != null &&
+                                            poll.options!.isNotEmpty)
+                                        ? poll.options![0].id
+                                        : null;
+                                    if (optionId != null) {
+                                      _submitSinglePollVote(
+                                        poll,
+                                        optionId,
+                                        post,
+                                      );
+                                    }
                                   }
-                                }
-                              },
-                              child: Container(
-                                decoration: BoxDecoration(
-                                  color: isDarkMode
-                                      ? const Color(0xFF101F1B)
-                                      : const Color(0xFFECFDF5),
-                                  border: Border.all(
+                                },
+                                child: Container(
+                                  decoration: BoxDecoration(
                                     color: isDarkMode
-                                        ? const Color(0xFF19322A)
-                                        : Colors.transparent,
-                                    width: 1.5,
+                                        ? const Color(0xFF101F1B)
+                                        : const Color(0xFFECFDF5),
+                                    border: Border.all(
+                                      color: isDarkMode
+                                          ? const Color(0xFF19322A)
+                                          : Colors.transparent,
+                                      width: 1.5,
+                                    ),
+                                    borderRadius: BorderRadius.circular(
+                                      AppRadius.card,
+                                    ),
                                   ),
-                                  borderRadius: BorderRadius.circular(
-                                    AppRadius.card,
-                                  ),
-                                ),
-                                child: ClipRRect(
-                                  borderRadius: BorderRadius.circular(
-                                    AppRadius.card,
-                                  ),
-                                  child: Stack(
-                                    children: [
-                                      if (post.is_polled_by_current_user)
-                                        Positioned.fill(
-                                          child: Align(
-                                            alignment: Alignment.centerLeft,
-                                            child: FractionallySizedBox(
-                                              widthFactor: pct1 / 100.0,
-                                              child: Container(
-                                                color: isDarkMode
-                                                    ? const Color(0xFF0F3A2E)
-                                                    : const Color(
-                                                        0xFF16A34A,
-                                                      ).withOpacity(0.2),
+                                  child: ClipRRect(
+                                    borderRadius: BorderRadius.circular(
+                                      AppRadius.card,
+                                    ),
+                                    child: Stack(
+                                      children: [
+                                        if (post.is_polled_by_current_user)
+                                          Positioned.fill(
+                                            child: Align(
+                                              alignment: Alignment.centerLeft,
+                                              child: FractionallySizedBox(
+                                                widthFactor: pct1 / 100.0,
+                                                child: Container(
+                                                  color: isDarkMode
+                                                      ? const Color(0xFF0F3A2E)
+                                                      : const Color(
+                                                          0xFF16A34A,
+                                                        ).withOpacity(0.2),
+                                                ),
                                               ),
                                             ),
                                           ),
-                                        ),
-                                      Center(
-                                        child: Padding(
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 12,
-                                          ),
-                                          child: Row(
-                                            mainAxisAlignment:
-                                                post.is_polled_by_current_user
-                                                ? MainAxisAlignment.start
-                                                : MainAxisAlignment.center,
-                                            children: [
-                                              Image.asset(
-                                                Assets.images.icAgree.path,
-                                                height: 22,
-                                                width: 22,
-                                              ),
-                                              SizedBox(width: 10.w),
-                                              Text(
-                                                'Agree',
-                                                style: AppTextStyles
-                                                    .sectionHeading
-                                                    .copyWith(
-                                                      color: isDarkMode
-                                                          ? const Color(
-                                                              0xFF10B981,
-                                                            )
-                                                          : const Color(
-                                                              0xFF059669,
-                                                            ),
-                                                      fontSize: 14,
-                                                      fontWeight:
-                                                          FontWeight.w400,
-                                                    ),
-                                              ),
-                                              if (post
-                                                  .is_polled_by_current_user) ...[
-                                                const Spacer(),
+                                        Center(
+                                          child: Padding(
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 12,
+                                            ),
+                                            child: Row(
+                                              mainAxisAlignment:
+                                                  post.is_polled_by_current_user
+                                                  ? MainAxisAlignment.start
+                                                  : MainAxisAlignment.center,
+                                              children: [
+                                                Image.asset(
+                                                  Assets.images.icAgree.path,
+                                                  height: 22,
+                                                  width: 22,
+                                                ),
+                                                SizedBox(width: 10.w),
                                                 Text(
-                                                  '${pct1.round()}%',
+                                                  'Agree',
                                                   style: AppTextStyles
                                                       .sectionHeading
                                                       .copyWith(
@@ -1381,111 +1393,115 @@ class _ProfileScreenState extends State<ProfileScreen>
                                                               ),
                                                         fontSize: 14,
                                                         fontWeight:
-                                                            FontWeight.w500,
+                                                            FontWeight.w400,
                                                       ),
                                                 ),
+                                                if (post
+                                                    .is_polled_by_current_user) ...[
+                                                  const Spacer(),
+                                                  Text(
+                                                    '${pct1.round()}%',
+                                                    style: AppTextStyles
+                                                        .sectionHeading
+                                                        .copyWith(
+                                                          color: isDarkMode
+                                                              ? const Color(
+                                                                  0xFF10B981,
+                                                                )
+                                                              : const Color(
+                                                                  0xFF059669,
+                                                                ),
+                                                          fontSize: 14,
+                                                          fontWeight:
+                                                              FontWeight.w500,
+                                                        ),
+                                                  ),
+                                                ],
                                               ],
-                                            ],
+                                            ),
                                           ),
                                         ),
-                                      ),
-                                    ],
+                                      ],
+                                    ),
                                   ),
                                 ),
                               ),
                             ),
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: GestureDetector(
-                              onTap: () {
-                                if (!post.is_polled_by_current_user) {
-                                  final optionId =
-                                      (poll.options != null &&
-                                          poll.options!.length > 1)
-                                      ? poll.options![1].id
-                                      : null;
-                                  if (optionId != null) {
-                                    _submitSinglePollVote(poll, optionId, post);
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: GestureDetector(
+                                onTap: () {
+                                  if (!post.is_polled_by_current_user) {
+                                    final optionId =
+                                        (poll.options != null &&
+                                            poll.options!.length > 1)
+                                        ? poll.options![1].id
+                                        : null;
+                                    if (optionId != null) {
+                                      _submitSinglePollVote(
+                                        poll,
+                                        optionId,
+                                        post,
+                                      );
+                                    }
                                   }
-                                }
-                              },
-                              child: Container(
-                                decoration: BoxDecoration(
-                                  color: isDarkMode
-                                      ? const Color(0xFF201315)
-                                      : const Color(0xFFFDE5E5),
-                                  border: Border.all(
+                                },
+                                child: Container(
+                                  decoration: BoxDecoration(
                                     color: isDarkMode
-                                        ? const Color(
-                                            0xFFCB5B5B,
-                                          ).withOpacity(0.5)
-                                        : Colors.transparent,
-                                    width: 1,
+                                        ? const Color(0xFF201315)
+                                        : const Color(0xFFFDE5E5),
+                                    border: Border.all(
+                                      color: isDarkMode
+                                          ? const Color(
+                                              0xFFCB5B5B,
+                                            ).withOpacity(0.5)
+                                          : Colors.transparent,
+                                      width: 1,
+                                    ),
+                                    borderRadius: BorderRadius.circular(
+                                      AppRadius.card,
+                                    ),
                                   ),
-                                  borderRadius: BorderRadius.circular(
-                                    AppRadius.card,
-                                  ),
-                                ),
-                                child: ClipRRect(
-                                  borderRadius: BorderRadius.circular(
-                                    AppRadius.card,
-                                  ),
-                                  child: Stack(
-                                    children: [
-                                      if (post.is_polled_by_current_user)
-                                        Positioned.fill(
-                                          child: Align(
-                                            alignment: Alignment.centerLeft,
-                                            child: FractionallySizedBox(
-                                              widthFactor: pct2 / 100.0,
-                                              child: Container(
-                                                color: isDarkMode
-                                                    ? const Color(0xFF4C1D24)
-                                                    : const Color(0xFFFECACA),
+                                  child: ClipRRect(
+                                    borderRadius: BorderRadius.circular(
+                                      AppRadius.card,
+                                    ),
+                                    child: Stack(
+                                      children: [
+                                        if (post.is_polled_by_current_user)
+                                          Positioned.fill(
+                                            child: Align(
+                                              alignment: Alignment.centerLeft,
+                                              child: FractionallySizedBox(
+                                                widthFactor: pct2 / 100.0,
+                                                child: Container(
+                                                  color: isDarkMode
+                                                      ? const Color(0xFF4C1D24)
+                                                      : const Color(0xFFFECACA),
+                                                ),
                                               ),
                                             ),
                                           ),
-                                        ),
-                                      Center(
-                                        child: Padding(
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 12,
-                                          ),
-                                          child: Row(
-                                            mainAxisAlignment:
-                                                post.is_polled_by_current_user
-                                                ? MainAxisAlignment.start
-                                                : MainAxisAlignment.center,
-                                            children: [
-                                              Image.asset(
-                                                Assets.images.icDisagree.path,
-                                                height: 22,
-                                                width: 22,
-                                              ),
-                                              SizedBox(width: 10.w),
-                                              Text(
-                                                'Disagree',
-                                                style: AppTextStyles
-                                                    .sectionHeading
-                                                    .copyWith(
-                                                      color: isDarkMode
-                                                          ? const Color(
-                                                              0xFFE53E3E,
-                                                            )
-                                                          : const Color(
-                                                              0xFFC81E1E,
-                                                            ),
-                                                      fontSize: 14,
-                                                      fontWeight:
-                                                          FontWeight.w400,
-                                                    ),
-                                              ),
-                                              if (post
-                                                  .is_polled_by_current_user) ...[
-                                                const Spacer(),
+                                        Center(
+                                          child: Padding(
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 12,
+                                            ),
+                                            child: Row(
+                                              mainAxisAlignment:
+                                                  post.is_polled_by_current_user
+                                                  ? MainAxisAlignment.start
+                                                  : MainAxisAlignment.center,
+                                              children: [
+                                                Image.asset(
+                                                  Assets.images.icDisagree.path,
+                                                  height: 22,
+                                                  width: 22,
+                                                ),
+                                                SizedBox(width: 10.w),
                                                 Text(
-                                                  '${pct2.round()}%',
+                                                  'Disagree',
                                                   style: AppTextStyles
                                                       .sectionHeading
                                                       .copyWith(
@@ -1498,48 +1514,68 @@ class _ProfileScreenState extends State<ProfileScreen>
                                                               ),
                                                         fontSize: 14,
                                                         fontWeight:
-                                                            FontWeight.w500,
+                                                            FontWeight.w400,
                                                       ),
                                                 ),
+                                                if (post
+                                                    .is_polled_by_current_user) ...[
+                                                  const Spacer(),
+                                                  Text(
+                                                    '${pct2.round()}%',
+                                                    style: AppTextStyles
+                                                        .sectionHeading
+                                                        .copyWith(
+                                                          color: isDarkMode
+                                                              ? const Color(
+                                                                  0xFFE53E3E,
+                                                                )
+                                                              : const Color(
+                                                                  0xFFC81E1E,
+                                                                ),
+                                                          fontSize: 14,
+                                                          fontWeight:
+                                                              FontWeight.w500,
+                                                        ),
+                                                  ),
+                                                ],
                                               ],
-                                            ],
+                                            ),
                                           ),
                                         ),
-                                      ),
-                                    ],
+                                      ],
+                                    ),
                                   ),
                                 ),
                               ),
                             ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ] else if (poll.pollType == 'battle') ...[
-                  _buildBattlePollSection(context, poll, post),
-                ] else if (poll.pollType == 'this_or_that') ...[
-                  _buildThisOrThatPollSection(context, poll, post),
-                ] else if (poll.pollType == 'anonymous' &&
-                    _hasImageOptions(poll) &&
-                    _hasTextOptions(poll)) ...[
-                  _buildAnonymousImageTextPollSection(context, poll, post),
-                ] else ...[
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(
-                        child: Text(
-                          poll.question,
-                          style: AppTextStyles.bodyText.copyWith(
-                            fontSize: 14.5,
-                            fontWeight: FontWeight.w600,
-                            color: Theme.of(context).colorScheme.onBackground,
-                          ),
+                          ],
                         ),
                       ),
-                    
+                    ),
+                  ] else if (poll.pollType == 'battle') ...[
+                    _buildBattlePollSection(context, poll, post),
+                  ] else if (poll.pollType == 'this_or_that') ...[
+                    _buildThisOrThatPollSection(context, poll, post),
+                  ] else if (poll.pollType == 'anonymous' &&
+                      _hasImageOptions(poll) &&
+                      _hasTextOptions(poll)) ...[
+                    _buildAnonymousImageTextPollSection(context, poll, post),
+                  ] else ...[
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            poll.question,
+                            style: AppTextStyles.bodyText.copyWith(
+                              color: txt.heading,
+                              fontSize: 14.5,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+
                         Text(
                           '${poll.totalVotes} ${AppLocalizations.of(context)!.votes}',
                           style: AppTextStyles.subText.copyWith(
@@ -1548,162 +1584,167 @@ class _ProfileScreenState extends State<ProfileScreen>
                             color: Theme.of(context).colorScheme.onPrimary,
                           ),
                         ),
+                      ],
+                    ),
+                    SizedBox(height: 12.h),
+                    if (isImage)
+                      _buildImagesStack(post)
+                    else
+                      _buildTextOptions(poll, () {
+                        if (post.is_polled_by_current_user) {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => ThingsResultScreen(
+                                username: post.user,
+                                postId: post.id,
+                              ),
+                            ),
+                          );
+                        } else {
+                          final userProvider = Provider.of<UserProvider>(
+                            context,
+                            listen: false,
+                          );
+                          Navigator.of(context)
+                              .push(
+                                MaterialPageRoute(
+                                  builder: (_) => UserThingsRanking(
+                                    firstName: userProvider.firstName,
+                                    lastName: userProvider.lastName,
+                                    profileImage: userProvider.profile_picture,
+                                    post: post,
+                                    poll: poll,
+                                  ),
+                                ),
+                              )
+                              .then((result) {
+                                if (result == true) {
+                                  setState(() {});
+                                  _fetchPosts();
+                                }
+                              });
+                        }
+                      }),
+                  ],
+                  SizedBox(height: 12.h),
+                  Row(
+                    children: [
+                      GestureDetector(
+                        onTap: () => _toggleLike(post.id),
+                        child: isLiked
+                            ? AppIcons.filledHeart(
+                                key: const ValueKey('filled'),
+                              )
+                            : AppIcons.outlineHeart(
+                                key: const ValueKey('outline'),
+                              ),
+                      ),
+                      const SizedBox(width: 8),
+                      GestureDetector(
+                        onTap: () => _showLikedUsersBottomSheet(
+                          post.id,
+                          currentUsername,
+                        ),
+                        child: Text(
+                          likesCount > 0 ? '$likesCount' : '',
+                          style: AppTextStyles.subText.copyWith(
+                            color: txt.body,
+                            fontSize: 13.5,
+                            fontWeight: FontWeight.w400,
+                          ),
+                        ),
+                      ),
+                      SizedBox(width: 8.w),
+                      GestureDetector(
+                        onTap: () =>
+                            _showCommentsBottomSheet(post.id, currentUsername),
+                        child: AppIcons.commnetBox(),
+                      ),
+                      const SizedBox(width: 8),
+                      GestureDetector(
+                        onTap: () =>
+                            _showCommentsBottomSheet(post.id, currentUsername),
+                        child: Text(
+                          commentsCount > 0 ? '$commentsCount' : '',
+                          style: AppTextStyles.subText.copyWith(
+                            color: txt.body,
+                            fontSize: 13.5,
+                            fontWeight: FontWeight.w400,
+                          ),
+                        ),
+                      ),
+                      SizedBox(width: 8.w),
+                      GestureDetector(
+                        onTap: () {
+                          ShareService.sharePost(
+                            post,
+                            context: context,
+                            usernameOverride: currentUsername,
+                            onShareSuccess: (newCount) {
+                              if (mounted) {
+                                setState(() {
+                                  postSharesCounts[post.id] = newCount;
+                                });
+                              }
+                            },
+                          );
+                        },
+                        child: Row(
+                          children: [
+                            AppIcons.sharePost(),
+                            const SizedBox(width: 8),
+                            Text(
+                              sharesCount > 0 ? '$sharesCount' : '',
+                              style: AppTextStyles.subText.copyWith(
+                                color: txt.body,
+                                fontSize: 13.5,
+                                fontWeight: FontWeight.w400,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     ],
                   ),
-                  SizedBox(height: 12.h),
-                  if (isImage)
-                    _buildImagesStack(post)
-                  else
-                    _buildTextOptions(poll, () {
-                      if (post.is_polled_by_current_user) {
-                        Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (_) => ThingsResultScreen(
-                              username: post.user,
-                              postId: post.id,
-                            ),
-                          ),
-                        );
-                      } else {
-                        final userProvider = Provider.of<UserProvider>(
-                          context,
-                          listen: false,
-                        );
-                        Navigator.of(context)
-                            .push(
-                              MaterialPageRoute(
-                                builder: (_) => UserThingsRanking(
-                                  firstName: userProvider.firstName,
-                                  lastName: userProvider.lastName,
-                                  profileImage: userProvider.profile_picture,
-                                  post: post,
-                                  poll: poll,
-                                ),
-                              ),
-                            )
-                            .then((result) {
-                              if (result == true) {
-                                setState(() {});
-                                _fetchPosts();
-                              }
-                            });
-                      }
-                    }),
-                ],
-                SizedBox(height: 12.h),
-                Row(
-                  children: [
-                    GestureDetector(
-                      onTap: () => _toggleLike(post.id),
-                      child: isLiked
-                          ? AppIcons.filledHeart(key: const ValueKey('filled'))
-                          : AppIcons.outlineHeart(
-                              key: const ValueKey('outline'),
-                            ),
-                    ),
-                    const SizedBox(width: 8),
+                  if (likesCount > 0 && viewLikes.isNotEmpty) ...[
+                    SizedBox(height: 5.h),
                     GestureDetector(
                       onTap: () =>
                           _showLikedUsersBottomSheet(post.id, currentUsername),
-                      child: Text(
-                        likesCount > 0 ? '$likesCount' : '',
-                        style: AppTextStyles.subText.copyWith(
-                          color: txt.body,
-                          fontSize: 13.5,
-                          fontWeight: FontWeight.w400,
-                        ),
-                      ),
-                    ),
-                    SizedBox(width: 8.w),
-                    GestureDetector(
-                      onTap: () =>
-                          _showCommentsBottomSheet(post.id, currentUsername),
-                      child: AppIcons.commnetBox(),
-                    ),
-                    const SizedBox(width: 8),
-                    GestureDetector(
-                      onTap: () =>
-                          _showCommentsBottomSheet(post.id, currentUsername),
-                      child: Text(
-                        commentsCount > 0 ? '$commentsCount' : '',
-                        style: AppTextStyles.subText.copyWith(
-                          color: txt.body,
-                          fontSize: 13.5,
-                          fontWeight: FontWeight.w400,
-                        ),
-                      ),
-                    ),
-                    SizedBox(width: 8.w),
-                    GestureDetector(
-                      onTap: () {
-                        ShareService.sharePost(
-                          post,
-                          context: context,
-                          usernameOverride: currentUsername,
-                          onShareSuccess: (newCount) {
-                            if (mounted) {
-                              setState(() {
-                                postSharesCounts[post.id] = newCount;
-                              });
-                            }
-                          },
-                        );
-                      },
                       child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        mainAxisAlignment: MainAxisAlignment.start,
                         children: [
-                          AppIcons.sharePost(),
-                          const SizedBox(width: 8),
-                          Text(
-                            sharesCount > 0 ? '$sharesCount' : '',
-                            style: AppTextStyles.subText.copyWith(
-                              color: txt.body,
-                              fontSize: 13.5,
-                              fontWeight: FontWeight.w400,
+                          LikeUtils.buildLikeAvatarsStack(
+                            context,
+                            viewLikes,
+                            avatarSize: 14,
+                          ),
+                          SizedBox(width: 5.w),
+                          Expanded(
+                            child: SizedBox(
+                              height: 20.h,
+                              child: Align(
+                                alignment: Alignment.centerLeft,
+                                child: RichText(
+                                  overflow: TextOverflow.ellipsis,
+                                  text: LikeUtils.buildLikedByRichText(
+                                    context,
+                                    viewLikes,
+                                  ),
+                                ),
+                              ),
                             ),
                           ),
                         ],
                       ),
                     ),
                   ],
-                ),
-                if (likesCount > 0 && viewLikes.isNotEmpty) ...[
-                  SizedBox(height: 5.h),
-                  GestureDetector(
-                    onTap: () =>
-                        _showLikedUsersBottomSheet(post.id, currentUsername),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      mainAxisAlignment: MainAxisAlignment.start,
-                      children: [
-                        LikeUtils.buildLikeAvatarsStack(
-                          context,
-                          viewLikes,
-                          avatarSize: 14,
-                        ),
-                        SizedBox(width: 5.w),
-                        Expanded(
-                          child: SizedBox(
-                            height: 20.h,
-                            child: Align(
-                              alignment: Alignment.centerLeft,
-                              child: RichText(
-                                overflow: TextOverflow.ellipsis,
-                                text: LikeUtils.buildLikedByRichText(
-                                  context,
-                                  viewLikes,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
                 ],
-              ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -1726,14 +1767,19 @@ class _ProfileScreenState extends State<ProfileScreen>
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text(
-                            option.text ?? '',
-                            style: AppTextStyles.bodyText.copyWith(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w400,
-                              color: Theme.of(context).colorScheme.onBackground,
+                          Expanded(
+                            child: Text(
+                              option.text ?? '',
+                              style: AppTextStyles.bodyText.copyWith(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w400,
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onBackground,
+                              ),
                             ),
                           ),
+                          SizedBox(width: 8.w),
                           Row(
                             children: [
                               if (option.percentage.toInt() != 0)
@@ -1756,7 +1802,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                         children: [
                           Container(
                             width: double.infinity,
-                            height: 8.h,
+                            height: 7.h,
                             decoration: BoxDecoration(
                               color: isDarkMode
                                   ? const Color(0xFF2D2D2D)
@@ -1842,7 +1888,7 @@ class _ProfileScreenState extends State<ProfileScreen>
     return LayoutBuilder(
       builder: (context, constraints) {
         double availableWidth = constraints.maxWidth;
-        double imageHeight = 150.h;
+        double imageHeight = 165.h;
 
         return GestureDetector(
           onTap: () => _showAllImagesGrid(
@@ -1874,6 +1920,12 @@ class _ProfileScreenState extends State<ProfileScreen>
                         child: Container(
                           decoration: BoxDecoration(
                             color: Theme.of(context).colorScheme.background,
+                            border: Border.all(
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.outlineVariant,
+                              width: 1,
+                            ),
                             borderRadius: BorderRadius.circular(
                               AppRadius.button,
                             ),
@@ -2003,7 +2055,7 @@ class _ProfileScreenState extends State<ProfileScreen>
             GestureDetector(
               onTap: post.is_polled_by_current_user ? null : () {},
               child: SizedBox(
-                height: 150.h,
+                height: 165.h,
                 child: Stack(
                   clipBehavior: Clip.none,
                   children: [
@@ -2035,15 +2087,15 @@ class _ProfileScreenState extends State<ProfileScreen>
                                 ).colorScheme.onPrimary.withOpacity(0.10),
                                 border: Border.all(
                                   color: Theme.of(context).colorScheme.outline,
-                                  width: 1.2,
+                                  width: 1,
                                 ),
                                 borderRadius: BorderRadius.circular(
-                                  AppRadius.card,
+                                  AppRadius.button,
                                 ),
                               ),
                               child: ClipRRect(
                                 borderRadius: BorderRadius.circular(
-                                  AppRadius.card - 1.2,
+                                  AppRadius.button,
                                 ),
                                 child: Stack(
                                   fit: StackFit.expand,
@@ -2154,15 +2206,15 @@ class _ProfileScreenState extends State<ProfileScreen>
                                 ).colorScheme.onPrimary.withOpacity(0.10),
                                 border: Border.all(
                                   color: Theme.of(context).colorScheme.outline,
-                                  width: 1.2,
+                                  width: 1,
                                 ),
                                 borderRadius: BorderRadius.circular(
-                                  AppRadius.card,
+                                  AppRadius.button,
                                 ),
                               ),
                               child: ClipRRect(
                                 borderRadius: BorderRadius.circular(
-                                  AppRadius.card - 1.2,
+                                  AppRadius.button,
                                 ),
                                 child: Stack(
                                   fit: StackFit.expand,
@@ -2594,10 +2646,8 @@ class _ProfileScreenState extends State<ProfileScreen>
   ) {
     final txt = AppTextColors.of(context);
     final validOptions = poll.options!
-              .where(
-                (o) => o.image != null && o.text != null && o.text!.isNotEmpty,
-              )
-              .toList();
+        .where((o) => o.image != null && o.text != null && o.text!.isNotEmpty)
+        .toList();
 
     if (validOptions.isEmpty) return const SizedBox.shrink();
 
@@ -2755,7 +2805,7 @@ class _ProfileScreenState extends State<ProfileScreen>
     }
 
     return SizedBox(
-      height: 150.h,
+      height: 165.h,
       child: Container(
         decoration: BoxDecoration(
           border: Border.all(
@@ -2903,7 +2953,7 @@ class _ProfileScreenState extends State<ProfileScreen>
             GestureDetector(
               onTap: post.is_polled_by_current_user ? null : () {},
               child: SizedBox(
-                height: 150.h,
+                height: 165.h,
                 child: Stack(
                   clipBehavior: Clip.none,
                   children: [
@@ -2935,15 +2985,15 @@ class _ProfileScreenState extends State<ProfileScreen>
                                 ).colorScheme.onPrimary.withOpacity(0.10),
                                 border: Border.all(
                                   color: Theme.of(context).colorScheme.outline,
-                                  width: 1.2,
+                                  width: 1,
                                 ),
                                 borderRadius: BorderRadius.circular(
-                                  AppRadius.card,
+                                  AppRadius.button,
                                 ),
                               ),
                               child: ClipRRect(
                                 borderRadius: BorderRadius.circular(
-                                  AppRadius.card - 1.2,
+                                  AppRadius.button,
                                 ),
                                 child: Stack(
                                   fit: StackFit.expand,
@@ -3054,15 +3104,15 @@ class _ProfileScreenState extends State<ProfileScreen>
                                 ).colorScheme.onPrimary.withOpacity(0.10),
                                 border: Border.all(
                                   color: Theme.of(context).colorScheme.outline,
-                                  width: 1.2,
+                                  width: 1,
                                 ),
                                 borderRadius: BorderRadius.circular(
-                                  AppRadius.card,
+                                  AppRadius.button,
                                 ),
                               ),
                               child: ClipRRect(
                                 borderRadius: BorderRadius.circular(
-                                  AppRadius.card - 1.2,
+                                  AppRadius.button,
                                 ),
                                 child: Stack(
                                   fit: StackFit.expand,
@@ -3376,6 +3426,7 @@ class _ProfileScreenState extends State<ProfileScreen>
             poll.question,
             style: AppTextStyles.bodyText.copyWith(
               color: txt.heading,
+              fontSize: 14.5,
               fontWeight: FontWeight.w500,
             ),
           ),
@@ -3518,5 +3569,72 @@ class _SliverAppBarDelegate extends SliverPersistentHeaderDelegate {
   @override
   bool shouldRebuild(_SliverAppBarDelegate oldDelegate) {
     return true;
+  }
+}
+
+class ProfilePostCardAnimation extends StatefulWidget {
+  final Widget child;
+  final int index;
+
+  const ProfilePostCardAnimation({
+    super.key,
+    required this.child,
+    required this.index,
+  });
+
+  @override
+  State<ProfilePostCardAnimation> createState() =>
+      _ProfilePostCardAnimationState();
+}
+
+class _ProfilePostCardAnimationState extends State<ProfilePostCardAnimation>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _opacityAnimation;
+  late Animation<Offset> _slideAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 350),
+    );
+
+    _opacityAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _controller,
+        curve: const Interval(0.0, 1.0, curve: Curves.easeOut),
+      ),
+    );
+
+    _slideAnimation =
+        Tween<Offset>(begin: const Offset(0.0, 0.08), end: Offset.zero).animate(
+          CurvedAnimation(
+            parent: _controller,
+            curve: const Interval(0.0, 1.0, curve: Curves.easeOutCubic),
+          ),
+        );
+
+    final int delayMs = widget.index < 4 ? (widget.index * 80) : 0;
+    Future.delayed(Duration(milliseconds: delayMs), () {
+      if (mounted) {
+        _controller.forward();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FadeTransition(
+      opacity: _opacityAnimation,
+      child: SlideTransition(position: _slideAnimation, child: widget.child),
+    );
   }
 }

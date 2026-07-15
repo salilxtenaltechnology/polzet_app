@@ -22,7 +22,30 @@ class AddNewPoll extends StatefulWidget {
   State<AddNewPoll> createState() => _AddNewPollState();
 }
 
-class _AddNewPollState extends State<AddNewPoll> with UtilityMixin {
+class _AddNewPollState extends State<AddNewPoll>
+    with SingleTickerProviderStateMixin, UtilityMixin {
+  late final AnimationController _animationController;
+
+  @override
+  void initState() {
+    super.initState();
+    _animationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 750),
+    );
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _animationController.forward();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _animationController.dispose();
+    super.dispose();
+  }
+
   // Define poll options
   List<Map<String, dynamic>> _getPollOptions(BuildContext context) {
     return [
@@ -68,6 +91,15 @@ class _AddNewPollState extends State<AddNewPoll> with UtilityMixin {
         'screen': const NewAnonymousPoll(),
         'iconBackgroundColor': const Color(0XFF7C3AED).withOpacity(0.12),
       },
+      // {
+      //   'title': 'AI Assistant Poll',
+      //   'subtitle': 'Type a topic, let AI create your poll',
+      //   'image': Assets.images.icAssistant,
+      //   'screen': const NewAiAssistantPoll(),
+      //   'iconBackgroundColor': Theme.of(
+      //     context,
+      //   ).colorScheme.primary.withOpacity(0.12),
+      // },
     ];
   }
 
@@ -118,8 +150,9 @@ class _AddNewPollState extends State<AddNewPoll> with UtilityMixin {
                 ),
                 delegate: SliverChildBuilderDelegate((context, index) {
                   final option = options[index];
-                  return _buildPollOptionCard(
-                    context: context,
+                  return _PollOptionCard(
+                    index: index,
+                    entranceController: _animationController,
                     title: option['title']!,
                     subtitle: option['subtitle']!,
                     iconBackgroundColor: option['iconBackgroundColor'],
@@ -151,85 +184,166 @@ class _AddNewPollState extends State<AddNewPoll> with UtilityMixin {
       ),
     );
   }
+}
 
-  Widget _buildPollOptionCard({
-    required BuildContext context,
-    required String title,
-    required String subtitle,
-    required Color iconBackgroundColor,
-    required AssetGenImage image,
-    required bool isDark,
-    required AppTextColors txtColors,
-    required VoidCallback onTap,
-  }) {
-    return Container(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(AppRadius.card),
-        boxShadow: !isDark
-            ? [const BoxShadow(color: Color(0x06000000), blurRadius: 2)]
-            : null,
-      ),
-      child: Material(
-        color: Theme.of(context).colorScheme.tertiaryContainer,
-        borderRadius: BorderRadius.circular(AppRadius.card),
-        clipBehavior: Clip.antiAlias,
-        child: InkWell(
-          onTap: onTap,
-          child: Container(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(AppRadius.card),
-              border: Border.all(
-                color: isDark
-                    ? Theme.of(context).colorScheme.outline.withOpacity(0.2)
-                    : const Color(0xFFF2F2F2),
-                width: 1.5,
-              ),
-            ),
-            child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: 12.w),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const SizedBox(height: 5),
-                  // Render custom icon
-                  Container(
-                    height: 65,
-                    width: 65,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: iconBackgroundColor,
+class _PollOptionCard extends StatefulWidget {
+  final int index;
+  final AnimationController entranceController;
+  final String title;
+  final String subtitle;
+  final Color iconBackgroundColor;
+  final AssetGenImage image;
+  final bool isDark;
+  final AppTextColors txtColors;
+  final VoidCallback onTap;
+
+  const _PollOptionCard({
+    required this.index,
+    required this.entranceController,
+    required this.title,
+    required this.subtitle,
+    required this.iconBackgroundColor,
+    required this.image,
+    required this.isDark,
+    required this.txtColors,
+    required this.onTap,
+  });
+
+  @override
+  State<_PollOptionCard> createState() => _PollOptionCardState();
+}
+
+class _PollOptionCardState extends State<_PollOptionCard>
+    with TickerProviderStateMixin {
+  late final AnimationController _pressController;
+  late final Animation<double> _scaleAnimation;
+  late final Animation<double> _entranceAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _pressController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 100),
+    );
+    _scaleAnimation = Tween<double>(begin: 1.0, end: 0.8).animate(
+      CurvedAnimation(parent: _pressController, curve: Curves.easeInOut),
+    );
+
+    // Staggered entrance timing
+    final double start = (widget.index * 0.08).clamp(0.0, 0.4);
+    final double end = (start + 0.5).clamp(0.0, 1.0);
+    _entranceAnimation = CurvedAnimation(
+      parent: widget.entranceController,
+      curve: Interval(start, end, curve: Curves.easeOutCubic),
+    );
+  }
+
+  @override
+  void dispose() {
+    _pressController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _entranceAnimation,
+      builder: (context, child) {
+        final double slideOffset = (1.0 - _entranceAnimation.value) * 35.0;
+        final double entranceScale = 0.94 + (_entranceAnimation.value * 0.06);
+        return Opacity(
+          opacity: _entranceAnimation.value,
+          child: Transform.translate(
+            offset: Offset(0, slideOffset),
+            child: Transform.scale(scale: entranceScale, child: child),
+          ),
+        );
+      },
+      child: AnimatedBuilder(
+        animation: _scaleAnimation,
+        builder: (context, child) {
+          return Transform.scale(scale: _scaleAnimation.value, child: child);
+        },
+        child: Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(AppRadius.card),
+            boxShadow: !widget.isDark
+                ? [
+                    const BoxShadow(
+                      color: Color(0x06000000),
+                      blurRadius: 4,
+                      offset: Offset(0, 2),
                     ),
-                    child: Center(
-                      child: image.image(
-                        width: 32,
-                        height: 32,
-                        fit: BoxFit.contain,
+                  ]
+                : null,
+          ),
+          child: Material(
+            color: Theme.of(context).colorScheme.tertiaryContainer,
+            borderRadius: BorderRadius.circular(AppRadius.card),
+            clipBehavior: Clip.antiAlias,
+            child: InkWell(
+              onTapDown: (_) => _pressController.forward(),
+              onTapUp: (_) => _pressController.reverse(),
+              onTapCancel: () => _pressController.reverse(),
+              onTap: widget.onTap,
+              child: Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(AppRadius.card),
+                  border: Border.all(
+                    color: widget.isDark
+                        ? Theme.of(context).colorScheme.outline.withOpacity(0.2)
+                        : const Color(0xFFF2F2F2),
+                    width: 1.5,
+                  ),
+                ),
+                child: Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 12.w),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const SizedBox(height: 5),
+                      // Render custom icon
+                      Container(
+                        height: 65,
+                        width: 65,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: widget.iconBackgroundColor,
+                        ),
+                        child: Center(
+                          child: widget.image.image(
+                            width: 32,
+                            height: 32,
+                            fit: BoxFit.contain,
+                          ),
+                        ),
                       ),
-                    ),
+                      SizedBox(height: 12.h),
+                      Text(
+                        widget.title,
+                        style: AppTextStyles.cardTitle.copyWith(
+                          fontWeight: FontWeight.w500,
+                          fontSize: 14,
+                          color: widget.txtColors.title,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        widget.subtitle,
+                        style: AppTextStyles.subText.copyWith(
+                          fontSize: 12.2,
+                          color: widget.txtColors.body,
+                          height: 1.3,
+                        ),
+                        textAlign: TextAlign.center,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
                   ),
-                  SizedBox(height: 12.h),
-                  Text(
-                    title,
-                    style: AppTextStyles.cardTitle.copyWith(
-                      fontWeight: FontWeight.w500,
-                      fontSize: 14,
-                      color: txtColors.title,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    subtitle,
-                    style: AppTextStyles.subText.copyWith(
-                      fontSize: 12.2,
-                      color: txtColors.body,
-                      height: 1.3,
-                    ),
-                    textAlign: TextAlign.center,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
+                ),
               ),
             ),
           ),

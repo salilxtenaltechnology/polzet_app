@@ -1,11 +1,11 @@
 // ignore_for_file: prefer_final_fields, deprecated_member_use
-
+ 
 import 'package:polzet_app/core/constants/feather_icons_compat.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-
+ 
 import '../../../../../api/api_service.dart';
 import '../../../../../core/constants/app_radius.dart';
 import '../../../../../core/themes/app_text_colors.dart';
@@ -20,43 +20,44 @@ import '../../../../../widgets/button/chase/toggle_chase_button.dart';
 import '../../../../../widgets/loader.dart';
 import '../../../../../widgets/tabbar/indicatore_animation.dart';
 import '../public_profile_screen.dart';
-
+ 
 class PublicChaseList extends StatefulWidget {
   final dynamic userId;
   final String? username;
   final int initialIndex;
-  final List<dynamic>? chaseList;
-  final List<dynamic>? rechaseList;
-
+ 
   const PublicChaseList({
     super.key,
     required this.userId,
     required this.username,
     required this.initialIndex,
-    required this.chaseList,
-    required this.rechaseList,
   });
-
+ 
   @override
   State<PublicChaseList> createState() => _PublicChaseListState();
 }
-
+ 
 class _PublicChaseListState extends State<PublicChaseList>
     with SingleTickerProviderStateMixin, UtilityMixin {
   final ApiService apiService = ApiService();
   final TextEditingController _searchController = TextEditingController();
   late TabController _tabController;
-
+ 
+  final ScrollController _chaseScrollController = ScrollController();
+  final ScrollController _rechaseScrollController = ScrollController();
+ 
   List<Map<String, dynamic>> _chaseList = [];
   List<Map<String, dynamic>> _rechaseList = [];
   List<Map<String, dynamic>> _filteredChaseList = [];
   List<Map<String, dynamic>> _filteredRechaseList = [];
-
+ 
   bool _isLoadingChase = false;
   bool _isLoadingRechase = false;
-  // int _chaseCount = 0;
-  // int _rechaseCount = 0;
-
+  int _chasePage = 1;
+  int _rechasePage = 1;
+  bool _chaseHasMore = true;
+  bool _rechaseHasMore = true;
+ 
   @override
   void initState() {
     super.initState();
@@ -65,46 +66,135 @@ class _PublicChaseListState extends State<PublicChaseList>
       vsync: this,
       initialIndex: widget.initialIndex,
     );
-    _initFromPassedLists();
+    _chaseScrollController.addListener(_onChaseScroll);
+    _rechaseScrollController.addListener(_onRechaseScroll);
+ 
+    _fetchChasePage(1, isRefresh: true);
+    _fetchRechasePage(1, isRefresh: true);
   }
-
-  void _initFromPassedLists() {
-    final chase = (widget.chaseList ?? []).map<Map<String, dynamic>>((e) {
-      return {
-        'user_id': e.userId,
-        'username': e.username,
-        'first_name': e.firstName,
-        'last_name': e.lastName,
-        'avatar_url': e.avatarUrl,
-        'is_online': e.isOnline ?? false,
-        'follow_status': e.followStatus,
-        'is_private': e.isPrivate ?? false,
-      };
-    }).toList();
-
-    final rechase = (widget.rechaseList ?? []).map<Map<String, dynamic>>((e) {
-      return {
-        'user_id': e.userId,
-        'username': e.username,
-        'first_name': e.firstName,
-        'last_name': e.lastName,
-        'avatar_url': e.avatarUrl,
-        'is_online': e.isOnline ?? false,
-        'follow_status': e.followStatus,
-        'is_private': e.isPrivate ?? false,
-      };
-    }).toList();
-
+ 
+  void _onChaseScroll() {
+    if (!mounted) return;
+    if (_chaseScrollController.position.pixels >=
+            _chaseScrollController.position.maxScrollExtent * 0.8 &&
+        !_isLoadingChase &&
+        _chaseHasMore) {
+      _fetchChasePage(_chasePage + 1);
+    }
+  }
+ 
+  void _onRechaseScroll() {
+    if (!mounted) return;
+    if (_rechaseScrollController.position.pixels >=
+            _rechaseScrollController.position.maxScrollExtent * 0.8 &&
+        !_isLoadingRechase &&
+        _rechaseHasMore) {
+      _fetchRechasePage(_rechasePage + 1);
+    }
+  }
+ 
+  Future<void> _fetchChasePage(int page, {bool isRefresh = false}) async {
+    if (_isLoadingChase) return;
     setState(() {
-      _chaseList = chase;
-      _rechaseList = rechase;
-      _filteredChaseList = chase;
-      _filteredRechaseList = rechase;
-      // _chaseCount = chase.length;
-      // _rechaseCount = rechase.length;
+      _isLoadingChase = true;
     });
+ 
+    try {
+      final response = await apiService.fetchChaseList(
+        targetUserId: widget.userId.toString(),
+        page: page,
+      );
+ 
+      if (response != null && mounted) {
+        final List<dynamic> results = response['results'] ?? [];
+        final mapped = results.map<Map<String, dynamic>>((e) {
+          final rawStatus = e['follow_status'] ?? e['followStatus'];
+          final followStatus = rawStatus != null ? rawStatus.toString().toLowerCase() : 'none';
+ 
+          return {
+            'user_id': e['id']?.toString() ?? '',
+            'username': e['username'] ?? '',
+            'first_name': e['first_name'] ?? '',
+            'last_name': e['last_name'] ?? '',
+            'avatar_url': e['profile_picture_url'],
+            'is_online': false,
+            'follow_status': followStatus,
+            'is_private': e['is_private'] == true,
+          };
+        }).toList();
+ 
+        setState(() {
+          if (isRefresh) {
+            _chaseList.clear();
+          }
+          _chaseList.addAll(mapped);
+          _chasePage = page;
+          _chaseHasMore = response['next'] != null;
+          _filterList(_searchController.text);
+        });
+      }
+    } catch (e) {
+      debugPrint('Error fetching public chase list page $page: $e');
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoadingChase = false;
+        });
+      }
+    }
   }
-
+ 
+  Future<void> _fetchRechasePage(int page, {bool isRefresh = false}) async {
+    if (_isLoadingRechase) return;
+    setState(() {
+      _isLoadingRechase = true;
+    });
+ 
+    try {
+      final response = await apiService.fetchRechaseList(
+        targetUserId: widget.userId.toString(),
+        page: page,
+      );
+ 
+      if (response != null && mounted) {
+        final List<dynamic> results = response['results'] ?? [];
+        final mapped = results.map<Map<String, dynamic>>((e) {
+          final rawStatus = e['follow_status'] ?? e['followStatus'];
+          final followStatus = rawStatus != null ? rawStatus.toString().toLowerCase() : 'none';
+ 
+          return {
+            'user_id': e['id']?.toString() ?? '',
+            'username': e['username'] ?? '',
+            'first_name': e['first_name'] ?? '',
+            'last_name': e['last_name'] ?? '',
+            'avatar_url': e['profile_picture_url'],
+            'is_online': false,
+            'follow_status': followStatus,
+            'is_private': e['is_private'] == true,
+          };
+        }).toList();
+ 
+        setState(() {
+          if (isRefresh) {
+            _rechaseList.clear();
+          }
+          _rechaseList.addAll(mapped);
+          _rechasePage = page;
+          _rechaseHasMore = response['next'] != null;
+          _filterList(_searchController.text);
+        });
+      }
+    } catch (e) {
+      debugPrint('Error fetching public rechase list page $page: $e');
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoadingRechase = false;
+        });
+      }
+    }
+  }
+ 
   void _filterList(String query) {
     final q = query.toLowerCase().trim();
     setState(() {
@@ -118,20 +208,20 @@ class _PublicChaseListState extends State<PublicChaseList>
               (user['first_name'] as String?)?.toLowerCase() ?? '';
           final lastName = (user['last_name'] as String?)?.toLowerCase() ?? '';
           final fullName = '$firstName $lastName'.trim();
-
+ 
           return username.contains(q) ||
               firstName.contains(q) ||
               lastName.contains(q) ||
               fullName.contains(q);
         }).toList();
-
+ 
         _filteredRechaseList = _rechaseList.where((user) {
           final username = (user['username'] as String?)?.toLowerCase() ?? '';
           final firstName =
               (user['first_name'] as String?)?.toLowerCase() ?? '';
           final lastName = (user['last_name'] as String?)?.toLowerCase() ?? '';
           final fullName = '$firstName $lastName'.trim();
-
+ 
           return username.contains(q) ||
               firstName.contains(q) ||
               lastName.contains(q) ||
@@ -140,20 +230,22 @@ class _PublicChaseListState extends State<PublicChaseList>
       }
     });
   }
-
+ 
   @override
   void dispose() {
+    _chaseScrollController.dispose();
+    _rechaseScrollController.dispose();
     _searchController.dispose();
     _tabController.dispose();
     super.dispose();
   }
-
+ 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.background,
       appBar: CommonAppBar(title: widget.username ?? ''),
-
+ 
       body: Column(
         children: [
           SizedBox(
@@ -178,14 +270,10 @@ class _PublicChaseListState extends State<PublicChaseList>
               unselectedLabelColor: Theme.of(context).colorScheme.onBackground,
               tabs: [
                 Tab(
-                  text:
-                      //  '$_chaseCount ${AppLocalizations.of(context)!.vibe}'
-                      AppLocalizations.of(context)!.vibe,
+                  text: AppLocalizations.of(context)!.vibe,
                 ),
                 Tab(
-                  text:
-                      // '$_rechaseCount ${AppLocalizations.of(context)!.revibe}',
-                      AppLocalizations.of(context)!.revibe,
+                  text: AppLocalizations.of(context)!.revibe
                 ),
               ],
             ),
@@ -255,11 +343,15 @@ class _PublicChaseListState extends State<PublicChaseList>
                   _filteredChaseList,
                   _isLoadingChase,
                   'No chase users',
+                  _chaseScrollController,
+                  () => _fetchChasePage(1, isRefresh: true),
                 ),
                 _buildUserList(
                   _filteredRechaseList,
                   _isLoadingRechase,
                   'No re-chase users',
+                  _rechaseScrollController,
+                  () => _fetchRechasePage(1, isRefresh: true),
                 ),
               ],
             ),
@@ -268,48 +360,74 @@ class _PublicChaseListState extends State<PublicChaseList>
       ),
     );
   }
-
+ 
   Widget _buildUserList(
     List<Map<String, dynamic>> users,
     bool isLoading,
     String emptyMessage,
+    ScrollController scrollController,
+    Future<void> Function() onRefresh,
   ) {
     final txt = AppTextColors.of(context);
-    if (isLoading) {
+    if (isLoading && users.isEmpty) {
       return Center(
         child: Loader(color: Theme.of(context).colorScheme.primary),
       );
     }
-
+ 
     if (users.isEmpty) {
-      return Center(
-        child: Text(
-          _searchController.text.trim().isNotEmpty
-              ? AppLocalizations.of(context)!.nousersfound
-              : emptyMessage,
-          style: AppTextStyles.sectionHeading.copyWith(
-            fontSize: 18.5,
-            color: txt.title,
-            fontWeight: FontWeight.w600,
-            height: 1.4,
-          ),
+      return RefreshIndicator(
+        onRefresh: onRefresh,
+        color: Theme.of(context).colorScheme.primary,
+        child: ListView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          children: [
+            SizedBox(height: 150.h),
+            Center(
+              child: Text(
+                _searchController.text.trim().isNotEmpty
+                    ? AppLocalizations.of(context)!.nousersfound
+                    : emptyMessage,
+                style: AppTextStyles.sectionHeading.copyWith(
+                  fontSize: 18.5,
+                  color: txt.title,
+                  fontWeight: FontWeight.w600,
+                  height: 1.4,
+                ),
+              ),
+            ),
+          ],
         ),
       );
     }
-
-    return ListView.builder(
-      padding: EdgeInsets.symmetric(horizontal: 15.w, vertical: 5.h),
-      itemCount: users.length,
-      itemBuilder: (context, index) {
-        final user = users[index];
-        return _buildUserTile(user);
-      },
+ 
+    return RefreshIndicator(
+      onRefresh: onRefresh,
+      color: Theme.of(context).colorScheme.primary,
+      child: ListView.builder(
+        controller: scrollController,
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: EdgeInsets.symmetric(horizontal: 15.w, vertical: 5.h),
+        itemCount: users.length + (isLoading ? 1 : 0),
+        itemBuilder: (context, index) {
+          if (index == users.length) {
+            return Padding(
+              padding: EdgeInsets.symmetric(vertical: 10.h),
+              child: Center(
+                child: Loader(color: Theme.of(context).colorScheme.primary),
+              ),
+            );
+          }
+          final user = users[index];
+          return _buildUserTile(user);
+        },
+      ),
     );
   }
-
+ 
   Widget _buildUserTile(Map<String, dynamic> user) {
     final txt = AppTextColors.of(context);
-
+ 
     final userProvider = Provider.of<UserProvider>(context, listen: false);
     final firstName = user['first_name'] ?? 'Polzet';
     final lastName = user['last_name'] ?? 'User';
@@ -318,7 +436,7 @@ class _PublicChaseListState extends State<PublicChaseList>
     final isOnline = user['is_online'] as bool? ?? false;
     final followStatus = user['follow_status'] ?? 'none';
     final isPrivate = user['is_private'] == true;
-
+ 
     return GestureDetector(
       onTap: () {
         navigationPush(
@@ -393,13 +511,18 @@ class _PublicChaseListState extends State<PublicChaseList>
                 followStatus: followStatus,
                 apiService: apiService,
                 isPrivate: isPrivate,
+                onToggle: () {
+                  userProvider.loadUserDataSilently();
+                  _fetchChasePage(1, isRefresh: true);
+                  _fetchRechasePage(1, isRefresh: true);
+                },
               ),
           ],
         ),
       ),
     );
   }
-
+ 
   Widget _buildAvatar(String userName, String? avatarUrl, bool isOnline) {
     final imageBytes = getConvertImage(avatarUrl);
     final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
@@ -466,10 +589,10 @@ class _PublicChaseListState extends State<PublicChaseList>
       ],
     );
   }
-
+ 
   Widget _buildInitialsAvatar(String userName) {
     final initial = userName.isNotEmpty ? userName[0].toUpperCase() : '?';
-
+ 
     return Center(
       child: Text(
         initial,

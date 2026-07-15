@@ -1,12 +1,15 @@
 // ignore_for_file: unused_element, deprecated_member_use, use_build_context_synchronously
 
+import 'dart:async';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
+import '../../../../gen/assets.gen.dart';
 import '../../../../provider/user_provider.dart';
 
+import '../../../../api/api_service.dart';
 import '../../../../api/app_api.dart';
 import '../../../../data/token/shared_preferences.dart';
 import '../../../../languages/l10n/generated/app_localizations.dart';
@@ -17,6 +20,7 @@ import '../../../../widgets/show_toast.dart';
 import '../../../../widgets/loader.dart';
 import '../../../../widgets/text_field/secondry_textfield.dart';
 import '../../../../core/constants/app_radius.dart';
+import '../../../../core/themes/app_text_colors.dart';
 import '../../../../core/themes/app_text_styles.dart';
 
 class NewTextPoll extends StatefulWidget {
@@ -38,8 +42,21 @@ class _NewThingsPollState extends State<NewTextPoll> with UtilityMixin {
 
   // State
   bool _isLoading = false;
+  bool _isGeneratingQuestion = false;
+  bool _hasGeneratedQuestion = false;
+  bool _isGeneratingOptions = false;
+  bool _hasGeneratedOptions = false;
+  bool _isMultiChoice = false;
   String questionErrorText = '';
   String optionsErrorText = '';
+
+  // Hint animation state
+  int _currentHintIndex = 0;
+  Timer? _hintTimer;
+  final List<String> _hintTexts = [
+    'Please enter a question',
+    'Please enter a topic',
+  ];
 
   final _dio = Dio();
 
@@ -48,6 +65,17 @@ class _NewThingsPollState extends State<NewTextPoll> with UtilityMixin {
     super.initState();
     _initializeOptionFields();
     questionController.addListener(_clearQuestionError);
+    _startHintAnimation();
+  }
+
+  void _startHintAnimation() {
+    _hintTimer = Timer.periodic(const Duration(seconds: 3), (timer) {
+      if (mounted) {
+        setState(() {
+          _currentHintIndex = (_currentHintIndex + 1) % _hintTexts.length;
+        });
+      }
+    });
   }
 
   /// Initialize with minimum required option fields
@@ -160,7 +188,122 @@ class _NewThingsPollState extends State<NewTextPoll> with UtilityMixin {
       _initializeOptionFields();
       questionErrorText = '';
       optionsErrorText = '';
+      _hasGeneratedQuestion = false;
+      _hasGeneratedOptions = false;
+      _isMultiChoice = false;
     });
+  }
+
+  /// Generate or improve the question using AI
+  Future<void> generateQuestion() async {
+    final query = questionController.text.trim();
+
+    if (query.isEmpty) {
+      setState(() {
+        questionErrorText = 'Please enter a topic';
+      });
+      return;
+    }
+
+    setState(() {
+      _isGeneratingQuestion = true;
+    });
+
+    try {
+      final response = await ApiService().generateQuestion(input: query);
+      debugPrint('generateQuestion response: $response');
+      final questionText = response['question']?.toString();
+      if (questionText != null && questionText.trim().isNotEmpty) {
+        setState(() {
+          questionController.text = questionText;
+          // Move cursor to the end
+          questionController.selection = TextSelection.fromPosition(
+            TextPosition(offset: questionController.text.length),
+          );
+          _hasGeneratedQuestion = true;
+        });
+        _clearQuestionError();
+        showToast(message: 'Question generated!');
+      } else {
+        showToast(
+          message:
+              response['message']?.toString() ?? 'Failed to generate question',
+        );
+      }
+    } catch (e) {
+      debugPrint('generateQuestion error: $e');
+      showToast(message: e.toString().replaceAll('Exception: ', ''));
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isGeneratingQuestion = false;
+        });
+      }
+    }
+  }
+
+  /// Generate options for the poll question using AI
+  Future<void> generateOptions() async {
+    final question = questionController.text.trim();
+
+    if (question.isEmpty) {
+      setState(() {
+        questionErrorText = 'Please enter a question';
+      });
+      return;
+    }
+
+    setState(() {
+      _isGeneratingOptions = true;
+    });
+
+    try {
+      final response = await ApiService().generateOptions(input: question);
+      debugPrint('generateOptions response: $response');
+      final List<dynamic>? optionsList = response['options'];
+      if (optionsList != null && optionsList.isNotEmpty) {
+        setState(() {
+          final count = optionsList.length.clamp(minOptions, maxOptions);
+
+          // Ensure we have enough controllers
+          while (optionControllers.length < count) {
+            final controller = TextEditingController();
+            controller.addListener(_clearOptionsError);
+            optionControllers.add(controller);
+          }
+
+          // Dispose excess controllers
+          while (optionControllers.length > count) {
+            final controller = optionControllers.removeLast();
+            controller.removeListener(_clearOptionsError);
+            controller.dispose();
+          }
+
+          // Populate options
+          for (int i = 0; i < count; i++) {
+            optionControllers[i].text = optionsList[i].toString();
+          }
+
+          _hasGeneratedOptions = true;
+        });
+        _clearOptionsError();
+        showToast(message: 'Options generated!');
+      } else {
+        showToast(
+          message:
+              response['message']?.toString() ?? 'Failed to generate options',
+        );
+      }
+    } catch (e) {
+      debugPrint('generateOptions error: $e');
+      showToast(message: e.toString().replaceAll('Exception: ', ''));
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isGeneratingOptions = false;
+        });
+      }
+    }
   }
 
   /// Create poll post via API
@@ -186,7 +329,7 @@ class _NewThingsPollState extends State<NewTextPoll> with UtilityMixin {
         "question": questionController.text.trim(),
         "description": descriptionController.text.trim(),
         "poll_type": "text",
-        "voting_type": "ranking",
+        "voting_type": _isMultiChoice ? "ranking" : "single_choice",
         "max_options": maxOptions.toString(),
       });
 
@@ -297,6 +440,7 @@ class _NewThingsPollState extends State<NewTextPoll> with UtilityMixin {
 
   @override
   void dispose() {
+    _hintTimer?.cancel();
     descriptionController.dispose();
     questionController.dispose();
     for (var controller in optionControllers) {
@@ -377,14 +521,53 @@ class _NewThingsPollState extends State<NewTextPoll> with UtilityMixin {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          AppLocalizations.of(context)!.question,
-          style: CustomTextStyles.lblPrimaryText(context),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              AppLocalizations.of(context)!.question,
+              style: CustomTextStyles.lblPrimaryText(context),
+            ),
+            GestureDetector(
+              onTap: _isGeneratingQuestion ? null : generateQuestion,
+              child: Row(
+                children: [
+                  _isGeneratingQuestion
+                      ? SizedBox(
+                          width: 12.w,
+                          height: 12.h,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 1.5,
+                            color: Theme.of(context).colorScheme.onPrimary,
+                          ),
+                        )
+                      : Assets.images.icAssistant.image(
+                          width: 14.w,
+                          height: 14.h,
+                          color: Theme.of(context).colorScheme.onPrimary,
+                        ),
+                  const SizedBox(width: 5),
+                  Text(
+                    _isGeneratingQuestion
+                        ? 'Generating...'
+                        : _hasGeneratedQuestion
+                        ? 'Regenerate Question'
+                        : 'Generate Question',
+                    style: AppTextStyles.bodyText.copyWith(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                      color: Theme.of(context).colorScheme.onPrimary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
         SizedBox(height: 7.h),
         SecondryTextfield(
           controller: questionController,
-          hintText: AppLocalizations.of(context)!.enteryourquestion,
+          hintText: _hintTexts[_currentHintIndex],
         ),
         if (questionErrorText.isNotEmpty)
           Padding(
@@ -411,19 +594,60 @@ class _NewThingsPollState extends State<NewTextPoll> with UtilityMixin {
           controller: descriptionController,
           hintText: 'Type description or hashtags',
           maxLines: 5,
-          minLines: 3,
+          minLines: 1,
         ),
       ],
     );
   }
 
   Widget _buildPollOptionsSection() {
+    final txt = AppTextColors.of(context);
+    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          AppLocalizations.of(context)!.polloptions,
-          style: CustomTextStyles.lblPrimaryText(context),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              AppLocalizations.of(context)!.polloptions,
+              style: CustomTextStyles.lblPrimaryText(context),
+            ),
+            GestureDetector(
+              onTap: _isGeneratingOptions ? null : generateOptions,
+              child: Row(
+                children: [
+                  _isGeneratingOptions
+                      ? SizedBox(
+                          width: 12.w,
+                          height: 12.h,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 1.5,
+                            color: Theme.of(context).colorScheme.onPrimary,
+                          ),
+                        )
+                      : Assets.images.icAssistant.image(
+                          width: 14.w,
+                          height: 14.h,
+                          color: Theme.of(context).colorScheme.onPrimary,
+                        ),
+                  const SizedBox(width: 5),
+                  Text(
+                    _isGeneratingOptions
+                        ? 'Generating...'
+                        : _hasGeneratedOptions
+                        ? 'Regenerate Options'
+                        : 'Generate Options',
+                    style: AppTextStyles.bodyText.copyWith(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                      color: Theme.of(context).colorScheme.onPrimary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
         SizedBox(height: 10.h),
 
@@ -431,7 +655,7 @@ class _NewThingsPollState extends State<NewTextPoll> with UtilityMixin {
           return _buildOptionField(index);
         }),
 
-        if (optionControllers.length < maxOptions)
+        if (optionControllers.length < maxOptions) ...[
           SizedBox(
             width: double.infinity,
             height: 45,
@@ -462,10 +686,122 @@ class _NewThingsPollState extends State<NewTextPoll> with UtilityMixin {
               ),
             ),
           ),
+          SizedBox(height: 15.h),
+        ],
+
+        Text('Voting Mode', style: CustomTextStyles.lblPrimaryText(context)),
+        SizedBox(height: 10.h),
+        Row(
+          children: [
+            Expanded(
+              child: GestureDetector(
+                onTap: () {
+                  setState(() {
+                    _isMultiChoice = false;
+                  });
+                },
+                child: Container(
+                  height: 85,
+                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                  decoration: BoxDecoration(
+                    color: isDarkMode
+                        ? const Color.fromARGB(255, 28, 28, 28)
+                        : const Color(0XFFFAF7F8).withOpacity(0.8),
+                    borderRadius: BorderRadius.circular(AppRadius.card),
+                    border: Border.all(
+                      color: !_isMultiChoice
+                          ? Theme.of(context).colorScheme.primary
+                          : (isDarkMode
+                                ? Colors.white.withOpacity(0.1)
+                                : const Color(0XFF9B3046).withOpacity(0.1)),
+                      width: !_isMultiChoice ? 1.3 : 1.0,
+                    ),
+                  ),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        'Single Choice',
+                        style: AppTextStyles.bodyText.copyWith(
+                          fontSize: 13.5,
+                          fontWeight: FontWeight.w500,
+                          color: txt.title,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      SizedBox(height: 4.h),
+                      Text(
+                        'Voters pick one option',
+                        style: AppTextStyles.subText.copyWith(
+                          fontSize: 12,
+                          color: txt.body,
+                          fontWeight: FontWeight.w400,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            SizedBox(width: 10.w),
+            Expanded(
+              child: GestureDetector(
+                onTap: () {
+                  setState(() {
+                    _isMultiChoice = true;
+                  });
+                },
+                child: Container(
+                  height: 85,
+                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                  decoration: BoxDecoration(
+                    color: isDarkMode
+                        ? const Color.fromARGB(255, 28, 28, 28)
+                        : const Color(0XFFFAF7F8).withOpacity(0.8),
+                    borderRadius: BorderRadius.circular(AppRadius.card),
+                    border: Border.all(
+                      color: _isMultiChoice
+                          ? Theme.of(context).colorScheme.primary
+                          : (isDarkMode
+                                ? Colors.white.withOpacity(0.1)
+                                : const Color(0XFF9B3046).withOpacity(0.1)),
+                      width: _isMultiChoice ? 1.3 : 1.0,
+                    ),
+                  ),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        'Multiple Choice',
+                        style: AppTextStyles.bodyText.copyWith(
+                          fontSize: 13.5,
+                          fontWeight: FontWeight.w500,
+                          color: txt.title,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      SizedBox(height: 4.h),
+                      Text(
+                        'Voters rank all options',
+                        style: AppTextStyles.subText.copyWith(
+                          fontSize: 12,
+                          color: txt.body,
+                          fontWeight: FontWeight.w400,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
 
         if (optionsErrorText.isNotEmpty)
           Padding(
-            padding: EdgeInsets.only(top: 5.h, bottom: 10.h),
+            padding: EdgeInsets.only(top: 10.h, bottom: 10.h),
             child: Text(
               optionsErrorText,
               style: CustomTextStyles.msgErrorText(context),

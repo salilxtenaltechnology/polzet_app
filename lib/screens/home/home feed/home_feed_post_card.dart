@@ -314,6 +314,29 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
     }
   }
 
+  String _getPercentageText(HomeFeedPoll poll, HomeFeedPollOption option) {
+    final pollKey = poll.id.toString();
+    if (pollVotingStates[pollKey] == true) {
+      return "";
+    }
+    final percentage = option.percentage;
+    final num val = percentage == percentage.toInt()
+        ? percentage.toInt()
+        : percentage;
+    return "$val%";
+  }
+
+  String _getPercentageTextForValue(HomeFeedPoll poll, double percentage) {
+    final pollKey = poll.id.toString();
+    if (pollVotingStates[pollKey] == true) {
+      return "";
+    }
+    final num val = percentage == percentage.toInt()
+        ? percentage.toInt()
+        : percentage;
+    return "$val%";
+  }
+
   Future<void> _submitPollVotes(HomeFeedPoll poll) async {
     final pollKey = poll.id.toString();
     final previousSelected = List<int>.from(selectedOptions[pollKey] ?? []);
@@ -422,7 +445,7 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
                 if (rawId == null) continue;
                 final optId = rawId is int ? rawId : (rawId as num).toInt();
                 final pct =
-                    (optionData['percentage'] as num?)?.toDouble() ?? 67;
+                    (optionData['percentage'] as num?)?.toDouble() ?? 0.0;
 
                 for (var option in poll.options) {
                   if (option.id == optId) {
@@ -940,36 +963,42 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
       } else if (_hasImageOptions(poll)) {
         final images = _getPollImages(poll);
         if (images.isNotEmpty) {
-          widgets.add(
-            Padding(
-              padding: EdgeInsets.fromLTRB(10.w, 0, 10.w, 0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  if (poll.question.isNotEmpty) ...[
-                    SizedBox(height: 5.h),
-                    _buildQuestionRow(context, poll, txt),
-                  ],
-                  if (widget.post.description.isNotEmpty)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 5),
-                      child: _buildDescriptionWithHashtags(
-                        context,
-                        widget.post.description,
-                        txt,
+          if (poll.vottingType == 'single_choice') {
+            widgets.add(
+              _buildSingleChoiceImagePollSection(context, poll, widget.post),
+            );
+          } else {
+            widgets.add(
+              Padding(
+                padding: EdgeInsets.fromLTRB(10.w, 0, 10.w, 0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (poll.question.isNotEmpty) ...[
+                      SizedBox(height: 5.h),
+                      _buildQuestionRow(context, poll, txt),
+                    ],
+                    if (widget.post.description.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 5),
+                        child: _buildDescriptionWithHashtags(
+                          context,
+                          widget.post.description,
+                          txt,
+                        ),
                       ),
+                    Container(
+                      margin: const EdgeInsets.only(top: 12),
+                      height: 165.h,
+                      width: double.infinity,
+                      child: _buildImagesStack(images, widget.post, poll),
                     ),
-                  Container(
-                    margin: const EdgeInsets.only(top: 12),
-                    height: 150.h,
-                    width: double.infinity,
-                    child: _buildImagesStack(images, widget.post, poll),
-                  ),
-                  SizedBox(height: 5.h),
-                ],
+                    SizedBox(height: 5.h),
+                  ],
+                ),
               ),
-            ),
-          );
+            );
+          }
         }
       } else if (_hasTextOptions(poll)) {
         widgets.add(_buildTextPollSection(context, poll, widget.post));
@@ -993,6 +1022,7 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
             poll.question,
             style: AppTextStyles.bodyText.copyWith(
               color: txt.heading,
+              fontSize: 14.5,
               fontWeight: FontWeight.w500,
             ),
           ),
@@ -1098,6 +1128,7 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
                   validOptions[0],
                   0,
                   hasUserPolled,
+                  poll,
                 ),
               ),
               const SizedBox(width: 10),
@@ -1107,6 +1138,7 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
                   validOptions[1],
                   1,
                   hasUserPolled,
+                  poll,
                 ),
               ),
             ],
@@ -1121,6 +1153,7 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
                   validOptions[2],
                   2,
                   hasUserPolled,
+                  poll,
                 ),
               ),
               const SizedBox(width: 10),
@@ -1130,6 +1163,7 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
                   validOptions[3],
                   3,
                   hasUserPolled,
+                  poll,
                 ),
               ),
             ],
@@ -1146,6 +1180,7 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
               validOptions[0],
               0,
               hasUserPolled,
+              poll,
             ),
           ),
           const SizedBox(width: 10),
@@ -1155,6 +1190,7 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
               validOptions[1],
               1,
               hasUserPolled,
+              poll,
             ),
           ),
           const SizedBox(width: 10),
@@ -1164,6 +1200,7 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
               validOptions[2],
               2,
               hasUserPolled,
+              poll,
             ),
           ),
         ],
@@ -1174,7 +1211,7 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
         children: List.generate(validOptions.length, (index) {
           return Expanded(
             child: Padding(
-              padding:  EdgeInsets.only(
+              padding: EdgeInsets.only(
                 right: index < validOptions.length - 1 ? 10 : 0,
               ),
               child: _buildAnonymousOptionCard(
@@ -1182,6 +1219,7 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
                 validOptions[index],
                 index,
                 hasUserPolled,
+                poll,
               ),
             ),
           );
@@ -1224,6 +1262,7 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
     HomeFeedPollOption option,
     int index,
     bool hasUserPolled,
+    HomeFeedPoll poll,
   ) {
     final txt = AppTextColors.of(context);
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
@@ -1237,7 +1276,7 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
     }
 
     return SizedBox(
-      height: 150.h,
+      height: 155.h,
       child: Container(
         decoration: BoxDecoration(
           border: Border.all(
@@ -1284,7 +1323,7 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
                         ),
                       ),
                       Text(
-                        '${option.percentage.round()}%',
+                        _getPercentageText(poll, option),
                         textAlign: TextAlign.center,
                         style: AppTextStyles.bodyText.copyWith(
                           fontSize: 16,
@@ -1315,6 +1354,243 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildSingleChoiceImageOptionCard(
+    BuildContext context,
+    HomeFeedPollOption option,
+    int index,
+    HomeFeedPoll poll,
+    bool hasUserPolled,
+  ) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+
+    Widget imageWidget = const SizedBox.shrink();
+    if (option.image != null) {
+      imageWidget = AppCachedNetworkImage(
+        imageUrl: option.image!.resolvedUrl(ApiConfig.baseUrlImage),
+        fit: BoxFit.cover,
+        showSpinnerPlaceholder: true,
+      );
+    }
+
+    return GestureDetector(
+      onTap: hasUserPolled
+          ? () {
+              navigationPush(
+                context,
+                ImageResultScreen(
+                  username: widget.post.user.username,
+                  postId: widget.post.id.toString(),
+                ),
+              );
+            }
+          : () {
+              final pollKey = poll.id.toString();
+              setState(() {
+                selectedOptions[pollKey] = [index];
+              });
+              _submitPollVotes(poll);
+            },
+      child: SizedBox(
+        height: 155.h,
+        child: Container(
+          decoration: BoxDecoration(
+            border: Border.all(
+              color: Theme.of(context).colorScheme.outlineVariant,
+              width: 1,
+            ),
+            borderRadius: BorderRadius.circular(AppRadius.button),
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(AppRadius.button),
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                imageWidget,
+                Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        Colors.transparent,
+                        Colors.black.withOpacity(0.60),
+                      ],
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                    ),
+                  ),
+                ),
+                if (hasUserPolled)
+                  Positioned(
+                    bottom: 2,
+                    left: 8.w,
+                    right: 8.w,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (option.text != null && option.text!.isNotEmpty)
+                          Text(
+                            option.text!,
+                            textAlign: TextAlign.center,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: AppTextStyles.bodyText.copyWith(
+                              fontSize: 13.5,
+                              fontWeight: FontWeight.w500,
+                              color: Colors.white,
+                            ),
+                          ),
+                        Text(
+                          _getPercentageText(poll, option),
+                          textAlign: TextAlign.center,
+                          style: AppTextStyles.bodyText.copyWith(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
+                else if (option.text != null && option.text!.isNotEmpty)
+                  Positioned(
+                    bottom: 5.h,
+                    left: 8.w,
+                    right: 8.w,
+                    child: Text(
+                      option.text!,
+                      textAlign: TextAlign.center,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppTextStyles.bodyText.copyWith(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSingleChoiceImagePollSection(
+    BuildContext context,
+    HomeFeedPoll poll,
+    HomeFeedPost post,
+  ) {
+    final txt = AppTextColors.of(context);
+    final validOptions = poll.options.where((o) => o.image != null).toList();
+    if (validOptions.isEmpty) return const SizedBox.shrink();
+
+    final hasUserPolled = post.isPolledByCurrentUser;
+
+    Widget optionsWidget;
+    if (validOptions.length == 4) {
+      optionsWidget = Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: _buildSingleChoiceImageOptionCard(
+                  context,
+                  validOptions[0],
+                  0,
+                  poll,
+                  hasUserPolled,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _buildSingleChoiceImageOptionCard(
+                  context,
+                  validOptions[1],
+                  1,
+                  poll,
+                  hasUserPolled,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: _buildSingleChoiceImageOptionCard(
+                  context,
+                  validOptions[2],
+                  2,
+                  poll,
+                  hasUserPolled,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _buildSingleChoiceImageOptionCard(
+                  context,
+                  validOptions[3],
+                  3,
+                  poll,
+                  hasUserPolled,
+                ),
+              ),
+            ],
+          ),
+        ],
+      );
+    } else {
+      optionsWidget = Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: List.generate(validOptions.length, (index) {
+          return Expanded(
+            child: Padding(
+              padding: EdgeInsets.only(
+                right: index < validOptions.length - 1 ? 10 : 0,
+              ),
+              child: _buildSingleChoiceImageOptionCard(
+                context,
+                validOptions[index],
+                index,
+                poll,
+                hasUserPolled,
+              ),
+            ),
+          );
+        }),
+      );
+    }
+
+    return Padding(
+      padding: EdgeInsets.fromLTRB(10.w, 0, 10.w, 0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (poll.question.isNotEmpty) ...[
+            SizedBox(height: 5.h),
+            _buildQuestionRow(context, poll, txt),
+          ],
+          if (post.description.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(top: 5),
+              child: _buildDescriptionWithHashtags(
+                context,
+                post.description,
+                txt,
+              ),
+            ),
+          if (poll.question.isNotEmpty || post.description.isNotEmpty)
+            SizedBox(height: 12.h),
+          optionsWidget,
+          SizedBox(height: 5.h),
+        ],
       ),
     );
   }
@@ -1509,7 +1785,7 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
               GestureDetector(
                 onTap: post.isPolledByCurrentUser ? null : () {},
                 child: SizedBox(
-                  height: 150.h,
+                  height: 165.h,
                   child: Stack(
                     clipBehavior: Clip.none,
                     children: [
@@ -1537,15 +1813,15 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
                                     color: Theme.of(
                                       context,
                                     ).colorScheme.outline,
-                                    width: 1.2,
+                                    width: 1,
                                   ),
                                   borderRadius: BorderRadius.circular(
-                                    AppRadius.card,
+                                    AppRadius.button,
                                   ),
                                 ),
                                 child: ClipRRect(
                                   borderRadius: BorderRadius.circular(
-                                    AppRadius.card - 1.2,
+                                    AppRadius.button,
                                   ),
                                   child: Stack(
                                     fit: StackFit.expand,
@@ -1594,7 +1870,10 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
                                                     ),
                                               ),
                                               Text(
-                                                '${pct1.round()}%',
+                                                _getPercentageTextForValue(
+                                                  poll,
+                                                  pct1,
+                                                ),
                                                 textAlign: TextAlign.center,
                                                 style: AppTextStyles.bodyText
                                                     .copyWith(
@@ -1631,7 +1910,7 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
                               ),
                             ),
                           ),
-                           const SizedBox(width: 10),
+                          const SizedBox(width: 10),
                           Expanded(
                             child: GestureDetector(
                               onTap: post.isPolledByCurrentUser
@@ -1710,7 +1989,10 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
                                                     ),
                                               ),
                                               Text(
-                                                '${pct2.round()}%',
+                                                _getPercentageTextForValue(
+                                                  poll,
+                                                  pct2,
+                                                ),
                                                 textAlign: TextAlign.center,
                                                 style: AppTextStyles.bodyText
                                                     .copyWith(
@@ -1839,7 +2121,7 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
                                   if (post.isPolledByCurrentUser) ...[
                                     const SizedBox(height: 2),
                                     Text(
-                                      '${pct1.round()}%',
+                                      _getPercentageTextForValue(poll, pct1),
                                       style: AppTextStyles.bodyText.copyWith(
                                         color: isDarkMode
                                             ? Colors.white70
@@ -1931,7 +2213,7 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
                                   if (post.isPolledByCurrentUser) ...[
                                     const SizedBox(height: 2),
                                     Text(
-                                      '${pct2.round()}%',
+                                      _getPercentageTextForValue(poll, pct2),
                                       style: AppTextStyles.bodyText.copyWith(
                                         color: isDarkMode
                                             ? Colors.white70
@@ -2060,7 +2342,7 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
                 onTap: () {},
                 child: Container(
                   margin: const EdgeInsets.only(bottom: 12),
-                  height: 150.h,
+                  height: 165.h,
                   width: double.infinity,
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(AppRadius.button),
@@ -2153,7 +2435,10 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
                                       if (post.isPolledByCurrentUser) ...[
                                         const Spacer(),
                                         Text(
-                                          '${pct1.round()}%',
+                                          _getPercentageTextForValue(
+                                            poll,
+                                            pct1,
+                                          ),
                                           style: AppTextStyles.sectionHeading
                                               .copyWith(
                                                 color: isDarkMode
@@ -2249,7 +2534,10 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
                                       if (post.isPolledByCurrentUser) ...[
                                         const Spacer(),
                                         Text(
-                                          '${pct2.round()}%',
+                                          _getPercentageTextForValue(
+                                            poll,
+                                            pct2,
+                                          ),
                                           style: AppTextStyles.sectionHeading
                                               .copyWith(
                                                 color: isDarkMode
@@ -2346,7 +2634,7 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
               GestureDetector(
                 onTap: post.isPolledByCurrentUser ? null : () {},
                 child: SizedBox(
-                  height: 150.h,
+                  height: 165.h,
                   child: Stack(
                     clipBehavior: Clip.none,
                     children: [
@@ -2374,15 +2662,15 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
                                     color: Theme.of(
                                       context,
                                     ).colorScheme.outline,
-                                    width: 1.2,
+                                    width: 1,
                                   ),
                                   borderRadius: BorderRadius.circular(
-                                    AppRadius.card,
+                                    AppRadius.button,
                                   ),
                                 ),
                                 child: ClipRRect(
                                   borderRadius: BorderRadius.circular(
-                                    AppRadius.card - 1.2,
+                                    AppRadius.button,
                                   ),
                                   child: Stack(
                                     fit: StackFit.expand,
@@ -2431,7 +2719,10 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
                                                     ),
                                               ),
                                               Text(
-                                                '${pct1.round()}%',
+                                                _getPercentageTextForValue(
+                                                  poll,
+                                                  pct1,
+                                                ),
                                                 textAlign: TextAlign.center,
                                                 style: AppTextStyles.bodyText
                                                     .copyWith(
@@ -2547,7 +2838,10 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
                                                     ),
                                               ),
                                               Text(
-                                                '${pct2.round()}%',
+                                                _getPercentageTextForValue(
+                                                  poll,
+                                                  pct2,
+                                                ),
                                                 textAlign: TextAlign.center,
                                                 style: AppTextStyles.bodyText
                                                     .copyWith(
@@ -2667,7 +2961,7 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
                                 children: [
                                   if (post.isPolledByCurrentUser) ...[
                                     Text(
-                                      '${pct1.round()}%',
+                                      _getPercentageTextForValue(poll, pct1),
                                       style: AppTextStyles.bodyText.copyWith(
                                         color: Theme.of(
                                           context,
@@ -2727,7 +3021,7 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
                                   if (post.isPolledByCurrentUser) ...[
                                     SizedBox(height: 4.h),
                                     Text(
-                                      '${pct2.round()}%',
+                                      _getPercentageTextForValue(poll, pct2),
                                       style: AppTextStyles.bodyText.copyWith(
                                         color: Theme.of(
                                           context,
@@ -2811,6 +3105,7 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
     if (validOptions.isEmpty) return const SizedBox.shrink();
 
     final hasUserPolled = post.isPolledByCurrentUser;
+    final isSingleChoice = poll.vottingType == 'single_choice';
 
     return GestureDetector(
       onTap: () {
@@ -2822,7 +3117,7 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
               postId: post.id.toString(),
             ),
           );
-        } else {
+        } else if (!isSingleChoice) {
           navigationPush(
             context,
             HomefeedThingsRanking(post: post, user: post.user, poll: poll),
@@ -2856,13 +3151,47 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
               if (entry.value.text == null || entry.value.text!.isEmpty) {
                 return const SizedBox.shrink();
               }
-              return _buildPollOption(
-                entry.value,
+              final optionIndex = entry.key;
+              final option = entry.value;
 
-                context,
-                entry.key,
-                poll,
-                showPercentage: hasUserPolled,
+              return GestureDetector(
+                onTap: hasUserPolled
+                    ? () {
+                        navigationPush(
+                          context,
+                          ThingsResultScreen(
+                            username: post.user.username,
+                            postId: post.id.toString(),
+                          ),
+                        );
+                      }
+                    : (isSingleChoice
+                          ? () {
+                              final pollKey = poll.id.toString();
+                              setState(() {
+                                selectedOptions[pollKey] = [optionIndex];
+                              });
+                              _submitPollVotes(poll);
+                            }
+                          : () {
+                              navigationPush(
+                                context,
+                                HomefeedThingsRanking(
+                                  post: post,
+                                  user: post.user,
+                                  poll: poll,
+                                ),
+                              ).then((result) {
+                                if (result == true) setState(() {});
+                              });
+                            }),
+                child: _buildPollOption(
+                  option,
+                  context,
+                  optionIndex,
+                  poll,
+                  showPercentage: hasUserPolled,
+                ),
               );
             }),
             // if (hasUserPolled)
@@ -2941,24 +3270,33 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
               ),
             ),
             if (hasUserPolled)
-              Container(
-                height: 28,
-                width: 28,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Theme.of(context).colorScheme.primary,
-                ),
-                child: Center(
-                  child: Text(
-                    '${optionIndex + 1}',
-                    style: AppTextStyles.subText.copyWith(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.white,
+              poll.vottingType == 'single_choice'
+                  ? Text(
+                      _getPercentageText(poll, option),
+                      style: AppTextStyles.bodyText.copyWith(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                    )
+                  : Container(
+                      height: 28,
+                      width: 28,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                      child: Center(
+                        child: Text(
+                          '${optionIndex + 1}',
+                          style: AppTextStyles.subText.copyWith(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
                     ),
-                  ),
-                ),
-              ),
           ],
         ),
       ),

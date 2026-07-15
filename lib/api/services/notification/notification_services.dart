@@ -81,25 +81,33 @@ class NotificationService {
       debugPrint('⏳ processPendingTaps: Callback not registered yet');
       return;
     }
-    
+
     // Process local notification taps stored in SharedPreferences
-    final String? payloadStr = await SharedPrefService.getString('pending_local_notification_tap');
+    final String? payloadStr = await SharedPrefService.getString(
+      'pending_local_notification_tap',
+    );
     if (payloadStr != null && payloadStr.isNotEmpty) {
       debugPrint('🚀 Processing pending stored local notification tap');
       try {
         final data = jsonDecode(payloadStr);
-        final String? actionId = await SharedPrefService.getString('pending_local_notification_action');
+        final String? actionId = await SharedPrefService.getString(
+          'pending_local_notification_action',
+        );
         final stableId = _generateStableNotificationId(data);
 
         // Double check duplication
         final isProcessed = await _checkAndMarkNotificationProcessed(stableId);
         if (isProcessed) {
-          debugPrint('📬 processPendingTaps: stableId $stableId already processed. Skipping.');
+          debugPrint(
+            '📬 processPendingTaps: stableId $stableId already processed. Skipping.',
+          );
           await SharedPrefService.removeKey('pending_local_notification_tap');
-          await SharedPrefService.removeKey('pending_local_notification_action');
+          await SharedPrefService.removeKey(
+            'pending_local_notification_action',
+          );
           return;
         }
-        
+
         final payload = NotificationPayload(
           id: stableId,
           title: data['title'] ?? 'Notification',
@@ -109,12 +117,15 @@ class NotificationService {
           source: NotificationSource.fcm,
           actionId: actionId,
         );
-        
+
         // Remove from SharedPreferences BEFORE calling callback to prevent loops/duplicate navigation
         await SharedPrefService.removeKey('pending_local_notification_tap');
         await SharedPrefService.removeKey('pending_local_notification_action');
-        await SharedPrefService.setString('last_processed_notification_id', stableId);
-        
+        await SharedPrefService.setString(
+          'last_processed_notification_id',
+          stableId,
+        );
+
         _onFCMMessageTap!(payload);
       } catch (e) {
         debugPrint('❌ Error parsing stored notification payload: $e');
@@ -158,6 +169,152 @@ class NotificationService {
     } catch (e) {
       debugPrint("❌ Error syncing FCM token: $e");
     }
+  }
+
+  static Map<String, dynamic> _getParsedNotificationData(
+    Map<String, dynamic> data,
+  ) {
+    try {
+      if (data['notification'] is Map) {
+        return data['notification'] as Map<String, dynamic>;
+      } else if (data['notification'] != null) {
+        final decoded = jsonDecode(data['notification'].toString());
+        if (decoded is Map) {
+          return decoded as Map<String, dynamic>;
+        }
+      }
+    } catch (e) {
+      debugPrint('⚠️ Error decoding notification data: $e');
+    }
+    return data;
+  }
+
+  static List<AndroidNotificationAction>? _getAndroidActions(
+    Map<String, dynamic> data,
+    String type,
+  ) {
+    final String upperType = type.trim().toUpperCase();
+    if (upperType == 'NEW_POST') {
+      final notificationData = _getParsedNotificationData(data);
+      final rawPollType = (notificationData['poll_type'] ?? data['poll_type'])
+          ?.toString()
+          .toLowerCase();
+
+      String secondActionText = 'Vote Now';
+      String secondActionId = 'vote_now_action';
+      if (rawPollType != null) {
+        if (rawPollType.startsWith('battle')) {
+          secondActionText = 'Pick a Side';
+          secondActionId = 'pick_side_action';
+        } else if (rawPollType.startsWith('anonymous')) {
+          secondActionText = 'Vote Privately';
+          secondActionId = 'vote_privately_action';
+        }
+      }
+
+      return <AndroidNotificationAction>[
+        const AndroidNotificationAction(
+          'view_post_action',
+          'View Poll',
+          showsUserInterface: true,
+        ),
+        AndroidNotificationAction(
+          secondActionId,
+          secondActionText,
+          showsUserInterface: true,
+        ),
+        const AndroidNotificationAction(
+          'like_action',
+          'Like',
+          showsUserInterface: true,
+        ),
+      ];
+    } else if (upperType == 'NEW_MESSAGE') {
+      return <AndroidNotificationAction>[
+        const AndroidNotificationAction(
+          'reply_action',
+          'Reply',
+          inputs: [AndroidNotificationActionInput(label: 'Type your reply...')],
+          showsUserInterface: true,
+        ),
+        const AndroidNotificationAction(
+          'mark_read_action',
+          'Mark as read',
+          showsUserInterface: true,
+        ),
+      ];
+    } else if (upperType == 'NEW_GROUP_ADDED') {
+      return <AndroidNotificationAction>[
+        const AndroidNotificationAction(
+          'message_action',
+          'Message',
+          showsUserInterface: true,
+        ),
+      ];
+    } else if (upperType == 'FOLLOW') {
+      return <AndroidNotificationAction>[
+        const AndroidNotificationAction(
+          'view_profile_action',
+          'View Profile',
+          showsUserInterface: true,
+        ),
+      ];
+    } else if (upperType == 'FRIEND_REQUEST') {
+      return <AndroidNotificationAction>[
+        const AndroidNotificationAction(
+          'accept_request_action',
+          'Accept',
+          showsUserInterface: true,
+        ),
+        const AndroidNotificationAction(
+          'reject_request_action',
+          'Reject',
+          showsUserInterface: true,
+        ),
+        const AndroidNotificationAction(
+          'view_profile_action',
+          'View Profile',
+          showsUserInterface: true,
+        ),
+      ];
+    }
+    return null;
+  }
+
+  static String? _getIosCategoryIdentifier(
+    Map<String, dynamic> data,
+    String type,
+  ) {
+    final String upperType = type.trim().toUpperCase();
+    if (upperType == 'NEW_MESSAGE') {
+      return 'NEW_MESSAGE_CATEGORY';
+    } else if (upperType == 'NEW_GROUP_ADDED') {
+      return 'NEW_GROUP_ADDED_CATEGORY';
+    } else if (upperType == 'FOLLOW') {
+      return 'FOLLOW_CATEGORY';
+    } else if (upperType == 'FRIEND_REQUEST') {
+      return 'FRIEND_REQUEST_CATEGORY';
+    } else if (upperType == 'NEW_POST') {
+      final notificationData = _getParsedNotificationData(data);
+      final rawPollType = (notificationData['poll_type'] ?? data['poll_type'])
+          ?.toString()
+          .toLowerCase();
+      if (rawPollType != null) {
+        if (rawPollType.startsWith('battle')) {
+          return 'BATTLE_POLL_CATEGORY';
+        } else if (rawPollType.startsWith('anonymous')) {
+          return 'ANONYMOUS_POLL_CATEGORY';
+        } else if (rawPollType.startsWith('text')) {
+          return 'TEXT_POLL_CATEGORY';
+        } else if (rawPollType.startsWith('image')) {
+          return 'IMAGE_POLL_CATEGORY';
+        } else if (rawPollType.startsWith('this_or_that')) {
+          return 'THIS_OR_THAT_CATEGORY';
+        }
+      }
+      return 'TEXT_POLL_CATEGORY';
+    }
+    return null;
   }
 
   //*---- Helper method to generate consistent notification content ----*//
@@ -402,6 +559,136 @@ class NotificationService {
             ),
           ],
         ),
+        DarwinNotificationCategory(
+          'TEXT_POLL_CATEGORY',
+          actions: [
+            DarwinNotificationAction.plain(
+              'view_post_action',
+              'View Post',
+              options: <DarwinNotificationActionOption>{
+                DarwinNotificationActionOption.foreground,
+              },
+            ),
+            DarwinNotificationAction.plain(
+              'vote_now_action',
+              'Vote Now',
+              options: <DarwinNotificationActionOption>{
+                DarwinNotificationActionOption.foreground,
+              },
+            ),
+            DarwinNotificationAction.plain(
+              'like_action',
+              'Like',
+              options: <DarwinNotificationActionOption>{
+                DarwinNotificationActionOption.foreground,
+              },
+            ),
+          ],
+        ),
+        DarwinNotificationCategory(
+          'IMAGE_POLL_CATEGORY',
+          actions: [
+            DarwinNotificationAction.plain(
+              'view_post_action',
+              'View Post',
+              options: <DarwinNotificationActionOption>{
+                DarwinNotificationActionOption.foreground,
+              },
+            ),
+            DarwinNotificationAction.plain(
+              'vote_now_action',
+              'Vote Now',
+              options: <DarwinNotificationActionOption>{
+                DarwinNotificationActionOption.foreground,
+              },
+            ),
+            DarwinNotificationAction.plain(
+              'like_action',
+              'Like',
+              options: <DarwinNotificationActionOption>{
+                DarwinNotificationActionOption.foreground,
+              },
+            ),
+          ],
+        ),
+        DarwinNotificationCategory(
+          'BATTLE_POLL_CATEGORY',
+          actions: [
+            DarwinNotificationAction.plain(
+              'view_post_action',
+              'View Post',
+              options: <DarwinNotificationActionOption>{
+                DarwinNotificationActionOption.foreground,
+              },
+            ),
+            DarwinNotificationAction.plain(
+              'pick_side_action',
+              'Pick a Side',
+              options: <DarwinNotificationActionOption>{
+                DarwinNotificationActionOption.foreground,
+              },
+            ),
+            DarwinNotificationAction.plain(
+              'like_action',
+              'Like',
+              options: <DarwinNotificationActionOption>{
+                DarwinNotificationActionOption.foreground,
+              },
+            ),
+          ],
+        ),
+        DarwinNotificationCategory(
+          'THIS_OR_THAT_CATEGORY',
+          actions: [
+            DarwinNotificationAction.plain(
+              'view_post_action',
+              'View Post',
+              options: <DarwinNotificationActionOption>{
+                DarwinNotificationActionOption.foreground,
+              },
+            ),
+            DarwinNotificationAction.plain(
+              'vote_now_action',
+              'Vote Now',
+              options: <DarwinNotificationActionOption>{
+                DarwinNotificationActionOption.foreground,
+              },
+            ),
+            DarwinNotificationAction.plain(
+              'like_action',
+              'Like',
+              options: <DarwinNotificationActionOption>{
+                DarwinNotificationActionOption.foreground,
+              },
+            ),
+          ],
+        ),
+        DarwinNotificationCategory(
+          'ANONYMOUS_POLL_CATEGORY',
+          actions: [
+            DarwinNotificationAction.plain(
+              'view_post_action',
+              'View Post',
+              options: <DarwinNotificationActionOption>{
+                DarwinNotificationActionOption.foreground,
+              },
+            ),
+            DarwinNotificationAction.plain(
+              'vote_privately_action',
+              'Vote Privately',
+              options: <DarwinNotificationActionOption>{
+                DarwinNotificationActionOption.foreground,
+              },
+            ),
+            DarwinNotificationAction.plain(
+              'like_action',
+              'Like',
+              options: <DarwinNotificationActionOption>{
+                DarwinNotificationActionOption.foreground,
+              },
+            ),
+          ],
+        ),
       ],
     );
     final initSettings = InitializationSettings(
@@ -417,58 +704,10 @@ class NotificationService {
 
       if (content.body.isEmpty) return;
 
-      final List<AndroidNotificationAction>? actions =
-          content.type.trim().toUpperCase() == 'NEW_MESSAGE'
-          ? <AndroidNotificationAction>[
-              const AndroidNotificationAction(
-                'reply_action',
-                'Reply',
-                inputs: [
-                  AndroidNotificationActionInput(label: 'Type your reply...'),
-                ],
-                showsUserInterface: true,
-              ),
-              const AndroidNotificationAction(
-                'mark_read_action',
-                'Mark as read',
-                showsUserInterface: true,
-              ),
-            ]
-          : (content.type.trim().toUpperCase() == 'NEW_GROUP_ADDED'
-                ? <AndroidNotificationAction>[
-                    const AndroidNotificationAction(
-                      'message_action',
-                      'Message',
-                      showsUserInterface: true,
-                    ),
-                  ]
-                : (content.type.trim().toUpperCase() == 'FOLLOW'
-                      ? <AndroidNotificationAction>[
-                          const AndroidNotificationAction(
-                            'view_profile_action',
-                            'View Profile',
-                            showsUserInterface: true,
-                          ),
-                        ]
-                      : (content.type.trim().toUpperCase() == 'FRIEND_REQUEST'
-                            ? <AndroidNotificationAction>[
-                                const AndroidNotificationAction(
-                                  'accept_request_action',
-                                  'Accept',
-                                  showsUserInterface: true,
-                                ),
-                                const AndroidNotificationAction(
-                                  'reject_request_action',
-                                  'Reject',
-                                  showsUserInterface: true,
-                                ),
-                                const AndroidNotificationAction(
-                                  'view_profile_action',
-                                  'View Profile',
-                                  showsUserInterface: true,
-                                ),
-                              ]
-                            : null)));
+      final List<AndroidNotificationAction>? actions = _getAndroidActions(
+        message.data,
+        content.type,
+      );
 
       final notificationData = message.data['notification'] is Map
           ? message.data['notification'] as Map<String, dynamic>
@@ -533,7 +772,8 @@ class NotificationService {
       }
 
       String? shortcutId;
-      final bool isNewMessage = content.type.trim().toUpperCase() == 'NEW_MESSAGE';
+      final bool isNewMessage =
+          content.type.trim().toUpperCase() == 'NEW_MESSAGE';
 
       AndroidBitmap<Object>? notificationLargeIcon;
 
@@ -543,8 +783,11 @@ class NotificationService {
             message.data['sender']?.toString() ??
             'Someone';
 
-        final rawChatId = notificationData['chat_id'] ?? message.data['chat_id'];
-        shortcutId = rawChatId != null ? 'chat_${rawChatId.toString()}' : 'chat_${sender.hashCode}';
+        final rawChatId =
+            notificationData['chat_id'] ?? message.data['chat_id'];
+        shortcutId = rawChatId != null
+            ? 'chat_${rawChatId.toString()}'
+            : 'chat_${sender.hashCode}';
 
         final String? currentUserProfilePicUrl =
             await SharedPrefService.getString('user_profile_pic');
@@ -584,7 +827,9 @@ class NotificationService {
         final senderPerson = Person(
           name: displayName,
           key: senderProfile,
-          icon: profilePath != null ? BitmapFilePathAndroidIcon(profilePath) : null,
+          icon: profilePath != null
+              ? BitmapFilePathAndroidIcon(profilePath)
+              : null,
         );
 
         if (Platform.isAndroid) {
@@ -607,8 +852,10 @@ class NotificationService {
               DateTime.now(),
               senderPerson,
               dataMimeType: thumbPath != null ? 'image/png' : null,
-              dataUri: thumbPath != null ? Uri.file(thumbPath).toString() : null,
-            )
+              dataUri: thumbPath != null
+                  ? Uri.file(thumbPath).toString()
+                  : null,
+            ),
           ],
         );
 
@@ -650,15 +897,10 @@ class NotificationService {
       );
 
       final iosDetails = DarwinNotificationDetails(
-        categoryIdentifier: content.type.trim().toUpperCase() == 'NEW_MESSAGE'
-            ? 'NEW_MESSAGE_CATEGORY'
-            : (content.type.trim().toUpperCase() == 'NEW_GROUP_ADDED'
-                  ? 'NEW_GROUP_ADDED_CATEGORY'
-                  : (content.type.trim().toUpperCase() == 'FOLLOW'
-                        ? 'FOLLOW_CATEGORY'
-                        : (content.type.trim().toUpperCase() == 'FRIEND_REQUEST'
-                              ? 'FRIEND_REQUEST_CATEGORY'
-                              : null))),
+        categoryIdentifier: _getIosCategoryIdentifier(
+          message.data,
+          content.type,
+        ),
         attachments: attachments,
       );
       final details = NotificationDetails(
@@ -668,7 +910,10 @@ class NotificationService {
 
       final Map<String, dynamic> payloadData = {
         ...message.data,
-        'message_id': message.messageId ?? message.data['message_id'] ?? 'bg_${DateTime.now().millisecondsSinceEpoch}',
+        'message_id':
+            message.messageId ??
+            message.data['message_id'] ??
+            'bg_${DateTime.now().millisecondsSinceEpoch}',
       };
 
       await localNotif.show(
@@ -754,6 +999,136 @@ class NotificationService {
             ),
           ],
         ),
+        DarwinNotificationCategory(
+          'TEXT_POLL_CATEGORY',
+          actions: [
+            DarwinNotificationAction.plain(
+              'view_post_action',
+              'View Poll',
+              options: <DarwinNotificationActionOption>{
+                DarwinNotificationActionOption.foreground,
+              },
+            ),
+            DarwinNotificationAction.plain(
+              'vote_now_action',
+              'Vote Now',
+              options: <DarwinNotificationActionOption>{
+                DarwinNotificationActionOption.foreground,
+              },
+            ),
+            DarwinNotificationAction.plain(
+              'like_action',
+              'Like',
+              options: <DarwinNotificationActionOption>{
+                DarwinNotificationActionOption.foreground,
+              },
+            ),
+          ],
+        ),
+        DarwinNotificationCategory(
+          'IMAGE_POLL_CATEGORY',
+          actions: [
+            DarwinNotificationAction.plain(
+              'view_post_action',
+              'View Poll',
+              options: <DarwinNotificationActionOption>{
+                DarwinNotificationActionOption.foreground,
+              },
+            ),
+            DarwinNotificationAction.plain(
+              'vote_now_action',
+              'Vote Now',
+              options: <DarwinNotificationActionOption>{
+                DarwinNotificationActionOption.foreground,
+              },
+            ),
+            DarwinNotificationAction.plain(
+              'like_action',
+              'Like',
+              options: <DarwinNotificationActionOption>{
+                DarwinNotificationActionOption.foreground,
+              },
+            ),
+          ],
+        ),
+        DarwinNotificationCategory(
+          'BATTLE_POLL_CATEGORY',
+          actions: [
+            DarwinNotificationAction.plain(
+              'view_post_action',
+              'View Poll',
+              options: <DarwinNotificationActionOption>{
+                DarwinNotificationActionOption.foreground,
+              },
+            ),
+            DarwinNotificationAction.plain(
+              'pick_side_action',
+              'Vote Now',
+              options: <DarwinNotificationActionOption>{
+                DarwinNotificationActionOption.foreground,
+              },
+            ),
+            DarwinNotificationAction.plain(
+              'like_action',
+              'Like',
+              options: <DarwinNotificationActionOption>{
+                DarwinNotificationActionOption.foreground,
+              },
+            ),
+          ],
+        ),
+        DarwinNotificationCategory(
+          'THIS_OR_THAT_CATEGORY',
+          actions: [
+            DarwinNotificationAction.plain(
+              'view_post_action',
+              'View Poll',
+              options: <DarwinNotificationActionOption>{
+                DarwinNotificationActionOption.foreground,
+              },
+            ),
+            DarwinNotificationAction.plain(
+              'vote_now_action',
+              'Vote Now',
+              options: <DarwinNotificationActionOption>{
+                DarwinNotificationActionOption.foreground,
+              },
+            ),
+            DarwinNotificationAction.plain(
+              'like_action',
+              'Like',
+              options: <DarwinNotificationActionOption>{
+                DarwinNotificationActionOption.foreground,
+              },
+            ),
+          ],
+        ),
+        DarwinNotificationCategory(
+          'ANONYMOUS_POLL_CATEGORY',
+          actions: [
+            DarwinNotificationAction.plain(
+              'view_post_action',
+              'View Poll',
+              options: <DarwinNotificationActionOption>{
+                DarwinNotificationActionOption.foreground,
+              },
+            ),
+            DarwinNotificationAction.plain(
+              'vote_privately_action',
+              'Vote Privately',
+              options: <DarwinNotificationActionOption>{
+                DarwinNotificationActionOption.foreground,
+              },
+            ),
+            DarwinNotificationAction.plain(
+              'like_action',
+              'Like',
+              options: <DarwinNotificationActionOption>{
+                DarwinNotificationActionOption.foreground,
+              },
+            ),
+          ],
+        ),
       ],
     );
 
@@ -769,11 +1144,14 @@ class NotificationService {
     );
 
     // Check if the app was launched by tapping a local notification
-    final launchDetails = await _localNotifications.getNotificationAppLaunchDetails();
+    final launchDetails = await _localNotifications
+        .getNotificationAppLaunchDetails();
     if (launchDetails != null &&
         launchDetails.didNotificationLaunchApp &&
         launchDetails.notificationResponse != null) {
-      debugPrint('🚀 App launched via local notification tap (launch details detected)');
+      debugPrint(
+        '🚀 App launched via local notification tap (launch details detected)',
+      );
       _onNotificationTapped(launchDetails.notificationResponse!);
     }
 
@@ -973,58 +1351,10 @@ class NotificationService {
       await _printFcmPayload(message);
       debugPrint('==============================================');
 
-      final List<AndroidNotificationAction>? actions =
-          content.type.trim().toUpperCase() == 'NEW_MESSAGE'
-          ? <AndroidNotificationAction>[
-              const AndroidNotificationAction(
-                'reply_action',
-                'Reply',
-                inputs: [
-                  AndroidNotificationActionInput(label: 'Type your reply...'),
-                ],
-                showsUserInterface: true,
-              ),
-              const AndroidNotificationAction(
-                'mark_read_action',
-                'Mark as read',
-                showsUserInterface: true,
-              ),
-            ]
-          : (content.type.trim().toUpperCase() == 'NEW_GROUP_ADDED'
-                ? <AndroidNotificationAction>[
-                    const AndroidNotificationAction(
-                      'message_action',
-                      'Message',
-                      showsUserInterface: true,
-                    ),
-                  ]
-                : (content.type.trim().toUpperCase() == 'FOLLOW'
-                      ? <AndroidNotificationAction>[
-                          const AndroidNotificationAction(
-                            'view_profile_action',
-                            'View Profile',
-                            showsUserInterface: true,
-                          ),
-                        ]
-                      : (content.type.trim().toUpperCase() == 'FRIEND_REQUEST'
-                            ? <AndroidNotificationAction>[
-                                const AndroidNotificationAction(
-                                  'accept_request_action',
-                                  'Accept',
-                                  showsUserInterface: true,
-                                ),
-                                const AndroidNotificationAction(
-                                  'reject_request_action',
-                                  'Reject',
-                                  showsUserInterface: true,
-                                ),
-                                const AndroidNotificationAction(
-                                  'view_profile_action',
-                                  'View Profile',
-                                  showsUserInterface: true,
-                                ),
-                              ]
-                            : null)));
+      final List<AndroidNotificationAction>? actions = _getAndroidActions(
+        message.data,
+        content.type,
+      );
 
       final notificationData = message.data['notification'] is Map
           ? message.data['notification'] as Map<String, dynamic>
@@ -1091,7 +1421,8 @@ class NotificationService {
       }
 
       String? shortcutId;
-      final bool isNewMessage = content.type.trim().toUpperCase() == 'NEW_MESSAGE';
+      final bool isNewMessage =
+          content.type.trim().toUpperCase() == 'NEW_MESSAGE';
 
       AndroidBitmap<Object>? notificationLargeIcon;
 
@@ -1101,8 +1432,11 @@ class NotificationService {
             message.data['sender']?.toString() ??
             'Someone';
 
-        final rawChatId = notificationData['chat_id'] ?? message.data['chat_id'];
-        shortcutId = rawChatId != null ? 'chat_${rawChatId.toString()}' : 'chat_${sender.hashCode}';
+        final rawChatId =
+            notificationData['chat_id'] ?? message.data['chat_id'];
+        shortcutId = rawChatId != null
+            ? 'chat_${rawChatId.toString()}'
+            : 'chat_${sender.hashCode}';
 
         final String? currentUserProfilePicUrl =
             await SharedPrefService.getString('user_profile_pic');
@@ -1142,7 +1476,9 @@ class NotificationService {
         final senderPerson = Person(
           name: displayName,
           key: senderProfile,
-          icon: profilePath != null ? BitmapFilePathAndroidIcon(profilePath) : null,
+          icon: profilePath != null
+              ? BitmapFilePathAndroidIcon(profilePath)
+              : null,
         );
 
         if (Platform.isAndroid) {
@@ -1165,8 +1501,10 @@ class NotificationService {
               DateTime.now(),
               senderPerson,
               dataMimeType: thumbPath != null ? 'image/png' : null,
-              dataUri: thumbPath != null ? Uri.file(thumbPath).toString() : null,
-            )
+              dataUri: thumbPath != null
+                  ? Uri.file(thumbPath).toString()
+                  : null,
+            ),
           ],
         );
 
@@ -1216,15 +1554,10 @@ class NotificationService {
         presentBadge: true,
         presentSound: true,
         sound: 'default',
-        categoryIdentifier: content.type.trim().toUpperCase() == 'NEW_MESSAGE'
-            ? 'NEW_MESSAGE_CATEGORY'
-            : (content.type.trim().toUpperCase() == 'NEW_GROUP_ADDED'
-                  ? 'NEW_GROUP_ADDED_CATEGORY'
-                  : (content.type.trim().toUpperCase() == 'FOLLOW'
-                        ? 'FOLLOW_CATEGORY'
-                        : (content.type.trim().toUpperCase() == 'FRIEND_REQUEST'
-                              ? 'FRIEND_REQUEST_CATEGORY'
-                              : null))),
+        categoryIdentifier: _getIosCategoryIdentifier(
+          message.data,
+          content.type,
+        ),
         attachments: attachments,
       );
 
@@ -1239,7 +1572,10 @@ class NotificationService {
 
       final Map<String, dynamic> payloadData = {
         ...message.data,
-        'message_id': message.messageId ?? message.data['message_id'] ?? 'fg_${DateTime.now().millisecondsSinceEpoch}',
+        'message_id':
+            message.messageId ??
+            message.data['message_id'] ??
+            'fg_${DateTime.now().millisecondsSinceEpoch}',
       };
 
       await _localNotifications.show(
@@ -1265,6 +1601,29 @@ class NotificationService {
     try {
       WidgetsFlutterBinding.ensureInitialized();
       final data = jsonDecode(response.payload!);
+
+      if (actionId == 'like_action') {
+        final rawPostId = data['post_id'] ?? (data['data'] is Map ? data['data']['post_id'] : null);
+        final String? postId = rawPostId?.toString();
+        if (postId == null || postId.isEmpty || postId == '0') {
+          debugPrint("⚠️ No post_id in notification payload for action: $actionId");
+          return;
+        }
+
+        debugPrint("📬 Action: Like post $postId");
+        final responseApi = await ApiService.togglePostLike(postId);
+        debugPrint("📬 Post like success: ${responseApi['success']}, message: ${responseApi['message']}");
+
+        final int? notificationId = response.id;
+        if (notificationId != null) {
+          try {
+            await NotificationService()._localNotifications.cancel(notificationId);
+          } catch (e) {
+            debugPrint("⚠️ Error cancelling notification after like: $e");
+          }
+        }
+        return;
+      }
 
       if (actionId == 'accept_request_action' ||
           actionId == 'reject_request_action') {
@@ -1492,7 +1851,7 @@ class NotificationService {
     final notificationData = data['notification'] is Map
         ? data['notification'] as Map<String, dynamic>
         : data;
-    
+
     dynamic getValue(String key) {
       final val = data[key] ?? notificationData[key];
       if (val == null) return null;
@@ -1503,23 +1862,28 @@ class NotificationService {
       return val;
     }
 
-    final id = getValue('id') ?? 
-               getValue('message_id') ?? 
-               getValue('post_id') ?? 
-               getValue('sender_id') ?? 
-               getValue('chat_id') ?? 
-               getValue('request_id');
-               
+    final id =
+        getValue('id') ??
+        getValue('message_id') ??
+        getValue('post_id') ??
+        getValue('sender_id') ??
+        getValue('chat_id') ??
+        getValue('request_id');
+
     if (id != null) {
       return id.toString();
     }
-    
+
     return data.toString().hashCode.toString();
   }
 
-  static Future<bool> _checkAndMarkActionProcessed(NotificationResponse response) async {
+  static Future<bool> _checkAndMarkActionProcessed(
+    NotificationResponse response,
+  ) async {
     try {
-      final String? jsonStr = await SharedPrefService.getString('processed_notification_actions');
+      final String? jsonStr = await SharedPrefService.getString(
+        'processed_notification_actions',
+      );
       List<String> processedActions = [];
       if (jsonStr != null && jsonStr.isNotEmpty) {
         try {
@@ -1530,7 +1894,8 @@ class NotificationService {
       final String payloadStr = response.payload ?? '';
       final String inputStr = response.input ?? '';
       final int responseId = response.id ?? payloadStr.hashCode;
-      final String actionKey = 'action_${responseId}_${response.actionId}_${inputStr.hashCode}_${payloadStr.hashCode}';
+      final String actionKey =
+          'action_${responseId}_${response.actionId}_${inputStr.hashCode}_${payloadStr.hashCode}';
 
       if (processedActions.contains(actionKey)) {
         return true;
@@ -1541,7 +1906,10 @@ class NotificationService {
         processedActions.removeAt(0);
       }
 
-      await SharedPrefService.setString('processed_notification_actions', jsonEncode(processedActions));
+      await SharedPrefService.setString(
+        'processed_notification_actions',
+        jsonEncode(processedActions),
+      );
       return false;
     } catch (e) {
       debugPrint('❌ Error checking/marking notification action: $e');
@@ -1549,9 +1917,13 @@ class NotificationService {
     }
   }
 
-  static Future<bool> _checkAndMarkNotificationProcessed(String stableId) async {
+  static Future<bool> _checkAndMarkNotificationProcessed(
+    String stableId,
+  ) async {
     try {
-      final String? jsonStr = await SharedPrefService.getString('processed_notification_ids');
+      final String? jsonStr = await SharedPrefService.getString(
+        'processed_notification_ids',
+      );
       List<String> processedIds = [];
       if (jsonStr != null && jsonStr.isNotEmpty) {
         try {
@@ -1568,7 +1940,10 @@ class NotificationService {
         processedIds.removeAt(0);
       }
 
-      await SharedPrefService.setString('processed_notification_ids', jsonEncode(processedIds));
+      await SharedPrefService.setString(
+        'processed_notification_ids',
+        jsonEncode(processedIds),
+      );
       return false;
     } catch (e) {
       debugPrint('❌ Error checking/marking notification: $e');
@@ -1576,16 +1951,28 @@ class NotificationService {
     }
   }
 
-  static Future<void> _savePendingTapToPrefs(NotificationResponse response) async {
+  static Future<void> _savePendingTapToPrefs(
+    NotificationResponse response,
+  ) async {
     try {
       if (response.payload != null) {
-        await SharedPrefService.setString('pending_local_notification_tap', response.payload!);
+        await SharedPrefService.setString(
+          'pending_local_notification_tap',
+          response.payload!,
+        );
         if (response.actionId != null) {
-          await SharedPrefService.setString('pending_local_notification_action', response.actionId!);
+          await SharedPrefService.setString(
+            'pending_local_notification_action',
+            response.actionId!,
+          );
         } else {
-          await SharedPrefService.removeKey('pending_local_notification_action');
+          await SharedPrefService.removeKey(
+            'pending_local_notification_action',
+          );
         }
-        debugPrint('💾 Saved pending local notification tap to SharedPreferences');
+        debugPrint(
+          '💾 Saved pending local notification tap to SharedPreferences',
+        );
       }
     } catch (e) {
       debugPrint('❌ Error saving pending tap to prefs: $e');
@@ -1593,20 +1980,26 @@ class NotificationService {
   }
 
   @pragma('vm:entry-point')
-  static Future<void> _onNotificationTapped(NotificationResponse response) async {
+  static Future<void> _onNotificationTapped(
+    NotificationResponse response,
+  ) async {
     if (response.payload != null) {
       try {
         debugPrint("Payload: ${response.payload}");
         final data = jsonDecode(response.payload!);
 
-        // Intercept action taps to handle them inline
         if (response.actionId == 'mark_read_action' ||
             response.actionId == 'reply_action' ||
             response.actionId == 'accept_request_action' ||
-            response.actionId == 'reject_request_action') {
-          final isAlreadyProcessed = await _checkAndMarkActionProcessed(response);
+            response.actionId == 'reject_request_action' ||
+            response.actionId == 'like_action') {
+          final isAlreadyProcessed = await _checkAndMarkActionProcessed(
+            response,
+          );
           if (isAlreadyProcessed) {
-            debugPrint('📬 _onNotificationTapped: Action already processed. Skipping.');
+            debugPrint(
+              '📬 _onNotificationTapped: Action already processed. Skipping.',
+            );
             return;
           }
           _handleNotificationAction(response);
@@ -1618,7 +2011,9 @@ class NotificationService {
         // Prevent duplicate processing
         final isProcessed = await _checkAndMarkNotificationProcessed(stableId);
         if (isProcessed) {
-          debugPrint('📬 _onNotificationTapped: stableId $stableId already processed. Skipping.');
+          debugPrint(
+            '📬 _onNotificationTapped: stableId $stableId already processed. Skipping.',
+          );
           return;
         }
 
@@ -1639,7 +2034,10 @@ class NotificationService {
 
         if (NotificationService()._onFCMMessageTap != null) {
           // Processed immediately in the main isolate, record it to avoid repetition
-          await SharedPrefService.setString('last_processed_notification_id', stableId);
+          await SharedPrefService.setString(
+            'last_processed_notification_id',
+            stableId,
+          );
           NotificationService()._onFCMMessageTap!(payload);
         } else {
           // If no callback, save to SharedPreferences to process later when resume/registered
@@ -1740,58 +2138,10 @@ class NotificationService {
       debugPrint('Body: ${content.body}');
       debugPrint('Full data: $data');
 
-      final List<AndroidNotificationAction>? actions =
-          content.type.trim().toUpperCase() == 'NEW_MESSAGE'
-          ? <AndroidNotificationAction>[
-              const AndroidNotificationAction(
-                'reply_action',
-                'Reply',
-                inputs: [
-                  AndroidNotificationActionInput(label: 'Type your reply...'),
-                ],
-                showsUserInterface: true,
-              ),
-              const AndroidNotificationAction(
-                'mark_read_action',
-                'Mark as read',
-                showsUserInterface: true,
-              ),
-            ]
-          : (content.type.trim().toUpperCase() == 'NEW_GROUP_ADDED'
-                ? <AndroidNotificationAction>[
-                    const AndroidNotificationAction(
-                      'message_action',
-                      'Message',
-                      showsUserInterface: true,
-                    ),
-                  ]
-                : (content.type.trim().toUpperCase() == 'FOLLOW'
-                      ? <AndroidNotificationAction>[
-                          const AndroidNotificationAction(
-                            'view_profile_action',
-                            'View Profile',
-                            showsUserInterface: true,
-                          ),
-                        ]
-                      : (content.type.trim().toUpperCase() == 'FRIEND_REQUEST'
-                            ? <AndroidNotificationAction>[
-                                const AndroidNotificationAction(
-                                  'accept_request_action',
-                                  'Accept',
-                                  showsUserInterface: true,
-                                ),
-                                const AndroidNotificationAction(
-                                  'reject_request_action',
-                                  'Reject',
-                                  showsUserInterface: true,
-                                ),
-                                const AndroidNotificationAction(
-                                  'view_profile_action',
-                                  'View Profile',
-                                  showsUserInterface: true,
-                                ),
-                              ]
-                            : null)));
+      final List<AndroidNotificationAction>? actions = _getAndroidActions(
+        data,
+        content.type,
+      );
 
       final notificationData = data['notification'] is Map
           ? data['notification'] as Map<String, dynamic>
@@ -1852,7 +2202,8 @@ class NotificationService {
       }
 
       String? shortcutId;
-      final bool isNewMessage = content.type.trim().toUpperCase() == 'NEW_MESSAGE';
+      final bool isNewMessage =
+          content.type.trim().toUpperCase() == 'NEW_MESSAGE';
 
       AndroidBitmap<Object>? notificationLargeIcon;
 
@@ -1863,7 +2214,9 @@ class NotificationService {
             'Someone';
 
         final rawChatId = notificationData['chat_id'] ?? data['chat_id'];
-        shortcutId = rawChatId != null ? 'chat_${rawChatId.toString()}' : 'chat_${sender.hashCode}';
+        shortcutId = rawChatId != null
+            ? 'chat_${rawChatId.toString()}'
+            : 'chat_${sender.hashCode}';
 
         final String? currentUserProfilePicUrl =
             await SharedPrefService.getString('user_profile_pic');
@@ -1903,7 +2256,9 @@ class NotificationService {
         final senderPerson = Person(
           name: displayName,
           key: senderProfile,
-          icon: profilePath != null ? BitmapFilePathAndroidIcon(profilePath) : null,
+          icon: profilePath != null
+              ? BitmapFilePathAndroidIcon(profilePath)
+              : null,
         );
 
         if (Platform.isAndroid) {
@@ -1926,8 +2281,10 @@ class NotificationService {
               DateTime.now(),
               senderPerson,
               dataMimeType: thumbPath != null ? 'image/png' : null,
-              dataUri: thumbPath != null ? Uri.file(thumbPath).toString() : null,
-            )
+              dataUri: thumbPath != null
+                  ? Uri.file(thumbPath).toString()
+                  : null,
+            ),
           ],
         );
 
@@ -1993,7 +2350,10 @@ class NotificationService {
 
       final Map<String, dynamic> payloadData = {
         ...data,
-        'message_id': data['id'] ?? data['message_id'] ?? 'ws_${DateTime.now().millisecondsSinceEpoch}',
+        'message_id':
+            data['id'] ??
+            data['message_id'] ??
+            'ws_${DateTime.now().millisecondsSinceEpoch}',
       };
 
       await _localNotifications.show(
@@ -2195,7 +2555,10 @@ class NotificationPayload {
   }) : timestamp = timestamp ?? DateTime.now();
 
   // ✅ FIXED: Extract data properly from FCM message with type-based customization
-  factory NotificationPayload.fromFCM(RemoteMessage message, {String? actionId}) {
+  factory NotificationPayload.fromFCM(
+    RemoteMessage message, {
+    String? actionId,
+  }) {
     // Handle notification data with dynamic type
     dynamic notificationData;
 

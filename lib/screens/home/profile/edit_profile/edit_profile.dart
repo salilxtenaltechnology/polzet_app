@@ -22,6 +22,8 @@ import '../../../../widgets/dialog/custom_diolog.dart';
 import '../../../../core/themes/app_text_styles.dart';
 import '../../../../widgets/base64/image_convert.dart';
 import '../../../../api/api_config.dart';
+import '../../../../widgets/bottomsheets/verify/profile_email_verify_bottom_sheet.dart';
+import '../../../../widgets/show_toast.dart';
 
 class EditProfile extends StatefulWidget {
   const EditProfile({super.key});
@@ -46,6 +48,8 @@ class _EditProfileState extends State<EditProfile> {
   bool _isSaving = false;
   DateTime? _dob;
   bool _hasChanges = false;
+  String _originalEmail = '';
+  bool _isVerifyingEmail = false;
 
   String _selectedGender = 'Prefer not to say';
   String _originalFirstName = '';
@@ -79,26 +83,22 @@ class _EditProfileState extends State<EditProfile> {
     _lastNameController.addListener(_onFieldChanged);
     _usernameController.addListener(_onFieldChanged);
     _bioController.addListener(_onFieldChanged);
+    _emailController.addListener(_onFieldChanged);
   }
 
   void _onFieldChanged() {
-    bool needsStateUpdate = false;
     if (_usernameErrorText.isNotEmpty) {
       _usernameErrorText = '';
-      needsStateUpdate = true;
     }
     if (_firstNameErrorText.isNotEmpty) {
       _firstNameErrorText = '';
-      needsStateUpdate = true;
     }
     if (_lastNameErrorText.isNotEmpty) {
       _lastNameErrorText = '';
-      needsStateUpdate = true;
     }
 
-    if (needsStateUpdate) {
-      setState(() {});
-    }
+    // Always rebuild so the Verify button's visual state updates dynamically
+    setState(() {});
 
     _checkChanges();
   }
@@ -129,7 +129,10 @@ class _EditProfileState extends State<EditProfile> {
     _emailController.text = userProvider.email ?? '';
     _phoneController.text = userProvider.mobile_number ?? '';
     _dob = userProvider.dob != null ? DateTime.parse(userProvider.dob!) : null;
-    final rawGender = userProvider.gender ?? 'Prefer not to say';
+    final rawGender = (userProvider.gender ?? 'Prefer not to say').replaceAll(
+      '_',
+      ' ',
+    );
     _selectedGender = _genderOptions.firstWhere(
       (g) => g.toLowerCase() == rawGender.toLowerCase(),
       orElse: () => 'Prefer not to say',
@@ -141,6 +144,7 @@ class _EditProfileState extends State<EditProfile> {
     _originalBio = _bioController.text;
     _originalDob = _dob != null ? DateFormat('yyyy-MM-dd').format(_dob!) : '';
     _originalGender = _selectedGender;
+    _originalEmail = _emailController.text;
   }
 
   @override
@@ -233,8 +237,8 @@ class _EditProfileState extends State<EditProfile> {
         firstName: firstName,
         lastName: lastName,
         bio: bioStr,
-        dob: dobStr,
-        gender: _selectedGender.toLowerCase(),
+        dob: dobStr.isNotEmpty ? dobStr : null,
+        gender: _selectedGender.toLowerCase().replaceAll(' ', '_'),
       );
 
       if (profileError.isEmpty) {
@@ -281,6 +285,64 @@ class _EditProfileState extends State<EditProfile> {
     if (profileUpdated || usernameUpdated) {
       final userProvider = Provider.of<UserProvider>(context, listen: false);
       await userProvider.loadUserData();
+    }
+  }
+
+  Future<void> _verifyEmail() async {
+    final email = _emailController.text.trim();
+    if (email.isEmpty) {
+      showToast(message: 'Email address cannot be empty');
+      return;
+    }
+    final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
+    if (!emailRegex.hasMatch(email)) {
+      showToast(message: 'Please enter a valid email address');
+      return;
+    }
+
+    setState(() => _isVerifyingEmail = true);
+
+    try {
+      final result = await ApiService().requestEmailChangeOtp(email: email);
+      if (!mounted) return;
+
+      if (result['status'] == 'success' || result['success'] == true) {
+        const successMsg = 'OTP sent';
+        showToast(message: successMsg);
+
+        final verified = await showModalBottomSheet<bool>(
+          context: context,
+          isScrollControlled: true,
+          backgroundColor: Colors.transparent,
+          builder: (context) => ProfileEmailVerifyBottomSheet(email: email),
+        );
+
+        if (verified == true && mounted) {
+          setState(() {
+            _originalEmail = email;
+          });
+          final userProvider = Provider.of<UserProvider>(
+            context,
+            listen: false,
+          );
+          await userProvider.loadUserData();
+          showToast(message: 'Email updated successfully');
+        }
+      } else {
+        final errorMsg = result['data']?['message'] ?? result['message'] ?? 'Failed to send OTP';
+        showToast(message: errorMsg);
+      }
+    } catch (e) {
+      if (mounted) {
+        final errorMsg = e.toString().contains('Exception:')
+            ? e.toString().replaceAll('Exception:', '').trim()
+            : 'Failed to send OTP. Please try again.';
+        showToast(message: errorMsg);
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isVerifyingEmail = false);
+      }
     }
   }
 
@@ -713,9 +775,7 @@ class _EditProfileState extends State<EditProfile> {
             controller: _usernameController,
             hint: AppLocalizations.of(context)!.enterusername,
             errorText: _usernameErrorText,
-            inputFormatters: [
-              LengthLimitingTextInputFormatter(20),
-            ],
+            inputFormatters: [LengthLimitingTextInputFormatter(20)],
           ),
           const SizedBox(height: 16),
 
@@ -739,7 +799,41 @@ class _EditProfileState extends State<EditProfile> {
             hint: 'Enter email address',
             keyboardType: TextInputType.emailAddress,
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 5),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              _isVerifyingEmail
+                  ? const Padding(
+                      padding: EdgeInsets.only(right: 8),
+                      child: SizedBox(
+                        width: 14,
+                        height: 14,
+                        child: CircularProgressIndicator(strokeWidth: 1.5),
+                      ),
+                    )
+                  : GestureDetector(
+                      onTap:
+                          (_emailController.text.trim() != _originalEmail &&
+                              _emailController.text.trim().isNotEmpty)
+                          ? _verifyEmail
+                          : null,
+                      child: Text(
+                        'Verify',
+                        style: AppTextStyles.subText.copyWith(
+                          fontSize: 14,
+                          color:
+                              (_emailController.text.trim() != _originalEmail &&
+                                  _emailController.text.trim().isNotEmpty)
+                              ? Theme.of(context).colorScheme.primary
+                              : Colors.transparent,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+            ],
+          ),
+          const SizedBox(height: 10),
 
           // ── Phone ───────────────────────────────────────────────────────
           _buildFieldLabel(AppLocalizations.of(context)!.phonenumber),

@@ -759,6 +759,8 @@ class PrivateChatProvider extends ChangeNotifier {
       created_at: DateTime.now(),
       isSentByMe: true,
       isPending: true,
+      senderUsername: _currentUsername,
+      senderId: currentUserId?.toString(),
     );
     _messages.add(optimistic);
     _emitMessages();
@@ -766,17 +768,7 @@ class PrivateChatProvider extends ChangeNotifier {
     try {
       final cid = _chatId;
       if (cid != null) {
-        if (_presenceChannel != null && _isPresenceConnected) {
-          _presenceChannel!.sink.add(
-            jsonEncode({'action': 'send_message', 'text': trimmed}),
-          );
-        } else if (_messageChannel != null && _isMessageConnected) {
-          _messageChannel!.sink.add(
-            jsonEncode({'action': 'send_message', 'text': trimmed}),
-          );
-        } else {
-          await ApiService().sendMessage(chatId: cid, text: trimmed);
-        }
+        await ApiService().sendMessage(chatId: cid, text: trimmed);
       }
 
       Future.delayed(_pendingConfirmTimeout, () {
@@ -789,6 +781,8 @@ class PrivateChatProvider extends ChangeNotifier {
             created_at: _messages[pendingIndex].created_at,
             isSentByMe: true,
             isPending: false,
+            senderUsername: _currentUsername,
+            senderId: currentUserId?.toString(),
           );
           _saveCachedMessages();
           _emitMessages();
@@ -806,6 +800,8 @@ class PrivateChatProvider extends ChangeNotifier {
           isSentByMe: true,
           isPending: false,
           isFailed: true,
+          senderUsername: _currentUsername,
+          senderId: currentUserId?.toString(),
         );
         _saveCachedMessages();
         _emitMessages();

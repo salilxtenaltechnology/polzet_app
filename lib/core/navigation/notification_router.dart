@@ -28,7 +28,11 @@ class NotificationRouter {
   bool _hasNavigated = false;
 
   /// Store notification from main() when app starts from killed state
-  void setPendingNotification(RemoteMessage? message, {String? actionId, bool bypassDuplicateCheck = false}) {
+  void setPendingNotification(
+    RemoteMessage? message, {
+    String? actionId,
+    bool bypassDuplicateCheck = false,
+  }) {
     _pendingNotification = message;
     _pendingActionId = actionId;
     _bypassDuplicateCheck = bypassDuplicateCheck;
@@ -79,15 +83,19 @@ class NotificationRouter {
 
   Future<bool> _isNotificationAlreadyProcessed(String msgId) async {
     try {
-      final String? jsonStr = await SharedPrefService.getString('processed_notification_ids');
+      final String? jsonStr = await SharedPrefService.getString(
+        'processed_notification_ids',
+      );
       if (jsonStr != null && jsonStr.isNotEmpty) {
         final List<dynamic> processedIds = jsonDecode(jsonStr);
         if (processedIds.contains(msgId)) {
           return true;
         }
       }
-      
-      final lastProcessedId = await SharedPrefService.getString('last_processed_notification_id');
+
+      final lastProcessedId = await SharedPrefService.getString(
+        'last_processed_notification_id',
+      );
       if (lastProcessedId == msgId) {
         return true;
       }
@@ -99,7 +107,9 @@ class NotificationRouter {
 
   Future<void> _markNotificationAsProcessed(String msgId) async {
     try {
-      final String? jsonStr = await SharedPrefService.getString('processed_notification_ids');
+      final String? jsonStr = await SharedPrefService.getString(
+        'processed_notification_ids',
+      );
       List<String> processedIds = [];
       if (jsonStr != null && jsonStr.isNotEmpty) {
         try {
@@ -111,7 +121,10 @@ class NotificationRouter {
         if (processedIds.length > 100) {
           processedIds.removeAt(0);
         }
-        await SharedPrefService.setString('processed_notification_ids', jsonEncode(processedIds));
+        await SharedPrefService.setString(
+          'processed_notification_ids',
+          jsonEncode(processedIds),
+        );
       }
     } catch (e) {
       debugPrint('❌ Error marking notification as processed in Router: $e');
@@ -134,7 +147,9 @@ class NotificationRouter {
     if (msgId != null && !_bypassDuplicateCheck) {
       final isProcessed = await _isNotificationAlreadyProcessed(msgId);
       if (isProcessed) {
-        debugPrint('📬 NotificationRouter: Notification $msgId was already processed. Skipping resolving.');
+        debugPrint(
+          '📬 NotificationRouter: Notification $msgId was already processed. Skipping resolving.',
+        );
         _pendingNotification = null;
         _hasNavigated = false;
         return null;
@@ -155,7 +170,9 @@ class NotificationRouter {
       notificationData = Map<String, dynamic>.from(payloadMap['notification']);
     } else if (payloadMap['notification'] is String) {
       try {
-        notificationData = jsonDecode(payloadMap['notification'] as String) as Map<String, dynamic>;
+        notificationData =
+            jsonDecode(payloadMap['notification'] as String)
+                as Map<String, dynamic>;
       } catch (_) {}
     } else {
       notificationData = payloadMap;
@@ -166,13 +183,15 @@ class NotificationRouter {
 
     final type = (data['type'] ?? '').toString().toLowerCase().trim();
 
-    final bool needsUserData = (type == 'like' ||
+    final bool needsUserData =
+        (type == 'like' ||
         type == 'like_group' ||
         type == 'comment' ||
         type == 'commetnt' ||
         type == 'vote' ||
         type == 'reply' ||
-        type == 'follow_group');
+        type == 'follow_group' ||
+        type == 'new_post');
 
     final userProvider = Provider.of<UserProvider>(context, listen: false);
     if (needsUserData && !userProvider.isUserDataValid()) {
@@ -189,34 +208,46 @@ class NotificationRouter {
     debugPrint('   Username: "$username"');
 
     try {
-      // ✅ Handle post-related notifications (like, comment, vote)
+      // ✅ Handle post-related notifications (like, comment, vote, new_post)
       if (type == 'like' ||
           type == 'like_group' ||
           type == 'comment' ||
           type == 'commetnt' || // backend type
           type == 'vote' ||
-          type == 'reply') {
+          type == 'reply' ||
+          type == 'new_post') {
         final String? postId = data['post_id']?.toString();
         debugPrint('   📝 Post notification - postId: $postId');
 
         if (postId != null && postId.isNotEmpty && postId != '0') {
-          if (username.isEmpty) {
-            debugPrint('⚠️ NotificationRouter: username is empty, fallback to notifications tab');
+          final String postSender = (type == 'new_post')
+              ? (data['sender']?.toString() ?? '')
+              : '';
+          final String postUsername = postSender.isNotEmpty
+              ? postSender
+              : username;
+          if (postUsername.isEmpty) {
+            debugPrint(
+              '⚠️ NotificationRouter: username is empty, fallback to notifications tab',
+            );
             return const HomeScreen(initialIndex: 3);
           }
-          return SinglePostDetails(postId: postId,  username: username,);
+          return SinglePostDetails(postId: postId, username: postUsername);
         } else {
           debugPrint('❌ Invalid post_id: ${data['post_id']}');
           debugPrint('   Available keys: ${data.keys.toList()}');
         }
-      } else if (_pendingActionId == 'view_profile_action' || type == 'follow' || type == 'friend_request' || type == 'friend_requests') {
+      } else if (_pendingActionId == 'view_profile_action' ||
+          type == 'follow' ||
+          type == 'friend_request' ||
+          type == 'friend_requests') {
         dynamic actorData = data['actor'];
         if (actorData is String && actorData.isNotEmpty) {
           try {
             actorData = jsonDecode(actorData);
           } catch (_) {}
         }
-        
+
         dynamic metaData = data['meta'];
         if (metaData is String && metaData.isNotEmpty) {
           try {
@@ -224,22 +255,38 @@ class NotificationRouter {
           } catch (_) {}
         }
 
-        final String? userId = data['sender_id']?.toString() ??
+        final String? userId =
+            data['sender_id']?.toString() ??
             data['sender_uuid']?.toString() ??
-            (actorData is Map ? actorData['user_id']?.toString() ?? actorData['id']?.toString() ?? actorData['user_uuid']?.toString() : null) ??
+            (actorData is Map
+                ? actorData['user_id']?.toString() ??
+                      actorData['id']?.toString() ??
+                      actorData['user_uuid']?.toString()
+                : null) ??
             (metaData is Map ? metaData['sender_id']?.toString() : null) ??
             data['user_id']?.toString() ??
             data['userId']?.toString();
         debugPrint('   👤 Follow/Request notification - userId: $userId');
 
-        final String? senderUsername = data['sender_username']?.toString() ??
-            (actorData is Map ? actorData['username']?.toString() ?? actorData['sender']?.toString() ?? actorData['sender_username']?.toString() ?? actorData['sender_name']?.toString() : null) ??
-            (metaData is Map ? metaData['sender_username']?.toString() ?? metaData['username']?.toString() ?? metaData['sender']?.toString() : null) ??
+        final String? senderUsername =
+            data['sender_username']?.toString() ??
+            (actorData is Map
+                ? actorData['username']?.toString() ??
+                      actorData['sender']?.toString() ??
+                      actorData['sender_username']?.toString() ??
+                      actorData['sender_name']?.toString()
+                : null) ??
+            (metaData is Map
+                ? metaData['sender_username']?.toString() ??
+                      metaData['username']?.toString() ??
+                      metaData['sender']?.toString()
+                : null) ??
             data['username']?.toString() ??
             data['sender']?.toString() ??
             data['sender_name']?.toString();
 
-        if ((userId != null && userId.isNotEmpty) || (senderUsername != null && senderUsername.isNotEmpty)) {
+        if ((userId != null && userId.isNotEmpty) ||
+            (senderUsername != null && senderUsername.isNotEmpty)) {
           return PublicProfileScreen(userId: userId, username: senderUsername);
         } else {
           debugPrint('❌ Invalid sender_id/username for type: $type');
@@ -251,29 +298,36 @@ class NotificationRouter {
           initialIndex: 0,
           followerCount: userProvider.followers_count ?? '0',
           followingCount: userProvider.following_count ?? '0',
-          chaseList: userProvider.chase_list,
-          rechaseList: userProvider.rechase_list,
         );
       } else if (type == 'new_message' ||
           type == 'new_group_added' ||
           type == 'group_admin_promote') {
-        final meta = data['meta'] is Map ? data['meta'] as Map<String, dynamic> : null;
+        final meta = data['meta'] is Map
+            ? data['meta'] as Map<String, dynamic>
+            : null;
         final chatId = _parseToInt(data['chat_id'] ?? meta?['chat_id']);
-        final groupName = (data['group_name'] ?? meta?['group_name'])?.toString() ?? '';
+        final groupName =
+            (data['group_name'] ?? meta?['group_name'])?.toString() ?? '';
         final senderId = _parseToInt(data['sender_id'] ?? meta?['sender_id']);
-        final memberName = (data['sender'] ?? meta?['sender'] ?? 'Chat').toString();
-        final username = (data['sender_username'] ?? data['username'] ?? meta?['sender_username'] ?? meta?['username'])?.toString();
-        final rawProfileUrl = (data['sender_profile_image'] ?? data['profile_image'])?.toString();
-        final profileUrl = (rawProfileUrl == 'null' || rawProfileUrl == '') ? null : rawProfileUrl;
+        final memberName = (data['sender'] ?? meta?['sender'] ?? 'Chat')
+            .toString();
+        final username =
+            (data['sender_username'] ??
+                    data['username'] ??
+                    meta?['sender_username'] ??
+                    meta?['username'])
+                ?.toString();
+        final rawProfileUrl =
+            (data['sender_profile_image'] ?? data['profile_image'])?.toString();
+        final profileUrl = (rawProfileUrl == 'null' || rawProfileUrl == '')
+            ? null
+            : rawProfileUrl;
 
         if (chatId > 0) {
           if (groupName.isNotEmpty) {
             return ChangeNotifierProvider(
               create: (_) => GroupChatProvider(),
-              child: GroupChatScreen(
-                groupName: groupName,
-                chatId: chatId,
-              ),
+              child: GroupChatScreen(groupName: groupName, chatId: chatId),
             );
           } else {
             return ChangeNotifierProvider(
@@ -314,14 +368,18 @@ class NotificationRouter {
       if (!_bypassDuplicateCheck) {
         final isProcessed = await _isNotificationAlreadyProcessed(msgId);
         if (isProcessed) {
-          debugPrint('📬 NotificationRouter: Notification $msgId was already processed. Skipping handling.');
+          debugPrint(
+            '📬 NotificationRouter: Notification $msgId was already processed. Skipping handling.',
+          );
           _pendingNotification = null;
           _hasNavigated = false;
           return;
         }
       }
       await _markNotificationAsProcessed(msgId);
-      debugPrint('📬 NotificationRouter: Persisted processed notification ID: $msgId');
+      debugPrint(
+        '📬 NotificationRouter: Persisted processed notification ID: $msgId',
+      );
     }
 
     await Future.delayed(const Duration(milliseconds: 600));
@@ -345,7 +403,9 @@ class NotificationRouter {
       notificationData = Map<String, dynamic>.from(payloadMap['notification']);
     } else if (payloadMap['notification'] is String) {
       try {
-        notificationData = jsonDecode(payloadMap['notification'] as String) as Map<String, dynamic>;
+        notificationData =
+            jsonDecode(payloadMap['notification'] as String)
+                as Map<String, dynamic>;
       } catch (_) {}
     } else {
       notificationData = payloadMap;
@@ -363,9 +423,13 @@ class NotificationRouter {
           type == 'comment' ||
           type == 'commetnt' ||
           type == 'vote' ||
-          type == 'reply') {
+          type == 'reply' ||
+          type == 'new_post') {
         _navigateToPost(context, data);
-      } else if (_pendingActionId == 'view_profile_action' || type == 'follow' || type == 'friend_request' || type == 'friend_requests') {
+      } else if (_pendingActionId == 'view_profile_action' ||
+          type == 'follow' ||
+          type == 'friend_request' ||
+          type == 'friend_requests') {
         _navigateToProfile(context, data);
       } else if (type == 'follow_group') {
         _navigateToUserChase(context);
@@ -392,22 +456,31 @@ class NotificationRouter {
           initialIndex: 0,
           followerCount: userProvider.followers_count ?? '0',
           followingCount: userProvider.following_count ?? '0',
-          chaseList: userProvider.chase_list,
-          rechaseList: userProvider.rechase_list,
         ),
       ),
     );
   }
 
   void _navigateToChat(BuildContext context, Map<String, dynamic> data) {
-    final meta = data['meta'] is Map ? data['meta'] as Map<String, dynamic> : null;
+    final meta = data['meta'] is Map
+        ? data['meta'] as Map<String, dynamic>
+        : null;
     final chatId = _parseToInt(data['chat_id'] ?? meta?['chat_id']);
-    final groupName = (data['group_name'] ?? meta?['group_name'])?.toString() ?? '';
+    final groupName =
+        (data['group_name'] ?? meta?['group_name'])?.toString() ?? '';
     final senderId = _parseToInt(data['sender_id'] ?? meta?['sender_id']);
     final memberName = (data['sender'] ?? meta?['sender'] ?? 'Chat').toString();
-    final username = (data['sender_username'] ?? data['username'] ?? meta?['sender_username'] ?? meta?['username'])?.toString();
-    final rawProfileUrl = (data['sender_profile_image'] ?? data['profile_image'])?.toString();
-    final profileUrl = (rawProfileUrl == 'null' || rawProfileUrl == '') ? null : rawProfileUrl;
+    final username =
+        (data['sender_username'] ??
+                data['username'] ??
+                meta?['sender_username'] ??
+                meta?['username'])
+            ?.toString();
+    final rawProfileUrl =
+        (data['sender_profile_image'] ?? data['profile_image'])?.toString();
+    final profileUrl = (rawProfileUrl == 'null' || rawProfileUrl == '')
+        ? null
+        : rawProfileUrl;
 
     if (chatId > 0) {
       if (groupName.isNotEmpty) {
@@ -415,10 +488,7 @@ class NotificationRouter {
           MaterialPageRoute(
             builder: (_) => ChangeNotifierProvider(
               create: (_) => GroupChatProvider(),
-              child: GroupChatScreen(
-                groupName: groupName,
-                chatId: chatId,
-              ),
+              child: GroupChatScreen(groupName: groupName, chatId: chatId),
             ),
           ),
         );
@@ -462,13 +532,23 @@ class NotificationRouter {
     debugPrint('   Data keys: ${data.keys.toList()}');
 
     if (postId != null && postId.isNotEmpty && postId != '0') {
-      if (username.isEmpty) {
-        debugPrint('⚠️ NotificationRouter: username is empty, falling back to notifications tab');
+      final String type = (data['type'] ?? '').toString().toLowerCase().trim();
+      final String postSender = (type == 'new_post')
+          ? (data['sender']?.toString() ?? '')
+          : '';
+      final String postUsername = postSender.isNotEmpty ? postSender : username;
+      if (postUsername.isEmpty) {
+        debugPrint(
+          '⚠️ NotificationRouter: username is empty, falling back to notifications tab',
+        );
         _navigateToNotificationsTab(context);
         return;
       }
       Navigator.of(context).push(
-        MaterialPageRoute(builder: (_) => SinglePostDetails(postId: postId,  username: username,)),
+        MaterialPageRoute(
+          builder: (_) =>
+              SinglePostDetails(postId: postId, username: postUsername),
+        ),
       );
     } else {
       _navigateToNotificationsTab(context);
@@ -482,7 +562,7 @@ class NotificationRouter {
         actorData = jsonDecode(actorData);
       } catch (_) {}
     }
-    
+
     dynamic metaData = data['meta'];
     if (metaData is String && metaData.isNotEmpty) {
       try {
@@ -490,29 +570,47 @@ class NotificationRouter {
       } catch (_) {}
     }
 
-    final String? userId = data['sender_id']?.toString() ??
+    final String? userId =
+        data['sender_id']?.toString() ??
         data['sender_uuid']?.toString() ??
-        (actorData is Map ? actorData['user_id']?.toString() ?? actorData['id']?.toString() ?? actorData['user_uuid']?.toString() : null) ??
+        (actorData is Map
+            ? actorData['user_id']?.toString() ??
+                  actorData['id']?.toString() ??
+                  actorData['user_uuid']?.toString()
+            : null) ??
         (metaData is Map ? metaData['sender_id']?.toString() : null) ??
         data['user_id']?.toString() ??
         data['userId']?.toString();
 
-    final String? senderUsername = data['sender_username']?.toString() ??
-        (actorData is Map ? actorData['username']?.toString() ?? actorData['sender']?.toString() ?? actorData['sender_username']?.toString() ?? actorData['sender_name']?.toString() : null) ??
-        (metaData is Map ? metaData['sender_username']?.toString() ?? metaData['username']?.toString() ?? metaData['sender']?.toString() : null) ??
+    final String? senderUsername =
+        data['sender_username']?.toString() ??
+        (actorData is Map
+            ? actorData['username']?.toString() ??
+                  actorData['sender']?.toString() ??
+                  actorData['sender_username']?.toString() ??
+                  actorData['sender_name']?.toString()
+            : null) ??
+        (metaData is Map
+            ? metaData['sender_username']?.toString() ??
+                  metaData['username']?.toString() ??
+                  metaData['sender']?.toString()
+            : null) ??
         data['username']?.toString() ??
         data['sender']?.toString() ??
         data['sender_name']?.toString();
 
-    if ((userId != null && userId.isNotEmpty) || (senderUsername != null && senderUsername.isNotEmpty)) {
-      Navigator.of(
-        context,
-      ).push(MaterialPageRoute(builder: (_) => PublicProfileScreen(userId: userId, username: senderUsername)));
+    if ((userId != null && userId.isNotEmpty) ||
+        (senderUsername != null && senderUsername.isNotEmpty)) {
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) =>
+              PublicProfileScreen(userId: userId, username: senderUsername),
+        ),
+      );
     } else {
       _navigateToNotificationsTab(context);
     }
   }
-
 
   void _navigateToNotificationsTab(BuildContext context) {
     debugPrint('🔔 Navigating to notifications tab (fallback)');
@@ -527,7 +625,9 @@ class NotificationRouter {
       final String? msgId = _getNotificationUniqueId(_pendingNotification!);
       if (msgId != null) {
         _markNotificationAsProcessed(msgId);
-        debugPrint('📬 NotificationRouter: Marked $msgId as processed in clear()');
+        debugPrint(
+          '📬 NotificationRouter: Marked $msgId as processed in clear()',
+        );
       }
     }
     _pendingNotification = null;

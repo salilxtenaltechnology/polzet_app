@@ -52,6 +52,8 @@ class UserProvider with ChangeNotifier {
   int? image_post_count;
   int? text_post_count;
   Map<String, int>? counts;
+  int? cachedChaseCount;
+  int? cachedRechaseCount;
 
   // ─── Chase / Rechase Lists ────────────────────────────────────
   List<Map<String, dynamic>> chase_list = [];
@@ -397,6 +399,8 @@ class UserProvider with ChangeNotifier {
     image_post_count = 0;
     text_post_count = 0;
     counts = null;
+    cachedChaseCount = null;
+    cachedRechaseCount = null;
     chase_list = [];
     rechase_list = [];
     cachedThingsPostsMap.clear();

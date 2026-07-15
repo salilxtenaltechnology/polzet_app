@@ -1,4 +1,4 @@
- // ignore_for_file: deprecated_member_use
+// ignore_for_file: deprecated_member_use
 
 import 'dart:async';
 import 'dart:io';
@@ -110,7 +110,9 @@ class _OtpVerifyScreenState extends State<OtpVerifyScreen> with UtilityMixin {
                   ? Theme.of(context).colorScheme.error
                   : _controllers[index].text.isNotEmpty
                   ? Theme.of(context).colorScheme.onPrimary.withOpacity(0.7)
-                  : (isDarkMode ? Theme.of(context).colorScheme.outline :  const Color(0xFFDDDDDD)),
+                  : (isDarkMode
+                        ? Theme.of(context).colorScheme.outline
+                        : const Color(0xFFDDDDDD)),
               width: 1,
             ),
           ),
@@ -128,79 +130,32 @@ class _OtpVerifyScreenState extends State<OtpVerifyScreen> with UtilityMixin {
     );
   }
 
- Future<void> _mobileSendOtp() async {
-  if (_isResending) return; // ← guard duplicate taps
-  setState(() {
-    _isResending = true;
-    _otpError = '';
-  });
+  Future<void> _mobileSendOtp() async {
+    if (_isResending) return; // ← guard duplicate taps
+    setState(() {
+      _isResending = true;
+      _otpError = '';
+    });
 
-  bool startedFirebase = false;
+    bool startedFirebase = false;
 
-  try {
-    final String fullPhoneNumber = '${widget.countryCode}${widget.phoneNumber}';
+    try {
+      final String fullPhoneNumber =
+          '${widget.countryCode}${widget.phoneNumber}';
 
-    // ── If we already have a resend token, skip API and go straight to Firebase
-    if (_resendToken != null) {
-      debugPrint('📱 Resending via Firebase forceResendingToken: $_resendToken');
-      startedFirebase = true;
-      await FirebaseAuth.instance.verifyPhoneNumber(
-        phoneNumber: fullPhoneNumber,
-        forceResendingToken: _resendToken, // ← key: reuses session, avoids rate limit
-        verificationCompleted: (PhoneAuthCredential credential) {
-          debugPrint('📱 verificationCompleted');
-        },
-        verificationFailed: (FirebaseAuthException e) {
-          debugPrint('📱 verificationFailed: ${e.code} - ${e.message}');
-          if (mounted) {
-            setState(() {
-              _isResending = false;
-              _otpError = e.message ?? 'Firebase verification failed';
-            });
-          }
-        },
-        codeSent: (String verificationId, int? resendToken) {
-          debugPrint('📱 codeSent: id=$verificationId, token=$resendToken');
-          if (mounted) {
-            setState(() {
-              _isResending = false;
-              _verificationId = verificationId;
-              _resendToken = resendToken; // ← update for next resend
-              _secondsRemaining = 60;
-            });
-            _startTimer();
-          }
-        },
-        codeAutoRetrievalTimeout: (String verificationId) {
-          debugPrint('📱 codeAutoRetrievalTimeout');
-        },
-      );
-      return; // ← skip API call entirely
-    }
-
-    // ── First time: call your API (no resend token yet)
-    final result = await ApiService().sendMobileOtp(
-      phoneNumber: widget.phoneNumber!,
-      countryCode: widget.countryCode!,
-    );
-
-    if (!mounted) return;
-
-    final success = result['success'] == true || result['status'] == 'success';
-    if (success) {
-      final data = result['data'] ?? {};
-      final String resMessage = (result['message'] ?? '').toString().toLowerCase().trim();
-      final bool requiresFirebase = data['requires_firebase'] == true ||
-          resMessage.contains('firebase') ||
-          resMessage.contains('use firebase client sdk to send otp');
-
-      if (requiresFirebase) {
+      // ── If we already have a resend token, skip API and go straight to Firebase
+      if (_resendToken != null) {
+        debugPrint(
+          '📱 Resending via Firebase forceResendingToken: $_resendToken',
+        );
         startedFirebase = true;
-        debugPrint('📱 First send via Firebase for $fullPhoneNumber');
         await FirebaseAuth.instance.verifyPhoneNumber(
           phoneNumber: fullPhoneNumber,
-          forceResendingToken: null, // ← first time, no token
-          verificationCompleted: (PhoneAuthCredential credential) {},
+          forceResendingToken:
+              _resendToken, // ← key: reuses session, avoids rate limit
+          verificationCompleted: (PhoneAuthCredential credential) {
+            debugPrint('📱 verificationCompleted');
+          },
           verificationFailed: (FirebaseAuthException e) {
             debugPrint('📱 verificationFailed: ${e.code} - ${e.message}');
             if (mounted) {
@@ -216,34 +171,90 @@ class _OtpVerifyScreenState extends State<OtpVerifyScreen> with UtilityMixin {
               setState(() {
                 _isResending = false;
                 _verificationId = verificationId;
-                _resendToken = resendToken; // ← save for future resends
+                _resendToken = resendToken; // ← update for next resend
                 _secondsRemaining = 60;
               });
               _startTimer();
             }
           },
-          codeAutoRetrievalTimeout: (String verificationId) {},
+          codeAutoRetrievalTimeout: (String verificationId) {
+            debugPrint('📱 codeAutoRetrievalTimeout');
+          },
         );
-      } else {
-        setState(() => _secondsRemaining = 60);
-        _startTimer();
+        return; // ← skip API call entirely
       }
-    } else {
-      setState(() => _otpError = result['message'] ?? 'Failed to send OTP');
-    }
-  } on DioException catch (e) {
-    final msg = e.response?.data is Map
-        ? e.response?.data['message']
-        : e.message;
-    setState(() => _otpError = msg ?? 'Failed to resend OTP');
-  } catch (e) {
-    setState(() => _otpError = 'Something went wrong. Please try again.');
-  } finally {
-    if (!startedFirebase) {
-      setState(() => _isResending = false);
+
+      // ── First time: call your API (no resend token yet)
+      final result = await ApiService().sendMobileOtp(
+        phoneNumber: widget.phoneNumber!,
+        countryCode: widget.countryCode!,
+      );
+
+      if (!mounted) return;
+
+      final success =
+          result['success'] == true || result['status'] == 'success';
+      if (success) {
+        final data = result['data'] ?? {};
+        final String resMessage = (result['message'] ?? '')
+            .toString()
+            .toLowerCase()
+            .trim();
+        final bool requiresFirebase =
+            data['requires_firebase'] == true ||
+            resMessage.contains('firebase') ||
+            resMessage.contains('use firebase client sdk to send otp');
+
+        if (requiresFirebase) {
+          startedFirebase = true;
+          debugPrint('📱 First send via Firebase for $fullPhoneNumber');
+          await FirebaseAuth.instance.verifyPhoneNumber(
+            phoneNumber: fullPhoneNumber,
+            forceResendingToken: null, // ← first time, no token
+            verificationCompleted: (PhoneAuthCredential credential) {},
+            verificationFailed: (FirebaseAuthException e) {
+              debugPrint('📱 verificationFailed: ${e.code} - ${e.message}');
+              if (mounted) {
+                setState(() {
+                  _isResending = false;
+                  _otpError = e.message ?? 'Firebase verification failed';
+                });
+              }
+            },
+            codeSent: (String verificationId, int? resendToken) {
+              debugPrint('📱 codeSent: id=$verificationId, token=$resendToken');
+              if (mounted) {
+                setState(() {
+                  _isResending = false;
+                  _verificationId = verificationId;
+                  _resendToken = resendToken; // ← save for future resends
+                  _secondsRemaining = 60;
+                });
+                _startTimer();
+              }
+            },
+            codeAutoRetrievalTimeout: (String verificationId) {},
+          );
+        } else {
+          setState(() => _secondsRemaining = 60);
+          _startTimer();
+        }
+      } else {
+        setState(() => _otpError = result['message'] ?? 'Failed to send OTP');
+      }
+    } on DioException catch (e) {
+      final msg = e.response?.data is Map
+          ? e.response?.data['message']
+          : e.message;
+      setState(() => _otpError = msg ?? 'Failed to resend OTP');
+    } catch (e) {
+      setState(() => _otpError = 'Something went wrong. Please try again.');
+    } finally {
+      if (!startedFirebase) {
+        setState(() => _isResending = false);
+      }
     }
   }
-}
 
   Future<void> _emailSendOtp() async {
     setState(() => _isResending = true);
@@ -378,21 +389,24 @@ class _OtpVerifyScreenState extends State<OtpVerifyScreen> with UtilityMixin {
 
       if (widget.isMobile) {
         if (_verificationId != null) {
-          debugPrint('Signing in to Firebase with verification ID: $_verificationId and SMS code: $_otp');
+          debugPrint(
+            'Signing in to Firebase with verification ID: $_verificationId and SMS code: $_otp',
+          );
           final AuthCredential credential = PhoneAuthProvider.credential(
             verificationId: _verificationId!,
             smsCode: _otp,
           );
-          final UserCredential userCredential = await FirebaseAuth.instance.signInWithCredential(credential);
+          final UserCredential userCredential = await FirebaseAuth.instance
+              .signInWithCredential(credential);
           debugPrint('Firebase sign in success: ${userCredential.user?.uid}');
           final String? idToken = await userCredential.user?.getIdToken();
-          debugPrint('Firebase ID token fetched: ${idToken != null ? "Success" : "Failed"}');
+          debugPrint(
+            'Firebase ID token fetched: ${idToken != null ? "Success" : "Failed"}',
+          );
           if (idToken == null) {
             throw Exception('Failed to retrieve Firebase ID token');
           }
-          result = await ApiService().verifyMobileOtp(
-            idToken: idToken,
-          );
+          result = await ApiService().verifyMobileOtp(idToken: idToken);
         } else {
           result = await ApiService().verifyMobileOtp(
             phoneNumber: widget.phoneNumber!,
@@ -409,7 +423,8 @@ class _OtpVerifyScreenState extends State<OtpVerifyScreen> with UtilityMixin {
 
       if (!mounted) return;
 
-      final success = result['success'] == true || result['status'] == 'success';
+      final success =
+          result['success'] == true || result['status'] == 'success';
 
       if (success) {
         _resendTimer?.cancel();
@@ -425,7 +440,10 @@ class _OtpVerifyScreenState extends State<OtpVerifyScreen> with UtilityMixin {
           if (accessToken != null && refreshToken != null) {
             await SharedPrefService.setToken(accessToken);
             await SharedPrefService.setRefreshToken(refreshToken);
-            await SharedPrefService.setString('username', user['username'] ?? '');
+            await SharedPrefService.setString(
+              'username',
+              user['username'] ?? '',
+            );
             await SharedPrefService.setString('email', user['email'] ?? '');
 
             await NotificationService().initialize();
@@ -437,8 +455,10 @@ class _OtpVerifyScreenState extends State<OtpVerifyScreen> with UtilityMixin {
               await FcmApiService.registerFcmToken(fcmToken, platform);
             }
 
-            final dynamic isNewUserRaw = data['is_new_user'] ?? user['is_new_user'];
-            final bool isNewUser = isNewUserRaw == true || isNewUserRaw == 'true';
+            final dynamic isNewUserRaw =
+                data['is_new_user'] ?? user['is_new_user'];
+            final bool isNewUser =
+                isNewUserRaw == true || isNewUserRaw == 'true';
 
             if (mounted) {
               final Widget destination = isNewUser
@@ -501,9 +521,11 @@ class _OtpVerifyScreenState extends State<OtpVerifyScreen> with UtilityMixin {
           : (data is Map ? data['message'] : e.message) ?? 'Invalid OTP';
       setState(() => _otpError = msg);
     } catch (e) {
-      setState(() => _otpError = e.toString().contains('Exception:') 
-          ? e.toString().replaceAll('Exception:', '').trim() 
-          : 'Something went wrong. Please try again.');
+      setState(
+        () => _otpError = e.toString().contains('Exception:')
+            ? e.toString().replaceAll('Exception:', '').trim()
+            : 'Something went wrong. Please try again.',
+      );
     } finally {
       setState(() => _isVerifying = false);
     }

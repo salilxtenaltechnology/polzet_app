@@ -4,6 +4,7 @@ import 'package:polzet_app/core/constants/feather_icons_compat.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:provider/provider.dart';
 
 import '../../../../api/api_service.dart';
 import '../../../../core/constants/app_radius.dart';
@@ -17,6 +18,8 @@ import '../../../../widgets/base64/image_convert.dart';
 import 'package:polzet_app/api/api_config.dart';
 import '../../../../widgets/button/chase/toggle_chase_button.dart';
 import '../../../../widgets/tabbar/indicatore_animation.dart';
+import '../../../../widgets/loader.dart';
+import '../../../../provider/user_provider.dart';
 import '../public/public_profile_screen.dart';
 
 class UserChase extends StatefulWidget {
@@ -24,8 +27,6 @@ class UserChase extends StatefulWidget {
   final int initialIndex;
   final String followerCount;
   final String followingCount;
-  final List<Map<String, dynamic>> chaseList;
-  final List<Map<String, dynamic>> rechaseList;
 
   const UserChase({
     super.key,
@@ -33,8 +34,6 @@ class UserChase extends StatefulWidget {
     required this.initialIndex,
     required this.followerCount,
     required this.followingCount,
-    required this.chaseList,
-    required this.rechaseList,
   });
 
   @override
@@ -49,20 +48,23 @@ class _UserChaseState extends State<UserChase>
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
 
-  List<Map<String, dynamic>> _allFollowers = [];
-  List<Map<String, dynamic>> _allFollowing = [];
+  final ScrollController _chaseScrollController = ScrollController();
+  final ScrollController _rechaseScrollController = ScrollController();
+
+  final List<Map<String, dynamic>> _allFollowers = [];
+  final List<Map<String, dynamic>> _allFollowing = [];
   List<Map<String, dynamic>> _filteredFollowers = [];
   List<Map<String, dynamic>> _filteredFollowing = [];
 
-  // int _followerCount = 0;
-  // int _followingCount = 0;
-
+  bool _isLoadingChase = false;
+  bool _isLoadingRechase = false;
+  int _chasePage = 1;
+  int _rechasePage = 1;
+  bool _chaseHasMore = true;
+  bool _rechaseHasMore = true;
   @override
   void initState() {
     super.initState();
-
-    // _followerCount = int.tryParse(widget.followerCount) ?? 0;
-    // _followingCount = int.tryParse(widget.followingCount) ?? 0;
 
     _tabController = TabController(
       length: 2,
@@ -70,13 +72,143 @@ class _UserChaseState extends State<UserChase>
       initialIndex: widget.initialIndex,
     );
 
-    _allFollowers = widget.chaseList;
-    _allFollowing = widget.rechaseList;
-    _filteredFollowers = widget.chaseList;
-    _filteredFollowing = widget.rechaseList;
+    _chaseScrollController.addListener(_onChaseScroll);
+    _rechaseScrollController.addListener(_onRechaseScroll);
 
-    // _followerCount = _allFollowers.length;
-    // _followingCount = _allFollowing.length;
+    _fetchChasePage(1, isRefresh: true);
+    _fetchRechasePage(1, isRefresh: true);
+  }
+
+  void _onChaseScroll() {
+    if (!mounted) return;
+    if (_chaseScrollController.position.pixels >=
+            _chaseScrollController.position.maxScrollExtent * 0.8 &&
+        !_isLoadingChase &&
+        _chaseHasMore) {
+      _fetchChasePage(_chasePage + 1);
+    }
+  }
+
+  void _onRechaseScroll() {
+    if (!mounted) return;
+    if (_rechaseScrollController.position.pixels >=
+            _rechaseScrollController.position.maxScrollExtent * 0.8 &&
+        !_isLoadingRechase &&
+        _rechaseHasMore) {
+      _fetchRechasePage(_rechasePage + 1);
+    }
+  }
+
+  Future<void> _fetchChasePage(int page, {bool isRefresh = false}) async {
+    if (_isLoadingChase) return;
+    setState(() {
+      _isLoadingChase = true;
+    });
+
+    try {
+      final userProvider = Provider.of<UserProvider>(context, listen: false);
+      final myUserId = userProvider.userId ?? '';
+
+      final response = await apiService.fetchChaseList(
+        targetUserId: myUserId,
+        page: page,
+      );
+
+      if (response != null && mounted) {
+        final List<dynamic> results = response['results'] ?? [];
+        final mapped = results.map<Map<String, dynamic>>((e) {
+          final rawStatus = e['follow_status'] ?? e['followStatus'];
+          final followStatus = rawStatus != null
+              ? rawStatus.toString().toLowerCase()
+              : 'none';
+
+          return {
+            'user_id': e['id']?.toString() ?? '',
+            'username': e['username'] ?? '',
+            'first_name': e['first_name'] ?? '',
+            'last_name': e['last_name'] ?? '',
+            'avatar_url': e['profile_picture_url'],
+            'is_online': false,
+            'follow_status': followStatus,
+            'is_private': e['is_private'] == true,
+          };
+        }).toList();
+
+        setState(() {
+          if (isRefresh) {
+            _allFollowers.clear();
+          }
+          _allFollowers.addAll(mapped);
+           _chasePage = page;
+           _chaseHasMore = response['next'] != null;
+           _filterUsers(_searchController.text);
+        });
+      }
+    } catch (e) {
+      debugPrint('Error fetching chase list page $page: $e');
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoadingChase = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _fetchRechasePage(int page, {bool isRefresh = false}) async {
+    if (_isLoadingRechase) return;
+    setState(() {
+      _isLoadingRechase = true;
+    });
+
+    try {
+      final userProvider = Provider.of<UserProvider>(context, listen: false);
+      final myUserId = userProvider.userId ?? '';
+
+      final response = await apiService.fetchRechaseList(
+        targetUserId: myUserId,
+        page: page,
+      );
+
+      if (response != null && mounted) {
+        final List<dynamic> results = response['results'] ?? [];
+        final mapped = results.map<Map<String, dynamic>>((e) {
+          final rawStatus = e['follow_status'] ?? e['followStatus'];
+          final followStatus = rawStatus != null
+              ? rawStatus.toString().toLowerCase()
+              : 'none';
+
+          return {
+            'user_id': e['id']?.toString() ?? '',
+            'username': e['username'] ?? '',
+            'first_name': e['first_name'] ?? '',
+            'last_name': e['last_name'] ?? '',
+            'avatar_url': e['profile_picture_url'],
+            'is_online': false,
+            'follow_status': followStatus,
+            'is_private': e['is_private'] == true,
+          };
+        }).toList();
+
+        setState(() {
+          if (isRefresh) {
+            _allFollowing.clear();
+          }
+          _allFollowing.addAll(mapped);
+           _rechasePage = page;
+           _rechaseHasMore = response['next'] != null;
+           _filterUsers(_searchController.text);
+        });
+      }
+    } catch (e) {
+      debugPrint('Error fetching rechase list page $page: $e');
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoadingRechase = false;
+        });
+      }
+    }
   }
 
   void _filterUsers(String query) {
@@ -118,87 +250,98 @@ class _UserChaseState extends State<UserChase>
 
   @override
   void dispose() {
+    _chaseScrollController.dispose();
+    _rechaseScrollController.dispose();
     _tabController.dispose();
     _searchController.dispose();
     super.dispose();
   }
 
- 
-
   Widget _buildEmptyState({
     required String image,
     required String title,
     required String message,
+    required Future<void> Function() onRefresh,
   }) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     final txt = AppTextColors.of(context);
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        return SizedBox(
-          height: constraints.maxHeight,
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
+    return RefreshIndicator(
+      onRefresh: onRefresh,
+      color: Theme.of(context).colorScheme.primary,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          return ListView(
+            physics: const AlwaysScrollableScrollPhysics(),
             children: [
-              Transform.translate(
-                offset: const Offset(0, -60),
+              SizedBox(
+                height: constraints.maxHeight,
                 child: Column(
-                  mainAxisSize: MainAxisSize.min,
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    isDarkMode
-                        ? const SizedBox()
-                        : Padding(
-                            padding: const EdgeInsets.only(bottom: 12),
-                            child: Image.asset(
-                              image,
-                              height: 0.22.sh,
-                              width: 0.22.sh,
-                              fit: BoxFit.contain,
+                    Transform.translate(
+                      offset: const Offset(0, -60),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          isDarkMode
+                              ? const SizedBox()
+                              : Padding(
+                                  padding: const EdgeInsets.only(bottom: 12),
+                                  child: Image.asset(
+                                    image,
+                                    height: 0.22.sh,
+                                    width: 0.22.sh,
+                                    fit: BoxFit.contain,
+                                  ),
+                                ),
+
+                          Text(
+                            title,
+                            textAlign: TextAlign.center,
+                            style: AppTextStyles.sectionHeading.copyWith(
+                              fontSize: 18.5,
+                              color: txt.title,
+                              fontWeight: FontWeight.w600,
+                              height: 1.4,
                             ),
                           ),
-
-                    Text(
-                      title,
-                      textAlign: TextAlign.center,
-                      style: AppTextStyles.sectionHeading.copyWith(
-                        fontSize: 18.5,
-                        color: txt.title,
-                        fontWeight: FontWeight.w600,
-                        height: 1.4,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 32),
-                      child: Text(
-                        message,
-                        textAlign: TextAlign.center,
-                        style: AppTextStyles.bodyText.copyWith(
-                          fontSize: 13,
-                          color: txt.muted,
-                          height: 1.4,
-                        ),
+                          const SizedBox(height: 8),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 32),
+                            child: Text(
+                              message,
+                              textAlign: TextAlign.center,
+                              style: AppTextStyles.bodyText.copyWith(
+                                fontSize: 13,
+                                color: txt.muted,
+                                height: 1.4,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ],
                 ),
               ),
             ],
-          ),
-        );
-      },
+          );
+        },
+      ),
     );
   }
 
   Widget _buildUserListItem({required Map<String, dynamic> user}) {
     final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
     final txt = AppTextColors.of(context);
+    final userProvider = Provider.of<UserProvider>(context, listen: false);
 
     final profilePic = user['avatar_url'] as String?;
     final firstName = user['first_name'] ?? 'Polzet';
     final lastName = user['last_name'] ?? 'User';
     final username = user['username'] as String? ?? '';
     final firstLetter = username.isNotEmpty ? username[0].toUpperCase() : '?';
-    final userId = user['uuid'] as String;
+    final userId = user['user_id']?.toString() ?? '';
     final followStatus = user['follow_status'] as String? ?? '';
     final isPrivate = user['is_private'] == true;
 
@@ -208,7 +351,7 @@ class _UserChaseState extends State<UserChase>
         PublicProfileScreen(userId: userId, username: username),
       ),
       child: Padding(
-        padding: EdgeInsetsGeometry.symmetric(horizontal: 10.w, vertical: 10),
+        padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 10),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.start,
           crossAxisAlignment: CrossAxisAlignment.center,
@@ -241,10 +384,9 @@ class _UserChaseState extends State<UserChase>
                             style: TextStyle(
                               fontSize: 17,
                               fontWeight: FontWeight.w500,
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .onPrimary
-                                  .withOpacity(0.8),
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.onPrimary.withOpacity(0.8),
                             ),
                           ),
                         ),
@@ -253,8 +395,8 @@ class _UserChaseState extends State<UserChase>
                     final imageUrl = profilePic.startsWith('http')
                         ? profilePic
                         : (profilePic.startsWith('/')
-                            ? '${ApiConfig.baseUrlImage}$profilePic'
-                            : '${ApiConfig.baseUrlImage}/$profilePic');
+                              ? '${ApiConfig.baseUrlImage}$profilePic'
+                              : '${ApiConfig.baseUrlImage}/$profilePic');
                     return CachedNetworkImage(
                       imageUrl: imageUrl,
                       fit: BoxFit.cover,
@@ -264,10 +406,9 @@ class _UserChaseState extends State<UserChase>
                           style: TextStyle(
                             fontSize: 17,
                             fontWeight: FontWeight.w500,
-                            color: Theme.of(context)
-                                .colorScheme
-                                .onPrimary
-                                .withOpacity(0.8),
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onPrimary.withOpacity(0.8),
                           ),
                         ),
                       ),
@@ -279,10 +420,9 @@ class _UserChaseState extends State<UserChase>
                       style: TextStyle(
                         fontSize: 17,
                         fontWeight: FontWeight.w500,
-                        color: Theme.of(context)
-                            .colorScheme
-                            .onPrimary
-                            .withOpacity(0.8),
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.onPrimary.withOpacity(0.8),
                       ),
                     ),
                   );
@@ -342,15 +482,61 @@ class _UserChaseState extends State<UserChase>
                 ],
               ),
             ),
-            ToggleChaseButton(
-              username: username,
-              userId: userId,
-              followStatus: followStatus,
-              apiService: apiService,
-              isPrivate: isPrivate,
-            ),
+            if (userProvider.userId?.toString() != userId)
+              ToggleChaseButton(
+                username: username,
+                userId: userId,
+                followStatus: followStatus,
+                apiService: apiService,
+                isPrivate: isPrivate,
+                onToggle: () {
+                  userProvider.loadUserDataSilently();
+                  _fetchChasePage(1, isRefresh: true);
+                  _fetchRechasePage(1, isRefresh: true);
+                },
+              ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildUserList(
+    List<Map<String, dynamic>> users,
+    bool isLoading,
+    ScrollController scrollController,
+    Future<void> Function() onRefresh,
+    Widget emptyState,
+  ) {
+    if (isLoading && users.isEmpty) {
+      return Center(
+        child: Loader(color: Theme.of(context).colorScheme.primary),
+      );
+    }
+
+    if (users.isEmpty) {
+      return emptyState;
+    }
+
+    return RefreshIndicator(
+      onRefresh: onRefresh,
+      color: Theme.of(context).colorScheme.primary,
+      child: ListView.builder(
+        controller: scrollController,
+        physics: const AlwaysScrollableScrollPhysics(),
+        itemCount: users.length + (isLoading ? 1 : 0),
+        itemBuilder: (context, index) {
+          if (index == users.length) {
+            return Padding(
+              padding: EdgeInsets.symmetric(vertical: 10.h),
+              child: Center(
+                child: Loader(color: Theme.of(context).colorScheme.primary),
+              ),
+            );
+          }
+          final user = users[index];
+          return _buildUserListItem(user: user);
+        },
       ),
     );
   }
@@ -386,16 +572,8 @@ class _UserChaseState extends State<UserChase>
               dividerColor: Colors.transparent,
               unselectedLabelColor: Theme.of(context).colorScheme.onBackground,
               tabs: [
-                Tab(
-                  text:
-                      // '$_followerCount  ${AppLocalizations.of(context)!.vibe}',
-                      AppLocalizations.of(context)!.vibe,
-                ),
-                Tab(
-                  text:
-                      // '$_followingCount ${AppLocalizations.of(context)!.revibe}',
-                      AppLocalizations.of(context)!.revibe,
-                ),
+                Tab(text: AppLocalizations.of(context)!.vibe),
+                Tab(text: AppLocalizations.of(context)!.revibe),
               ],
             ),
           ),
@@ -460,46 +638,48 @@ class _UserChaseState extends State<UserChase>
               controller: _tabController,
               children: [
                 // ── Followers (Chase) tab ──
-                _filteredFollowers.isEmpty
-                    ? _buildEmptyState(
-                        image: Assets.images.noChase.path,
-                        title: _searchQuery.isEmpty
-                            ? AppLocalizations.of(context)!.nochaseyet
-                            : AppLocalizations.of(context)!.nousersfound,
-                        message: _searchQuery.isEmpty
-                            ? AppLocalizations.of(
-                                context,
-                              )!.whenpeoplechasechaseyoutheywillappearhere
-                            : AppLocalizations.of(
-                                context,
-                              )!.trysearchingwithadifferent,
-                      )
-                    : ListView.builder(
-                        itemCount: _filteredFollowers.length,
-                        itemBuilder: (context, index) =>
-                            _buildUserListItem(user: _filteredFollowers[index]),
-                      ),
+                _buildUserList(
+                  _filteredFollowers,
+                  _isLoadingChase,
+                  _chaseScrollController,
+                  () => _fetchChasePage(1, isRefresh: true),
+                  _buildEmptyState(
+                    image: Assets.images.noChase.path,
+                    title: _searchQuery.isEmpty
+                        ? AppLocalizations.of(context)!.nochaseyet
+                        : AppLocalizations.of(context)!.nousersfound,
+                    message: _searchQuery.isEmpty
+                        ? AppLocalizations.of(
+                            context,
+                          )!.whenpeoplechasechaseyoutheywillappearhere
+                        : AppLocalizations.of(
+                            context,
+                          )!.trysearchingwithadifferent,
+                    onRefresh: () => _fetchChasePage(1, isRefresh: true),
+                  ),
+                ),
 
                 // ── Following (Rechase) tab ──
-                _filteredFollowing.isEmpty
-                    ? _buildEmptyState(
-                        image: Assets.images.noRechase.path,
-                        title: _searchQuery.isEmpty
-                            ? AppLocalizations.of(context)!.norechaseyet
-                            : AppLocalizations.of(context)!.nousersfound,
-                        message: _searchQuery.isEmpty
-                            ? AppLocalizations.of(
-                                context,
-                              )!.stayactiveandsharepollstobuildyourcommunity
-                            : AppLocalizations.of(
-                                context,
-                              )!.trysearchingwithadifferent,
-                      )
-                    : ListView.builder(
-                        itemCount: _filteredFollowing.length,
-                        itemBuilder: (context, index) =>
-                            _buildUserListItem(user: _filteredFollowing[index]),
-                      ),
+                _buildUserList(
+                  _filteredFollowing,
+                  _isLoadingRechase,
+                  _rechaseScrollController,
+                  () => _fetchRechasePage(1, isRefresh: true),
+                  _buildEmptyState(
+                    image: Assets.images.noRechase.path,
+                    title: _searchQuery.isEmpty
+                        ? AppLocalizations.of(context)!.norechaseyet
+                        : AppLocalizations.of(context)!.nousersfound,
+                    message: _searchQuery.isEmpty
+                        ? AppLocalizations.of(
+                            context,
+                          )!.stayactiveandsharepollstobuildyourcommunity
+                        : AppLocalizations.of(
+                            context,
+                          )!.trysearchingwithadifferent,
+                    onRefresh: () => _fetchRechasePage(1, isRefresh: true),
+                  ),
+                ),
               ],
             ),
           ),

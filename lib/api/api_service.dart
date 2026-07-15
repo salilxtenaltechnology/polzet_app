@@ -710,7 +710,7 @@ class ApiService with UtilityMixin {
     required String firstName,
     required String lastName,
     required String bio,
-    required String dob,
+    String? dob,
     String? gender,
   }) async {
     try {
@@ -720,14 +720,16 @@ class ApiService with UtilityMixin {
           'first_name': firstName,
           'last_name': lastName,
           'bio': bio,
-          'dob': dob,
-          if (gender != null) 'gender': gender,
+          if (dob != null && dob.isNotEmpty) 'dob': dob,
+          if (gender != null && gender.isNotEmpty) 'gender': gender,
         },
         options: Options(headers: await _getAuthHeaders()),
       );
 
+      debugPrint('response: $response');
+
       if (response.statusCode == 200) {
-        showToast(message: 'Profile updated successfully!');
+        showToast(message: 'Profile updated!');
         return '';
       }
 
@@ -754,7 +756,7 @@ class ApiService with UtilityMixin {
       );
 
       if (response.statusCode == 200) {
-        showToast(message: 'Username updated successfully!');
+        showToast(message: 'Username updated!');
         return '';
       }
 
@@ -782,6 +784,47 @@ class ApiService with UtilityMixin {
         if (message != null && message.isNotEmpty) return message;
       }
       return _handleDioError(e, defaultMessage: 'Failed to update username');
+    }
+  }
+
+  Future<Map<String, dynamic>> requestEmailChangeOtp({
+    required String email,
+  }) async {
+    try {
+      final response = await _dio.post(
+        '${ApiConstants.baseUrl}/profile/verify-email-request',
+        data: FormData.fromMap({'email': email}),
+        options: Options(headers: await _getAuthHeaders()),
+      );
+
+      return response.data as Map<String, dynamic>;
+    } on DioException catch (e) {
+      // Handle known API error shape, fallback to generic message
+      final message = e.response?.data is Map
+          ? (e.response?.data['message'] ?? 'Something went wrong')
+          : 'Something went wrong';
+      throw Exception(message);
+    }
+  }
+  
+
+  Future<Map<String, dynamic>> confirmEmailChangeOtp({
+    required String email,
+    required String otp,
+  }) async {
+    try {
+      final response = await _dio.post(
+        '${ApiConstants.baseUrl}/profile/verify-email-confirm',
+        data: FormData.fromMap({'email': email, 'otp': otp}),
+        options: Options(headers: await _getAuthHeaders()),
+      );
+
+      return response.data as Map<String, dynamic>;
+    } on DioException catch (e) {
+      final message = e.response?.data is Map
+          ? (e.response?.data['message'] ?? 'Something went wrong')
+          : 'Something went wrong';
+      throw Exception(message);
     }
   }
 
@@ -1132,6 +1175,42 @@ class ApiService with UtilityMixin {
 
   // ==================== POSTS ====================
 
+  Future<Map<String, dynamic>> generateQuestion({required String input}) async {
+    try {
+      final response = await _dio.post(
+        '${ApiConfig.baseUrl}/trigger_ai',
+        data: {'mode': "improve_question", 'input': input},
+        options: Options(headers: await _getAuthHeaders()),
+      );
+
+      final responseData = response.data;
+      if (responseData is String) {
+        return jsonDecode(responseData) as Map<String, dynamic>;
+      }
+      return responseData as Map<String, dynamic>;
+    } on DioException catch (e) {
+      throw Exception(
+        _handleDioError(e, defaultMessage: 'Failed to improve question'),
+      );
+    }
+  }
+
+  Future<Map<String, dynamic>> generateOptions({required String input}) async {
+    try {
+      final response = await _dio.post(
+        '${ApiConfig.baseUrl}/trigger_ai',
+        data: {'mode': "generate_options", 'input': input},
+        options: Options(headers: await _getAuthHeaders()),
+      );
+
+      return response.data as Map<String, dynamic>;
+    } on DioException catch (e) {
+      throw Exception(
+        'Failed to generate options: ${e.response?.data ?? e.message}',
+      );
+    }
+  }
+
   // Battel poll
   Future<Map<String, dynamic>> createBattlePoll({
     required String description,
@@ -1257,7 +1336,9 @@ class ApiService with UtilityMixin {
         '${ApiConstants.userPosts}/$cleanUsername',
         options: Options(headers: await _getAuthHeaders()),
       );
-      final postResponse = UserPostResponse.fromJson(response.data as Map<String, dynamic>);
+      final postResponse = UserPostResponse.fromJson(
+        response.data as Map<String, dynamic>,
+      );
       return postResponse.results;
     } on DioException catch (e) {
       debugPrint('Error fetching posts: $e');
@@ -1278,7 +1359,9 @@ class ApiService with UtilityMixin {
         '${ApiConstants.userPosts}/$username',
         options: Options(headers: await _getAuthHeaders()),
       );
-      final postResponse = UserPostResponse.fromJson(response.data as Map<String, dynamic>);
+      final postResponse = UserPostResponse.fromJson(
+        response.data as Map<String, dynamic>,
+      );
       return postResponse.results;
     } on DioException catch (e) {
       debugPrint('Error fetching image posts: $e');
@@ -1350,6 +1433,7 @@ class ApiService with UtilityMixin {
     required String question,
     required List<File> pollOptions,
     required int maxOptions,
+    String votingType = 'single_choice',
     String? authToken,
     Function(double)? onProgress,
     int maxFileSizeMB = _maxFileSizeMB,
@@ -1380,7 +1464,7 @@ class ApiService with UtilityMixin {
         MapEntry('description', description),
         MapEntry('question', question),
         const MapEntry('poll_type', "image"),
-        const MapEntry('voting_type', "single_choice"),
+        MapEntry('voting_type', votingType),
         const MapEntry('max_options', "4"),
       ]);
 
@@ -1658,40 +1742,57 @@ class ApiService with UtilityMixin {
     }
   }
 
-  /// Get connections list
-  Future<Map<String, dynamic>> getConnectionsList({
-    required dynamic userId,
-    String? type,
+  /// Get public chase list for a user
+  Future<Map<String, dynamic>?> fetchChaseList({
+    required String targetUserId,
+    int page = 1,
   }) async {
     try {
       final response = await _dio.get(
-        '${ApiConstants.baseUrl}/users/$userId/connections',
-        queryParameters: type != null ? {'type': type} : null,
+        '${ApiConstants.baseUrl}/users/$targetUserId/chase',
+        queryParameters: {'page': page},
         options: Options(headers: await _getAuthHeaders()),
       );
 
       if (response.statusCode == 200) {
-        final data = response.data;
-
-        if (data is Map<String, dynamic>) {
-          return {
-            'count': data['count'] ?? 0,
-            'next': data['next'],
-            'previous': data['previous'],
-            'results': data['results'] is List
-                ? List<Map<String, dynamic>>.from(data['results'])
-                : [],
-          };
+        if (response.data is Map) {
+          return Map<String, dynamic>.from(response.data as Map);
         }
       }
-
-      return {'count': 0, 'next': null, 'previous': null, 'results': []};
+      return null;
     } on DioException catch (e) {
-      debugPrint('Error fetching connections: $e');
-      return {'count': 0, 'next': null, 'previous': null, 'results': []};
+      debugPrint('Error fetching public chase list: $e');
+      return null;
     } catch (e) {
-      debugPrint('Unexpected error fetching connections: $e');
-      return {'count': 0, 'next': null, 'previous': null, 'results': []};
+      debugPrint('Unexpected error fetching public chase list: $e');
+      return null;
+    }
+  }
+
+  /// Get public rechase list for a user
+  Future<Map<String, dynamic>?> fetchRechaseList({
+    required String targetUserId,
+    int page = 1,
+  }) async {
+    try {
+      final response = await _dio.get(
+        '${ApiConstants.baseUrl}/users/$targetUserId/rechase',
+        queryParameters: {'page': page},
+        options: Options(headers: await _getAuthHeaders()),
+      );
+
+      if (response.statusCode == 200) {
+        if (response.data is Map) {
+          return Map<String, dynamic>.from(response.data as Map);
+        }
+      }
+      return null;
+    } on DioException catch (e) {
+      debugPrint('Error fetching public rechase list: $e');
+      return null;
+    } catch (e) {
+      debugPrint('Unexpected error fetching public rechase list: $e');
+      return null;
     }
   }
 
@@ -2543,7 +2644,9 @@ class ApiService with UtilityMixin {
           final postResponse = UserPostResponse.fromJson(
             jsonData['data']['posts'] as Map<String, dynamic>,
           );
-          return postResponse.results.where((post) => post.isImagePoll).toList();
+          return postResponse.results
+              .where((post) => post.isImagePoll)
+              .toList();
         }
         throw Exception('API Error: ${jsonData['message']}');
       }
