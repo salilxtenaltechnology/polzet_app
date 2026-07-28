@@ -2490,18 +2490,20 @@ class _SinglePostDetailsState extends State<SinglePostDetails>
   }) {
     final bool isDark = Theme.of(context).brightness == Brightness.dark;
     final double percentage = option.percentage;
+      final txt = AppTextColors.of(context);
 
     return AnimatedContainer(
       duration: const Duration(milliseconds: 250),
       curve: Curves.easeInOut,
       margin: EdgeInsets.only(bottom: 10.h),
-      height: 27.h,
+    
+      
       width: double.infinity,
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF242831) : const Color(0xFFF5F6F7),
-        borderRadius: BorderRadius.circular(AppRadius.button),
+        color: isDark ?  const Color(0xFF242831).withOpacity(0.7) :Colors.white,
+        borderRadius: BorderRadius.circular(AppRadius.card),
         border: Border.all(
-          color: isDark ? const Color(0xFF30353D) : const Color(0xFFE8E8E8),
+          color: Theme.of(context).colorScheme.outline,
           width: 1,
         ),
       ),
@@ -2521,8 +2523,8 @@ class _SinglePostDetailsState extends State<SinglePostDetails>
                   child: Container(
                     decoration: BoxDecoration(
                       color: isDark
-                          ? const Color(0xFF30353D)
-                          : const Color(0xFFE8E8E8),
+                          ? const Color(0XFF2A2026).withOpacity(0.7)
+                          : const Color(0xFFFCF9F9),
                       borderRadius: BorderRadius.circular(AppRadius.button),
                     ),
                   ),
@@ -2539,11 +2541,11 @@ class _SinglePostDetailsState extends State<SinglePostDetails>
                 Expanded(
                   child: Text(
                     option.text ?? '',
-                    style: TextStyle(
-                      color: Theme.of(context).colorScheme.onBackground,
-                      fontSize: 10.5.sp,
-                      fontWeight: FontWeight.w500,
-                    ),
+                    style: AppTextStyles.subText.copyWith(
+                  color: txt.title,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w400,
+                ),
                   ),
                 ),
                 if (showPercentage)

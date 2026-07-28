@@ -25,11 +25,11 @@ import '../../../../languages/l10n/generated/app_localizations.dart';
 import '../../../../provider/user_provider.dart';
 import '../../../../widgets/appbar/common_appbar.dart';
 import '../../../../widgets/custom_text_styles.dart';
-import '../../../../widgets/dialog/custom_diolog.dart';
 import '../../../../widgets/dotted_border/dotted_border.dart';
 import '../../../../widgets/loader.dart';
 import '../../../../widgets/show_toast.dart';
 import '../../../../widgets/text_field/secondry_textfield.dart';
+import 'image_preview_crop_screen.dart';
 
 class NewAnonymousPoll extends StatefulWidget {
   const NewAnonymousPoll({super.key});
@@ -63,9 +63,9 @@ class _NewAnonymousPollState extends State<NewAnonymousPoll> {
   // Hint animation state
   int _currentHintIndex = 0;
   Timer? _hintTimer;
-  final List<String> _hintTexts = [
-    'Please enter a question',
-    'Please enter a topic',
+  List<String> get _hintTexts => [
+    AppLocalizations.of(context)!.pleaseenteraquestion,
+    AppLocalizations.of(context)!.pleaseenteratopic,
   ];
 
   final _dio = Dio();
@@ -239,28 +239,191 @@ class _NewAnonymousPollState extends State<NewAnonymousPoll> {
 
   Future<void> _pickImage(int index) async {
     try {
-      final File? pickedFile = await ImagePickerService.pickImage(
+      int otherSelectedCount = 0;
+      for (int i = 0; i < _images.length; i++) {
+        if (i != index && _images[i] != null) {
+          otherSelectedCount++;
+        }
+      }
+      final int allowedMaxImages = (maxOptions - otherSelectedCount).clamp(
+        1,
+        maxOptions,
+      );
+
+      final List<File>? pickedFiles = await ImagePickerService.pickMultiImages(
         context: context,
+        maxImages: allowedMaxImages,
         allowCamera: true,
       );
 
-      if (pickedFile != null) {
-        final shouldCrop = await cropImageDiolog(context);
-        if (!mounted) return;
+      if (pickedFiles != null && pickedFiles.isNotEmpty && mounted) {
+        final List<File>? finalFiles = await Navigator.push<List<File>>(
+          context,
+          MaterialPageRoute(
+            builder: (_) => ImagePreviewCropScreen(initialImages: pickedFiles),
+          ),
+        );
 
-        File finalFile = pickedFile;
-        if (shouldCrop == true) {
-          final croppedFile = await ImagePickerService.cropImage(pickedFile);
-          if (croppedFile != null) finalFile = croppedFile;
+        if (finalFiles != null && finalFiles.isNotEmpty && mounted) {
+          setState(() {
+            int currentAssignIndex = index;
+            for (int k = 0; k < finalFiles.length; k++) {
+              while (currentAssignIndex >= optionControllers.length &&
+                  optionControllers.length < maxOptions) {
+                _images.add(null);
+                final newController = TextEditingController();
+                newController.addListener(_clearOptionsError);
+                optionControllers.add(newController);
+                optionErrorTexts.add('');
+              }
+              if (currentAssignIndex < optionControllers.length) {
+                _images[currentAssignIndex] = finalFiles[k];
+                currentAssignIndex++;
+              }
+            }
+            _clearOptionsError();
+          });
         }
-
-        setState(() {
-          _images[index] = finalFile;
-          _clearOptionsError();
-        });
       }
     } catch (e) {
       showToast(message: 'Error picking image: ${e.toString()}');
+    }
+  }
+
+  void _onTapEditImage(int index) {
+    final txt = AppTextColors.of(context);
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(AppRadius.modal),
+        ),
+      ),
+      builder: (context) => SafeArea(
+        top: false,
+        child: SizedBox(
+          width: double.infinity,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SizedBox(height: 12.h),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    'Edit Image',
+                    style: AppTextStyles.sectionHeading.copyWith(
+                      color: txt.title,
+                      fontSize: 14.sp,
+                    ),
+                  ),
+                ],
+              ),
+              SizedBox(height: 10.h),
+              Divider(
+                color: Theme.of(context).colorScheme.outlineVariant,
+                height: 1,
+                endIndent: 12,
+                indent: 12,
+              ),
+              SizedBox(height: 5.h),
+              GestureDetector(
+                child: Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10),
+                  child: Text(
+                    'Crop image',
+                    style: AppTextStyles.bodyText.copyWith(
+                      color: txt.body,
+                      fontSize: 13.5.sp,
+                      fontWeight: FontWeight.w400,
+                    ),
+                  ),
+                ),
+                onTap: () {
+                  Navigator.pop(context);
+                  _cropSingleImage(index);
+                },
+              ),
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10),
+                child: GestureDetector(
+                  child: Text(
+                    'Replace image',
+                    style: AppTextStyles.bodyText.copyWith(
+                      color: txt.body,
+                      fontSize: 13.5.sp,
+                      fontWeight: FontWeight.w400,
+                    ),
+                  ),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _replaceSingleImage(index);
+                  },
+                ),
+              ),
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10),
+                child: GestureDetector(
+                  child: Text(
+                    'Remove',
+                    style: AppTextStyles.bodyText.copyWith(
+                      color: txt.body,
+                      fontSize: 13.5.sp,
+                      fontWeight: FontWeight.w400,
+                    ),
+                  ),
+                  onTap: () {
+                    Navigator.pop(context);
+                    removeImage(index);
+                  },
+                ),
+              ),
+              SizedBox(height: 10.h),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _cropSingleImage(int index) async {
+    if (index < 0 || index >= _images.length || _images[index] == null) return;
+
+    final croppedFile = await ImagePickerService.cropImage(_images[index]!);
+    if (croppedFile != null && mounted) {
+      setState(() {
+        _images[index] = croppedFile;
+        _clearOptionsError();
+      });
+    }
+  }
+
+  Future<void> _replaceSingleImage(int index) async {
+    try {
+      final List<File>? pickedFiles = await ImagePickerService.pickMultiImages(
+        context: context,
+        maxImages: 1,
+        allowCamera: true,
+      );
+
+      if (pickedFiles != null && pickedFiles.isNotEmpty && mounted) {
+        final List<File>? finalFiles = await Navigator.push<List<File>>(
+          context,
+          MaterialPageRoute(
+            builder: (_) => ImagePreviewCropScreen(initialImages: pickedFiles),
+          ),
+        );
+
+        if (finalFiles != null && finalFiles.isNotEmpty && mounted) {
+          setState(() {
+            _images[index] = finalFiles[0];
+            _clearOptionsError();
+          });
+        }
+      }
+    } catch (e) {
+      showToast(message: 'Error replacing image: ${e.toString()}');
     }
   }
 
@@ -589,7 +752,7 @@ class _NewAnonymousPollState extends State<NewAnonymousPoll> {
     final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.background,
-      appBar: const CommonAppBar(title: 'Ask Anonymously'),
+      appBar: CommonAppBar(title: AppLocalizations.of(context)!.askanonymously),
       body: SingleChildScrollView(
         padding: EdgeInsets.symmetric(horizontal: 12.w),
         child: Column(
@@ -597,7 +760,9 @@ class _NewAnonymousPollState extends State<NewAnonymousPoll> {
           children: [
             SizedBox(height: 10.h),
             Text(
-              'Share questions privately and get honest opinions from people',
+              AppLocalizations.of(
+                context,
+              )!.sharequestionsprivatelyandgethonestopinionsfrompeople,
               style: AppTextStyles.subText.copyWith(
                 fontSize: 14,
                 color: txt.body,
@@ -628,7 +793,9 @@ class _NewAnonymousPollState extends State<NewAnonymousPoll> {
                   SizedBox(width: 10.w),
                   Expanded(
                     child: Text(
-                      'Your voters will be hidden on this poll',
+                      AppLocalizations.of(
+                        context,
+                      )!.yourvoterswillbehiddenonthispoll,
                       style: AppTextStyles.subText.copyWith(
                         fontSize: 13.5,
                         color: txt.title,
@@ -703,14 +870,7 @@ class _NewAnonymousPollState extends State<NewAnonymousPoll> {
               child: Row(
                 children: [
                   _isGeneratingQuestion
-                      ? SizedBox(
-                          width: 12.w,
-                          height: 12.h,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 1.5,
-                            color: Theme.of(context).colorScheme.onPrimary,
-                          ),
-                        )
+                      ? const SizedBox()
                       : Assets.images.icAssistant.image(
                           width: 14.w,
                           height: 14.h,
@@ -719,10 +879,10 @@ class _NewAnonymousPollState extends State<NewAnonymousPoll> {
                   const SizedBox(width: 5),
                   Text(
                     _isGeneratingQuestion
-                        ? 'Generating...'
+                        ? AppLocalizations.of(context)!.generating
                         : _hasGeneratedQuestion
-                        ? 'Regenerate Question'
-                        : 'Generate Question',
+                        ? AppLocalizations.of(context)!.regeneratequestion
+                        : AppLocalizations.of(context)!.generatequestion,
                     style: AppTextStyles.bodyText.copyWith(
                       fontSize: 12,
                       fontWeight: FontWeight.w500,
@@ -756,13 +916,13 @@ class _NewAnonymousPollState extends State<NewAnonymousPoll> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Description & Hashtags (Optional)',
+          AppLocalizations.of(context)!.descriptionhashtagsoptional,
           style: CustomTextStyles.lblPrimaryText(context),
         ),
         SizedBox(height: 7.h),
         SecondryTextfield(
           controller: descriptionController,
-          hintText: 'Type description or hashtags',
+          hintText: AppLocalizations.of(context)!.typedescriptionorhashtags,
           maxLines: 5,
           minLines: 1,
         ),
@@ -773,10 +933,6 @@ class _NewAnonymousPollState extends State<NewAnonymousPoll> {
   Widget _buildOptionsSection() {
     final txt = AppTextColors.of(context);
     final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    final rows = <List<int>>[];
-    for (var i = 0; i < optionControllers.length; i += 2) {
-      rows.add([i, if (i + 1 < optionControllers.length) i + 1]);
-    }
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -792,14 +948,7 @@ class _NewAnonymousPollState extends State<NewAnonymousPoll> {
               child: Row(
                 children: [
                   _isGeneratingOptions
-                      ? SizedBox(
-                          width: 12.w,
-                          height: 12.h,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 1.5,
-                            color: Theme.of(context).colorScheme.onPrimary,
-                          ),
-                        )
+                      ? const SizedBox()
                       : Assets.images.icAssistant.image(
                           width: 14.w,
                           height: 14.h,
@@ -808,10 +957,10 @@ class _NewAnonymousPollState extends State<NewAnonymousPoll> {
                   const SizedBox(width: 5),
                   Text(
                     _isGeneratingOptions
-                        ? 'Generating...'
+                        ? AppLocalizations.of(context)!.generating
                         : _hasGeneratedOptions
-                        ? 'Regenerate Options'
-                        : 'Generate Options',
+                        ? AppLocalizations.of(context)!.regenerateoptions
+                        : AppLocalizations.of(context)!.generateoptions,
                     style: AppTextStyles.bodyText.copyWith(
                       fontSize: 12,
                       fontWeight: FontWeight.w500,
@@ -824,98 +973,133 @@ class _NewAnonymousPollState extends State<NewAnonymousPoll> {
           ],
         ),
         SizedBox(height: 10.h),
-        ...rows.map((row) {
+        ...List.generate(optionControllers.length, (i) {
           return Padding(
             padding: EdgeInsets.only(bottom: 12.h),
-            child: Row(
+            child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                ...row.map((i) {
-                  return Expanded(
-                    child: Padding(
-                      padding: EdgeInsets.only(
-                        right: i % 2 == 0 ? 6.w : 0,
-                        left: i % 2 == 1 ? 6.w : 0,
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    GestureDetector(
+                      onTap: () {
+                        if (_images[i] == null) {
+                          _pickImage(i);
+                        } else {
+                          _onTapEditImage(i);
+                        }
+                      },
+                      child: Stack(
+                        clipBehavior: Clip.none,
                         children: [
-                          Stack(
-                            children: [
-                              _buildImageOption(context, i),
-                              if (_images[i] != null)
-                                Positioned(
-                                  top: 8.h,
-                                  right: 10.w,
-                                  child: GestureDetector(
-                                    onTap: () => removeImage(i),
-                                    child: Container(
-                                      width: 18.w,
-                                      height: 18.h,
-                                      decoration: BoxDecoration(
-                                        color: Theme.of(
-                                          context,
-                                        ).colorScheme.primary,
-                                        shape: BoxShape.circle,
-                                        boxShadow: const [
-                                          BoxShadow(
-                                            color: Colors.black26,
-                                            blurRadius: 4,
-                                            offset: Offset(0, 2),
-                                          ),
-                                        ],
-                                      ),
-                                      child: Icon(
-                                        Icons.close,
-                                        color: Colors.white,
-                                        size: 12.sp,
+                          SizedBox(
+                            width: 45.w,
+                            height: 45.w,
+                            child: _images[i] != null
+                                ? ClipRRect(
+                                    borderRadius: BorderRadius.circular(10),
+                                    child: Image.file(
+                                      _images[i]!,
+                                      fit: BoxFit.cover,
+                                      width: 45.w,
+                                      height: 45.w,
+                                    ),
+                                  )
+                                : CustomPaint(
+                                    painter: DottedBorderPainter(
+                                      color: isDarkMode
+                                          ? Colors.white.withOpacity(0.3)
+                                          : const Color(
+                                              0XFF9B3046,
+                                            ).withOpacity(0.4),
+                                      strokeWidth: 1.2,
+                                      gap: 4,
+                                    ),
+                                    child: Center(
+                                      child: Assets.images.addImage.image(
+                                        height: 18.sp,
+                                        width: 18.sp,
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .onBackground
+                                            .withOpacity(0.2),
                                       ),
                                     ),
                                   ),
-                                ),
-                            ],
                           ),
-                          SizedBox(height: 8.h),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: SecondryTextfield(
-                                  controller: optionControllers[i],
-                                  hintText: 'Add label',
-                                ),
-                              ),
-                              if (optionControllers.length > minOptions) ...[
-                                SizedBox(width: 4.w),
-                                GestureDetector(
-                                  onTap: () => removeOptionField(i),
-                                  child: const Icon(
-                                    Icons.close,
-                                    size: 18,
-                                    color: Color(0xFF8E8E8E),
+                          if (_images[i] != null)
+                            Positioned(
+                              top: -4,
+                              right: -4,
+                              child: GestureDetector(
+                                onTap: () => _onTapEditImage(i),
+                                child: Container(
+                                  width: 17.w,
+                                  height: 17.h,
+                                  decoration: BoxDecoration(
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.primary,
+                                    shape: BoxShape.circle,
+                                    boxShadow: const [
+                                      BoxShadow(
+                                        color: Colors.black26,
+                                        blurRadius: 4,
+                                        offset: Offset(0, 2),
+                                      ),
+                                    ],
+                                  ),
+                                  child: Icon(
+                                    Icons.edit,
+                                    color: Colors.white,
+                                    size: 11.sp,
                                   ),
                                 ),
-                              ],
-                            ],
-                          ),
-                          if (optionErrorTexts[i].isNotEmpty)
-                            Padding(
-                              padding: EdgeInsets.only(top: 5.h),
-                              child: Text(
-                                optionErrorTexts[i],
-                                style: CustomTextStyles.msgErrorText(context),
                               ),
                             ),
                         ],
                       ),
                     ),
-                  );
-                }),
-                if (row.length == 1) const Expanded(child: SizedBox()),
+                    SizedBox(width: 10.w),
+                    Expanded(
+                      child: SecondryTextfield(
+                        controller: optionControllers[i],
+                        hintText: _getOptionText(context, i),
+                        suffixIcon: IconButton(
+                          icon: const Icon(
+                            Icons.close,
+                            size: 18,
+                            color: Color(0xFF8E8E8E),
+                          ),
+                          onPressed: () {
+                            if (optionControllers.length > minOptions) {
+                              removeOptionField(i);
+                            } else {
+                              setState(() {
+                                optionControllers[i].clear();
+                                removeImage(i);
+                              });
+                            }
+                          },
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                if (optionErrorTexts[i].isNotEmpty)
+                  Padding(
+                    padding: EdgeInsets.only(top: 5.h, left: 60.w),
+                    child: Text(
+                      optionErrorTexts[i],
+                      style: CustomTextStyles.msgErrorText(context),
+                    ),
+                  ),
               ],
             ),
           );
         }),
-        SizedBox(height: 15.h),
+        SizedBox(height: 5.h),
         if (optionControllers.length < maxOptions) ...[
           SizedBox(
             width: double.infinity,
@@ -924,11 +1108,11 @@ class _NewAnonymousPollState extends State<NewAnonymousPoll> {
               onPressed: addOptionField,
               icon: Icon(
                 Icons.add,
-                size: 18,
+                size: 17,
                 color: Theme.of(context).colorScheme.onPrimary,
               ),
               label: Text(
-                '+ Add options',
+                AppLocalizations.of(context)!.addoption,
                 style: AppTextStyles.bodyText.copyWith(
                   fontSize: 14,
                   fontWeight: FontWeight.w500,
@@ -949,7 +1133,10 @@ class _NewAnonymousPollState extends State<NewAnonymousPoll> {
           ),
           SizedBox(height: 15.h),
         ],
-        Text('Voting Mode', style: CustomTextStyles.lblPrimaryText(context)),
+        Text(
+          AppLocalizations.of(context)!.votingmode,
+          style: CustomTextStyles.lblPrimaryText(context),
+        ),
         SizedBox(height: 10.h),
         Row(
           children: [
@@ -981,7 +1168,7 @@ class _NewAnonymousPollState extends State<NewAnonymousPoll> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text(
-                        'Single Choice',
+                        AppLocalizations.of(context)!.singlechoice,
                         style: AppTextStyles.bodyText.copyWith(
                           fontSize: 13.5,
                           fontWeight: FontWeight.w500,
@@ -991,7 +1178,7 @@ class _NewAnonymousPollState extends State<NewAnonymousPoll> {
                       ),
                       SizedBox(height: 4.h),
                       Text(
-                        'Voters pick one option',
+                        AppLocalizations.of(context)!.voterspickoneoption,
                         style: AppTextStyles.subText.copyWith(
                           fontSize: 12,
                           color: txt.body,
@@ -1033,7 +1220,7 @@ class _NewAnonymousPollState extends State<NewAnonymousPoll> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text(
-                        'Multiple Choice',
+                        AppLocalizations.of(context)!.multiplechoice,
                         style: AppTextStyles.bodyText.copyWith(
                           fontSize: 13.5,
                           fontWeight: FontWeight.w500,
@@ -1043,7 +1230,7 @@ class _NewAnonymousPollState extends State<NewAnonymousPoll> {
                       ),
                       SizedBox(height: 4.h),
                       Text(
-                        'Voters rank all options',
+                        AppLocalizations.of(context)!.votersrankalloptions,
                         style: AppTextStyles.subText.copyWith(
                           fontSize: 12,
                           color: txt.body,
@@ -1068,64 +1255,6 @@ class _NewAnonymousPollState extends State<NewAnonymousPoll> {
             ),
           ),
       ],
-    );
-  }
-
-  Widget _buildImageOption(BuildContext context, int index) {
-    final bool hasImage = _images[index] != null;
-    return GestureDetector(
-      onTap: () => _pickImage(index),
-      child: AspectRatio(
-        aspectRatio: 1.3,
-        child: hasImage
-            ? Padding(
-                padding: const EdgeInsets.all(5),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(AppRadius.button),
-                  child: Stack(
-                    children: [
-                      Positioned.fill(
-                        child: Image.file(_images[index]!, fit: BoxFit.cover),
-                      ),
-                    ],
-                  ),
-                ),
-              )
-            : CustomPaint(
-                painter: DottedBorderPainter(
-                  color: Theme.of(
-                    context,
-                  ).colorScheme.onPrimary.withOpacity(0.5),
-                  strokeWidth: 1.5,
-                  gap: 5,
-                ),
-                child: Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Assets.images.addImage.image(
-                        height: 25.sp,
-                        width: 25.sp,
-                        color: Theme.of(
-                          context,
-                        ).colorScheme.onSurface.withOpacity(0.2),
-                      ),
-                      SizedBox(height: 8.h),
-                      Text(
-                        _getOptionText(context, index),
-                        style: TextStyle(
-                          color: Theme.of(
-                            context,
-                          ).colorScheme.onSurface.withOpacity(0.6),
-                          fontSize: 10.3.sp,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-      ),
     );
   }
 }

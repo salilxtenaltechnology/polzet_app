@@ -13,6 +13,29 @@ class ApiConfig {
     return '$protocol://$domain/api';
   }
 
+  static String? normalizePaginationUrl(String? urlString) {
+    if (urlString == null || urlString.trim().isEmpty) return null;
+    try {
+      final uri = Uri.parse(urlString);
+      String path = uri.path;
+
+      if (path.startsWith('/api/')) {
+        path = path.substring(4);
+      } else if (path == '/api') {
+        path = '';
+      }
+
+      if (!path.startsWith('/')) {
+        path = '/$path';
+      }
+
+      final query = uri.hasQuery ? '?${uri.query}' : '';
+      return '$baseUrl$path$query';
+    } catch (_) {
+      return urlString;
+    }
+  }
+
   static String get baseUrlImage {
     const protocol = useHttps ? 'https' : 'http';
     final domain = domainUrl;
@@ -22,6 +45,14 @@ class ApiConfig {
   static String get sharePostBaseUrl {
     final domain = domainUrl;
     return 'https://$domain';
+  }
+
+  static String get deepLinkHost {
+    if (domainUrl.contains('testbackend.polzet.in')) {
+      return 'testfrontend.polzet.in';
+    } else {
+      return 'www.polzet.com';
+    }
   }
 }
 

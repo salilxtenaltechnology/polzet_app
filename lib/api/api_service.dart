@@ -806,7 +806,6 @@ class ApiService with UtilityMixin {
       throw Exception(message);
     }
   }
-  
 
   Future<Map<String, dynamic>> confirmEmailChangeOtp({
     required String email,
@@ -2028,9 +2027,13 @@ class ApiService with UtilityMixin {
     required String title,
     required File? profileImage,
     required List<dynamic> members,
+    String? category,
+    String? privacy,
   }) async {
     try {
       final Map<String, dynamic> map = {'title': title, 'members': members};
+      if (category != null) map['category'] = category;
+      if (privacy != null) map['privacy'] = privacy;
 
       if (profileImage != null) {
         final String ext = path.extension(profileImage.path).toLowerCase();
@@ -2049,6 +2052,8 @@ class ApiService with UtilityMixin {
 
       debugPrint('=== CREATE GROUP REQUEST ===');
       debugPrint('title: $title');
+      if (category != null) debugPrint('category: $category');
+      if (privacy != null) debugPrint('privacy: $privacy');
       if (profileImage != null) {
         debugPrint('profile_image path: ${profileImage.path}');
       }
@@ -2085,10 +2090,22 @@ class ApiService with UtilityMixin {
     return response['results'] as List<Map<String, dynamic>>;
   }
 
-  Future<Map<String, dynamic>> getChatListResponse({int page = 1}) async {
+  Future<Map<String, dynamic>> getChatListResponse({
+    int page = 1,
+    String? nextPageUrl,
+  }) async {
     try {
+      final String requestUrl;
+      if (nextPageUrl != null && nextPageUrl.trim().isNotEmpty) {
+        requestUrl =
+            ApiConfig.normalizePaginationUrl(nextPageUrl) ??
+            '${ApiConstants.chatList}?page=$page';
+      } else {
+        requestUrl = '${ApiConstants.chatList}?page=$page';
+      }
+
       final response = await _dio.get(
-        '${ApiConstants.chatList}?page=$page',
+        requestUrl,
         options: Options(headers: await _getAuthHeaders()),
       );
 
@@ -2096,11 +2113,13 @@ class ApiService with UtilityMixin {
         final data = response.data;
         if (data is Map<String, dynamic>) {
           final list = data['results'];
+          final rawNext = data['next']?.toString();
+          final normalizedNext = ApiConfig.normalizePaginationUrl(rawNext);
           return {
             'results': list is List
                 ? List<Map<String, dynamic>>.from(list)
                 : <Map<String, dynamic>>[],
-            'next': data['next'],
+            'next': normalizedNext,
             'count': data['count'],
           };
         }
@@ -2115,7 +2134,126 @@ class ApiService with UtilityMixin {
     }
   }
 
-  Future<bool> markChatAsRead({required int chatId}) async {
+
+  Future<Map<String, dynamic>> getGroupPreview({
+  required String slug,
+}) async {
+  try {
+    final response = await _dio.get(
+      '${ApiConfig.baseUrl}/g/$slug/preview',
+      options: Options(headers: await _getAuthHeaders()),
+    );
+
+    return response.data as Map<String, dynamic>;
+  } on DioException catch (e) {
+    throw _handleDioError(e);
+  }
+}
+
+  Future<Map<String, dynamic>> joinGroup({required String chatId}) async {
+    try {
+      final response = await _dio.post(
+        '${ApiConfig.baseUrl}/chats/group/$chatId/join',
+        options: Options(headers: await _getAuthHeaders()),
+      );
+
+      return response.data as Map<String, dynamic>;
+    } on DioException catch (e) {
+      throw _handleDioError(e);
+    }
+  }
+
+  Future<Map<String, dynamic>> requestJoinGroup({
+    required String chatId,
+  }) async {
+    try {
+      final response = await _dio.post(
+        '${ApiConfig.baseUrl}/chats/group/$chatId/request_join',
+        options: Options(headers: await _getAuthHeaders()),
+      );
+
+      return response.data as Map<String, dynamic>;
+    } on DioException catch (e) {
+      throw _handleDioError(e);
+    }
+  }
+
+  Future<Map<String, dynamic>> getGroupJoinRequestsList({
+    required String chatId,
+  }) async {
+    try {
+      final response = await _dio.get(
+        '${ApiConfig.baseUrl}/chats/group/$chatId/join_requests',
+        options: Options(headers: await _getAuthHeaders()),
+      );
+
+      return response.data as Map<String, dynamic>;
+    } on DioException catch (e) {
+      throw _handleDioError(e);
+    }
+  }
+
+  Future<Map<String, dynamic>> approveGroupJoinRequest({
+    required String chatId,
+    required String requestId,
+  }) async {
+    try {
+      final response = await _dio.post(
+        '${ApiConfig.baseUrl}/chats/group/$chatId/join_requests/$requestId/approve',
+        options: Options(headers: await _getAuthHeaders()),
+      );
+
+      if (response.statusCode == 200) {
+        if (response.data is Map<String, dynamic>) {
+          return response.data as Map<String, dynamic>;
+        }
+        return {
+          'status': 'success',
+          'message': 'Join request approved.',
+          'data': response.data ?? {},
+        };
+      }
+      return {
+        'status': 'error',
+        'message': 'Failed to approve join request.',
+        'data': {},
+      };
+    } on DioException catch (e) {
+      throw _handleDioError(e);
+    }
+  }
+
+  Future<Map<String, dynamic>> rejectGroupJoinRequest({
+    required String chatId,
+    required String requestId,
+  }) async {
+    try {
+      final response = await _dio.post(
+        '${ApiConfig.baseUrl}/chats/group/$chatId/join_requests/$requestId/reject',
+        options: Options(headers: await _getAuthHeaders()),
+      );
+
+      if (response.statusCode == 200) {
+        if (response.data is Map<String, dynamic>) {
+          return response.data as Map<String, dynamic>;
+        }
+        return {
+          'status': 'success',
+          'message': 'Join request rejected.',
+          'data': response.data ?? {},
+        };
+      }
+      return {
+        'status': 'error',
+        'message': 'Failed to reject join request.',
+        'data': {},
+      };
+    } on DioException catch (e) {
+      throw _handleDioError(e);
+    }
+  }
+
+  Future<bool> markChatAsRead({required dynamic chatId}) async {
     try {
       final response = await _dio.post(
         '${ApiConstants.markAsRead}/$chatId/read',
@@ -2131,8 +2269,79 @@ class ApiService with UtilityMixin {
     }
   }
 
+  Future<Map<String, dynamic>> pinUnpinChat({
+    required String chatId,
+    required bool isPinned,
+  }) async {
+    try {
+      final response = await _dio.post(
+        '${ApiConstants.pinUnpinChat}/$chatId/pin',
+        data: {'is_pinned': isPinned},
+        options: Options(headers: await _getAuthHeaders()),
+      );
+
+      return response.data as Map<String, dynamic>;
+    } on DioException catch (e) {
+      throw _handleDioError(e);
+    }
+  }
+
+  Future<Map<String, dynamic>> muteUnmuteChat({
+    required String chatId,
+    required bool isMuted,
+    DateTime? muteUntil,
+  }) async {
+    try {
+      final response = await _dio.post(
+        '${ApiConstants.muteUnmuteChat}/$chatId/mute',
+        data: {
+          'is_muted': isMuted,
+          if (muteUntil != null)
+            'mute_until': muteUntil.toUtc().toIso8601String(),
+        },
+        options: Options(headers: await _getAuthHeaders()),
+      );
+      debugPrint('muteUnmuteChat response: ${response.statusCode}');
+      return response.data as Map<String, dynamic>;
+    } on DioException catch (e) {
+      throw _handleDioError(e);
+    }
+  }
+
+  Future<Map<String, dynamic>> archiveUnarchiveChat({
+    required String chatId,
+    required bool isArchived,
+  }) async {
+    try {
+      final formData = FormData.fromMap({'is_archived': isArchived.toString()});
+
+      final response = await _dio.post(
+        '${ApiConfig.baseUrl}/chat/$chatId/archive',
+        data: formData,
+        options: Options(headers: await _getAuthHeaders()),
+      );
+
+      return response.data as Map<String, dynamic>;
+    } on DioException catch (e) {
+      throw _handleDioError(e);
+    }
+  }
+
+  Future<Map<String, dynamic>> getArchivedList() async {
+    try {
+      final response = await _dio.get(
+        '${ApiConfig.baseUrl}/chats/archived_list',
+        options: Options(headers: await _getAuthHeaders()),
+      );
+
+      return response.data as Map<String, dynamic>;
+    } on DioException catch (e) {
+      throw _handleDioError(e);
+    }
+  }
+
   Future<Map<String, dynamic>> renameGroup({
-    required int chatId,
+    required dynamic chatId,
     required String newTitle,
   }) async {
     try {
@@ -2155,9 +2364,88 @@ class ApiService with UtilityMixin {
     }
   }
 
+  Future<Map<String, dynamic>> favouriteUnfavouriteChat({
+    required String chatId,
+    required bool isFavourite,
+  }) async {
+    try {
+      final formData = FormData.fromMap({
+        'is_favourite': isFavourite.toString(),
+      });
+
+      final response = await _dio.post(
+        '${ApiConfig.baseUrl}/chat/$chatId/favourite',
+        data: formData,
+        options: Options(headers: await _getAuthHeaders()),
+      );
+
+      return response.data as Map<String, dynamic>;
+    } on DioException catch (e) {
+      throw _handleDioError(e);
+    }
+  }
+
+  Future<Map<String, dynamic>> markChatReadUnread({
+    required String chatId,
+    required bool isUnread,
+  }) async {
+    try {
+      final formData = FormData.fromMap({'is_unread': isUnread.toString()});
+
+      final response = await _dio.post(
+        '${ApiConfig.baseUrl}/chat/$chatId/unread',
+        data: formData,
+        options: Options(headers: await _getAuthHeaders()),
+      );
+
+      return response.data as Map<String, dynamic>;
+    } on DioException catch (e) {
+      throw _handleDioError(e);
+    }
+  }
+
+  Future<Map<String, dynamic>> getFavouriteChats() async {
+    try {
+      final response = await _dio.get(
+        '${ApiConfig.baseUrl}/chats/favourites_list',
+        options: Options(headers: await _getAuthHeaders()),
+      );
+
+      return response.data as Map<String, dynamic>;
+    } on DioException catch (e) {
+      throw _handleDioError(e);
+    }
+  }
+
+  Future<Map<String, dynamic>> clearChat({required String chatId}) async {
+    try {
+      final response = await _dio.post(
+        '${ApiConfig.baseUrl}/chat/$chatId/clear',
+        options: Options(headers: await _getAuthHeaders()),
+      );
+
+      return response.data as Map<String, dynamic>;
+    } on DioException catch (e) {
+      throw _handleDioError(e);
+    }
+  }
+
+  Future<Map<String, dynamic>> deleteChat({required String chatId}) async {
+    try {
+      final response = await _dio.post(
+        '${ApiConfig.baseUrl}/chat/$chatId/delete',
+        options: Options(headers: await _getAuthHeaders()),
+      );
+
+      return response.data as Map<String, dynamic>;
+    } on DioException catch (e) {
+      throw _handleDioError(e);
+    }
+  }
+
   // upload group profile image
   Future<Map<String, dynamic>> uploadGroupProfile({
-    required int chatId,
+    required dynamic chatId,
     required File imageFile,
   }) async {
     final accessToken = await SharedPrefService.getToken();
@@ -2189,7 +2477,7 @@ class ApiService with UtilityMixin {
 
   // add member
   Future<Map<String, dynamic>> addGroupChatMembers({
-    required int groupChatId,
+    required dynamic groupChatId,
     required List<dynamic> members,
   }) async {
     try {
@@ -2225,7 +2513,7 @@ class ApiService with UtilityMixin {
 
   // remove group member
   Future<Map<String, dynamic>> removeMember({
-    required int chatId,
+    required dynamic chatId,
     required dynamic userId,
   }) async {
     try {
@@ -2249,7 +2537,7 @@ class ApiService with UtilityMixin {
   }
 
   // delete group
-  Future<Map<String, dynamic>> deleteGroup({required int chatId}) async {
+  Future<Map<String, dynamic>> deleteGroup({required dynamic chatId}) async {
     try {
       final response = await _dio.delete(
         '${ApiConstants.deleteGroup}/$chatId/delete',
@@ -2265,7 +2553,7 @@ class ApiService with UtilityMixin {
   }
 
   // leave group
-  Future<Map<String, dynamic>> leaveGroup({required int chatId}) async {
+  Future<Map<String, dynamic>> leaveGroup({required dynamic chatId}) async {
     try {
       final response = await _dio.post(
         '${ApiConstants.leaveGroup}/$chatId/leave',
@@ -2282,7 +2570,7 @@ class ApiService with UtilityMixin {
 
   // Make admin group member
   Future<Map<String, dynamic>> makeAdmin({
-    required int chatId,
+    required dynamic chatId,
     required dynamic userId,
   }) async {
     try {
@@ -2314,7 +2602,9 @@ class ApiService with UtilityMixin {
     }
   }
 
-  Future<Map<String, dynamic>> getGroupChatInfo({required int chatId}) async {
+  Future<Map<String, dynamic>> getGroupChatInfo({
+    required dynamic chatId,
+  }) async {
     try {
       final response = await _dio.get(
         '${ApiConstants.baseUrl}/chats/group/$chatId/info',
@@ -2416,12 +2706,16 @@ class ApiService with UtilityMixin {
 
   // get messages list of private chat
   Future<MessageListModel> getMessageList({
-    required int chatId,
+    required dynamic chatId,
     String? nextPageUrl,
   }) async {
     try {
+      final requestUrl = nextPageUrl != null && nextPageUrl.trim().isNotEmpty
+          ? (ApiConfig.normalizePaginationUrl(nextPageUrl) ?? nextPageUrl)
+          : '${ApiConstants.messageList}/$chatId/messages/list';
+
       final response = await _dio.get(
-        nextPageUrl ?? '${ApiConstants.messageList}/$chatId/messages/list',
+        requestUrl,
         options: Options(headers: await _getAuthHeaders()),
       );
 
@@ -2468,7 +2762,10 @@ class ApiService with UtilityMixin {
     }
   }
 
-  Future<void> sendMessage({required int chatId, required String text}) async {
+  Future<void> sendMessage({
+    required dynamic chatId,
+    required String text,
+  }) async {
     try {
       debugPrint('📤 Sending message to server — chatId: $chatId, text: $text');
 
@@ -2496,7 +2793,7 @@ class ApiService with UtilityMixin {
   }
 
   Future<Map<String, dynamic>> sharePostMessage({
-    required int chatId,
+    required dynamic chatId,
     required String sharedPostId,
     required String message,
   }) async {
@@ -2526,6 +2823,76 @@ class ApiService with UtilityMixin {
       rethrow;
     } catch (e) {
       debugPrint('❌ sharePostMessage unexpected error: $e');
+      rethrow;
+    }
+  }
+
+  Future<Map<String, dynamic>> shareProfileMessage({
+    required dynamic chatId,
+    required String sharedProfileId,
+    required String message,
+  }) async {
+    try {
+      debugPrint(
+        '📤 Sharing profile — chatId: $chatId, '
+        'sharedProfileId: $sharedProfileId, text: $message',
+      );
+
+      final response = await _dio.post(
+        '${ApiConstants.baseUrl}/chats/$chatId/messages',
+        data: {'text': message, 'shared_profile_id': sharedProfileId},
+        options: Options(headers: await _getAuthHeaders()),
+      );
+
+      if (response.statusCode == 201 && response.data['status'] == 'success') {
+        return response.data as Map<String, dynamic>;
+      }
+      return {'status': 'error', 'message': 'Failed to share profile'};
+    } on DioException catch (e) {
+      debugPrint(
+        '❌ shareProfileMessage DioException: '
+        'status=${e.response?.statusCode} '
+        'body=${e.response?.data} '
+        'msg=${e.message}',
+      );
+      rethrow;
+    } catch (e) {
+      debugPrint('❌ shareProfileMessage unexpected error: $e');
+      rethrow;
+    }
+  }
+
+  Future<Map<String, dynamic>> shareGroupMessage({
+    required dynamic chatId,
+    required String sharedGroupId,
+    required String message,
+  }) async {
+    try {
+      debugPrint(
+        '📤 Sharing group — chatId: $chatId, '
+        'sharedGroupId: $sharedGroupId, text: $message',
+      );
+
+      final response = await _dio.post(
+        '${ApiConstants.baseUrl}/chats/$chatId/messages',
+        data: {'text': message, 'shared_group_id': sharedGroupId},
+        options: Options(headers: await _getAuthHeaders()),
+      );
+
+      if (response.statusCode == 201 && response.data['status'] == 'success') {
+        return response.data as Map<String, dynamic>;
+      }
+      return {'status': 'error', 'message': 'Failed to share group'};
+    } on DioException catch (e) {
+      debugPrint(
+        '❌ shareGroupMessage DioException: '
+        'status=${e.response?.statusCode} '
+        'body=${e.response?.data} '
+        'msg=${e.message}',
+      );
+      rethrow;
+    } catch (e) {
+      debugPrint('❌ shareGroupMessage unexpected error: $e');
       rethrow;
     }
   }

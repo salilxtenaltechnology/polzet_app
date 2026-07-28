@@ -16,8 +16,10 @@ import 'package:provider/provider.dart';
 import '../../../../api/api_service.dart';
 import '../../../../api/app_api.dart';
 import '../../../../api/services/image/image_picker_service.dart';
+import '../../../../core/constants/app_colors.dart';
 import '../../../../core/themes/app_text_colors.dart';
 import '../../../../core/themes/app_text_styles.dart';
+import 'image_preview_crop_screen.dart';
 import '../../../../data/token/shared_preferences.dart';
 import '../../../../gen/assets.gen.dart';
 import '../../../../languages/l10n/generated/app_localizations.dart';
@@ -25,7 +27,6 @@ import '../../../../provider/user_provider.dart';
 import '../../../../widgets/appbar/common_appbar.dart';
 import '../../../../widgets/button/primary_button.dart';
 import '../../../../widgets/custom_text_styles.dart';
-import '../../../../widgets/dialog/custom_diolog.dart';
 import '../../../../widgets/dotted_border/dotted_border.dart';
 import '../../../../widgets/show_toast.dart';
 import '../../../../widgets/text_field/secondry_textfield.dart';
@@ -52,9 +53,9 @@ class _NewHotTakePollState extends State<NewHotTakePoll> {
   // Hint animation state
   int _currentHintIndex = 0;
   Timer? _hintTimer;
-  final List<String> _hintTexts = [
-    'Please enter a question',
-    'Please enter a topic',
+  List<String> get _hintTexts => [
+    AppLocalizations.of(context)!.pleaseenteraquestion,
+    AppLocalizations.of(context)!.pleaseenteratopic,
   ];
 
   @override
@@ -141,28 +142,137 @@ class _NewHotTakePollState extends State<NewHotTakePoll> {
 
   Future<void> _pickImage() async {
     try {
-      final File? pickedFile = await ImagePickerService.pickImage(
+      final List<File>? pickedFiles = await ImagePickerService.pickMultiImages(
         context: context,
+        maxImages: 1,
         allowCamera: true,
       );
 
-      if (pickedFile != null) {
-        final shouldCrop = await cropImageDiolog(context);
-        if (!mounted) return;
+      if (pickedFiles != null && pickedFiles.isNotEmpty && mounted) {
+        final List<File>? finalFiles = await Navigator.push<List<File>>(
+          context,
+          MaterialPageRoute(
+            builder: (_) => ImagePreviewCropScreen(initialImages: pickedFiles),
+          ),
+        );
 
-        File finalFile = pickedFile;
-        if (shouldCrop == true) {
-          final croppedFile = await ImagePickerService.cropImage(pickedFile);
-          if (croppedFile != null) finalFile = croppedFile;
+        if (finalFiles != null && finalFiles.isNotEmpty && mounted) {
+          setState(() {
+            _image = finalFiles[0];
+          });
         }
-
-        setState(() {
-          _image = finalFile;
-        });
       }
     } catch (e) {
       showToast(message: 'Error picking image: ${e.toString()}');
     }
+  }
+
+  Future<void> _cropCurrentImage() async {
+    if (_image == null) return;
+
+    final croppedFile = await ImagePickerService.cropImage(_image!);
+    if (croppedFile != null && mounted) {
+      setState(() {
+        _image = croppedFile;
+      });
+    }
+  }
+
+  void _onTapEditImage() {
+    final txt = AppTextColors.of(context);
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(AppRadius.modal),
+        ),
+      ),
+      builder: (context) => SafeArea(
+        top: false,
+        child: SizedBox(
+          width: double.infinity,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SizedBox(height: 12.h),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    'Edit Image',
+                    style: AppTextStyles.sectionHeading.copyWith(
+                      color: txt.title,
+                      fontSize: 14.sp,
+                    ),
+                  ),
+                ],
+              ),
+              SizedBox(height: 10.h),
+              Divider(
+                color: Theme.of(context).colorScheme.outlineVariant,
+                height: 1,
+                endIndent: 12,
+                indent: 12,
+              ),
+              SizedBox(height: 5.h),
+              GestureDetector(
+                child: Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10),
+                  child: Text(
+                    'Crop image',
+                    style: AppTextStyles.bodyText.copyWith(
+                      color: txt.body,
+                      fontSize: 13.5.sp,
+                      fontWeight: FontWeight.w400,
+                    ),
+                  ),
+                ),
+                onTap: () {
+                  Navigator.pop(context);
+                  _cropCurrentImage();
+                },
+              ),
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10),
+                child: GestureDetector(
+                  child: Text(
+                    'Replace image',
+                    style: AppTextStyles.bodyText.copyWith(
+                      color: txt.body,
+                      fontSize: 13.5.sp,
+                      fontWeight: FontWeight.w400,
+                    ),
+                  ),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _pickImage();
+                  },
+                ),
+              ),
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10),
+                child: GestureDetector(
+                  child: Text(
+                    'Remove',
+                    style: AppTextStyles.bodyText.copyWith(
+                      color: txt.body,
+                      fontSize: 13.5.sp,
+                      fontWeight: FontWeight.w400,
+                    ),
+                  ),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _removeImage();
+                  },
+                ),
+              ),
+              SizedBox(height: 10.h),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   void _removeImage() {
@@ -249,7 +359,7 @@ class _NewHotTakePollState extends State<NewHotTakePoll> {
     final txt = AppTextColors.of(context);
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.background,
-      appBar: const CommonAppBar(title: 'Share a Hot Take'),
+      appBar: CommonAppBar(title: AppLocalizations.of(context)!.shareahottake),
       body: SingleChildScrollView(
         physics: const BouncingScrollPhysics(),
         child: Padding(
@@ -259,7 +369,9 @@ class _NewHotTakePollState extends State<NewHotTakePoll> {
             children: [
               SizedBox(height: 10.h),
               Text(
-                'Post bold opinions, spark debates, and hear both sides',
+                AppLocalizations.of(
+                  context,
+                )!.postboldopinionssparkdebatesandhearbothsides,
                 style: AppTextStyles.subText.copyWith(
                   fontSize: 14,
                   color: txt.body,
@@ -271,7 +383,7 @@ class _NewHotTakePollState extends State<NewHotTakePoll> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    'Your hot take',
+                    AppLocalizations.of(context)!.yourhottake,
                     style: CustomTextStyles.lblPrimaryText(context),
                   ),
                   GestureDetector(
@@ -279,14 +391,7 @@ class _NewHotTakePollState extends State<NewHotTakePoll> {
                     child: Row(
                       children: [
                         _isGeneratingQuestion
-                            ? SizedBox(
-                                width: 12.w,
-                                height: 12.h,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 1.5,
-                                  color: Theme.of(context).colorScheme.onPrimary,
-                                ),
-                              )
+                            ? const SizedBox()
                             : Assets.images.icAssistant.image(
                                 width: 14.w,
                                 height: 14.h,
@@ -295,10 +400,10 @@ class _NewHotTakePollState extends State<NewHotTakePoll> {
                         const SizedBox(width: 5),
                         Text(
                           _isGeneratingQuestion
-                              ? 'Generating...'
+                              ? AppLocalizations.of(context)!.generating
                               : _hasGeneratedQuestion
-                              ? 'Regenerate Question'
-                              : 'Generate Question',
+                              ? AppLocalizations.of(context)!.regeneratequestion
+                              : AppLocalizations.of(context)!.generatequestion,
                           style: AppTextStyles.bodyText.copyWith(
                             fontSize: 12,
                             fontWeight: FontWeight.w500,
@@ -325,26 +430,28 @@ class _NewHotTakePollState extends State<NewHotTakePoll> {
                 ),
               SizedBox(height: 20.h),
               Text(
-                'Description & Hashtags (Optional)',
+                AppLocalizations.of(context)!.descriptionhashtagsoptional,
                 style: CustomTextStyles.lblPrimaryText(context),
               ),
               SizedBox(height: 7.h),
               SecondryTextfield(
                 controller: descriptionController,
-                hintText: 'Type description or hashtags',
+                hintText: AppLocalizations.of(
+                  context,
+                )!.typedescriptionorhashtags,
                 maxLines: 5,
                 minLines: 1,
               ),
               SizedBox(height: 20.h),
               Text(
-                '${AppLocalizations.of(context)!.addimage} (Optional)',
+                '${AppLocalizations.of(context)!.addimage} (${AppLocalizations.of(context)!.optional})',
                 style: CustomTextStyles.lblPrimaryText(context),
               ),
               SizedBox(height: 7.h),
               _buildImageSelector(context),
               SizedBox(height: 20.h),
               Text(
-                'Reactions',
+                AppLocalizations.of(context)!.reactions,
                 style: CustomTextStyles.lblPrimaryText(context),
               ),
               SizedBox(height: 10.h),
@@ -449,7 +556,13 @@ class _NewHotTakePollState extends State<NewHotTakePoll> {
   Widget _buildImageSelector(BuildContext context) {
     final bool hasImage = _image != null;
     return GestureDetector(
-      onTap: _pickImage,
+      onTap: () {
+        if (hasImage) {
+          _onTapEditImage();
+        } else {
+          _pickImage();
+        }
+      },
       child: SizedBox(
         width: double.infinity,
         height: 150.h,
@@ -464,19 +577,19 @@ class _NewHotTakePollState extends State<NewHotTakePoll> {
                         child: Image.file(_image!, fit: BoxFit.cover),
                       ),
                       Positioned(
-                        top: 5,
-                        right: 5,
+                        top: 5.h,
+                        right: 5.w,
                         child: GestureDetector(
-                          onTap: _removeImage,
+                          onTap: _onTapEditImage,
                           child: Container(
-                            width: 20.w,
-                            height: 20.h,
-                            decoration: BoxDecoration(
-                              color: Theme.of(context).colorScheme.primary,
+                            width: 22.w,
+                            height: 22.h,
+                            decoration: const BoxDecoration(
+                              color: AppColors.primaryColor,
                               shape: BoxShape.circle,
                             ),
                             child: Icon(
-                              Icons.close,
+                              Icons.edit,
                               color: Colors.white,
                               size: 12.sp,
                             ),

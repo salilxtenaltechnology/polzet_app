@@ -25,10 +25,10 @@ import '../../../../provider/user_provider.dart';
 import '../../../../widgets/appbar/common_appbar.dart';
 import '../../../../widgets/button/primary_button.dart';
 import '../../../../widgets/custom_text_styles.dart';
-import '../../../../widgets/dialog/custom_diolog.dart';
 import '../../../../widgets/dotted_border/dotted_border.dart';
 import '../../../../widgets/show_toast.dart';
 import '../../../../widgets/text_field/secondry_textfield.dart';
+import 'image_preview_crop_screen.dart';
 
 class NewThisOrThat extends StatefulWidget {
   const NewThisOrThat({super.key});
@@ -44,7 +44,8 @@ class _NewThisOrThatState extends State<NewThisOrThat> {
   final TextEditingController label1Controller = TextEditingController();
   final TextEditingController label2Controller = TextEditingController();
 
-  final List<File?> _images = [null, null];
+  List<File> _selectedImages = [];
+  static const int maxImages = 2;
   bool isLoading = false;
   final _dio = Dio();
 
@@ -59,9 +60,9 @@ class _NewThisOrThatState extends State<NewThisOrThat> {
   // Hint animation state
   int _currentHintIndex = 0;
   Timer? _hintTimer;
-  final List<String> _hintTexts = [
-    'Please enter a question',
-    'Please enter a topic',
+  List<String> get _hintTexts => [
+    AppLocalizations.of(context)!.pleaseenteraquestion,
+    AppLocalizations.of(context)!.pleaseenteratopic,
   ];
 
   @override
@@ -148,38 +149,185 @@ class _NewThisOrThatState extends State<NewThisOrThat> {
     super.dispose();
   }
 
-  Future<void> _pickImage(int index) async {
+  Future<void> _pickImages() async {
     try {
-      final File? pickedFile = await ImagePickerService.pickImage(
+      final int remaining = maxImages - _selectedImages.length;
+      if (remaining <= 0) return;
+
+      final List<File>? pickedFiles = await ImagePickerService.pickMultiImages(
         context: context,
+        maxImages: remaining,
         allowCamera: true,
       );
 
-      if (pickedFile != null) {
-        final shouldCrop = await cropImageDiolog(context);
-        if (!mounted) return;
+      if (pickedFiles != null && pickedFiles.isNotEmpty && mounted) {
+        final List<File>? finalFiles = await Navigator.push<List<File>>(
+          context,
+          MaterialPageRoute(
+            builder: (_) => ImagePreviewCropScreen(initialImages: pickedFiles),
+          ),
+        );
 
-        File finalFile = pickedFile;
-        if (shouldCrop == true) {
-          final croppedFile = await ImagePickerService.cropImage(pickedFile);
-          if (croppedFile != null) finalFile = croppedFile;
+        if (finalFiles != null && finalFiles.isNotEmpty && mounted) {
+          setState(() {
+            _selectedImages.addAll(finalFiles);
+            if (_selectedImages.length > maxImages) {
+              _selectedImages = _selectedImages.sublist(0, maxImages);
+            }
+            if (imageErrorText.isNotEmpty) {
+              imageErrorText = '';
+            }
+          });
         }
-
-        setState(() {
-          _images[index] = finalFile;
-          imageErrorText = '';
-        });
       }
     } catch (e) {
-      showToast(message: 'Error picking image: ${e.toString()}');
+      showToast(message: 'Error picking images: ${e.toString()}');
+    }
+  }
+
+  void _onTapEditImage(int index) {
+    final txt = AppTextColors.of(context);
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(AppRadius.modal),
+        ),
+      ),
+      builder: (context) => SafeArea(
+        top: false,
+        child: SizedBox(
+          width: double.infinity,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SizedBox(height: 12.h),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    'Edit Image',
+                    style: AppTextStyles.sectionHeading.copyWith(
+                      color: txt.title,
+                      fontSize: 14.sp,
+                    ),
+                  ),
+                ],
+              ),
+              SizedBox(height: 10.h),
+              Divider(
+                color: Theme.of(context).colorScheme.outlineVariant,
+                height: 1,
+                endIndent: 12,
+                indent: 12,
+              ),
+              SizedBox(height: 5.h),
+              GestureDetector(
+                child: Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10),
+                  child: Text(
+                    'Crop image',
+                    style: AppTextStyles.bodyText.copyWith(
+                      color: txt.body,
+                      fontSize: 13.5.sp,
+                      fontWeight: FontWeight.w400,
+                    ),
+                  ),
+                ),
+                onTap: () {
+                  Navigator.pop(context);
+                  _cropSingleImage(index);
+                },
+              ),
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10),
+                child: GestureDetector(
+                  child: Text(
+                    'Replace image',
+                    style: AppTextStyles.bodyText.copyWith(
+                      color: txt.body,
+                      fontSize: 13.5.sp,
+                      fontWeight: FontWeight.w400,
+                    ),
+                  ),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _replaceSingleImage(index);
+                  },
+                ),
+              ),
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10),
+                child: GestureDetector(
+                  child: Text(
+                    'Remove',
+                    style: AppTextStyles.bodyText.copyWith(
+                      color: txt.body,
+                      fontSize: 13.5.sp,
+                      fontWeight: FontWeight.w400,
+                    ),
+                  ),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _removeImage(index);
+                  },
+                ),
+              ),
+              SizedBox(height: 10.h),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _cropSingleImage(int index) async {
+    if (index < 0 || index >= _selectedImages.length) return;
+
+    final croppedFile = await ImagePickerService.cropImage(
+      _selectedImages[index],
+    );
+    if (croppedFile != null && mounted) {
+      setState(() {
+        _selectedImages[index] = croppedFile;
+      });
+    }
+  }
+
+  Future<void> _replaceSingleImage(int index) async {
+    try {
+      final List<File>? pickedFiles = await ImagePickerService.pickMultiImages(
+        context: context,
+        maxImages: 1,
+        allowCamera: true,
+      );
+
+      if (pickedFiles != null && pickedFiles.isNotEmpty && mounted) {
+        final List<File>? finalFiles = await Navigator.push<List<File>>(
+          context,
+          MaterialPageRoute(
+            builder: (_) => ImagePreviewCropScreen(initialImages: pickedFiles),
+          ),
+        );
+
+        if (finalFiles != null && finalFiles.isNotEmpty && mounted) {
+          setState(() {
+            _selectedImages[index] = finalFiles[0];
+          });
+        }
+      }
+    } catch (e) {
+      showToast(message: 'Error replacing image: ${e.toString()}');
     }
   }
 
   void _removeImage(int index) {
-    setState(() {
-      _images[index] = null;
-      imageErrorText = '';
-    });
+    if (index >= 0 && index < _selectedImages.length) {
+      setState(() {
+        _selectedImages.removeAt(index);
+      });
+    }
   }
 
   Future<void> _createThisOrThatPoll() async {
@@ -201,30 +349,24 @@ class _NewThisOrThatState extends State<NewThisOrThat> {
 
     final bool hasLabel1 = label1Controller.text.trim().isNotEmpty;
     final bool hasLabel2 = label2Controller.text.trim().isNotEmpty;
-    final bool hasImage1 = _images[0] != null;
-    final bool hasImage2 = _images[1] != null;
 
-    if (!hasLabel1) {
-      setState(() {
-        label1ErrorText = 'Please enter label';
-      });
-      hasError = true;
+    if (_selectedImages.isNotEmpty) {
+      if (!hasLabel1) {
+        setState(() {
+          label1ErrorText = 'Please enter label';
+        });
+        hasError = true;
+      }
+      if (_selectedImages.length > 1 && !hasLabel2) {
+        setState(() {
+          label2ErrorText = 'Please enter label';
+        });
+        hasError = true;
+      }
     }
-    if (!hasLabel2) {
+    if (_selectedImages.length < maxImages) {
       setState(() {
-        label2ErrorText = 'Please enter label';
-      });
-      hasError = true;
-    }
-    if (!hasImage1 || !hasImage2) {
-      setState(() {
-        if (!hasImage1 && !hasImage2) {
-          imageErrorText = 'Please select images for both labels';
-        } else if (!hasImage1) {
-          imageErrorText = 'Please select image for first label';
-        } else {
-          imageErrorText = 'Please select image for scond label';
-        }
+        imageErrorText = 'Please select 2 images';
       });
       hasError = true;
     }
@@ -253,26 +395,22 @@ class _NewThisOrThatState extends State<NewThisOrThat> {
         MapEntry('poll_options', label2Controller.text.trim()),
       );
 
-      // Add images and their indices if selected
+      // Add images and their indices
       final List<int> indices = [];
-      for (int i = 0; i < _images.length; i++) {
-        final imageFile = _images[i];
-        if (imageFile != null) {
-          final String ext = path.extension(imageFile.path).toLowerCase();
-          final String subType = ext.startsWith('.')
-              ? ext.substring(1)
-              : 'jpeg';
-          final multipartFile = await MultipartFile.fromFile(
-            imageFile.path,
-            filename: path.basename(imageFile.path),
-            contentType: MediaType(
-              'image',
-              subType == 'jpg' ? 'jpeg' : (subType.isEmpty ? 'jpeg' : subType),
-            ),
-          );
-          formData.files.add(MapEntry('images', multipartFile));
-          indices.add(i);
-        }
+      for (int i = 0; i < _selectedImages.length; i++) {
+        final imageFile = _selectedImages[i];
+        final String ext = path.extension(imageFile.path).toLowerCase();
+        final String subType = ext.startsWith('.') ? ext.substring(1) : 'jpeg';
+        final multipartFile = await MultipartFile.fromFile(
+          imageFile.path,
+          filename: path.basename(imageFile.path),
+          contentType: MediaType(
+            'image',
+            subType == 'jpg' ? 'jpeg' : (subType.isEmpty ? 'jpeg' : subType),
+          ),
+        );
+        formData.files.add(MapEntry('images', multipartFile));
+        indices.add(i);
       }
       if (indices.isNotEmpty) {
         formData.fields.add(MapEntry('image_indices', jsonEncode(indices)));
@@ -310,7 +448,7 @@ class _NewThisOrThatState extends State<NewThisOrThat> {
     final txt = AppTextColors.of(context);
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.background,
-      appBar: const CommonAppBar(title: 'Create This or That'),
+      appBar:  CommonAppBar(title:  AppLocalizations.of(context)!.createthisorthat),
       body: SingleChildScrollView(
         physics: const BouncingScrollPhysics(),
         child: Padding(
@@ -320,7 +458,9 @@ class _NewThisOrThatState extends State<NewThisOrThat> {
             children: [
               SizedBox(height: 10.h),
               Text(
-                'Compare two choices and discover what people prefer',
+                AppLocalizations.of(
+                  context,
+                )!.comparetwochoicesanddiscoverwhatpeopleprefer,
                 style: AppTextStyles.subText.copyWith(
                   fontSize: 14,
                   color: txt.body,
@@ -332,7 +472,7 @@ class _NewThisOrThatState extends State<NewThisOrThat> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    'Ask quickly',
+                    AppLocalizations.of(context)!.askquickly,
                     style: CustomTextStyles.lblPrimaryText(context),
                   ),
                   GestureDetector(
@@ -340,14 +480,7 @@ class _NewThisOrThatState extends State<NewThisOrThat> {
                     child: Row(
                       children: [
                         _isGeneratingQuestion
-                            ? SizedBox(
-                                width: 12.w,
-                                height: 12.h,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 1.5,
-                                  color: Theme.of(context).colorScheme.onPrimary,
-                                ),
-                              )
+                            ? const SizedBox()
                             : Assets.images.icAssistant.image(
                                 width: 14.w,
                                 height: 14.h,
@@ -356,10 +489,10 @@ class _NewThisOrThatState extends State<NewThisOrThat> {
                         const SizedBox(width: 5),
                         Text(
                           _isGeneratingQuestion
-                              ? 'Generating...'
+                              ? AppLocalizations.of(context)!.generating
                               : _hasGeneratedQuestion
-                              ? 'Regenerate Question'
-                              : 'Generate Question',
+                              ? AppLocalizations.of(context)!.regeneratequestion
+                              : AppLocalizations.of(context)!.generatequestion,
                           style: AppTextStyles.bodyText.copyWith(
                             fontSize: 12,
                             fontWeight: FontWeight.w500,
@@ -386,13 +519,15 @@ class _NewThisOrThatState extends State<NewThisOrThat> {
                 ),
               SizedBox(height: 20.h),
               Text(
-                'Description & Hashtags (Optional)',
+                AppLocalizations.of(context)!.descriptionhashtagsoptional,
                 style: CustomTextStyles.lblPrimaryText(context),
               ),
               SizedBox(height: 7.h),
               SecondryTextfield(
                 controller: descriptionController,
-                hintText: 'Type description or hashtags',
+                hintText: AppLocalizations.of(
+                  context,
+                )!.typedescriptionorhashtags,
                 maxLines: 5,
                 minLines: 1,
               ),
@@ -420,15 +555,12 @@ class _NewThisOrThatState extends State<NewThisOrThat> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Options', style: CustomTextStyles.lblPrimaryText(context)),
-        SizedBox(height: 12.h),
-        Row(
-          children: [
-            Expanded(child: _buildImageSelector(context, 0)),
-            SizedBox(width: 12.w),
-            Expanded(child: _buildImageSelector(context, 1)),
-          ],
+        Text(
+          AppLocalizations.of(context)!.option,
+          style: CustomTextStyles.lblPrimaryText(context),
         ),
+        SizedBox(height: 12.h),
+        _buildImagesSection(context),
         if (imageErrorText.isNotEmpty)
           Padding(
             padding: EdgeInsets.only(top: 10.h),
@@ -438,74 +570,52 @@ class _NewThisOrThatState extends State<NewThisOrThat> {
               textAlign: TextAlign.center,
             ),
           ),
-        SizedBox(height: 12.h),
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              child: _buildLabelField(
-                context,
-                0,
-                label1Controller,
-                label1ErrorText,
+        if (_selectedImages.isNotEmpty) ...[
+          SizedBox(height: 12.h),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: _buildLabelField(
+                  context,
+                  0,
+                  label1Controller,
+                  label1ErrorText,
+                ),
               ),
-            ),
-            SizedBox(width: 12.w),
-            Expanded(
-              child: _buildLabelField(
-                context,
-                1,
-                label2Controller,
-                label2ErrorText,
-              ),
-            ),
-          ],
-        ),
+              SizedBox(width: 12.w),
+              if (_selectedImages.length > 1)
+                Expanded(
+                  child: _buildLabelField(
+                    context,
+                    1,
+                    label2Controller,
+                    label2ErrorText,
+                  ),
+                )
+              else
+                const Expanded(child: SizedBox()),
+            ],
+          ),
+        ],
       ],
     );
   }
 
-  Widget _buildImageSelector(BuildContext context, int index) {
-    final bool hasImage = _images[index] != null;
-    return GestureDetector(
-      onTap: () => _pickImage(index),
-      child: AspectRatio(
-        aspectRatio: 1.3,
-        child: hasImage
-            ? Padding(
-                padding: const EdgeInsets.all(5),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(AppRadius.button),
-                  child: Stack(
-                    children: [
-                      Positioned.fill(
-                        child: Image.file(_images[index]!, fit: BoxFit.cover),
-                      ),
-                      Positioned(
-                        top: 5,
-                        right: 5,
-                        child: GestureDetector(
-                          onTap: () => _removeImage(index),
-                          child: Container(
-                            width: 20.w,
-                            height: 20.h,
-                            decoration: BoxDecoration(
-                              color: Theme.of(context).colorScheme.primary,
-                              shape: BoxShape.circle,
-                            ),
-                            child: Icon(
-                              Icons.close,
-                              color: Colors.white,
-                              size: 12.sp,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              )
-            : CustomPaint(
+  Widget _buildImagesSection(BuildContext context) {
+    final txt = AppTextColors.of(context);
+
+    if (_selectedImages.isEmpty) {
+      // Empty state - single selection box like NewImagePoll
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          GestureDetector(
+            onTap: _pickImages,
+            child: SizedBox(
+              width: double.infinity,
+              height: 150.h,
+              child: CustomPaint(
                 painter: DottedBorderPainter(
                   color: Theme.of(
                     context,
@@ -523,8 +633,157 @@ class _NewThisOrThatState extends State<NewThisOrThat> {
                   ),
                 ),
               ),
-      ),
-    );
+            ),
+          ),
+          SizedBox(height: 8.h),
+          Text(
+           AppLocalizations.of(context)!.addtwosimilarimagesegoutfitsplacesfood,
+            style: AppTextStyles.bodyText.copyWith(
+              color: txt.muted,
+              fontSize: 10.5.sp,
+              fontWeight: FontWeight.w400,
+            ),
+          ),
+          SizedBox(height: 12.h),
+          SizedBox(
+            width: double.infinity,
+            height: 45,
+            child: OutlinedButton.icon(
+              onPressed: _pickImages,
+              icon: Icon(
+                Icons.add,
+                size: 18,
+                color: Theme.of(context).colorScheme.onPrimary,
+              ),
+              label: Text(
+                AppLocalizations.of(context)!.addoption,
+                style: AppTextStyles.bodyText.copyWith(
+                  fontSize: 13.5,
+                  fontWeight: FontWeight.w500,
+                  color: Theme.of(context).colorScheme.onPrimary,
+                ),
+              ),
+              style: OutlinedButton.styleFrom(
+                side: BorderSide(
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.onPrimary.withOpacity(0.8),
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(AppRadius.button),
+                ),
+              ),
+            ),
+          ),
+        ],
+      );
+    } else {
+      // Selected images - show 2 boxes side by side with edit icon
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              ...List.generate(_selectedImages.length, (i) {
+                return Expanded(
+                  child: Padding(
+                    padding: EdgeInsets.only(
+                      right: i == 0 ? 6.w : 0,
+                      left: i == 1 ? 6.w : 0,
+                    ),
+                    child: GestureDetector(
+                      onTap: () => _onTapEditImage(i),
+                      child: AspectRatio(
+                        aspectRatio: 1.3,
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(AppRadius.button),
+                          child: Stack(
+                            children: [
+                              Positioned.fill(
+                                child: Image.file(
+                                  _selectedImages[i],
+                                  fit: BoxFit.cover,
+                                ),
+                              ),
+                              Positioned(
+                                top: 5.h,
+                                right: 5.w,
+                                child: GestureDetector(
+                                  onTap: () => _onTapEditImage(i),
+                                  child: Container(
+                                    width: 22.w,
+                                    height: 22.h,
+                                    decoration: BoxDecoration(
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.primary,
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: Icon(
+                                      Icons.edit,
+                                      color: Colors.white,
+                                      size: 12.sp,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+              }),
+              if (_selectedImages.length == 1)
+                const Expanded(child: SizedBox()),
+            ],
+          ),
+          if (_selectedImages.length < maxImages) ...[
+            SizedBox(height: 8.h),
+            Text(
+              'Add 2 images to compare (e.g. outfits, places, food)',
+              style: AppTextStyles.bodyText.copyWith(
+                color: txt.muted,
+                fontSize: 10.5.sp,
+                fontWeight: FontWeight.w400,
+              ),
+            ),
+            SizedBox(height: 12.h),
+            SizedBox(
+              width: double.infinity,
+              height: 45,
+              child: OutlinedButton.icon(
+                onPressed: _pickImages,
+                icon: Icon(
+                  Icons.add,
+                  size: 18,
+                  color: Theme.of(context).colorScheme.onPrimary,
+                ),
+                label: Text(
+                  'Add Option',
+                  style: AppTextStyles.bodyText.copyWith(
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w500,
+                    color: Theme.of(context).colorScheme.onPrimary,
+                  ),
+                ),
+                style: OutlinedButton.styleFrom(
+                  side: BorderSide(
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.onPrimary.withOpacity(0.8),
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(AppRadius.button),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ],
+      );
+    }
   }
 
   Widget _buildLabelField(

@@ -1662,10 +1662,8 @@ class NotificationService {
       }
 
       final rawChatId = data['chat_id'];
-      final int? chatId = rawChatId != null
-          ? int.tryParse(rawChatId.toString())
-          : null;
-      if (chatId == null) {
+      final String? chatId = rawChatId?.toString();
+      if (chatId == null || chatId.isEmpty) {
         debugPrint(
           "⚠️ No chat_id in notification payload for action: $actionId",
         );

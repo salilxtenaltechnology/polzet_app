@@ -10,6 +10,7 @@ import 'package:polzet_app/widgets/loader.dart';
 import 'package:polzet_app/widgets/show_toast.dart';
 import '../../../../api/api_service.dart';
 import '../../../../api/services/image/image_picker_service.dart';
+import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_radius.dart';
 import '../../../../core/themes/app_text_colors.dart';
 import '../../../../core/themes/app_text_styles.dart';
@@ -43,6 +44,35 @@ class _CreateGroupState extends State<CreateGroup> with UtilityMixin {
   File? _selectedImage;
   String? _groupNameError;
   String? _groupMembersError;
+
+  String _selectedCategory = 'General';
+  String _selectedPrivacy = 'Public';
+
+  final List<Map<String, dynamic>> _categories = const [
+    {'name': 'General', 'icon': Icons.people_outline},
+    {'name': 'Gaming', 'icon': Icons.sports_esports_outlined},
+    {'name': 'Education', 'icon': Icons.menu_book_outlined},
+    {'name': 'Explore', 'icon': Icons.explore_outlined},
+  ];
+
+  final List<Map<String, dynamic>> _privacyOptions = const [
+    {
+      'title': 'Public',
+      'icon': Icons.language_outlined,
+      'subtitle': 'Anyone can find, join, and view messages.',
+    },
+    {
+      'title': 'Private',
+      'icon': Icons.lock_outline,
+      'subtitle': 'Only approved members can join and view.',
+    },
+    {
+      'title': 'Invite Only',
+      'icon': Icons.mail_outline,
+      'subtitle': 'Hidden from search. Join by invite link.',
+    },
+  ];
+
   @override
   void dispose() {
     _groupNameController.dispose();
@@ -89,6 +119,19 @@ class _CreateGroupState extends State<CreateGroup> with UtilityMixin {
     });
   }
 
+  String get _privacyValue {
+    switch (_selectedPrivacy) {
+      case 'Public':
+        return 'public';
+      case 'Private':
+        return 'private';
+      case 'Invite Only':
+        return 'invite_only';
+      default:
+        return _selectedPrivacy.toLowerCase().replaceAll(' ', '_');
+    }
+  }
+
   Future<void> _createGroup() async {
     final groupName = _groupNameController.text.trim();
 
@@ -120,6 +163,8 @@ class _CreateGroupState extends State<CreateGroup> with UtilityMixin {
         title: groupName,
         profileImage: _selectedImage,
         members: _selectedIds.toList(),
+        category: _selectedCategory.toLowerCase(),
+        privacy: _privacyValue,
       );
 
       if (result['success'] == true) {
@@ -157,7 +202,8 @@ class _CreateGroupState extends State<CreateGroup> with UtilityMixin {
         title: AppLocalizations.of(context)!.creategroup,
         showBackButton: true,
       ),
-      body: Padding(
+      body: SingleChildScrollView(
+        physics: const BouncingScrollPhysics(),
         padding: const EdgeInsets.all(12).w,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -273,7 +319,164 @@ class _CreateGroupState extends State<CreateGroup> with UtilityMixin {
                 ),
               ),
             ],
-            SizedBox(height: 15.h),
+            SizedBox(height: 18.h),
+            Text(
+              AppLocalizations.of(context)!.category,
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onBackground,
+                fontSize: 11.sp,
+                fontWeight: FontWeight.w400,
+              ),
+            ),
+            SizedBox(height: 8.h),
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              physics: const BouncingScrollPhysics(),
+              child: Row(
+                children: _categories.map((cat) {
+                  final isSelected = _selectedCategory == cat['name'];
+                  return GestureDetector(
+                    onTap: () {
+                      setState(() {
+                        _selectedCategory = cat['name'] as String;
+                      });
+                    },
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      margin: EdgeInsets.only(right: 8.w),
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 10.5.w,
+                        vertical: 6.h,
+                      ),
+                      decoration: BoxDecoration(
+                        color: isSelected
+                            ? AppColors.primaryColor
+                            : (isDarkMode
+                                  ? Colors.white.withOpacity(0.08)
+                                  : Colors.black.withOpacity(0.05)),
+                        borderRadius: BorderRadius.circular(20.r),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            cat['icon'] as IconData,
+                            size: 15.sp,
+                            color: isSelected
+                                ? Colors.white
+                                : Theme.of(
+                                    context,
+                                  ).colorScheme.onBackground.withOpacity(0.8),
+                          ),
+                          SizedBox(width: 5.w),
+                          Text(
+                            cat['name'] as String,
+                            style: TextStyle(
+                              color: isSelected ? Colors.white : txt.title,
+                              fontSize: 11.sp,
+                              fontWeight: FontWeight.w400,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                }).toList(),
+              ),
+            ),
+            SizedBox(height: 18.h),
+            Text(
+              'Privacy',
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onBackground,
+                fontSize: 11.sp,
+                fontWeight: FontWeight.w400,
+              ),
+            ),
+            SizedBox(height: 10.h),
+            Row(
+              children: List.generate(_privacyOptions.length, (index) {
+                final opt = _privacyOptions[index];
+                final isSelected = _selectedPrivacy == opt['title'];
+                final isLast = index == _privacyOptions.length - 1;
+                return Expanded(
+                  child: GestureDetector(
+                    onTap: () {
+                      setState(() {
+                        _selectedPrivacy = opt['title'] as String;
+                      });
+                    },
+                    child: AnimatedContainer(
+                      height: 130.h,
+                      duration: const Duration(milliseconds: 200),
+                      margin: EdgeInsets.only(right: isLast ? 0 : 8.w),
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: isDarkMode
+                            ? const Color(0xFF161821)
+                            : Theme.of(context).colorScheme.primaryContainer,
+                        borderRadius: BorderRadius.circular(10.r),
+                        border: Border.all(
+                          color: isSelected
+                              ? AppColors.primaryColor
+                              : (isDarkMode
+                                    ? Colors.white.withOpacity(0.12)
+                                    : Colors.black.withOpacity(0.08)),
+                          width: 1,
+                        ),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            width: 30.w,
+                            height: 30.w,
+                            decoration: BoxDecoration(
+                              color: isSelected
+                                  ? AppColors.primaryColor.withOpacity(0.15)
+                                  : (isDarkMode
+                                        ? Colors.white.withOpacity(0.08)
+                                        : Colors.black.withOpacity(0.05)),
+                              borderRadius: BorderRadius.circular(8.r),
+                            ),
+                            child: Center(
+                              child: Icon(
+                                opt['icon'] as IconData,
+                                size: 16.sp,
+                                color: isSelected
+                                    ? AppColors.primaryColor
+                                    : Theme.of(context).colorScheme.onBackground
+                                          .withOpacity(0.7),
+                              ),
+                            ),
+                          ),
+                          SizedBox(height: 10.h),
+                          Text(
+                            opt['title'] as String,
+                            style: TextStyle(
+                              color: txt.title,
+                              fontSize: 10.8.sp,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          SizedBox(height: 4.h),
+                          Text(
+                            opt['subtitle'] as String,
+                            style: TextStyle(
+                              color: txt.muted,
+                              fontSize: 9.5.sp,
+                              fontWeight: FontWeight.w400,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                );
+              }),
+            ),
+            SizedBox(height: 18.h),
             Row(
               children: [
                 Text(
@@ -338,124 +541,129 @@ class _CreateGroupState extends State<CreateGroup> with UtilityMixin {
               ),
             ],
             if (_selectedUsers.isNotEmpty)
-              Expanded(
-                child: ListView.separated(
-                  itemCount: _selectedUsers.length,
-                  separatorBuilder: (_, __) => SizedBox(height: 8.h),
-                  itemBuilder: (context, index) {
-                    final user = _selectedUsers[index];
-                    final id = user['id']?.toString() ?? '';
-                    final avatarUrl = _userAvatar(user);
-                    final firstName = user['first_name'] as String? ?? '';
-                    final lastName = user['last_name'] as String? ?? '';
-                    final username = user['username'] as String? ?? _userName(user);
-                    final fullName = '$firstName $lastName'.trim();
+              ListView.separated(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: _selectedUsers.length,
+                separatorBuilder: (_, __) => SizedBox(height: 8.h),
+                itemBuilder: (context, index) {
+                  final user = _selectedUsers[index];
+                  final id = user['id']?.toString() ?? '';
+                  final avatarUrl = _userAvatar(user);
+                  final firstName = user['first_name'] as String? ?? '';
+                  final lastName = user['last_name'] as String? ?? '';
+                  final username =
+                      user['username'] as String? ?? _userName(user);
+                  final fullName = '$firstName $lastName'.trim();
 
-                    return Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 6,
+                  return Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 6,
+                    ),
+                    margin: const EdgeInsets.only(bottom: 5),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.primaryContainer,
+                      borderRadius: BorderRadius.circular(AppRadius.card),
+                      border: Border.all(
+                        color: Theme.of(context).colorScheme.outline,
+                        width: 1,
                       ),
-                      margin: const EdgeInsets.only(bottom: 5),
-                      decoration: BoxDecoration(
-                        color: Theme.of(context).colorScheme.primaryContainer,
-                        borderRadius: BorderRadius.circular(AppRadius.card),
-                        border: Border.all(
-                          color: Theme.of(context).colorScheme.outline,
-                          width: 1,
+                      boxShadow: const [
+                        BoxShadow(color: Color(0x06000000), blurRadius: 2),
+                      ],
+                    ),
+                    child: Row(
+                      children: [
+                        Builder(
+                          builder: (_) {
+                            final resolvedUrl = resolveProfileImageUrl(
+                              avatarUrl,
+                            );
+                            final avatarProvider = resolvedUrl != null
+                                ? NetworkImage(resolvedUrl)
+                                : null;
+                            final initial = username.trim().isNotEmpty
+                                ? username.trim()[0].toUpperCase()
+                                : 'P';
+                            return CircleAvatar(
+                              radius: 15,
+                              backgroundImage: avatarProvider,
+                              backgroundColor: avatarProvider == null
+                                  ? Theme.of(
+                                      context,
+                                    ).colorScheme.onPrimary.withOpacity(0.1)
+                                  : null,
+                              child: avatarProvider == null
+                                  ? Text(
+                                      initial,
+                                      style: AppTextStyles.subText.copyWith(
+                                        color: Theme.of(
+                                          context,
+                                        ).colorScheme.onPrimary,
+                                        fontWeight: FontWeight.w500,
+                                        fontSize: 13,
+                                      ),
+                                    )
+                                  : null,
+                            );
+                          },
                         ),
-                        boxShadow: const [
-                          BoxShadow(color: Color(0x06000000), blurRadius: 2),
-                        ],
-                      ),
-                      child: Row(
-                        children: [
-                          Builder(
-                            builder: (_) {
-                              final resolvedUrl = resolveProfileImageUrl(avatarUrl);
-                              final avatarProvider = resolvedUrl != null ? NetworkImage(resolvedUrl) : null;
-                              final initial = username.trim().isNotEmpty
-                                  ? username.trim()[0].toUpperCase()
-                                  : 'P';
-                              return CircleAvatar(
-                                radius: 15,
-                                backgroundImage: avatarProvider,
-                                backgroundColor: avatarProvider == null
-                                    ? Theme.of(
-                                        context,
-                                      ).colorScheme.onPrimary.withOpacity(0.1)
-                                    : null,
-                                child: avatarProvider == null
-                                    ? Text(
-                                        initial,
-                                        style: AppTextStyles.subText.copyWith(
-                                          color: Theme.of(
-                                            context,
-                                          ).colorScheme.onPrimary,
-                                          fontWeight: FontWeight.w500,
-                                          fontSize: 13,
-                                        ),
-                                      )
-                                    : null,
-                              );
-                            },
-                          ),
-                          SizedBox(width: 12.w),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
+                        SizedBox(width: 12.w),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                username,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: AppTextStyles.bodyText.copyWith(
+                                  color: txt.body,
+                                  fontSize: 14.5,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                              if (fullName.isNotEmpty) ...[
                                 Text(
-                                  username,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
+                                  fullName,
                                   style: AppTextStyles.bodyText.copyWith(
-                                    color: txt.body,
-                                    fontSize: 14.5,
+                                    fontSize: 12.5,
+                                    color: txt.muted,
                                     fontWeight: FontWeight.w500,
                                   ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
                                 ),
-                                if (fullName.isNotEmpty) ...[
-                                  Text(
-                                    fullName,
-                                    style: AppTextStyles.bodyText.copyWith(
-                                      fontSize: 12.5,
-                                      color: txt.muted,
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
+                              ] else ...[
+                                Text(
+                                  username,
+                                  style: AppTextStyles.bodyText.copyWith(
+                                    fontSize: 12.5,
+                                    color: txt.muted,
+                                    fontWeight: FontWeight.w500,
                                   ),
-                                ] else ...[
-                                  Text(
-                                    username,
-                                    style: AppTextStyles.bodyText.copyWith(
-                                      fontSize: 12.5,
-                                      color: txt.muted,
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ],
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
                               ],
-                            ),
+                            ],
                           ),
-                          GestureDetector(
-                            onTap: () => _removeMember(id),
-                            child: Icon(
-                              Icons.close,
-                              size: 18.spMax,
-                              color: Theme.of(context).colorScheme.error,
-                            ),
+                        ),
+                        GestureDetector(
+                          onTap: () => _removeMember(id),
+                          child: Icon(
+                            Icons.close,
+                            size: 18.spMax,
+                            color: Theme.of(context).colorScheme.error,
                           ),
-                        ],
-                      ),
-                    );
-                  },
-                ),
+                        ),
+                      ],
+                    ),
+                  );
+                },
               ),
           ],
         ),

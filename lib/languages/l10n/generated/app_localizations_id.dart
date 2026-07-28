@@ -1972,6 +1972,13 @@ class AppLocalizationsId extends AppLocalizations {
   String get nomessagesyet => 'Belum ada pesan';
 
   @override
+  String get nofavoritechatyet => 'Belum ada obrolan favorit';
+
+  @override
+  String get chatsyoufavoritewillappearhere =>
+      'Obrolan yang Anda favoritkan akan muncul di sini.';
+
+  @override
   String get nonotificationsyet => 'Belum ada notifikasi';
 
   @override
@@ -2068,4 +2075,256 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String get nopostsavailable => 'Tidak ada postingan tersedia';
+
+  @override
+  String get searchsettingsfeatures => 'Cari pengaturan & fitur...';
+
+  @override
+  String get choosehowyouwanttoaskyourquestion =>
+      'Pilih cara Anda ingin mengajukan pertanyaan';
+
+  @override
+  String get textpoll => 'Polling Teks';
+
+  @override
+  String get asksimplequestionswithtextchoices =>
+      'Ajukan pertanyaan sederhana dengan pilihan teks';
+
+  @override
+  String get imagepoll => 'Polling Gambar';
+
+  @override
+  String get comparephotosandvisualchoices =>
+      'Bandingkan foto dan pilihan visual';
+
+  @override
+  String get battlepoll => 'Polling Battle';
+
+  @override
+  String get comparerivalsandcrownawinner =>
+      'Bandingkan rival dan tentukan pemenang';
+
+  @override
+  String get thisorthat => 'Ini atau Itu';
+
+  @override
+  String get pickbetweentwoquickchoices => 'Pilih di antara dua opsi cepat';
+
+  @override
+  String get hottakespoll => 'Polling Opini Kontroversial';
+
+  @override
+  String get shareahottake => 'Bagikan opini kontroversial';
+
+  @override
+  String get postboldopinionssparkdebatesandhearbothsides =>
+      'Posting opini berani, picu perdebatan, dan dengar kedua sisi';
+
+  @override
+  String get yourhottake => 'Opini kontroversial Anda';
+
+  @override
+  String get shareopinionsandstartdebates =>
+      'Bagikan opini dan mulai perdebatan';
+
+  @override
+  String get anonymouspoll => 'Polling Anonim';
+
+  @override
+  String get gethonestopinionsprivately =>
+      'Dapatkan opini jujur secara pribadi';
+
+  @override
+  String get descriptionhashtagsoptional => 'Deskripsi & Hashtag (Opsional)';
+
+  @override
+  String get typedescriptionorhashtags => 'Ketik deskripsi atau hashtag';
+
+  @override
+  String get generatequestion => 'Buat Pertanyaan';
+
+  @override
+  String get regeneratequestion => 'Buat Ulang Pertanyaan';
+
+  @override
+  String get generating => 'Membuat...';
+
+  @override
+  String get generateoptions => 'Buat Opsi';
+
+  @override
+  String get regenerateoptions => 'Buat Ulang Opsi';
+
+  @override
+  String get votingmode => 'Mode Voting';
+
+  @override
+  String get singlechoice => 'Pilihan Tunggal';
+
+  @override
+  String get voterspickoneoption => 'Pemilih memilih satu opsi';
+
+  @override
+  String get multiplechoice => 'Pilihan Ganda';
+
+  @override
+  String get votersrankalloptions => 'Pemilih mengurutkan semua opsi';
+
+  @override
+  String get pleaseenteratopic => 'Silakan masukkan topik';
+
+  @override
+  String get addlabel => 'Tambah label';
+
+  @override
+  String get putcompetitorsheadtoheadandseewhichsidewins =>
+      'Adu kompetitor secara langsung dan lihat siapa yang menang';
+
+  @override
+  String get startbattel => 'Mulai battle';
+
+  @override
+  String get competitors => 'Kompetitor';
+
+  @override
+  String get comparetwochoicesanddiscoverwhatpeopleprefer =>
+      'Bandingkan dua pilihan dan temukan apa yang disukai orang';
+
+  @override
+  String get askquickly => 'Tanya dengan cepat';
+
+  @override
+  String get optional => 'Opsional';
+
+  @override
+  String get reactions => 'Reaksi';
+
+  @override
+  String get camera => 'Kamera';
+
+  @override
+  String get gallery => 'Galeri';
+
+  @override
+  String get askanonymously => 'Tanya secara anonim';
+
+  @override
+  String get sharequestionsprivatelyandgethonestopinionsfrompeople =>
+      'Bagikan pertanyaan secara pribadi dan dapatkan opini jujur dari orang lain';
+
+  @override
+  String get yourvoterswillbehiddenonthispoll =>
+      'Pemilih Anda akan disembunyikan di polling ini';
+
+  @override
+  String get pin => 'Sematkan';
+
+  @override
+  String get unpin => 'Lepas sematan';
+
+  @override
+  String get mute => 'Bisukan';
+
+  @override
+  String get unmute => 'Aktifkan suara';
+
+  @override
+  String get removefromfavorites => 'Hapus dari favorit';
+
+  @override
+  String get favorites => 'Favorit';
+
+  @override
+  String get unread => 'Belum dibaca';
+
+  @override
+  String get archivedchats => 'Chat yang Diarsipkan';
+
+  @override
+  String get archive => 'Arsipkan';
+
+  @override
+  String get unarchive => 'Batalkan arsip';
+
+  @override
+  String get deletechat => 'Hapus Chat';
+
+  @override
+  String get areyousureyouwanttodeletethischatthisactioncannotbeundone =>
+      'Apakah Anda yakin ingin menghapus chat ini? Tindakan ini tidak dapat dibatalkan.';
+
+  @override
+  String get clearchat => 'Bersihkan Chat';
+
+  @override
+  String
+  get areyousureyouwanttoclearallmessagesinthischatthisactioncannotbeundone =>
+      'Apakah Anda yakin ingin menghapus semua pesan di chat ini? Tindakan ini tidak dapat dibatalkan';
+
+  @override
+  String get share => 'Bagikan';
+
+  @override
+  String get joinrequests => 'Permintaan Bergabung';
+
+  @override
+  String get nopendingjoinrequests =>
+      'Tidak ada permintaan bergabung yang tertunda';
+
+  @override
+  String get newchat => 'Chat Baru';
+
+  @override
+  String get addtwosimilarimagesegoutfitsplacesfood =>
+      'Tambahkan 2 gambar serupa (mis. pakaian, tempat, makanan)';
+
+  @override
+  String get addtwoorfoursimilarimagesegoutfitsplacesfood =>
+      'Tambahkan 2-4 gambar serupa (mis. pakaian, tempat, makanan)';
+
+  @override
+  String get startabattle => 'Mulai battle';
+
+  @override
+  String get createthisorthat => 'Buat This or That';
+
+  @override
+  String get pleaseenteraquestionortopic =>
+      'Silakan masukkan pertanyaan atau topik';
+
+  @override
+  String get pleaseselecttwoimages => 'Silakan pilih 2 gambar';
+
+  @override
+  String get markasread => 'Tandai sudah dibaca';
+
+  @override
+  String get markasunread => 'Tandai belum dibaca';
+
+  @override
+  String get archivedgroups => 'Grup yang Diarsipkan';
+
+  @override
+  String get noarchivedchatsyet => 'Belum ada chat yang diarsipkan';
+
+  @override
+  String get public => 'Publik';
+
+  @override
+  String get anyonecanfindjoinandviewmessages =>
+      'Siapa saja dapat menemukan, bergabung, dan melihat pesan.';
+
+  @override
+  String get private => 'Pribadi';
+
+  @override
+  String get onlyapprovedmemberscanjoinandview =>
+      'Hanya anggota yang disetujui yang dapat bergabung dan melihat.';
+
+  @override
+  String get inviteonly => 'Khusus Undangan';
+
+  @override
+  String get hiddenfromsearchjoinbyinvitelink =>
+      'Disembunyikan dari pencarian. Bergabung melalui tautan undangan.';
 }

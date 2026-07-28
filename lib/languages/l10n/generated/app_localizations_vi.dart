@@ -1975,6 +1975,13 @@ class AppLocalizationsVi extends AppLocalizations {
   String get nomessagesyet => 'Chưa có tin nhắn';
 
   @override
+  String get nofavoritechatyet => 'Chưa có cuộc trò chuyện yêu thích nào';
+
+  @override
+  String get chatsyoufavoritewillappearhere =>
+      'Các cuộc trò chuyện bạn yêu thích sẽ xuất hiện ở đây.';
+
+  @override
   String get nonotificationsyet => 'Chưa có thông báo';
 
   @override
@@ -2071,4 +2078,256 @@ class AppLocalizationsVi extends AppLocalizations {
 
   @override
   String get nopostsavailable => 'Không có bài đăng nào';
+
+  @override
+  String get searchsettingsfeatures => 'Tìm kiếm cài đặt & tính năng...';
+
+  @override
+  String get choosehowyouwanttoaskyourquestion =>
+      'Chọn cách bạn muốn đặt câu hỏi';
+
+  @override
+  String get textpoll => 'Khảo sát văn bản';
+
+  @override
+  String get asksimplequestionswithtextchoices =>
+      'Đặt câu hỏi đơn giản với các lựa chọn văn bản';
+
+  @override
+  String get imagepoll => 'Khảo sát hình ảnh';
+
+  @override
+  String get comparephotosandvisualchoices =>
+      'So sánh ảnh và các lựa chọn trực quan';
+
+  @override
+  String get battlepoll => 'Khảo sát đối đầu';
+
+  @override
+  String get comparerivalsandcrownawinner =>
+      'So sánh đối thủ và tôn vinh người chiến thắng';
+
+  @override
+  String get thisorthat => 'Cái này hay cái kia';
+
+  @override
+  String get pickbetweentwoquickchoices => 'Chọn giữa hai lựa chọn nhanh';
+
+  @override
+  String get hottakespoll => 'Khảo sát quan điểm gây tranh cãi';
+
+  @override
+  String get shareahottake => 'Chia sẻ một quan điểm gây tranh cãi';
+
+  @override
+  String get postboldopinionssparkdebatesandhearbothsides =>
+      'Đăng những ý kiến táo bạo, khơi mào tranh luận và lắng nghe cả hai phía';
+
+  @override
+  String get yourhottake => 'Quan điểm gây tranh cãi của bạn';
+
+  @override
+  String get shareopinionsandstartdebates =>
+      'Chia sẻ ý kiến và bắt đầu tranh luận';
+
+  @override
+  String get anonymouspoll => 'Khảo sát ẩn danh';
+
+  @override
+  String get gethonestopinionsprivately =>
+      'Nhận ý kiến trung thực một cách riêng tư';
+
+  @override
+  String get descriptionhashtagsoptional => 'Mô tả & Hashtag (Tùy chọn)';
+
+  @override
+  String get typedescriptionorhashtags => 'Nhập mô tả hoặc hashtag';
+
+  @override
+  String get generatequestion => 'Tạo câu hỏi';
+
+  @override
+  String get regeneratequestion => 'Tạo lại câu hỏi';
+
+  @override
+  String get generating => 'Đang tạo...';
+
+  @override
+  String get generateoptions => 'Tạo các lựa chọn';
+
+  @override
+  String get regenerateoptions => 'Tạo lại các lựa chọn';
+
+  @override
+  String get votingmode => 'Chế độ bình chọn';
+
+  @override
+  String get singlechoice => 'Chọn một';
+
+  @override
+  String get voterspickoneoption => 'Người bình chọn chọn một lựa chọn';
+
+  @override
+  String get multiplechoice => 'Chọn nhiều';
+
+  @override
+  String get votersrankalloptions =>
+      'Người bình chọn xếp hạng tất cả các lựa chọn';
+
+  @override
+  String get pleaseenteratopic => 'Vui lòng nhập chủ đề';
+
+  @override
+  String get addlabel => 'Thêm nhãn';
+
+  @override
+  String get putcompetitorsheadtoheadandseewhichsidewins =>
+      'Đưa các đối thủ đối đầu trực tiếp và xem bên nào thắng';
+
+  @override
+  String get startbattel => 'Bắt đầu đối đầu';
+
+  @override
+  String get competitors => 'Đối thủ';
+
+  @override
+  String get comparetwochoicesanddiscoverwhatpeopleprefer =>
+      'So sánh hai lựa chọn và khám phá điều mọi người thích';
+
+  @override
+  String get askquickly => 'Hỏi nhanh';
+
+  @override
+  String get optional => 'Tùy chọn';
+
+  @override
+  String get reactions => 'Cảm xúc';
+
+  @override
+  String get camera => 'Máy ảnh';
+
+  @override
+  String get gallery => 'Thư viện ảnh';
+
+  @override
+  String get askanonymously => 'Hỏi ẩn danh';
+
+  @override
+  String get sharequestionsprivatelyandgethonestopinionsfrompeople =>
+      'Chia sẻ câu hỏi một cách riêng tư và nhận ý kiến trung thực từ mọi người';
+
+  @override
+  String get yourvoterswillbehiddenonthispoll =>
+      'Người bình chọn của bạn sẽ được ẩn trong khảo sát này';
+
+  @override
+  String get pin => 'Ghim';
+
+  @override
+  String get unpin => 'Bỏ ghim';
+
+  @override
+  String get mute => 'Tắt thông báo';
+
+  @override
+  String get unmute => 'Bật thông báo';
+
+  @override
+  String get removefromfavorites => 'Xóa khỏi mục yêu thích';
+
+  @override
+  String get favorites => 'Yêu thích';
+
+  @override
+  String get unread => 'Chưa đọc';
+
+  @override
+  String get archivedchats => 'Trò chuyện đã lưu trữ';
+
+  @override
+  String get archive => 'Lưu trữ';
+
+  @override
+  String get unarchive => 'Bỏ lưu trữ';
+
+  @override
+  String get deletechat => 'Xóa cuộc trò chuyện';
+
+  @override
+  String get areyousureyouwanttodeletethischatthisactioncannotbeundone =>
+      'Bạn có chắc chắn muốn xóa cuộc trò chuyện này không? Hành động này không thể hoàn tác.';
+
+  @override
+  String get clearchat => 'Xóa nội dung trò chuyện';
+
+  @override
+  String
+  get areyousureyouwanttoclearallmessagesinthischatthisactioncannotbeundone =>
+      'Bạn có chắc chắn muốn xóa tất cả tin nhắn trong cuộc trò chuyện này không? Hành động này không thể hoàn tác';
+
+  @override
+  String get share => 'Chia sẻ';
+
+  @override
+  String get joinrequests => 'Yêu cầu tham gia';
+
+  @override
+  String get nopendingjoinrequests =>
+      'Không có yêu cầu tham gia đang chờ xử lý';
+
+  @override
+  String get newchat => 'Cuộc trò chuyện mới';
+
+  @override
+  String get addtwosimilarimagesegoutfitsplacesfood =>
+      'Thêm 2 hình ảnh tương tự (ví dụ: trang phục, địa điểm, món ăn)';
+
+  @override
+  String get addtwoorfoursimilarimagesegoutfitsplacesfood =>
+      'Thêm 2-4 hình ảnh tương tự (ví dụ: trang phục, địa điểm, món ăn)';
+
+  @override
+  String get startabattle => 'Bắt đầu đối đầu';
+
+  @override
+  String get createthisorthat => 'Tạo \"Cái này hay cái kia\"';
+
+  @override
+  String get pleaseenteraquestionortopic => 'Vui lòng nhập câu hỏi hoặc chủ đề';
+
+  @override
+  String get pleaseselecttwoimages => 'Vui lòng chọn 2 hình ảnh';
+
+  @override
+  String get markasread => 'Đánh dấu đã đọc';
+
+  @override
+  String get markasunread => 'Đánh dấu chưa đọc';
+
+  @override
+  String get archivedgroups => 'Nhóm đã lưu trữ';
+
+  @override
+  String get noarchivedchatsyet => 'Chưa có cuộc trò chuyện nào được lưu trữ';
+
+  @override
+  String get public => 'Công khai';
+
+  @override
+  String get anyonecanfindjoinandviewmessages =>
+      'Bất kỳ ai cũng có thể tìm, tham gia và xem tin nhắn.';
+
+  @override
+  String get private => 'Riêng tư';
+
+  @override
+  String get onlyapprovedmemberscanjoinandview =>
+      'Chỉ thành viên được phê duyệt mới có thể tham gia và xem.';
+
+  @override
+  String get inviteonly => 'Chỉ mời';
+
+  @override
+  String get hiddenfromsearchjoinbyinvitelink =>
+      'Ẩn khỏi tìm kiếm. Tham gia bằng liên kết mời.';
 }

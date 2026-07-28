@@ -966,6 +966,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                       if (username != null && username.isNotEmpty) {
                         ShareService.shareProfile(
                           username: username,
+                          profileId: userProvider.userId?.toString() ?? username,
                           context: context,
                         );
                       }

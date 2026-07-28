@@ -716,7 +716,7 @@ class _SettingsScreenState extends State<SettingsScreen>
             });
           },
           decoration: InputDecoration(
-            hintText: 'Search settings & features...',
+            hintText: AppLocalizations.of(context)!.searchsettingsfeatures, 
             hintStyle: AppTextStyles.bodyText.copyWith(
               color: const Color(0XFF898989),
               fontWeight: FontWeight.w400,

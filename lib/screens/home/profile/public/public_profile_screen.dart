@@ -44,6 +44,7 @@ import '../../../../api/services/like/like_service.dart';
 import '../../../../models/like/like_uers_model.dart';
 import '../../../../core/utils/like_util.dart';
 import '../../../../api/services/share/share_service.dart';
+import '../../../../api/services/link/deeplink_generator_service.dart';
 
 enum FollowStatus { none, rechase, chase, both, pending }
 
@@ -614,11 +615,11 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
                 if (result == 'Share Profile') {
                   ShareService.shareProfile(
                     username: profile.username,
+                    profileId: profile.id.toString(),
                     context: context,
                   );
                 } else if (result == 'Copy Profile Link') {
-                  final link =
-                      'https://www.polzet.com/profile/${profile.username}';
+                  final link = DeepLinkService.generateProfileLink(profile.username);
                   Clipboard.setData(ClipboardData(text: link)).then((_) {
                     showToast(message: 'Link copied');
                   });

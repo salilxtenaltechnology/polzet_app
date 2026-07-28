@@ -9,6 +9,7 @@ import 'package:polzet_app/screens/home/new%20poll/type/new_this_or_that.dart';
 import '../../../core/themes/app_text_colors.dart';
 import '../../../core/themes/app_text_styles.dart';
 import '../../../gen/assets.gen.dart';
+import '../../../languages/l10n/generated/app_localizations.dart';
 import '../../../widgets/appbar/common_appbar.dart';
 import '../../../mixin/utility_mixins.dart';
 import 'type/new_hot_take_poll.dart';
@@ -50,43 +51,45 @@ class _AddNewPollState extends State<AddNewPoll>
   List<Map<String, dynamic>> _getPollOptions(BuildContext context) {
     return [
       {
-        'title': 'Text Poll',
-        'subtitle': 'Ask simple questions with text choices',
+        'title': AppLocalizations.of(context)!.textpoll,
+        'subtitle': AppLocalizations.of(
+          context,
+        )!.asksimplequestionswithtextchoices,
         'image': Assets.images.icTextPoll,
         'screen': const NewTextPoll(),
         'iconBackgroundColor': const Color(0XFFC026D3).withOpacity(0.1),
       },
       {
-        'title': 'Image Poll',
-        'subtitle': 'Compare photos and visual choices',
+        'title': AppLocalizations.of(context)!.imagepoll,
+        'subtitle': AppLocalizations.of(context)!.comparephotosandvisualchoices,
         'image': Assets.images.icImagePoll,
         'screen': const NewImagePoll(),
         'iconBackgroundColor': const Color(0XFFDE42AA).withOpacity(0.1),
       },
       {
-        'title': 'Battle Poll',
-        'subtitle': 'Compare rivals and crown a winner',
+        'title': AppLocalizations.of(context)!.battlepoll,
+        'subtitle': AppLocalizations.of(context)!.comparerivalsandcrownawinner,
         'image': Assets.images.icBattel,
         'screen': const NewBattelPoll(),
         'iconBackgroundColor': const Color(0XFFDC2626).withOpacity(0.1),
       },
       {
-        'title': 'This or That',
-        'subtitle': 'Pick between two quick choices',
+        'title': AppLocalizations.of(context)!.thisorthat,
+        'subtitle': AppLocalizations.of(context)!.pickbetweentwoquickchoices,
         'image': Assets.images.icThisThat,
         'screen': const NewThisOrThat(),
         'iconBackgroundColor': const Color(0XFF16A34A).withOpacity(0.12),
       },
       {
-        'title': 'Hot Takes Poll',
-        'subtitle': 'Share opinions and start debates',
+        'title': AppLocalizations.of(context)!.hottakespoll,
+        'subtitle': AppLocalizations.of(context)!.shareopinionsandstartdebates,
         'image': Assets.images.icHot,
         'screen': const NewHotTakePoll(),
         'iconBackgroundColor': const Color(0XFFEA580C).withOpacity(0.12),
       },
       {
-        'title': 'Anonymous Poll',
-        'subtitle': 'Get honest opinions privately',
+        'title': AppLocalizations.of(context)!.anonymouspoll,
+        'subtitle': AppLocalizations.of(context)!.gethonestopinionsprivately,
         'image': Assets.images.icAnonymous,
         'screen': const NewAnonymousPoll(),
         'iconBackgroundColor': const Color(0XFF7C3AED).withOpacity(0.12),
@@ -111,8 +114,8 @@ class _AddNewPollState extends State<AddNewPoll>
 
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.background,
-      appBar: const CommonAppBar(
-        title: 'Create your first poll',
+      appBar: CommonAppBar(
+        title: AppLocalizations.of(context)!.createyourfirstpoll,
         showBackButton: true,
       ),
       body: SafeArea(
@@ -127,7 +130,9 @@ class _AddNewPollState extends State<AddNewPoll>
                   children: [
                     SizedBox(height: 10.h),
                     Text(
-                      'Choose how you want to ask your question',
+                      AppLocalizations.of(
+                        context,
+                      )!.choosehowyouwanttoaskyourquestion,
                       style: AppTextStyles.subText.copyWith(
                         fontSize: 14,
                         color: txt.body,

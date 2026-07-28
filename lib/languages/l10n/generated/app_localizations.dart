@@ -3660,6 +3660,18 @@ abstract class AppLocalizations {
   /// **'No messages yet'**
   String get nomessagesyet;
 
+  /// No description provided for @nofavoritechatyet.
+  ///
+  /// In en, this message translates to:
+  /// **'No favorite chat yet'**
+  String get nofavoritechatyet;
+
+  /// No description provided for @chatsyoufavoritewillappearhere.
+  ///
+  /// In en, this message translates to:
+  /// **'Chats you favorite will appear here.'**
+  String get chatsyoufavoritewillappearhere;
+
   /// No description provided for @nonotificationsyet.
   ///
   /// In en, this message translates to:
@@ -3833,6 +3845,469 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No posts available'**
   String get nopostsavailable;
+
+  /// No description provided for @searchsettingsfeatures.
+  ///
+  /// In en, this message translates to:
+  /// **'Search settings & features...'**
+  String get searchsettingsfeatures;
+
+  /// No description provided for @choosehowyouwanttoaskyourquestion.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose how you want to ask your question'**
+  String get choosehowyouwanttoaskyourquestion;
+
+  /// No description provided for @textpoll.
+  ///
+  /// In en, this message translates to:
+  /// **'Text Poll'**
+  String get textpoll;
+
+  /// No description provided for @asksimplequestionswithtextchoices.
+  ///
+  /// In en, this message translates to:
+  /// **'Ask simple questions with text choices'**
+  String get asksimplequestionswithtextchoices;
+
+  /// No description provided for @imagepoll.
+  ///
+  /// In en, this message translates to:
+  /// **'Image Poll'**
+  String get imagepoll;
+
+  /// No description provided for @comparephotosandvisualchoices.
+  ///
+  /// In en, this message translates to:
+  /// **'Compare photos and visual choices'**
+  String get comparephotosandvisualchoices;
+
+  /// No description provided for @battlepoll.
+  ///
+  /// In en, this message translates to:
+  /// **'Battle Poll'**
+  String get battlepoll;
+
+  /// No description provided for @comparerivalsandcrownawinner.
+  ///
+  /// In en, this message translates to:
+  /// **'Compare rivals and crown a winner'**
+  String get comparerivalsandcrownawinner;
+
+  /// No description provided for @thisorthat.
+  ///
+  /// In en, this message translates to:
+  /// **'This or That'**
+  String get thisorthat;
+
+  /// No description provided for @pickbetweentwoquickchoices.
+  ///
+  /// In en, this message translates to:
+  /// **'Pick between two quick choices'**
+  String get pickbetweentwoquickchoices;
+
+  /// No description provided for @hottakespoll.
+  ///
+  /// In en, this message translates to:
+  /// **'Hot Takes Poll'**
+  String get hottakespoll;
+
+  /// No description provided for @shareahottake.
+  ///
+  /// In en, this message translates to:
+  /// **'Share a Hot Take'**
+  String get shareahottake;
+
+  /// No description provided for @postboldopinionssparkdebatesandhearbothsides.
+  ///
+  /// In en, this message translates to:
+  /// **'Post bold opinions, spark debates, and hear both sides'**
+  String get postboldopinionssparkdebatesandhearbothsides;
+
+  /// No description provided for @yourhottake.
+  ///
+  /// In en, this message translates to:
+  /// **'Your hot take'**
+  String get yourhottake;
+
+  /// No description provided for @shareopinionsandstartdebates.
+  ///
+  /// In en, this message translates to:
+  /// **'Share opinions and start debates'**
+  String get shareopinionsandstartdebates;
+
+  /// No description provided for @anonymouspoll.
+  ///
+  /// In en, this message translates to:
+  /// **'Anonymous Poll'**
+  String get anonymouspoll;
+
+  /// No description provided for @gethonestopinionsprivately.
+  ///
+  /// In en, this message translates to:
+  /// **'Get honest opinions privately'**
+  String get gethonestopinionsprivately;
+
+  /// No description provided for @descriptionhashtagsoptional.
+  ///
+  /// In en, this message translates to:
+  /// **'Description & Hashtags (Optional)'**
+  String get descriptionhashtagsoptional;
+
+  /// No description provided for @typedescriptionorhashtags.
+  ///
+  /// In en, this message translates to:
+  /// **'Type description or hashtags'**
+  String get typedescriptionorhashtags;
+
+  /// No description provided for @generatequestion.
+  ///
+  /// In en, this message translates to:
+  /// **'Generate Question'**
+  String get generatequestion;
+
+  /// No description provided for @regeneratequestion.
+  ///
+  /// In en, this message translates to:
+  /// **'Regenerate Question'**
+  String get regeneratequestion;
+
+  /// No description provided for @generating.
+  ///
+  /// In en, this message translates to:
+  /// **'Generating...'**
+  String get generating;
+
+  /// No description provided for @generateoptions.
+  ///
+  /// In en, this message translates to:
+  /// **'Generate Options'**
+  String get generateoptions;
+
+  /// No description provided for @regenerateoptions.
+  ///
+  /// In en, this message translates to:
+  /// **'Regenerate Options'**
+  String get regenerateoptions;
+
+  /// No description provided for @votingmode.
+  ///
+  /// In en, this message translates to:
+  /// **'Voting Mode'**
+  String get votingmode;
+
+  /// No description provided for @singlechoice.
+  ///
+  /// In en, this message translates to:
+  /// **'Single Choice'**
+  String get singlechoice;
+
+  /// No description provided for @voterspickoneoption.
+  ///
+  /// In en, this message translates to:
+  /// **'Voters pick one option'**
+  String get voterspickoneoption;
+
+  /// No description provided for @multiplechoice.
+  ///
+  /// In en, this message translates to:
+  /// **'Multiple Choice'**
+  String get multiplechoice;
+
+  /// No description provided for @votersrankalloptions.
+  ///
+  /// In en, this message translates to:
+  /// **'Voters rank all options'**
+  String get votersrankalloptions;
+
+  /// No description provided for @pleaseenteratopic.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter a topic'**
+  String get pleaseenteratopic;
+
+  /// No description provided for @addlabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Add label'**
+  String get addlabel;
+
+  /// No description provided for @putcompetitorsheadtoheadandseewhichsidewins.
+  ///
+  /// In en, this message translates to:
+  /// **'Put competitors head-to-head and see which side wins'**
+  String get putcompetitorsheadtoheadandseewhichsidewins;
+
+  /// No description provided for @startbattel.
+  ///
+  /// In en, this message translates to:
+  /// **'Start battel'**
+  String get startbattel;
+
+  /// No description provided for @competitors.
+  ///
+  /// In en, this message translates to:
+  /// **'Competitors'**
+  String get competitors;
+
+  /// No description provided for @comparetwochoicesanddiscoverwhatpeopleprefer.
+  ///
+  /// In en, this message translates to:
+  /// **'Compare two choices and discover what people prefer'**
+  String get comparetwochoicesanddiscoverwhatpeopleprefer;
+
+  /// No description provided for @askquickly.
+  ///
+  /// In en, this message translates to:
+  /// **'Ask quickly'**
+  String get askquickly;
+
+  /// No description provided for @optional.
+  ///
+  /// In en, this message translates to:
+  /// **'Optional'**
+  String get optional;
+
+  /// No description provided for @reactions.
+  ///
+  /// In en, this message translates to:
+  /// **'Reactions'**
+  String get reactions;
+
+  /// No description provided for @camera.
+  ///
+  /// In en, this message translates to:
+  /// **'Camera'**
+  String get camera;
+
+  /// No description provided for @gallery.
+  ///
+  /// In en, this message translates to:
+  /// **'Gallery'**
+  String get gallery;
+
+  /// No description provided for @askanonymously.
+  ///
+  /// In en, this message translates to:
+  /// **'Ask Anonymously'**
+  String get askanonymously;
+
+  /// No description provided for @sharequestionsprivatelyandgethonestopinionsfrompeople.
+  ///
+  /// In en, this message translates to:
+  /// **'Share questions privately and get honest opinions from people'**
+  String get sharequestionsprivatelyandgethonestopinionsfrompeople;
+
+  /// No description provided for @yourvoterswillbehiddenonthispoll.
+  ///
+  /// In en, this message translates to:
+  /// **'Your voters will be hidden on this poll'**
+  String get yourvoterswillbehiddenonthispoll;
+
+  /// No description provided for @pin.
+  ///
+  /// In en, this message translates to:
+  /// **'Pin'**
+  String get pin;
+
+  /// No description provided for @unpin.
+  ///
+  /// In en, this message translates to:
+  /// **'Unpin'**
+  String get unpin;
+
+  /// No description provided for @mute.
+  ///
+  /// In en, this message translates to:
+  /// **'Mute'**
+  String get mute;
+
+  /// No description provided for @unmute.
+  ///
+  /// In en, this message translates to:
+  /// **'Unmute'**
+  String get unmute;
+
+  /// No description provided for @removefromfavorites.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove from favorites'**
+  String get removefromfavorites;
+
+  /// No description provided for @favorites.
+  ///
+  /// In en, this message translates to:
+  /// **'Favorites'**
+  String get favorites;
+
+  /// No description provided for @unread.
+  ///
+  /// In en, this message translates to:
+  /// **'Unread'**
+  String get unread;
+
+  /// No description provided for @archivedchats.
+  ///
+  /// In en, this message translates to:
+  /// **'Archived Chats'**
+  String get archivedchats;
+
+  /// No description provided for @archive.
+  ///
+  /// In en, this message translates to:
+  /// **'Archive'**
+  String get archive;
+
+  /// No description provided for @unarchive.
+  ///
+  /// In en, this message translates to:
+  /// **'Unarchive'**
+  String get unarchive;
+
+  /// No description provided for @deletechat.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete Chat'**
+  String get deletechat;
+
+  /// No description provided for @areyousureyouwanttodeletethischatthisactioncannotbeundone.
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to delete this chat? This action cannot be undone.'**
+  String get areyousureyouwanttodeletethischatthisactioncannotbeundone;
+
+  /// No description provided for @clearchat.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear Chat'**
+  String get clearchat;
+
+  /// No description provided for @areyousureyouwanttoclearallmessagesinthischatthisactioncannotbeundone.
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to clear all messages in this chat? This action cannot be undone'**
+  String
+  get areyousureyouwanttoclearallmessagesinthischatthisactioncannotbeundone;
+
+  /// No description provided for @share.
+  ///
+  /// In en, this message translates to:
+  /// **'Share'**
+  String get share;
+
+  /// No description provided for @joinrequests.
+  ///
+  /// In en, this message translates to:
+  /// **'Join Requests'**
+  String get joinrequests;
+
+  /// No description provided for @nopendingjoinrequests.
+  ///
+  /// In en, this message translates to:
+  /// **'No pending join requests'**
+  String get nopendingjoinrequests;
+
+  /// No description provided for @newchat.
+  ///
+  /// In en, this message translates to:
+  /// **'New Chat'**
+  String get newchat;
+
+  /// No description provided for @addtwosimilarimagesegoutfitsplacesfood.
+  ///
+  /// In en, this message translates to:
+  /// **'Add 2 similar images (e.g. outfits, places, food)'**
+  String get addtwosimilarimagesegoutfitsplacesfood;
+
+  /// No description provided for @addtwoorfoursimilarimagesegoutfitsplacesfood.
+  ///
+  /// In en, this message translates to:
+  /// **'Add 2-4 similar images (e.g. outfits, places, food)'**
+  String get addtwoorfoursimilarimagesegoutfitsplacesfood;
+
+  /// No description provided for @startabattle.
+  ///
+  /// In en, this message translates to:
+  /// **'Start a battle'**
+  String get startabattle;
+
+  /// No description provided for @createthisorthat.
+  ///
+  /// In en, this message translates to:
+  /// **'Create This or That'**
+  String get createthisorthat;
+
+  /// No description provided for @pleaseenteraquestionortopic.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter a question or topic'**
+  String get pleaseenteraquestionortopic;
+
+  /// No description provided for @pleaseselecttwoimages.
+  ///
+  /// In en, this message translates to:
+  /// **'Please select 2 images'**
+  String get pleaseselecttwoimages;
+
+  /// No description provided for @markasread.
+  ///
+  /// In en, this message translates to:
+  /// **'Mark as read'**
+  String get markasread;
+
+  /// No description provided for @markasunread.
+  ///
+  /// In en, this message translates to:
+  /// **'Mark as unread'**
+  String get markasunread;
+
+  /// No description provided for @archivedgroups.
+  ///
+  /// In en, this message translates to:
+  /// **'Archived Groups'**
+  String get archivedgroups;
+
+  /// No description provided for @noarchivedchatsyet.
+  ///
+  /// In en, this message translates to:
+  /// **'No archived chats yet'**
+  String get noarchivedchatsyet;
+
+  /// No description provided for @public.
+  ///
+  /// In en, this message translates to:
+  /// **'Public'**
+  String get public;
+
+  /// No description provided for @anyonecanfindjoinandviewmessages.
+  ///
+  /// In en, this message translates to:
+  /// **'Anyone can find, join, and view messages.'**
+  String get anyonecanfindjoinandviewmessages;
+
+  /// No description provided for @private.
+  ///
+  /// In en, this message translates to:
+  /// **'Private'**
+  String get private;
+
+  /// No description provided for @onlyapprovedmemberscanjoinandview.
+  ///
+  /// In en, this message translates to:
+  /// **'Only approved members can join and view.'**
+  String get onlyapprovedmemberscanjoinandview;
+
+  /// No description provided for @inviteonly.
+  ///
+  /// In en, this message translates to:
+  /// **'Invite Only'**
+  String get inviteonly;
+
+  /// No description provided for @hiddenfromsearchjoinbyinvitelink.
+  ///
+  /// In en, this message translates to:
+  /// **'Hidden from search. Join by invite link.'**
+  String get hiddenfromsearchjoinbyinvitelink;
 }
 
 class _AppLocalizationsDelegate

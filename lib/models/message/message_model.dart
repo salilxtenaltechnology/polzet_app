@@ -1,6 +1,6 @@
 // ignore_for_file: non_constant_identifier_names
 class ChatMessage {
-    final int? id;
+    final dynamic id;
   final String text;
   final DateTime created_at;
   final bool isSentByMe;
@@ -11,6 +11,7 @@ class ChatMessage {
   final String? senderProfileImage;
   final Map<String, dynamic>? sharedPost;
   final Map<String, dynamic>? sharedProfile;
+  final Map<String, dynamic>? sharedGroup;
   final String? senderId;
 
   const ChatMessage({
@@ -25,6 +26,7 @@ class ChatMessage {
     this.senderProfileImage,
     this.sharedPost,
     this.sharedProfile,
+    this.sharedGroup,
     this.senderId,
   });
 
@@ -40,6 +42,7 @@ class ChatMessage {
       'senderProfileImage': senderProfileImage,
       'sharedPost': sharedPost,
       'sharedProfile': sharedProfile,
+      'sharedGroup': sharedGroup,
       'senderId': senderId,
     };
   }
@@ -56,6 +59,7 @@ class ChatMessage {
       senderProfileImage: json['senderProfileImage'] as String?,
       sharedPost: json['sharedPost'] as Map<String, dynamic>?,
       sharedProfile: json['sharedProfile'] as Map<String, dynamic>?,
+      sharedGroup: json['sharedGroup'] as Map<String, dynamic>? ?? json['shared_group'] as Map<String, dynamic>?,
       senderId: json['senderId'] as String?,
     );
   }
@@ -87,14 +91,15 @@ class MessageListModel {
 }
 
 class MessageItem {
-  final int id;
-  final int chat;
+  final dynamic id;
+  final dynamic chat;
   final MessageSender sender;
   final String message;
   final DateTime created_at;
   final bool isRead;
   final Map<String, dynamic>? sharedPost;
   final Map<String, dynamic>? sharedProfile;
+  final Map<String, dynamic>? sharedGroup;
 
   MessageItem({
     required this.id,
@@ -105,12 +110,13 @@ class MessageItem {
     this.isRead = false,
     this.sharedPost,
     this.sharedProfile,
+    this.sharedGroup,
   });
 
   factory MessageItem.fromJson(Map<String, dynamic> json) {
     return MessageItem(
-      id: json['id'] is int ? json['id'] as int : int.tryParse(json['id']?.toString() ?? '') ?? 0,
-      chat: json['chat'] is int ? json['chat'] as int : int.tryParse(json['chat']?.toString() ?? '') ?? 0,
+      id: json['id'],
+      chat: json['chat']?.toString() ?? '',
       sender: MessageSender.fromJson(
         json['sender'] as Map<String, dynamic>? ?? {},
       ),
@@ -119,6 +125,7 @@ class MessageItem {
       isRead: json['is_read'] as bool? ?? false,
       sharedPost: json['shared_post'] as Map<String, dynamic>?,
       sharedProfile: json['shared_profile'] as Map<String, dynamic>?,
+      sharedGroup: json['shared_group'] as Map<String, dynamic>? ?? json['sharedGroup'] as Map<String, dynamic>?,
     );
   }
 

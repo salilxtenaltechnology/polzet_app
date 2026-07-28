@@ -1980,6 +1980,13 @@ class AppLocalizationsEs extends AppLocalizations {
   String get nomessagesyet => 'Aún no hay mensajes';
 
   @override
+  String get nofavoritechatyet => 'No hay chats favoritos aún';
+
+  @override
+  String get chatsyoufavoritewillappearhere =>
+      'Los chats que marques como favoritos aparecerán aquí.';
+
+  @override
   String get nonotificationsyet => 'Aún no hay notificaciones';
 
   @override
@@ -2076,4 +2083,256 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get nopostsavailable => 'No hay publicaciones disponibles';
+
+  @override
+  String get searchsettingsfeatures => 'Buscar configuración y funciones...';
+
+  @override
+  String get choosehowyouwanttoaskyourquestion =>
+      'Elige cómo quieres hacer tu pregunta';
+
+  @override
+  String get textpoll => 'Encuesta de texto';
+
+  @override
+  String get asksimplequestionswithtextchoices =>
+      'Haz preguntas simples con opciones de texto';
+
+  @override
+  String get imagepoll => 'Encuesta de imágenes';
+
+  @override
+  String get comparephotosandvisualchoices =>
+      'Compara fotos y opciones visuales';
+
+  @override
+  String get battlepoll => 'Encuesta de batalla';
+
+  @override
+  String get comparerivalsandcrownawinner =>
+      'Compara rivales y corona a un ganador';
+
+  @override
+  String get thisorthat => 'Esto o aquello';
+
+  @override
+  String get pickbetweentwoquickchoices => 'Elige entre dos opciones rápidas';
+
+  @override
+  String get hottakespoll => 'Encuesta de opiniones polémicas';
+
+  @override
+  String get shareahottake => 'Comparte una opinión polémica';
+
+  @override
+  String get postboldopinionssparkdebatesandhearbothsides =>
+      'Publica opiniones audaces, genera debates y escucha ambas partes';
+
+  @override
+  String get yourhottake => 'Tu opinión polémica';
+
+  @override
+  String get shareopinionsandstartdebates =>
+      'Comparte opiniones e inicia debates';
+
+  @override
+  String get anonymouspoll => 'Encuesta anónima';
+
+  @override
+  String get gethonestopinionsprivately =>
+      'Obtén opiniones honestas de forma privada';
+
+  @override
+  String get descriptionhashtagsoptional => 'Descripción y hashtags (opcional)';
+
+  @override
+  String get typedescriptionorhashtags => 'Escribe una descripción o hashtags';
+
+  @override
+  String get generatequestion => 'Generar pregunta';
+
+  @override
+  String get regeneratequestion => 'Regenerar pregunta';
+
+  @override
+  String get generating => 'Generando...';
+
+  @override
+  String get generateoptions => 'Generar opciones';
+
+  @override
+  String get regenerateoptions => 'Regenerar opciones';
+
+  @override
+  String get votingmode => 'Modo de votación';
+
+  @override
+  String get singlechoice => 'Opción única';
+
+  @override
+  String get voterspickoneoption => 'Los votantes eligen una opción';
+
+  @override
+  String get multiplechoice => 'Opción múltiple';
+
+  @override
+  String get votersrankalloptions =>
+      'Los votantes clasifican todas las opciones';
+
+  @override
+  String get pleaseenteratopic => 'Por favor, introduce un tema';
+
+  @override
+  String get addlabel => 'Añadir etiqueta';
+
+  @override
+  String get putcompetitorsheadtoheadandseewhichsidewins =>
+      'Enfrenta a los competidores y descubre quién gana';
+
+  @override
+  String get startbattel => 'Iniciar batalla';
+
+  @override
+  String get competitors => 'Competidores';
+
+  @override
+  String get comparetwochoicesanddiscoverwhatpeopleprefer =>
+      'Compara dos opciones y descubre qué prefiere la gente';
+
+  @override
+  String get askquickly => 'Preguntar rápidamente';
+
+  @override
+  String get optional => 'Opcional';
+
+  @override
+  String get reactions => 'Reacciones';
+
+  @override
+  String get camera => 'Cámara';
+
+  @override
+  String get gallery => 'Galería';
+
+  @override
+  String get askanonymously => 'Preguntar de forma anónima';
+
+  @override
+  String get sharequestionsprivatelyandgethonestopinionsfrompeople =>
+      'Comparte preguntas de forma privada y obtén opiniones honestas de la gente';
+
+  @override
+  String get yourvoterswillbehiddenonthispoll =>
+      'Tus votantes permanecerán ocultos en esta encuesta';
+
+  @override
+  String get pin => 'Fijar';
+
+  @override
+  String get unpin => 'Dejar de fijar';
+
+  @override
+  String get mute => 'Silenciar';
+
+  @override
+  String get unmute => 'Dejar de silenciar';
+
+  @override
+  String get removefromfavorites => 'Quitar de favoritos';
+
+  @override
+  String get favorites => 'Favoritos';
+
+  @override
+  String get unread => 'No leído';
+
+  @override
+  String get archivedchats => 'Chats archivados';
+
+  @override
+  String get archive => 'Archivar';
+
+  @override
+  String get unarchive => 'Desarchivar';
+
+  @override
+  String get deletechat => 'Eliminar chat';
+
+  @override
+  String get areyousureyouwanttodeletethischatthisactioncannotbeundone =>
+      '¿Seguro que quieres eliminar este chat? Esta acción no se puede deshacer.';
+
+  @override
+  String get clearchat => 'Vaciar chat';
+
+  @override
+  String
+  get areyousureyouwanttoclearallmessagesinthischatthisactioncannotbeundone =>
+      '¿Seguro que quieres borrar todos los mensajes de este chat? Esta acción no se puede deshacer';
+
+  @override
+  String get share => 'Compartir';
+
+  @override
+  String get joinrequests => 'Solicitudes de unión';
+
+  @override
+  String get nopendingjoinrequests => 'No hay solicitudes de unión pendientes';
+
+  @override
+  String get newchat => 'Nuevo chat';
+
+  @override
+  String get addtwosimilarimagesegoutfitsplacesfood =>
+      'Añade 2 imágenes similares (p. ej. outfits, lugares, comida)';
+
+  @override
+  String get addtwoorfoursimilarimagesegoutfitsplacesfood =>
+      'Añade de 2 a 4 imágenes similares (p. ej. outfits, lugares, comida)';
+
+  @override
+  String get startabattle => 'Iniciar una batalla';
+
+  @override
+  String get createthisorthat => 'Crear \"Esto o aquello\"';
+
+  @override
+  String get pleaseenteraquestionortopic =>
+      'Por favor, introduce una pregunta o un tema';
+
+  @override
+  String get pleaseselecttwoimages => 'Por favor, selecciona 2 imágenes';
+
+  @override
+  String get markasread => 'Marcar como leído';
+
+  @override
+  String get markasunread => 'Marcar como no leído';
+
+  @override
+  String get archivedgroups => 'Grupos archivados';
+
+  @override
+  String get noarchivedchatsyet => 'Aún no hay chats archivados';
+
+  @override
+  String get public => 'Público';
+
+  @override
+  String get anyonecanfindjoinandviewmessages =>
+      'Cualquiera puede encontrar, unirse y ver los mensajes.';
+
+  @override
+  String get private => 'Privado';
+
+  @override
+  String get onlyapprovedmemberscanjoinandview =>
+      'Solo los miembros aprobados pueden unirse y ver.';
+
+  @override
+  String get inviteonly => 'Solo con invitación';
+
+  @override
+  String get hiddenfromsearchjoinbyinvitelink =>
+      'Oculto en las búsquedas. Únete mediante enlace de invitación.';
 }

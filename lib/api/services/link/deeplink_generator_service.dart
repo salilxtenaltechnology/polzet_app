@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:app_links/app_links.dart';
 import 'package:share_plus/share_plus.dart';
 import 'dart:io' show Platform;
+import '../../api_config.dart';
 
 class DeepLinkService {
   static final DeepLinkService _instance = DeepLinkService._internal();
@@ -55,21 +56,22 @@ class DeepLinkService {
     try {
       final linkString = uri.toString();
       final now = DateTime.now();
-      
+
       if (_lastProcessedLink == linkString &&
           _lastProcessedTime != null &&
           now.difference(_lastProcessedTime!) < const Duration(seconds: 2)) {
         debugPrint('Ignoring duplicate deep link within 2 seconds: $uri');
         return;
       }
-      
+
       _lastProcessedLink = linkString;
       _lastProcessedTime = now;
 
-      if (uri.host == 'www.polzet.com') {
+      if (uri.host == 'www.polzet.com' ||
+          uri.host == 'testfrontend.polzet.in' ||
+          uri.host == ApiConfig.deepLinkHost) {
         _handleHttpsLink(uri);
-      }
-      else if (uri.scheme == 'polzet') {
+      } else if (uri.scheme == 'polzet') {
         if (uri.host == 'post') {
           _handleCustomSchemePost(uri);
         } else if (uri.host == 'profile') {
@@ -117,8 +119,20 @@ class DeepLinkService {
       } else {
         debugPrint('Invalid profile link format - insufficient path segments');
       }
+    }
+    // Expected format: /{username}
+    else if (pathSegments.length == 1 && pathSegments[0].isNotEmpty) {
+      final username = pathSegments[0];
+
+      debugPrint('Parsed HTTPS direct profile link - Username: $username');
+
+      if (_onProfileLinkReceived != null) {
+        _onProfileLinkReceived!(username);
+      }
     } else {
-      debugPrint('Invalid link format - expected /post/ or /profile/ prefix');
+      debugPrint(
+        'Invalid link format - expected /post/, /profile/ prefix, or direct username',
+      );
     }
   }
 
@@ -131,13 +145,17 @@ class DeepLinkService {
       final username = pathSegments[0];
       final postId = pathSegments[1];
 
-      debugPrint('Parsed custom scheme post - Username: $username, PostId: $postId');
+      debugPrint(
+        'Parsed custom scheme post - Username: $username, PostId: $postId',
+      );
 
       if (_onPostLinkReceived != null) {
         _onPostLinkReceived!(username, postId);
       }
     } else {
-      debugPrint('Invalid custom scheme post format - insufficient path segments');
+      debugPrint(
+        'Invalid custom scheme post format - insufficient path segments',
+      );
     }
   }
 
@@ -155,7 +173,9 @@ class DeepLinkService {
         _onProfileLinkReceived!(username);
       }
     } else {
-      debugPrint('Invalid custom scheme profile format - insufficient path segments');
+      debugPrint(
+        'Invalid custom scheme profile format - insufficient path segments',
+      );
     }
   }
 
@@ -172,17 +192,28 @@ class DeepLinkService {
   /// [username] - Username of the post author
   /// [postId] - ID of the post
   ///
-  /// Returns: https://www.polzet.com/post/{username}/{postId}
+  /// Returns: https://{host}/post/{username}/{postId}
   static String generatePostLink(String username, String postId) {
-    return 'https://www.polzet.com/post/$username/$postId';
+    final host = ApiConfig.deepLinkHost;
+    return 'https://$host/post/$username/$postId';
   }
 
   /// Generate a shareable HTTPS link for a profile
   /// [username] - Username of the profile
   ///
-  /// Returns: https://www.polzet.com/profile/{username}
+  /// Returns: https://{host}/{username}
   static String generateProfileLink(String username) {
-    return 'https://www.polzet.com/profile/$username';
+    final host = ApiConfig.deepLinkHost;
+    return 'https://$host/$username';
+  }
+
+  /// Generate a shareable link for a group
+  /// [slug] - Slug of the group
+  ///
+  /// Returns: http://polzet.com/g/{slug}
+  static String generateGroupLink(String slug) {
+    final host = ApiConfig.deepLinkHost;
+    return 'http://$host/g/$slug';
   }
 
   /// Generate a custom scheme link for a post (fallback)

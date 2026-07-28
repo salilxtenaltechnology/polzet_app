@@ -20,10 +20,8 @@ import '../../api/services/link/deeplink_generator_service.dart';
 import '../../api/services/update/app_update_service.dart';
 
 import '../../widgets/show_toast.dart';
-import 'message/group/create_group.dart';
 import 'profile/profile_screen.dart';
 import 'search/posts/single_post_details.dart';
-import '../../gen/assets.gen.dart';
 import '../../languages/l10n/generated/app_localizations.dart';
 import '../../mixin/utility_mixins.dart';
 import '../../widgets/app_icons.dart';

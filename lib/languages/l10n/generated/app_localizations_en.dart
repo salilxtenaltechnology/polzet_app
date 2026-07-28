@@ -1961,6 +1961,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get nomessagesyet => 'No messages yet';
 
   @override
+  String get nofavoritechatyet => 'No favorite chat yet';
+
+  @override
+  String get chatsyoufavoritewillappearhere =>
+      'Chats you favorite will appear here.';
+
+  @override
   String get nonotificationsyet => 'No notifications yet';
 
   @override
@@ -2056,4 +2063,252 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get nopostsavailable => 'No posts available';
+
+  @override
+  String get searchsettingsfeatures => 'Search settings & features...';
+
+  @override
+  String get choosehowyouwanttoaskyourquestion =>
+      'Choose how you want to ask your question';
+
+  @override
+  String get textpoll => 'Text Poll';
+
+  @override
+  String get asksimplequestionswithtextchoices =>
+      'Ask simple questions with text choices';
+
+  @override
+  String get imagepoll => 'Image Poll';
+
+  @override
+  String get comparephotosandvisualchoices =>
+      'Compare photos and visual choices';
+
+  @override
+  String get battlepoll => 'Battle Poll';
+
+  @override
+  String get comparerivalsandcrownawinner =>
+      'Compare rivals and crown a winner';
+
+  @override
+  String get thisorthat => 'This or That';
+
+  @override
+  String get pickbetweentwoquickchoices => 'Pick between two quick choices';
+
+  @override
+  String get hottakespoll => 'Hot Takes Poll';
+
+  @override
+  String get shareahottake => 'Share a Hot Take';
+
+  @override
+  String get postboldopinionssparkdebatesandhearbothsides =>
+      'Post bold opinions, spark debates, and hear both sides';
+
+  @override
+  String get yourhottake => 'Your hot take';
+
+  @override
+  String get shareopinionsandstartdebates => 'Share opinions and start debates';
+
+  @override
+  String get anonymouspoll => 'Anonymous Poll';
+
+  @override
+  String get gethonestopinionsprivately => 'Get honest opinions privately';
+
+  @override
+  String get descriptionhashtagsoptional => 'Description & Hashtags (Optional)';
+
+  @override
+  String get typedescriptionorhashtags => 'Type description or hashtags';
+
+  @override
+  String get generatequestion => 'Generate Question';
+
+  @override
+  String get regeneratequestion => 'Regenerate Question';
+
+  @override
+  String get generating => 'Generating...';
+
+  @override
+  String get generateoptions => 'Generate Options';
+
+  @override
+  String get regenerateoptions => 'Regenerate Options';
+
+  @override
+  String get votingmode => 'Voting Mode';
+
+  @override
+  String get singlechoice => 'Single Choice';
+
+  @override
+  String get voterspickoneoption => 'Voters pick one option';
+
+  @override
+  String get multiplechoice => 'Multiple Choice';
+
+  @override
+  String get votersrankalloptions => 'Voters rank all options';
+
+  @override
+  String get pleaseenteratopic => 'Please enter a topic';
+
+  @override
+  String get addlabel => 'Add label';
+
+  @override
+  String get putcompetitorsheadtoheadandseewhichsidewins =>
+      'Put competitors head-to-head and see which side wins';
+
+  @override
+  String get startbattel => 'Start battel';
+
+  @override
+  String get competitors => 'Competitors';
+
+  @override
+  String get comparetwochoicesanddiscoverwhatpeopleprefer =>
+      'Compare two choices and discover what people prefer';
+
+  @override
+  String get askquickly => 'Ask quickly';
+
+  @override
+  String get optional => 'Optional';
+
+  @override
+  String get reactions => 'Reactions';
+
+  @override
+  String get camera => 'Camera';
+
+  @override
+  String get gallery => 'Gallery';
+
+  @override
+  String get askanonymously => 'Ask Anonymously';
+
+  @override
+  String get sharequestionsprivatelyandgethonestopinionsfrompeople =>
+      'Share questions privately and get honest opinions from people';
+
+  @override
+  String get yourvoterswillbehiddenonthispoll =>
+      'Your voters will be hidden on this poll';
+
+  @override
+  String get pin => 'Pin';
+
+  @override
+  String get unpin => 'Unpin';
+
+  @override
+  String get mute => 'Mute';
+
+  @override
+  String get unmute => 'Unmute';
+
+  @override
+  String get removefromfavorites => 'Remove from favorites';
+
+  @override
+  String get favorites => 'Favorites';
+
+  @override
+  String get unread => 'Unread';
+
+  @override
+  String get archivedchats => 'Archived Chats';
+
+  @override
+  String get archive => 'Archive';
+
+  @override
+  String get unarchive => 'Unarchive';
+
+  @override
+  String get deletechat => 'Delete Chat';
+
+  @override
+  String get areyousureyouwanttodeletethischatthisactioncannotbeundone =>
+      'Are you sure you want to delete this chat? This action cannot be undone.';
+
+  @override
+  String get clearchat => 'Clear Chat';
+
+  @override
+  String
+  get areyousureyouwanttoclearallmessagesinthischatthisactioncannotbeundone =>
+      'Are you sure you want to clear all messages in this chat? This action cannot be undone';
+
+  @override
+  String get share => 'Share';
+
+  @override
+  String get joinrequests => 'Join Requests';
+
+  @override
+  String get nopendingjoinrequests => 'No pending join requests';
+
+  @override
+  String get newchat => 'New Chat';
+
+  @override
+  String get addtwosimilarimagesegoutfitsplacesfood =>
+      'Add 2 similar images (e.g. outfits, places, food)';
+
+  @override
+  String get addtwoorfoursimilarimagesegoutfitsplacesfood =>
+      'Add 2-4 similar images (e.g. outfits, places, food)';
+
+  @override
+  String get startabattle => 'Start a battle';
+
+  @override
+  String get createthisorthat => 'Create This or That';
+
+  @override
+  String get pleaseenteraquestionortopic => 'Please enter a question or topic';
+
+  @override
+  String get pleaseselecttwoimages => 'Please select 2 images';
+
+  @override
+  String get markasread => 'Mark as read';
+
+  @override
+  String get markasunread => 'Mark as unread';
+
+  @override
+  String get archivedgroups => 'Archived Groups';
+
+  @override
+  String get noarchivedchatsyet => 'No archived chats yet';
+
+  @override
+  String get public => 'Public';
+
+  @override
+  String get anyonecanfindjoinandviewmessages =>
+      'Anyone can find, join, and view messages.';
+
+  @override
+  String get private => 'Private';
+
+  @override
+  String get onlyapprovedmemberscanjoinandview =>
+      'Only approved members can join and view.';
+
+  @override
+  String get inviteonly => 'Invite Only';
+
+  @override
+  String get hiddenfromsearchjoinbyinvitelink =>
+      'Hidden from search. Join by invite link.';
 }

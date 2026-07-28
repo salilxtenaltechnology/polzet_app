@@ -43,6 +43,7 @@ class ShareService {
   static Future<void> shareProfile({
     required String username,
     required BuildContext context,
+    String profileId = '',
   }) async {
     try {
       final link = DeepLinkService.generateProfileLink(username);
@@ -51,11 +52,40 @@ class ShareService {
         shareLink: link,
         username: username,
         postId: '',
+        profileId: profileId.isNotEmpty ? profileId : username,
       );
     } catch (e) {
       debugPrint('Error sharing profile: $e');
       if (context.mounted) {
         showToast(message: 'Failed to share profile');
+      }
+    }
+  }
+
+  /// Share a group with deep link
+  ///
+  /// [slug] - Slug of the group chat
+  /// [groupName] - Name of the group chat
+  /// [context] - BuildContext for showing bottom sheet
+  static Future<void> shareGroup({
+    required String slug,
+    required BuildContext context,
+    String groupName = '',
+    String groupId = '',
+  }) async {
+    try {
+      final link = DeepLinkService.generateGroupLink(slug);
+      BottomSheetUtils.showShareBottomSheet(
+        context: context,
+        shareLink: link,
+        username: groupName,
+        postId: '',
+        groupId: groupId.isNotEmpty ? groupId : slug,
+      );
+    } catch (e) {
+      debugPrint('Error sharing group: $e');
+      if (context.mounted) {
+        showToast(message: 'Failed to share group');
       }
     }
   }

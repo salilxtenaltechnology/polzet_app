@@ -1967,6 +1967,13 @@ class AppLocalizationsHi extends AppLocalizations {
   String get nomessagesyet => 'अभी तक कोई संदेश नहीं';
 
   @override
+  String get nofavoritechatyet => 'अभी तक कोई पसंदीदा चैट नहीं';
+
+  @override
+  String get chatsyoufavoritewillappearhere =>
+      'आपके पसंदीदा चैट यहाँ दिखाई देंगे।';
+
+  @override
   String get nonotificationsyet => 'अभी तक कोई सूचना नहीं';
 
   @override
@@ -2062,4 +2069,252 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get nopostsavailable => 'कोई पोस्ट उपलब्ध नहीं';
+
+  @override
+  String get searchsettingsfeatures => 'सेटिंग्स और सुविधाएं खोजें...';
+
+  @override
+  String get choosehowyouwanttoaskyourquestion =>
+      'चुनें कि आप अपना सवाल कैसे पूछना चाहते हैं';
+
+  @override
+  String get textpoll => 'टेक्स्ट पोल';
+
+  @override
+  String get asksimplequestionswithtextchoices =>
+      'टेक्स्ट विकल्पों के साथ सरल सवाल पूछें';
+
+  @override
+  String get imagepoll => 'इमेज पोल';
+
+  @override
+  String get comparephotosandvisualchoices =>
+      'फ़ोटो और विज़ुअल विकल्पों की तुलना करें';
+
+  @override
+  String get battlepoll => 'बैटल पोल';
+
+  @override
+  String get comparerivalsandcrownawinner =>
+      'प्रतिद्वंद्वियों की तुलना करें और विजेता चुनें';
+
+  @override
+  String get thisorthat => 'यह या वह';
+
+  @override
+  String get pickbetweentwoquickchoices => 'दो त्वरित विकल्पों में से चुनें';
+
+  @override
+  String get hottakespoll => 'हॉट टेक पोल';
+
+  @override
+  String get shareahottake => 'एक हॉट टेक शेयर करें';
+
+  @override
+  String get postboldopinionssparkdebatesandhearbothsides =>
+      'साहसिक राय पोस्ट करें, बहस छेड़ें और दोनों पक्ष सुनें';
+
+  @override
+  String get yourhottake => 'आपका हॉट टेक';
+
+  @override
+  String get shareopinionsandstartdebates => 'राय साझा करें और बहस शुरू करें';
+
+  @override
+  String get anonymouspoll => 'गुमनाम पोल';
+
+  @override
+  String get gethonestopinionsprivately => 'निजी तौर पर ईमानदार राय पाएं';
+
+  @override
+  String get descriptionhashtagsoptional => 'विवरण और हैशटैग (वैकल्पिक)';
+
+  @override
+  String get typedescriptionorhashtags => 'विवरण या हैशटैग टाइप करें';
+
+  @override
+  String get generatequestion => 'सवाल जनरेट करें';
+
+  @override
+  String get regeneratequestion => 'सवाल फिर से जनरेट करें';
+
+  @override
+  String get generating => 'जनरेट हो रहा है...';
+
+  @override
+  String get generateoptions => 'विकल्प जनरेट करें';
+
+  @override
+  String get regenerateoptions => 'विकल्प फिर से जनरेट करें';
+
+  @override
+  String get votingmode => 'वोटिंग मोड';
+
+  @override
+  String get singlechoice => 'एकल विकल्प';
+
+  @override
+  String get voterspickoneoption => 'वोटर एक विकल्प चुनते हैं';
+
+  @override
+  String get multiplechoice => 'बहु विकल्प';
+
+  @override
+  String get votersrankalloptions => 'वोटर सभी विकल्पों को रैंक करते हैं';
+
+  @override
+  String get pleaseenteratopic => 'कृपया एक विषय दर्ज करें';
+
+  @override
+  String get addlabel => 'लेबल जोड़ें';
+
+  @override
+  String get putcompetitorsheadtoheadandseewhichsidewins =>
+      'प्रतियोगियों को आमने-सामने रखें और देखें कौन जीतता है';
+
+  @override
+  String get startbattel => 'बैटल शुरू करें';
+
+  @override
+  String get competitors => 'प्रतियोगी';
+
+  @override
+  String get comparetwochoicesanddiscoverwhatpeopleprefer =>
+      'दो विकल्पों की तुलना करें और जानें लोग क्या पसंद करते हैं';
+
+  @override
+  String get askquickly => 'जल्दी पूछें';
+
+  @override
+  String get optional => 'वैकल्पिक';
+
+  @override
+  String get reactions => 'रिएक्शन';
+
+  @override
+  String get camera => 'कैमरा';
+
+  @override
+  String get gallery => 'गैलरी';
+
+  @override
+  String get askanonymously => 'गुमनाम रूप से पूछें';
+
+  @override
+  String get sharequestionsprivatelyandgethonestopinionsfrompeople =>
+      'सवाल निजी तौर पर साझा करें और लोगों से ईमानदार राय पाएं';
+
+  @override
+  String get yourvoterswillbehiddenonthispoll =>
+      'इस पोल में आपके वोटर छिपे रहेंगे';
+
+  @override
+  String get pin => 'पिन करें';
+
+  @override
+  String get unpin => 'अनपिन करें';
+
+  @override
+  String get mute => 'म्यूट करें';
+
+  @override
+  String get unmute => 'अनम्यूट करें';
+
+  @override
+  String get removefromfavorites => 'पसंदीदा से हटाएं';
+
+  @override
+  String get favorites => 'पसंदीदा';
+
+  @override
+  String get unread => 'अपठित';
+
+  @override
+  String get archivedchats => 'संग्रहीत चैट';
+
+  @override
+  String get archive => 'संग्रहित करें';
+
+  @override
+  String get unarchive => 'संग्रह से हटाएं';
+
+  @override
+  String get deletechat => 'चैट हटाएं';
+
+  @override
+  String get areyousureyouwanttodeletethischatthisactioncannotbeundone =>
+      'क्या आप वाकई इस चैट को हटाना चाहते हैं? यह क्रिया वापस नहीं ली जा सकती।';
+
+  @override
+  String get clearchat => 'चैट साफ़ करें';
+
+  @override
+  String
+  get areyousureyouwanttoclearallmessagesinthischatthisactioncannotbeundone =>
+      'क्या आप वाकई इस चैट के सभी संदेश साफ़ करना चाहते हैं? यह क्रिया वापस नहीं ली जा सकती';
+
+  @override
+  String get share => 'शेयर करें';
+
+  @override
+  String get joinrequests => 'जॉइन रिक्वेस्ट';
+
+  @override
+  String get nopendingjoinrequests => 'कोई लंबित जॉइन रिक्वेस्ट नहीं';
+
+  @override
+  String get newchat => 'नई चैट';
+
+  @override
+  String get addtwosimilarimagesegoutfitsplacesfood =>
+      '2 समान तस्वीरें जोड़ें (जैसे आउटफिट, स्थान, खाना)';
+
+  @override
+  String get addtwoorfoursimilarimagesegoutfitsplacesfood =>
+      '2-4 समान तस्वीरें जोड़ें (जैसे आउटफिट, स्थान, खाना)';
+
+  @override
+  String get startabattle => 'बैटल शुरू करें';
+
+  @override
+  String get createthisorthat => 'यह या वह बनाएं';
+
+  @override
+  String get pleaseenteraquestionortopic => 'कृपया एक सवाल या विषय दर्ज करें';
+
+  @override
+  String get pleaseselecttwoimages => 'कृपया 2 तस्वीरें चुनें';
+
+  @override
+  String get markasread => 'पढ़ा हुआ चिह्नित करें';
+
+  @override
+  String get markasunread => 'अपठित चिह्नित करें';
+
+  @override
+  String get archivedgroups => 'संग्रहीत समूह';
+
+  @override
+  String get noarchivedchatsyet => 'अभी तक कोई संग्रहीत चैट नहीं';
+
+  @override
+  String get public => 'सार्वजनिक';
+
+  @override
+  String get anyonecanfindjoinandviewmessages =>
+      'कोई भी खोज सकता है, शामिल हो सकता है और संदेश देख सकता है।';
+
+  @override
+  String get private => 'निजी';
+
+  @override
+  String get onlyapprovedmemberscanjoinandview =>
+      'केवल स्वीकृत सदस्य ही शामिल हो सकते हैं और देख सकते हैं।';
+
+  @override
+  String get inviteonly => 'केवल आमंत्रण द्वारा';
+
+  @override
+  String get hiddenfromsearchjoinbyinvitelink =>
+      'खोज से छिपा हुआ। आमंत्रण लिंक से शामिल हों।';
 }

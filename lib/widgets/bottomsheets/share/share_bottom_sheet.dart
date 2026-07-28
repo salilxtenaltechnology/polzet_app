@@ -22,6 +22,8 @@ class ShareBottomSheet extends StatefulWidget {
   final String shareLink;
   final String username;
   final String postId;
+  final String profileId;
+  final String groupId;
   final Function(int newCount)? onShareSuccess;
 
   const ShareBottomSheet({
@@ -29,6 +31,8 @@ class ShareBottomSheet extends StatefulWidget {
     required this.shareLink,
     required this.username,
     this.postId = '',
+    this.profileId = '',
+    this.groupId = '',
     this.onShareSuccess,
   });
 
@@ -134,7 +138,9 @@ class _ShareBottomSheetState extends State<ShareBottomSheet> {
   }
 
   String? _resolveProfileUrl(String? url) {
-    if (url == null || url.trim().isEmpty || url.trim().toLowerCase() == 'null') {
+    if (url == null ||
+        url.trim().isEmpty ||
+        url.trim().toLowerCase() == 'null') {
       return null;
     }
     if (url.startsWith('assets/')) {
@@ -239,9 +245,14 @@ class _ShareBottomSheetState extends State<ShareBottomSheet> {
   }
 
   Future<void> _shareToGmail() async {
-    final subject = widget.postId.isEmpty
-        ? 'Polzet Profile of @${widget.username}'
-        : 'Post from @${widget.username}';
+    final String subject;
+    if (widget.groupId.isNotEmpty) {
+      subject = 'Polzet Group: ${widget.username}';
+    } else if (widget.postId.isNotEmpty) {
+      subject = 'Post from @${widget.username}';
+    } else {
+      subject = 'Polzet Profile of @${widget.username}';
+    }
     final url = Uri.parse(
       'mailto:?subject=${Uri.encodeComponent(subject)}&body=${Uri.encodeComponent(widget.shareLink)}',
     );
@@ -271,7 +282,46 @@ class _ShareBottomSheetState extends State<ShareBottomSheet> {
 
     try {
       final text = _messageController.text.trim();
-      final msg = text.isEmpty ? 'Check out this post!' : text;
+
+      Future<bool> sendShareMessageToChat(String chatId) async {
+        if (widget.postId.isNotEmpty) {
+          final msg = text.isEmpty ? 'Check out this post!' : text;
+          final shareResponse = await _apiServices.sharePostMessage(
+            chatId: chatId,
+            sharedPostId: widget.postId,
+            message: msg,
+          );
+          if (shareResponse['status'] == 'success') {
+            final newCount = await _apiServices.addShareCount(
+              postId: widget.postId,
+            );
+            if (newCount != null && widget.onShareSuccess != null) {
+              widget.onShareSuccess!(newCount);
+            }
+            return true;
+          }
+          return false;
+        } else if (widget.groupId.isNotEmpty) {
+          final joinText =
+              'Join the group "${widget.username}" on Polzet! ${widget.shareLink}';
+          final msg = text.isEmpty ? joinText : '$text\n$joinText';
+          final shareResponse = await _apiServices.shareGroupMessage(
+            chatId: chatId,
+            sharedGroupId: widget.groupId,
+            message: msg,
+          );
+          return shareResponse['status'] == 'success';
+        } else {
+          // Profile share & general fallback: send message text with shareLink (https://$host/$username)
+          await _apiServices.sendMessage(
+            chatId: chatId,
+            text: text.isEmpty
+                ? widget.shareLink
+                : '$text\n${widget.shareLink}',
+          );
+          return true;
+        }
+      }
 
       bool anySuccess = false;
       for (final userId in _selectedUserIds) {
@@ -279,93 +329,46 @@ class _ShareBottomSheetState extends State<ShareBottomSheet> {
           withUserId: userId.toString(),
         );
 
-        final chatId = int.tryParse(chatResponse['id']?.toString() ?? '');
-        if (chatId != null) {
-          if (widget.postId.isEmpty) {
-            // Sharing profile: send message with shareLink
-            await _apiServices.sendMessage(
-              chatId: chatId,
-              text: text.isEmpty
-                  ? widget.shareLink
-                  : '$text\n${widget.shareLink}',
-            );
-            anySuccess = true;
-          } else {
-            // Sharing post
-            final shareResponse = await _apiServices.sharePostMessage(
-              chatId: chatId,
-              sharedPostId: widget.postId,
-              message: msg,
-            );
-
-            if (shareResponse['status'] == 'success') {
-              anySuccess = true;
-              final newCount = await _apiServices.addShareCount(
-                postId: widget.postId,
-              );
-              if (newCount != null && widget.onShareSuccess != null) {
-                widget.onShareSuccess!(newCount);
-              }
-            }
-          }
+        final chatId = chatResponse['id']?.toString();
+        if (chatId != null && chatId.isNotEmpty) {
+          final success = await sendShareMessageToChat(chatId);
+          if (success) anySuccess = true;
         }
       }
 
       for (final groupId in _selectedGroupIds) {
-        final chatId = int.tryParse(groupId.toString());
-        if (chatId != null) {
-          if (widget.postId.isEmpty) {
-            // Sharing profile: send message with shareLink
-            await _apiServices.sendMessage(
-              chatId: chatId,
-              text: text.isEmpty
-                  ? widget.shareLink
-                  : '$text\n${widget.shareLink}',
-            );
-            anySuccess = true;
-          } else {
-            // Sharing post
-            final shareResponse = await _apiServices.sharePostMessage(
-              chatId: chatId,
-              sharedPostId: widget.postId,
-              message: msg,
-            );
-
-            if (shareResponse['status'] == 'success') {
-              anySuccess = true;
-              final newCount = await _apiServices.addShareCount(
-                postId: widget.postId,
-              );
-              if (newCount != null && widget.onShareSuccess != null) {
-                widget.onShareSuccess!(newCount);
-              }
-            }
-          }
+        final chatId = groupId?.toString();
+        if (chatId != null && chatId.isNotEmpty) {
+          final success = await sendShareMessageToChat(chatId);
+          if (success) anySuccess = true;
         }
       }
 
-      if (anySuccess) {
-        showToast(
-          message: widget.postId.isEmpty ? 'Profile shared' : 'Post sent',
-        );
-      } else {
-        showToast(
-          message: widget.postId.isEmpty
-              ? 'Failed to share profile'
-              : 'Failed to share post',
-        );
+      String successMsg = 'Shared successfully';
+      String failMsg = 'Failed to share';
+      if (widget.postId.isNotEmpty) {
+        successMsg = 'Post sent';
+        failMsg = 'Failed to share post';
+      } else if (widget.profileId.isNotEmpty) {
+        successMsg = 'Profile shared';
+        failMsg = 'Failed to share profile';
+      } else if (widget.groupId.isNotEmpty) {
+        successMsg = 'Group shared';
+        failMsg = 'Failed to share group';
       }
 
-      if (mounted) Navigator.pop(context);
+      if (anySuccess) {
+        showToast(message: successMsg);
+      } else {
+        showToast(message: failMsg);
+      }
     } catch (e) {
-      showToast(
-        message: widget.postId.isEmpty
-            ? 'Failed to share profile'
-            : 'Failed to share post',
-      );
+      debugPrint('Error sending share message: $e');
+      showToast(message: 'Failed to share');
     } finally {
       if (mounted) {
         setState(() => _isSending = false);
+        Navigator.pop(context);
       }
     }
   }

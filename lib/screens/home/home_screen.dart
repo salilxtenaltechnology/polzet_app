@@ -417,32 +417,6 @@ class HomeScreenState extends State<HomeScreen>
                                       );
                                     },
                                   ),
-                                SizedBox(width: 8.w),
-                                if (pageIndex == 1)
-                                  GestureDetector(
-                                    onTap: () async {
-                                      final createdChatId =
-                                          await Navigator.push(
-                                            context,
-                                            MaterialPageRoute(
-                                              builder: (_) =>
-                                                  const CreateGroup(),
-                                            ),
-                                          );
-                                      if (createdChatId != null) {
-                                        MessageListState.refreshGlobally();
-                                        MessageListState.selectTab(1);
-                                      }
-                                    },
-                                    child: Assets.images.addGroup.image(
-                                      width: 28,
-                                      height: 28,
-                                      fit: BoxFit.contain,
-                                      color: Theme.of(
-                                        context,
-                                      ).colorScheme.onBackground,
-                                    ),
-                                  ),
                                 SizedBox(width: 9.w),
                               ],
                             ),

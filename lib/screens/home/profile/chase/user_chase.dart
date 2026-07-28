@@ -331,6 +331,31 @@ class _UserChaseState extends State<UserChase>
     );
   }
 
+  void _updateUserFollowStatus(String userId, String newStatus) {
+    setState(() {
+      for (var user in _allFollowers) {
+        if (user['user_id']?.toString() == userId) {
+          user['follow_status'] = newStatus;
+        }
+      }
+      for (var user in _filteredFollowers) {
+        if (user['user_id']?.toString() == userId) {
+          user['follow_status'] = newStatus;
+        }
+      }
+      for (var user in _allFollowing) {
+        if (user['user_id']?.toString() == userId) {
+          user['follow_status'] = newStatus;
+        }
+      }
+      for (var user in _filteredFollowing) {
+        if (user['user_id']?.toString() == userId) {
+          user['follow_status'] = newStatus;
+        }
+      }
+    });
+  }
+
   Widget _buildUserListItem({required Map<String, dynamic> user}) {
     final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
     final txt = AppTextColors.of(context);
@@ -489,10 +514,9 @@ class _UserChaseState extends State<UserChase>
                 followStatus: followStatus,
                 apiService: apiService,
                 isPrivate: isPrivate,
-                onToggle: () {
+                onToggle: (newStatus) {
                   userProvider.loadUserDataSilently();
-                  _fetchChasePage(1, isRefresh: true);
-                  _fetchRechasePage(1, isRefresh: true);
+                  _updateUserFollowStatus(userId, newStatus);
                 },
               ),
           ],

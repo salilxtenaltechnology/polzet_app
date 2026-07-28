@@ -7,6 +7,7 @@ import 'package:polzet_app/core/constants/app_colors.dart';
 import 'package:polzet_app/widgets/show_toast.dart';
 import 'package:provider/provider.dart';
 import '../../../../../api/api_config.dart';
+import '../../../../../api/api_service.dart';
 
 import '../../../../../core/constants/app_constants.dart';
 import '../../../../../core/constants/app_radius.dart';
@@ -17,28 +18,58 @@ import '../../../../../provider/group_chat_provider.dart';
 import '../../../../../provider/user_provider.dart';
 import '../../../../../widgets/appbar/common_appbar.dart';
 import '../../../../../core/utils/bottomsheet_util.dart';
+import '../../../../../widgets/tabbar/indicatore_animation.dart';
 
 class GroupMembers extends StatefulWidget {
   final List<Map<String, dynamic>> members;
-  final int chatId;
+  final dynamic chatId;
   const GroupMembers({super.key, required this.members, required this.chatId});
 
   @override
   State<GroupMembers> createState() => _GroupMembersState();
 }
 
-class _GroupMembersState extends State<GroupMembers> {
+class _GroupMembersState extends State<GroupMembers>
+    with SingleTickerProviderStateMixin {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
+  int _selectedTabIndex = 0; // 0 = Members, 1 = Join Requests
+  bool _isLoadingRequests = false;
+  List<Map<String, dynamic>> _joinRequests = [];
+  bool _requestsFetched = false;
+  late TabController _tabController;
 
   @override
   void initState() {
     super.initState();
+    _tabController = TabController(length: 2, vsync: this);
+    _tabController.addListener(() {
+      if (!mounted) return;
+      if (_tabController.index != _selectedTabIndex) {
+        setState(() {
+          _selectedTabIndex = _tabController.index;
+        });
+        if (_selectedTabIndex == 1 && !_requestsFetched) {
+          _fetchJoinRequests();
+        }
+      }
+    });
     _searchController.addListener(_onSearch);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkAndFetchRequests();
+    });
+  }
+
+  void _checkAndFetchRequests() {
+    final provider = context.read<GroupChatProvider>();
+    if (_isCurrentUserAdmin(provider) && !_requestsFetched) {
+      _fetchJoinRequests();
+    }
   }
 
   @override
   void dispose() {
+    _tabController.dispose();
     _searchController.removeListener(_onSearch);
     _searchController.dispose();
     super.dispose();
@@ -109,14 +140,166 @@ class _GroupMembersState extends State<GroupMembers> {
     return provider.isAdmin(id);
   }
 
+  String? _extractProfileImage(Map<String, dynamic> userMap) {
+    return (userMap['profile_picture'] ??
+            userMap['profile_image'] ??
+            userMap['profile_picture_url'] ??
+            userMap['profile_url'] ??
+            userMap['avatar'] ??
+            userMap['image'])
+        ?.toString();
+  }
+
   ImageProvider? _avatarProvider(String? raw) {
-    if (raw == null || raw.trim().isEmpty) return null;
-    String resolved = raw;
+    if (raw == null || raw.trim().isEmpty || raw.trim() == 'null') return null;
+    String resolved = raw.trim();
     if (!resolved.startsWith('http')) {
       final separator = resolved.startsWith('/') ? '' : '/';
       resolved = '${ApiConfig.baseUrlImage}$separator$resolved';
     }
     return NetworkImage(resolved);
+  }
+
+  Future<void> _fetchJoinRequests() async {
+    final provider = context.read<GroupChatProvider>();
+    if (!_isCurrentUserAdmin(provider)) return;
+
+    if (_isLoadingRequests) return;
+    setState(() => _isLoadingRequests = true);
+
+    try {
+      final res = await ApiService().getGroupJoinRequestsList(
+        chatId: widget.chatId.toString(),
+      );
+      List<Map<String, dynamic>> list = [];
+      if (res['data'] is List) {
+        list = List<Map<String, dynamic>>.from(res['data']);
+      } else if (res['results'] is List) {
+        list = List<Map<String, dynamic>>.from(res['results']);
+      } else if (res['join_requests'] is List) {
+        list = List<Map<String, dynamic>>.from(res['join_requests']);
+      }
+
+      if (mounted) {
+        setState(() {
+          _joinRequests = list;
+          _isLoadingRequests = false;
+          _requestsFetched = true;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoadingRequests = false;
+          _requestsFetched = true;
+        });
+      }
+    }
+  }
+
+  Future<void> _approveRequest(Map<String, dynamic> req) async {
+    final userMap = _user(req).isNotEmpty ? _user(req) : req;
+    final requestId =
+        (req['request_id'] ?? req['id'] ?? req['public_id'] ?? userMap['id'])
+            ?.toString() ??
+        '';
+    if (requestId.isEmpty) return;
+
+    try {
+      final res = await ApiService().approveGroupJoinRequest(
+        chatId: widget.chatId.toString(),
+        requestId: requestId,
+      );
+      if (mounted) {
+        final isSuccess =
+            res['status'] == 'success' ||
+            res['status'] == 200 ||
+            res['success'] == true;
+        final msg = res['message']?.toString() ?? 'Join request approved.';
+        showToast(message: msg);
+
+        if (isSuccess) {
+          // 1. Remove from join requests list
+          setState(() {
+            _joinRequests.removeWhere((r) {
+              final rId =
+                  (r['request_id'] ??
+                          r['id'] ??
+                          r['public_id'] ??
+                          _user(r)['id'])
+                      ?.toString();
+              return rId == requestId;
+            });
+          });
+
+          // 2. Add to GroupChatProvider members list optimistically and refresh
+          final provider = context.read<GroupChatProvider>();
+          final newMemberUser = Map<String, dynamic>.from(userMap);
+          if (newMemberUser['id'] != null) {
+            final img = _extractProfileImage(newMemberUser);
+            if (img != null) {
+              newMemberUser['profile_image'] = img;
+              newMemberUser['profile_picture'] = img;
+            }
+            provider.addMembersOptimistically([newMemberUser]);
+          }
+          await provider.refreshChatData();
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        showToast(
+          message:
+              'Failed to approve request: ${e.toString().replaceAll("Exception: ", "")}',
+        );
+      }
+    }
+  }
+
+  Future<void> _rejectRequest(Map<String, dynamic> req) async {
+    final userMap = _user(req).isNotEmpty ? _user(req) : req;
+    final requestId =
+        (req['request_id'] ?? req['id'] ?? req['public_id'] ?? userMap['id'])
+            ?.toString() ??
+        '';
+    if (requestId.isEmpty) return;
+
+    try {
+      final res = await ApiService().rejectGroupJoinRequest(
+        chatId: widget.chatId.toString(),
+        requestId: requestId,
+      );
+      if (mounted) {
+        final isSuccess =
+            res['status'] == 'success' ||
+            res['status'] == 200 ||
+            res['success'] == true;
+        final msg = res['message']?.toString() ?? 'Join request rejected.';
+        showToast(message: msg);
+
+        if (isSuccess) {
+          // Remove from join requests list
+          setState(() {
+            _joinRequests.removeWhere((r) {
+              final rId =
+                  (r['request_id'] ??
+                          r['id'] ??
+                          r['public_id'] ??
+                          _user(r)['id'])
+                      ?.toString();
+              return rId == requestId;
+            });
+          });
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        showToast(
+          message:
+              'Failed to reject request: ${e.toString().replaceAll("Exception: ", "")}',
+        );
+      }
+    }
   }
 
   // ── Actions ────────────────────────────────────────────────────────────────
@@ -305,6 +488,149 @@ class _GroupMembersState extends State<GroupMembers> {
     );
   }
 
+  Widget _buildTabSelector() {
+    final count = _joinRequests.length;
+    return SizedBox(
+      height: 33.h,
+      child: TabBar(
+        padding: EdgeInsets.symmetric(horizontal: 10.w),
+        controller: _tabController,
+        overlayColor: const WidgetStatePropertyAll(Colors.transparent),
+        indicatorColor: Theme.of(context).colorScheme.primary,
+        indicatorSize: TabBarIndicatorSize.tab,
+        indicator: FadeUnderlineTabIndicator(),
+        labelColor: Theme.of(context).colorScheme.primary,
+        labelStyle: const TextStyle(fontWeight: FontWeight.w500, fontSize: 14),
+        unselectedLabelStyle: const TextStyle(
+          fontWeight: FontWeight.w500,
+          fontSize: 14,
+        ),
+        dividerColor: Colors.transparent,
+        unselectedLabelColor: Theme.of(context).colorScheme.onBackground,
+        tabs: [
+          Tab(text: AppLocalizations.of(context)!.members),
+          Tab(text: count > 0 ? 'Join Requests ($count)' : 'Join Requests'),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildJoinRequestsList() {
+    final txt = AppTextColors.of(context);
+    if (_isLoadingRequests) {
+      return const Center(child: CircularProgressIndicator.adaptive());
+    }
+
+    if (_joinRequests.isEmpty) {
+      return Center(
+        child: Text(
+          'No pending join requests',
+          style: TextStyle(
+            color: Theme.of(context).colorScheme.onBackground.withOpacity(0.4),
+            fontSize: 12.sp,
+          ),
+        ),
+      );
+    }
+
+    return ListView.builder(
+      itemCount: _joinRequests.length,
+      itemBuilder: (context, index) {
+        final req = _joinRequests[index];
+        final userMap = _user(req).isNotEmpty ? _user(req) : req;
+        final username = (userMap['username'] ?? req['username'] ?? 'User')
+            .toString();
+        final profileImage =
+            _extractProfileImage(userMap) ?? _extractProfileImage(req);
+        final joinedAtVal =
+            req['requested_at']?.toString() ?? req['created_at']?.toString();
+        final reqDate = _formatJoinedDate(joinedAtVal);
+
+        return Padding(
+          padding: EdgeInsets.symmetric(vertical: 8.h),
+          child: Row(
+            children: [
+              CircleAvatar(
+                radius: 18,
+                backgroundImage: _avatarProvider(profileImage),
+                backgroundColor: Theme.of(
+                  context,
+                ).colorScheme.onPrimary.withOpacity(0.1),
+                child: profileImage == null || profileImage.isEmpty
+                    ? Text(
+                        username.isNotEmpty ? username[0].toUpperCase() : 'P',
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.onPrimary,
+                          fontSize: 14.sp,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      )
+                    : null,
+              ),
+              SizedBox(width: 10.w),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      username,
+                      style: TextStyle(
+                        color: txt.title,
+                        fontSize: 11.2.sp,
+                        fontWeight: FontWeight.w500,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    if (reqDate.isNotEmpty) ...[
+                      SizedBox(height: 2.h),
+                      Text(
+                        'Requested $reqDate',
+                        style: TextStyle(color: txt.muted, fontSize: 9.2.sp),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              SizedBox(width: 8.w),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  GestureDetector(
+                    onTap: () => _approveRequest(req),
+                    child: Container(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 10.w,
+                        vertical: 5.h,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppColors.primaryColor,
+                        borderRadius: BorderRadius.circular(AppRadius.button),
+                      ),
+                      child: Text(
+                        'Approve',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 10.sp,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+                  SizedBox(width: 6.w),
+                  GestureDetector(
+                    onTap: () => _rejectRequest(req),
+                    child: Icon(Icons.close, size: 22, color: txt.muted),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final txt = AppTextColors.of(context);
@@ -339,260 +665,285 @@ class _GroupMembersState extends State<GroupMembers> {
         padding: EdgeInsets.symmetric(horizontal: 12.w),
         child: Column(
           children: [
-            Container(
-              margin: EdgeInsets.only(top: 10.h),
-              height: 42,
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.background,
-                borderRadius: BorderRadius.circular(AppRadius.button),
-                boxShadow: const [AppConstants.cardShadow],
-              ),
-              child: TextField(
-                controller: _searchController,
-                cursorColor: Theme.of(
-                  context,
-                ).colorScheme.onPrimary.withOpacity(0.8),
-                cursorWidth: 1.5,
-                decoration: InputDecoration(
-                  contentPadding: EdgeInsets.only(
-                    right: 12.w,
-                    left: 12.w,
-                    top: 10.h,
-                  ),
-                  hintText: AppLocalizations.of(context)!.searchusers,
-                  hintStyle: AppTextStyles.bodyText.copyWith(
-                    color: txt.muted.withOpacity(0.7),
-                  ),
-                  border: InputBorder.none,
-                  prefixIcon: Icon(
-                    FeatherIcons.search,
-                    size: 17.spMax,
-                    color: const Color(0XFF898989),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderSide: BorderSide(
-                      color: Theme.of(
-                        context,
-                      ).colorScheme.onBackground.withOpacity(0.1),
-                    ),
-                    borderRadius: BorderRadius.circular(AppRadius.button),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderSide: BorderSide(
-                      color: Theme.of(
-                        context,
-                      ).colorScheme.onBackground.withOpacity(0.1),
-                      width: 0.7,
-                    ),
-                    borderRadius: BorderRadius.circular(AppRadius.button),
-                  ),
-                ),
-                style: TextStyle(
-                  color: txt.title,
-                  fontWeight: FontWeight.w500,
-                  fontSize: 14,
-                ),
-              ),
-            ),
-            SizedBox(height: 12.h),
+            if (isCurrentUserAdmin) ...[
+              _buildTabSelector(),
+              SizedBox(height: 4.h),
+            ],
 
-            // ── Members list ───────────────────────────────────────────────
-            Expanded(
-              child: displayList.isEmpty
-                  ? Center(
-                      child: Text(
-                        AppLocalizations.of(context)!.usernotfound,
-                        style: TextStyle(
-                          color: Theme.of(
-                            context,
-                          ).colorScheme.onBackground.withOpacity(0.4),
-                          fontSize: 11.sp,
-                        ),
+            if (_selectedTabIndex == 0) ...[
+              Container(
+                margin: EdgeInsets.only(top: 6.h),
+                height: 42,
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.background,
+                  borderRadius: BorderRadius.circular(AppRadius.button),
+                  boxShadow: const [AppConstants.cardShadow],
+                ),
+                child: TextField(
+                  controller: _searchController,
+                  cursorColor: Theme.of(
+                    context,
+                  ).colorScheme.onPrimary.withOpacity(0.8),
+                  cursorWidth: 1.5,
+                  decoration: InputDecoration(
+                    contentPadding: EdgeInsets.only(
+                      right: 12.w,
+                      left: 12.w,
+                      top: 10.h,
+                    ),
+                    hintText: AppLocalizations.of(context)!.searchusers,
+                    hintStyle: AppTextStyles.bodyText.copyWith(
+                      color: txt.muted.withOpacity(0.7),
+                    ),
+                    border: InputBorder.none,
+                    prefixIcon: Icon(
+                      FeatherIcons.search,
+                      size: 17.spMax,
+                      color: const Color(0XFF898989),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderSide: BorderSide(
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.onBackground.withOpacity(0.1),
                       ),
-                    )
-                  : ListView.builder(
-                      itemCount: displayList.length,
-                      itemBuilder: (context, i) {
-                        final member = displayList[i];
-                        final user = _user(member);
+                      borderRadius: BorderRadius.circular(AppRadius.button),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderSide: BorderSide(
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.onBackground.withOpacity(0.1),
+                        width: 0.7,
+                      ),
+                      borderRadius: BorderRadius.circular(AppRadius.button),
+                    ),
+                  ),
+                  style: TextStyle(
+                    color: txt.title,
+                    fontWeight: FontWeight.w500,
+                    fontSize: 14,
+                  ),
+                ),
+              ),
+              SizedBox(height: 12.h),
+            ],
 
-                        final dynamic memberId = user['id'];
-                        final String username =
-                            user['username']?.toString() ?? '';
-                        final String? profileImage = user['profile_image']
-                            ?.toString();
-
-                        final bool isAdmin = memberId != null
-                            ? provider.isAdmin(memberId)
-                            : false;
-
-                        final String? currentUserId = context
-                            .read<UserProvider>()
-                            .userId;
-                        final bool isSelf =
-                            memberId?.toString() == currentUserId;
-
-                        final String? joinedAtVal =
-                            member['joined_at']?.toString() ??
-                            user['joined_at']?.toString();
-                        final String joinedDate = _formatJoinedDate(
-                          joinedAtVal,
-                        );
-
-                        final presence = provider.memberPresence[memberId];
-                        final bool isOnline =
-                            isSelf ||
-                            (presence?.isOnline ??
-                                (member['is_online'] == true ||
-                                    user['is_online'] == true));
-
-                        return Padding(
-                          padding: EdgeInsets.only(bottom: 10.h),
-                          child: GestureDetector(
-                            onTap: isCurrentUserAdmin && !isSelf
-                                ? () =>
-                                      _showOptions(memberId!, username, isAdmin)
-                                : null,
-                            child: Container(
-                              width: double.infinity,
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 10,
-                                vertical: 6,
-                              ),
-                              margin: const EdgeInsets.only(bottom: 5),
-                              decoration: BoxDecoration(
+            // ── Main Content (Members List or Join Requests) ───────────────
+            Expanded(
+              child: _selectedTabIndex == 1
+                  ? _buildJoinRequestsList()
+                  : (displayList.isEmpty
+                        ? Center(
+                            child: Text(
+                              AppLocalizations.of(context)!.usernotfound,
+                              style: TextStyle(
                                 color: Theme.of(
                                   context,
-                                ).colorScheme.primaryContainer,
-                                borderRadius: BorderRadius.circular(
-                                  AppRadius.card,
-                                ),
-                                border: Border.all(
-                                  color: Theme.of(context).colorScheme.outline,
-                                  width: 1,
-                                ),
-                                boxShadow: const [
-                                  BoxShadow(
-                                    color: Color(0x06000000),
-                                    blurRadius: 2,
-                                  ),
-                                ],
+                                ).colorScheme.onBackground.withOpacity(0.4),
+                                fontSize: 11.sp,
                               ),
-                              child: Row(
-                                children: [
-                                  // ── Avatar ───────────────────────────────
-                                  CircleAvatar(
-                                    radius: 18,
-                                    backgroundImage: _avatarProvider(
-                                      profileImage,
-                                    ),
-                                    backgroundColor: Theme.of(
-                                      context,
-                                    ).colorScheme.onPrimary.withOpacity(0.1),
-                                    child:
-                                        profileImage == null ||
-                                            profileImage.isEmpty
-                                        ? Text(
-                                            username.isNotEmpty
-                                                ? username[0].toUpperCase()
-                                                : 'P',
-                                            style: TextStyle(
-                                              color: Theme.of(
-                                                context,
-                                              ).colorScheme.onPrimary,
-                                              fontSize: 14.sp,
-                                              fontWeight: FontWeight.w500,
-                                            ),
-                                          )
-                                        : null,
-                                  ),
-                                  SizedBox(width: 10.w),
+                            ),
+                          )
+                        : ListView.builder(
+                            itemCount: displayList.length,
+                            itemBuilder: (context, i) {
+                              final member = displayList[i];
+                              final user = _user(member);
 
-                                  // ── Details (Username + Status / Date) ───
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.center,
-                                      children: [
-                                        Text(
+                              final dynamic memberId = user['id'];
+                              final String username =
+                                  user['username']?.toString() ?? '';
+                              final String? profileImage = _extractProfileImage(
+                                user,
+                              );
+
+                              final bool isAdmin = memberId != null
+                                  ? provider.isAdmin(memberId)
+                                  : false;
+
+                              final String? currentUserId = context
+                                  .read<UserProvider>()
+                                  .userId;
+                              final bool isSelf =
+                                  memberId?.toString() == currentUserId;
+
+                              final String? joinedAtVal =
+                                  member['joined_at']?.toString() ??
+                                  user['joined_at']?.toString();
+                              final String joinedDate = _formatJoinedDate(
+                                joinedAtVal,
+                              );
+
+                              final presence =
+                                  provider.memberPresence[memberId];
+                              final bool isOnline =
+                                  isSelf ||
+                                  (presence?.isOnline ??
+                                      (member['is_online'] == true ||
+                                          user['is_online'] == true));
+
+                              return Padding(
+                                padding: EdgeInsets.only(bottom: 10.h),
+                                child: GestureDetector(
+                                  onTap: isCurrentUserAdmin && !isSelf
+                                      ? () => _showOptions(
+                                          memberId!,
                                           username,
-                                          style: TextStyle(
-                                            color: txt.title,
-                                            fontSize: 11.2.sp,
-                                            fontWeight: FontWeight.w500,
-                                          ),
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                        SizedBox(height: 2.h),
-                                        Row(
-                                          children: [
-                                            Text(
-                                              isOnline ? 'Online' : 'Offline',
-                                              style: TextStyle(
-                                                color: isOnline
-                                                    ? const Color(0XFF16A34A)
-                                                    : txt.muted,
-                                                fontSize: 9.2.sp,
-                                                fontWeight: FontWeight.w400,
-                                              ),
-                                            ),
-                                            if (joinedDate.isNotEmpty) ...[
-                                              SizedBox(width: 6.w),
-                                              Text(
-                                                '•',
-                                                style: TextStyle(
-                                                  color: txt.muted,
-                                                  fontSize: 9.2.sp,
-                                                ),
-                                              ),
-                                              SizedBox(width: 6.w),
-                                              Text(
-                                                'Joined $joinedDate',
-                                                style: TextStyle(
-                                                  color: txt.muted,
-                                                  fontSize: 9.2.sp,
-                                                  fontWeight: FontWeight.w400,
-                                                ),
-                                              ),
-                                            ],
-                                          ],
+                                          isAdmin,
+                                        )
+                                      : null,
+                                  child: Container(
+                                    width: double.infinity,
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 10,
+                                      vertical: 6,
+                                    ),
+                                    margin: const EdgeInsets.only(bottom: 5),
+                                    decoration: BoxDecoration(
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.primaryContainer,
+                                      borderRadius: BorderRadius.circular(
+                                        AppRadius.card,
+                                      ),
+                                      border: Border.all(
+                                        color: Theme.of(
+                                          context,
+                                        ).colorScheme.outline,
+                                        width: 1,
+                                      ),
+                                      boxShadow: const [
+                                        BoxShadow(
+                                          color: Color(0x06000000),
+                                          blurRadius: 2,
                                         ),
                                       ],
                                     ),
-                                  ),
+                                    child: Row(
+                                      children: [
+                                        // ── Avatar ───────────────────────────────
+                                        CircleAvatar(
+                                          radius: 18,
+                                          backgroundImage: _avatarProvider(
+                                            profileImage,
+                                          ),
+                                          backgroundColor: Theme.of(context)
+                                              .colorScheme
+                                              .onPrimary
+                                              .withOpacity(0.1),
+                                          child:
+                                              profileImage == null ||
+                                                  profileImage.isEmpty
+                                              ? Text(
+                                                  username.isNotEmpty
+                                                      ? username[0]
+                                                            .toUpperCase()
+                                                      : 'P',
+                                                  style: TextStyle(
+                                                    color: Theme.of(
+                                                      context,
+                                                    ).colorScheme.onPrimary,
+                                                    fontSize: 14.sp,
+                                                    fontWeight: FontWeight.w500,
+                                                  ),
+                                                )
+                                              : null,
+                                        ),
+                                        SizedBox(width: 10.w),
 
-                                  // ── Admin badge / more icon ───────────────
-                                  if (isAdmin)
-                                    Text(
-                                      AppLocalizations.of(context)!.admin,
-                                      style: TextStyle(
-                                        color: const Color(0XFF16A34A),
-                                        fontSize: 10.2.sp,
-                                        fontWeight: FontWeight.w500,
-                                      ),
-                                    )
-                                  else if (isCurrentUserAdmin && !isSelf)
-                                    GestureDetector(
-                                      onTap: () => _showOptions(
-                                        memberId!,
-                                        username,
-                                        isAdmin,
-                                      ),
-                                      child: Icon(
-                                        Icons.more_vert,
-                                        size: 18.spMax,
-                                        color: txt.muted,
-                                      ),
+                                        // ── Details (Username + Status / Date) ───
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.center,
+                                            children: [
+                                              Text(
+                                                username,
+                                                style: TextStyle(
+                                                  color: txt.title,
+                                                  fontSize: 11.2.sp,
+                                                  fontWeight: FontWeight.w500,
+                                                ),
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                              SizedBox(height: 2.h),
+                                              Row(
+                                                children: [
+                                                  Text(
+                                                    isOnline
+                                                        ? 'Online'
+                                                        : 'Offline',
+                                                    style: TextStyle(
+                                                      color: isOnline
+                                                          ? const Color(
+                                                              0XFF16A34A,
+                                                            )
+                                                          : txt.muted,
+                                                      fontSize: 9.2.sp,
+                                                      fontWeight:
+                                                          FontWeight.w400,
+                                                    ),
+                                                  ),
+                                                  if (joinedDate
+                                                      .isNotEmpty) ...[
+                                                    SizedBox(width: 6.w),
+                                                    Text(
+                                                      '•',
+                                                      style: TextStyle(
+                                                        color: txt.muted,
+                                                        fontSize: 9.2.sp,
+                                                      ),
+                                                    ),
+                                                    SizedBox(width: 6.w),
+                                                    Text(
+                                                      'Joined $joinedDate',
+                                                      style: TextStyle(
+                                                        color: txt.muted,
+                                                        fontSize: 9.2.sp,
+                                                        fontWeight:
+                                                            FontWeight.w400,
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ],
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+
+                                        // ── Admin badge / more icon ───────────────
+                                        if (isAdmin)
+                                          Text(
+                                            AppLocalizations.of(context)!.admin,
+                                            style: TextStyle(
+                                              color: const Color(0XFF16A34A),
+                                              fontSize: 10.2.sp,
+                                              fontWeight: FontWeight.w500,
+                                            ),
+                                          )
+                                        else if (isCurrentUserAdmin && !isSelf)
+                                          GestureDetector(
+                                            onTap: () => _showOptions(
+                                              memberId!,
+                                              username,
+                                              isAdmin,
+                                            ),
+                                            child: Icon(
+                                              Icons.more_vert,
+                                              size: 18.spMax,
+                                              color: txt.muted,
+                                            ),
+                                          ),
+                                      ],
                                     ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        );
-                      },
-                    ),
+                                  ),
+                                ),
+                              );
+                            },
+                          )),
             ),
           ],
         ),

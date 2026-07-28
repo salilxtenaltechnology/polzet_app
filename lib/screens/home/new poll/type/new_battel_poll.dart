@@ -15,9 +15,11 @@ import 'package:provider/provider.dart';
 import '../../../../api/api_service.dart';
 import '../../../../api/app_api.dart';
 import '../../../../api/services/image/image_picker_service.dart';
+import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_radius.dart';
 import '../../../../core/themes/app_text_colors.dart';
 import '../../../../core/themes/app_text_styles.dart';
+import 'image_preview_crop_screen.dart';
 import '../../../../data/token/shared_preferences.dart';
 import '../../../../gen/assets.gen.dart';
 import '../../../../languages/l10n/generated/app_localizations.dart';
@@ -25,7 +27,6 @@ import '../../../../provider/user_provider.dart';
 import '../../../../widgets/appbar/common_appbar.dart';
 import '../../../../widgets/button/primary_button.dart';
 import '../../../../widgets/custom_text_styles.dart';
-import '../../../../widgets/dialog/custom_diolog.dart';
 import '../../../../widgets/dotted_border/dotted_border.dart';
 import '../../../../widgets/show_toast.dart';
 import '../../../../widgets/text_field/secondry_textfield.dart';
@@ -59,9 +60,9 @@ class _NewBattelPollState extends State<NewBattelPoll> {
   // Hint animation state
   int _currentHintIndex = 0;
   Timer? _hintTimer;
-  final List<String> _hintTexts = [
-    'Please enter a question',
-    'Please enter a topic',
+  List<String> get _hintTexts => [
+    AppLocalizations.of(context)!.pleaseenteraquestion,
+    AppLocalizations.of(context)!.pleaseenteratopic,
   ];
 
   @override
@@ -148,31 +149,154 @@ class _NewBattelPollState extends State<NewBattelPoll> {
     super.dispose();
   }
 
-  Future<void> _pickImage(int index) async {
+  Future<void> _pickMultiImages(int index) async {
     try {
-      final File? pickedFile = await ImagePickerService.pickImage(
+      int otherSelectedCount = 0;
+      for (int i = 0; i < _images.length; i++) {
+        if (i != index && _images[i] != null) {
+          otherSelectedCount++;
+        }
+      }
+      final int allowedMaxImages = (2 - otherSelectedCount).clamp(1, 2);
+
+      final List<File>? pickedFiles = await ImagePickerService.pickMultiImages(
         context: context,
+        maxImages: allowedMaxImages,
         allowCamera: true,
       );
 
-      if (pickedFile != null) {
-        final shouldCrop = await cropImageDiolog(context);
-        if (!mounted) return;
+      if (pickedFiles != null && pickedFiles.isNotEmpty && mounted) {
+        final List<File>? finalFiles = await Navigator.push<List<File>>(
+          context,
+          MaterialPageRoute(
+            builder: (_) => ImagePreviewCropScreen(initialImages: pickedFiles),
+          ),
+        );
 
-        File finalFile = pickedFile;
-        if (shouldCrop == true) {
-          final croppedFile = await ImagePickerService.cropImage(pickedFile);
-          if (croppedFile != null) finalFile = croppedFile;
+        if (finalFiles != null && finalFiles.isNotEmpty && mounted) {
+          setState(() {
+            if (finalFiles.length >= 2) {
+              _images[0] = finalFiles[0];
+              _images[1] = finalFiles[1];
+            } else {
+              _images[index] = finalFiles[0];
+            }
+            imageErrorText = '';
+          });
         }
-
-        setState(() {
-          _images[index] = finalFile;
-          imageErrorText = '';
-        });
       }
     } catch (e) {
-      showToast(message: 'Error picking image: ${e.toString()}');
+      showToast(message: 'Error picking images: ${e.toString()}');
     }
+  }
+
+  Future<void> _cropSingleImage(int index) async {
+    if (index < 0 || index >= _images.length || _images[index] == null) return;
+
+    final croppedFile = await ImagePickerService.cropImage(_images[index]!);
+    if (croppedFile != null && mounted) {
+      setState(() {
+        _images[index] = croppedFile;
+        imageErrorText = '';
+      });
+    }
+  }
+
+  void _onTapEditImage(int index) {
+    final txt = AppTextColors.of(context);
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(AppRadius.modal),
+        ),
+      ),
+      builder: (context) => SafeArea(
+        top: false,
+        child: SizedBox(
+          width: double.infinity,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SizedBox(height: 12.h),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    'Edit Image',
+                    style: AppTextStyles.sectionHeading.copyWith(
+                      color: txt.title,
+                      fontSize: 14.sp,
+                    ),
+                  ),
+                ],
+              ),
+              SizedBox(height: 10.h),
+              Divider(
+                color: Theme.of(context).colorScheme.outlineVariant,
+                height: 1,
+                endIndent: 12,
+                indent: 12,
+              ),
+              SizedBox(height: 5.h),
+              GestureDetector(
+                child: Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10),
+                  child: Text(
+                    'Crop image',
+                    style: AppTextStyles.bodyText.copyWith(
+                      color: txt.body,
+                      fontSize: 13.5.sp,
+                      fontWeight: FontWeight.w400,
+                    ),
+                  ),
+                ),
+                onTap: () {
+                  Navigator.pop(context);
+                  _cropSingleImage(index);
+                },
+              ),
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10),
+                child: GestureDetector(
+                  child: Text(
+                    'Replace image',
+                    style: AppTextStyles.bodyText.copyWith(
+                      color: txt.body,
+                      fontSize: 13.5.sp,
+                      fontWeight: FontWeight.w400,
+                    ),
+                  ),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _pickMultiImages(index);
+                  },
+                ),
+              ),
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10),
+                child: GestureDetector(
+                  child: Text(
+                    'Remove',
+                    style: AppTextStyles.bodyText.copyWith(
+                      color: txt.body,
+                      fontSize: 13.5.sp,
+                      fontWeight: FontWeight.w400,
+                    ),
+                  ),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _removeImage(index);
+                  },
+                ),
+              ),
+              SizedBox(height: 10.h),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   void _removeImage(int index) {
@@ -357,7 +481,7 @@ class _NewBattelPollState extends State<NewBattelPoll> {
     final txt = AppTextColors.of(context);
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.background,
-      appBar: const CommonAppBar(title: 'Start a Battle'),
+      appBar:  CommonAppBar(title:  AppLocalizations.of(context)!.startabattle),
       body: SingleChildScrollView(
         physics: const BouncingScrollPhysics(),
         child: Padding(
@@ -367,7 +491,9 @@ class _NewBattelPollState extends State<NewBattelPoll> {
             children: [
               SizedBox(height: 10.h),
               Text(
-                'Put competitors head-to-head and see which side wins',
+                AppLocalizations.of(
+                  context,
+                )!.putcompetitorsheadtoheadandseewhichsidewins,
                 style: AppTextStyles.subText.copyWith(
                   fontSize: 14,
                   color: txt.body,
@@ -379,7 +505,7 @@ class _NewBattelPollState extends State<NewBattelPoll> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    'Start battel',
+                    AppLocalizations.of(context)!.startbattel,
                     style: CustomTextStyles.lblPrimaryText(context),
                   ),
                   GestureDetector(
@@ -387,14 +513,7 @@ class _NewBattelPollState extends State<NewBattelPoll> {
                     child: Row(
                       children: [
                         _isGeneratingQuestion
-                            ? SizedBox(
-                                width: 12.w,
-                                height: 12.h,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 1.5,
-                                  color: Theme.of(context).colorScheme.onPrimary,
-                                ),
-                              )
+                            ? const SizedBox()
                             : Assets.images.icAssistant.image(
                                 width: 14.w,
                                 height: 14.h,
@@ -403,10 +522,10 @@ class _NewBattelPollState extends State<NewBattelPoll> {
                         const SizedBox(width: 5),
                         Text(
                           _isGeneratingQuestion
-                              ? 'Generating...'
+                              ? AppLocalizations.of(context)!.generating
                               : _hasGeneratedQuestion
-                              ? 'Regenerate Question'
-                              : 'Generate Question',
+                              ? AppLocalizations.of(context)!.regeneratequestion
+                              : AppLocalizations.of(context)!.generatequestion,
                           style: AppTextStyles.bodyText.copyWith(
                             fontSize: 12,
                             fontWeight: FontWeight.w500,
@@ -433,18 +552,29 @@ class _NewBattelPollState extends State<NewBattelPoll> {
                 ),
               SizedBox(height: 20.h),
               Text(
-                'Description & Hashtags (Optional)',
+                AppLocalizations.of(context)!.descriptionhashtagsoptional,
                 style: CustomTextStyles.lblPrimaryText(context),
               ),
               SizedBox(height: 7.h),
               SecondryTextfield(
                 controller: descriptionController,
-                hintText: 'Type description or hashtags',
+                hintText: AppLocalizations.of(
+                  context,
+                )!.typedescriptionorhashtags,
                 maxLines: 5,
                 minLines: 1,
               ),
               SizedBox(height: 20.h),
               _buildCompetitorsSection(context),
+              SizedBox(height: 12.h),
+              Text(
+                AppLocalizations.of(context)!.addtwosimilarimagesegoutfitsplacesfood,
+                style: AppTextStyles.bodyText.copyWith(
+                  color: txt.muted,
+                  fontSize: 10.5.sp,
+                  fontWeight: FontWeight.w400,
+                ),
+              ),
               SizedBox(height: 30.h),
             ],
           ),
@@ -467,7 +597,10 @@ class _NewBattelPollState extends State<NewBattelPoll> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Competitors', style: CustomTextStyles.lblPrimaryText(context)),
+        Text(
+          AppLocalizations.of(context)!.competitors,
+          style: CustomTextStyles.lblPrimaryText(context),
+        ),
         SizedBox(height: 12.h),
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -517,7 +650,13 @@ class _NewBattelPollState extends State<NewBattelPoll> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         GestureDetector(
-          onTap: () => _pickImage(index),
+          onTap: () {
+            if (hasImage) {
+              _onTapEditImage(index);
+            } else {
+              _pickMultiImages(index);
+            }
+          },
           child: AspectRatio(
             aspectRatio: 1.3,
             child: hasImage
@@ -534,19 +673,19 @@ class _NewBattelPollState extends State<NewBattelPoll> {
                             ),
                           ),
                           Positioned(
-                            top: 5,
-                            right: 5,
+                            top: 5.h,
+                            right: 5.w,
                             child: GestureDetector(
-                              onTap: () => _removeImage(index),
+                              onTap: () => _onTapEditImage(index),
                               child: Container(
-                                width: 20.w,
-                                height: 20.h,
-                                decoration: BoxDecoration(
-                                  color: Theme.of(context).colorScheme.primary,
+                                width: 22.w,
+                                height: 22.h,
+                                decoration: const BoxDecoration(
+                                  color: AppColors.primaryColor,
                                   shape: BoxShape.circle,
                                 ),
                                 child: Icon(
-                                  Icons.close,
+                                  Icons.edit,
                                   color: Colors.white,
                                   size: 12.sp,
                                 ),
@@ -580,7 +719,7 @@ class _NewBattelPollState extends State<NewBattelPoll> {
         SizedBox(height: 12.h),
         SecondryTextfield(
           controller: controller,
-          hintText: 'Add label',
+          hintText: AppLocalizations.of(context)!.addlabel,
           onChanged: (value) {
             if (errorText.isNotEmpty && value.trim().isNotEmpty) {
               setState(() {

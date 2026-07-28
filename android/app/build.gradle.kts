@@ -33,8 +33,8 @@ android {
     defaultConfig {
         applicationId = "com.polzet_app"
         minSdk = flutter.minSdkVersion
-        targetSdk = 35
-        versionCode = 16
+        targetSdk = 36
+        versionCode = 17
         versionName = "1.1.0"
         multiDexEnabled = true
     }

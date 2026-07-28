@@ -53,9 +53,9 @@ class _NewThingsPollState extends State<NewTextPoll> with UtilityMixin {
   // Hint animation state
   int _currentHintIndex = 0;
   Timer? _hintTimer;
-  final List<String> _hintTexts = [
-    'Please enter a question',
-    'Please enter a topic',
+  List<String> get _hintTexts => [
+    AppLocalizations.of(context)!.pleaseenteraquestion,
+    AppLocalizations.of(context)!.pleaseenteratopic,
   ];
 
   final _dio = Dio();
@@ -200,7 +200,7 @@ class _NewThingsPollState extends State<NewTextPoll> with UtilityMixin {
 
     if (query.isEmpty) {
       setState(() {
-        questionErrorText = 'Please enter a topic';
+        questionErrorText = AppLocalizations.of(context)!.pleaseenteratopic;
       });
       return;
     }
@@ -248,7 +248,7 @@ class _NewThingsPollState extends State<NewTextPoll> with UtilityMixin {
 
     if (question.isEmpty) {
       setState(() {
-        questionErrorText = 'Please enter a question';
+        questionErrorText = AppLocalizations.of(context)!.pleaseenteraquestion;
       });
       return;
     }
@@ -533,14 +533,7 @@ class _NewThingsPollState extends State<NewTextPoll> with UtilityMixin {
               child: Row(
                 children: [
                   _isGeneratingQuestion
-                      ? SizedBox(
-                          width: 12.w,
-                          height: 12.h,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 1.5,
-                            color: Theme.of(context).colorScheme.onPrimary,
-                          ),
-                        )
+                      ? const SizedBox()
                       : Assets.images.icAssistant.image(
                           width: 14.w,
                           height: 14.h,
@@ -549,10 +542,10 @@ class _NewThingsPollState extends State<NewTextPoll> with UtilityMixin {
                   const SizedBox(width: 5),
                   Text(
                     _isGeneratingQuestion
-                        ? 'Generating...'
+                        ? AppLocalizations.of(context)!.generating
                         : _hasGeneratedQuestion
-                        ? 'Regenerate Question'
-                        : 'Generate Question',
+                        ? AppLocalizations.of(context)!.regeneratequestion
+                        : AppLocalizations.of(context)!.generatequestion,
                     style: AppTextStyles.bodyText.copyWith(
                       fontSize: 12,
                       fontWeight: FontWeight.w500,
@@ -586,13 +579,13 @@ class _NewThingsPollState extends State<NewTextPoll> with UtilityMixin {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Description & Hashtags (Optional)',
+          AppLocalizations.of(context)!.descriptionhashtagsoptional,
           style: CustomTextStyles.lblPrimaryText(context),
         ),
         SizedBox(height: 7.h),
         SecondryTextfield(
           controller: descriptionController,
-          hintText: 'Type description or hashtags',
+          hintText: AppLocalizations.of(context)!.typedescriptionorhashtags,
           maxLines: 5,
           minLines: 1,
         ),
@@ -618,14 +611,7 @@ class _NewThingsPollState extends State<NewTextPoll> with UtilityMixin {
               child: Row(
                 children: [
                   _isGeneratingOptions
-                      ? SizedBox(
-                          width: 12.w,
-                          height: 12.h,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 1.5,
-                            color: Theme.of(context).colorScheme.onPrimary,
-                          ),
-                        )
+                      ?  const SizedBox()
                       : Assets.images.icAssistant.image(
                           width: 14.w,
                           height: 14.h,
@@ -634,10 +620,10 @@ class _NewThingsPollState extends State<NewTextPoll> with UtilityMixin {
                   const SizedBox(width: 5),
                   Text(
                     _isGeneratingOptions
-                        ? 'Generating...'
+                        ? AppLocalizations.of(context)!.generating
                         : _hasGeneratedOptions
-                        ? 'Regenerate Options'
-                        : 'Generate Options',
+                        ? AppLocalizations.of(context)!.regenerateoptions
+                        : AppLocalizations.of(context)!.generateoptions,
                     style: AppTextStyles.bodyText.copyWith(
                       fontSize: 12,
                       fontWeight: FontWeight.w500,
@@ -689,7 +675,10 @@ class _NewThingsPollState extends State<NewTextPoll> with UtilityMixin {
           SizedBox(height: 15.h),
         ],
 
-        Text('Voting Mode', style: CustomTextStyles.lblPrimaryText(context)),
+        Text(
+          AppLocalizations.of(context)!.votingmode,
+          style: CustomTextStyles.lblPrimaryText(context),
+        ),
         SizedBox(height: 10.h),
         Row(
           children: [
@@ -721,7 +710,7 @@ class _NewThingsPollState extends State<NewTextPoll> with UtilityMixin {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text(
-                        'Single Choice',
+                        AppLocalizations.of(context)!.singlechoice,
                         style: AppTextStyles.bodyText.copyWith(
                           fontSize: 13.5,
                           fontWeight: FontWeight.w500,
@@ -731,7 +720,7 @@ class _NewThingsPollState extends State<NewTextPoll> with UtilityMixin {
                       ),
                       SizedBox(height: 4.h),
                       Text(
-                        'Voters pick one option',
+                        AppLocalizations.of(context)!.voterspickoneoption,
                         style: AppTextStyles.subText.copyWith(
                           fontSize: 12,
                           color: txt.body,
@@ -773,7 +762,7 @@ class _NewThingsPollState extends State<NewTextPoll> with UtilityMixin {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text(
-                        'Multiple Choice',
+                        AppLocalizations.of(context)!.multiplechoice,
                         style: AppTextStyles.bodyText.copyWith(
                           fontSize: 13.5,
                           fontWeight: FontWeight.w500,
@@ -783,7 +772,7 @@ class _NewThingsPollState extends State<NewTextPoll> with UtilityMixin {
                       ),
                       SizedBox(height: 4.h),
                       Text(
-                        'Voters rank all options',
+                        AppLocalizations.of(context)!.votersrankalloptions,
                         style: AppTextStyles.subText.copyWith(
                           fontSize: 12,
                           color: txt.body,

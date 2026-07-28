@@ -28,7 +28,7 @@ class GroupMemberPresence {
 class GroupChatProvider extends ChangeNotifier {
   String? _groupName;
   String? _groupImageUrl;
-  int? _chatId;
+  dynamic _chatId;
   Map<String, dynamic>? _chat;
 
   final Set<dynamic> _adminIds = {};
@@ -36,7 +36,7 @@ class GroupChatProvider extends ChangeNotifier {
   String? get groupName => _groupName;
   String? get chatName => _groupName;
   String? get groupImageUrl => _groupImageUrl;
-  int? get chatId => _chatId;
+  dynamic get chatId => _chatId;
   Map<String, dynamic>? get chat => _chat;
 
   List<Map<String, dynamic>> get members {
@@ -239,7 +239,7 @@ class GroupChatProvider extends ChangeNotifier {
   Future<void> init({
     required String? groupName,
     required String? groupImageUrl,
-    int? chatId,
+    dynamic chatId,
     String? currentUsername,
     dynamic currentUserId,
     Map<String, dynamic>? chat,
@@ -250,6 +250,10 @@ class GroupChatProvider extends ChangeNotifier {
     _currentUserId = currentUserId;
     _chat = chat;
     _syncAdminIds();
+
+    if (_chatId != null) {
+      ApiService().markChatReadUnread(chatId: _chatId.toString(), isUnread: false);
+    }
 
     if (currentUsername != null && currentUsername.isNotEmpty) {
       _currentUsername = currentUsername;
@@ -328,6 +332,7 @@ class GroupChatProvider extends ChangeNotifier {
               senderId: item.sender.id,
               sharedPost: item.sharedPost,
               sharedProfile: item.sharedProfile,
+              sharedGroup: item.sharedGroup,
             ),
           )
           .toList()
@@ -384,6 +389,7 @@ class GroupChatProvider extends ChangeNotifier {
               senderId: item.sender.id,
               sharedPost: item.sharedPost,
               sharedProfile: item.sharedProfile,
+              sharedGroup: item.sharedGroup,
             ),
           )
           .toList();
@@ -432,6 +438,7 @@ class GroupChatProvider extends ChangeNotifier {
               senderId: item.sender.id,
               sharedPost: item.sharedPost,
               sharedProfile: item.sharedProfile,
+              sharedGroup: item.sharedGroup,
             ),
           )
           .toList();
@@ -769,6 +776,7 @@ class GroupChatProvider extends ChangeNotifier {
               senderId: senderUserId?.toString(),
               sharedPost: msgMap['shared_post'] as Map<String, dynamic>?,
               sharedProfile: msgMap['shared_profile'] as Map<String, dynamic>?,
+              sharedGroup: msgMap['shared_group'] as Map<String, dynamic>?,
             );
             _saveCachedMessages();
             _emitMessages();
@@ -788,6 +796,7 @@ class GroupChatProvider extends ChangeNotifier {
             senderId: senderUserId?.toString(),
             sharedPost: msgMap['shared_post'] as Map<String, dynamic>?,
             sharedProfile: msgMap['shared_profile'] as Map<String, dynamic>?,
+            sharedGroup: msgMap['shared_group'] as Map<String, dynamic>?,
           ),
         );
 
@@ -827,8 +836,12 @@ class GroupChatProvider extends ChangeNotifier {
 
   void markAsRead() {
     final presence = _presenceChannel;
-    if (presence == null || !_isPresenceConnected) return;
-    presence.sink.add(jsonEncode({'action': 'mark_read'}));
+    if (presence != null && _isPresenceConnected) {
+      presence.sink.add(jsonEncode({'action': 'mark_read'}));
+    }
+    if (_chatId != null) {
+      ApiService().markChatReadUnread(chatId: _chatId.toString(), isUnread: false);
+    }
   }
 
   void sendTypingStop() {
@@ -1266,6 +1279,13 @@ class GroupChatProvider extends ChangeNotifier {
     _typingTimer?.cancel();
     _pollingTimer?.cancel();
 
+    notifyListeners();
+  }
+
+  void clearLocalMessages() {
+    _messages.clear();
+    _saveCachedMessages();
+    _emitMessages();
     notifyListeners();
   }
 

@@ -7,12 +7,47 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:image_cropper/image_cropper.dart';
 import 'package:polzet_app/core/themes/app_text_styles.dart';
+import 'package:polzet_app/languages/l10n/generated/app_localizations_ar.dart';
 import 'package:wechat_assets_picker/wechat_assets_picker.dart';
 import 'package:wechat_camera_picker/wechat_camera_picker.dart';
 
 import '../../../core/constants/app_colors.dart';
+import '../../../languages/l10n/generated/app_localizations.dart';
 
 class ImagePickerService {
+  static Future<List<File>?> pickMultiImages({
+    required BuildContext context,
+    int maxImages = 2,
+    bool allowCamera = true,
+  }) async {
+    final source = await _showImageSourceDialog(context, allowCamera);
+    if (source == null) return null;
+
+    if (source == 'camera') {
+      final File? cameraFile = await _pickFromCamera(context);
+      if (cameraFile != null) return [cameraFile];
+      return null;
+    } else {
+      final List<AssetEntity>? assets = await AssetPicker.pickAssets(
+        context,
+        pickerConfig: AssetPickerConfig(
+          maxAssets: maxImages,
+          requestType: RequestType.image,
+          textDelegate: const EnglishAssetPickerTextDelegate(),
+        ),
+      );
+      if (assets != null && assets.isNotEmpty) {
+        final List<File> files = [];
+        for (final asset in assets) {
+          final file = await asset.file;
+          if (file != null) files.add(file);
+        }
+        return files;
+      }
+      return null;
+    }
+  }
+
   static Future<File?> pickImage({
     required BuildContext context,
     bool allowCamera = true,
@@ -59,14 +94,14 @@ class ImagePickerService {
                   _buildSourceItem(
                     context: context,
                     icon: FeatherIcons.camera,
-                    label: 'Camera',
+                    label: AppLocalizations.of(context)!.camera,
                     onTap: () => Navigator.pop(context, 'camera'),
                   ),
                   SizedBox(width: 40.w),
                   _buildSourceItem(
                     context: context,
                     icon: FeatherIcons.image,
-                    label: 'Gallery',
+                    label: AppLocalizations.of(context)!.gallery,
                     onTap: () => Navigator.pop(context, 'gallery'),
                   ),
                 ],
@@ -107,7 +142,10 @@ class ImagePickerService {
     return null;
   }
 
-  static Future<File?> cropImage(File imageFile) async {
+  static Future<File?> cropImage(
+    File imageFile, {
+    CropAspectRatioPreset? initAspectRatio,
+  }) async {
     if (!await imageFile.exists()) return null;
 
     final String pathLower = imageFile.path.toLowerCase();
@@ -118,20 +156,34 @@ class ImagePickerService {
     final croppedFile = await ImageCropper().cropImage(
       sourcePath: imageFile.path,
       compressFormat: format,
-      compressQuality: 100,
+      compressQuality: 95,
       uiSettings: [
         AndroidUiSettings(
           toolbarTitle: 'Crop Image',
           toolbarColor: AppColors.primaryColor,
           toolbarWidgetColor: Colors.white,
-          initAspectRatio: CropAspectRatioPreset.original,
+          initAspectRatio: initAspectRatio ?? CropAspectRatioPreset.square,
           lockAspectRatio: false,
           activeControlsWidgetColor: AppColors.primaryColor,
+          aspectRatioPresets: [
+            CropAspectRatioPreset.square,
+            CropAspectRatioPreset.ratio4x3,
+            CropAspectRatioPreset.ratio5x4,
+            CropAspectRatioPreset.ratio16x9,
+            CropAspectRatioPreset.original,
+          ],
         ),
         IOSUiSettings(
           title: 'Crop Image',
           aspectRatioLockEnabled: false,
           resetAspectRatioEnabled: true,
+          aspectRatioPresets: [
+            CropAspectRatioPreset.square,
+            CropAspectRatioPreset.ratio4x3,
+            CropAspectRatioPreset.ratio5x4,
+            CropAspectRatioPreset.ratio16x9,
+            CropAspectRatioPreset.original,
+          ],
         ),
       ],
     );

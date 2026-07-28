@@ -21,20 +21,25 @@ import '../../../../../models/posts/single_post_model.dart';
 import '../../../../../provider/private_chat_provider.dart';
 import '../../../../../provider/user_provider.dart';
 import '../../../../../widgets/button/back_button.dart';
+import '../../../../../widgets/show_toast.dart';
 import '../../../home feed/rank/result/image/image_result_screen.dart';
 import '../../../home feed/rank/result/things/things_result_screen.dart';
 import '../../../search/posts/rank/single_post_image_ranking.dart';
 import '../../../search/posts/rank/single_post_things_ranking.dart';
 import '../../../profile/public/public_profile_screen.dart';
 import '../chat_details.dart';
+import '../../../../../widgets/card/shared_group_card.dart';
+import '../../../../../widgets/dialog/custom_diolog.dart';
+import '../../message_list.dart';
 
 class PrivateChatScreen extends StatefulWidget {
   final String? memberName;
   final String? username;
   final String? profileUrl;
   final dynamic userId;
-  final int? chatId;
+  final dynamic chatId;
   final bool isUserBlock;
+  final Map<String, dynamic>? chat;
 
   const PrivateChatScreen({
     super.key,
@@ -44,6 +49,7 @@ class PrivateChatScreen extends StatefulWidget {
     required this.userId,
     this.chatId,
     this.isUserBlock = false,
+    this.chat,
   });
 
   @override
@@ -65,7 +71,7 @@ class _PrivateChatScreenState extends State<PrivateChatScreen>
   String? _floatingDate;
   final Map<String, GlobalKey> _headerKeys = {};
 
-  int? _resolvedChatId;
+  dynamic _resolvedChatId;
   bool _isLoadingChatId = false;
   final ApiService _apiService = ApiService();
 
@@ -76,7 +82,10 @@ class _PrivateChatScreenState extends State<PrivateChatScreen>
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _isUserBlock = widget.isUserBlock;
-    _resolvedChatId = widget.chatId == 0 ? null : widget.chatId;
+    _resolvedChatId =
+        (widget.chatId == 0 || widget.chatId == '0' || widget.chatId == null)
+        ? null
+        : widget.chatId;
 
     _messagesStream = provider.messagesStream;
 
@@ -103,7 +112,7 @@ class _PrivateChatScreenState extends State<PrivateChatScreen>
         final chatResponse = await _apiService.createPrivateChatId(
           withUserId: widget.userId.toString(),
         );
-        final parsedChatId = int.tryParse(chatResponse['id']?.toString() ?? '');
+        final parsedChatId = chatResponse['id']?.toString();
         if (mounted) {
           setState(() {
             _resolvedChatId = parsedChatId;
@@ -147,6 +156,62 @@ class _PrivateChatScreenState extends State<PrivateChatScreen>
   Future<void> _loadMoreHistory() async {
     if (!provider.hasMoreHistory || provider.isLoadingHistory) return;
     await provider.fetchMoreHistory();
+  }
+
+  Future<void> _showClearChatConfirmationDialog() async {
+    showClearChatDiolog(context, () {
+      Navigator.pop(context);
+      _clearChatMessages();
+    });
+  }
+
+  Future<void> _showDeleteChatConfirmationDialog() async {
+    showDeleteChatDiolog(context, () {
+      Navigator.pop(context);
+      _deleteChat();
+    });
+  }
+
+  Future<void> _deleteChat() async {
+    final chatId = _resolvedChatId?.toString() ?? widget.chatId?.toString();
+    if (chatId == null || chatId.isEmpty) return;
+    try {
+      final response = await _apiService.deleteChat(chatId: chatId);
+      if (response['status'] == 'success' || response['success'] == true) {
+        MessageListState.removeChatLocally(chatId);
+        showToast(message: 'Chat deleted');
+        Navigator.pop(context);
+      } else {
+        showToast(
+          message: response['message']?.toString() ?? 'Failed to delete chat',
+        );
+      }
+    } catch (e) {
+      showToast(message: 'Failed to delete chat: $e');
+    }
+  }
+
+  Future<void> _clearChatMessages() async {
+    final chatId = _resolvedChatId?.toString() ?? widget.chatId?.toString();
+    if (chatId == null || chatId.isEmpty) {
+      showToast(message: 'Cannot clear a new chat');
+      return;
+    }
+
+    try {
+      final response = await _apiService.clearChat(chatId: chatId);
+      if (response['status'] == 'success' || response['success'] == true) {
+        provider.clearLocalMessages();
+        MessageListState.clearChatLocally(chatId);
+        showToast(message: 'Chat cleared');
+      } else {
+        showToast(
+          message: response['message']?.toString() ?? 'Failed to clear chat',
+        );
+      }
+    } catch (e) {
+      showToast(message: 'Failed to clear chat: $e');
+    }
   }
 
   void _onScroll() {
@@ -483,7 +548,10 @@ class _PrivateChatScreenState extends State<PrivateChatScreen>
                   if (userId != null) {
                     navigationPush(
                       context,
-                      PublicProfileScreen(userId: userId.toString(), username: username),
+                      PublicProfileScreen(
+                        userId: userId.toString(),
+                        username: username,
+                      ),
                     );
                   }
                 },
@@ -682,6 +750,15 @@ class _PrivateChatScreenState extends State<PrivateChatScreen>
           ],
         ),
       ),
+    );
+  }
+
+
+
+  Widget _buildSharedGroupCard(BuildContext context, ChatMessage message) {
+    return SharedGroupCard(
+      groupData: message.sharedGroup!,
+      isSentByMe: message.isSentByMe,
     );
   }
 
@@ -986,6 +1063,18 @@ class _PrivateChatScreenState extends State<PrivateChatScreen>
       );
     }
 
+    if (message.sharedGroup != null) {
+      return Column(
+        crossAxisAlignment: message.isSentByMe
+            ? CrossAxisAlignment.end
+            : CrossAxisAlignment.start,
+        children: [
+          _buildSharedGroupCard(context, message),
+          if (message.text.isNotEmpty) bubble,
+        ],
+      );
+    }
+
     return bubble;
   }
 
@@ -1159,6 +1248,7 @@ class _PrivateChatScreenState extends State<PrivateChatScreen>
                           profileUrl: widget.profileUrl,
                           isGroupChat: false,
                           isUserBlock: _isUserBlock,
+                          chat: widget.chat,
                         ),
                       ),
                     ),
@@ -1226,6 +1316,58 @@ class _PrivateChatScreenState extends State<PrivateChatScreen>
                   ],
                 ),
               ),
+              const Spacer(),
+              PopupMenuButton<String>(
+                icon: Icon(
+                  FeatherIcons.moreVertical,
+                  size: 22,
+                  color: Theme.of(context).colorScheme.onBackground,
+                ),
+                color: Theme.of(context).colorScheme.tertiaryContainer,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                offset: const Offset(0, 45),
+                elevation: 2,
+                padding: EdgeInsets.zero,
+                onSelected: (value) {
+                  if (value == 'clear_chat') {
+                    _showClearChatConfirmationDialog();
+                  } else if (value == 'delete_chat') {
+                    _showDeleteChatConfirmationDialog();
+                  }
+                },
+                itemBuilder: (BuildContext context) {
+                  return [
+                    PopupMenuItem<String>(
+                      padding: const EdgeInsets.fromLTRB(10, 0, 10, 0),
+                      height: 38,
+                      value: 'clear_chat',
+                      child: Text(
+                        AppLocalizations.of(context)!.clearchat,
+                        style: AppTextStyles.bodyText.copyWith(
+                          color: txt.title,
+                          fontWeight: FontWeight.w500,
+                          fontSize: 13.5,
+                        ),
+                      ),
+                    ),
+                    PopupMenuItem<String>(
+                      padding: const EdgeInsets.fromLTRB(10, 0, 10, 0),
+                      height: 38,
+                      value: 'delete_chat',
+                      child: Text(
+                        AppLocalizations.of(context)!.deletechat,
+                        style: AppTextStyles.bodyText.copyWith(
+                          color: Theme.of(context).colorScheme.error,
+                          fontWeight: FontWeight.w500,
+                          fontSize: 13.5,
+                        ),
+                      ),
+                    ),
+                  ];
+                },
+              ),
             ],
           ),
           backgroundColor: Theme.of(context).colorScheme.background,
@@ -1255,11 +1397,12 @@ class _PrivateChatScreenState extends State<PrivateChatScreen>
                     if (provider.historyError != null)
                       Container(
                         width: double.infinity,
+
                         padding: EdgeInsets.symmetric(
                           vertical: 6.h,
                           horizontal: 12.w,
                         ),
-                        color: Theme.of(context).colorScheme.error,
+
                         child: Row(
                           children: [
                             Icon(
@@ -1565,8 +1708,10 @@ class _PrivateChatScreenState extends State<PrivateChatScreen>
                               keyboardType: TextInputType.multiline,
                               textInputAction: TextInputAction.newline,
                               decoration: InputDecoration(
-                                filled: true, 
-                                fillColor: Theme.of(context).colorScheme.background,
+                                filled: true,
+                                fillColor: Theme.of(
+                                  context,
+                                ).colorScheme.background,
                                 border: InputBorder.none,
                                 hintText:
                                     '${AppLocalizations.of(context)?.message}...',

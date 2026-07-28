@@ -38,7 +38,7 @@ class ChatDetails extends StatefulWidget {
   final bool isGroupChat;
   final bool isUserBlock;
   final dynamic userId;
-  final int? chatId;
+  final dynamic chatId;
   final Map<String, dynamic>? chat;
 
   const ChatDetails({
@@ -67,17 +67,21 @@ class _ChatDetailsState extends State<ChatDetails> with UtilityMixin {
   @override
   void initState() {
     super.initState();
-    _nameController = TextEditingController(
-      text: widget.isGroupChat
-          ? context.read<GroupChatProvider>().chatName ?? ''
-          : widget.chatName ?? '',
-    );
     _isUserBlock = widget.isUserBlock;
     _nameController = TextEditingController(
       text: widget.isGroupChat
           ? context.read<GroupChatProvider>().chatName ?? ''
           : widget.chatName ?? '',
     );
+
+    final initialMute = (widget.chat?['is_muted'] as bool?) ?? false;
+    if (widget.isGroupChat) {
+      final gp = context.read<GroupChatProvider>();
+      gp.isMuteNotification = initialMute;
+    } else {
+      final pp = context.read<PrivateChatProvider>();
+      pp.isMuteNotification = initialMute;
+    }
   }
 
   @override
@@ -234,8 +238,11 @@ class _ChatDetailsState extends State<ChatDetails> with UtilityMixin {
                       user['profile_picture_url'] ??
                       user['avatar'])
                   ?.toString();
-          if (profileUrl != null && profileUrl.trim().isNotEmpty && profileUrl != 'null') {
-            if (!profileUrl.startsWith('http') && !profileUrl.startsWith('data:image')) {
+          if (profileUrl != null &&
+              profileUrl.trim().isNotEmpty &&
+              profileUrl != 'null') {
+            if (!profileUrl.startsWith('http') &&
+                !profileUrl.startsWith('data:image')) {
               final separator = profileUrl.startsWith('/') ? '' : '/';
               profileUrl = '${ApiConfig.baseUrlImage}$separator$profileUrl';
             }
@@ -300,7 +307,10 @@ class _ChatDetailsState extends State<ChatDetails> with UtilityMixin {
     bool hasBorder = false,
   }) {
     final ImageProvider? avatarProvider =
-        (profileUrl == null || profileUrl.trim().isEmpty || profileUrl == 'null' || profileUrl == Assets.images.icAvatar.path)
+        (profileUrl == null ||
+            profileUrl.trim().isEmpty ||
+            profileUrl == 'null' ||
+            profileUrl == Assets.images.icAvatar.path)
         ? AssetImage(Assets.images.icAvatar.path)
         : _avatarProvider(profileUrl);
 
@@ -311,8 +321,8 @@ class _ChatDetailsState extends State<ChatDetails> with UtilityMixin {
         shape: BoxShape.circle,
         color: avatarProvider == null
             ? (isDarkMode
-                ? const Color(0xFF252525)
-                : Theme.of(context).primaryColor.withOpacity(0.08))
+                  ? const Color(0xFF252525)
+                  : Theme.of(context).primaryColor.withOpacity(0.08))
             : null,
         border: hasBorder
             ? Border.all(
@@ -320,14 +330,13 @@ class _ChatDetailsState extends State<ChatDetails> with UtilityMixin {
                 width: 1.5,
               )
             : Border.all(
-                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.05),
+                color: Theme.of(
+                  context,
+                ).colorScheme.onSurface.withOpacity(0.05),
                 width: 1,
               ),
         image: avatarProvider != null
-            ? DecorationImage(
-                image: avatarProvider,
-                fit: BoxFit.cover,
-              )
+            ? DecorationImage(image: avatarProvider, fit: BoxFit.cover)
             : null,
       ),
     );
@@ -335,7 +344,7 @@ class _ChatDetailsState extends State<ChatDetails> with UtilityMixin {
 
   Widget _buildSeeAllMembers(
     List<Map<String, dynamic>> members,
-    int? chatId,
+    dynamic chatId,
     GroupChatProvider provider,
   ) {
     final preview = members.take(3).toList();
@@ -439,8 +448,8 @@ class _ChatDetailsState extends State<ChatDetails> with UtilityMixin {
     final isAdmin = widget.isGroupChat ? _isCurrentUserAdmin(members) : false;
 
     final isMuteNotification = widget.isGroupChat
-        ? false
-        : privateProvider!.isMuteNotification;
+        ? (groupProvider?.isMuteNotification ?? false)
+        : (privateProvider?.isMuteNotification ?? false);
     final isProtectedChat = widget.isGroupChat
         ? false
         : privateProvider!.isProtectedChat;
@@ -550,11 +559,17 @@ class _ChatDetailsState extends State<ChatDetails> with UtilityMixin {
                     child: SizedBox(
                       height: 90.h,
                       width: 90.w,
-                      child: widget.isGroupChat && (profileUrl == null || profileUrl.trim().isEmpty || profileUrl == 'null')
+                      child:
+                          widget.isGroupChat &&
+                              (profileUrl == null ||
+                                  profileUrl.trim().isEmpty ||
+                                  profileUrl == 'null')
                           ? _buildGroupAvatarStack(
                               members: members,
                               size: 90.w,
-                              isDarkMode: Theme.of(context).brightness == Brightness.dark,
+                              isDarkMode:
+                                  Theme.of(context).brightness ==
+                                  Brightness.dark,
                               context: context,
                             )
                           : Container(
@@ -788,38 +803,65 @@ class _ChatDetailsState extends State<ChatDetails> with UtilityMixin {
                 AppLocalizations.of(context)!.mutenotification,
                 FeatherIcons.volume2,
                 isMuteNotification,
-                (v) => widget.isGroupChat
-                    ? null
-                    : privateProvider!.toggleMuteNotification(v),
+                (v) async {
+                  final resolvedChatId = widget.chatId?.toString() ??
+                      widget.chat?['id']?.toString() ??
+                      (widget.isGroupChat
+                          ? groupProvider?.chatId?.toString()
+                          : privateProvider?.chatId?.toString());
+
+                  if (resolvedChatId == null || resolvedChatId.isEmpty) {
+                    showToast(message: 'Cannot mute a chat without ID');
+                    return;
+                  }
+
+                  try {
+                    await apiService.muteUnmuteChat(
+                      chatId: resolvedChatId,
+                      isMuted: v,
+                    );
+                    if (widget.isGroupChat) {
+                      groupProvider!.toggleMuteNotification(v);
+                    } else {
+                      privateProvider!.toggleMuteNotification(v);
+                    }
+                    MessageListState.toggleMuteChatLocally(resolvedChatId, v);
+                    showToast(
+                      message: v ? 'Chat muted' : 'Chat unmuted',
+                    );
+                  } catch (e) {
+                    showToast(message: 'Failed to update mute status: $e');
+                  }
+                },
               ),
-              _arrowRow(
-                AppLocalizations.of(context)!.customnotification,
-                FeatherIcons.bell,
-              ),
-              _switchRow(
-                AppLocalizations.of(context)!.protectedchat,
-                FeatherIcons.shield,
-                isProtectedChat,
-                (v) => widget.isGroupChat
-                    ? null
-                    : privateProvider!.toggleProtectedChat(v),
-              ),
-              _switchRow(
-                AppLocalizations.of(context)!.hidechat,
-                FeatherIcons.eye,
-                isHideChat,
-                (v) => widget.isGroupChat
-                    ? null
-                    : privateProvider!.toggleHideChat(v),
-              ),
-              _switchRow(
-                AppLocalizations.of(context)!.hidechathistory,
-                FeatherIcons.eye,
-                isHideChatHistory,
-                (v) => widget.isGroupChat
-                    ? null
-                    : privateProvider!.toggleHideChatHistory(v),
-              ),
+              // _arrowRow(
+              //   AppLocalizations.of(context)!.customnotification,
+              //   FeatherIcons.bell,
+              // ),
+              // _switchRow(
+              //   AppLocalizations.of(context)!.protectedchat,
+              //   FeatherIcons.shield,
+              //   isProtectedChat,
+              //   (v) => widget.isGroupChat
+              //       ? null
+              //       : privateProvider!.toggleProtectedChat(v),
+              // ),
+              // _switchRow(
+              //   AppLocalizations.of(context)!.hidechat,
+              //   FeatherIcons.eye,
+              //   isHideChat,
+              //   (v) => widget.isGroupChat
+              //       ? null
+              //       : privateProvider!.toggleHideChat(v),
+              // ),
+              // _switchRow(
+              //   AppLocalizations.of(context)!.hidechathistory,
+              //   FeatherIcons.eye,
+              //   isHideChatHistory,
+              //   (v) => widget.isGroupChat
+              //       ? null
+              //       : privateProvider!.toggleHideChatHistory(v),
+              // ),
               _colorRow(
                 AppLocalizations.of(context)!.customcolorchat,
                 Icons.color_lens_outlined,

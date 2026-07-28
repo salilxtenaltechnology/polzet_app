@@ -13,7 +13,7 @@ class ToggleChaseButton extends StatefulWidget {
   final String followStatus;
   final ApiService apiService;
   final bool isPrivate;
-  final VoidCallback? onToggle;
+  final ValueChanged<String>? onToggle;
 
   const ToggleChaseButton({
     super.key,
@@ -100,7 +100,7 @@ class _ChaseButtonState extends State<ToggleChaseButton> {
         if (!success && mounted) {
           setState(() => _followStatus = currentStatus);
         } else if (success) {
-          widget.onToggle?.call();
+          widget.onToggle?.call(revertStatus);
         }
       } else if (isFollowing) {
         // Unfriend
@@ -119,7 +119,7 @@ class _ChaseButtonState extends State<ToggleChaseButton> {
 
         if (response['status'] == 'success') {
           _originalServerStatus = nextStatus;
-          widget.onToggle?.call();
+          widget.onToggle?.call(nextStatus);
         } else if (mounted) {
           setState(() => _followStatus = currentStatus);
         }
@@ -144,7 +144,7 @@ class _ChaseButtonState extends State<ToggleChaseButton> {
           if (nextStatus != 'requested') {
             _originalServerStatus = nextStatus;
           }
-          widget.onToggle?.call();
+          widget.onToggle?.call(nextStatus);
         }
 
         if (!success && mounted) {

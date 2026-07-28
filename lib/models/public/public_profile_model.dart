@@ -48,7 +48,7 @@ class ProfileData {
   final bool isPrivate;
   final bool isFriend;
   final String followStatus;
-  final int chatId;
+  final dynamic chatId;
 
   ProfileData({
     required this.id,
@@ -102,7 +102,7 @@ class ProfileData {
       isPrivate: json['is_private'] ?? false,
       isFriend: json['is_friend'] ?? false,
       followStatus: json['follow_status'] ?? '',
-      chatId: _toInt(json['chat_id']),
+      chatId: json['chat_id'],
     );
   }
 
@@ -159,7 +159,7 @@ class ProfileData {
     bool? isPrivate,
     bool? isFriend,
     String? followStatus,
-    int? chatId,
+    dynamic chatId,
   }) {
     return ProfileData(
       id: id ?? this.id,

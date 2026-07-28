@@ -134,6 +134,10 @@ class $AssetsImagesGen {
   AssetGenImage get icAppForeground =>
       const AssetGenImage('assets/images/ic_app_foreground.png');
 
+  /// File path: assets/images/ic_archive.png
+  AssetGenImage get icArchive =>
+      const AssetGenImage('assets/images/ic_archive.png');
+
   /// File path: assets/images/ic_assistant.png
   AssetGenImage get icAssistant =>
       const AssetGenImage('assets/images/ic_assistant.png');
@@ -191,6 +195,10 @@ class $AssetsImagesGen {
   AssetGenImage get icGoogle =>
       const AssetGenImage('assets/images/ic_google.png');
 
+  /// File path: assets/images/ic_group.png
+  AssetGenImage get icGroup =>
+      const AssetGenImage('assets/images/ic_group.png');
+
   /// File path: assets/images/ic_help_support.png
   AssetGenImage get icHelpSupport =>
       const AssetGenImage('assets/images/ic_help_support.png');
@@ -214,9 +222,16 @@ class $AssetsImagesGen {
   AssetGenImage get icMovie =>
       const AssetGenImage('assets/images/ic_movie.png');
 
+  /// File path: assets/images/ic_muted.png
+  AssetGenImage get icMuted =>
+      const AssetGenImage('assets/images/ic_muted.png');
+
   /// File path: assets/images/ic_notifications.png
   AssetGenImage get icNotifications =>
       const AssetGenImage('assets/images/ic_notifications.png');
+
+  /// File path: assets/images/ic_pin.png
+  AssetGenImage get icPin => const AssetGenImage('assets/images/ic_pin.png');
 
   /// File path: assets/images/ic_poll.png
   AssetGenImage get icPoll => const AssetGenImage('assets/images/ic_poll.png');
@@ -252,6 +267,10 @@ class $AssetsImagesGen {
   /// File path: assets/images/ic_travel.png
   AssetGenImage get icTravel =>
       const AssetGenImage('assets/images/ic_travel.png');
+
+  /// File path: assets/images/ic_unarchive.png
+  AssetGenImage get icUnarchive =>
+      const AssetGenImage('assets/images/ic_unarchive.png');
 
   /// File path: assets/images/ic_user.png
   AssetGenImage get icUser => const AssetGenImage('assets/images/ic_user.png');
@@ -404,6 +423,7 @@ class $AssetsImagesGen {
     icAgree,
     icAnonymous,
     icAppForeground,
+    icArchive,
     icAssistant,
     icAvatar,
     icAvatarSquare,
@@ -419,13 +439,16 @@ class $AssetsImagesGen {
     icFood,
     icGame,
     icGoogle,
+    icGroup,
     icHelpSupport,
     icHot,
     icImagePoll,
     icLanguage,
     icMessage,
     icMovie,
+    icMuted,
     icNotifications,
+    icPin,
     icPoll,
     icSecurity,
     icSplash,
@@ -435,6 +458,7 @@ class $AssetsImagesGen {
     icTextPoll,
     icThisThat,
     icTravel,
+    icUnarchive,
     icUser,
     icVote,
     iconBackground,

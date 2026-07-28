@@ -28,6 +28,8 @@ class ApiConstants {
   static String acceptRequest = "$baseUrl/friend_requests";
   static String createGroup = "$baseUrl/chats/group/create";
   static String chatList = "$baseUrl/chats";
+  static String pinUnpinChat = "$baseUrl/chat";
+  static String muteUnmuteChat = "$baseUrl/chat";
   static String renameGroup = "$baseUrl/chats/group";
   static String uploadGroupProfile = "$baseUrl/chats/group";
   static String removeMember = "$baseUrl/chats/group";

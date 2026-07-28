@@ -1567,9 +1567,7 @@ class NotificationState extends State<Notifications>
           if (type == 'NEW_MESSAGE' ||
               type == 'NEW_GROUP_ADDED' ||
               type == 'GROUP_ADMIN_PROMOTE') {
-            final chatIdInt = notification.meta?.chatId is int
-                ? notification.meta!.chatId as int
-                : int.tryParse(notification.meta?.chatId?.toString() ?? '');
+            final resolvedChatId = notification.meta?.chatId?.toString();
             if (notification.meta?.groupName != null &&
                 notification.meta!.groupName!.isNotEmpty) {
               Navigator.push(
@@ -1579,7 +1577,7 @@ class NotificationState extends State<Notifications>
                     create: (_) => GroupChatProvider(),
                     child: GroupChatScreen(
                       groupName: notification.meta!.groupName!,
-                      chatId: chatIdInt,
+                      chatId: resolvedChatId,
                     ),
                   ),
                 ),
@@ -1601,7 +1599,7 @@ class NotificationState extends State<Notifications>
                       username: notification.actor.username,
                       profileUrl: notification.actor.avatarUrl,
                       userId: resolvedUserId,
-                      chatId: chatIdInt,
+                      chatId: resolvedChatId,
                     ),
                   ),
                 ),
@@ -1893,11 +1891,7 @@ class NotificationState extends State<Notifications>
                     if (!notification.isRead) {
                       _markAsRead(notification);
                     }
-                    final chatIdInt = notification.meta?.chatId is int
-                        ? notification.meta!.chatId as int
-                        : int.tryParse(
-                            notification.meta?.chatId?.toString() ?? '',
-                          );
+                    final resolvedChatId = notification.meta?.chatId?.toString();
                     if (notification.meta?.groupName != null &&
                         notification.meta!.groupName!.isNotEmpty) {
                       Navigator.push(
@@ -1907,7 +1901,7 @@ class NotificationState extends State<Notifications>
                             create: (_) => GroupChatProvider(),
                             child: GroupChatScreen(
                               groupName: notification.meta!.groupName!,
-                              chatId: chatIdInt,
+                              chatId: resolvedChatId,
                             ),
                           ),
                         ),
@@ -1933,7 +1927,7 @@ class NotificationState extends State<Notifications>
                               username: notification.actor.username,
                               profileUrl: notification.actor.avatarUrl,
                               userId: resolvedUserId,
-                              chatId: chatIdInt,
+                              chatId: resolvedChatId,
                             ),
                           ),
                         ),

@@ -11,6 +11,8 @@ import '../../../../../core/constants/app_radius.dart';
 import '../../../../../core/themes/app_text_colors.dart';
 import '../../../../../core/themes/app_text_styles.dart';
 import '../../../../../api/api_config.dart';
+import '../../../../../api/api_service.dart';
+import '../../../../../api/services/share/share_service.dart';
 import '../../../../../gen/assets.gen.dart';
 import '../../../../../languages/l10n/generated/app_localizations.dart';
 import '../../../../../mixin/utility_mixins.dart';
@@ -25,13 +27,13 @@ import '../../../../../provider/group_chat_provider.dart';
 import '../../../../../provider/user_provider.dart';
 import '../../../../../widgets/base64/image_convert.dart';
 import '../../../../../widgets/button/back_button.dart';
+import '../../../../../widgets/show_toast.dart';
 import '../chat_details.dart';
+import '../../../../../widgets/card/shared_group_card.dart';
+import '../../../../../widgets/dialog/custom_diolog.dart';
+import '../../message_list.dart';
 
 class GroupChatScreen extends StatefulWidget {
-  final String? groupName;
-  final int? chatId;
-
-  final Map<String, dynamic>? chat;
   const GroupChatScreen({
     super.key,
     required this.groupName,
@@ -39,25 +41,42 @@ class GroupChatScreen extends StatefulWidget {
     required this.chatId,
   });
 
+  final Map<String, dynamic>? chat;
+  final dynamic chatId;
+  final String? groupName;
+
   @override
   State<GroupChatScreen> createState() => GroupChatScreenState();
 }
 
 class GroupChatScreenState extends State<GroupChatScreen>
     with UtilityMixin, WidgetsBindingObserver {
-  final TextEditingController _messageController = TextEditingController();
-  final ScrollController _scrollController = ScrollController();
-  late Stream<List<ChatMessage>> _messagesStream;
-
-  int _previousMessageCount = 0;
-  ChatMessage? _previousLastMessage;
-  bool _isAtBottom = true;
-  int _unreadCount = 0;
-
   String? _floatingDate;
   final Map<String, GlobalKey> _headerKeys = {};
+  bool _isAtBottom = true;
+  final TextEditingController _messageController = TextEditingController();
+  late Stream<List<ChatMessage>> _messagesStream;
+  ChatMessage? _previousLastMessage;
+  int _previousMessageCount = 0;
+  final ScrollController _scrollController = ScrollController();
+  int _unreadCount = 0;
 
-  GroupChatProvider get provider => context.read<GroupChatProvider>();
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    if (state == AppLifecycleState.resumed) {
+      context.read<GroupChatProvider>().reconnect();
+    }
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _messageController.dispose();
+    _scrollController.removeListener(_onScroll);
+    _scrollController.dispose();
+    super.dispose();
+  }
 
   @override
   void initState() {
@@ -90,9 +109,68 @@ class GroupChatScreenState extends State<GroupChatScreen>
     });
   }
 
+  GroupChatProvider get provider => context.read<GroupChatProvider>();
+
   Future<void> _loadMoreHistory() async {
     if (!provider.hasMoreHistory || provider.isLoadingHistory) return;
     await provider.fetchMoreHistory();
+  }
+
+  Future<void> _showClearChatConfirmationDialog() async {
+    showClearChatDiolog(context, () {
+      Navigator.pop(context);
+      _clearChatMessages();
+    });
+  }
+
+  Future<void> _showDeleteChatConfirmationDialog() async {
+    showDeleteChatDiolog(context, () {
+      Navigator.pop(context);
+      _deleteChat();
+    });
+  }
+
+  Future<void> _deleteChat() async {
+    final chatId = widget.chatId?.toString() ?? provider.chatId?.toString();
+    if (chatId == null || chatId.isEmpty) return;
+    try {
+      final response = await ApiService().deleteChat(chatId: chatId);
+      if (response['status'] == 'success' || response['success'] == true) {
+        MessageListState.removeChatLocally(chatId);
+        showToast(message: 'Chat deleted');
+        Navigator.pop(context);
+      } else {
+        showToast(
+          message: response['message']?.toString() ?? 'Failed to delete chat',
+        );
+      }
+    } catch (e) {
+      showToast(message: 'Failed to delete chat: $e');
+    }
+  }
+
+  Future<void> _clearChatMessages() async {
+    final chatId = widget.chatId?.toString() ?? provider.chatId?.toString();
+    if (chatId == null || chatId.isEmpty) {
+      showToast(message: 'Cannot clear a new chat');
+      return;
+    }
+
+    try {
+      showToast(message: 'Clearing chat...');
+      final response = await ApiService().clearChat(chatId: chatId);
+      if (response['status'] == 'success' || response['success'] == true) {
+        provider.clearLocalMessages();
+        MessageListState.clearChatLocally(chatId);
+        showToast(message: 'Chat cleared');
+      } else {
+        showToast(
+          message: response['message']?.toString() ?? 'Failed to clear chat',
+        );
+      }
+    } catch (e) {
+      showToast(message: 'Failed to clear chat: $e');
+    }
   }
 
   void _onScroll() {
@@ -188,27 +266,12 @@ class GroupChatScreenState extends State<GroupChatScreen>
     }
   }
 
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    super.didChangeAppLifecycleState(state);
-    if (state == AppLifecycleState.resumed) {
-      context.read<GroupChatProvider>().reconnect();
-    }
-  }
-
-  @override
-  void dispose() {
-    WidgetsBinding.instance.removeObserver(this);
-    _messageController.dispose();
-    _scrollController.removeListener(_onScroll);
-    _scrollController.dispose();
-    super.dispose();
-  }
-
   String? get _avatarUrl {
     final chatData = widget.chat ?? provider.chat;
     final profileUrl = chatData?['profile_url']?.toString();
-    if (profileUrl != null && profileUrl.trim().isNotEmpty && profileUrl != 'null') {
+    if (profileUrl != null &&
+        profileUrl.trim().isNotEmpty &&
+        profileUrl != 'null') {
       return profileUrl;
     }
     return null;
@@ -661,6 +724,16 @@ class GroupChatScreenState extends State<GroupChatScreen>
     );
   }
 
+
+
+  Widget _buildSharedGroupCard(BuildContext context, ChatMessage message) {
+    return SharedGroupCard(
+      groupData: message.sharedGroup!,
+      isSentByMe: message.isSentByMe,
+      currentChatId: widget.chatId?.toString(),
+    );
+  }
+
   Widget _buildTextPoll(
     BuildContext context,
     String question,
@@ -997,6 +1070,19 @@ class GroupChatScreenState extends State<GroupChatScreen>
                 ],
               ),
             )
+          else if (message.sharedGroup != null)
+            Expanded(
+              child: Column(
+                crossAxisAlignment: message.isSentByMe
+                    ? CrossAxisAlignment.end
+                    : CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _buildSharedGroupCard(context, message),
+                  if (message.text.isNotEmpty) bubble,
+                ],
+              ),
+            )
           else
             bubble,
           if (message.isSentByMe) SizedBox(width: 12.w),
@@ -1269,6 +1355,72 @@ class GroupChatScreenState extends State<GroupChatScreen>
                     ],
                   ),
                 ),
+              ),
+              PopupMenuButton<String>(
+                icon: Icon(
+                  FeatherIcons.moreVertical,
+                  size: 22,
+                  color: Theme.of(context).colorScheme.onBackground,
+                ),
+                color: Theme.of(context).colorScheme.tertiaryContainer,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                offset: const Offset(0, 45),
+                elevation: 2,
+                padding: EdgeInsets.zero,
+                onSelected: (value) {
+                  if (value == 'share') {
+                    _shareGroup();
+                  } else if (value == 'clear_chat') {
+                    _showClearChatConfirmationDialog();
+                  } else if (value == 'delete_chat') {
+                    _showDeleteChatConfirmationDialog();
+                  }
+                },
+                itemBuilder: (BuildContext context) {
+                  return [
+                    PopupMenuItem<String>(
+                      padding: const EdgeInsets.fromLTRB(10, 0, 10, 0),
+                      height: 38,
+                      value: 'share',
+                      child: Text(
+                       AppLocalizations.of(context)!.share,
+                        style: AppTextStyles.bodyText.copyWith(
+                          color: txt.title,
+                          fontWeight: FontWeight.w500,
+                          fontSize: 13.5,
+                        ),
+                      ),
+                    ),
+                    PopupMenuItem<String>(
+                      padding: const EdgeInsets.fromLTRB(10, 0, 10, 0),
+                      height: 38,
+                      value: 'clear_chat',
+                      child: Text(
+                        AppLocalizations.of(context)!.clearchat,
+                        style: AppTextStyles.bodyText.copyWith(
+                          color: txt.title,
+                          fontWeight: FontWeight.w500,
+                          fontSize: 13.5,
+                        ),
+                      ),
+                    ),
+                    PopupMenuItem<String>(
+                      padding: const EdgeInsets.fromLTRB(10, 0, 10, 0),
+                      height: 38,
+                      value: 'delete_chat',
+                      child: Text(
+                        AppLocalizations.of(context)!.deletechat,
+                        style: AppTextStyles.bodyText.copyWith(
+                          color: Theme.of(context).colorScheme.error,
+                          fontWeight: FontWeight.w500,
+                          fontSize: 13.5,
+                        ),
+                      ),
+                    ),
+                  ];
+                },
               ),
             ],
           ),
@@ -1600,5 +1752,27 @@ class GroupChatScreenState extends State<GroupChatScreen>
         ),
       ),
     );
+  }
+
+  void _shareGroup() {
+    final provider = context.read<GroupChatProvider>();
+    final chatMap = provider.chat ?? widget.chat;
+    final slug = chatMap?['slug']?.toString();
+    final groupId = (chatMap?['id'] ?? widget.chatId)?.toString() ?? '';
+
+    if (slug != null && slug.isNotEmpty) {
+      ShareService.shareGroup(
+        slug: slug,
+        groupId: groupId,
+        context: context,
+        groupName:
+            widget.groupName ??
+            chatMap?['title'] ??
+            chatMap?['display_name'] ??
+            '',
+      );
+    } else {
+      showToast(message: 'Group share link unavailable');
+    }
   }
 }

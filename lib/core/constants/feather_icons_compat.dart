@@ -24,6 +24,7 @@ class FeatherIcons {
   static const IconData userPlus = Icons.person_add_outlined;
   static const IconData smile = Icons.sentiment_satisfied_alt;
   static const IconData share = Icons.share_outlined;
+  static const IconData upload = Icons.upload_outlined;
 }
 
 /// Compatibility layer for FontAwesomeIcons mapping them to standard, high-performance,

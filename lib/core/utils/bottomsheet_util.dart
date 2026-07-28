@@ -2,11 +2,20 @@ import 'package:flutter/material.dart';
 import '../../widgets/bottomsheets/add_members/add_member_bottom_sheet.dart';
 import '../../widgets/bottomsheets/comment/comments_bottom_sheet.dart';
 import '../../widgets/bottomsheets/like/liked_users_bottom_sheet.dart';
+import '../../widgets/bottomsheets/message/new_chat_bottom_sheet.dart';
 import '../../widgets/bottomsheets/share/share_bottom_sheet.dart';
 import '../../widgets/bottomsheets/voters/poll_voters_bottomsheet.dart';
 import '../../widgets/poll/new_poll_bottomsheet.dart';
 
 class BottomSheetUtils {
+  static void showNewChatBottomSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => const NewChatBottomSheet(),
+    );
+  }
 
 
  static void showNewPollBottomSheet(BuildContext context) {
@@ -85,6 +94,8 @@ class BottomSheetUtils {
     required String shareLink,
     required String username,
     String postId = '',
+    String profileId = '',
+    String groupId = '',
     Function(int)? onShareSuccess,
   }) {
     showModalBottomSheet(
@@ -95,6 +106,8 @@ class BottomSheetUtils {
         shareLink: shareLink,
         username: username,
         postId: postId,
+        profileId: profileId,
+        groupId: groupId,
         onShareSuccess: onShareSuccess,
       ),
     );

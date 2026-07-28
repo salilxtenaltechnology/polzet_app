@@ -511,7 +511,7 @@ class _PublicChaseListState extends State<PublicChaseList>
                 followStatus: followStatus,
                 apiService: apiService,
                 isPrivate: isPrivate,
-                onToggle: () {
+                onToggle: (_) {
                   userProvider.loadUserDataSilently();
                   _fetchChasePage(1, isRefresh: true);
                   _fetchRechasePage(1, isRefresh: true);

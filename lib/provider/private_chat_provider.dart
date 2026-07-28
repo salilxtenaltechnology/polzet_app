@@ -13,11 +13,11 @@ import '../api/api_service.dart';
 class PrivateChatProvider extends ChangeNotifier {
   String? _memberName;
   String? _profileUrl;
-  int? _chatId;
+  dynamic _chatId;
 
   String? get memberName => _memberName;
   String? get profileUrl => _profileUrl;
-  int? get chatId => _chatId;
+  dynamic get chatId => _chatId;
 
   bool isMemberTyping = false;
   dynamic _memberUserId;
@@ -163,15 +163,19 @@ class PrivateChatProvider extends ChangeNotifier {
   Future<void> init({
     required String? memberName,
     required String? profileUrl,
-    int? chatId,
+    dynamic chatId,
     String? currentUsername,
   }) async {
-    final int? normalizedChatId = chatId == 0 ? null : chatId;
+    final dynamic normalizedChatId = (chatId == 0 || chatId == '0') ? null : chatId;
     final bool isNewChat = _chatId != normalizedChatId; // ← detect chat switch
 
     _memberName = memberName;
     _profileUrl = profileUrl;
     _chatId = normalizedChatId;
+
+    if (_chatId != null) {
+      ApiService().markChatReadUnread(chatId: _chatId.toString(), isUnread: false);
+    }
 
     if (currentUsername != null && currentUsername.isNotEmpty) {
       _currentUsername = currentUsername;
@@ -239,6 +243,7 @@ class PrivateChatProvider extends ChangeNotifier {
                   : false,
               sharedPost: item.sharedPost,
               sharedProfile: item.sharedProfile,
+              sharedGroup: item.sharedGroup,
             ),
           )
           .toList()
@@ -297,6 +302,7 @@ class PrivateChatProvider extends ChangeNotifier {
                   : false,
               sharedPost: item.sharedPost,
               sharedProfile: item.sharedProfile,
+              sharedGroup: item.sharedGroup,
             ),
           )
           .toList();
@@ -343,6 +349,7 @@ class PrivateChatProvider extends ChangeNotifier {
               isSentByMe: item.isSentBy(_currentUsername),
               sharedPost: item.sharedPost,
               sharedProfile: item.sharedProfile,
+              sharedGroup: item.sharedGroup,
             ),
           )
           .toList();
@@ -614,6 +621,7 @@ class PrivateChatProvider extends ChangeNotifier {
               isPending: false,
               sharedPost: msgMap['shared_post'] as Map<String, dynamic>?,
               sharedProfile: msgMap['shared_profile'] as Map<String, dynamic>?,
+              sharedGroup: msgMap['shared_group'] as Map<String, dynamic>?,
             );
             _saveCachedMessages();
             _emitMessages();
@@ -630,6 +638,7 @@ class PrivateChatProvider extends ChangeNotifier {
             isPending: false,
             sharedPost: msgMap['shared_post'] as Map<String, dynamic>?,
             sharedProfile: msgMap['shared_profile'] as Map<String, dynamic>?,
+            sharedGroup: msgMap['shared_group'] as Map<String, dynamic>?,
           ),
         );
         _saveCachedMessages();
@@ -670,6 +679,9 @@ class PrivateChatProvider extends ChangeNotifier {
       _presenceChannel!.sink.add(jsonEncode({'action': 'mark_read'}));
     } else if (_messageChannel != null && _isMessageConnected) {
       _messageChannel!.sink.add(jsonEncode({'action': 'mark_read'}));
+    }
+    if (_chatId != null) {
+      ApiService().markChatReadUnread(chatId: _chatId.toString(), isUnread: false);
     }
   }
 
@@ -881,6 +893,13 @@ class PrivateChatProvider extends ChangeNotifier {
     _typingTimer?.cancel();
     _pollingTimer?.cancel();
 
+    notifyListeners();
+  }
+
+  void clearLocalMessages() {
+    _messages.clear();
+    _saveCachedMessages();
+    _emitMessages();
     notifyListeners();
   }
 

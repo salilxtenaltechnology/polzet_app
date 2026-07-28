@@ -1950,6 +1950,13 @@ class AppLocalizationsAr extends AppLocalizations {
   String get nomessagesyet => 'لا توجد رسائل بعد';
 
   @override
+  String get nofavoritechatyet => 'لا توجد محادثات مفضلة بعد';
+
+  @override
+  String get chatsyoufavoritewillappearhere =>
+      'المحادثات التي تفضلها ستظهر هنا.';
+
+  @override
   String get nonotificationsyet => 'لا توجد إشعارات بعد';
 
   @override
@@ -2045,4 +2052,249 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get nopostsavailable => 'لا توجد منشورات متاحة';
+
+  @override
+  String get searchsettingsfeatures => 'البحث في الإعدادات والميزات...';
+
+  @override
+  String get choosehowyouwanttoaskyourquestion => 'اختر كيف تريد طرح سؤالك';
+
+  @override
+  String get textpoll => 'استطلاع نصي';
+
+  @override
+  String get asksimplequestionswithtextchoices =>
+      'اطرح أسئلة بسيطة بخيارات نصية';
+
+  @override
+  String get imagepoll => 'استطلاع بالصور';
+
+  @override
+  String get comparephotosandvisualchoices => 'قارن الصور والخيارات المرئية';
+
+  @override
+  String get battlepoll => 'استطلاع المواجهة';
+
+  @override
+  String get comparerivalsandcrownawinner => 'قارن بين المتنافسين وتوّج الفائز';
+
+  @override
+  String get thisorthat => 'هذا أم ذاك';
+
+  @override
+  String get pickbetweentwoquickchoices => 'اختر بين خيارين سريعين';
+
+  @override
+  String get hottakespoll => 'استطلاع الآراء الجريئة';
+
+  @override
+  String get shareahottake => 'شارك رأياً جريئاً';
+
+  @override
+  String get postboldopinionssparkdebatesandhearbothsides =>
+      'انشر آراءً جريئة، أشعل النقاشات، واستمع لوجهتي النظر';
+
+  @override
+  String get yourhottake => 'رأيك الجريء';
+
+  @override
+  String get shareopinionsandstartdebates => 'شارك آراءك وابدأ النقاشات';
+
+  @override
+  String get anonymouspoll => 'استطلاع مجهول';
+
+  @override
+  String get gethonestopinionsprivately => 'احصل على آراء صادقة بشكل خاص';
+
+  @override
+  String get descriptionhashtagsoptional => 'الوصف والوسوم (اختياري)';
+
+  @override
+  String get typedescriptionorhashtags => 'اكتب الوصف أو الوسوم';
+
+  @override
+  String get generatequestion => 'إنشاء سؤال';
+
+  @override
+  String get regeneratequestion => 'إعادة إنشاء السؤال';
+
+  @override
+  String get generating => 'جارٍ الإنشاء...';
+
+  @override
+  String get generateoptions => 'إنشاء الخيارات';
+
+  @override
+  String get regenerateoptions => 'إعادة إنشاء الخيارات';
+
+  @override
+  String get votingmode => 'وضع التصويت';
+
+  @override
+  String get singlechoice => 'اختيار واحد';
+
+  @override
+  String get voterspickoneoption => 'يختار المصوّتون خياراً واحداً';
+
+  @override
+  String get multiplechoice => 'اختيار متعدد';
+
+  @override
+  String get votersrankalloptions => 'يرتب المصوّتون جميع الخيارات';
+
+  @override
+  String get pleaseenteratopic => 'الرجاء إدخال موضوع';
+
+  @override
+  String get addlabel => 'إضافة تسمية';
+
+  @override
+  String get putcompetitorsheadtoheadandseewhichsidewins =>
+      'ضع المتنافسين وجهاً لوجه وشاهد من يفوز';
+
+  @override
+  String get startbattel => 'بدء المواجهة';
+
+  @override
+  String get competitors => 'المتنافسون';
+
+  @override
+  String get comparetwochoicesanddiscoverwhatpeopleprefer =>
+      'قارن بين خيارين واكتشف ما يفضله الناس';
+
+  @override
+  String get askquickly => 'اسأل بسرعة';
+
+  @override
+  String get optional => 'اختياري';
+
+  @override
+  String get reactions => 'التفاعلات';
+
+  @override
+  String get camera => 'الكاميرا';
+
+  @override
+  String get gallery => 'المعرض';
+
+  @override
+  String get askanonymously => 'اسأل بشكل مجهول';
+
+  @override
+  String get sharequestionsprivatelyandgethonestopinionsfrompeople =>
+      'شارك الأسئلة بشكل خاص واحصل على آراء صادقة من الناس';
+
+  @override
+  String get yourvoterswillbehiddenonthispoll =>
+      'سيتم إخفاء المصوّتين في هذا الاستطلاع';
+
+  @override
+  String get pin => 'تثبيت';
+
+  @override
+  String get unpin => 'إلغاء التثبيت';
+
+  @override
+  String get mute => 'كتم';
+
+  @override
+  String get unmute => 'إلغاء الكتم';
+
+  @override
+  String get removefromfavorites => 'إزالة من المفضلة';
+
+  @override
+  String get favorites => 'المفضلة';
+
+  @override
+  String get unread => 'غير مقروء';
+
+  @override
+  String get archivedchats => 'المحادثات المؤرشفة';
+
+  @override
+  String get archive => 'أرشفة';
+
+  @override
+  String get unarchive => 'إلغاء الأرشفة';
+
+  @override
+  String get deletechat => 'حذف المحادثة';
+
+  @override
+  String get areyousureyouwanttodeletethischatthisactioncannotbeundone =>
+      'هل أنت متأكد من حذف هذه المحادثة؟ لا يمكن التراجع عن هذا الإجراء.';
+
+  @override
+  String get clearchat => 'مسح المحادثة';
+
+  @override
+  String
+  get areyousureyouwanttoclearallmessagesinthischatthisactioncannotbeundone =>
+      'هل أنت متأكد من مسح جميع الرسائل في هذه المحادثة؟ لا يمكن التراجع عن هذا الإجراء';
+
+  @override
+  String get share => 'مشاركة';
+
+  @override
+  String get joinrequests => 'طلبات الانضمام';
+
+  @override
+  String get nopendingjoinrequests => 'لا توجد طلبات انضمام معلقة';
+
+  @override
+  String get newchat => 'محادثة جديدة';
+
+  @override
+  String get addtwosimilarimagesegoutfitsplacesfood =>
+      'أضف صورتين متشابهتين (مثل الملابس والأماكن والطعام)';
+
+  @override
+  String get addtwoorfoursimilarimagesegoutfitsplacesfood =>
+      'أضف من 2 إلى 4 صور متشابهة (مثل الملابس والأماكن والطعام)';
+
+  @override
+  String get startabattle => 'ابدأ مواجهة';
+
+  @override
+  String get createthisorthat => 'إنشاء \"هذا أم ذاك\"';
+
+  @override
+  String get pleaseenteraquestionortopic => 'الرجاء إدخال سؤال أو موضوع';
+
+  @override
+  String get pleaseselecttwoimages => 'الرجاء اختيار صورتين';
+
+  @override
+  String get markasread => 'وضع علامة مقروء';
+
+  @override
+  String get markasunread => 'وضع علامة غير مقروء';
+
+  @override
+  String get archivedgroups => 'المجموعات المؤرشفة';
+
+  @override
+  String get noarchivedchatsyet => 'لا توجد محادثات مؤرشفة بعد';
+
+  @override
+  String get public => 'عام';
+
+  @override
+  String get anyonecanfindjoinandviewmessages =>
+      'يمكن لأي شخص العثور عليها والانضمام إليها وعرض الرسائل.';
+
+  @override
+  String get private => 'خاص';
+
+  @override
+  String get onlyapprovedmemberscanjoinandview =>
+      'يمكن للأعضاء المعتمدين فقط الانضمام والعرض.';
+
+  @override
+  String get inviteonly => 'بدعوة فقط';
+
+  @override
+  String get hiddenfromsearchjoinbyinvitelink =>
+      'مخفي عن البحث. انضم عبر رابط الدعوة.';
 }
