@@ -48,28 +48,37 @@ class _CreateGroupState extends State<CreateGroup> with UtilityMixin {
   String _selectedCategory = 'General';
   String _selectedPrivacy = 'Public';
 
-  final List<Map<String, dynamic>> _categories = const [
+  final List<Map<String, dynamic>> _categories = [
     {'name': 'General', 'icon': Icons.people_outline},
     {'name': 'Gaming', 'icon': Icons.sports_esports_outlined},
     {'name': 'Education', 'icon': Icons.menu_book_outlined},
     {'name': 'Explore', 'icon': Icons.explore_outlined},
   ];
 
-  final List<Map<String, dynamic>> _privacyOptions = const [
+  List<Map<String, dynamic>> get _privacyOptions => [
     {
-      'title': 'Public',
+      'value': 'Public',
+      'title': AppLocalizations.of(context)!.public,
       'icon': Icons.language_outlined,
-      'subtitle': 'Anyone can find, join, and view messages.',
+      'subtitle': AppLocalizations.of(
+        context,
+      )!.anyonecanfindjoinandviewmessages,
     },
     {
-      'title': 'Private',
+      'value': 'Private',
+      'title': AppLocalizations.of(context)!.private,
       'icon': Icons.lock_outline,
-      'subtitle': 'Only approved members can join and view.',
+      'subtitle': AppLocalizations.of(
+        context,
+      )!.onlyapprovedmemberscanjoinandview,
     },
     {
-      'title': 'Invite Only',
+      'value': 'Invite Only',
+      'title': AppLocalizations.of(context)!.inviteonly,
       'icon': Icons.mail_outline,
-      'subtitle': 'Hidden from search. Join by invite link.',
+      'subtitle': AppLocalizations.of(
+        context,
+      )!.hiddenfromsearchjoinbyinvitelink,
     },
   ];
 
@@ -386,7 +395,7 @@ class _CreateGroupState extends State<CreateGroup> with UtilityMixin {
             ),
             SizedBox(height: 18.h),
             Text(
-              'Privacy',
+              AppLocalizations.of(context)!.privacygroup,
               style: TextStyle(
                 color: Theme.of(context).colorScheme.onBackground,
                 fontSize: 11.sp,
@@ -397,17 +406,17 @@ class _CreateGroupState extends State<CreateGroup> with UtilityMixin {
             Row(
               children: List.generate(_privacyOptions.length, (index) {
                 final opt = _privacyOptions[index];
-                final isSelected = _selectedPrivacy == opt['title'];
+                final isSelected = _selectedPrivacy == opt['value'];
                 final isLast = index == _privacyOptions.length - 1;
                 return Expanded(
                   child: GestureDetector(
                     onTap: () {
                       setState(() {
-                        _selectedPrivacy = opt['title'] as String;
+                        _selectedPrivacy = opt['value'] as String;
                       });
                     },
                     child: AnimatedContainer(
-                      height: 130.h,
+                      height: 150.h,
                       duration: const Duration(milliseconds: 200),
                       margin: EdgeInsets.only(right: isLast ? 0 : 8.w),
                       padding: const EdgeInsets.all(10),

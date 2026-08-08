@@ -60,7 +60,7 @@ class _UserImageRankState extends State<UserImageRanking> {
       } catch (_) {}
     }
 
-    _orderedImages = (widget.poll.options ?? [])
+    _orderedImages = (widget.poll.options)
         .where((o) => o.image != null)
         .toList();
   }
@@ -249,8 +249,13 @@ class _UserImageRankState extends State<UserImageRanking> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      '${widget.firstName ?? ''} ${widget.lastName ?? ''}'
-                          .trim(),
+                      () {
+                        final fn = widget.firstName?.trim() ?? '';
+                        final ln = widget.lastName?.trim() ?? '';
+                        final fullName = '$fn $ln'.trim();
+                        if (fullName.isNotEmpty) return fullName;
+                        return username.isNotEmpty ? username : 'Polzet User';
+                      }(),
                       style: AppTextStyles.sectionHeading.copyWith(
                         color: txt.title,
                         fontSize: 14,

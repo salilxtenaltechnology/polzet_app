@@ -47,6 +47,12 @@ class ApiConfig {
     return 'https://$domain';
   }
 
+  static String get wsBaseUrl {
+    const wsProtocol = useHttps ? 'wss' : 'ws';
+    final domain = domainUrl;
+    return '$wsProtocol://$domain';
+  }
+
   static String get deepLinkHost {
     if (domainUrl.contains('testbackend.polzet.in')) {
       return 'testfrontend.polzet.in';

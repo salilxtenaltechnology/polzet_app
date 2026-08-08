@@ -46,7 +46,7 @@ class NotificationService {
   static const int _maxReconnectAttempts = 5;
   static const Duration _initialReconnectDelay = Duration(seconds: 2);
 
-  final Set<String> _processedNotificationIds = {};
+  static final Set<String> _processedNotificationIds = {};
   Timer? _cleanupTimer;
 
   Function(NotificationPayload)? _onFCMMessageTap;
@@ -135,8 +135,13 @@ class NotificationService {
     }
   }
 
-  bool get _isAppInForeground =>
-      _appLifecycleState == AppLifecycleState.resumed;
+  bool get _isAppInForeground {
+    final state = WidgetsBinding.instance.lifecycleState;
+    if (state != null) {
+      return state == AppLifecycleState.resumed;
+    }
+    return _appLifecycleState == AppLifecycleState.resumed;
+  }
 
   Future<void> initialize() async {
     if (_isInitialized) {
@@ -159,6 +164,8 @@ class NotificationService {
     try {
       final accessToken = await SharedPrefService.getToken();
       if (accessToken != null && accessToken.isNotEmpty) {
+        debugPrint("🔄 Syncing token & connecting Notification WebSocket...");
+        connectToWebSocket(accessToken);
         String? token = await _fcm.getToken();
         if (token != null) {
           debugPrint("🔄 Syncing FCM Token with backend...");
@@ -167,7 +174,7 @@ class NotificationService {
         }
       }
     } catch (e) {
-      debugPrint("❌ Error syncing FCM token: $e");
+      debugPrint("❌ Error syncing FCM token / connecting WS: $e");
     }
   }
 
@@ -189,12 +196,116 @@ class NotificationService {
     return data;
   }
 
+  static String _resolveNotificationType(
+    Map<String, dynamic> data,
+    String rawType, {
+    String? body,
+    String? title,
+  }) {
+    final notificationData = _getParsedNotificationData(data);
+    String type = rawType.trim().toUpperCase();
+
+    if (type == 'GENERAL' || type.isEmpty) {
+      final possibleType =
+          (notificationData['type'] ??
+                  notificationData['notification_type'] ??
+                  notificationData['event_type'] ??
+                  notificationData['action_type'] ??
+                  data['type'] ??
+                  data['notification_type'] ??
+                  data['event_type'] ??
+                  data['action_type'])
+              ?.toString()
+              .trim()
+              .toUpperCase();
+      if (possibleType != null &&
+          possibleType.isNotEmpty &&
+          possibleType != 'GENERAL') {
+        type = possibleType;
+      }
+    }
+
+    if (type == 'POLL' ||
+        type == 'NEW_POLL' ||
+        type == 'POST' ||
+        type == 'CREATE_POST' ||
+        type == 'POLL_CREATED' ||
+        type == 'ADD_POST') {
+      type = 'NEW_POST';
+    } else if (type == 'MESSAGE' || type == 'CHAT' || type == 'NEW_CHAT') {
+      type = 'NEW_MESSAGE';
+    } else if (type == 'CHASE' ||
+        type == 'NEW_FOLLOWER' ||
+        type == 'FOLLOW_USER') {
+      type = 'FOLLOW';
+    } else if (type == 'CHASE_REQUEST' || type == 'FRIEND_REQ') {
+      type = 'FRIEND_REQUEST';
+    } else if (type == 'GROUP_ADD' || type == 'ADD_GROUP') {
+      type = 'NEW_GROUP_ADDED';
+    }
+
+    if (type == 'GENERAL' || type.isEmpty) {
+      final fullText = '${title ?? ''} ${body ?? ''}'.toLowerCase();
+      final hasPostId =
+          (notificationData['post_id'] ?? data['post_id']) != null;
+      final hasChatId =
+          (notificationData['chat_id'] ?? data['chat_id']) != null;
+
+      if (fullText.contains('added new poll') ||
+          fullText.contains('created a poll') ||
+          fullText.contains('new poll')) {
+        type = 'NEW_POST';
+      } else if (fullText.contains('voted on')) {
+        type = 'VOTE';
+      } else if (fullText.contains('liked')) {
+        type = 'LIKE';
+      } else if (fullText.contains('commented')) {
+        type = 'COMMENT';
+      } else if (fullText.contains('started chasing') ||
+          fullText.contains('started following')) {
+        type = 'FOLLOW';
+      } else if (fullText.contains('chase request') ||
+          fullText.contains('friend request')) {
+        type = 'FRIEND_REQUEST';
+      } else if (fullText.contains('added you to the group') ||
+          fullText.contains('added you to group')) {
+        type = 'NEW_GROUP_ADDED';
+      } else if (fullText.contains('promoted you')) {
+        type = 'GROUP_ADMIN_PROMOTE';
+      } else if (fullText.contains('requested to join')) {
+        type = 'GROUP_JOIN_REQUEST';
+      } else if (fullText.contains('message') || hasChatId) {
+        type = 'NEW_MESSAGE';
+      } else if (hasPostId) {
+        type = 'NEW_POST';
+      }
+    }
+
+    return type;
+  }
+
   static List<AndroidNotificationAction>? _getAndroidActions(
     Map<String, dynamic> data,
-    String type,
-  ) {
-    final String upperType = type.trim().toUpperCase();
-    if (upperType == 'NEW_POST') {
+    String type, {
+    String? body,
+    String? title,
+  }) {
+    final String resolvedType = _resolveNotificationType(
+      data,
+      type,
+      body: body,
+      title: title,
+    );
+
+    if (resolvedType == 'AI_NEW_POST') {
+      return <AndroidNotificationAction>[
+        const AndroidNotificationAction(
+          'create_poll_action',
+          'Create Poll',
+          showsUserInterface: true,
+        ),
+      ];
+    } else if (resolvedType == 'NEW_POST' || resolvedType == 'VOTE') {
       final notificationData = _getParsedNotificationData(data);
       final rawPollType = (notificationData['poll_type'] ?? data['poll_type'])
           ?.toString()
@@ -202,15 +313,7 @@ class NotificationService {
 
       String secondActionText = 'Vote Now';
       String secondActionId = 'vote_now_action';
-      if (rawPollType != null) {
-        if (rawPollType.startsWith('battle')) {
-          secondActionText = 'Pick a Side';
-          secondActionId = 'pick_side_action';
-        } else if (rawPollType.startsWith('anonymous')) {
-          secondActionText = 'Vote Privately';
-          secondActionId = 'vote_privately_action';
-        }
-      }
+     
 
       return <AndroidNotificationAction>[
         const AndroidNotificationAction(
@@ -218,18 +321,30 @@ class NotificationService {
           'View Poll',
           showsUserInterface: true,
         ),
-        AndroidNotificationAction(
-          secondActionId,
-          secondActionText,
-          showsUserInterface: true,
-        ),
+      ];
+    } else if (resolvedType == 'LIKE' || resolvedType == 'LIKE_GROUP') {
+      return <AndroidNotificationAction>[
         const AndroidNotificationAction(
-          'like_action',
-          'Like',
+          'view_post_action',
+          'View Poll',
           showsUserInterface: true,
         ),
       ];
-    } else if (upperType == 'NEW_MESSAGE') {
+    } else if (resolvedType == 'COMMENT' || resolvedType == 'COMMENT_GROUP') {
+      return <AndroidNotificationAction>[
+        const AndroidNotificationAction(
+          'view_post_action',
+          'View Poll',
+          showsUserInterface: true,
+        ),
+        const AndroidNotificationAction(
+          'reply_action',
+          'Reply',
+          inputs: [AndroidNotificationActionInput(label: 'Type your reply...')],
+          showsUserInterface: true,
+        ),
+      ];
+    } else if (resolvedType == 'NEW_MESSAGE') {
       return <AndroidNotificationAction>[
         const AndroidNotificationAction(
           'reply_action',
@@ -243,23 +358,54 @@ class NotificationService {
           showsUserInterface: true,
         ),
       ];
-    } else if (upperType == 'NEW_GROUP_ADDED') {
+    } else if (resolvedType == 'NEW_GROUP_ADDED') {
       return <AndroidNotificationAction>[
         const AndroidNotificationAction(
           'message_action',
           'Message',
           showsUserInterface: true,
         ),
+        const AndroidNotificationAction(
+          'view_group_action',
+          'View Group',
+          showsUserInterface: true,
+        ),
       ];
-    } else if (upperType == 'FOLLOW') {
+    } else if (resolvedType == 'GROUP_ADMIN_PROMOTE') {
+      return <AndroidNotificationAction>[
+        const AndroidNotificationAction(
+          'view_group_action',
+          'View Group',
+          showsUserInterface: true,
+        ),
+      ];
+    } else if (resolvedType == 'GROUP_JOIN_REQUEST') {
+      return <AndroidNotificationAction>[
+        const AndroidNotificationAction(
+          'accept_request_action',
+          'Accept',
+          showsUserInterface: true,
+        ),
+        const AndroidNotificationAction(
+          'reject_request_action',
+          'Reject',
+          showsUserInterface: true,
+        ),
+      ];
+    } else if (resolvedType == 'FOLLOW' || resolvedType == 'FOLLOW_GROUP') {
       return <AndroidNotificationAction>[
         const AndroidNotificationAction(
           'view_profile_action',
           'View Profile',
           showsUserInterface: true,
         ),
+        const AndroidNotificationAction(
+          'follow_back_action',
+          'Follow Back',
+          showsUserInterface: true,
+        ),
       ];
-    } else if (upperType == 'FRIEND_REQUEST') {
+    } else if (resolvedType == 'FRIEND_REQUEST') {
       return <AndroidNotificationAction>[
         const AndroidNotificationAction(
           'accept_request_action',
@@ -278,23 +424,68 @@ class NotificationService {
         ),
       ];
     }
+
+    final notificationData = _getParsedNotificationData(data);
+    final hasPostId = (notificationData['post_id'] ?? data['post_id']) != null;
+    final hasSenderId =
+        (notificationData['sender_id'] ??
+            data['sender_id'] ??
+            data['user_id']) !=
+        null;
+
+    if (hasPostId) {
+      return <AndroidNotificationAction>[
+        const AndroidNotificationAction(
+          'view_post_action',
+          'View Poll',
+          showsUserInterface: true,
+        ),
+        const AndroidNotificationAction(
+          'like_action',
+          'Like',
+          showsUserInterface: true,
+        ),
+      ];
+    } else if (hasSenderId) {
+      return <AndroidNotificationAction>[
+        const AndroidNotificationAction(
+          'view_profile_action',
+          'View Profile',
+          showsUserInterface: true,
+        ),
+      ];
+    }
+
     return null;
   }
 
   static String? _getIosCategoryIdentifier(
     Map<String, dynamic> data,
-    String type,
-  ) {
-    final String upperType = type.trim().toUpperCase();
-    if (upperType == 'NEW_MESSAGE') {
+    String type, {
+    String? body,
+    String? title,
+  }) {
+    final String resolvedType = _resolveNotificationType(
+      data,
+      type,
+      body: body,
+      title: title,
+    );
+
+    if (resolvedType == 'AI_NEW_POST') {
+      return 'AI_NEW_POST_CATEGORY';
+    } else if (resolvedType == 'NEW_MESSAGE') {
       return 'NEW_MESSAGE_CATEGORY';
-    } else if (upperType == 'NEW_GROUP_ADDED') {
+    } else if (resolvedType == 'NEW_GROUP_ADDED') {
       return 'NEW_GROUP_ADDED_CATEGORY';
-    } else if (upperType == 'FOLLOW') {
+    } else if (resolvedType == 'FOLLOW') {
       return 'FOLLOW_CATEGORY';
-    } else if (upperType == 'FRIEND_REQUEST') {
+    } else if (resolvedType == 'FRIEND_REQUEST') {
       return 'FRIEND_REQUEST_CATEGORY';
-    } else if (upperType == 'NEW_POST') {
+    } else if (resolvedType == 'NEW_POST' ||
+        resolvedType == 'VOTE' ||
+        resolvedType == 'LIKE' ||
+        resolvedType == 'COMMENT') {
       final notificationData = _getParsedNotificationData(data);
       final rawPollType = (notificationData['poll_type'] ?? data['poll_type'])
           ?.toString()
@@ -481,13 +672,6 @@ class NotificationService {
     debugPrint('   Data: ${message.data}');
     await _printFcmPayload(message);
 
-    if (message.notification != null) {
-      debugPrint(
-        '🌙 Background message has notification payload - OS handles it. Skipping local display to prevent duplicates.',
-      );
-      return;
-    }
-
     // 1. Initialize FlutterLocalNotificationsPlugin (fresh instance for background isolate)
     final FlutterLocalNotificationsPlugin localNotif =
         FlutterLocalNotificationsPlugin();
@@ -553,6 +737,18 @@ class NotificationService {
             DarwinNotificationAction.plain(
               'view_profile_action',
               'View Profile',
+              options: <DarwinNotificationActionOption>{
+                DarwinNotificationActionOption.foreground,
+              },
+            ),
+          ],
+        ),
+        DarwinNotificationCategory(
+          'AI_NEW_POST_CATEGORY',
+          actions: [
+            DarwinNotificationAction.plain(
+              'create_poll_action',
+              'Create Poll',
               options: <DarwinNotificationActionOption>{
                 DarwinNotificationActionOption.foreground,
               },
@@ -707,6 +903,8 @@ class NotificationService {
       final List<AndroidNotificationAction>? actions = _getAndroidActions(
         message.data,
         content.type,
+        body: content.body,
+        title: content.title,
       );
 
       final notificationData = message.data['notification'] is Map
@@ -714,6 +912,9 @@ class NotificationService {
           : (message.data['notification'] != null
                 ? jsonDecode(message.data['notification'])
                 : message.data);
+
+      final bool isAiNewPost =
+          content.type.trim().toUpperCase() == 'AI_NEW_POST';
 
       final rawSenderProfile =
           notificationData['sender_profile']?.toString() ??
@@ -725,7 +926,7 @@ class NotificationService {
           notificationData['profile_image']?.toString() ??
           message.data['profile_image']?.toString();
       final senderProfile =
-          (rawSenderProfile == 'null' || rawSenderProfile == '')
+          (isAiNewPost || rawSenderProfile == 'null' || rawSenderProfile == '')
           ? null
           : rawSenderProfile;
 
@@ -739,22 +940,41 @@ class NotificationService {
       final thumbnailUrl = (rawThumbnailUrl == 'null' || rawThumbnailUrl == '')
           ? null
           : rawThumbnailUrl;
+      final String stableIdStr = _generateStableNotificationId(message.data);
+      final isProcessedOnDisk = await _checkAndMarkNotificationProcessed(
+        stableIdStr,
+      );
+      if (isProcessedOnDisk ||
+          _processedNotificationIds.contains(stableIdStr)) {
+        debugPrint(
+          '⚠️ Duplicate background notification blocked via SharedPreferences: $stableIdStr',
+        );
+        return;
+      }
+      _processedNotificationIds.add(stableIdStr);
+      if (message.messageId != null) {
+        _processedNotificationIds.add(message.messageId!);
+        await _checkAndMarkNotificationProcessed(message.messageId!);
+      }
 
-      final id = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+      final id =
+          (message.messageId?.hashCode ?? stableIdStr.hashCode) & 0x7FFFFFFF;
 
       StyleInformation? styleInformation;
       List<DarwinNotificationAttachment>? attachments;
 
       String? profilePath;
-      if (senderProfile != null && senderProfile.isNotEmpty) {
-        profilePath = await _downloadAndSaveFile(
-          senderProfile,
-          'profile_$id.png',
-          cropToCircle: true,
-        );
-      }
+      if (!isAiNewPost) {
+        if (senderProfile != null && senderProfile.isNotEmpty) {
+          profilePath = await _downloadAndSaveFile(
+            senderProfile,
+            'profile_$id.png',
+            cropToCircle: true,
+          );
+        }
 
-      profilePath ??= await _getDefaultAvatarPath();
+        profilePath ??= await _getDefaultAvatarPath();
+      }
 
       String? thumbPath;
       if (thumbnailUrl != null && thumbnailUrl.isNotEmpty) {
@@ -876,6 +1096,35 @@ class NotificationService {
         }
       }
 
+      final String resolvedBgType = _resolveNotificationType(
+        message.data,
+        content.type,
+        body: content.body,
+        title: content.title,
+      );
+
+      AndroidNotificationCategory? notifCategory;
+      switch (resolvedBgType) {
+        case 'NEW_MESSAGE':
+          notifCategory = AndroidNotificationCategory.message;
+          break;
+        case 'FOLLOW':
+        case 'FRIEND_REQUEST':
+        case 'LIKE':
+        case 'COMMENT':
+        case 'VOTE':
+        case 'NEW_GROUP_ADDED':
+          notifCategory = AndroidNotificationCategory.social;
+          break;
+        case 'NEW_POST':
+        case 'AI_NEW_POST':
+          notifCategory = AndroidNotificationCategory.event;
+          break;
+        default:
+          notifCategory = AndroidNotificationCategory.status;
+          break;
+      }
+
       final androidDetails = AndroidNotificationDetails(
         'high_importance_channel',
         'High Importance Notifications',
@@ -883,16 +1132,19 @@ class NotificationService {
         priority: Priority.high,
         showWhen: true,
         icon: '@mipmap/ic_launcher',
+        playSound: true,
+        sound: const RawResourceAndroidNotificationSound('notification_sound'),
         enableVibration: true,
         enableLights: true,
-        ledColor: const Color(0xFFE91E63),
+        color: const Color(0xFF9B3046),
+        ledColor: const Color(0xFF9B3046),
         ledOnMs: 1000,
         ledOffMs: 500,
         autoCancel: true,
         actions: actions,
         largeIcon: notificationLargeIcon,
         styleInformation: styleInformation,
-        category: AndroidNotificationCategory.message,
+        category: notifCategory,
         shortcutId: shortcutId,
       );
 
@@ -900,6 +1152,8 @@ class NotificationService {
         categoryIdentifier: _getIosCategoryIdentifier(
           message.data,
           content.type,
+          body: content.body,
+          title: content.title,
         ),
         attachments: attachments,
       );
@@ -993,6 +1247,18 @@ class NotificationService {
             DarwinNotificationAction.plain(
               'view_profile_action',
               'View Profile',
+              options: <DarwinNotificationActionOption>{
+                DarwinNotificationActionOption.foreground,
+              },
+            ),
+          ],
+        ),
+        DarwinNotificationCategory(
+          'AI_NEW_POST_CATEGORY',
+          actions: [
+            DarwinNotificationAction.plain(
+              'create_poll_action',
+              'Create Poll',
               options: <DarwinNotificationActionOption>{
                 DarwinNotificationActionOption.foreground,
               },
@@ -1162,6 +1428,7 @@ class NotificationService {
         description: 'This channel is used for important notifications.',
         importance: Importance.max,
         playSound: true,
+        sound: RawResourceAndroidNotificationSound('notification_sound'),
         enableVibration: true,
         enableLights: true,
         showBadge: true,
@@ -1308,16 +1575,27 @@ class NotificationService {
     }
   }
 
-  void _handleForegroundMessage(RemoteMessage message) {
-    final notificationId =
-        message.messageId ?? DateTime.now().millisecondsSinceEpoch.toString();
+  Future<void> _handleForegroundMessage(RemoteMessage message) async {
+    final String stableId = _generateStableNotificationId(message.data);
+    final notificationId = message.messageId ?? stableId;
 
-    if (_processedNotificationIds.contains(notificationId)) {
-      debugPrint('⚠️ Duplicate FCM notification blocked: $notificationId');
+    final isProcessedOnDisk = await _checkAndMarkNotificationProcessed(
+      stableId,
+    );
+    if (isProcessedOnDisk ||
+        _processedNotificationIds.contains(notificationId) ||
+        _processedNotificationIds.contains(stableId)) {
+      debugPrint(
+        '⚠️ Duplicate FCM notification blocked: $notificationId / $stableId',
+      );
       return;
     }
 
     _processedNotificationIds.add(notificationId);
+    _processedNotificationIds.add(stableId);
+    if (message.messageId != null) {
+      await _checkAndMarkNotificationProcessed(message.messageId!);
+    }
 
     // ✅ CRITICAL: Only show local notification popup if app is ACTIVE (foreground)
     if (_isAppInForeground) {
@@ -1354,6 +1632,8 @@ class NotificationService {
       final List<AndroidNotificationAction>? actions = _getAndroidActions(
         message.data,
         content.type,
+        body: content.body,
+        title: content.title,
       );
 
       final notificationData = message.data['notification'] is Map
@@ -1361,6 +1641,9 @@ class NotificationService {
           : (message.data['notification'] != null
                 ? jsonDecode(message.data['notification'])
                 : message.data);
+
+      final bool isAiNewPost =
+          content.type.trim().toUpperCase() == 'AI_NEW_POST';
 
       final rawSenderProfile =
           notificationData['sender_profile']?.toString() ??
@@ -1372,7 +1655,7 @@ class NotificationService {
           notificationData['profile_image']?.toString() ??
           message.data['profile_image']?.toString();
       final senderProfile =
-          (rawSenderProfile == 'null' || rawSenderProfile == '')
+          (isAiNewPost || rawSenderProfile == 'null' || rawSenderProfile == '')
           ? null
           : rawSenderProfile;
 
@@ -1387,23 +1670,25 @@ class NotificationService {
           ? null
           : rawThumbnailUrl;
 
+      final String stableId = _generateStableNotificationId(message.data);
       final notificationId =
-          message.messageId?.hashCode ??
-          DateTime.now().millisecondsSinceEpoch ~/ 1000;
+          (message.messageId?.hashCode ?? stableId.hashCode) & 0x7FFFFFFF;
 
       StyleInformation? styleInformation;
       List<DarwinNotificationAttachment>? attachments;
 
       String? profilePath;
-      if (senderProfile != null && senderProfile.isNotEmpty) {
-        profilePath = await _downloadAndSaveFile(
-          senderProfile,
-          'profile_$notificationId.png',
-          cropToCircle: true,
-        );
-      }
+      if (!isAiNewPost) {
+        if (senderProfile != null && senderProfile.isNotEmpty) {
+          profilePath = await _downloadAndSaveFile(
+            senderProfile,
+            'profile_$notificationId.png',
+            cropToCircle: true,
+          );
+        }
 
-      profilePath ??= await _getDefaultAvatarPath();
+        profilePath ??= await _getDefaultAvatarPath();
+      }
 
       String? thumbPath;
       if (thumbnailUrl != null && thumbnailUrl.isNotEmpty) {
@@ -1525,6 +1810,35 @@ class NotificationService {
         }
       }
 
+      final String resolvedFgType = _resolveNotificationType(
+        message.data,
+        content.type,
+        body: content.body,
+        title: content.title,
+      );
+
+      AndroidNotificationCategory? notifCategory;
+      switch (resolvedFgType) {
+        case 'NEW_MESSAGE':
+          notifCategory = AndroidNotificationCategory.message;
+          break;
+        case 'FOLLOW':
+        case 'FRIEND_REQUEST':
+        case 'LIKE':
+        case 'COMMENT':
+        case 'VOTE':
+        case 'NEW_GROUP_ADDED':
+          notifCategory = AndroidNotificationCategory.social;
+          break;
+        case 'NEW_POST':
+        case 'AI_NEW_POST':
+          notifCategory = AndroidNotificationCategory.event;
+          break;
+        default:
+          notifCategory = AndroidNotificationCategory.status;
+          break;
+      }
+
       final androidDetails = AndroidNotificationDetails(
         'high_importance_channel',
         'High Importance Notifications',
@@ -1534,9 +1848,11 @@ class NotificationService {
         showWhen: true,
         icon: '@mipmap/ic_launcher',
         playSound: true,
+        sound: const RawResourceAndroidNotificationSound('notification_sound'),
         enableVibration: true,
         enableLights: true,
-        ledColor: const Color(0xFFE91E63),
+        color: const Color(0xFF9B3046),
+        ledColor: const Color(0xFF9B3046),
         ledOnMs: 1000,
         ledOffMs: 500,
         ticker: 'New Notification',
@@ -1545,7 +1861,7 @@ class NotificationService {
         actions: actions,
         largeIcon: notificationLargeIcon,
         styleInformation: styleInformation,
-        category: AndroidNotificationCategory.message,
+        category: notifCategory,
         shortcutId: shortcutId,
       );
 
@@ -1557,6 +1873,8 @@ class NotificationService {
         categoryIdentifier: _getIosCategoryIdentifier(
           message.data,
           content.type,
+          body: content.body,
+          title: content.title,
         ),
         attachments: attachments,
       );
@@ -1603,21 +1921,29 @@ class NotificationService {
       final data = jsonDecode(response.payload!);
 
       if (actionId == 'like_action') {
-        final rawPostId = data['post_id'] ?? (data['data'] is Map ? data['data']['post_id'] : null);
+        final rawPostId =
+            data['post_id'] ??
+            (data['data'] is Map ? data['data']['post_id'] : null);
         final String? postId = rawPostId?.toString();
         if (postId == null || postId.isEmpty || postId == '0') {
-          debugPrint("⚠️ No post_id in notification payload for action: $actionId");
+          debugPrint(
+            "⚠️ No post_id in notification payload for action: $actionId",
+          );
           return;
         }
 
         debugPrint("📬 Action: Like post $postId");
         final responseApi = await ApiService.togglePostLike(postId);
-        debugPrint("📬 Post like success: ${responseApi['success']}, message: ${responseApi['message']}");
+        debugPrint(
+          "📬 Post like success: ${responseApi['success']}, message: ${responseApi['message']}",
+        );
 
         final int? notificationId = response.id;
         if (notificationId != null) {
           try {
-            await NotificationService()._localNotifications.cancel(notificationId);
+            await NotificationService()._localNotifications.cancel(
+              notificationId,
+            );
           } catch (e) {
             debugPrint("⚠️ Error cancelling notification after like: $e");
           }
@@ -1695,6 +2021,9 @@ class NotificationService {
                 data['sender']?.toString() ??
                 'Someone';
 
+            final bool isAiNewPost =
+                content.type.trim().toUpperCase() == 'AI_NEW_POST';
+
             final rawSenderProfile =
                 notificationData['sender_profile']?.toString() ??
                 data['sender_profile']?.toString() ??
@@ -1705,7 +2034,9 @@ class NotificationService {
                 notificationData['profile_image']?.toString() ??
                 data['profile_image']?.toString();
             final senderProfile =
-                (rawSenderProfile == 'null' || rawSenderProfile == '')
+                (isAiNewPost ||
+                    rawSenderProfile == 'null' ||
+                    rawSenderProfile == '')
                 ? null
                 : rawSenderProfile;
 
@@ -1848,10 +2179,13 @@ class NotificationService {
   static String _generateStableNotificationId(Map<String, dynamic> data) {
     final notificationData = data['notification'] is Map
         ? data['notification'] as Map<String, dynamic>
-        : data;
+        : (data['notification'] != null
+              ? jsonDecode(data['notification'].toString())
+              : data);
 
     dynamic getValue(String key) {
-      final val = data[key] ?? notificationData[key];
+      final val =
+          data[key] ?? (notificationData is Map ? notificationData[key] : null);
       if (val == null) return null;
       final valStr = val.toString().trim();
       if (valStr == 'null' || valStr == '0' || valStr.isEmpty) {
@@ -1862,17 +2196,24 @@ class NotificationService {
 
     final id =
         getValue('id') ??
-        getValue('message_id') ??
-        getValue('post_id') ??
-        getValue('sender_id') ??
-        getValue('chat_id') ??
-        getValue('request_id');
+        getValue('notification_id') ??
+        getValue('comment_id') ??
+        getValue('message_id');
 
     if (id != null) {
       return id.toString();
     }
 
-    return data.toString().hashCode.toString();
+    final type = getValue('type') ?? getValue('notification_type') ?? 'general';
+    final title = getValue('title') ?? '';
+    final body = getValue('body') ?? getValue('message_preview') ?? '';
+    final postId = getValue('post_id') ?? '';
+    final chatId = getValue('chat_id') ?? '';
+    final senderId = getValue('sender_id') ?? getValue('user_id') ?? '';
+
+    final fingerprint =
+        '${type}_${senderId}_${postId}_${chatId}_${title}_$body';
+    return fingerprint;
   }
 
   static Future<bool> _checkAndMarkActionProcessed(
@@ -2049,10 +2390,22 @@ class NotificationService {
   }
 
   // ========== WEBSOCKET ==========
-  Future<void> connectToWebSocket(String accessToken) async {
-    if (_isConnecting || _channel != null) {
+  Future<void> connectToWebSocket(
+    String accessToken, {
+    bool forceReconnect = false,
+  }) async {
+    if (_isConnecting) {
+      debugPrint('⚠️ WebSocket: Connection in progress...');
+      return;
+    }
+
+    if (!forceReconnect && _channel != null) {
       debugPrint('⚠️ WebSocket: Already connected');
       return;
+    }
+
+    if (forceReconnect && _channel != null) {
+      _cleanupWebSocket();
     }
 
     if (accessToken.isEmpty) {
@@ -2065,45 +2418,61 @@ class NotificationService {
       _shouldStayConnected = true;
 
       final wsUrl =
-          'ws://testbackend.polzet.in/ws/notifications/?token=$accessToken';
+          '${ApiConfig.wsBaseUrl}/ws/notifications/?token=$accessToken';
+      debugPrint('🔌 Connecting Notification WebSocket: $wsUrl');
       _channel = WebSocketChannel.connect(Uri.parse(wsUrl));
+      await _channel!.ready.timeout(
+        const Duration(seconds: 4),
+        onTimeout: () {
+          throw TimeoutException('WebSocket connection timed out');
+        },
+      );
 
       _streamSubscription = _channel!.stream.listen(
         (message) {
-          debugPrint('📨 WebSocket message received');
+          debugPrint('📨 WebSocket message received: $message');
           _handleWebSocketNotification(message);
           _reconnectAttempts = 0;
         },
         onError: (error) {
+          debugPrint('❌ Notification WebSocket error: $error');
           _handleWebSocketDisconnection();
         },
         onDone: () {
-          debugPrint('🔌 WebSocket closed');
+          debugPrint('🔌 Notification WebSocket closed');
           _handleWebSocketDisconnection();
         },
         cancelOnError: false,
       );
 
-      debugPrint('✅ WebSocket connected');
+      debugPrint('✅ Notification WebSocket connected successfully');
       _isConnecting = false;
       _reconnectAttempts = 0;
     } catch (e) {
-      debugPrint('❌ WebSocket connection failed: $e');
+      debugPrint('❌ Notification WebSocket connection failed (offline): $e');
       _isConnecting = false;
       _handleWebSocketDisconnection();
     }
   }
 
-  void _handleWebSocketNotification(dynamic body) {
+  Future<void> _handleWebSocketNotification(dynamic body) async {
     try {
       final data = jsonDecode(body);
 
+      final stableId = _generateStableNotificationId(data);
       final notificationId = _generateNotificationId(data);
 
-      if (_processedNotificationIds.contains(notificationId)) {
+      final isProcessedOnDisk = await _checkAndMarkNotificationProcessed(
+        stableId,
+      );
+      if (isProcessedOnDisk ||
+          _processedNotificationIds.contains(stableId) ||
+          _processedNotificationIds.contains(notificationId)) {
+        debugPrint('⚠️ Duplicate WebSocket notification blocked: $stableId');
         return;
       }
 
+      _processedNotificationIds.add(stableId);
       _processedNotificationIds.add(notificationId);
 
       debugPrint('📨 WebSocket notification: ${data['title'] ?? 'No title'}');
@@ -2139,6 +2508,8 @@ class NotificationService {
       final List<AndroidNotificationAction>? actions = _getAndroidActions(
         data,
         content.type,
+        body: content.body,
+        title: content.title,
       );
 
       final notificationData = data['notification'] is Map
@@ -2147,7 +2518,10 @@ class NotificationService {
                 ? jsonDecode(data['notification'])
                 : data);
 
-      final senderProfile =
+      final bool isAiNewPost =
+          content.type.trim().toUpperCase() == 'AI_NEW_POST';
+
+      final rawSenderProfile =
           notificationData['sender_profile']?.toString() ??
           data['sender_profile']?.toString() ??
           notificationData['sender_profile_picture_url']?.toString() ??
@@ -2156,6 +2530,10 @@ class NotificationService {
           data['sender_profile_image']?.toString() ??
           notificationData['profile_image']?.toString() ??
           data['profile_image']?.toString();
+      final senderProfile =
+          (isAiNewPost || rawSenderProfile == 'null' || rawSenderProfile == '')
+          ? null
+          : rawSenderProfile;
 
       final rawThumbnailUrl =
           notificationData['thumbnail_url']?.toString() ??
@@ -2168,21 +2546,24 @@ class NotificationService {
           ? null
           : rawThumbnailUrl;
 
-      final notificationId = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+      final String stableId = _generateStableNotificationId(data);
+      final notificationId = stableId.hashCode & 0x7FFFFFFF;
 
       StyleInformation? styleInformation;
       List<DarwinNotificationAttachment>? attachments;
 
       String? profilePath;
-      if (senderProfile != null && senderProfile.isNotEmpty) {
-        profilePath = await _downloadAndSaveFile(
-          senderProfile,
-          'profile_$notificationId.png',
-          cropToCircle: true,
-        );
-      }
+      if (!isAiNewPost) {
+        if (senderProfile != null && senderProfile.isNotEmpty) {
+          profilePath = await _downloadAndSaveFile(
+            senderProfile,
+            'profile_$notificationId.png',
+            cropToCircle: true,
+          );
+        }
 
-      profilePath ??= await _getDefaultAvatarPath();
+        profilePath ??= await _getDefaultAvatarPath();
+      }
 
       String? thumbPath;
       if (thumbnailUrl != null && thumbnailUrl.isNotEmpty) {
@@ -2303,6 +2684,35 @@ class NotificationService {
         }
       }
 
+      final String resolvedWsType = _resolveNotificationType(
+        data,
+        content.type,
+        body: content.body,
+        title: content.title,
+      );
+
+      AndroidNotificationCategory? notifCategory;
+      switch (resolvedWsType) {
+        case 'NEW_MESSAGE':
+          notifCategory = AndroidNotificationCategory.message;
+          break;
+        case 'FOLLOW':
+        case 'FRIEND_REQUEST':
+        case 'LIKE':
+        case 'COMMENT':
+        case 'VOTE':
+        case 'NEW_GROUP_ADDED':
+          notifCategory = AndroidNotificationCategory.social;
+          break;
+        case 'NEW_POST':
+        case 'AI_NEW_POST':
+          notifCategory = AndroidNotificationCategory.event;
+          break;
+        default:
+          notifCategory = AndroidNotificationCategory.status;
+          break;
+      }
+
       final androidDetails = AndroidNotificationDetails(
         'high_importance_channel',
         'High Importance Notifications',
@@ -2314,14 +2724,15 @@ class NotificationService {
         playSound: true,
         enableVibration: true,
         enableLights: true,
-        ledColor: const Color(0xFFE91E63),
+        color: const Color(0xFFD8EBFF),
+        ledColor: const Color(0xFFD8EBFF),
         ledOnMs: 1000,
         ledOffMs: 500,
         autoCancel: true,
         actions: actions,
         largeIcon: notificationLargeIcon,
         styleInformation: styleInformation,
-        category: AndroidNotificationCategory.message,
+        category: notifCategory,
         shortcutId: shortcutId,
       );
 
@@ -2329,15 +2740,12 @@ class NotificationService {
         presentAlert: true,
         presentBadge: true,
         presentSound: true,
-        categoryIdentifier: content.type.trim().toUpperCase() == 'NEW_MESSAGE'
-            ? 'NEW_MESSAGE_CATEGORY'
-            : (content.type.trim().toUpperCase() == 'NEW_GROUP_ADDED'
-                  ? 'NEW_GROUP_ADDED_CATEGORY'
-                  : (content.type.trim().toUpperCase() == 'FOLLOW'
-                        ? 'FOLLOW_CATEGORY'
-                        : (content.type.trim().toUpperCase() == 'FRIEND_REQUEST'
-                              ? 'FRIEND_REQUEST_CATEGORY'
-                              : null))),
+        categoryIdentifier: _getIosCategoryIdentifier(
+          data,
+          content.type,
+          body: content.body,
+          title: content.title,
+        ),
         attachments: attachments,
       );
 
@@ -2414,12 +2822,16 @@ class NotificationService {
 
   // ========== HELPERS ==========
   String _generateNotificationId(Map<String, dynamic> data) {
-    final notification = data['notification'] ?? data;
-    final type = notification['type'] ?? 'general';
+    final notification = data['notification'] is Map
+        ? data['notification'] as Map<String, dynamic>
+        : data;
+    final type = notification['type'] ?? data['type'] ?? 'general';
     final id =
-        notification['post_id'] ??
-        notification['sender_id'] ??
-        DateTime.now().millisecondsSinceEpoch.toString();
+        notification['id'] ??
+        notification['message_id'] ??
+        data['id'] ??
+        data['message_id'] ??
+        DateTime.now().microsecondsSinceEpoch.toString();
     return '${type}_$id';
   }
 

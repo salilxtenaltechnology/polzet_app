@@ -87,6 +87,9 @@ class _ProfileImagePreviewState extends State<ProfileImagePreview>
     }
     if (source is String) {
       if (source.isEmpty) return null;
+      if (source.startsWith('assets/')) {
+        return AssetImage(source);
+      }
       // Check if it's base64 string
       if (source.startsWith('data:image') || (!source.contains('/') && !source.contains('.'))) {
         try {

@@ -441,7 +441,9 @@ class MessageListState extends State<MessageList>
                         },
                       ),
                       _buildPopupItem(
-                        text: isMuted ? AppLocalizations.of(context)!.unmute : AppLocalizations.of(context)!.mute,
+                        text: isMuted
+                            ? AppLocalizations.of(context)!.unmute
+                            : AppLocalizations.of(context)!.mute,
                         isDarkMode: isDarkMode,
                         onTap: () async {
                           Navigator.pop(context);
@@ -529,7 +531,9 @@ class MessageListState extends State<MessageList>
                         },
                       ),
                       _buildPopupItem(
-                        text: isArchived ? AppLocalizations.of(context)!.unarchive : AppLocalizations.of(context)!.archive,
+                        text: isArchived
+                            ? AppLocalizations.of(context)!.unarchive
+                            : AppLocalizations.of(context)!.archive,
                         isDarkMode: isDarkMode,
                         onTap: () async {
                           Navigator.pop(context);
@@ -627,9 +631,17 @@ class MessageListState extends State<MessageList>
                 !_isChatArchived(c) && (((c['unread_count'] as int?) ?? 0) > 0),
           )
           .toList();
-    } else if (type == 'favorite' || type == 'favourites') {
+    } else if (type == 'favorite' ||
+        type == 'favorites' ||
+        type == 'favourites') {
       tabFiltered = chats
           .where((c) => !_isChatArchived(c) && _isChatFavourite(c))
+          .toList();
+    } else if (type == 'groups' || type == 'group') {
+      tabFiltered = chats
+          .where(
+            (c) => c['chat_type']?.toString() == 'group' && !_isChatArchived(c),
+          )
           .toList();
     } else {
       tabFiltered = chats
@@ -1536,7 +1548,9 @@ class MessageListState extends State<MessageList>
                                     ),
                                     SizedBox(width: 10.w),
                                     Text(
-                                    AppLocalizations.of(context)!.archivedchats,
+                                      AppLocalizations.of(
+                                        context,
+                                      )!.archivedchats,
                                       style: AppTextStyles.cardTitle.copyWith(
                                         color: txt.title,
                                         fontSize: 14.5,
@@ -1973,7 +1987,13 @@ class MessageListState extends State<MessageList>
 
   Widget _buildFilterChips() {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    final filters = ['All', 'Unread', 'Group', 'Favourites'];
+    final l10n = AppLocalizations.of(context)!;
+    final filters = [
+      {'key': 'All', 'label': l10n.all},
+      {'key': 'Unread', 'label': l10n.unread},
+      {'key': 'Groups', 'label': l10n.groups},
+      {'key': 'Favorites', 'label': l10n.favorites},
+    ];
     final unreadTotal = _unreadChatsCount + _unreadGroupsCount;
 
     return SizedBox(
@@ -1984,12 +2004,14 @@ class MessageListState extends State<MessageList>
         padding: EdgeInsets.symmetric(horizontal: 14.w),
         child: Row(
           children: filters.map((filter) {
-            final isSelected = _selectedFilter == filter;
+            final key = filter['key']!;
+            final label = filter['label']!;
+            final isSelected = _selectedFilter == key;
 
             return GestureDetector(
               onTap: () {
                 setState(() {
-                  _selectedFilter = filter;
+                  _selectedFilter = key;
                 });
               },
               child: AnimatedContainer(
@@ -2007,12 +2029,12 @@ class MessageListState extends State<MessageList>
                             : const Color(0xFFF3F3F5)),
                   borderRadius: BorderRadius.circular(12.r),
                 ),
-                child: filter == 'Unread'
+                child: key == 'Unread'
                     ? Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Text(
-                            'Unread',
+                            label,
                             style: TextStyle(
                               color: isSelected
                                   ? Colors.white
@@ -2039,7 +2061,7 @@ class MessageListState extends State<MessageList>
                         ],
                       )
                     : Text(
-                        filter,
+                        label,
                         style: TextStyle(
                           color: isSelected
                               ? Colors.white
@@ -2135,7 +2157,12 @@ class MessageListState extends State<MessageList>
                 shape: BoxShape.circle,
                 color: Theme.of(context).colorScheme.onPrimary.withOpacity(0.1),
               ),
-              child: Center(child: Image.asset(Assets.images.icGroup.path)),
+              child: Center(
+                child: Image.asset(
+                  Assets.images.icGroup.path,
+                  color: Theme.of(context).colorScheme.onPrimary,
+                ),
+              ),
             ),
           ),
           SizedBox(width: 5.w),

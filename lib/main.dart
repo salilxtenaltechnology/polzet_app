@@ -29,6 +29,7 @@ import 'screens/home/profile/chase/user_chase.dart';
 import 'screens/home/message/chat/private/private_chat_screen.dart';
 import 'screens/home/message/chat/group/group_chat_screen.dart';
 import 'screens/home/profile/public/public_profile_screen.dart';
+import 'screens/home/new poll/type/new_text_poll.dart';
 import 'provider/group_chat_provider.dart';
 import 'screens/splash/splash_screen.dart';
 
@@ -367,33 +368,56 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     }
 
     final Map<String, dynamic> data = {...payloadMap, ...notificationData};
-    final type = (data['type'] ?? '').toString().toLowerCase().trim();
+    final rawType = (data['type'] ?? '').toString().trim();
+    final type = rawType.toLowerCase();
+    final pollType = (data['poll_type'] ?? '').toString().toLowerCase().trim();
 
     // Read username from provider
     final userProvider = Provider.of<UserProvider>(context, listen: false);
     final String username = userProvider.username ?? '';
 
     debugPrint(
-      '🎯 Navigating to notification type: "$type", action: "$actionId"',
+      '🎯 Navigating to notification type: "$type", poll_type: "$pollType", action: "$actionId"',
     );
     debugPrint('📋 Full notification data: $data');
     debugPrint('   👤 Username: $username');
 
     Widget? destination;
 
-    if (type == 'like' ||
+    if (actionId == 'create_poll_action' ||
+        (rawType.toUpperCase() == 'AI_NEW_POST' && pollType == 'text')) {
+      final String title = data['title']?.toString() ?? '';
+      final String body =
+          data['body']?.toString() ??
+          data['post_description']?.toString() ??
+          '';
+      debugPrint('   🤖 AI_NEW_POST text poll detected - Title: $title');
+      destination = NewTextPoll(
+        initialQuestion: title,
+        initialDescription: body,
+      );
+    } else if (actionId == 'view_post_action' ||
+        actionId == 'vote_now_action' ||
+        actionId == 'pick_side_action' ||
+        actionId == 'vote_privately_action' ||
+        type == 'like' ||
         type == 'like_group' ||
         type == 'comment' ||
         type == 'commetnt' ||
         type == 'vote' ||
         type == 'reply' ||
-        type == 'new_post') {
+        type == 'new_post' ||
+        type == 'poll') {
       final String? postId = data['post_id']?.toString();
       debugPrint('   📝 Post notification detected - postId: $postId');
 
       if (postId != null && postId.isNotEmpty && postId != '0') {
-        final String postSender = (type == 'new_post') ? (data['sender']?.toString() ?? '') : '';
-        final String postUsername = postSender.isNotEmpty ? postSender : username;
+        final String postSender = (type == 'new_post' || type == 'poll')
+            ? (data['sender']?.toString() ?? '')
+            : '';
+        final String postUsername = postSender.isNotEmpty
+            ? postSender
+            : username;
         if (postUsername.isEmpty) {
           debugPrint(
             '⚠️ _navigateToNotificationDestination: username is empty, fallback to notifications tab',
@@ -406,6 +430,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
         debugPrint('❌ Invalid or missing post_id for type: $type');
       }
     } else if (actionId == 'view_profile_action' ||
+        actionId == 'follow_back_action' ||
         type == 'follow' ||
         type == 'friend_request' ||
         type == 'friend_requests') {

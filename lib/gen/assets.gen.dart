@@ -70,6 +70,10 @@ class $AssetsImagesGen {
   AssetGenImage get addImage =>
       const AssetGenImage('assets/images/add_image.png');
 
+  /// File path: assets/images/ai_frame.png
+  AssetGenImage get aiFrame =>
+      const AssetGenImage('assets/images/ai_frame.png');
+
   /// File path: assets/images/bg.png
   AssetGenImage get bg => const AssetGenImage('assets/images/bg.png');
 
@@ -125,6 +129,10 @@ class $AssetsImagesGen {
   /// File path: assets/images/ic_agree.png
   AssetGenImage get icAgree =>
       const AssetGenImage('assets/images/ic_agree.png');
+
+  /// File path: assets/images/ic_ai_pick.png
+  AssetGenImage get icAiPick =>
+      const AssetGenImage('assets/images/ic_ai_pick.png');
 
   /// File path: assets/images/ic_anonymous.png
   AssetGenImage get icAnonymous =>
@@ -236,6 +244,9 @@ class $AssetsImagesGen {
   /// File path: assets/images/ic_poll.png
   AssetGenImage get icPoll => const AssetGenImage('assets/images/ic_poll.png');
 
+  /// File path: assets/images/ic_save.png
+  AssetGenImage get icSave => const AssetGenImage('assets/images/ic_save.png');
+
   /// File path: assets/images/ic_security.png
   AssetGenImage get icSecurity =>
       const AssetGenImage('assets/images/ic_security.png');
@@ -274,6 +285,10 @@ class $AssetsImagesGen {
 
   /// File path: assets/images/ic_user.png
   AssetGenImage get icUser => const AssetGenImage('assets/images/ic_user.png');
+
+  /// File path: assets/images/ic_verify.png
+  AssetGenImage get icVerify =>
+      const AssetGenImage('assets/images/ic_verify.png');
 
   /// File path: assets/images/ic_vote.png
   AssetGenImage get icVote => const AssetGenImage('assets/images/ic_vote.png');
@@ -406,6 +421,7 @@ class $AssetsImagesGen {
     activeUser,
     addGroup,
     addImage,
+    aiFrame,
     bg,
     bgChatDark,
     bgChatLight,
@@ -421,6 +437,7 @@ class $AssetsImagesGen {
     icAccountPrivacy,
     icAddUser,
     icAgree,
+    icAiPick,
     icAnonymous,
     icAppForeground,
     icArchive,
@@ -450,6 +467,7 @@ class $AssetsImagesGen {
     icNotifications,
     icPin,
     icPoll,
+    icSave,
     icSecurity,
     icSplash,
     icSports,
@@ -460,6 +478,7 @@ class $AssetsImagesGen {
     icTravel,
     icUnarchive,
     icUser,
+    icVerify,
     icVote,
     iconBackground,
     imageIcon,

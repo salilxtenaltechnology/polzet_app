@@ -55,6 +55,8 @@ class HomeFeedPostCard extends StatefulWidget {
 
 class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
   late bool isLike;
+  late bool isSaved;
+  bool isSaveLoading = false;
   late int likesCount;
   late int commentsCount;
   late int sharesCount;
@@ -84,6 +86,7 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
     super.initState();
     random = Random();
     isLike = widget.post.isLikedByCurrentUser;
+    isSaved = widget.post.isSaved;
     likesCount = widget.post.likesCount;
     commentsCount = widget.post.commentsCount;
     viewLikes = [];
@@ -136,6 +139,9 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
   @override
   void didUpdateWidget(covariant HomeFeedPostCard oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (widget.post.isSaved != oldWidget.post.isSaved) {
+      isSaved = widget.post.isSaved;
+    }
     if (widget.post.followingStatus != oldWidget.post.followingStatus) {
       if (widget.post.followingStatus != 'none') {
         HomeFeedPostCard.globallyChasedUserStates[widget.post.user.userid] =
@@ -230,6 +236,50 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
       } else {
         setState(() {
           viewLikes = [];
+        });
+      }
+    }
+  }
+
+  Future<void> _toggleSave() async {
+    if (isSaveLoading) return;
+
+    final previousIsSaved = isSaved;
+
+    setState(() {
+      isSaved = !isSaved;
+      widget.post.isSaved = isSaved;
+      isSaveLoading = true;
+    });
+
+    try {
+      final res = await ApiService().toggleSavePost(postId: widget.post.id);
+      if (mounted) {
+        final dynamic savedVal =
+            res['is_saved'] ?? res['is_saved_by_current_user'] ?? res['saved'];
+        if (savedVal != null) {
+          final bool serverSaved = savedVal == true ||
+              savedVal == 1 ||
+              savedVal.toString().toLowerCase() == 'true';
+          setState(() {
+            isSaved = serverSaved;
+            widget.post.isSaved = serverSaved;
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint('Error toggling save post: $e');
+      if (mounted) {
+        setState(() {
+          isSaved = previousIsSaved;
+          widget.post.isSaved = previousIsSaved;
+        });
+        showToast(message: 'Failed to update save status');
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          isSaveLoading = false;
         });
       }
     }
@@ -588,6 +638,7 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
               Padding(
                 padding: EdgeInsets.fromLTRB(10.w, 10.h, 10.w, 0),
                 child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     GestureDetector(
                       onTap: () {
@@ -615,32 +666,90 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
                           );
                         }
                       },
-                      child: CircleAvatar(
-                        radius: 19.5,
-                        backgroundColor: Theme.of(
-                          context,
-                        ).colorScheme.onPrimary.withOpacity(0.1),
-                        backgroundImage: _profileImageBytes != null
-                            ? MemoryImage(_profileImageBytes!)
-                            : (widget.post.user.profileImage != null &&
-                                      widget.post.user.profileImage!.isNotEmpty
-                                  ? NetworkImage(widget.post.user.profileImage!)
-                                  : null),
-                        child:
-                            _profileImageBytes == null &&
-                                (widget.post.user.profileImage == null ||
-                                    widget.post.user.profileImage!.isEmpty)
-                            ? Text(
-                                widget.post.user.firstLetter,
-                                style: AppTextStyles.cardTitle.copyWith(
-                                  color: Theme.of(
+                      child: SizedBox(
+                        width: 45,
+                        height: 45,
+                        child: Stack(
+                          alignment: Alignment.center,
+                          children: [
+                            ClipOval(
+                              child: (() {
+                                final String currentUsername = widget
+                                    .post
+                                    .user
+                                    .username
+                                    .trim()
+                                    .toLowerCase();
+                                if (currentUsername == 'polzet_ai') {
+                                  return Center(
+                                    child: Padding(
+                                      padding: const EdgeInsets.only(
+                                        top: 8,
+                                        bottom: 0,
+                                        left: 10,
+                                        right: 9,
+                                      ),
+                                      child: Image.asset(
+                                        Assets.images.icSplash.path,
+                                      ),
+                                    ),
+                                  );
+                                }
+                                return CircleAvatar(
+                                  radius: 22.5,
+                                  backgroundColor: Theme.of(
                                     context,
-                                  ).colorScheme.onPrimary,
-                                  fontWeight: FontWeight.w500,
-                                  fontSize: 18,
+                                  ).colorScheme.onPrimary.withOpacity(0.1),
+                                  backgroundImage: _profileImageBytes != null
+                                      ? MemoryImage(_profileImageBytes!)
+                                      : (widget.post.user.profileImage !=
+                                                    null &&
+                                                widget
+                                                    .post
+                                                    .user
+                                                    .profileImage!
+                                                    .isNotEmpty
+                                            ? NetworkImage(
+                                                widget.post.user.profileImage!,
+                                              )
+                                            : null),
+                                  child:
+                                      _profileImageBytes == null &&
+                                          (widget.post.user.profileImage ==
+                                                  null ||
+                                              widget
+                                                  .post
+                                                  .user
+                                                  .profileImage!
+                                                  .isEmpty)
+                                      ? Text(
+                                          widget.post.user.firstLetter,
+                                          style: AppTextStyles.cardTitle
+                                              .copyWith(
+                                                color: Theme.of(
+                                                  context,
+                                                ).colorScheme.onPrimary,
+                                                fontWeight: FontWeight.w500,
+                                                fontSize: 18,
+                                              ),
+                                        )
+                                      : null,
+                                );
+                              })(),
+                            ),
+                            if (widget.post.user.username
+                                    .trim()
+                                    .toLowerCase() ==
+                                'polzet_ai')
+                              Positioned.fill(
+                                child: Image.asset(
+                                  Assets.images.aiFrame.path,
+                                  height: 55,
+                                  width: 55,
                                 ),
-                              )
-                            : null,
+                              ),
+                          ],
+                        ),
                       ),
                     ),
                     SizedBox(width: 8.w),
@@ -648,18 +757,47 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            (widget.post.user.firstName != null ||
-                                    widget.post.user.lastName != null
-                                ? '${widget.post.user.firstName ?? 'Polzet'} ${widget.post.user.lastName ?? 'User'}'
-                                      .trim()
-                                : 'Polzet User'),
-                            style: AppTextStyles.sectionHeading.copyWith(
-                              color: txt.title,
-                              fontSize: 14,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              Flexible(
+                                child: Text(
+                                  () {
+                                    final fn =
+                                        widget.post.user.firstName?.trim() ??
+                                        '';
+                                    final ln =
+                                        widget.post.user.lastName?.trim() ?? '';
+                                    final fullName = '$fn $ln'.trim();
+                                    if (fullName.isNotEmpty) return fullName;
+                                    return widget.post.user.username.isNotEmpty
+                                        ? widget.post.user.username
+                                        : 'Polzet User';
+                                  }(),
+                                  style: AppTextStyles.sectionHeading.copyWith(
+                                    color: txt.title,
+                                    fontSize: 14,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              if (widget.post.user.username
+                                          .trim()
+                                          .toLowerCase() ==
+                                      'polzet_ai' ||
+                                  widget.post.user.username
+                                          .trim()
+                                          .toLowerCase() ==
+                                      'polzet') ...[
+                                SizedBox(width: 4.w),
+                                Image.asset(
+                                  Assets.images.icVerify.path,
+                                  height: 13,
+                                  width: 13,
+                                ),
+                              ],
+                            ],
                           ),
                           Row(
                             children: [
@@ -688,7 +826,46 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
                         ],
                       ),
                     ),
-                    if (chaseState != 'hidden' &&
+                    if (widget.post.user.username.toLowerCase() ==
+                        'polzet_ai') ...[
+                      SizedBox(width: 8.w),
+                      Container(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 10.w,
+                          vertical: 7.h,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onPrimary.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(AppRadius.button),
+                        ),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Image.asset(
+                              "assets/images/ic_ai_pick.png",
+                              height: 15,
+                              width: 15,
+                              color: Theme.of(context).colorScheme.onPrimary,
+                            ),
+                            SizedBox(width: 4.w),
+                            Text(
+                              'AI Pick',
+                              style: AppTextStyles.subText.copyWith(
+                                fontSize: 11.sp,
+                                fontWeight: FontWeight.w500,
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onBackground,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ] else if (chaseState != 'hidden' &&
                         widget.post.user.username != userProvider.username) ...[
                       SizedBox(width: 8.w),
                       GestureDetector(
@@ -899,6 +1076,23 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
                         ],
                       ),
                     ),
+                    const Spacer(),
+                    GestureDetector(
+                      onTap: _toggleSave,
+                      child: AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 200),
+                        transitionBuilder: (child, animation) =>
+                            ScaleTransition(scale: animation, child: child),
+                        child: isSaved
+                            ? AppIcons.filledSave(
+                                key: const ValueKey('saved_filled'),
+                                color: Theme.of(context).colorScheme.primary,
+                              )
+                            : AppIcons.outlineSave(
+                                key: const ValueKey('saved_outline'),
+                              ),
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -1051,53 +1245,10 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
     String description,
     AppTextColors txt,
   ) {
-    if (!description.contains('#')) {
-      return Text(
-        description,
-        style: AppTextStyles.bodyText.copyWith(
-          color: txt.body,
-          fontSize: 13.5,
-          fontWeight: FontWeight.w400,
-        ),
-      );
-    }
-
-    final RegExp exp = RegExp(r'(#[a-zA-Z0-9_]+)');
-    final List<TextSpan> spans = [];
-
-    description.splitMapJoin(
-      exp,
-      onMatch: (Match match) {
-        spans.add(
-          TextSpan(
-            text: match.group(0),
-            style: AppTextStyles.bodyText.copyWith(
-              color: Theme.of(context).colorScheme.onPrimary,
-              fontSize: 16,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        );
-        return '';
-      },
-      onNonMatch: (String text) {
-        if (text.isNotEmpty) {
-          spans.add(
-            TextSpan(
-              text: text,
-              style: AppTextStyles.bodyText.copyWith(
-                color: txt.body,
-                fontSize: 14,
-                fontWeight: FontWeight.w400,
-              ),
-            ),
-          );
-        }
-        return '';
-      },
+    return _ExpandableDescriptionWithHashtags(
+      description: description,
+      txt: txt,
     );
-
-    return RichText(text: TextSpan(children: spans));
   }
 
   Widget _buildAnonymousImageTextPollSection(
@@ -3300,6 +3451,146 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _ExpandableDescriptionWithHashtags extends StatefulWidget {
+  final String description;
+  final AppTextColors txt;
+
+  const _ExpandableDescriptionWithHashtags({
+    required this.description,
+    required this.txt,
+  });
+
+  @override
+  State<_ExpandableDescriptionWithHashtags> createState() =>
+      _ExpandableDescriptionWithHashtagsState();
+}
+
+class _ExpandableDescriptionWithHashtagsState
+    extends State<_ExpandableDescriptionWithHashtags> {
+  bool _isExpanded = false;
+
+  @override
+  void didUpdateWidget(covariant _ExpandableDescriptionWithHashtags oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.description != widget.description) {
+      _isExpanded = false;
+    }
+  }
+
+  InlineSpan _buildTextSpan(BuildContext context) {
+    if (!widget.description.contains('#')) {
+      return TextSpan(
+        text: widget.description,
+        style: AppTextStyles.bodyText.copyWith(
+          color: widget.txt.body,
+          fontSize: 14.2,
+          fontWeight: FontWeight.w400,
+        ),
+      );
+    }
+
+    final RegExp exp = RegExp(r'(#[a-zA-Z0-9_]+)');
+    final List<TextSpan> spans = [];
+
+    widget.description.splitMapJoin(
+      exp,
+      onMatch: (Match match) {
+        spans.add(
+          TextSpan(
+            text: match.group(0),
+            style: AppTextStyles.bodyText.copyWith(
+              color: Theme.of(context).colorScheme.onPrimary,
+              fontSize: 15,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        );
+        return '';
+      },
+      onNonMatch: (String text) {
+        if (text.isNotEmpty) {
+          spans.add(
+            TextSpan(
+              text: text,
+              style: AppTextStyles.bodyText.copyWith(
+                color: widget.txt.body,
+                fontSize: 14,
+                fontWeight: FontWeight.w400,
+              ),
+            ),
+          );
+        }
+        return '';
+      },
+    );
+
+    return TextSpan(children: spans);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final textSpan = _buildTextSpan(context);
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final textPainter = TextPainter(
+          text: textSpan,
+          maxLines: 2,
+          textDirection: Directionality.of(context),
+        );
+        textPainter.layout(maxWidth: constraints.maxWidth);
+
+        final bool exceedsMaxLines = textPainter.didExceedMaxLines;
+
+        if (!exceedsMaxLines) {
+          return RichText(text: textSpan);
+        }
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            GestureDetector(
+              onTap: () {
+                setState(() {
+                  _isExpanded = !_isExpanded;
+                });
+              },
+              child: RichText(
+                text: textSpan,
+                maxLines: _isExpanded ? null : 2,
+                overflow: _isExpanded
+                    ? TextOverflow.clip
+                    : TextOverflow.ellipsis,
+              ),
+            ),
+            const SizedBox(height: 4),
+            GestureDetector(
+              onTap: () {
+                setState(() {
+                  _isExpanded = !_isExpanded;
+                });
+              },
+              behavior: HitTestBehavior.opaque,
+              child: Padding(
+                padding: const EdgeInsets.only(bottom: 2),
+                child: Text(
+                  _isExpanded ? 'Read less' : 'Read more',
+                  style: AppTextStyles.bodyText.copyWith(
+                    color: Theme.of(context).colorScheme.onPrimary,
+                    fontSize: 12.7,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 }

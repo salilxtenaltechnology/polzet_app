@@ -71,13 +71,36 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen>
 
   int _currentHintIndex = 0;
   Timer? hintTimer;
-  final List<String> _hintTexts = [
-    'Search polls, friends and hashtags...',
-    'Look up accounts, tags or places...',
-    'Find trending topics...',
+
+  static const List<String> _apiTabKeys = [
+    'top',
+    'accounts',
+    'posts',
+    'photos',
+    'tags',
+    'places',
   ];
 
-  static const _tabs = ['Top', 'Accounts', 'Polls', 'Photos', 'Tags', 'Places'];
+  List<String> _getHintTexts(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    return [
+      l10n.searchpollsfriendsandhashtags,
+      l10n.lookupaccountstagsorplaces,
+      l10n.findtrendingtopics,
+    ];
+  }
+
+  List<String> _getTabs(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    return [
+      l10n.top,
+      l10n.accounts,
+      l10n.polls,
+      l10n.photos,
+      l10n.tags,
+      l10n.places,
+    ];
+  }
 
   List<RecentSearchModel> _recentSearches = [];
   List<String> _removedSearchIds = [];
@@ -93,10 +116,8 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen>
   }
 
   String _getApiTabValue(int index) {
-    if (index < 0 || index >= _tabs.length) return 'top';
-    final tabName = _tabs[index].toLowerCase();
-    if (tabName == 'polls') return 'posts';
-    return tabName;
+    if (index < 0 || index >= _apiTabKeys.length) return 'top';
+    return _apiTabKeys[index];
   }
 
   void _handleTabSelection() {
@@ -194,7 +215,7 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen>
   void initState() {
     super.initState();
     _authTokenFuture = SharedPrefService.getToken();
-    _tabController = TabController(length: _tabs.length, vsync: this);
+    _tabController = TabController(length: _apiTabKeys.length, vsync: this);
     _currentTabIndex = _tabController.index;
     _tabController.addListener(_handleTabSelection);
 
@@ -232,7 +253,7 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen>
     hintTimer = Timer.periodic(const Duration(seconds: 3), (timer) {
       if (mounted) {
         setState(() {
-          _currentHintIndex = (_currentHintIndex + 1) % _hintTexts.length;
+          _currentHintIndex = (_currentHintIndex + 1) % 3;
         });
       }
     });
@@ -240,6 +261,7 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen>
 
   @override
   void dispose() {
+    hintTimer?.cancel();
     _searchController.dispose();
     _focusNode.dispose();
     _tabController.removeListener(_handleTabSelection);
@@ -598,7 +620,7 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen>
                 ),
                 onChanged: _onSearchChanged,
                 decoration: InputDecoration(
-                  hintText: _hintTexts[_currentHintIndex],
+                  hintText: _getHintTexts(context)[_currentHintIndex % _getHintTexts(context).length],
                   hintStyle: AppTextStyles.bodyText.copyWith(
                     color: const Color(0XFF898989),
                     fontWeight: FontWeight.w400,
@@ -667,7 +689,7 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen>
       ),
       dividerColor: Colors.transparent,
       unselectedLabelColor: Theme.of(context).colorScheme.onBackground,
-      tabs: _tabs.map((t) => Tab(text: t)).toList(),
+      tabs: _getTabs(context).map((t) => Tab(text: t)).toList(),
     );
   }
 
@@ -1166,7 +1188,7 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen>
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                "Trending Polls",
+                AppLocalizations.of(context)!.trendingpolls,
                 style: AppTextStyles.cardTitle.copyWith(
                   fontSize: 14.5,
                   fontWeight: FontWeight.w500,
@@ -1217,7 +1239,7 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen>
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                "Popular things",
+                AppLocalizations.of(context)!.popularthings,
                 style: AppTextStyles.cardTitle.copyWith(
                   fontSize: 14.5,
                   fontWeight: FontWeight.w500,
@@ -1390,7 +1412,7 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen>
 
         // Accounts - Shown SECOND!
         if (accounts.isNotEmpty) ...[
-          _buildSectionHeader('Accounts'),
+          _buildSectionHeader(AppLocalizations.of(context)!.accounts),
           SizedBox(height: 8.h),
           ...accounts.map((acc) => _buildAccountTile(acc)),
         ],
@@ -1727,7 +1749,7 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen>
         spans.add(
           TextSpan(
             text: match.group(0),
-             style: AppTextStyles.bodyText.copyWith(
+            style: AppTextStyles.bodyText.copyWith(
               color: Theme.of(context).colorScheme.onPrimary,
               fontSize: 15,
               fontWeight: FontWeight.w500,
@@ -1741,7 +1763,7 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen>
           spans.add(
             TextSpan(
               text: text,
-               style: AppTextStyles.bodyText.copyWith(
+              style: AppTextStyles.bodyText.copyWith(
                 color: txt.title,
                 fontSize: 14.5,
                 fontWeight: FontWeight.w400,
@@ -1848,10 +1870,14 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen>
                               ).colorScheme.outlineVariant,
                               width: 1,
                             ),
-                            borderRadius: BorderRadius.circular(AppRadius.button),
+                            borderRadius: BorderRadius.circular(
+                              AppRadius.button,
+                            ),
                           ),
                           child: ClipRRect(
-                            borderRadius: BorderRadius.circular(AppRadius.button),
+                            borderRadius: BorderRadius.circular(
+                              AppRadius.button,
+                            ),
                             child: imageWidget,
                           ),
                         ),

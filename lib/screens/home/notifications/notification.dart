@@ -37,6 +37,7 @@ import '../../../widgets/loader.dart';
 import '../../../widgets/show_toast.dart';
 import '../../../widgets/tabbar/indicatore_animation.dart';
 import '../message/chat/group/group_chat_screen.dart';
+import '../message/chat/group/group_members.dart';
 import '../message/chat/private/private_chat_screen.dart';
 import '../profile/public/public_profile_screen.dart';
 import '../profile/chase/user_chase.dart';
@@ -639,6 +640,20 @@ class NotificationState extends State<Notifications>
       case 'GROUP_ADMIN_PROMOTE':
         final groupName = notification.meta?.groupName ?? 'the group';
         return 'promoted you to admin of the group $groupName.';
+      case 'GROUP_JOIN_REQUEST':
+        final msg = notification.message ??
+            notification.meta?.body ??
+            notification.meta?.messagePreview ??
+            '';
+        if (msg.contains(' requested to join ')) {
+          return 'requested to join ${msg.split(' requested to join ').last}';
+        } else if (msg.isNotEmpty) {
+          return msg;
+        } else if (notification.meta?.groupName != null &&
+            notification.meta!.groupName!.isNotEmpty) {
+          return "requested to join '${notification.meta!.groupName}'";
+        }
+        return 'requested to join the group';
       case 'NEW_MESSAGE':
         final msg = notification.message ?? '';
         if (msg.isNotEmpty) {
@@ -699,6 +714,8 @@ class NotificationState extends State<Notifications>
         return const Color(0xFF25282D);
       case 'GROUP_ADMIN_PROMOTE':
         return const Color(0xFF30AB98);
+      case 'GROUP_JOIN_REQUEST':
+        return const Color(0xFF7569D6);
       case 'SHARE':
         return const Color(0xFF4A90E2);
       case 'NEW_MESSAGE':
@@ -1600,6 +1617,34 @@ class NotificationState extends State<Notifications>
                       profileUrl: notification.actor.avatarUrl,
                       userId: resolvedUserId,
                       chatId: resolvedChatId,
+                    ),
+                  ),
+                ),
+              );
+            }
+            return;
+          }
+
+          if (type == 'GROUP_JOIN_REQUEST') {
+            final resolvedChatId = notification.meta?.chatId?.toString();
+            if (resolvedChatId != null && resolvedChatId.isNotEmpty) {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => ChangeNotifierProvider(
+                    create: (_) {
+                      final provider = GroupChatProvider();
+                      provider.init(
+                        groupName: notification.meta?.groupName ?? 'Group',
+                        groupImageUrl: null,
+                        chatId: resolvedChatId,
+                      );
+                      return provider;
+                    },
+                    child: GroupMembers(
+                      members: const [],
+                      chatId: resolvedChatId,
+                      initialTabIndex: 1,
                     ),
                   ),
                 ),

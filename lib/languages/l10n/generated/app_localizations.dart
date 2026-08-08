@@ -3963,31 +3963,31 @@ abstract class AppLocalizations {
   /// No description provided for @generatequestion.
   ///
   /// In en, this message translates to:
-  /// **'Generate Question'**
+  /// **'Generate'**
   String get generatequestion;
 
   /// No description provided for @regeneratequestion.
   ///
   /// In en, this message translates to:
-  /// **'Regenerate Question'**
+  /// **'Regenerate'**
   String get regeneratequestion;
 
   /// No description provided for @generating.
   ///
   /// In en, this message translates to:
-  /// **'Generating...'**
+  /// **'Generating'**
   String get generating;
 
   /// No description provided for @generateoptions.
   ///
   /// In en, this message translates to:
-  /// **'Generate Options'**
+  /// **'Generate'**
   String get generateoptions;
 
   /// No description provided for @regenerateoptions.
   ///
   /// In en, this message translates to:
-  /// **'Regenerate Options'**
+  /// **'Regenerate'**
   String get regenerateoptions;
 
   /// No description provided for @votingmode.
@@ -4308,6 +4308,48 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Hidden from search. Join by invite link.'**
   String get hiddenfromsearchjoinbyinvitelink;
+
+  /// No description provided for @privacygroup.
+  ///
+  /// In en, this message translates to:
+  /// **'Privacy'**
+  String get privacygroup;
+
+  /// No description provided for @popularthings.
+  ///
+  /// In en, this message translates to:
+  /// **'Popular things'**
+  String get popularthings;
+
+  /// No description provided for @places.
+  ///
+  /// In en, this message translates to:
+  /// **'Places'**
+  String get places;
+
+  /// No description provided for @searchpollsfriendsandhashtags.
+  ///
+  /// In en, this message translates to:
+  /// **'Search polls, friends and hashtags...'**
+  String get searchpollsfriendsandhashtags;
+
+  /// No description provided for @lookupaccountstagsorplaces.
+  ///
+  /// In en, this message translates to:
+  /// **'Look up accounts, tags or places...'**
+  String get lookupaccountstagsorplaces;
+
+  /// No description provided for @findtrendingtopics.
+  ///
+  /// In en, this message translates to:
+  /// **'Find trending topics...'**
+  String get findtrendingtopics;
+
+  /// No description provided for @trendingpolls.
+  ///
+  /// In en, this message translates to:
+  /// **'Trending Polls'**
+  String get trendingpolls;
 }
 
 class _AppLocalizationsDelegate

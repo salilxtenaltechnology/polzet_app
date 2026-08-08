@@ -41,6 +41,10 @@ class UserPostResponse {
 class UserPostModel {
   final String id;
   final String user;
+  final String? userFirstName;
+  final String? userLastName;
+  final String? userProfileImage;
+  final String? userId;
   final String description;
   final DateTime createdAt;
   final List<PostImage> images;
@@ -52,10 +56,15 @@ class UserPostModel {
   final int sharesCount;
   final String locationName;
   bool is_polled_by_current_user;
+  bool isSaved;
 
   UserPostModel({
     required this.id,
     required this.user,
+    this.userFirstName,
+    this.userLastName,
+    this.userProfileImage,
+    this.userId,
     required this.description,
     required this.createdAt,
     required this.images,
@@ -67,14 +76,29 @@ class UserPostModel {
     required this.sharesCount,
     required this.locationName,
     required this.is_polled_by_current_user,
+    this.isSaved = false,
   });
 
   factory UserPostModel.fromJson(Map<String, dynamic> json) {
+    final userMap =
+        json['user'] is Map ? json['user'] as Map<String, dynamic> : null;
     return UserPostModel(
       id: (json['uuid'] ?? json['id'] ?? '').toString(),
-      user: (json['user'] is Map)
-          ? (json['user']['username'] ?? '').toString()
+      user: userMap != null
+          ? (userMap['username'] ?? '').toString()
           : (json['user'] ?? '').toString(),
+      userFirstName: userMap != null
+          ? userMap['first_name']?.toString()
+          : json['first_name']?.toString(),
+      userLastName: userMap != null
+          ? userMap['last_name']?.toString()
+          : json['last_name']?.toString(),
+      userProfileImage: userMap != null
+          ? userMap['profile_image']?.toString()
+          : json['profile_image']?.toString(),
+      userId: userMap != null
+          ? (userMap['userid'] ?? userMap['id'] ?? '').toString()
+          : json['user_id']?.toString(),
       description: json['description']?.toString() ?? '',
       createdAt: DateTime.parse(
         json['created_at']?.toString() ?? DateTime.now().toIso8601String(),
@@ -95,10 +119,11 @@ class UserPostModel {
               .toList() ??
           [],
       likesCount: _toInt(json['likes_count']),
-      isLiked: _parseBool(json['is_liked']),
-      commentCount: _toInt(json['comments_count']),
+      isLiked: _parseBool(json['is_liked'] ?? json['is_liked_by_current_user']),
+      commentCount: _toInt(json['comments_count'] ?? json['comment_count']),
       sharesCount: _toInt(json['shares_count']),
       is_polled_by_current_user: _parseBool(json['is_polled_by_current_user']),
+      isSaved: _parseBool(json['is_saved'] ?? json['is_saved_by_current_user']),
       locationName: json['location_name']?.toString() ?? '',
     );
   }
@@ -111,7 +136,7 @@ class UserPostModel {
     return false;
   }
 
-  int get commentsCount => comments.length;
+  int get commentsCount => comments.isNotEmpty ? comments.length : commentCount;
 
   bool get hasPollImages {
     return polls.any(
@@ -140,6 +165,7 @@ class UserPostModel {
       'comments_count': commentCount,
       'shares_count': sharesCount,
       'is_liked': isLiked,
+      'is_saved': isSaved,
       'location_name': locationName,
     };
   }
@@ -147,6 +173,10 @@ class UserPostModel {
   UserPostModel copyWith({
     String? id,
     String? user,
+    String? userFirstName,
+    String? userLastName,
+    String? userProfileImage,
+    String? userId,
     String? description,
     DateTime? createdAt,
     List<PostImage>? images,
@@ -157,11 +187,16 @@ class UserPostModel {
     int? sharesCount,
     bool? isLiked,
     bool? is_polled_by_current_user,
+    bool? isSaved,
     String? locationName,
   }) {
     return UserPostModel(
       id: id ?? this.id,
       user: user ?? this.user,
+      userFirstName: userFirstName ?? this.userFirstName,
+      userLastName: userLastName ?? this.userLastName,
+      userProfileImage: userProfileImage ?? this.userProfileImage,
+      userId: userId ?? this.userId,
       description: description ?? this.description,
       createdAt: createdAt ?? this.createdAt,
       images: images ?? this.images,
@@ -173,6 +208,7 @@ class UserPostModel {
       isLiked: isLiked ?? this.isLiked,
       is_polled_by_current_user:
           is_polled_by_current_user ?? this.is_polled_by_current_user,
+      isSaved: isSaved ?? this.isSaved,
       locationName: locationName ?? this.locationName,
     );
   }

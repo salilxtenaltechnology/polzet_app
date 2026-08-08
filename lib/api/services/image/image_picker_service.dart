@@ -7,7 +7,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:image_cropper/image_cropper.dart';
 import 'package:polzet_app/core/themes/app_text_styles.dart';
-import 'package:polzet_app/languages/l10n/generated/app_localizations_ar.dart';
 import 'package:wechat_assets_picker/wechat_assets_picker.dart';
 import 'package:wechat_camera_picker/wechat_camera_picker.dart';
 
@@ -119,7 +118,10 @@ class ImagePickerService {
   }) async {
     final AssetEntity? asset = await CameraPicker.pickFromCamera(
       context,
-      pickerConfig: const CameraPickerConfig(enableRecording: false),
+      pickerConfig: const CameraPickerConfig(
+        enableRecording: false,
+        textDelegate: EnglishCameraPickerTextDelegate(),
+      ),
     );
     return await (pickOriginal ? asset?.originFile : asset?.file);
   }

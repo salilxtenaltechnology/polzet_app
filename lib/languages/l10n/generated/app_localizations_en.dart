@@ -2127,19 +2127,19 @@ class AppLocalizationsEn extends AppLocalizations {
   String get typedescriptionorhashtags => 'Type description or hashtags';
 
   @override
-  String get generatequestion => 'Generate Question';
+  String get generatequestion => 'Generate';
 
   @override
-  String get regeneratequestion => 'Regenerate Question';
+  String get regeneratequestion => 'Regenerate';
 
   @override
-  String get generating => 'Generating...';
+  String get generating => 'Generating';
 
   @override
-  String get generateoptions => 'Generate Options';
+  String get generateoptions => 'Generate';
 
   @override
-  String get regenerateoptions => 'Regenerate Options';
+  String get regenerateoptions => 'Regenerate';
 
   @override
   String get votingmode => 'Voting Mode';
@@ -2311,4 +2311,27 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get hiddenfromsearchjoinbyinvitelink =>
       'Hidden from search. Join by invite link.';
+
+  @override
+  String get privacygroup => 'Privacy';
+
+  @override
+  String get popularthings => 'Popular things';
+
+  @override
+  String get places => 'Places';
+
+  @override
+  String get searchpollsfriendsandhashtags =>
+      'Search polls, friends and hashtags...';
+
+  @override
+  String get lookupaccountstagsorplaces =>
+      'Look up accounts, tags or places...';
+
+  @override
+  String get findtrendingtopics => 'Find trending topics...';
+
+  @override
+  String get trendingpolls => 'Trending Polls';
 }

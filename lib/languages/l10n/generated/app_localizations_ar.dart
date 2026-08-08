@@ -2297,4 +2297,26 @@ class AppLocalizationsAr extends AppLocalizations {
   @override
   String get hiddenfromsearchjoinbyinvitelink =>
       'مخفي عن البحث. انضم عبر رابط الدعوة.';
+
+  @override
+  String get privacygroup => 'الخصوصية';
+
+  @override
+  String get popularthings => 'الأشياء الشائعة';
+
+  @override
+  String get places => 'الأماكن';
+
+  @override
+  String get searchpollsfriendsandhashtags =>
+      'ابحث عن استطلاعات، أصدقاء وهاشتاجات...';
+
+  @override
+  String get lookupaccountstagsorplaces => 'ابحث عن حسابات، وسوم أو أماكن...';
+
+  @override
+  String get findtrendingtopics => 'اعثر على المواضيع الرائجة...';
+
+  @override
+  String get trendingpolls => 'الاستطلاعات الرائجة';
 }

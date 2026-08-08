@@ -2327,4 +2327,26 @@ class AppLocalizationsId extends AppLocalizations {
   @override
   String get hiddenfromsearchjoinbyinvitelink =>
       'Disembunyikan dari pencarian. Bergabung melalui tautan undangan.';
+
+  @override
+  String get privacygroup => 'Privasi';
+
+  @override
+  String get popularthings => 'Hal-hal populer';
+
+  @override
+  String get places => 'Tempat';
+
+  @override
+  String get searchpollsfriendsandhashtags =>
+      'Cari polling, teman, dan hashtag...';
+
+  @override
+  String get lookupaccountstagsorplaces => 'Cari akun, tag, atau tempat...';
+
+  @override
+  String get findtrendingtopics => 'Temukan topik yang sedang tren...';
+
+  @override
+  String get trendingpolls => 'Polling yang Sedang Tren';
 }

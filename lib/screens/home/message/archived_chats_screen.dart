@@ -734,7 +734,9 @@ class _ArchivedChatsScreenState extends State<ArchivedChatsScreen>
                         },
                       ),
                       _buildPopupItem(
-                        text: isMuted ? AppLocalizations.of(context)!.unmute : AppLocalizations.of(context)!.mute,
+                        text: isMuted
+                            ? AppLocalizations.of(context)!.unmute
+                            : AppLocalizations.of(context)!.mute,
                         isDarkMode: isDarkMode,
                         onTap: () async {
                           Navigator.pop(context);
@@ -818,7 +820,9 @@ class _ArchivedChatsScreenState extends State<ArchivedChatsScreen>
                       //   },
                       // ),
                       _buildPopupItem(
-                        text: isArchived ? AppLocalizations.of(context)!.unarchive : AppLocalizations.of(context)!.archive,
+                        text: isArchived
+                            ? AppLocalizations.of(context)!.unarchive
+                            : AppLocalizations.of(context)!.archive,
                         isDarkMode: isDarkMode,
                         onTap: () async {
                           Navigator.pop(context);

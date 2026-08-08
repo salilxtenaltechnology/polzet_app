@@ -32,6 +32,7 @@ import '../home feed/rank/result/things/things_result_screen.dart';
 import '../settings/settings_screen.dart';
 import 'chase/user_chase.dart';
 import 'edit_profile/edit_profile.dart';
+import 'public/public_profile_screen.dart';
 import 'rank/image/user_image_ranking.dart';
 import 'rank/things/user_things_ranking.dart';
 import 'widgets/profile_image_preview.dart';
@@ -82,11 +83,18 @@ class _ProfileScreenState extends State<ProfileScreen>
 
   List<UserPostModel>? _thingsPosts;
   List<UserPostModel>? _imagesPosts;
+  List<UserPostModel>? _savedPosts;
   bool _isLoadingThings = true;
   bool _isLoadingImages = true;
+  bool _isLoadingSaved = true;
+  bool _isLoadingSavedMore = false;
+  bool _hasMoreSaved = false;
+  int _savedCurrentPage = 1;
+  String? _savedSnapshot;
   int? _totalPollsCount;
 
   Map<String, bool> postLikeStates = {};
+  Map<String, bool> postSaveStates = {};
   Map<String, int> postLikeCounts = {};
   Map<String, int> postCommentsCounts = {};
   Map<String, int> postSharesCounts = {};
@@ -97,11 +105,128 @@ class _ProfileScreenState extends State<ProfileScreen>
   void _initializePostStates(List<UserPostModel> posts) {
     for (var post in posts) {
       postLikeStates[post.id] = post.isLiked;
+      postSaveStates[post.id] = post.isSaved;
       postLikeCounts[post.id] = post.likesCount;
       postCommentsCounts[post.id] = post.commentsCount;
       postSharesCounts[post.id] = post.sharesCount;
       if (post.likesCount > 0) {
         _fetchLikedUsersSilently(post.id);
+      }
+    }
+  }
+
+  Future<void> _fetchSavedPosts({bool isRefresh = false}) async {
+    if (isRefresh) {
+      _savedCurrentPage = 1;
+      _savedSnapshot = null;
+      _hasMoreSaved = false;
+    }
+
+    try {
+      final response = await apiService.getSavedPostList(
+        page: 1,
+      );
+      if (mounted) {
+        final page = response['page'] as int? ?? 1;
+        final hasMore = response['has_more'] as bool? ?? false;
+        final snapshot = response['snapshot'] as String?;
+        final results = response['results'] as List<dynamic>? ?? [];
+
+        final fetchedPosts = results
+            .map((e) => UserPostModel.fromJson(e as Map<String, dynamic>))
+            .toList();
+
+        setState(() {
+          _savedPosts = fetchedPosts;
+          _savedCurrentPage = page;
+          _savedSnapshot = snapshot;
+          _hasMoreSaved = hasMore;
+          _isLoadingSaved = false;
+        });
+        _initializePostStates(fetchedPosts);
+      }
+    } catch (e) {
+      debugPrint('Error fetching saved posts: $e');
+      if (mounted) {
+        setState(() {
+          _savedPosts ??= [];
+          _isLoadingSaved = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _fetchMoreSavedPosts() async {
+    if (_isLoadingSavedMore || !_hasMoreSaved) return;
+
+    setState(() {
+      _isLoadingSavedMore = true;
+    });
+
+    try {
+      final nextPage = _savedCurrentPage + 1;
+      final response = await apiService.getSavedPostList(
+        page: nextPage,
+        snapshot: _savedSnapshot,
+      );
+      if (mounted) {
+        final hasMore = response['has_more'] as bool? ?? false;
+        final snapshot = response['snapshot'] as String?;
+        final results = response['results'] as List<dynamic>? ?? [];
+
+        final fetchedPosts = results
+            .map((e) => UserPostModel.fromJson(e as Map<String, dynamic>))
+            .toList();
+
+        setState(() {
+          _savedPosts!.addAll(fetchedPosts);
+          _savedCurrentPage = nextPage;
+          _savedSnapshot = snapshot;
+          _hasMoreSaved = hasMore;
+          _isLoadingSavedMore = false;
+        });
+        _initializePostStates(fetchedPosts);
+      }
+    } catch (e) {
+      debugPrint('Error fetching more saved posts: $e');
+      if (mounted) {
+        setState(() {
+          _isLoadingSavedMore = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _toggleSavePost(UserPostModel post) async {
+    final currentSaved = postSaveStates[post.id] ?? post.isSaved;
+    final nextSaved = !currentSaved;
+
+    setState(() {
+      postSaveStates[post.id] = nextSaved;
+      post.isSaved = nextSaved;
+    });
+
+    try {
+      final res = await apiService.toggleSavePost(postId: post.id);
+      final dynamic savedVal =
+          res['is_saved'] ?? res['is_saved_by_current_user'] ?? res['saved'];
+      if (savedVal != null && mounted) {
+        final bool serverSaved = savedVal == true ||
+            savedVal == 1 ||
+            savedVal.toString().toLowerCase() == 'true';
+        setState(() {
+          postSaveStates[post.id] = serverSaved;
+          post.isSaved = serverSaved;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error toggling save post: $e');
+      if (mounted) {
+        setState(() {
+          postSaveStates[post.id] = currentSaved;
+          post.isSaved = currentSaved;
+        });
+        showToast(message: 'Failed to update save status');
       }
     }
   }
@@ -137,6 +262,7 @@ class _ProfileScreenState extends State<ProfileScreen>
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _fetchCounts();
       _fetchPosts();
+      _fetchSavedPosts();
     });
   }
 
@@ -173,7 +299,10 @@ class _ProfileScreenState extends State<ProfileScreen>
     final userProvider = Provider.of<UserProvider>(context, listen: false);
     await userProvider.loadUserDataSilently();
     await _fetchCounts();
-    await _fetchPosts();
+    await Future.wait([
+      _fetchPosts(),
+      _fetchSavedPosts(isRefresh: true),
+    ]);
   }
 
   Future<void> _fetchPosts() async {
@@ -701,49 +830,99 @@ class _ProfileScreenState extends State<ProfileScreen>
                           );
                         },
                       ),
-                Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      isDarkMode
-                          ? const SizedBox()
-                          : Padding(
-                              padding: const EdgeInsets.only(bottom: 10),
-                              child: Image.asset(
-                                Assets.images.noSavedPost.path,
-                                height: 0.20.sh,
-                                width: 0.20.sh,
-                                fit: BoxFit.contain,
-                              ),
+                _isLoadingSaved
+                    ? Center(
+                        child: Loader(
+                          color: Theme.of(context).colorScheme.onPrimary,
+                        ),
+                      )
+                    : (_savedPosts == null || _savedPosts!.isEmpty)
+                        ? Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                isDarkMode
+                                    ? const SizedBox()
+                                    : Padding(
+                                        padding:
+                                            const EdgeInsets.only(bottom: 10),
+                                        child: Image.asset(
+                                          Assets.images.noSavedPost.path,
+                                          height: 0.20.sh,
+                                          width: 0.20.sh,
+                                          fit: BoxFit.contain,
+                                        ),
+                                      ),
+
+                                Text(
+                                  AppLocalizations.of(context)!.nothingsavedyet,
+
+                                  textAlign: TextAlign.center,
+                                  style: AppTextStyles.sectionHeading.copyWith(
+                                    fontSize: 18.5,
+                                    color: txt.title,
+                                    fontWeight: FontWeight.w600,
+                                    height: 1.4,
+                                  ),
+                                ),
+                                const SizedBox(height: 10),
+                                Text(
+                                  AppLocalizations.of(
+                                    context,
+                                  )!.savedpollsyouwanttorevisitlater,
+
+                                  textAlign: TextAlign.center,
+                                  style: AppTextStyles.bodyText.copyWith(
+                                    fontSize: 13,
+                                    color: txt.muted,
+                                    height: 1.4,
+                                  ),
+                                ),
+                              ],
                             ),
-
-                      Text(
-                        AppLocalizations.of(context)!.nothingsavedyet,
-
-                        textAlign: TextAlign.center,
-                        style: AppTextStyles.sectionHeading.copyWith(
-                          fontSize: 18.5,
-                          color: txt.title,
-                          fontWeight: FontWeight.w600,
-                          height: 1.4,
-                        ),
-                      ),
-                      const SizedBox(height: 10),
-                      Text(
-                        AppLocalizations.of(
-                          context,
-                        )!.savedpollsyouwanttorevisitlater,
-
-                        textAlign: TextAlign.center,
-                        style: AppTextStyles.bodyText.copyWith(
-                          fontSize: 13,
-                          color: txt.muted,
-                          height: 1.4,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+                          )
+                        : NotificationListener<ScrollNotification>(
+                            onNotification: (scrollInfo) {
+                              if (!_isLoadingSavedMore &&
+                                  _hasMoreSaved &&
+                                  scrollInfo.metrics.pixels >=
+                                      scrollInfo.metrics.maxScrollExtent -
+                                          200) {
+                                _fetchMoreSavedPosts();
+                              }
+                              return false;
+                            },
+                            child: ListView.builder(
+                              physics: const AlwaysScrollableScrollPhysics(),
+                              padding:
+                                  EdgeInsets.fromLTRB(10.w, 12.h, 10.w, 100),
+                              itemCount: _savedPosts!.length +
+                                  (_isLoadingSavedMore ? 1 : 0),
+                              itemBuilder: (context, index) {
+                                if (index < _savedPosts!.length) {
+                                  final post = _savedPosts![index];
+                                  return _buildSimplePostCard(
+                                    post,
+                                    isImage: post.isImagePoll,
+                                    userProvider: userProvider,
+                                    index: index,
+                                  );
+                                } else {
+                                  return Padding(
+                                    padding:
+                                        EdgeInsets.symmetric(vertical: 16.h),
+                                    child: Center(
+                                      child: Loader(
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .onPrimary,
+                                      ),
+                                    ),
+                                  );
+                                }
+                              },
+                            ),
+                          ),
               ],
             ),
           ),
@@ -966,7 +1145,8 @@ class _ProfileScreenState extends State<ProfileScreen>
                       if (username != null && username.isNotEmpty) {
                         ShareService.shareProfile(
                           username: username,
-                          profileId: userProvider.userId?.toString() ?? username,
+                          profileId:
+                              userProvider.userId?.toString() ?? username,
                           context: context,
                         );
                       }
@@ -1088,11 +1268,30 @@ class _ProfileScreenState extends State<ProfileScreen>
               .image);
 
     final isLiked = postLikeStates[post.id] ?? post.isLiked;
+    final isSaved = postSaveStates[post.id] ?? post.isSaved;
     final likesCount = postLikeCounts[post.id] ?? post.likesCount;
     final commentsCount = postCommentsCounts[post.id] ?? post.commentsCount;
     final sharesCount = postSharesCounts[post.id] ?? post.sharesCount;
     final viewLikes = postLikedUsers[post.id] ?? [];
     final currentUsername = userProvider.username ?? '';
+
+    final String postUsername = post.user.isNotEmpty
+        ? post.user
+        : (userProvider.username ?? 'polzet_user');
+
+    final String postDisplayName = (post.userFirstName != null &&
+            post.userFirstName!.isNotEmpty)
+        ? '${post.userFirstName} ${post.userLastName ?? ''}'.trim()
+        : (post.user == userProvider.username &&
+                userProvider.firstName != null &&
+                userProvider.firstName!.isNotEmpty
+            ? '${userProvider.firstName} ${userProvider.lastName ?? ''}'.trim()
+            : postUsername);
+
+    final String? postProfilePic = (post.userProfileImage != null &&
+            post.userProfileImage!.isNotEmpty)
+        ? post.userProfileImage
+        : (post.user == userProvider.username ? userProvider.profile_picture : null);
 
     return ProfilePostCardAnimation(
       index: index,
@@ -1115,111 +1314,131 @@ class _ProfileScreenState extends State<ProfileScreen>
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  Container(
-                    width: 42,
-                    height: 42,
-                    decoration: const BoxDecoration(shape: BoxShape.circle),
-                    child: ClipOval(
-                      child: (() {
-                        final profilePic = userProvider.profile_picture;
-                        if (profilePic != null && profilePic.isNotEmpty) {
-                          final cachedImage = _getCachedProfileImage(
-                            profilePic,
-                            userProvider,
-                          );
-                          if (cachedImage != null) {
-                            return Image.memory(
-                              cachedImage,
-                              fit: BoxFit.cover,
-                              errorBuilder: (_, __, ___) => _AvatarPlaceholder(
-                                username: userProvider.username,
-                                fontSize: 18,
-                              ),
-                            );
-                          } else if (profilePic.startsWith('http') ||
-                              profilePic.startsWith('/') ||
-                              profilePic.contains('/')) {
-                            final imageUrl = profilePic.startsWith('http')
-                                ? profilePic
-                                : (profilePic.startsWith('/')
-                                      ? '${ApiConfig.baseUrlImage}$profilePic'
-                                      : '${ApiConfig.baseUrlImage}/$profilePic');
-                            return CachedNetworkImage(
-                              imageUrl: imageUrl,
-                              fit: BoxFit.cover,
-                              errorWidget: (_, __, ___) => _AvatarPlaceholder(
-                                username: userProvider.username,
-                                fontSize: 18,
-                              ),
-                            );
-                          }
-                        }
-                        return _AvatarPlaceholder(
-                          username: userProvider.username,
-                          fontSize: 18,
-                        );
-                      })(),
-                    ),
-                  ),
-                  const SizedBox(width: 7),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        userProvider.isLoading
-                            ? '-'
-                            : (userProvider.firstName != null &&
-                                      userProvider.firstName!.isNotEmpty
-                                  ? '${userProvider.firstName} ${userProvider.lastName ?? ''}'
-                                        .trim()
-                                  : (userProvider.username ?? 'Polzet User')),
-                        style: AppTextStyles.sectionHeading.copyWith(
-                          color: txt.title,
-                          fontSize: 14,
-                        ),
-                      ),
-
-                      //const SizedBox(height: 2),
-                      Row(
-                        children: [
-                          Text(
-                            userProvider.isLoading
-                                ? '-'
-                                : (userProvider.username != null
-                                      ? '@${userProvider.username}'
-                                      : '@polzet_user'),
-                            style: AppTextStyles.bodyText.copyWith(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w500,
-                              color: txt.body,
-                            ),
-                          ),
-                          Text(
-                            '  • ${_timeAgo(post.createdAt)}',
-                            style: AppTextStyles.subText.copyWith(
-                              color: txt.muted,
-                              fontWeight: FontWeight.w400,
-                              fontSize: 11.5,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                  const Spacer(),
                   GestureDetector(
                     onTap: () {
-                      showUserDeletePostDiolog(context, () {
-                        Navigator.pop(context);
-                        _deletePost(post.id);
-                      });
+                      if (post.user.isNotEmpty &&
+                          post.user != userProvider.username) {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => PublicProfileScreen(
+                              userId: post.userId,
+                              username: post.user,
+                            ),
+                          ),
+                        );
+                      }
                     },
-                    child: const Icon(
-                      FeatherIcons.moreVertical,
-                      size: 22,
-                      color: Color(0xFF727272),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Container(
+                          width: 42,
+                          height: 42,
+                          decoration:
+                              const BoxDecoration(shape: BoxShape.circle),
+                          child: ClipOval(
+                            child: (() {
+                              if (postProfilePic != null &&
+                                  postProfilePic.isNotEmpty) {
+                                if (postProfilePic ==
+                                    userProvider.profile_picture) {
+                                  final cachedImage = _getCachedProfileImage(
+                                    postProfilePic,
+                                    userProvider,
+                                  );
+                                  if (cachedImage != null) {
+                                    return Image.memory(
+                                      cachedImage,
+                                      fit: BoxFit.cover,
+                                      width: double.infinity,
+                                      height: double.infinity,
+                                      errorBuilder: (_, __, ___) =>
+                                          _AvatarPlaceholder(
+                                        username: postUsername,
+                                        fontSize: 18,
+                                      ),
+                                    );
+                                  }
+                                }
+                                final imageUrl = postProfilePic.startsWith('http')
+                                    ? postProfilePic
+                                    : (postProfilePic.startsWith('/')
+                                        ? '${ApiConfig.baseUrlImage}$postProfilePic'
+                                        : '${ApiConfig.baseUrlImage}/$postProfilePic');
+                                return CachedNetworkImage(
+                                  imageUrl: imageUrl,
+                                  fit: BoxFit.cover,
+                                  width: double.infinity,
+                                  height: double.infinity,
+                                  errorWidget: (_, __, ___) => _AvatarPlaceholder(
+                                    username: postUsername,
+                                    fontSize: 18,
+                                  ),
+                                );
+                              }
+                              return _AvatarPlaceholder(
+                                username: postUsername,
+                                fontSize: 18,
+                              );
+                            })(),
+                          ),
+                        ),
+                        const SizedBox(width: 7),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              userProvider.isLoading && post.user.isEmpty
+                                  ? '-'
+                                  : postDisplayName,
+                              style: AppTextStyles.sectionHeading.copyWith(
+                                color: txt.title,
+                                fontSize: 14,
+                              ),
+                            ),
+
+                            Row(
+                              children: [
+                                Text(
+                                  userProvider.isLoading && post.user.isEmpty
+                                      ? '-'
+                                      : '@$postUsername',
+                                  style: AppTextStyles.bodyText.copyWith(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w500,
+                                    color: txt.body,
+                                  ),
+                                ),
+                                Text(
+                                  '  • ${_timeAgo(post.createdAt)}',
+                                  style: AppTextStyles.subText.copyWith(
+                                    color: txt.muted,
+                                    fontWeight: FontWeight.w400,
+                                    fontSize: 11.5,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ],
                     ),
                   ),
+                  const Spacer(),
+                  if (post.user.isEmpty || post.user == userProvider.username)
+                    GestureDetector(
+                      onTap: () {
+                        showUserDeletePostDiolog(context, () {
+                          Navigator.pop(context);
+                          _deletePost(post.id);
+                        });
+                      },
+                      child: const Icon(
+                        FeatherIcons.moreVertical,
+                        size: 22,
+                        color: Color(0xFF727272),
+                      ),
+                    ),
                 ],
               ),
             ),
@@ -1703,6 +1922,23 @@ class _ProfileScreenState extends State<ProfileScreen>
                               ),
                             ),
                           ],
+                        ),
+                      ),
+                      const Spacer(),
+                      GestureDetector(
+                        onTap: () => _toggleSavePost(post),
+                        child: AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 200),
+                          transitionBuilder: (child, animation) =>
+                              ScaleTransition(scale: animation, child: child),
+                          child: isSaved
+                              ? AppIcons.filledSave(
+                                  key: const ValueKey('saved_filled'),
+                                  color: Theme.of(context).colorScheme.primary,
+                                )
+                              : AppIcons.outlineSave(
+                                  key: const ValueKey('saved_outline'),
+                                ),
                         ),
                       ),
                     ],

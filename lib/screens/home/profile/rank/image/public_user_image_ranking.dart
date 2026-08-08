@@ -18,6 +18,7 @@ import '../../../../../widgets/loader.dart';
 import '../../../home feed/rank/result/image/image_preview_screen.dart';
 import '../../../home feed/rank/result/image/image_result_screen.dart';
 import '../../../home feed/rank/submit/rank_submitted_screen.dart';
+import '../../../../../../gen/assets.gen.dart';
 
 class PublicUserImageRanking extends StatefulWidget {
   final String? firstName;
@@ -216,22 +217,60 @@ class _PublicUserImageRankingState extends State<PublicUserImageRanking> {
           // User row
           Row(
             children: [
-              CircleAvatar(
-                radius: 20,
-                backgroundColor: Theme.of(
-                  context,
-                ).colorScheme.onPrimary.withOpacity(0.1),
-                backgroundImage: avatarImage,
-                child: avatarImage == null
-                    ? Text(
-                        initial,
-                        style: AppTextStyles.cardTitle.copyWith(
-                          color: Theme.of(context).colorScheme.onPrimary,
-                          fontWeight: FontWeight.w500,
-                          fontSize: 18,
+              SizedBox(
+                width: 45,
+                height: 45,
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    ClipOval(
+                      child: (() {
+                        final String currentUsername =
+                            username.trim().toLowerCase();
+                        if (currentUsername == 'polzet_ai') {
+                          return Center(
+                            child: Padding(
+                              padding: const EdgeInsets.only(
+                                top: 8,
+                                bottom: 0,
+                                left: 10,
+                                right: 9,
+                              ),
+                              child: Image.asset(
+                                Assets.images.icSplash.path,
+                              ),
+                            ),
+                          );
+                        }
+                        return CircleAvatar(
+                          radius: 22.5,
+                          backgroundColor: Theme.of(
+                            context,
+                          ).colorScheme.onPrimary.withOpacity(0.1),
+                          backgroundImage: avatarImage,
+                          child: avatarImage == null
+                              ? Text(
+                                  initial,
+                                  style: AppTextStyles.cardTitle.copyWith(
+                                    color: Theme.of(context).colorScheme.onPrimary,
+                                    fontWeight: FontWeight.w500,
+                                    fontSize: 18,
+                                  ),
+                                )
+                              : null,
+                        );
+                      })(),
+                    ),
+                    if (username.trim().toLowerCase() == 'polzet_ai')
+                      Positioned.fill(
+                        child: Image.asset(
+                          Assets.images.aiFrame.path,
+                          height: 55,
+                          width: 55,
                         ),
-                      )
-                    : null,
+                      ),
+                  ],
+                ),
               ),
               const SizedBox(width: 10),
               Expanded(
@@ -239,23 +278,42 @@ class _PublicUserImageRankingState extends State<PublicUserImageRanking> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      '${widget.firstName ?? ''} ${widget.lastName ?? ''}'
-                          .trim(),
+                      () {
+                        final fn = widget.firstName?.trim() ?? '';
+                        final ln = widget.lastName?.trim() ?? '';
+                        final fullName = '$fn $ln'.trim();
+                        if (fullName.isNotEmpty) return fullName;
+                        return username.isNotEmpty ? username : 'Polzet User';
+                      }(),
                       style: AppTextStyles.sectionHeading.copyWith(
                         color: txt.title,
                         fontSize: 14,
                       ),
                     ),
                     Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
-                        Text(
-                          '@$username',
-                          style: AppTextStyles.bodyText.copyWith(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w500,
-                            color: txt.body,
+                        Flexible(
+                          child: Text(
+                            '@$username',
+                            style: AppTextStyles.bodyText.copyWith(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                              color: txt.body,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ),
+                        if (username.trim().toLowerCase() == 'polzet_ai' ||
+                            username.trim().toLowerCase() == 'polzet') ...[
+                          const SizedBox(width: 4),
+                          Image.asset(
+                            Assets.images.icVerify.path,
+                            height: 13,
+                            width: 13,
+                          ),
+                        ],
                         Text(
                           '  • ${_timeAgo(widget.post.createdAt.toIso8601String())}',
                           style: AppTextStyles.subText.copyWith(

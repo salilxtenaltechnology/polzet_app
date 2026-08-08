@@ -20,6 +20,8 @@ import '../../../../languages/l10n/generated/app_localizations.dart';
 import '../../../../provider/user_provider.dart';
 import '../../../../widgets/appbar/common_appbar.dart';
 import '../../../../widgets/button/primary_button.dart';
+import '../../../../widgets/button/generate_question_button.dart';
+import '../../../../widgets/button/generate_description_button.dart';
 import '../../../../widgets/custom_text_styles.dart';
 import '../../../../widgets/dotted_border/dotted_border.dart';
 import '../../../../widgets/show_toast.dart';
@@ -37,6 +39,7 @@ class _NewImagePollState extends State<NewImagePoll> {
   final ApiService service = ApiService();
   final questionController = TextEditingController();
   final descriptionController = TextEditingController();
+  final FocusNode questionFocusNode = FocusNode();
 
   String questionErrorText = '';
   String imageErrorText = '';
@@ -46,6 +49,8 @@ class _NewImagePollState extends State<NewImagePoll> {
 
   bool _isGeneratingQuestion = false;
   bool _hasGeneratedQuestion = false;
+  bool _isGeneratingDescription = false;
+  bool _hasGeneratedDescription = false;
   bool _isMultiChoice = false;
 
   // Hint animation state
@@ -57,12 +62,32 @@ class _NewImagePollState extends State<NewImagePoll> {
   ];
 
   List<File> _selectedImages = [];
+  final List<TextEditingController> _labelControllers = [];
   static const int maxImages = 4;
+
+  void _syncLabelControllers() {
+    while (_labelControllers.length < _selectedImages.length) {
+      final controller = TextEditingController();
+      controller.addListener(_onLabelChanged);
+      _labelControllers.add(controller);
+    }
+    while (_labelControllers.length > _selectedImages.length) {
+      final controller = _labelControllers.removeLast();
+      controller.removeListener(_onLabelChanged);
+      controller.dispose();
+    }
+  }
+
+  void _onLabelChanged() {
+    if (mounted) {
+      setState(() {});
+    }
+  }
 
   @override
   void initState() {
     super.initState();
-    questionController.addListener(_clearQuestionError);
+    questionController.addListener(_onQuestionChanged);
     _startHintAnimation();
   }
 
@@ -76,12 +101,13 @@ class _NewImagePollState extends State<NewImagePoll> {
     });
   }
 
-  void _clearQuestionError() {
+  void _onQuestionChanged() {
     if (questionErrorText.isNotEmpty &&
         questionController.text.trim().isNotEmpty) {
-      setState(() {
-        questionErrorText = '';
-      });
+      questionErrorText = '';
+    }
+    if (mounted) {
+      setState(() {});
     }
   }
 
@@ -112,7 +138,8 @@ class _NewImagePollState extends State<NewImagePoll> {
           );
           _hasGeneratedQuestion = true;
         });
-        _clearQuestionError();
+        questionFocusNode.requestFocus();
+        _onQuestionChanged();
         showToast(message: 'Question generated!');
       } else {
         showToast(
@@ -127,6 +154,128 @@ class _NewImagePollState extends State<NewImagePoll> {
       if (mounted) {
         setState(() {
           _isGeneratingQuestion = false;
+        });
+      }
+    }
+  }
+
+  List<String> _getValidOptions() {
+    final labels = _labelControllers
+        .map((c) => c.text.trim())
+        .where((text) => text.isNotEmpty)
+        .toList();
+    if (labels.isNotEmpty) {
+      return labels;
+    }
+    final count = _selectedImages.length;
+    if (count >= 2) {
+      return List.generate(count, (index) => 'Option ${index + 1}');
+    }
+    return ['Option 1', 'Option 2'];
+  }
+
+  /// Generate description and hashtags for the poll using AI
+  Future<void> generateDescription() async {
+    final question = questionController.text.trim();
+    final options = _getValidOptions();
+
+    if (question.isEmpty) {
+      setState(() {
+        questionErrorText = AppLocalizations.of(context)!.pleaseenteraquestion;
+      });
+      return;
+    }
+
+    setState(() {
+      _isGeneratingDescription = true;
+    });
+
+    try {
+      // 1. Generate description
+      final descResponse = await service.generateDescription(
+        question: question,
+        options: options,
+      );
+      debugPrint('generateDescription response: $descResponse');
+      final String descriptionText =
+          (descResponse["description"] ?? descResponse["data"]?["description"])
+              ?.toString()
+              .trim() ??
+          '';
+
+      if (descriptionText.isNotEmpty) {
+        setState(() {
+          descriptionController.text = descriptionText;
+          descriptionController.selection = TextSelection.fromPosition(
+            TextPosition(offset: descriptionController.text.length),
+          );
+          _hasGeneratedDescription = true;
+        });
+      }
+
+      // 2. Generate hashtags using question and description
+      final String activeDescription = descriptionController.text.trim();
+      final hashtagResponse = await service.generateHashtags(
+        question: question,
+        description:
+            activeDescription.isNotEmpty ? activeDescription : question,
+      );
+      debugPrint('generateHashtags response: $hashtagResponse');
+
+      final dynamic rawHashtags =
+          hashtagResponse['hashtags'] ?? hashtagResponse['data']?['hashtags'];
+      List<String> hashtagsList = [];
+      if (rawHashtags is List) {
+        hashtagsList = rawHashtags
+            .map((e) => e.toString().trim())
+            .where((e) => e.isNotEmpty)
+            .toList();
+      } else if (rawHashtags is String) {
+        hashtagsList = rawHashtags
+            .split(RegExp(r'[\s,]+'))
+            .map((e) => e.trim())
+            .where((e) => e.isNotEmpty)
+            .toList();
+      }
+
+      if (hashtagsList.isNotEmpty) {
+        final formattedHashtags = hashtagsList
+            .map((h) => h.startsWith('#') ? h : '#$h')
+            .join(' ');
+
+        setState(() {
+          final String baseText = descriptionText.isNotEmpty
+              ? descriptionText
+              : descriptionController.text.trim();
+          if (baseText.isNotEmpty) {
+            descriptionController.text = '$baseText\n\n$formattedHashtags';
+          } else {
+            descriptionController.text = formattedHashtags;
+          }
+          descriptionController.selection = TextSelection.fromPosition(
+            TextPosition(offset: descriptionController.text.length),
+          );
+          _hasGeneratedDescription = true;
+        });
+      }
+
+      if (descriptionText.isNotEmpty || hashtagsList.isNotEmpty) {
+        showToast(message: 'Description & hashtags generated!');
+      } else {
+        showToast(
+          message:
+              descResponse['message']?.toString() ??
+              hashtagResponse['message']?.toString() ??
+              'Failed to generate description & hashtags',
+        );
+      }
+    } catch (e) {
+      debugPrint('generateDescription error: $e');
+      showToast(message: e.toString().replaceAll('Exception: ', ''));
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isGeneratingDescription = false;
         });
       }
     }
@@ -157,6 +306,7 @@ class _NewImagePollState extends State<NewImagePoll> {
             if (_selectedImages.length > maxImages) {
               _selectedImages = _selectedImages.sublist(0, maxImages);
             }
+            _syncLabelControllers();
             if (imageErrorText.isNotEmpty) {
               imageErrorText = '';
             }
@@ -181,6 +331,7 @@ class _NewImagePollState extends State<NewImagePoll> {
     if (finalFiles != null && finalFiles.isNotEmpty && mounted) {
       setState(() {
         _selectedImages = finalFiles;
+        _syncLabelControllers();
         if (imageErrorText.isNotEmpty) {
           imageErrorText = '';
         }
@@ -266,7 +417,7 @@ class _NewImagePollState extends State<NewImagePoll> {
                   child: Text(
                     'Remove',
                     style: AppTextStyles.bodyText.copyWith(
-                      color: txt.body,
+                      color: Theme.of(context).colorScheme.error,
                       fontSize: 13.5.sp,
                       fontWeight: FontWeight.w400,
                     ),
@@ -329,6 +480,9 @@ class _NewImagePollState extends State<NewImagePoll> {
     if (index >= 0 && index < _selectedImages.length) {
       setState(() {
         _selectedImages.removeAt(index);
+        if (index < _labelControllers.length) {
+          _labelControllers.removeAt(index).dispose();
+        }
       });
     }
   }
@@ -368,12 +522,15 @@ class _NewImagePollState extends State<NewImagePoll> {
     });
 
     try {
+      final labels = _labelControllers.map((c) => c.text.trim()).toList();
+
       // Upload the poll
       Map<String, dynamic>? result = await ApiService.uploadImagePoll(
         question: questionController.text.trim(),
         description: descriptionController.text.trim(),
         pollOptions: _selectedImages,
         maxOptions: maxImages,
+        labels: labels,
         votingType: _isMultiChoice ? "ranking" : "single_choice",
         authToken: accessToken,
         onProgress: (progress) {
@@ -392,6 +549,10 @@ class _NewImagePollState extends State<NewImagePoll> {
         showToast(message: 'New image poll created!');
         questionController.clear();
         descriptionController.clear();
+        for (final controller in _labelControllers) {
+          controller.dispose();
+        }
+        _labelControllers.clear();
         setState(() {
           _selectedImages.clear();
           uploadProgress = 0.0;
@@ -457,31 +618,12 @@ class _NewImagePollState extends State<NewImagePoll> {
                 AppLocalizations.of(context)!.question,
                 style: CustomTextStyles.lblPrimaryText(context),
               ),
-              GestureDetector(
-                onTap: _isGeneratingQuestion ? null : generateQuestion,
-                child: Row(
-                  children: [
-                    _isGeneratingQuestion
-                        ? const SizedBox()
-                        : Assets.images.icAssistant.image(
-                            width: 14.w,
-                            height: 14.h,
-                            color: Theme.of(context).colorScheme.onPrimary,
-                          ),
-                    const SizedBox(width: 5),
-                    Text(
-                      _isGeneratingQuestion
-                          ? AppLocalizations.of(context)!.generating
-                          : _hasGeneratedQuestion
-                          ? AppLocalizations.of(context)!.regeneratequestion
-                          : AppLocalizations.of(context)!.generatequestion,
-                      style: AppTextStyles.bodyText.copyWith(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w500,
-                        color: Theme.of(context).colorScheme.onPrimary,
-                      ),
-                    ),
-                  ],
+              SizedBox(
+                height: 30,
+                child: GenerateQuestionButton(
+                  isGenerating: _isGeneratingQuestion,
+                  hasGenerated: _hasGeneratedQuestion,
+                  onTap: _isGeneratingQuestion ? null : generateQuestion,
                 ),
               ),
             ],
@@ -489,7 +631,12 @@ class _NewImagePollState extends State<NewImagePoll> {
           SizedBox(height: 7.h),
           SecondryTextfield(
             controller: questionController,
+            focusNode: questionFocusNode,
             hintText: _hintTexts[_currentHintIndex],
+            focusedBorderColor:
+                questionController.text.trim().isNotEmpty
+                    ? Theme.of(context).colorScheme.onPrimary
+                    : null,
           ),
           if (questionErrorText.isNotEmpty)
             Padding(
@@ -500,9 +647,24 @@ class _NewImagePollState extends State<NewImagePoll> {
               ),
             ),
           SizedBox(height: 20.h),
-          Text(
-            AppLocalizations.of(context)!.descriptionhashtagsoptional,
-            style: CustomTextStyles.lblPrimaryText(context),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Text(
+                  AppLocalizations.of(context)!.descriptionhashtagsoptional,
+                  style: CustomTextStyles.lblPrimaryText(context),
+                ),
+              ),
+              // SizedBox(
+              //   height: 30,
+              //   child: GenerateDescriptionButton(
+              //     isGenerating: _isGeneratingDescription,
+              //     hasGenerated: _hasGeneratedDescription,
+              //     onTap: _isGeneratingDescription ? null : generateDescription,
+              //   ),
+              // ),
+            ],
           ),
           SizedBox(height: 7.h),
           SecondryTextfield(
@@ -510,6 +672,7 @@ class _NewImagePollState extends State<NewImagePoll> {
             hintText: AppLocalizations.of(context)!.typedescriptionorhashtags,
             maxLines: 5,
             minLines: 1,
+            focusedBorderColor: Theme.of(context).colorScheme.onPrimary,
           ),
           SizedBox(height: 20.h),
           Text(
@@ -693,7 +856,9 @@ class _NewImagePollState extends State<NewImagePoll> {
           ),
           SizedBox(height: 8.h),
           Text(
-          AppLocalizations.of(context)!.addtwoorfoursimilarimagesegoutfitsplacesfood,
+            AppLocalizations.of(
+              context,
+            )!.addtwoorfoursimilarimagesegoutfitsplacesfood,
             style: AppTextStyles.bodyText.copyWith(
               color: txt.muted,
               fontSize: 10.5.sp,
@@ -744,64 +909,88 @@ class _NewImagePollState extends State<NewImagePoll> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           ...rows.map((row) {
-            return Padding(
-              padding: EdgeInsets.only(bottom: 12.h),
-              child: Row(
-                children: [
-                  ...row.map((i) {
-                    return Expanded(
-                      child: Padding(
-                        padding: EdgeInsets.only(
-                          right: i % 2 == 0 ? 6.w : 0,
-                          left: i % 2 == 1 ? 6.w : 0,
-                        ),
-                        child: GestureDetector(
-                          onTap: () => _openPreviewCropScreen(i),
-                          child: AspectRatio(
-                            aspectRatio: 1.4,
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(
-                                AppRadius.button,
-                              ),
-                              child: Stack(
-                                children: [
-                                  Positioned.fill(
-                                    child: Image.file(
-                                      _selectedImages[i],
-                                      fit: BoxFit.cover,
-                                    ),
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Padding(
+                  padding: EdgeInsets.only(bottom: 8.h),
+                  child: Row(
+                    children: [
+                      ...row.map((i) {
+                        return Expanded(
+                          child: Padding(
+                            padding: EdgeInsets.only(
+                              right: i % 2 == 0 ? 6.w : 0,
+                              left: i % 2 == 1 ? 6.w : 0,
+                            ),
+                            child: GestureDetector(
+                              onTap: () => _openPreviewCropScreen(i),
+                              child: AspectRatio(
+                                aspectRatio: 1.4,
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(
+                                    AppRadius.button,
                                   ),
-                                  Positioned(
-                                    top: 5.h,
-                                    right: 5.w,
-                                    child: GestureDetector(
-                                      onTap: () => _onTapEditImage(i),
-                                      child: Container(
-                                        width: 22.w,
-                                        height: 22.h,
-                                        decoration: const BoxDecoration(
-                                          color: AppColors.primaryColor,
-                                          shape: BoxShape.circle,
-                                        ),
-                                        child: Icon(
-                                          Icons.edit,
-                                          color: Colors.white,
-                                          size: 12.sp,
+                                  child: Stack(
+                                    children: [
+                                      Positioned.fill(
+                                        child: Image.file(
+                                          _selectedImages[i],
+                                          fit: BoxFit.cover,
                                         ),
                                       ),
-                                    ),
+                                      Positioned(
+                                        top: 5.h,
+                                        right: 5.w,
+                                        child: GestureDetector(
+                                          onTap: () => _onTapEditImage(i),
+                                          child: Container(
+                                            width: 22.w,
+                                            height: 22.h,
+                                            decoration: const BoxDecoration(
+                                              color: AppColors.primaryColor,
+                                              shape: BoxShape.circle,
+                                            ),
+                                            child: Icon(
+                                              Icons.edit,
+                                              color: Colors.white,
+                                              size: 12.sp,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
                                   ),
-                                ],
+                                ),
                               ),
                             ),
                           ),
-                        ),
-                      ),
-                    );
-                  }),
-                  if (row.length == 1) const Expanded(child: SizedBox()),
-                ],
-              ),
+                        );
+                      }),
+                      if (row.length == 1) const Expanded(child: SizedBox()),
+                    ],
+                  ),
+                ),
+                Padding(
+                  padding: EdgeInsets.only(bottom: 12.h),
+                  child: Row(
+                    children: [
+                      ...row.map((i) {
+                        return Expanded(
+                          child: Padding(
+                            padding: EdgeInsets.only(
+                              right: i % 2 == 0 ? 6.w : 0,
+                              left: i % 2 == 1 ? 6.w : 0,
+                            ),
+                            child: _buildLabelField(context, i),
+                          ),
+                        );
+                      }),
+                      if (row.length == 1) const Expanded(child: SizedBox()),
+                    ],
+                  ),
+                ),
+              ],
             );
           }),
           if (_selectedImages.length < maxImages) ...[
@@ -851,12 +1040,26 @@ class _NewImagePollState extends State<NewImagePoll> {
     }
   }
 
+  Widget _buildLabelField(BuildContext context, int index) {
+    if (index >= _labelControllers.length) return const SizedBox();
+    return SecondryTextfield(
+      controller: _labelControllers[index],
+      hintText: 'Add label',
+      focusedBorderColor: Theme.of(context).colorScheme.onPrimary,
+    );
+  }
+
   @override
   void dispose() {
     _hintTimer?.cancel();
-    questionController.removeListener(_clearQuestionError);
+    questionController.removeListener(_onQuestionChanged);
     questionController.dispose();
+    questionFocusNode.dispose();
     descriptionController.dispose();
+    for (final controller in _labelControllers) {
+      controller.removeListener(_onLabelChanged);
+      controller.dispose();
+    }
     super.dispose();
   }
 }

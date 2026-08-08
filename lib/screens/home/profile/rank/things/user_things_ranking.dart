@@ -61,7 +61,7 @@ class _UserThingsRankingState extends State<UserThingsRanking> {
       } catch (_) {}
     }
 
-    _rankedOptions = (widget.poll.options ?? [])
+    _rankedOptions = (widget.poll.options)
         .where((o) => o.text != null && o.text!.isNotEmpty)
         .toList();
   }
@@ -201,7 +201,13 @@ class _UserThingsRankingState extends State<UserThingsRanking> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                '${widget.firstName ?? ''} ${widget.lastName ?? ''}'.trim(),
+                () {
+                  final fn = widget.firstName?.trim() ?? '';
+                  final ln = widget.lastName?.trim() ?? '';
+                  final fullName = '$fn $ln'.trim();
+                  if (fullName.isNotEmpty) return fullName;
+                  return username.isNotEmpty ? username : 'Polzet User';
+                }(),
                 style: AppTextStyles.sectionHeading.copyWith(
                   color: txt.title,
                   fontSize: 14,

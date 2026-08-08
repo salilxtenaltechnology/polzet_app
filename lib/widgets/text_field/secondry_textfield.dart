@@ -14,6 +14,9 @@ class SecondryTextfield extends StatelessWidget {
     this.onChanged,
     this.maxLines = 1,
     this.minLines,
+    this.borderColor,
+    this.focusedBorderColor,
+    this.focusNode,
   });
 
   final TextEditingController controller;
@@ -22,11 +25,20 @@ class SecondryTextfield extends StatelessWidget {
   final Function(String)? onChanged;
   final int? maxLines;
   final int? minLines;
+  final Color? borderColor;
+  final Color? focusedBorderColor;
+  final FocusNode? focusNode;
 
   @override
   Widget build(BuildContext context) {
+    final defaultOutlineColor = Theme.of(context).colorScheme.outline;
+    final effectiveBorderColor = borderColor ?? defaultOutlineColor;
+    final effectiveFocusedBorderColor =
+        focusedBorderColor ?? borderColor ?? defaultOutlineColor;
+
     return TextField(
       controller: controller,
+      focusNode: focusNode,
       keyboardType: TextInputType.multiline,
       maxLines: maxLines,
       minLines: minLines,
@@ -51,16 +63,16 @@ class SecondryTextfield extends StatelessWidget {
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppRadius.card),
           borderSide: BorderSide(
-            color: Theme.of(context).colorScheme.outline,
-            width: 1.5,
+            color: effectiveBorderColor,
+            width: 1,
           ),
         ),
         focusedBorder: OutlineInputBorder(
           borderSide: BorderSide(
-            color: Theme.of(context).colorScheme.outline,
-            width: 1.5,
+            color: effectiveFocusedBorderColor,
+            width: 0.8,
           ),
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(AppRadius.card),
         ),
       ),
     );

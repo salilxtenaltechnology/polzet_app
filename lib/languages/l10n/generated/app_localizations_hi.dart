@@ -2133,19 +2133,19 @@ class AppLocalizationsHi extends AppLocalizations {
   String get typedescriptionorhashtags => 'विवरण या हैशटैग टाइप करें';
 
   @override
-  String get generatequestion => 'सवाल जनरेट करें';
+  String get generatequestion => 'जनरेट करें';
 
   @override
-  String get regeneratequestion => 'सवाल फिर से जनरेट करें';
+  String get regeneratequestion => 'फिर से जनरेट करें';
 
   @override
-  String get generating => 'जनरेट हो रहा है...';
+  String get generating => 'जनरेट हो रहा है';
 
   @override
-  String get generateoptions => 'विकल्प जनरेट करें';
+  String get generateoptions => 'जनरेट करें';
 
   @override
-  String get regenerateoptions => 'विकल्प फिर से जनरेट करें';
+  String get regenerateoptions => 'फिर से जनरेट करें';
 
   @override
   String get votingmode => 'वोटिंग मोड';
@@ -2317,4 +2317,25 @@ class AppLocalizationsHi extends AppLocalizations {
   @override
   String get hiddenfromsearchjoinbyinvitelink =>
       'खोज से छिपा हुआ। आमंत्रण लिंक से शामिल हों।';
+
+  @override
+  String get privacygroup => 'गोपनीयता';
+
+  @override
+  String get popularthings => 'लोकप्रिय चीज़ें';
+
+  @override
+  String get places => 'स्थान';
+
+  @override
+  String get searchpollsfriendsandhashtags => 'पोल, दोस्त और हैशटैग खोजें...';
+
+  @override
+  String get lookupaccountstagsorplaces => 'खाते, टैग या स्थान खोजें...';
+
+  @override
+  String get findtrendingtopics => 'ट्रेंडिंग विषय खोजें...';
+
+  @override
+  String get trendingpolls => 'ट्रेंडिंग पोल';
 }

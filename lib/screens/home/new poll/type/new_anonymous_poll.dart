@@ -24,6 +24,8 @@ import '../../../../gen/assets.gen.dart';
 import '../../../../languages/l10n/generated/app_localizations.dart';
 import '../../../../provider/user_provider.dart';
 import '../../../../widgets/appbar/common_appbar.dart';
+import '../../../../widgets/button/generate_question_button.dart';
+import '../../../../widgets/button/generate_option_button.dart';
 import '../../../../widgets/custom_text_styles.dart';
 import '../../../../widgets/dotted_border/dotted_border.dart';
 import '../../../../widgets/loader.dart';
@@ -42,6 +44,7 @@ class _NewAnonymousPollState extends State<NewAnonymousPoll> {
   final ApiService service = ApiService();
   final TextEditingController questionController = TextEditingController();
   final TextEditingController descriptionController = TextEditingController();
+  final FocusNode questionFocusNode = FocusNode();
 
   final List<TextEditingController> optionControllers = [];
   final List<File?> _images = [];
@@ -73,7 +76,7 @@ class _NewAnonymousPollState extends State<NewAnonymousPoll> {
   @override
   void initState() {
     super.initState();
-    questionController.addListener(_clearQuestionError);
+    questionController.addListener(_onQuestionChanged);
     _initializeOptionFields();
     _startHintAnimation();
   }
@@ -115,7 +118,8 @@ class _NewAnonymousPollState extends State<NewAnonymousPoll> {
           );
           _hasGeneratedQuestion = true;
         });
-        _clearQuestionError();
+        questionFocusNode.requestFocus();
+        _onQuestionChanged();
         showToast(message: 'Question generated!');
       } else {
         showToast(
@@ -182,7 +186,7 @@ class _NewAnonymousPollState extends State<NewAnonymousPoll> {
 
           _hasGeneratedOptions = true;
         });
-        _clearOptionsError();
+        _onOptionChanged();
         showToast(message: 'Options generated!');
       } else {
         showToast(
@@ -206,7 +210,7 @@ class _NewAnonymousPollState extends State<NewAnonymousPoll> {
     for (int i = 0; i < minOptions; i++) {
       _images.add(null);
       final controller = TextEditingController();
-      controller.addListener(_clearOptionsError);
+      controller.addListener(_onOptionChanged);
       optionControllers.add(controller);
       optionErrorTexts.add('');
     }
@@ -217,7 +221,7 @@ class _NewAnonymousPollState extends State<NewAnonymousPoll> {
       setState(() {
         _images.add(null);
         final newController = TextEditingController();
-        newController.addListener(_clearOptionsError);
+        newController.addListener(_onOptionChanged);
         optionControllers.add(newController);
         optionErrorTexts.add('');
       });
@@ -228,12 +232,12 @@ class _NewAnonymousPollState extends State<NewAnonymousPoll> {
     if (optionControllers.length > minOptions) {
       setState(() {
         _images.removeAt(index);
-        optionControllers[index].removeListener(_clearOptionsError);
+        optionControllers[index].removeListener(_onOptionChanged);
         optionControllers[index].dispose();
         optionControllers.removeAt(index);
         optionErrorTexts.removeAt(index);
       });
-      _clearOptionsError();
+      _onOptionChanged();
     }
   }
 
@@ -272,7 +276,7 @@ class _NewAnonymousPollState extends State<NewAnonymousPoll> {
                   optionControllers.length < maxOptions) {
                 _images.add(null);
                 final newController = TextEditingController();
-                newController.addListener(_clearOptionsError);
+                newController.addListener(_onOptionChanged);
                 optionControllers.add(newController);
                 optionErrorTexts.add('');
               }
@@ -368,7 +372,7 @@ class _NewAnonymousPollState extends State<NewAnonymousPoll> {
                   child: Text(
                     'Remove',
                     style: AppTextStyles.bodyText.copyWith(
-                      color: txt.body,
+                      color: Theme.of(context).colorScheme.error,
                       fontSize: 13.5.sp,
                       fontWeight: FontWeight.w400,
                     ),
@@ -528,12 +532,20 @@ class _NewAnonymousPollState extends State<NewAnonymousPoll> {
     return isValid;
   }
 
-  void _clearQuestionError() {
+  void _onQuestionChanged() {
     if (questionErrorText.isNotEmpty &&
         questionController.text.trim().isNotEmpty) {
-      setState(() {
-        questionErrorText = '';
-      });
+      questionErrorText = '';
+    }
+    if (mounted) {
+      setState(() {});
+    }
+  }
+
+  void _onOptionChanged() {
+    _clearOptionsError();
+    if (mounted) {
+      setState(() {});
     }
   }
 
@@ -736,11 +748,12 @@ class _NewAnonymousPollState extends State<NewAnonymousPoll> {
   @override
   void dispose() {
     _hintTimer?.cancel();
-    questionController.removeListener(_clearQuestionError);
+    questionController.removeListener(_onQuestionChanged);
     questionController.dispose();
+    questionFocusNode.dispose();
     descriptionController.dispose();
     for (var controller in optionControllers) {
-      controller.removeListener(_clearOptionsError);
+      controller.removeListener(_onOptionChanged);
       controller.dispose();
     }
     super.dispose();
@@ -865,31 +878,12 @@ class _NewAnonymousPollState extends State<NewAnonymousPoll> {
               AppLocalizations.of(context)!.question,
               style: CustomTextStyles.lblPrimaryText(context),
             ),
-            GestureDetector(
-              onTap: _isGeneratingQuestion ? null : generateQuestion,
-              child: Row(
-                children: [
-                  _isGeneratingQuestion
-                      ? const SizedBox()
-                      : Assets.images.icAssistant.image(
-                          width: 14.w,
-                          height: 14.h,
-                          color: Theme.of(context).colorScheme.onPrimary,
-                        ),
-                  const SizedBox(width: 5),
-                  Text(
-                    _isGeneratingQuestion
-                        ? AppLocalizations.of(context)!.generating
-                        : _hasGeneratedQuestion
-                        ? AppLocalizations.of(context)!.regeneratequestion
-                        : AppLocalizations.of(context)!.generatequestion,
-                    style: AppTextStyles.bodyText.copyWith(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                      color: Theme.of(context).colorScheme.onPrimary,
-                    ),
-                  ),
-                ],
+            SizedBox(
+              height: 30,
+              child: GenerateQuestionButton(
+                isGenerating: _isGeneratingQuestion,
+                hasGenerated: _hasGeneratedQuestion,
+                onTap: _isGeneratingQuestion ? null : generateQuestion,
               ),
             ),
           ],
@@ -897,7 +891,12 @@ class _NewAnonymousPollState extends State<NewAnonymousPoll> {
         SizedBox(height: 7.h),
         SecondryTextfield(
           controller: questionController,
+          focusNode: questionFocusNode,
           hintText: _hintTexts[_currentHintIndex],
+          focusedBorderColor:
+              questionController.text.trim().isNotEmpty
+                  ? Theme.of(context).colorScheme.onPrimary
+                  : null,
         ),
         if (questionErrorText.isNotEmpty)
           Padding(
@@ -925,6 +924,7 @@ class _NewAnonymousPollState extends State<NewAnonymousPoll> {
           hintText: AppLocalizations.of(context)!.typedescriptionorhashtags,
           maxLines: 5,
           minLines: 1,
+          focusedBorderColor: Theme.of(context).colorScheme.onPrimary,
         ),
       ],
     );
@@ -943,31 +943,12 @@ class _NewAnonymousPollState extends State<NewAnonymousPoll> {
               AppLocalizations.of(context)!.polloptions,
               style: CustomTextStyles.lblPrimaryText(context),
             ),
-            GestureDetector(
-              onTap: _isGeneratingOptions ? null : generateOptions,
-              child: Row(
-                children: [
-                  _isGeneratingOptions
-                      ? const SizedBox()
-                      : Assets.images.icAssistant.image(
-                          width: 14.w,
-                          height: 14.h,
-                          color: Theme.of(context).colorScheme.onPrimary,
-                        ),
-                  const SizedBox(width: 5),
-                  Text(
-                    _isGeneratingOptions
-                        ? AppLocalizations.of(context)!.generating
-                        : _hasGeneratedOptions
-                        ? AppLocalizations.of(context)!.regenerateoptions
-                        : AppLocalizations.of(context)!.generateoptions,
-                    style: AppTextStyles.bodyText.copyWith(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                      color: Theme.of(context).colorScheme.onPrimary,
-                    ),
-                  ),
-                ],
+            SizedBox(
+              height: 30,
+              child: GenerateOptionButton(
+                isGenerating: _isGeneratingOptions,
+                hasGenerated: _hasGeneratedOptions,
+                onTap: _isGeneratingOptions ? null : generateOptions,
               ),
             ),
           ],
@@ -1066,6 +1047,10 @@ class _NewAnonymousPollState extends State<NewAnonymousPoll> {
                       child: SecondryTextfield(
                         controller: optionControllers[i],
                         hintText: _getOptionText(context, i),
+                        focusedBorderColor:
+                            optionControllers[i].text.trim().isNotEmpty
+                                ? Theme.of(context).colorScheme.onPrimary
+                                : null,
                         suffixIcon: IconButton(
                           icon: const Icon(
                             Icons.close,

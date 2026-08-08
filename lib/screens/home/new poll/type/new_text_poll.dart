@@ -6,7 +6,6 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
-import '../../../../gen/assets.gen.dart';
 import '../../../../provider/user_provider.dart';
 
 import '../../../../api/api_service.dart';
@@ -19,12 +18,18 @@ import '../../../../widgets/custom_text_styles.dart';
 import '../../../../widgets/show_toast.dart';
 import '../../../../widgets/loader.dart';
 import '../../../../widgets/text_field/secondry_textfield.dart';
+import '../../../../widgets/button/generate_question_button.dart';
+import '../../../../widgets/button/generate_option_button.dart';
+import '../../../../widgets/button/generate_description_button.dart';
 import '../../../../core/constants/app_radius.dart';
 import '../../../../core/themes/app_text_colors.dart';
 import '../../../../core/themes/app_text_styles.dart';
 
 class NewTextPoll extends StatefulWidget {
-  const NewTextPoll({super.key});
+  final String? initialQuestion;
+  final String? initialDescription;
+
+  const NewTextPoll({super.key, this.initialQuestion, this.initialDescription});
 
   @override
   State<NewTextPoll> createState() => _NewThingsPollState();
@@ -35,9 +40,10 @@ class _NewThingsPollState extends State<NewTextPoll> with UtilityMixin {
   static const int minOptions = 2;
   static const int maxOptions = 4;
 
-  // Controllers
+  // Controllers & FocusNodes
   final TextEditingController descriptionController = TextEditingController();
   final TextEditingController questionController = TextEditingController();
+  final FocusNode questionFocusNode = FocusNode();
   final List<TextEditingController> optionControllers = [];
 
   // State
@@ -46,6 +52,8 @@ class _NewThingsPollState extends State<NewTextPoll> with UtilityMixin {
   bool _hasGeneratedQuestion = false;
   bool _isGeneratingOptions = false;
   bool _hasGeneratedOptions = false;
+  bool _isGeneratingDescription = false;
+  bool _hasGeneratedDescription = false;
   bool _isMultiChoice = false;
   String questionErrorText = '';
   String optionsErrorText = '';
@@ -63,8 +71,16 @@ class _NewThingsPollState extends State<NewTextPoll> with UtilityMixin {
   @override
   void initState() {
     super.initState();
+    if (widget.initialQuestion != null &&
+        widget.initialQuestion!.trim().isNotEmpty) {
+      questionController.text = widget.initialQuestion!;
+    }
+    if (widget.initialDescription != null &&
+        widget.initialDescription!.trim().isNotEmpty) {
+      descriptionController.text = widget.initialDescription!;
+    }
     _initializeOptionFields();
-    questionController.addListener(_clearQuestionError);
+    questionController.addListener(_onQuestionChanged);
     _startHintAnimation();
   }
 
@@ -82,30 +98,32 @@ class _NewThingsPollState extends State<NewTextPoll> with UtilityMixin {
   void _initializeOptionFields() {
     for (int i = 0; i < minOptions; i++) {
       final controller = TextEditingController();
-      controller.addListener(_clearOptionsError);
+      controller.addListener(_onOptionChanged);
       optionControllers.add(controller);
     }
   }
 
-  /// Clear question error when user starts typing
-  void _clearQuestionError() {
+  /// Handle question change to clear error and update active border state
+  void _onQuestionChanged() {
     if (questionErrorText.isNotEmpty &&
         questionController.text.trim().isNotEmpty) {
-      setState(() {
-        questionErrorText = '';
-      });
+      questionErrorText = '';
+    }
+    if (mounted) {
+      setState(() {});
     }
   }
 
-  /// Clear options error when valid options count is reached
-  void _clearOptionsError() {
+  /// Clear options error and update UI state on option text changes
+  void _onOptionChanged() {
     if (optionsErrorText.isNotEmpty) {
       final validCount = _getValidOptions().length;
       if (validCount >= minOptions) {
-        setState(() {
-          optionsErrorText = '';
-        });
+        optionsErrorText = '';
       }
+    }
+    if (mounted) {
+      setState(() {});
     }
   }
 
@@ -153,7 +171,7 @@ class _NewThingsPollState extends State<NewTextPoll> with UtilityMixin {
     if (optionControllers.length < maxOptions) {
       setState(() {
         final newController = TextEditingController();
-        newController.addListener(_clearOptionsError);
+        newController.addListener(_onOptionChanged);
         optionControllers.add(newController);
       });
     }
@@ -163,7 +181,7 @@ class _NewThingsPollState extends State<NewTextPoll> with UtilityMixin {
   void removeOptionField(int index) {
     if (optionControllers.length > minOptions) {
       setState(() {
-        optionControllers[index].removeListener(_clearOptionsError);
+        optionControllers[index].removeListener(_onOptionChanged);
         optionControllers[index].dispose();
         optionControllers.removeAt(index);
       });
@@ -178,7 +196,7 @@ class _NewThingsPollState extends State<NewTextPoll> with UtilityMixin {
 
     // Dispose existing option controllers
     for (var controller in optionControllers) {
-      controller.removeListener(_clearOptionsError);
+      controller.removeListener(_onOptionChanged);
       controller.dispose();
     }
 
@@ -190,6 +208,7 @@ class _NewThingsPollState extends State<NewTextPoll> with UtilityMixin {
       optionsErrorText = '';
       _hasGeneratedQuestion = false;
       _hasGeneratedOptions = false;
+      _hasGeneratedDescription = false;
       _isMultiChoice = false;
     });
   }
@@ -222,7 +241,8 @@ class _NewThingsPollState extends State<NewTextPoll> with UtilityMixin {
           );
           _hasGeneratedQuestion = true;
         });
-        _clearQuestionError();
+        questionFocusNode.requestFocus();
+        _onQuestionChanged();
         showToast(message: 'Question generated!');
       } else {
         showToast(
@@ -268,14 +288,14 @@ class _NewThingsPollState extends State<NewTextPoll> with UtilityMixin {
           // Ensure we have enough controllers
           while (optionControllers.length < count) {
             final controller = TextEditingController();
-            controller.addListener(_clearOptionsError);
+            controller.addListener(_onOptionChanged);
             optionControllers.add(controller);
           }
 
           // Dispose excess controllers
           while (optionControllers.length > count) {
             final controller = optionControllers.removeLast();
-            controller.removeListener(_clearOptionsError);
+            controller.removeListener(_onOptionChanged);
             controller.dispose();
           }
 
@@ -286,7 +306,7 @@ class _NewThingsPollState extends State<NewTextPoll> with UtilityMixin {
 
           _hasGeneratedOptions = true;
         });
-        _clearOptionsError();
+        _onOptionChanged();
         showToast(message: 'Options generated!');
       } else {
         showToast(
@@ -301,6 +321,123 @@ class _NewThingsPollState extends State<NewTextPoll> with UtilityMixin {
       if (mounted) {
         setState(() {
           _isGeneratingOptions = false;
+        });
+      }
+    }
+  }
+
+  /// Generate description and hashtags for the poll using AI
+  Future<void> generateDescription() async {
+    final question = questionController.text.trim();
+    final options = _getValidOptions();
+
+    if (question.isEmpty) {
+      setState(() {
+        questionErrorText = AppLocalizations.of(context)!.pleaseenteraquestion;
+      });
+      return;
+    }
+
+    if (options.length < minOptions) {
+      setState(() {
+        optionsErrorText = AppLocalizations.of(
+          context,
+        )!.pleaseenteratleasttwooptions;
+      });
+      return;
+    }
+
+    setState(() {
+      _isGeneratingDescription = true;
+    });
+
+    try {
+      // 1. Generate description
+      final descResponse = await ApiService().generateDescription(
+        question: question,
+        options: options,
+      );
+      debugPrint('generateDescription response: $descResponse');
+      final String descriptionText =
+          (descResponse["description"] ?? descResponse["data"]?["description"])
+              ?.toString()
+              .trim() ??
+          '';
+
+      if (descriptionText.isNotEmpty) {
+        setState(() {
+          descriptionController.text = descriptionText;
+          descriptionController.selection = TextSelection.fromPosition(
+            TextPosition(offset: descriptionController.text.length),
+          );
+          _hasGeneratedDescription = true;
+        });
+      }
+
+      // 2. Generate hashtags using question and description
+      final String activeDescription = descriptionController.text.trim();
+      final hashtagResponse = await ApiService().generateHashtags(
+        question: question,
+        description: activeDescription.isNotEmpty
+            ? activeDescription
+            : question,
+      );
+      debugPrint('generateHashtags response: $hashtagResponse');
+
+      final dynamic rawHashtags =
+          hashtagResponse['hashtags'] ?? hashtagResponse['data']?['hashtags'];
+      List<String> hashtagsList = [];
+      if (rawHashtags is List) {
+        hashtagsList = rawHashtags
+            .map((e) => e.toString().trim())
+            .where((e) => e.isNotEmpty)
+            .toList();
+      } else if (rawHashtags is String) {
+        hashtagsList = rawHashtags
+            .split(RegExp(r'[\s,]+'))
+            .map((e) => e.trim())
+            .where((e) => e.isNotEmpty)
+            .toList();
+      }
+
+      if (hashtagsList.isNotEmpty) {
+        final formattedHashtags = hashtagsList
+            .map((h) => h.startsWith('#') ? h : '#$h')
+            .join(' ');
+
+        setState(() {
+          final String baseText = descriptionText.isNotEmpty
+              ? descriptionText
+              : descriptionController.text.trim();
+          if (baseText.isNotEmpty) {
+            descriptionController.text = '$baseText\n\n$formattedHashtags';
+          } else {
+            descriptionController.text = formattedHashtags;
+          }
+          descriptionController.selection = TextSelection.fromPosition(
+            TextPosition(offset: descriptionController.text.length),
+          );
+          _hasGeneratedDescription = true;
+        });
+      }
+
+      if (descriptionText.isNotEmpty || hashtagsList.isNotEmpty) {
+        showToast(message: 'Description & hashtags generated!');
+      } else {
+        showToast(
+          message:
+              descResponse['message']?.toString() ??
+              hashtagResponse['message']?.toString() ??
+              'Failed to generate description & hashtags',
+        );
+      }
+    } catch (e) {
+      debugPrint('generateDescription error: $e');
+      showToast(message: e.toString().replaceAll('Exception: ', ''));
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isGeneratingDescription = false;
         });
       }
     }
@@ -442,9 +579,11 @@ class _NewThingsPollState extends State<NewTextPoll> with UtilityMixin {
   void dispose() {
     _hintTimer?.cancel();
     descriptionController.dispose();
+    questionController.removeListener(_onQuestionChanged);
     questionController.dispose();
+    questionFocusNode.dispose();
     for (var controller in optionControllers) {
-      controller.removeListener(_clearOptionsError);
+      controller.removeListener(_onOptionChanged);
       controller.dispose();
     }
     super.dispose();
@@ -518,6 +657,9 @@ class _NewThingsPollState extends State<NewTextPoll> with UtilityMixin {
   }
 
   Widget _buildQuestionField() {
+    final bool isQuestionEntered = questionController.text.trim().isNotEmpty;
+    final primaryColor = Theme.of(context).colorScheme.onPrimary;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -528,31 +670,12 @@ class _NewThingsPollState extends State<NewTextPoll> with UtilityMixin {
               AppLocalizations.of(context)!.question,
               style: CustomTextStyles.lblPrimaryText(context),
             ),
-            GestureDetector(
-              onTap: _isGeneratingQuestion ? null : generateQuestion,
-              child: Row(
-                children: [
-                  _isGeneratingQuestion
-                      ? const SizedBox()
-                      : Assets.images.icAssistant.image(
-                          width: 14.w,
-                          height: 14.h,
-                          color: Theme.of(context).colorScheme.onPrimary,
-                        ),
-                  const SizedBox(width: 5),
-                  Text(
-                    _isGeneratingQuestion
-                        ? AppLocalizations.of(context)!.generating
-                        : _hasGeneratedQuestion
-                        ? AppLocalizations.of(context)!.regeneratequestion
-                        : AppLocalizations.of(context)!.generatequestion,
-                    style: AppTextStyles.bodyText.copyWith(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                      color: Theme.of(context).colorScheme.onPrimary,
-                    ),
-                  ),
-                ],
+            SizedBox(
+              height: 30,
+              child: GenerateQuestionButton(
+                isGenerating: _isGeneratingQuestion,
+                hasGenerated: _hasGeneratedQuestion,
+                onTap: _isGeneratingQuestion ? null : generateQuestion,
               ),
             ),
           ],
@@ -560,7 +683,9 @@ class _NewThingsPollState extends State<NewTextPoll> with UtilityMixin {
         SizedBox(height: 7.h),
         SecondryTextfield(
           controller: questionController,
+          focusNode: questionFocusNode,
           hintText: _hintTexts[_currentHintIndex],
+          focusedBorderColor: isQuestionEntered ? primaryColor : null,
         ),
         if (questionErrorText.isNotEmpty)
           Padding(
@@ -575,12 +700,28 @@ class _NewThingsPollState extends State<NewTextPoll> with UtilityMixin {
   }
 
   Widget _buildDescriptionField() {
+    final primaryColor = Theme.of(context).colorScheme.onPrimary;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          AppLocalizations.of(context)!.descriptionhashtagsoptional,
-          style: CustomTextStyles.lblPrimaryText(context),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Expanded(
+              child: Text(
+                AppLocalizations.of(context)!.descriptionhashtagsoptional,
+                style: CustomTextStyles.lblPrimaryText(context),
+              ),
+            ),
+            SizedBox(
+              height: 30,
+              child: GenerateDescriptionButton(
+                isGenerating: _isGeneratingDescription,
+                hasGenerated: _hasGeneratedDescription,
+                onTap: _isGeneratingDescription ? null : generateDescription,
+              ),
+            ),
+          ],
         ),
         SizedBox(height: 7.h),
         SecondryTextfield(
@@ -588,6 +729,7 @@ class _NewThingsPollState extends State<NewTextPoll> with UtilityMixin {
           hintText: AppLocalizations.of(context)!.typedescriptionorhashtags,
           maxLines: 5,
           minLines: 1,
+          focusedBorderColor: primaryColor,
         ),
       ],
     );
@@ -606,31 +748,12 @@ class _NewThingsPollState extends State<NewTextPoll> with UtilityMixin {
               AppLocalizations.of(context)!.polloptions,
               style: CustomTextStyles.lblPrimaryText(context),
             ),
-            GestureDetector(
-              onTap: _isGeneratingOptions ? null : generateOptions,
-              child: Row(
-                children: [
-                  _isGeneratingOptions
-                      ?  const SizedBox()
-                      : Assets.images.icAssistant.image(
-                          width: 14.w,
-                          height: 14.h,
-                          color: Theme.of(context).colorScheme.onPrimary,
-                        ),
-                  const SizedBox(width: 5),
-                  Text(
-                    _isGeneratingOptions
-                        ? AppLocalizations.of(context)!.generating
-                        : _hasGeneratedOptions
-                        ? AppLocalizations.of(context)!.regenerateoptions
-                        : AppLocalizations.of(context)!.generateoptions,
-                    style: AppTextStyles.bodyText.copyWith(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                      color: Theme.of(context).colorScheme.onPrimary,
-                    ),
-                  ),
-                ],
+            SizedBox(
+              height: 30,
+              child: GenerateOptionButton(
+                isGenerating: _isGeneratingOptions,
+                hasGenerated: _hasGeneratedOptions,
+                onTap: _isGeneratingOptions ? null : generateOptions,
               ),
             ),
           ],
@@ -802,6 +925,8 @@ class _NewThingsPollState extends State<NewTextPoll> with UtilityMixin {
 
   Widget _buildOptionField(int index) {
     final canRemove = optionControllers.length > minOptions;
+    final isOptionEntered = optionControllers[index].text.trim().isNotEmpty;
+    final primaryColor = Theme.of(context).colorScheme.onPrimary;
 
     return Padding(
       padding: EdgeInsets.only(bottom: 15.h),
@@ -811,6 +936,7 @@ class _NewThingsPollState extends State<NewTextPoll> with UtilityMixin {
             child: SecondryTextfield(
               controller: optionControllers[index],
               hintText: '${AppLocalizations.of(context)!.option} ${index + 1}',
+              focusedBorderColor: isOptionEntered ? primaryColor : null,
             ),
           ),
           if (canRemove) ...[

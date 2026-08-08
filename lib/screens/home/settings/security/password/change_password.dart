@@ -10,6 +10,7 @@ import '../../../../../languages/l10n/generated/app_localizations.dart';
 import '../../../../../mixin/utility_mixins.dart';
 import '../../../../../widgets/appbar/common_appbar.dart';
 import '../../../../../widgets/loader.dart';
+import '../../../../auth/forgot password/new_forgot_password_screen.dart';
 
 class ChangePasswordScreen extends StatefulWidget {
   const ChangePasswordScreen({super.key});
@@ -308,8 +309,9 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen>
         !_hasLowercase(_newPwCtrl.text) ||
         !_hasNumber(_newPwCtrl.text) ||
         !_hasSpecialChar(_newPwCtrl.text)) {
-      newErr = AppLocalizations.of(context)!
-          .mustbeeightpluscharacterswithaletternumberandspecialcharacter;
+      newErr = AppLocalizations.of(
+        context,
+      )!.mustbeeightpluscharacterswithaletternumberandspecialcharacter;
     }
 
     if (_confirmPwCtrl.text.trim().isEmpty) {
@@ -414,7 +416,9 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen>
             _buildError(_confirmPwError),
             SizedBox(height: 12.h),
             GestureDetector(
-              onTap: () {},
+              onTap: () {
+                navigationPush(context, const NewForgotPasswordScreen());
+              },
               child: Text(
                 AppLocalizations.of(context)!.forgotyourpassword,
                 style: AppTextStyles.bodyText.copyWith(

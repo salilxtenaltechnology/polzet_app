@@ -83,6 +83,7 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
   List<UserPostModel> cachedImagesPosts = [];
 
   Map<String, bool> postLikeStates = {};
+  Map<String, bool> postSaveStates = {};
   Map<String, int> postLikeCounts = {};
 
   final LikeService likeService = LikeService();
@@ -382,7 +383,9 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
                 poll: poll,
                 firstName: userProvider.userProfile?.firstName ?? '',
                 lastName: userProvider.userProfile?.lastName ?? '',
-                profileImage: userProvider.userProfile?.profilePictureUrl,
+                profileImage: (userProvider.userProfile?.username.toLowerCase() == 'polzet_ai')
+                    ? Assets.images.icSplash.path
+                    : userProvider.userProfile?.profilePictureUrl,
               ),
             ),
           )
@@ -494,6 +497,40 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
           postLikeStates[postId] = currentLikeState;
           postLikeCounts[postId] = currentLikeCount;
         });
+      }
+    }
+  }
+
+  Future<void> _toggleSavePost(UserPostModel post) async {
+    final currentSaved = postSaveStates[post.id] ?? post.isSaved;
+    final nextSaved = !currentSaved;
+
+    setState(() {
+      postSaveStates[post.id] = nextSaved;
+      post.isSaved = nextSaved;
+    });
+
+    try {
+      final res = await apiService.toggleSavePost(postId: post.id);
+      final dynamic savedVal =
+          res['is_saved'] ?? res['is_saved_by_current_user'] ?? res['saved'];
+      if (savedVal != null && mounted) {
+        final bool serverSaved = savedVal == true ||
+            savedVal == 1 ||
+            savedVal.toString().toLowerCase() == 'true';
+        setState(() {
+          postSaveStates[post.id] = serverSaved;
+          post.isSaved = serverSaved;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error toggling save post: $e');
+      if (mounted) {
+        setState(() {
+          postSaveStates[post.id] = currentSaved;
+          post.isSaved = currentSaved;
+        });
+        showToast(message: 'Failed to update save status');
       }
     }
   }
@@ -619,7 +656,9 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
                     context: context,
                   );
                 } else if (result == 'Copy Profile Link') {
-                  final link = DeepLinkService.generateProfileLink(profile.username);
+                  final link = DeepLinkService.generateProfileLink(
+                    profile.username,
+                  );
                   Clipboard.setData(ClipboardData(text: link)).then((_) {
                     showToast(message: 'Link copied');
                   });
@@ -909,6 +948,7 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
               }).toList();
               for (var post in mappedPosts) {
                 postLikeStates[post.id] = post.isLiked;
+                postSaveStates[post.id] = post.isSaved;
                 postLikeCounts[post.id] = post.likesCount;
                 postCommentsCounts[post.id] = post.comments.length;
                 postSharesCounts[post.id] = post.sharesCount;
@@ -953,6 +993,7 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
               }).toList();
               for (var post in mappedPosts) {
                 postLikeStates[post.id] = post.isLiked;
+                postSaveStates[post.id] = post.isSaved;
                 postLikeCounts[post.id] = post.likesCount;
                 postCommentsCounts[post.id] = post.comments.length;
                 postSharesCounts[post.id] = post.sharesCount;
@@ -1017,6 +1058,7 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
     final poll = post.polls.first;
 
     final isLiked = postLikeStates[post.id] ?? post.isLiked;
+    final isSaved = postSaveStates[post.id] ?? post.isSaved;
     final likesCount = postLikeCounts[post.id] ?? post.likesCount;
     final commentsCount = postCommentsCounts[post.id] ?? post.comments.length;
     final sharesCount = postSharesCounts[post.id] ?? post.sharesCount;
@@ -1058,51 +1100,96 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 SizedBox(
-                  width: 40,
-                  height: 40,
-                  child: ClipOval(
-                    child: (() {
-                      if (profile == null) {
-                        return const _AvatarPlaceholder(
-                          username: null,
-                          fontSize: 18,
-                        );
-                      }
-                      final String profilePic = profile.profilePictureUrl ?? '';
-                      if (profilePic.isNotEmpty) {
-                        final cachedImage = getConvertImage(profilePic);
-                        if (cachedImage != null) {
-                          return Image.memory(
-                            cachedImage,
-                            fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) => _AvatarPlaceholder(
+                  width: 42,
+                  height: 42,
+                  child: Stack(
+                    children: [
+                      Positioned.fill(
+                        child: ClipOval(
+                          child: (() {
+                            final String currentUsername =
+                                (profile?.username ?? widget.username ?? '')
+                                    .trim()
+                                    .toLowerCase();
+                            if (currentUsername == 'polzet_ai') {
+                              return Center(
+                                child: Padding(
+                                  padding: const EdgeInsets.only(
+                                    top: 8,
+                                    bottom: 0,
+                                    left: 10,
+                                    right: 9,
+                                  ),
+                                  child: Image.asset(
+                                    Assets.images.icSplash.path,
+                                    fit: BoxFit.contain,
+                                  ),
+                                ),
+                              );
+                            }
+                            if (profile == null) {
+                              return const _AvatarPlaceholder(
+                                username: null,
+                                fontSize: 18,
+                              );
+                            }
+                            final String profilePic = (profile.profilePictureUrl != null && profile.profilePictureUrl!.isNotEmpty)
+                                ? profile.profilePictureUrl!
+                                : ((profile.profilePicture != null && profile.profilePicture!.isNotEmpty)
+                                    ? profile.profilePicture!
+                                    : (profile.profileThumbnailUrl ?? ''));
+                            if (profilePic.isNotEmpty) {
+                              final cachedImage = getConvertImage(profilePic);
+                              if (cachedImage != null) {
+                                return Image.memory(
+                                  cachedImage,
+                                  fit: BoxFit.cover,
+                                  width: double.infinity,
+                                  height: double.infinity,
+                                  errorBuilder: (_, __, ___) => _AvatarPlaceholder(
+                                    username: profile.username,
+                                    fontSize: 18,
+                                  ),
+                                );
+                              } else if (profilePic.startsWith('http') ||
+                                  profilePic.startsWith('/') ||
+                                  profilePic.contains('/')) {
+                                final imageUrl = profilePic.startsWith('http')
+                                    ? profilePic
+                                    : (profilePic.startsWith('/')
+                                          ? '${ApiConfig.baseUrlImage}$profilePic'
+                                          : '${ApiConfig.baseUrlImage}/$profilePic');
+                                return CachedNetworkImage(
+                                  imageUrl: imageUrl,
+                                  fit: BoxFit.cover,
+                                  width: double.infinity,
+                                  height: double.infinity,
+                                  errorWidget: (_, __, ___) => _AvatarPlaceholder(
+                                    username: profile.username,
+                                    fontSize: 18,
+                                  ),
+                                );
+                              }
+                            }
+                            return _AvatarPlaceholder(
                               username: profile.username,
                               fontSize: 18,
-                            ),
-                          );
-                        } else if (profilePic.startsWith('http') ||
-                            profilePic.startsWith('/') ||
-                            profilePic.contains('/')) {
-                          final imageUrl = profilePic.startsWith('http')
-                              ? profilePic
-                              : (profilePic.startsWith('/')
-                                    ? '${ApiConfig.baseUrlImage}$profilePic'
-                                    : '${ApiConfig.baseUrlImage}/$profilePic');
-                          return CachedNetworkImage(
-                            imageUrl: imageUrl,
-                            fit: BoxFit.cover,
-                            errorWidget: (_, __, ___) => _AvatarPlaceholder(
-                              username: profile.username,
-                              fontSize: 18,
-                            ),
-                          );
-                        }
-                      }
-                      return _AvatarPlaceholder(
-                        username: profile.username,
-                        fontSize: 18,
-                      );
-                    })(),
+                            );
+                          })(),
+                        ),
+                      ),
+                      if ((profile?.username ?? widget.username ?? '')
+                              .trim()
+                              .toLowerCase() ==
+                          'polzet_ai')
+                        Positioned.fill(
+                          child: Image.asset(
+                            Assets.images.aiFrame.path,
+                            height: 60, 
+                            width: 60,
+                          ),
+                        ),
+                    ],
                   ),
                 ),
                 const SizedBox(width: 7),
@@ -1111,16 +1198,22 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text(
-                      userProvider.isLoading || profile == null
-                          ? '-'
-                          : (profile.firstName.isNotEmpty
-                                ? '${profile.firstName} ${profile.lastName}'
-                                      .trim()
-                                : profile.username),
+                      () {
+                        if (userProvider.isLoading || profile == null) return '-';
+                        final fn = profile.firstName.trim();
+                        final ln = profile.lastName.trim();
+                        final fullName = '$fn $ln'.trim();
+                        if (fullName.isNotEmpty) return fullName;
+                        return profile.username.isNotEmpty
+                            ? profile.username
+                            : 'Polzet User';
+                      }(),
                       style: AppTextStyles.sectionHeading.copyWith(
                         color: txt.title,
                         fontSize: 14,
                       ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.center,
@@ -1135,6 +1228,17 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
                             color: txt.body,
                           ),
                         ),
+                        if (['polzet_ai', 'polzet'].contains(
+                            (profile?.username ?? widget.username ?? '')
+                                .trim()
+                                .toLowerCase())) ...[
+                          const SizedBox(width: 4),
+                          Image.asset(
+                            Assets.images.icVerify.path,
+                            height: 13,
+                            width: 13,
+                          ),
+                        ],
                         Text(
                           '  • ${_timeAgo(post.createdAt)}',
                           style: AppTextStyles.subText.copyWith(
@@ -2161,8 +2265,8 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
                           poll.question,
                           style: AppTextStyles.bodyText.copyWith(
                             color: txt.heading,
-              fontSize: 14.5,
-              fontWeight: FontWeight.w500,
+                            fontSize: 14.5,
+                            fontWeight: FontWeight.w500,
                           ),
                         ),
                       ),
@@ -2207,8 +2311,9 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
                                     userProvider.userProfile?.firstName ?? '',
                                 lastName:
                                     userProvider.userProfile?.lastName ?? '',
-                                profileImage:
-                                    userProvider.userProfile!.profilePictureUrl,
+                                profileImage: (userProvider.userProfile?.username.toLowerCase() == 'polzet_ai')
+                                    ? Assets.images.icSplash.path
+                                    : userProvider.userProfile!.profilePictureUrl,
                                 post: post,
                                 poll: poll,
                               ),
@@ -2297,6 +2402,23 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
                             ),
                           ),
                         ],
+                      ),
+                    ),
+                    const Spacer(),
+                    GestureDetector(
+                      onTap: () => _toggleSavePost(post),
+                      child: AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 200),
+                        transitionBuilder: (child, animation) =>
+                            ScaleTransition(scale: animation, child: child),
+                        child: isSaved
+                            ? AppIcons.filledSave(
+                                key: const ValueKey('saved_filled'),
+                                color: Theme.of(context).colorScheme.primary,
+                              )
+                            : AppIcons.outlineSave(
+                                key: const ValueKey('saved_outline'),
+                              ),
                       ),
                     ),
                   ],
@@ -2409,7 +2531,6 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
   }
 
   Widget _buildPolledTextOptions(UserPollQuestion poll, VoidCallback onTap) {
-    final txt = AppTextColors.of(context);
     final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
     if (poll.options.isEmpty) return const SizedBox.shrink();
 
@@ -2692,52 +2813,81 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
         children: [
           GestureDetector(
             onTap: () {
-              if (profile != null) {
-                final originalImageSource =
-                    profile.profilePicture ?? profile.profilePictureUrl;
-                if (originalImageSource == null ||
-                    originalImageSource.isEmpty) {
-                  return;
-                }
-                Navigator.of(context).push(
-                  PageRouteBuilder(
-                    opaque: false,
-                    barrierColor: Colors.transparent,
-                    transitionDuration: const Duration(milliseconds: 150),
-                    reverseTransitionDuration: const Duration(
-                      milliseconds: 150,
-                    ),
-                    pageBuilder: (context, animation, secondaryAnimation) {
-                      return ProfileImagePreview(
-                        imageSource: originalImageSource,
-                        username: profile.username,
-                      );
-                    },
-                    transitionsBuilder:
-                        (context, animation, secondaryAnimation, child) {
-                          return FadeTransition(
-                            opacity: animation,
-                            child: child,
-                          );
-                        },
-                  ),
-                );
+              final String currentUsername =
+                  (profile?.username ?? widget.username ?? '')
+                      .trim()
+                      .toLowerCase();
+              if (currentUsername == 'polzet_ai') return;
+              final String? originalImageSource =
+                  profile?.profilePicture ?? profile?.profilePictureUrl;
+              if (originalImageSource == null ||
+                  originalImageSource.isEmpty) {
+                return;
               }
+              Navigator.of(context).push(
+                PageRouteBuilder(
+                  opaque: false,
+                  barrierColor: Colors.transparent,
+                  transitionDuration: const Duration(milliseconds: 150),
+                  reverseTransitionDuration: const Duration(
+                    milliseconds: 150,
+                  ),
+                  pageBuilder: (context, animation, secondaryAnimation) {
+                    return ProfileImagePreview(
+                      imageSource: originalImageSource,
+                      username: profile?.username ?? widget.username,
+                    );
+                  },
+                  transitionsBuilder:
+                      (context, animation, secondaryAnimation, child) {
+                        return FadeTransition(
+                          opacity: animation,
+                          child: child,
+                        );
+                      },
+                ),
+              );
             },
             child: Stack(
+              clipBehavior: Clip.none,
               children: [
                 Container(
-                  width: 100,
-                  height: 100,
+                  width: 110,
+                  height: 110,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     border: Border.all(
-                      color: Theme.of(context).colorScheme.outlineVariant,
+                      color: (profile?.username ?? widget.username ?? '')
+                                  .trim()
+                                  .toLowerCase() ==
+                              'polzet_ai'
+                          ? Colors.transparent
+                          : Theme.of(context).colorScheme.outlineVariant,
                       width: 1.5,
                     ),
                   ),
                   child: ClipOval(
                     child: (() {
+                      final String currentUsername =
+                          (profile?.username ?? widget.username ?? '')
+                              .trim()
+                              .toLowerCase();
+                      if (currentUsername == 'polzet_ai') {
+                        return Center(
+                          child: Padding(
+                            padding: const EdgeInsets.only(
+                              top: 26,
+                              bottom: 6,
+                              left: 18,
+                              right: 12,
+                            ),
+                            child: Image.asset(
+                              Assets.images.icSplash.path,
+                              height: 70,width: 70,
+                            ),
+                          ),
+                        );
+                      }
                       if (profile == null) {
                         return const _AvatarPlaceholder(
                           username: null,
@@ -2781,6 +2931,16 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
                     })(),
                   ),
                 ),
+                if ((profile?.username ?? widget.username ?? '')
+                        .trim()
+                        .toLowerCase() ==
+                    'polzet_ai')
+                  Positioned.fill(
+                    child: Image.asset(
+                      Assets.images.aiFrame.path,
+                      height: 120,width: 120,
+                    ),
+                  ),
               ],
             ),
           ),
@@ -2789,26 +2949,49 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
 
           // Name
           Text(
-            userProvider.isLoading || userProvider.userProfile == null
-                ? '-'
-                : (userProvider.userProfile!.firstName.isNotEmpty
-                      ? '${userProvider.userProfile!.firstName} ${userProvider.userProfile!.lastName}'
-                            .trim()
-                      : userProvider.userProfile!.username),
+            () {
+              if (userProvider.isLoading || userProvider.userProfile == null) {
+                return '-';
+              }
+              final fn = userProvider.userProfile!.firstName.trim();
+              final ln = userProvider.userProfile!.lastName.trim();
+              final fullName = '$fn $ln'.trim();
+              if (fullName.isNotEmpty) return fullName;
+              return userProvider.userProfile!.username.isNotEmpty
+                  ? userProvider.userProfile!.username
+                  : 'Polzet User';
+            }(),
             style: AppTextStyles.sectionHeading.copyWith(
               color: Theme.of(context).colorScheme.onBackground,
               fontSize: 18,
             ),
           ),
           const SizedBox(height: 5),
-          Text(
-            userProvider.isLoading || userProvider.userProfile == null
-                ? '-'
-                : '@${userProvider.userProfile!.username}',
-            style: AppTextStyles.subText.copyWith(
-              color: const Color(0XFF898989),
-              fontSize: 13.7,
-            ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Text(
+                userProvider.isLoading || userProvider.userProfile == null
+                    ? '-'
+                    : '@${userProvider.userProfile!.username}',
+                style: AppTextStyles.subText.copyWith(
+                  color: const Color(0XFF898989),
+                  fontSize: 13.7,
+                ),
+              ),
+              if (['polzet_ai', 'polzet'].contains(
+                  (userProvider.userProfile?.username ?? widget.username ?? '')
+                      .trim()
+                      .toLowerCase())) ...[
+                const SizedBox(width: 4),
+                Image.asset(
+                  Assets.images.icVerify.path,
+                  height: 14,
+                  width: 14,
+                ),
+              ],
+            ],
           ),
           if (profile != null &&
               profile.bio != null &&
@@ -2946,7 +3129,9 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
                                           .isNotEmpty
                                       ? '${p.firstName} ${p.lastName}'.trim()
                                       : p.username,
-                                  profileUrl: p.profilePictureUrl,
+                                  profileUrl: (p.username.toLowerCase() == 'polzet_ai')
+                                      ? Assets.images.icSplash.path
+                                      : p.profilePictureUrl,
                                   chatId: p.chatId == 0 ? null : p.chatId,
                                   currentUsername: p.username,
                                 ),
@@ -3204,8 +3389,8 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
                     poll.question,
                     style: AppTextStyles.bodyText.copyWith(
                       color: txt.heading,
-              fontSize: 14.5,
-              fontWeight: FontWeight.w500,
+                      fontSize: 14.5,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
                 ),

@@ -10,6 +10,8 @@ import '../../screens/home/profile/public/public_profile_screen.dart';
 import '../../screens/home/profile/chase/user_chase.dart';
 import '../../screens/home/message/chat/private/private_chat_screen.dart';
 import '../../screens/home/message/chat/group/group_chat_screen.dart';
+import '../../screens/home/message/chat/group/group_members.dart';
+import '../../screens/home/new poll/type/new_text_poll.dart';
 import '../../provider/private_chat_provider.dart';
 import '../../provider/group_chat_provider.dart';
 import '../../data/token/shared_preferences.dart';
@@ -181,7 +183,9 @@ class NotificationRouter {
     // Merge them to be safe (prefer specific notification data)
     final Map<String, dynamic> data = {...payloadMap, ...notificationData};
 
-    final type = (data['type'] ?? '').toString().toLowerCase().trim();
+    final rawType = (data['type'] ?? '').toString().trim();
+    final type = rawType.toLowerCase();
+    final pollType = (data['poll_type'] ?? '').toString().toLowerCase().trim();
 
     final bool needsUserData =
         (type == 'like' ||
@@ -202,25 +206,46 @@ class NotificationRouter {
     final String username = userProvider.username ?? '';
 
     debugPrint('🚀 NotificationRouter.resolveDestination()');
-    debugPrint('   Type: "$type"');
+    debugPrint('   Type: "$type", PollType: "$pollType"');
     debugPrint('   Data keys: ${data.keys.toList()}');
     debugPrint('   Full data: $data');
     debugPrint('   Username: "$username"');
 
     try {
+      if (_pendingActionId == 'create_poll_action' ||
+          (rawType.toUpperCase() == 'AI_NEW_POST' && pollType == 'text')) {
+        final String title = data['title']?.toString() ?? '';
+        final String body =
+            data['body']?.toString() ??
+            data['post_description']?.toString() ??
+            '';
+        debugPrint(
+          '   🤖 AI_NEW_POST text poll resolved - Title: $title, Body: $body',
+        );
+        return NewTextPoll(
+          initialQuestion: title,
+          initialDescription: body,
+        );
+      }
+
       // ✅ Handle post-related notifications (like, comment, vote, new_post)
-      if (type == 'like' ||
+      if (_pendingActionId == 'view_post_action' ||
+          _pendingActionId == 'vote_now_action' ||
+          _pendingActionId == 'pick_side_action' ||
+          _pendingActionId == 'vote_privately_action' ||
+          type == 'like' ||
           type == 'like_group' ||
           type == 'comment' ||
           type == 'commetnt' || // backend type
           type == 'vote' ||
           type == 'reply' ||
-          type == 'new_post') {
+          type == 'new_post' ||
+          type == 'poll') {
         final String? postId = data['post_id']?.toString();
         debugPrint('   📝 Post notification - postId: $postId');
 
         if (postId != null && postId.isNotEmpty && postId != '0') {
-          final String postSender = (type == 'new_post')
+          final String postSender = (type == 'new_post' || type == 'poll')
               ? (data['sender']?.toString() ?? '')
               : '';
           final String postUsername = postSender.isNotEmpty
@@ -238,6 +263,7 @@ class NotificationRouter {
           debugPrint('   Available keys: ${data.keys.toList()}');
         }
       } else if (_pendingActionId == 'view_profile_action' ||
+          _pendingActionId == 'follow_back_action' ||
           type == 'follow' ||
           type == 'friend_request' ||
           type == 'friend_requests') {
@@ -299,6 +325,31 @@ class NotificationRouter {
           followerCount: userProvider.followers_count ?? '0',
           followingCount: userProvider.following_count ?? '0',
         );
+      } else if (type == 'group_join_request') {
+        final meta = data['meta'] is Map
+            ? data['meta'] as Map<String, dynamic>
+            : null;
+        final chatId = data['chat_id'] ?? meta?['chat_id'];
+        if (chatId != null && chatId.toString().isNotEmpty) {
+          return ChangeNotifierProvider(
+            create: (_) {
+              final provider = GroupChatProvider();
+              provider.init(
+                groupName:
+                    (data['group_name'] ?? meta?['group_name'])?.toString() ??
+                    'Group',
+                groupImageUrl: null,
+                chatId: chatId.toString(),
+              );
+              return provider;
+            },
+            child: GroupMembers(
+              members: const [],
+              chatId: chatId,
+              initialTabIndex: 1,
+            ),
+          );
+        }
       } else if (type == 'new_message' ||
           type == 'new_group_added' ||
           type == 'group_admin_promote') {
@@ -413,27 +464,58 @@ class NotificationRouter {
 
     final Map<String, dynamic> data = {...payloadMap, ...notificationData};
 
-    final type = (data['type'] ?? '').toString().toLowerCase().trim();
-    debugPrint('🧭 Routing notification type: "$type"');
+    final rawType = (data['type'] ?? '').toString().trim();
+    final type = rawType.toLowerCase();
+    final pollType = (data['poll_type'] ?? '').toString().toLowerCase().trim();
+    debugPrint('🧭 Routing notification type: "$type", poll_type: "$pollType"');
     debugPrint('📋 Full data: $data');
 
     try {
-      if (type == 'like' ||
+      if (_pendingActionId == 'create_poll_action' ||
+          (rawType.toUpperCase() == 'AI_NEW_POST' && pollType == 'text')) {
+        final String title = data['title']?.toString() ?? '';
+        final String body =
+            data['body']?.toString() ??
+            data['post_description']?.toString() ??
+            '';
+        debugPrint(
+          '   🤖 Navigating to NewTextPoll from AI_NEW_POST notification',
+        );
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => NewTextPoll(
+              initialQuestion: title,
+              initialDescription: body,
+            ),
+          ),
+        );
+        return;
+      }
+
+      if (_pendingActionId == 'view_post_action' ||
+          _pendingActionId == 'vote_now_action' ||
+          _pendingActionId == 'pick_side_action' ||
+          _pendingActionId == 'vote_privately_action' ||
+          type == 'like' ||
           type == 'like_group' ||
           type == 'comment' ||
           type == 'commetnt' ||
           type == 'vote' ||
           type == 'reply' ||
-          type == 'new_post') {
+          type == 'new_post' ||
+          type == 'poll') {
         _navigateToPost(context, data);
       } else if (_pendingActionId == 'view_profile_action' ||
+          _pendingActionId == 'follow_back_action' ||
           type == 'follow' ||
           type == 'friend_request' ||
           type == 'friend_requests') {
         _navigateToProfile(context, data);
       } else if (type == 'follow_group') {
         _navigateToUserChase(context);
-      } else if (type == 'new_message' ||
+      } else if (_pendingActionId == 'message_action' ||
+          _pendingActionId == 'view_group_action' ||
+          type == 'new_message' ||
           type == 'new_group_added' ||
           type == 'group_admin_promote') {
         _navigateToChat(context, data);
@@ -461,10 +543,43 @@ class NotificationRouter {
     );
   }
 
-  void _navigateToChat(BuildContext context, Map<String, dynamic> data) {
+  Future<void> _navigateToChat(
+    BuildContext context,
+    Map<String, dynamic> data,
+  ) async {
+    final type = data['type']?.toString().toLowerCase();
     final meta = data['meta'] is Map
         ? data['meta'] as Map<String, dynamic>
         : null;
+
+    if (type == 'group_join_request') {
+      final chatId = data['chat_id'] ?? meta?['chat_id'];
+      if (chatId != null && chatId.toString().isNotEmpty) {
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => ChangeNotifierProvider(
+              create: (_) {
+                final provider = GroupChatProvider();
+                provider.init(
+                  groupName:
+                      (data['group_name'] ?? meta?['group_name'])?.toString() ??
+                      'Group',
+                  groupImageUrl: null,
+                  chatId: chatId.toString(),
+                );
+                return provider;
+              },
+              child: GroupMembers(
+                members: const [],
+                chatId: chatId,
+                initialTabIndex: 1,
+              ),
+            ),
+          ),
+        );
+        return;
+      }
+    }
     final chatId = _parseToInt(data['chat_id'] ?? meta?['chat_id']);
     final groupName =
         (data['group_name'] ?? meta?['group_name'])?.toString() ?? '';

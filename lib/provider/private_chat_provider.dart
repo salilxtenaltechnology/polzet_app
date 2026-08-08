@@ -9,6 +9,7 @@ import 'package:web_socket_channel/status.dart' as status;
 import '../../models/message/message_model.dart';
 import '../../data/token/shared_preferences.dart';
 import '../api/api_service.dart';
+import '../api/api_config.dart';
 
 class PrivateChatProvider extends ChangeNotifier {
   String? _memberName;
@@ -74,7 +75,7 @@ class PrivateChatProvider extends ChangeNotifier {
   String? previousPageUrl;
   bool get hasMoreHistory => _nextPageUrl != null;
 
-  static const String _wsBaseUrl = 'ws://testbackend.polzet.in';
+  static String get _wsBaseUrl => ApiConfig.wsBaseUrl;
 
   WebSocketChannel? _presenceChannel;
   StreamSubscription? _presenceSubscription;

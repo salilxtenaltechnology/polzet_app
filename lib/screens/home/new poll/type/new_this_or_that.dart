@@ -24,6 +24,7 @@ import '../../../../languages/l10n/generated/app_localizations.dart';
 import '../../../../provider/user_provider.dart';
 import '../../../../widgets/appbar/common_appbar.dart';
 import '../../../../widgets/button/primary_button.dart';
+import '../../../../widgets/button/generate_question_button.dart';
 import '../../../../widgets/custom_text_styles.dart';
 import '../../../../widgets/dotted_border/dotted_border.dart';
 import '../../../../widgets/show_toast.dart';
@@ -43,6 +44,7 @@ class _NewThisOrThatState extends State<NewThisOrThat> {
   final TextEditingController descriptionController = TextEditingController();
   final TextEditingController label1Controller = TextEditingController();
   final TextEditingController label2Controller = TextEditingController();
+  final FocusNode questionFocusNode = FocusNode();
 
   List<File> _selectedImages = [];
   static const int maxImages = 2;
@@ -68,7 +70,9 @@ class _NewThisOrThatState extends State<NewThisOrThat> {
   @override
   void initState() {
     super.initState();
-    questionController.addListener(_clearQuestionError);
+    questionController.addListener(_onQuestionChanged);
+    label1Controller.addListener(_onLabelChanged);
+    label2Controller.addListener(_onLabelChanged);
     _startHintAnimation();
   }
 
@@ -82,12 +86,19 @@ class _NewThisOrThatState extends State<NewThisOrThat> {
     });
   }
 
-  void _clearQuestionError() {
+  void _onQuestionChanged() {
     if (questionErrorText.isNotEmpty &&
         questionController.text.trim().isNotEmpty) {
-      setState(() {
-        questionErrorText = '';
-      });
+      questionErrorText = '';
+    }
+    if (mounted) {
+      setState(() {});
+    }
+  }
+
+  void _onLabelChanged() {
+    if (mounted) {
+      setState(() {});
     }
   }
 
@@ -118,7 +129,8 @@ class _NewThisOrThatState extends State<NewThisOrThat> {
           );
           _hasGeneratedQuestion = true;
         });
-        _clearQuestionError();
+        questionFocusNode.requestFocus();
+        _onQuestionChanged();
         showToast(message: 'Question generated!');
       } else {
         showToast(
@@ -141,10 +153,13 @@ class _NewThisOrThatState extends State<NewThisOrThat> {
   @override
   void dispose() {
     _hintTimer?.cancel();
-    questionController.removeListener(_clearQuestionError);
+    questionController.removeListener(_onQuestionChanged);
     questionController.dispose();
+    questionFocusNode.dispose();
     descriptionController.dispose();
+    label1Controller.removeListener(_onLabelChanged);
     label1Controller.dispose();
+    label2Controller.removeListener(_onLabelChanged);
     label2Controller.dispose();
     super.dispose();
   }
@@ -263,7 +278,7 @@ class _NewThisOrThatState extends State<NewThisOrThat> {
                   child: Text(
                     'Remove',
                     style: AppTextStyles.bodyText.copyWith(
-                      color: txt.body,
+                      color: Theme.of(context).colorScheme.error,
                       fontSize: 13.5.sp,
                       fontWeight: FontWeight.w400,
                     ),
@@ -448,7 +463,9 @@ class _NewThisOrThatState extends State<NewThisOrThat> {
     final txt = AppTextColors.of(context);
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.background,
-      appBar:  CommonAppBar(title:  AppLocalizations.of(context)!.createthisorthat),
+      appBar: CommonAppBar(
+        title: AppLocalizations.of(context)!.createthisorthat,
+      ),
       body: SingleChildScrollView(
         physics: const BouncingScrollPhysics(),
         child: Padding(
@@ -475,31 +492,12 @@ class _NewThisOrThatState extends State<NewThisOrThat> {
                     AppLocalizations.of(context)!.askquickly,
                     style: CustomTextStyles.lblPrimaryText(context),
                   ),
-                  GestureDetector(
-                    onTap: _isGeneratingQuestion ? null : generateQuestion,
-                    child: Row(
-                      children: [
-                        _isGeneratingQuestion
-                            ? const SizedBox()
-                            : Assets.images.icAssistant.image(
-                                width: 14.w,
-                                height: 14.h,
-                                color: Theme.of(context).colorScheme.onPrimary,
-                              ),
-                        const SizedBox(width: 5),
-                        Text(
-                          _isGeneratingQuestion
-                              ? AppLocalizations.of(context)!.generating
-                              : _hasGeneratedQuestion
-                              ? AppLocalizations.of(context)!.regeneratequestion
-                              : AppLocalizations.of(context)!.generatequestion,
-                          style: AppTextStyles.bodyText.copyWith(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w500,
-                            color: Theme.of(context).colorScheme.onPrimary,
-                          ),
-                        ),
-                      ],
+                  SizedBox(
+                    height: 30,
+                    child: GenerateQuestionButton(
+                      isGenerating: _isGeneratingQuestion,
+                      hasGenerated: _hasGeneratedQuestion,
+                      onTap: _isGeneratingQuestion ? null : generateQuestion,
                     ),
                   ),
                 ],
@@ -507,7 +505,12 @@ class _NewThisOrThatState extends State<NewThisOrThat> {
               SizedBox(height: 7.h),
               SecondryTextfield(
                 controller: questionController,
+                focusNode: questionFocusNode,
                 hintText: _hintTexts[_currentHintIndex],
+                focusedBorderColor:
+                    questionController.text.trim().isNotEmpty
+                        ? Theme.of(context).colorScheme.onPrimary
+                        : null,
               ),
               if (questionErrorText.isNotEmpty)
                 Padding(
@@ -530,6 +533,7 @@ class _NewThisOrThatState extends State<NewThisOrThat> {
                 )!.typedescriptionorhashtags,
                 maxLines: 5,
                 minLines: 1,
+                focusedBorderColor: Theme.of(context).colorScheme.onPrimary,
               ),
               SizedBox(height: 20.h),
               _buildCompetitorsSection(context),
@@ -637,7 +641,9 @@ class _NewThisOrThatState extends State<NewThisOrThat> {
           ),
           SizedBox(height: 8.h),
           Text(
-           AppLocalizations.of(context)!.addtwosimilarimagesegoutfitsplacesfood,
+            AppLocalizations.of(
+              context,
+            )!.addtwosimilarimagesegoutfitsplacesfood,
             style: AppTextStyles.bodyText.copyWith(
               color: txt.muted,
               fontSize: 10.5.sp,
@@ -798,6 +804,7 @@ class _NewThisOrThatState extends State<NewThisOrThat> {
         SecondryTextfield(
           controller: controller,
           hintText: 'Add label',
+          focusedBorderColor: Theme.of(context).colorScheme.onPrimary,
           onChanged: (value) {
             if (errorText.isNotEmpty && value.trim().isNotEmpty) {
               setState(() {

@@ -63,6 +63,7 @@ class HomeFeedPost {
   final String followingStatus;
   final int sharesCount;
   bool isPolledByCurrentUser;
+  bool isSaved;
 
   final List<HomeFeedLikeUser> viewLikes;
 
@@ -79,6 +80,7 @@ class HomeFeedPost {
     required this.followingStatus,
     required this.sharesCount,
     required this.isPolledByCurrentUser,
+    this.isSaved = false,
   });
 
   factory HomeFeedPost.fromJson(Map<String, dynamic> json) {
@@ -102,6 +104,7 @@ class HomeFeedPost {
         followingStatus: _parseToString(json['following_status']),
         sharesCount: _parseToInt(json['shares_count']),
         isPolledByCurrentUser: json['is_polled_by_current_user'] == true,
+        isSaved: json['is_saved'] == true,
       );
     } catch (e) {
       debugPrint('Error parsing HomeFeedPost: $e');
@@ -124,6 +127,7 @@ class HomeFeedPost {
       'following_status': followingStatus,
       'shares_count': sharesCount,
       'is_polled_by_current_user': isPolledByCurrentUser,
+      'is_saved': isSaved,
     };
   }
 

@@ -2330,4 +2330,27 @@ class AppLocalizationsVi extends AppLocalizations {
   @override
   String get hiddenfromsearchjoinbyinvitelink =>
       'Ẩn khỏi tìm kiếm. Tham gia bằng liên kết mời.';
+
+  @override
+  String get privacygroup => 'Quyền riêng tư';
+
+  @override
+  String get popularthings => 'Nội dung phổ biến';
+
+  @override
+  String get places => 'Địa điểm';
+
+  @override
+  String get searchpollsfriendsandhashtags =>
+      'Tìm kiếm bình chọn, bạn bè và hashtag...';
+
+  @override
+  String get lookupaccountstagsorplaces =>
+      'Tìm kiếm tài khoản, thẻ hoặc địa điểm...';
+
+  @override
+  String get findtrendingtopics => 'Tìm chủ đề thịnh hành...';
+
+  @override
+  String get trendingpolls => 'Bình chọn thịnh hành';
 }

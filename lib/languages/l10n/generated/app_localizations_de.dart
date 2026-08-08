@@ -2327,4 +2327,27 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get hiddenfromsearchjoinbyinvitelink =>
       'Von der Suche ausgeblendet. Beitritt per Einladungslink.';
+
+  @override
+  String get privacygroup => 'Privatsphäre';
+
+  @override
+  String get popularthings => 'Beliebte Themen';
+
+  @override
+  String get places => 'Orte';
+
+  @override
+  String get searchpollsfriendsandhashtags =>
+      'Umfragen, Freunde und Hashtags suchen...';
+
+  @override
+  String get lookupaccountstagsorplaces =>
+      'Konten, Tags oder Orte nachschlagen...';
+
+  @override
+  String get findtrendingtopics => 'Angesagte Themen finden...';
+
+  @override
+  String get trendingpolls => 'Angesagte Umfragen';
 }

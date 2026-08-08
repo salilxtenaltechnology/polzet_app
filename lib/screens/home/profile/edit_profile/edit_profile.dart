@@ -329,7 +329,10 @@ class _EditProfileState extends State<EditProfile> {
           showToast(message: 'Email updated successfully');
         }
       } else {
-        final errorMsg = result['data']?['message'] ?? result['message'] ?? 'Failed to send OTP';
+        final errorMsg =
+            result['data']?['message'] ??
+            result['message'] ??
+            'Failed to send OTP';
         showToast(message: errorMsg);
       }
     } catch (e) {
@@ -402,6 +405,7 @@ class _EditProfileState extends State<EditProfile> {
   Widget _buildTextField({
     required TextEditingController controller,
     required String hint,
+    required bool isReadOnly,
     TextInputType keyboardType = TextInputType.text,
     String errorText = '',
     int? maxLines = 1,
@@ -415,6 +419,7 @@ class _EditProfileState extends State<EditProfile> {
         SizedBox(
           height: maxLines == 1 ? 48 : null,
           child: TextField(
+            readOnly: isReadOnly,
             controller: controller,
             keyboardType: keyboardType,
             maxLines: maxLines,
@@ -755,6 +760,7 @@ class _EditProfileState extends State<EditProfile> {
             controller: _firstNameController,
             hint: AppLocalizations.of(context)!.enterfirstname,
             errorText: _firstNameErrorText,
+            isReadOnly: false,
           ),
           const SizedBox(height: 16),
 
@@ -765,6 +771,7 @@ class _EditProfileState extends State<EditProfile> {
             controller: _lastNameController,
             hint: AppLocalizations.of(context)!.enterlastname,
             errorText: _lastNameErrorText,
+            isReadOnly: false,
           ),
           const SizedBox(height: 16),
 
@@ -775,6 +782,7 @@ class _EditProfileState extends State<EditProfile> {
             controller: _usernameController,
             hint: AppLocalizations.of(context)!.enterusername,
             errorText: _usernameErrorText,
+            isReadOnly: false,
             inputFormatters: [LengthLimitingTextInputFormatter(20)],
           ),
           const SizedBox(height: 16),
@@ -788,8 +796,8 @@ class _EditProfileState extends State<EditProfile> {
             maxLines: 3,
             maxLength: 150,
             keyboardType: TextInputType.multiline,
+            isReadOnly: false,
           ),
-          const SizedBox(height: 16),
 
           // ── Email ───────────────────────────────────────────────────────
           _buildFieldLabel(AppLocalizations.of(context)!.email),
@@ -798,42 +806,43 @@ class _EditProfileState extends State<EditProfile> {
             controller: _emailController,
             hint: 'Enter email address',
             keyboardType: TextInputType.emailAddress,
+            isReadOnly: true,
           ),
-          const SizedBox(height: 5),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              _isVerifyingEmail
-                  ? const Padding(
-                      padding: EdgeInsets.only(right: 8),
-                      child: SizedBox(
-                        width: 14,
-                        height: 14,
-                        child: CircularProgressIndicator(strokeWidth: 1.5),
-                      ),
-                    )
-                  : GestureDetector(
-                      onTap:
-                          (_emailController.text.trim() != _originalEmail &&
-                              _emailController.text.trim().isNotEmpty)
-                          ? _verifyEmail
-                          : null,
-                      child: Text(
-                        'Verify',
-                        style: AppTextStyles.subText.copyWith(
-                          fontSize: 14,
-                          color:
-                              (_emailController.text.trim() != _originalEmail &&
-                                  _emailController.text.trim().isNotEmpty)
-                              ? Theme.of(context).colorScheme.primary
-                              : Colors.transparent,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ),
-            ],
-          ),
-          const SizedBox(height: 10),
+          // const SizedBox(height: 5),
+          // Row(
+          //   mainAxisAlignment: MainAxisAlignment.end,
+          //   children: [
+          //     _isVerifyingEmail
+          //         ? const Padding(
+          //             padding: EdgeInsets.only(right: 8),
+          //             child: SizedBox(
+          //               width: 14,
+          //               height: 14,
+          //               child: CircularProgressIndicator(strokeWidth: 1.5),
+          //             ),
+          //           )
+          //         : GestureDetector(
+          //             onTap:
+          //                 (_emailController.text.trim() != _originalEmail &&
+          //                     _emailController.text.trim().isNotEmpty)
+          //                 ? _verifyEmail
+          //                 : null,
+          //             child: Text(
+          //               'Verify',
+          //               style: AppTextStyles.subText.copyWith(
+          //                 fontSize: 14,
+          //                 color:
+          //                     (_emailController.text.trim() != _originalEmail &&
+          //                         _emailController.text.trim().isNotEmpty)
+          //                     ? Theme.of(context).colorScheme.primary
+          //                     : Colors.transparent,
+          //                 fontWeight: FontWeight.w500,
+          //               ),
+          //             ),
+          //           ),
+          //   ],
+          // ),
+          const SizedBox(height: 20),
 
           // ── Phone ───────────────────────────────────────────────────────
           _buildFieldLabel(AppLocalizations.of(context)!.phonenumber),
@@ -847,6 +856,7 @@ class _EditProfileState extends State<EditProfile> {
                   controller: _phoneController,
                   hint: AppLocalizations.of(context)!.enteryourphonenumber,
                   keyboardType: TextInputType.phone,
+                  isReadOnly: true,
                 ),
               ),
             ],

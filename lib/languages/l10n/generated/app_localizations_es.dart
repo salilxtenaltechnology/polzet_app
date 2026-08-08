@@ -2335,4 +2335,27 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get hiddenfromsearchjoinbyinvitelink =>
       'Oculto en las búsquedas. Únete mediante enlace de invitación.';
+
+  @override
+  String get privacygroup => 'Privacidad';
+
+  @override
+  String get popularthings => 'Cosas populares';
+
+  @override
+  String get places => 'Lugares';
+
+  @override
+  String get searchpollsfriendsandhashtags =>
+      'Buscar encuestas, amigos y hashtags...';
+
+  @override
+  String get lookupaccountstagsorplaces =>
+      'Buscar cuentas, etiquetas o lugares...';
+
+  @override
+  String get findtrendingtopics => 'Buscar temas de tendencia...';
+
+  @override
+  String get trendingpolls => 'Encuestas en tendencia';
 }

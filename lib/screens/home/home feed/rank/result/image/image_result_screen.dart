@@ -21,6 +21,7 @@ import '../../../../../../widgets/appbar/common_appbar.dart';
 import '../../../../../../widgets/connection/no_internet_screen.dart';
 import '../../../../../../widgets/loader.dart';
 import '../../../../profile/public/public_profile_screen.dart';
+import '../../../../../../../gen/assets.gen.dart';
 import 'image_preview_screen.dart';
 
 class ImageResultScreen extends StatefulWidget {
@@ -186,6 +187,11 @@ class _ImageResultScreenState extends State<ImageResultScreen>
     final initial = username.isNotEmpty ? username[0].toUpperCase() : 'P';
     // final userProvider = Provider.of<UserProvider>(context, listen: false);
 
+    final fullName = '$firstName $lastName'.trim();
+    final displayName = fullName.isNotEmpty
+        ? fullName
+        : (username.isNotEmpty ? username : 'Polzet User');
+
     return Row(
       children: [
         GestureDetector(
@@ -195,27 +201,67 @@ class _ImageResultScreenState extends State<ImageResultScreen>
               PublicProfileScreen(userId: _post!.user.uuid, username: username),
             );
           },
-          child: CircleAvatar(
-            radius: 20,
-            backgroundColor: Theme.of(
-              context,
-            ).colorScheme.onPrimary.withOpacity(0.15),
-            backgroundImage: _profileImageBytes != null
-                ? MemoryImage(_profileImageBytes!)
-                : (_post!.user.profileImage.isNotEmpty
-                      ? NetworkImage(_post!.user.profileImage)
-                      : null),
-            child:
-                _profileImageBytes == null && _post!.user.profileImage.isEmpty
-                ? Text(
-                    initial,
-                    style: AppTextStyles.subText.copyWith(
-                      color: Theme.of(context).colorScheme.onPrimary,
-                      fontWeight: FontWeight.w600,
-                      fontSize: 18,
+          child: SizedBox(
+            width: 45,
+            height: 45,
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                ClipOval(
+                  child: (() {
+                    final String currentUsername =
+                        _post!.user.username.trim().toLowerCase();
+                    if (currentUsername == 'polzet_ai') {
+                      return Center(
+                        child: Padding(
+                          padding: const EdgeInsets.only(
+                            top: 8,
+                            bottom: 0,
+                            left: 10,
+                            right: 9,
+                          ),
+                          child: Image.asset(
+                            Assets.images.icSplash.path,
+                          ),
+                        ),
+                      );
+                    }
+                    return CircleAvatar(
+                      radius: 22.5,
+                      backgroundColor: Theme.of(
+                        context,
+                      ).colorScheme.onPrimary.withOpacity(0.15),
+                      backgroundImage: _profileImageBytes != null
+                          ? MemoryImage(_profileImageBytes!)
+                          : (_post!.user.profileImage.isNotEmpty
+                                ? NetworkImage(_post!.user.profileImage)
+                                : null),
+                      child:
+                          _profileImageBytes == null &&
+                          _post!.user.profileImage.isEmpty
+                          ? Text(
+                              initial,
+                              style: AppTextStyles.subText.copyWith(
+                                color: Theme.of(context).colorScheme.onPrimary,
+                                fontWeight: FontWeight.w600,
+                                fontSize: 18,
+                              ),
+                            )
+                          : null,
+                    );
+                  })(),
+                ),
+                if (_post!.user.username.trim().toLowerCase() ==
+                    'polzet_ai')
+                  Positioned.fill(
+                    child: Image.asset(
+                      Assets.images.aiFrame.path,
+                      height: 55,
+                      width: 55,
                     ),
-                  )
-                : null,
+                  ),
+              ],
+            ),
           ),
         ),
 
@@ -226,12 +272,32 @@ class _ImageResultScreenState extends State<ImageResultScreen>
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                '$firstName $lastName',
-                style: AppTextStyles.sectionHeading.copyWith(
-                  color: txt.title,
-                  fontSize: 14,
-                ),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Flexible(
+                    child: Text(
+                      displayName,
+                      style: AppTextStyles.sectionHeading.copyWith(
+                        color: txt.title,
+                        fontSize: 14,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  if (_post!.user.username.trim().toLowerCase() ==
+                          'polzet_ai' ||
+                      _post!.user.username.trim().toLowerCase() ==
+                          'polzet') ...[
+                    SizedBox(width: 4.w),
+                    Image.asset(
+                      Assets.images.icVerify.path,
+                      height: 13,
+                      width: 13,
+                    ),
+                  ],
+                ],
               ),
               Row(
                 children: [

@@ -2488,19 +2488,25 @@ class _SinglePostDetailsState extends State<SinglePostDetails>
     required int totalVotes,
     required bool showPercentage,
   }) {
-    final bool isDark = Theme.of(context).brightness == Brightness.dark;
+    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final bool hasUserPolled = _post?.isPolledByCurrentUser ?? false;
     final double percentage = option.percentage;
-      final txt = AppTextColors.of(context);
+    final txt = AppTextColors.of(context);
 
     return AnimatedContainer(
       duration: const Duration(milliseconds: 250),
       curve: Curves.easeInOut,
       margin: EdgeInsets.only(bottom: 10.h),
-    
-      
+
       width: double.infinity,
       decoration: BoxDecoration(
-        color: isDark ?  const Color(0xFF242831).withOpacity(0.7) :Colors.white,
+        color: hasUserPolled
+            ? (isDarkMode
+                  ? const Color(0XFF2A2026).withOpacity(0.7)
+                  : const Color.fromARGB(255, 251, 244, 244))
+            : (isDarkMode
+                  ? const Color(0xFF242831).withOpacity(0.7)
+                  : Colors.white),
         borderRadius: BorderRadius.circular(AppRadius.card),
         border: Border.all(
           color: Theme.of(context).colorScheme.outline,
@@ -2509,32 +2515,9 @@ class _SinglePostDetailsState extends State<SinglePostDetails>
       ),
       child: Stack(
         children: [
-          // ── Percentage fill bar (shown after voted) ──────────────────────
-          if (showPercentage && percentage > 0)
-            Positioned.fill(
-              child: TweenAnimationBuilder<double>(
-                key: ValueKey('bar_${poll.id}_${option.id}_$percentage'),
-                duration: const Duration(milliseconds: 800),
-                curve: Curves.easeOutCubic,
-                tween: Tween<double>(begin: 0, end: percentage / 100),
-                builder: (_, value, __) => FractionallySizedBox(
-                  alignment: Alignment.centerLeft,
-                  widthFactor: value,
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: isDark
-                          ? const Color(0XFF2A2026).withOpacity(0.7)
-                          : const Color(0xFFFCF9F9),
-                      borderRadius: BorderRadius.circular(AppRadius.button),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-
           // ── Option text + percentage label ───────────────────────────────
           Padding(
-            padding: EdgeInsets.fromLTRB(8.w, 3.h, 8.w, 0),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6.5),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -2542,10 +2525,10 @@ class _SinglePostDetailsState extends State<SinglePostDetails>
                   child: Text(
                     option.text ?? '',
                     style: AppTextStyles.subText.copyWith(
-                  color: txt.title,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w400,
-                ),
+                      color: txt.title,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w400,
+                    ),
                   ),
                 ),
                 if (showPercentage)

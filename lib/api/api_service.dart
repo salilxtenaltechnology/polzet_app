@@ -1178,8 +1178,11 @@ class ApiService with UtilityMixin {
     try {
       final response = await _dio.post(
         '${ApiConfig.baseUrl}/trigger_ai',
-        data: {'mode': "improve_question", 'input': input},
-        options: Options(headers: await _getAuthHeaders()),
+        data: jsonEncode({'mode': "improve_question", 'input': input}),
+        options: Options(
+          headers: await _getAuthHeaders(),
+          contentType: 'application/json',
+        ),
       );
 
       final responseData = response.data;
@@ -1198,14 +1201,154 @@ class ApiService with UtilityMixin {
     try {
       final response = await _dio.post(
         '${ApiConfig.baseUrl}/trigger_ai',
-        data: {'mode': "generate_options", 'input': input},
-        options: Options(headers: await _getAuthHeaders()),
+        data: jsonEncode({'mode': "generate_options", 'input': input}),
+        options: Options(
+          headers: await _getAuthHeaders(),
+          contentType: 'application/json',
+        ),
       );
 
-      return response.data as Map<String, dynamic>;
+      final responseData = response.data;
+      if (responseData is String) {
+        return jsonDecode(responseData) as Map<String, dynamic>;
+      }
+      return responseData as Map<String, dynamic>;
     } on DioException catch (e) {
       throw Exception(
         'Failed to generate options: ${e.response?.data ?? e.message}',
+      );
+    }
+  }
+
+  Future<Map<String, dynamic>> generateDescription({
+    required String question,
+    required List<String> options,
+  }) async {
+    try {
+      final headers = await _getAuthHeaders();
+      headers['Content-Type'] = 'application/json';
+
+      final inputPayload = {"question": question, "options": options};
+
+      // 1. Try sending raw JSON payload matching Postman format
+      var response = await _dio.post(
+        '${ApiConfig.baseUrl}/trigger_ai',
+        data: jsonEncode({
+          "mode": "generate_description",
+          "input": inputPayload,
+        }),
+        options: Options(headers: headers, contentType: 'application/json'),
+      );
+
+      Map<String, dynamic> data;
+      if (response.data is String) {
+        data = jsonDecode(response.data as String) as Map<String, dynamic>;
+      } else if (response.data is Map) {
+        data = Map<String, dynamic>.from(response.data as Map);
+      } else {
+        data = {};
+      }
+
+      // 2. If response contains validation error (e.g. input CharField string validation), retry with stringified input
+      if ((response.statusCode != null && response.statusCode! >= 400) ||
+          data['status'] == 'error' ||
+          data['errors'] != null) {
+        debugPrint(
+          'First attempt returned validation error: ${data['errors']}. Retrying with stringified input...',
+        );
+        final retryResponse = await _dio.post(
+          '${ApiConfig.baseUrl}/trigger_ai',
+          data: jsonEncode({
+            "mode": "generate_description",
+            "input": jsonEncode(inputPayload),
+          }),
+          options: Options(headers: headers, contentType: 'application/json'),
+        );
+
+        Map<String, dynamic> retryData;
+        if (retryResponse.data is String) {
+          retryData =
+              jsonDecode(retryResponse.data as String) as Map<String, dynamic>;
+        } else if (retryResponse.data is Map) {
+          retryData = Map<String, dynamic>.from(retryResponse.data as Map);
+        } else {
+          retryData = {};
+        }
+
+        if (retryData['description'] != null || retryData['success'] == true) {
+          return retryData;
+        }
+      }
+
+      return data;
+    } on DioException catch (e) {
+      throw Exception(
+        _handleDioError(e, defaultMessage: 'Failed to generate description'),
+      );
+    }
+  }
+
+  Future<Map<String, dynamic>> generateHashtags({
+    required String question,
+    required String description,
+  }) async {
+    try {
+      final headers = await _getAuthHeaders();
+      headers['Content-Type'] = 'application/json';
+
+      final inputPayload = {"question": question, "description": description};
+
+      // 1. Try sending raw JSON payload matching Postman format
+      var response = await _dio.post(
+        '${ApiConfig.baseUrl}/trigger_ai',
+        data: jsonEncode({"mode": "generate_hashtags", "input": inputPayload}),
+        options: Options(headers: headers, contentType: 'application/json'),
+      );
+
+      Map<String, dynamic> data;
+      if (response.data is String) {
+        data = jsonDecode(response.data as String) as Map<String, dynamic>;
+      } else if (response.data is Map) {
+        data = Map<String, dynamic>.from(response.data as Map);
+      } else {
+        data = {};
+      }
+
+      // 2. If response contains validation error, retry with stringified input
+      if ((response.statusCode != null && response.statusCode! >= 400) ||
+          data['status'] == 'error' ||
+          data['errors'] != null) {
+        debugPrint(
+          'First attempt returned validation error: ${data['errors']}. Retrying generateHashtags with stringified input...',
+        );
+        final retryResponse = await _dio.post(
+          '${ApiConfig.baseUrl}/trigger_ai',
+          data: jsonEncode({
+            "mode": "generate_hashtags",
+            "input": jsonEncode(inputPayload),
+          }),
+          options: Options(headers: headers, contentType: 'application/json'),
+        );
+
+        Map<String, dynamic> retryData;
+        if (retryResponse.data is String) {
+          retryData =
+              jsonDecode(retryResponse.data as String) as Map<String, dynamic>;
+        } else if (retryResponse.data is Map) {
+          retryData = Map<String, dynamic>.from(retryResponse.data as Map);
+        } else {
+          retryData = {};
+        }
+
+        if (retryData['hashtags'] != null || retryData['success'] == true) {
+          return retryData;
+        }
+      }
+
+      return data;
+    } on DioException catch (e) {
+      throw Exception(
+        _handleDioError(e, defaultMessage: 'Failed to generate hashtags'),
       );
     }
   }
@@ -1432,6 +1575,7 @@ class ApiService with UtilityMixin {
     required String question,
     required List<File> pollOptions,
     required int maxOptions,
+    List<String>? labels,
     String votingType = 'single_choice',
     String? authToken,
     Function(double)? onProgress,
@@ -1467,9 +1611,12 @@ class ApiService with UtilityMixin {
         const MapEntry('max_options', "4"),
       ]);
 
-      // Add blank poll_options for each image option
+      // Add poll_options for each image option
       for (int i = 0; i < pollOptions.length; i++) {
-        formData.fields.add(const MapEntry('poll_options', ''));
+        final String labelText = (labels != null && i < labels.length)
+            ? labels[i]
+            : '';
+        formData.fields.add(MapEntry('poll_options', labelText));
       }
 
       // Add image indices as [0, 1, ...]
@@ -2134,21 +2281,18 @@ class ApiService with UtilityMixin {
     }
   }
 
+  Future<Map<String, dynamic>> getGroupPreview({required String slug}) async {
+    try {
+      final response = await _dio.get(
+        '${ApiConfig.baseUrl}/g/$slug/preview',
+        options: Options(headers: await _getAuthHeaders()),
+      );
 
-  Future<Map<String, dynamic>> getGroupPreview({
-  required String slug,
-}) async {
-  try {
-    final response = await _dio.get(
-      '${ApiConfig.baseUrl}/g/$slug/preview',
-      options: Options(headers: await _getAuthHeaders()),
-    );
-
-    return response.data as Map<String, dynamic>;
-  } on DioException catch (e) {
-    throw _handleDioError(e);
+      return response.data as Map<String, dynamic>;
+    } on DioException catch (e) {
+      throw _handleDioError(e);
+    }
   }
-}
 
   Future<Map<String, dynamic>> joinGroup({required String chatId}) async {
     try {
@@ -3050,6 +3194,41 @@ class ApiService with UtilityMixin {
   }
 
   // ==================== INTERACTIONS ====================
+
+  Future<Map<String, dynamic>> toggleSavePost({required String postId}) async {
+    try {
+      final response = await _dio.post(
+        '${ApiConstants.baseUrl}/posts/$postId/save',
+        options: Options(headers: await _getAuthHeaders()),
+      );
+
+      return response.data as Map<String, dynamic>;
+    } on DioException catch (e) {
+      throw _handleDioError(e);
+    }
+  }
+
+  Future<Map<String, dynamic>> getSavedPostList({
+    int page = 1,
+    String? snapshot,
+  }) async {
+    try {
+      final Map<String, dynamic> queryParams = {'page': page};
+      if (snapshot != null && snapshot.isNotEmpty) {
+        queryParams['snapshot'] = snapshot;
+      }
+
+      final response = await _dio.get(
+        '${ApiConstants.baseUrl}/posts/saved',
+        queryParameters: queryParams,
+        options: Options(headers: await _getAuthHeaders()),
+      );
+
+      return response.data as Map<String, dynamic>;
+    } on DioException catch (e) {
+      throw _handleDioError(e);
+    }
+  }
 
   /// Toggle post like
   static Future<Map<String, dynamic>> togglePostLike(dynamic postId) async {

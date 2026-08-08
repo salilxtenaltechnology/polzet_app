@@ -21,6 +21,7 @@ import '../../../../../widgets/loader.dart';
 import '../submit/rank_submitted_screen.dart';
 import '../result/image/image_preview_screen.dart';
 import '../result/image/image_result_screen.dart';
+import '../../../../../../gen/assets.gen.dart';
 
 class HomefeedImageRanking extends StatefulWidget {
   final List<HomeFeedPollOption> images;
@@ -254,6 +255,13 @@ class _ImageRankingState extends State<HomefeedImageRanking> with UtilityMixin {
 
   Widget _buildPostHeader() {
     final txt = AppTextColors.of(context);
+    final fn = widget.user.firstName?.trim() ?? '';
+    final ln = widget.user.lastName?.trim() ?? '';
+    final fullName = '$fn $ln'.trim();
+    final displayName = fullName.isNotEmpty
+        ? fullName
+        : (widget.user.username.isNotEmpty ? widget.user.username : 'Polzet User');
+
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 12),
       child: Column(
@@ -268,30 +276,69 @@ class _ImageRankingState extends State<HomefeedImageRanking> with UtilityMixin {
                     PublicProfileScreen(userId: widget.user.userid, username: widget.user.username),
                   );
                 },
-                child: CircleAvatar(
-                  radius: 20,
-                  backgroundColor: Theme.of(
-                    context,
-                  ).colorScheme.onPrimary.withOpacity(0.1),
-                  backgroundImage: _profileImageBytes != null
-                      ? MemoryImage(_profileImageBytes!)
-                      : (widget.user.profileImage != null &&
-                                widget.user.profileImage!.isNotEmpty
-                            ? NetworkImage(widget.user.profileImage!)
-                            : null),
-                  child:
-                      _profileImageBytes == null &&
-                          (widget.user.profileImage == null ||
-                              widget.user.profileImage!.isEmpty)
-                      ? Text(
-                          widget.user.firstLetter,
-                          style: AppTextStyles.subText.copyWith(
-                            color: Theme.of(context).colorScheme.onPrimary,
-                            fontWeight: FontWeight.w500,
-                            fontSize: 18,
+                child: SizedBox(
+                  width: 45,
+                  height: 45,
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      ClipOval(
+                        child: (() {
+                          final String currentUsername =
+                              widget.user.username.trim().toLowerCase();
+                          if (currentUsername == 'polzet_ai') {
+                            return Center(
+                              child: Padding(
+                                padding: const EdgeInsets.only(
+                                  top: 8,
+                                  bottom: 0,
+                                  left: 10,
+                                  right: 9,
+                                ),
+                                child: Image.asset(
+                                  Assets.images.icSplash.path,
+                                ),
+                              ),
+                            );
+                          }
+                          return CircleAvatar(
+                            radius: 22.5,
+                            backgroundColor: Theme.of(
+                              context,
+                            ).colorScheme.onPrimary.withOpacity(0.1),
+                            backgroundImage: _profileImageBytes != null
+                                ? MemoryImage(_profileImageBytes!)
+                                : (widget.user.profileImage != null &&
+                                          widget.user.profileImage!.isNotEmpty
+                                      ? NetworkImage(widget.user.profileImage!)
+                                      : null),
+                            child:
+                                _profileImageBytes == null &&
+                                    (widget.user.profileImage == null ||
+                                        widget.user.profileImage!.isEmpty)
+                                ? Text(
+                                    widget.user.firstLetter,
+                                    style: AppTextStyles.subText.copyWith(
+                                      color: Theme.of(context).colorScheme.onPrimary,
+                                      fontWeight: FontWeight.w500,
+                                      fontSize: 18,
+                                    ),
+                                  )
+                                : null,
+                          );
+                        })(),
+                      ),
+                      if (widget.user.username.trim().toLowerCase() ==
+                          'polzet_ai')
+                        Positioned.fill(
+                          child: Image.asset(
+                            Assets.images.aiFrame.path,
+                            height: 55,
+                            width: 55,
                           ),
-                        )
-                      : null,
+                        ),
+                    ],
+                  ),
                 ),
               ),
               const SizedBox(width: 10),
@@ -299,13 +346,32 @@ class _ImageRankingState extends State<HomefeedImageRanking> with UtilityMixin {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      '${widget.user.firstName ?? 'Polzet'} ${widget.user.lastName ?? 'User'}'
-                          .trim(),
-                      style: AppTextStyles.sectionHeading.copyWith(
-                        color: txt.title,
-                        fontSize: 14,
-                      ),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Flexible(
+                          child: Text(
+                            displayName,
+                            style: AppTextStyles.sectionHeading.copyWith(
+                              color: txt.title,
+                              fontSize: 14,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        if (widget.user.username.trim().toLowerCase() ==
+                                'polzet_ai' ||
+                            widget.user.username.trim().toLowerCase() ==
+                                'polzet') ...[
+                          const SizedBox(width: 4),
+                          Image.asset(
+                            Assets.images.icVerify.path,
+                            height: 13,
+                            width: 13,
+                          ),
+                        ],
+                      ],
                     ),
                     Row(
                       children: [

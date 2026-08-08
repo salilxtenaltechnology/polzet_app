@@ -10,6 +10,7 @@ import 'package:web_socket_channel/status.dart' as status;
 import '../../models/message/message_model.dart';
 import '../../data/token/shared_preferences.dart';
 import '../api/api_service.dart';
+import '../api/api_config.dart';
 
 class GroupMemberPresence {
   final dynamic userId;
@@ -26,6 +27,7 @@ class GroupMemberPresence {
 }
 
 class GroupChatProvider extends ChangeNotifier {
+  static String get _wsBaseUrl => ApiConfig.wsBaseUrl;
   String? _groupName;
   String? _groupImageUrl;
   dynamic _chatId;
@@ -157,8 +159,6 @@ class GroupChatProvider extends ChangeNotifier {
   String? _nextPageUrl;
   bool get hasMoreHistory => _nextPageUrl != null;
 
-  static const String _wsBaseUrl = 'ws://testbackend.polzet.in';
-
   WebSocketChannel? _presenceChannel;
   StreamSubscription? _presenceSubscription;
   bool _isPresenceConnected = false;
@@ -250,6 +250,10 @@ class GroupChatProvider extends ChangeNotifier {
     _currentUserId = currentUserId;
     _chat = chat;
     _syncAdminIds();
+
+    if (_chat == null && _chatId != null) {
+      _refreshChatData();
+    }
 
     if (_chatId != null) {
       ApiService().markChatReadUnread(chatId: _chatId.toString(), isUnread: false);

@@ -23,7 +23,13 @@ import '../../../../../widgets/tabbar/indicatore_animation.dart';
 class GroupMembers extends StatefulWidget {
   final List<Map<String, dynamic>> members;
   final dynamic chatId;
-  const GroupMembers({super.key, required this.members, required this.chatId});
+  final int initialTabIndex;
+  const GroupMembers({
+    super.key,
+    required this.members,
+    required this.chatId,
+    this.initialTabIndex = 0,
+  });
 
   @override
   State<GroupMembers> createState() => _GroupMembersState();
@@ -42,7 +48,12 @@ class _GroupMembersState extends State<GroupMembers>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+    _selectedTabIndex = widget.initialTabIndex;
+    _tabController = TabController(
+      length: 2,
+      vsync: this,
+      initialIndex: widget.initialTabIndex,
+    );
     _tabController.addListener(() {
       if (!mounted) return;
       if (_tabController.index != _selectedTabIndex) {
@@ -60,9 +71,12 @@ class _GroupMembersState extends State<GroupMembers>
     });
   }
 
-  void _checkAndFetchRequests() {
+  void _checkAndFetchRequests() async {
     final provider = context.read<GroupChatProvider>();
-    if (_isCurrentUserAdmin(provider) && !_requestsFetched) {
+    if (provider.chat == null && widget.chatId != null) {
+      await provider.refreshChatData();
+    }
+    if ((_selectedTabIndex == 1 || _isCurrentUserAdmin(provider)) && !_requestsFetched) {
       _fetchJoinRequests();
     }
   }
@@ -162,7 +176,10 @@ class _GroupMembersState extends State<GroupMembers>
 
   Future<void> _fetchJoinRequests() async {
     final provider = context.read<GroupChatProvider>();
-    if (!_isCurrentUserAdmin(provider)) return;
+    if (provider.chat == null && widget.chatId != null) {
+      await provider.refreshChatData();
+    }
+    if (_selectedTabIndex != 1 && !_isCurrentUserAdmin(provider)) return;
 
     if (_isLoadingRequests) return;
     setState(() => _isLoadingRequests = true);
@@ -509,7 +526,7 @@ class _GroupMembersState extends State<GroupMembers>
         unselectedLabelColor: Theme.of(context).colorScheme.onBackground,
         tabs: [
           Tab(text: AppLocalizations.of(context)!.members),
-          Tab(text: count > 0 ? 'Join Requests ($count)' : 'Join Requests'),
+          Tab(text: count > 0 ? '${AppLocalizations.of(context)!.joinrequests} ($count)' : AppLocalizations.of(context)!.joinrequests),
         ],
       ),
     );
@@ -524,7 +541,7 @@ class _GroupMembersState extends State<GroupMembers>
     if (_joinRequests.isEmpty) {
       return Center(
         child: Text(
-          'No pending join requests',
+          AppLocalizations.of(context)!.nopendingjoinrequests,
           style: TextStyle(
             color: Theme.of(context).colorScheme.onBackground.withOpacity(0.4),
             fontSize: 12.sp,
