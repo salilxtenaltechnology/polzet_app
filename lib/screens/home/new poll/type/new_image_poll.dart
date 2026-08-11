@@ -21,7 +21,6 @@ import '../../../../provider/user_provider.dart';
 import '../../../../widgets/appbar/common_appbar.dart';
 import '../../../../widgets/button/primary_button.dart';
 import '../../../../widgets/button/generate_question_button.dart';
-import '../../../../widgets/button/generate_description_button.dart';
 import '../../../../widgets/custom_text_styles.dart';
 import '../../../../widgets/dotted_border/dotted_border.dart';
 import '../../../../widgets/show_toast.dart';
