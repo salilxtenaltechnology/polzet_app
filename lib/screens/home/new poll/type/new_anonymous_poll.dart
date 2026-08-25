@@ -24,6 +24,7 @@ import '../../../../gen/assets.gen.dart';
 import '../../../../languages/l10n/generated/app_localizations.dart';
 import '../../../../provider/user_provider.dart';
 import '../../../../widgets/appbar/common_appbar.dart';
+import '../../../../widgets/banner/ai_generation_limit_banner.dart';
 import '../../../../widgets/button/generate_question_button.dart';
 import '../../../../widgets/button/generate_option_button.dart';
 import '../../../../widgets/custom_text_styles.dart';
@@ -63,6 +64,54 @@ class _NewAnonymousPollState extends State<NewAnonymousPoll> {
   bool _hasGeneratedOptions = false;
   bool _isMultiChoice = false;
 
+  int _remainingGenerations = 5;
+  int _dailyLimit = 5;
+
+  Future<void> _loadSavedAiLimit() async {
+    final limitData = await SharedPrefService.getAiLimitData();
+    if (mounted) {
+      setState(() {
+        _remainingGenerations = limitData['remaining'] ?? 5;
+        _dailyLimit = limitData['daily_limit'] ?? 5;
+      });
+    }
+  }
+
+  void _updateAiLimitFromResponse(Map<String, dynamic>? response) {
+    if (response == null) return;
+    final rawRemaining = response['remaining'] ?? response['data']?['remaining'];
+    final rawLimit = response['daily_limit'] ?? response['data']?['daily_limit'];
+
+    if (rawRemaining != null) {
+      final parsedRemaining = int.tryParse(rawRemaining.toString());
+      if (parsedRemaining != null && mounted) {
+        setState(() {
+          _remainingGenerations = parsedRemaining;
+        });
+      }
+    } else {
+      if (mounted && _remainingGenerations > 0) {
+        setState(() {
+          _remainingGenerations -= 1;
+        });
+      }
+    }
+
+    if (rawLimit != null) {
+      final parsedLimit = int.tryParse(rawLimit.toString());
+      if (parsedLimit != null && mounted) {
+        setState(() {
+          _dailyLimit = parsedLimit;
+        });
+      }
+    }
+
+    SharedPrefService.saveAiLimitData(
+      remaining: _remainingGenerations,
+      dailyLimit: _dailyLimit,
+    );
+  }
+
   // Hint animation state
   int _currentHintIndex = 0;
   Timer? _hintTimer;
@@ -76,6 +125,7 @@ class _NewAnonymousPollState extends State<NewAnonymousPoll> {
   @override
   void initState() {
     super.initState();
+    _loadSavedAiLimit();
     questionController.addListener(_onQuestionChanged);
     _initializeOptionFields();
     _startHintAnimation();
@@ -92,6 +142,14 @@ class _NewAnonymousPollState extends State<NewAnonymousPoll> {
   }
 
   Future<void> generateQuestion() async {
+    if (_remainingGenerations <= 0) {
+      showToast(
+        message:
+            'No AI generations left today. Your credits will reset tomorrow.',
+      );
+      return;
+    }
+
     final query = questionController.text.trim();
 
     if (query.isEmpty) {
@@ -108,6 +166,8 @@ class _NewAnonymousPollState extends State<NewAnonymousPoll> {
     try {
       final response = await service.generateQuestion(input: query);
       debugPrint('generateQuestion response: $response');
+      _updateAiLimitFromResponse(response);
+
       final questionText = response['question']?.toString();
       if (questionText != null && questionText.trim().isNotEmpty) {
         setState(() {
@@ -140,6 +200,14 @@ class _NewAnonymousPollState extends State<NewAnonymousPoll> {
   }
 
   Future<void> generateOptions() async {
+    if (_remainingGenerations <= 0) {
+      showToast(
+        message:
+            'No AI generations left today. Your credits will reset tomorrow.',
+      );
+      return;
+    }
+
     final question = questionController.text.trim();
 
     if (question.isEmpty) {
@@ -156,6 +224,8 @@ class _NewAnonymousPollState extends State<NewAnonymousPoll> {
     try {
       final response = await service.generateOptions(input: question);
       debugPrint('generateOptions response: $response');
+      _updateAiLimitFromResponse(response);
+
       final List<dynamic>? optionsList = response['options'];
       if (optionsList != null && optionsList.isNotEmpty) {
         setState(() {
@@ -772,6 +842,10 @@ class _NewAnonymousPollState extends State<NewAnonymousPoll> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             SizedBox(height: 10.h),
+            AiGenerationLimitBanner(
+              remainingGenerations: _remainingGenerations,
+            ),
+            SizedBox(height: 15.h),
             Text(
               AppLocalizations.of(
                 context,

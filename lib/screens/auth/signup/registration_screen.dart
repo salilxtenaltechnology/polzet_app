@@ -8,13 +8,18 @@ import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:intl/intl.dart';
 
+import '../../../data/token/shared_preferences.dart';
+import '../../../main.dart';
 import '../../../api/app_api.dart';
 import '../../../api/api_service.dart';
 import '../../../core/themes/app_text_colors.dart';
 import '../../../core/themes/app_text_styles.dart';
 import '../../../languages/l10n/generated/app_localizations.dart';
 import '../../../mixin/utility_mixins.dart';
+import '../../../models/country/country_model.dart';
+import '../../../widgets/appbar/common_appbar.dart';
 import '../../../widgets/loader.dart';
+import '../../../widgets/show_toast.dart';
 import '../account/account_success_screen.dart';
 
 class RegistrationScreen extends StatefulWidget {
@@ -49,8 +54,50 @@ class _RegistrationScreenState extends State<RegistrationScreen>
   final _layerLink = LayerLink();
   OverlayEntry? _overlayEntry;
 
+  final _countryLayerLink = LayerLink();
+  OverlayEntry? _countryOverlayEntry;
+  bool _isCountryDropdownOpen = false;
+  double _countryFieldWidth = 0;
+  final _countrySearchController = TextEditingController();
+
   // ── State ───────────────────────────────────────────────────────────────────
   DateTime? _dob;
+  String _selectedCountry = 'India';
+  String _selectedLanguage = 'English';
+
+  static const Map<String, String> _languageCodeMap = {
+    'Arabic': 'ar',
+    'English': 'en',
+    'German': 'de',
+    'Hindi': 'hi',
+    'Indonasian': 'id',
+    'Indonesian': 'id',
+    'Spanish': 'es',
+    'Vietnamese': 'vi',
+  };
+
+  static const Map<String, String> _codeToLanguageMap = {
+    'ar': 'Arabic',
+    'en': 'English',
+    'de': 'German',
+    'hi': 'Hindi',
+    'id': 'Indonasian',
+    'es': 'Spanish',
+    'vi': 'Vietnamese',
+  };
+
+
+
+  final List<String> _languages = const [
+    'Arabic',
+    'English',
+    'German',
+    'Hindi',
+    'Indonasian',
+    'Spanish',
+    'Vietnamese',
+  ];
+
   bool _obscurePassword = true;
   bool _obscureConfirm = true;
   bool _isLoading = false;
@@ -76,10 +123,52 @@ class _RegistrationScreenState extends State<RegistrationScreen>
     super.initState();
     _passwordFocusNode.addListener(_onFocusChange);
     _passwordCtrl.addListener(_onTextChanged);
+    _initCountry();
+    _loadInitialLanguage();
+  }
+
+  void _initCountry() {
+    if (widget.verifiedCountryCode != null &&
+        widget.verifiedCountryCode!.isNotEmpty) {
+      final found = allCountries.firstWhere(
+        (c) =>
+            c.code.toLowerCase() ==
+                widget.verifiedCountryCode!.toLowerCase() ||
+            c.dialCode == widget.verifiedCountryCode,
+        orElse: () => allCountries.firstWhere(
+          (c) => c.name == 'India',
+          orElse: () => allCountries.first,
+        ),
+      );
+      _selectedCountry = found.name;
+    } else {
+      _selectedCountry = 'India';
+    }
+  }
+
+  Future<void> _loadInitialLanguage() async {
+    final savedCode = await SharedPrefService.getLanguage();
+    if (savedCode != null && _codeToLanguageMap.containsKey(savedCode)) {
+      if (mounted) {
+        setState(() {
+          _selectedLanguage = _codeToLanguageMap[savedCode]!;
+        });
+      }
+    }
+  }
+
+  void _applyLanguage(String lang) {
+    final code = _languageCodeMap[lang] ?? 'en';
+    SharedPrefService.saveLanguage(code);
+    if (mounted) {
+      MyApp.of(context)?.changeLanguage(Locale(code));
+    }
   }
 
   @override
   void dispose() {
+    _closeCountryDropdown();
+    _countrySearchController.dispose();
     _hideOverlay();
     _passwordFocusNode.removeListener(_onFocusChange);
     _passwordFocusNode.dispose();
@@ -91,6 +180,257 @@ class _RegistrationScreenState extends State<RegistrationScreen>
     _passwordCtrl.dispose();
     _confirmPwCtrl.dispose();
     super.dispose();
+  }
+
+  // ── Country Dropdown Overlay Logic ──────────────────────────────────────────
+  void _toggleCountryDropdown() {
+    if (_isCountryDropdownOpen) {
+      _closeCountryDropdown();
+    } else {
+      _openCountryDropdown();
+    }
+  }
+
+  void _openCountryDropdown() {
+    if (_countryOverlayEntry != null) return;
+
+    _countrySearchController.clear();
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final txt = AppTextColors.of(context);
+
+    _countryOverlayEntry = OverlayEntry(
+      builder: (context) {
+        List<Country> currentFiltered = List.from(allCountries);
+
+        return StatefulBuilder(
+          builder: (context, setOverlayState) {
+            return Stack(
+              children: [
+                // Dismiss on outside tap
+                GestureDetector(
+                  onTap: _closeCountryDropdown,
+                  behavior: HitTestBehavior.translucent,
+                  child: const SizedBox(
+                    width: double.infinity,
+                    height: double.infinity,
+                  ),
+                ),
+                // Dropdown overlay menu positioned right below dropdown field
+                Positioned(
+                  width: _countryFieldWidth > 0
+                      ? _countryFieldWidth
+                      : (MediaQuery.of(context).size.width - 48.w),
+                  child: CompositedTransformFollower(
+                    link: _countryLayerLink,
+                    showWhenUnlinked: false,
+                    offset: Offset(0, 48.h + 6),
+                    child: Material(
+                      elevation: 6,
+                      borderRadius: BorderRadius.circular(12),
+                      color: isDarkMode
+                          ? const Color(0xFF1F1F23)
+                          : Colors.white,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: isDarkMode
+                              ? const Color(0xFF1F1F23)
+                              : Colors.white,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: Theme.of(context)
+                                .colorScheme
+                                .outline
+                                .withOpacity(0.5),
+                            width: 1,
+                          ),
+                        ),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            // Search field inside dropdown menu
+                            Padding(
+                              padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
+                              child: Container(
+                                height: 40,
+                                decoration: BoxDecoration(
+                                  color: isDarkMode
+                                      ? const Color(0xFF2A2A2E)
+                                      : const Color(0xFFF3F4F6),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: TextField(
+                                  controller: _countrySearchController,
+                                  
+                                  textAlignVertical: TextAlignVertical.center,
+                                  style: AppTextStyles.bodyText.copyWith(
+                                    fontSize: 13.5,
+                                    color: txt.title,
+                                  ),
+                                  onChanged: (q) {
+                                    setOverlayState(() {
+                                      if (q.trim().isEmpty) {
+                                        currentFiltered = List.from(allCountries);
+                                      } else {
+                                        final query = q.toLowerCase().trim();
+                                        currentFiltered = allCountries.where((c) {
+                                          return c.name
+                                                  .toLowerCase()
+                                                  .contains(query) ||
+                                              c.code
+                                                  .toLowerCase()
+                                                  .contains(query);
+                                        }).toList();
+                                      }
+                                    });
+                                  },
+                                  decoration: InputDecoration(
+                                    hintText: 'Search country...',
+                                    hintStyle: AppTextStyles.bodyText.copyWith(
+                                      fontSize: 13.5,
+                                      color: const Color(0xFF898989),
+                                      fontWeight: FontWeight.w400,
+                                    ),
+                                    prefixIcon: const Icon(
+                                      Icons.search_rounded,
+                                      size: 19,
+                                      color: Color(0xFF898989),
+                                    ),
+                                    prefixIconConstraints: const BoxConstraints(
+                                      minWidth: 38,
+                                      minHeight: 40,
+                                    ),
+                                    suffixIcon: _countrySearchController.text.isNotEmpty
+                                        ? IconButton(
+                                            padding: EdgeInsets.zero,
+                                            constraints: const BoxConstraints(
+                                              minWidth: 34,
+                                              minHeight: 40,
+                                            ),
+                                            icon: const Icon(
+                                              Icons.close_rounded,
+                                              size: 16,
+                                              color: Color(0xFF898989),
+                                            ),
+                                            onPressed: () {
+                                              _countrySearchController.clear();
+                                              setOverlayState(() {
+                                                currentFiltered = List.from(allCountries);
+                                              });
+                                            },
+                                          )
+                                        : null,
+                                    suffixIconConstraints: const BoxConstraints(
+                                      minWidth: 34,
+                                      minHeight: 40,
+                                    ),
+                                    border: InputBorder.none,
+                                    isDense: true,
+                                    contentPadding: const EdgeInsets.only(right: 10),
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const Divider(height: 1, thickness: 0.5),
+                            // Filtered country list
+                            ConstrainedBox(
+                              constraints: const BoxConstraints(maxHeight: 220),
+                              child: currentFiltered.isEmpty
+                                  ? Padding(
+                                      padding: const EdgeInsets.all(14.0),
+                                      child: Text(
+                                        'No country found',
+                                        style: AppTextStyles.bodyText.copyWith(
+                                          fontSize: 13,
+                                          color: txt.muted,
+                                        ),
+                                      ),
+                                    )
+                                  : ListView.builder(
+                                      padding: EdgeInsets.zero,
+                                      shrinkWrap: true,
+                                      itemCount: currentFiltered.length,
+                                      itemBuilder: (context, index) {
+                                        final country = currentFiltered[index];
+                                        final isSelected =
+                                            country.name.toLowerCase() ==
+                                                _selectedCountry.toLowerCase();
+
+                                        return InkWell(
+                                          onTap: () {
+                                            setState(() {
+                                              _selectedCountry = country.name;
+                                            });
+                                            _closeCountryDropdown();
+                                          },
+                                          child: Container(
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 14,
+                                              vertical: 10,
+                                            ),
+                                            color: isSelected
+                                                ? (isDarkMode
+                                                    ? const Color(0xFF2A2A2E)
+                                                    : const Color(0xFFF0F0F0))
+                                                : Colors.transparent,
+                                            child: Row(
+                                              children: [
+                                                Text(
+                                                  country.flag,
+                                                  style: const TextStyle(fontSize: 18),
+                                                ),
+                                                const SizedBox(width: 10),
+                                                Expanded(
+                                                  child: Text(
+                                                    country.name,
+                                                    style: AppTextStyles.bodyText.copyWith(
+                                                      fontSize: 13.5,
+                                                      fontWeight: isSelected
+                                                          ? FontWeight.w600
+                                                          : FontWeight.w400,
+                                                      color: txt.title,
+                                                    ),
+                                                  ),
+                                                ),
+                                                if (isSelected)
+                                                  Icon(
+                                                    Icons.check_rounded,
+                                                    size: 18,
+                                                    color: Theme.of(context).colorScheme.onPrimary,
+                                                  ),
+                                              ],
+                                            ),
+                                          ),
+                                        );
+                                      },
+                                    ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+
+    Overlay.of(context).insert(_countryOverlayEntry!);
+    setState(() {
+      _isCountryDropdownOpen = true;
+    });
+  }
+
+  void _closeCountryDropdown() {
+    _countryOverlayEntry?.remove();
+    _countryOverlayEntry = null;
+    if (mounted) {
+      setState(() {
+        _isCountryDropdownOpen = false;
+      });
+    }
   }
 
   // ── Real-time Password Validator ─────────────────────────────────────────────
@@ -408,6 +748,14 @@ class _RegistrationScreenState extends State<RegistrationScreen>
   }
 
   bool _validateStep2() {
+    if (_selectedCountry.isEmpty || _selectedLanguage.isEmpty) {
+      showToast(message: 'Please select a country and language');
+      return false;
+    }
+    return true;
+  }
+
+  bool _validateStep3() {
     bool ok = true;
     setState(() {
       _passwordError = _confirmPwError = '';
@@ -450,6 +798,7 @@ class _RegistrationScreenState extends State<RegistrationScreen>
         data: Theme.of(context).copyWith(
           colorScheme: Theme.of(context).colorScheme.copyWith(
             primary: Theme.of(context).colorScheme.primary,
+            onPrimary: Colors.white,
           ),
         ),
         child: child!,
@@ -465,7 +814,7 @@ class _RegistrationScreenState extends State<RegistrationScreen>
 
   // ── Registration API ─────────────────────────────────────────────────────────
   Future<void> _register() async {
-    if (!_validateStep2()) return;
+    if (!_validateStep3()) return;
 
     setState(() {
       _isLoading = true;
@@ -474,6 +823,12 @@ class _RegistrationScreenState extends State<RegistrationScreen>
 
     try {
       final dio = Dio();
+      final countryObj = allCountries.firstWhere(
+        (c) =>
+            c.name.toLowerCase() == _selectedCountry.toLowerCase() ||
+            c.code.toLowerCase() == _selectedCountry.toLowerCase(),
+        orElse: () => allCountries.first,
+      );
       final body = {
         'first_name': _firstNameCtrl.text.trim(),
         'last_name': _lastNameCtrl.text.trim(),
@@ -482,6 +837,7 @@ class _RegistrationScreenState extends State<RegistrationScreen>
         'password': _passwordCtrl.text,
         'mobile_number': widget.verifiedPhone ?? '',
         'country_code': widget.verifiedCountryCode ?? '',
+        'country': countryObj.code.toUpperCase(),
         'dob': DateFormat('yyyy-MM-dd').format(_dob!),
       };
 
@@ -520,15 +876,24 @@ class _RegistrationScreenState extends State<RegistrationScreen>
 
   // ── Next / Back ──────────────────────────────────────────────────────────────
   void _onContinue() {
+    _closeCountryDropdown();
     if (_step == 0 && _validateStep0()) {
       setState(() => _step = 1);
     } else if (_step == 1 && _validateStep1()) {
       setState(() => _step = 2);
+    } else if (_step == 2 && _validateStep2()) {
+      _applyLanguage(_selectedLanguage);
+      setState(() => _step = 3);
     }
   }
 
   void _onBack() {
-    if (_step > 0) setState(() => _step--);
+    _closeCountryDropdown();
+    if (_step > 0) {
+      setState(() => _step--);
+    } else {
+      Navigator.pop(context);
+    }
   }
 
   // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -810,8 +1175,153 @@ class _RegistrationScreenState extends State<RegistrationScreen>
     );
   }
 
-  // ── Step 2: Password ─────────────────────────────────────────────────────────
+  // ── Step 2: Country & App Language ───────────────────────────────────────────
   Widget _buildStep2() {
+    final txt = AppTextColors.of(context);
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // ── Select Country Label
+        Text(
+          'Select Country',
+          style: AppTextStyles.bodyText.copyWith(
+            fontSize: 13.5,
+            fontWeight: FontWeight.w500,
+            color: txt.title,
+          ),
+        ),
+        const SizedBox(height: 8),
+
+        // ── Country Dropdown Box
+        LayoutBuilder(
+          builder: (context, constraints) {
+            _countryFieldWidth = constraints.maxWidth;
+            final selectedCountryObj = allCountries.firstWhere(
+              (c) =>
+                  c.name.toLowerCase() == _selectedCountry.toLowerCase() ||
+                  c.code.toLowerCase() == _selectedCountry.toLowerCase(),
+              orElse: () => allCountries.firstWhere(
+                (c) => c.name == 'India',
+                orElse: () => allCountries.first,
+              ),
+            );
+
+            return CompositedTransformTarget(
+              link: _countryLayerLink,
+              child: InkWell(
+                onTap: _toggleCountryDropdown,
+                borderRadius: BorderRadius.circular(12),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 12,
+                  ),
+                  decoration: BoxDecoration(
+                    color: isDarkMode
+                        ? Theme.of(context).colorScheme.background
+                        : Theme.of(context).colorScheme.primaryContainer,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: Theme.of(context).colorScheme.outline,
+                      width: 1,
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Text(selectedCountryObj.flag, style: const TextStyle(fontSize: 18)),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          selectedCountryObj.name,
+                          style: AppTextStyles.bodyText.copyWith(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                            color: txt.title,
+                          ),
+                        ),
+                      ),
+                      AnimatedRotation(
+                        turns: _isCountryDropdownOpen ? 0.5 : 0,
+                        duration: const Duration(milliseconds: 200),
+                        child: Icon(
+                          Icons.keyboard_arrow_down_rounded,
+                          color: txt.body,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
+        ),
+
+        const SizedBox(height: 24),
+
+        // ── Language Label
+        Text(
+          'App Language',
+          style: AppTextStyles.bodyText.copyWith(
+            fontSize: 13.5,
+            fontWeight: FontWeight.w500,
+            color: txt.title,
+          ),
+        ),
+        const SizedBox(height: 12),
+
+        // ── Language Chips
+        Wrap(
+          spacing: 10,
+          runSpacing: 10,
+          children: _languages.map((lang) {
+            final isSelected = _selectedLanguage == lang;
+            return GestureDetector(
+              onTap: () {
+                setState(() {
+                  _selectedLanguage = lang;
+                });
+                _applyLanguage(lang);
+              },
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 180),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 7,
+                ),
+                decoration: BoxDecoration(
+                  color: isSelected
+                      ? Theme.of(context).colorScheme.primary
+                      : (isDarkMode ? Colors.transparent : Colors.white),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: isSelected
+                        ? Theme.of(context).colorScheme.primary
+                        : Theme.of(context).colorScheme.outline,
+                    width: 1,
+                  ),
+                ),
+                child: Text(
+                  lang,
+                  style: AppTextStyles.bodyText.copyWith(
+                    fontSize: 13,
+                    fontWeight: isSelected
+                        ? FontWeight.w500
+                        : FontWeight.w400,
+                    color: isSelected ? Colors.white : txt.title,
+                  ),
+                ),
+              ),
+            );
+          }).toList(),
+        ),
+      ],
+    );
+  }
+
+  // ── Step 3: Password ─────────────────────────────────────────────────────────
+  Widget _buildStep3() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -884,7 +1394,7 @@ class _RegistrationScreenState extends State<RegistrationScreen>
 
   // ── Primary Button ───────────────────────────────────────────────────────────
   Widget _buildPrimaryButton() {
-    final isLastStep = _step == 2;
+    final isLastStep = _step == 3;
     return SizedBox(
       width: double.infinity,
       height: 45,
@@ -928,44 +1438,53 @@ class _RegistrationScreenState extends State<RegistrationScreen>
         return 'Create your account';
       case 1:
         return 'Choose a username';
+      case 2:
+        return 'Personalize your feed';
       default:
         return 'Set your password';
     }
+  }
+
+  String get _subtitle {
+    if (_step == 2) {
+      return 'Tell us what you like to see on Polzet';
+    }
+    return '';
   }
 
   // ── Build ─────────────────────────────────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
     final txt = AppTextColors.of(context);
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.background,
+      appBar: CommonAppBar(
+        title: _title,
+        showBackButton: _step > 0,
+        onBack: _onBack,
+        titleSpacing: _step > 0 ? 4.w : 20.w,
+      ),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+          padding: const EdgeInsets.symmetric(horizontal: 24),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              if (_step > 0)
-                GestureDetector(
-                  onTap: _onBack,
-                  child: Icon(
-                    Icons.arrow_back_ios_new_rounded,
-                    color: Theme.of(context).colorScheme.onBackground,
-                    size: 20,
+              if (_subtitle.isNotEmpty) ...[
+                Text(
+                  _subtitle,
+                  style: AppTextStyles.subText.copyWith(
+                    fontSize: 14.5,
+                    color: isDarkMode
+                        ? const Color(0XFFB3B3B3)
+                        : const Color(0XFF707070),
+                    fontWeight: FontWeight.w400,
                   ),
                 ),
-
-              const SizedBox(height: 60),
-
-              Text(
-                _title,
-                style: AppTextStyles.subSectionHeading.copyWith(
-                  fontSize: 23,
-                  fontWeight: FontWeight.w600,
-                  color: Theme.of(context).colorScheme.onBackground,
-                ),
-              ),
-              const SizedBox(height: 32),
+                const SizedBox(height: 20),
+              ],
 
               // Step content
               AnimatedSwitcher(
@@ -978,15 +1497,23 @@ class _RegistrationScreenState extends State<RegistrationScreen>
                       ? _buildStep0()
                       : _step == 1
                       ? _buildStep1()
-                      : _buildStep2(),
+                      : _step == 2
+                      ? _buildStep2()
+                      : _buildStep3(),
                 ),
               ),
-
-              const SizedBox(height: 30),
+            ],
+          ),
+        ),
+      ),
+      bottomNavigationBar: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(24, 8, 24, 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
               _buildPrimaryButton(),
-              const SizedBox(height: 16),
-
-              // Already have an account
+              const SizedBox(height: 14),
               Center(
                 child: GestureDetector(
                   onTap: () => Navigator.pop(context),

@@ -18,6 +18,7 @@ import '../../../../widgets/custom_text_styles.dart';
 import '../../../../widgets/show_toast.dart';
 import '../../../../widgets/loader.dart';
 import '../../../../widgets/text_field/secondry_textfield.dart';
+import '../../../../widgets/banner/ai_generation_limit_banner.dart';
 import '../../../../widgets/button/generate_question_button.dart';
 import '../../../../widgets/button/generate_option_button.dart';
 import '../../../../widgets/button/generate_description_button.dart';
@@ -58,6 +59,54 @@ class _NewThingsPollState extends State<NewTextPoll> with UtilityMixin {
   String questionErrorText = '';
   String optionsErrorText = '';
 
+  int _remainingGenerations = 5;
+  int _dailyLimit = 5;
+
+  Future<void> _loadSavedAiLimit() async {
+    final limitData = await SharedPrefService.getAiLimitData();
+    if (mounted) {
+      setState(() {
+        _remainingGenerations = limitData['remaining'] ?? 5;
+        _dailyLimit = limitData['daily_limit'] ?? 5;
+      });
+    }
+  }
+
+  void _updateAiLimitFromResponse(Map<String, dynamic>? response) {
+    if (response == null) return;
+    final rawRemaining = response['remaining'] ?? response['data']?['remaining'];
+    final rawLimit = response['daily_limit'] ?? response['data']?['daily_limit'];
+
+    if (rawRemaining != null) {
+      final parsedRemaining = int.tryParse(rawRemaining.toString());
+      if (parsedRemaining != null && mounted) {
+        setState(() {
+          _remainingGenerations = parsedRemaining;
+        });
+      }
+    } else {
+      if (mounted && _remainingGenerations > 0) {
+        setState(() {
+          _remainingGenerations -= 1;
+        });
+      }
+    }
+
+    if (rawLimit != null) {
+      final parsedLimit = int.tryParse(rawLimit.toString());
+      if (parsedLimit != null && mounted) {
+        setState(() {
+          _dailyLimit = parsedLimit;
+        });
+      }
+    }
+
+    SharedPrefService.saveAiLimitData(
+      remaining: _remainingGenerations,
+      dailyLimit: _dailyLimit,
+    );
+  }
+
   // Hint animation state
   int _currentHintIndex = 0;
   Timer? _hintTimer;
@@ -71,6 +120,7 @@ class _NewThingsPollState extends State<NewTextPoll> with UtilityMixin {
   @override
   void initState() {
     super.initState();
+    _loadSavedAiLimit();
     if (widget.initialQuestion != null &&
         widget.initialQuestion!.trim().isNotEmpty) {
       questionController.text = widget.initialQuestion!;
@@ -215,6 +265,14 @@ class _NewThingsPollState extends State<NewTextPoll> with UtilityMixin {
 
   /// Generate or improve the question using AI
   Future<void> generateQuestion() async {
+    if (_remainingGenerations <= 0) {
+      showToast(
+        message:
+            'No AI generations left today. Your credits will reset tomorrow.',
+      );
+      return;
+    }
+
     final query = questionController.text.trim();
 
     if (query.isEmpty) {
@@ -231,6 +289,8 @@ class _NewThingsPollState extends State<NewTextPoll> with UtilityMixin {
     try {
       final response = await ApiService().generateQuestion(input: query);
       debugPrint('generateQuestion response: $response');
+      _updateAiLimitFromResponse(response);
+
       final questionText = response['question']?.toString();
       if (questionText != null && questionText.trim().isNotEmpty) {
         setState(() {
@@ -264,6 +324,14 @@ class _NewThingsPollState extends State<NewTextPoll> with UtilityMixin {
 
   /// Generate options for the poll question using AI
   Future<void> generateOptions() async {
+    if (_remainingGenerations <= 0) {
+      showToast(
+        message:
+            'No AI generations left today. Your credits will reset tomorrow.',
+      );
+      return;
+    }
+
     final question = questionController.text.trim();
 
     if (question.isEmpty) {
@@ -280,6 +348,8 @@ class _NewThingsPollState extends State<NewTextPoll> with UtilityMixin {
     try {
       final response = await ApiService().generateOptions(input: question);
       debugPrint('generateOptions response: $response');
+      _updateAiLimitFromResponse(response);
+
       final List<dynamic>? optionsList = response['options'];
       if (optionsList != null && optionsList.isNotEmpty) {
         setState(() {
@@ -326,8 +396,16 @@ class _NewThingsPollState extends State<NewTextPoll> with UtilityMixin {
     }
   }
 
-  /// Generate description and hashtags for the poll using AI
+  /// Generate description for the poll using AI
   Future<void> generateDescription() async {
+    if (_remainingGenerations <= 0) {
+      showToast(
+        message:
+            'No AI generations left today. Your credits will reset tomorrow.',
+      );
+      return;
+    }
+
     final question = questionController.text.trim();
     final options = _getValidOptions();
 
@@ -352,40 +430,21 @@ class _NewThingsPollState extends State<NewTextPoll> with UtilityMixin {
     });
 
     try {
-      // 1. Generate description
       final descResponse = await ApiService().generateDescription(
         question: question,
         options: options,
       );
       debugPrint('generateDescription response: $descResponse');
+      _updateAiLimitFromResponse(descResponse);
+
       final String descriptionText =
           (descResponse["description"] ?? descResponse["data"]?["description"])
               ?.toString()
               .trim() ??
           '';
 
-      if (descriptionText.isNotEmpty) {
-        setState(() {
-          descriptionController.text = descriptionText;
-          descriptionController.selection = TextSelection.fromPosition(
-            TextPosition(offset: descriptionController.text.length),
-          );
-          _hasGeneratedDescription = true;
-        });
-      }
-
-      // 2. Generate hashtags using question and description
-      final String activeDescription = descriptionController.text.trim();
-      final hashtagResponse = await ApiService().generateHashtags(
-        question: question,
-        description: activeDescription.isNotEmpty
-            ? activeDescription
-            : question,
-      );
-      debugPrint('generateHashtags response: $hashtagResponse');
-
       final dynamic rawHashtags =
-          hashtagResponse['hashtags'] ?? hashtagResponse['data']?['hashtags'];
+          descResponse['hashtags'] ?? descResponse['data']?['hashtags'];
       List<String> hashtagsList = [];
       if (rawHashtags is List) {
         hashtagsList = rawHashtags
@@ -400,35 +459,32 @@ class _NewThingsPollState extends State<NewTextPoll> with UtilityMixin {
             .toList();
       }
 
+      String fullText = descriptionText;
       if (hashtagsList.isNotEmpty) {
         final formattedHashtags = hashtagsList
             .map((h) => h.startsWith('#') ? h : '#$h')
             .join(' ');
+        if (fullText.isNotEmpty) {
+          fullText = '$fullText\n\n$formattedHashtags';
+        } else {
+          fullText = formattedHashtags;
+        }
+      }
 
+      if (fullText.isNotEmpty) {
         setState(() {
-          final String baseText = descriptionText.isNotEmpty
-              ? descriptionText
-              : descriptionController.text.trim();
-          if (baseText.isNotEmpty) {
-            descriptionController.text = '$baseText\n\n$formattedHashtags';
-          } else {
-            descriptionController.text = formattedHashtags;
-          }
+          descriptionController.text = fullText;
           descriptionController.selection = TextSelection.fromPosition(
             TextPosition(offset: descriptionController.text.length),
           );
           _hasGeneratedDescription = true;
         });
-      }
-
-      if (descriptionText.isNotEmpty || hashtagsList.isNotEmpty) {
-        showToast(message: 'Description & hashtags generated!');
+        showToast(message: 'Description generated!');
       } else {
         showToast(
           message:
               descResponse['message']?.toString() ??
-              hashtagResponse['message']?.toString() ??
-              'Failed to generate description & hashtags',
+              'Failed to generate description',
         );
       }
     } catch (e) {
@@ -602,6 +658,12 @@ class _NewThingsPollState extends State<NewTextPoll> with UtilityMixin {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             SizedBox(height: 10.h),
+
+            // AI Generation Limit Banner
+            AiGenerationLimitBanner(
+              remainingGenerations: _remainingGenerations,
+            ),
+            SizedBox(height: 15.h),
 
             // Question Field
             _buildQuestionField(),

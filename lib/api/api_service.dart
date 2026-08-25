@@ -712,6 +712,7 @@ class ApiService with UtilityMixin {
     required String bio,
     String? dob,
     String? gender,
+    List<dynamic>? interests,
   }) async {
     try {
       final response = await _dio.patch(
@@ -722,6 +723,7 @@ class ApiService with UtilityMixin {
           'bio': bio,
           if (dob != null && dob.isNotEmpty) 'dob': dob,
           if (gender != null && gender.isNotEmpty) 'gender': gender,
+          if (interests != null) 'interests': interests,
         },
         options: Options(headers: await _getAuthHeaders()),
       );
@@ -744,6 +746,128 @@ class ApiService with UtilityMixin {
       showToast(message: message);
       return message;
     }
+  }
+
+  // Note: Implemented PATCH Method User Update Interests
+  Future<bool> updateUserInterests({required List<dynamic> interests}) async {
+    try {
+      final response = await _dio.patch(
+        ApiConstants.updateProfile,
+        data: {
+          'interests': interests,
+        },
+        options: Options(headers: await _getAuthHeaders()),
+      );
+
+      if (response.statusCode == 200) {
+        return true;
+      }
+
+      final message = response.data['message'] ?? 'Failed to update interests';
+      showToast(message: message);
+      return false;
+    } on DioException catch (e) {
+      final message = _handleDioError(
+        e,
+        defaultMessage: 'Failed to update interests',
+      );
+      showToast(message: message);
+      return false;
+    }
+  }
+
+  // Note: Implemented PATCH Method User Update Country
+  Future<bool> updateCountry({
+    required String country,
+  }) async {
+    try {
+      var response = await _dio.patch(
+        ApiConstants.updateProfile,
+        data: {
+          "country": country,
+        },
+        options: Options(headers: await _getAuthHeaders()),
+      );
+
+      debugPrint('updateCountry response: ${response.data}');
+
+      bool isSuccess = (response.statusCode == 200 || response.statusCode == 201) &&
+          response.data is Map &&
+          response.data['status'] != 'error' &&
+          response.data['errors'] == null;
+
+      // If backend returned "Object with code=... does not exist", retry with alternative case (e.g. lowercase)
+      if (!isSuccess && response.data is Map) {
+        final errStr = response.data.toString();
+        if (errStr.contains('does not exist') || errStr.contains('code=')) {
+          final altCountry = country == country.toLowerCase()
+              ? country.toUpperCase()
+              : country.toLowerCase();
+          debugPrint('Retrying updateCountry with alternative case: $altCountry');
+
+          final retryResponse = await _dio.patch(
+            ApiConstants.updateProfile,
+            data: {
+              "country": altCountry,
+            },
+            options: Options(headers: await _getAuthHeaders()),
+          );
+
+          debugPrint('updateCountry retry response: ${retryResponse.data}');
+
+          if ((retryResponse.statusCode == 200 || retryResponse.statusCode == 201) &&
+              retryResponse.data is Map &&
+              retryResponse.data['status'] != 'error' &&
+              retryResponse.data['errors'] == null) {
+            showToast(message: 'Country updated successfully!');
+            return true;
+          } else {
+            response = retryResponse;
+          }
+        }
+      }
+
+      if (isSuccess) {
+        return true;
+      }
+
+      final message = _extractApiErrorMessage(response.data, 'Failed to update country');
+      showToast(message: message);
+      return false;
+    } on DioException catch (e) {
+      final message = _handleDioError(
+        e,
+        defaultMessage: 'Failed to update country',
+      );
+      showToast(message: message);
+      return false;
+    }
+  }
+
+  String _extractApiErrorMessage(dynamic data, String defaultMsg) {
+    if (data is Map) {
+      if (data['message'] != null && data['message'].toString().isNotEmpty) {
+        return data['message'].toString();
+      }
+      if (data['errors'] != null) {
+        if (data['errors'] is Map) {
+          final map = data['errors'] as Map;
+          final firstKey = map.keys.firstOrNull;
+          if (firstKey != null) {
+            final val = map[firstKey];
+            if (val is List && val.isNotEmpty) {
+              return val.first.toString();
+            }
+            return val.toString();
+          }
+        } else if (data['errors'] is List && (data['errors'] as List).isNotEmpty) {
+          return (data['errors'] as List).first.toString();
+        } else {
+          return data['errors'].toString();
+        }
+      }
+    }
+    return defaultMsg;
   }
 
   // Note: Implemented POST Method User Update Username
@@ -786,6 +910,22 @@ class ApiService with UtilityMixin {
       return _handleDioError(e, defaultMessage: 'Failed to update username');
     }
   }
+  /// Fetches the list of available interests (id, name, icon).
+  Future<Map<String, dynamic>> getInterestList() async {
+    try {
+      final response = await _dio.get(
+        ApiConstants.interests,
+        options: Options(headers: await _getAuthHeaders()),
+      );
+
+      if (response.data is Map<String, dynamic>) {
+        return response.data as Map<String, dynamic>;
+      }
+      return {'status': 'success', 'data': response.data};
+    } on DioException catch (e) {
+      throw _handleDioError(e);
+    }
+  }
 
   Future<Map<String, dynamic>> requestEmailChangeOtp({
     required String email,
@@ -826,6 +966,59 @@ class ApiService with UtilityMixin {
       throw Exception(message);
     }
   }
+
+  Future<Map<String, dynamic>> numberVerifyRequest({
+    required String countryCode,
+    required String mobileNumber,
+  }) async {
+    try {
+      final formData = FormData.fromMap({
+        'country_code': countryCode,
+        'mobile_number': mobileNumber,
+      });
+
+      final response = await _dio.post(
+        '${ApiConstants.baseUrl}/profile/verify_phone_request',
+        data: formData,
+        options: Options(headers: await _getAuthHeaders()),
+      );
+
+      return response.data as Map<String, dynamic>;
+    } on DioException catch (e) {
+      throw _handleDioError(e);
+    }
+  }
+
+  Future<Map<String, dynamic>> numberOtpVerify({
+  required String countryCode,
+  required String mobileNumber,
+  String? otp,
+  String? firebaseToken,
+}) async {
+  assert(
+    otp != null || firebaseToken != null,
+    'Either otp or firebaseToken must be provided',
+  );
+
+  try {
+    final formData = FormData.fromMap({
+      'country_code': countryCode,
+      'mobile_number': mobileNumber,
+      if (otp != null) 'otp': otp,
+      if (firebaseToken != null) 'firebase_token': firebaseToken,
+    });
+
+    final response = await _dio.post(
+      '${ApiConstants.baseUrl}/profile/verify_phone_confirm',
+      data: formData,
+      options: Options(headers: await _getAuthHeaders()),
+    );
+
+    return response.data as Map<String, dynamic>;
+  } on DioException catch (e) {
+    throw _handleDioError(e);
+  }
+}
 
   Future<String> changePassword({
     required String currentPassword,
@@ -1017,16 +1210,40 @@ class ApiService with UtilityMixin {
         options: Options(headers: await _getAuthHeaders()),
       );
 
+      final dynamic resData = response.data;
+      Map<String, dynamic> data = {};
+      if (resData is Map<String, dynamic>) {
+        data = resData;
+      } else if (resData is String) {
+        try {
+          data = jsonDecode(resData) as Map<String, dynamic>;
+        } catch (_) {}
+      }
+
       if (response.statusCode == 200) {
-        return {'success': true, 'message': response.data['message']};
+        final isSuccess = data['status'] == 'success' ||
+            data['success'] == true ||
+            data['status'] == null;
+        return {
+          'success': isSuccess,
+          'message': data['message'] ?? 'Account deleted permanently',
+        };
       } else {
         return {
           'success': false,
-          'message': response.data['message'] ?? 'Failed to delete account',
+          'message': data['message'] ?? 'Failed to delete account',
         };
       }
     } on DioException catch (e) {
-      final message = e.response?.data['message'] ?? 'Failed to delete account';
+      String message = 'Failed to delete account';
+      final dynamic resData = e.response?.data;
+      if (resData is Map) {
+        message = resData['message']?.toString() ??
+            resData['detail']?.toString() ??
+            _handleDioError(e, defaultMessage: 'Failed to delete account');
+      } else {
+        message = _handleDioError(e, defaultMessage: 'Failed to delete account');
+      }
       return {'success': false, 'message': message};
     } catch (e) {
       return {'success': false, 'message': 'An error occurred: $e'};
@@ -1191,6 +1408,18 @@ class ApiService with UtilityMixin {
       }
       return responseData as Map<String, dynamic>;
     } on DioException catch (e) {
+      if (e.response?.data != null) {
+        final data = e.response!.data;
+        if (data is Map<String, dynamic>) {
+          return data;
+        } else if (data is Map) {
+          return Map<String, dynamic>.from(data);
+        } else if (data is String) {
+          try {
+            return jsonDecode(data) as Map<String, dynamic>;
+          } catch (_) {}
+        }
+      }
       throw Exception(
         _handleDioError(e, defaultMessage: 'Failed to improve question'),
       );
@@ -1214,6 +1443,18 @@ class ApiService with UtilityMixin {
       }
       return responseData as Map<String, dynamic>;
     } on DioException catch (e) {
+      if (e.response?.data != null) {
+        final data = e.response!.data;
+        if (data is Map<String, dynamic>) {
+          return data;
+        } else if (data is Map) {
+          return Map<String, dynamic>.from(data);
+        } else if (data is String) {
+          try {
+            return jsonDecode(data) as Map<String, dynamic>;
+          } catch (_) {}
+        }
+      }
       throw Exception(
         'Failed to generate options: ${e.response?.data ?? e.message}',
       );
@@ -1282,6 +1523,18 @@ class ApiService with UtilityMixin {
 
       return data;
     } on DioException catch (e) {
+      if (e.response?.data != null) {
+        final data = e.response!.data;
+        if (data is Map<String, dynamic>) {
+          return data;
+        } else if (data is Map) {
+          return Map<String, dynamic>.from(data);
+        } else if (data is String) {
+          try {
+            return jsonDecode(data) as Map<String, dynamic>;
+          } catch (_) {}
+        }
+      }
       throw Exception(
         _handleDioError(e, defaultMessage: 'Failed to generate description'),
       );
@@ -1347,6 +1600,18 @@ class ApiService with UtilityMixin {
 
       return data;
     } on DioException catch (e) {
+      if (e.response?.data != null) {
+        final data = e.response!.data;
+        if (data is Map<String, dynamic>) {
+          return data;
+        } else if (data is Map) {
+          return Map<String, dynamic>.from(data);
+        } else if (data is String) {
+          try {
+            return jsonDecode(data) as Map<String, dynamic>;
+          } catch (_) {}
+        }
+      }
       throw Exception(
         _handleDioError(e, defaultMessage: 'Failed to generate hashtags'),
       );
@@ -1579,7 +1844,7 @@ class ApiService with UtilityMixin {
     String votingType = 'single_choice',
     String? authToken,
     Function(double)? onProgress,
-    int maxFileSizeMB = _maxFileSizeMB,
+    int maxFileSizeMB = 50,
   }) async {
     try {
       // Validation
@@ -1626,7 +1891,7 @@ class ApiService with UtilityMixin {
       );
       formData.fields.add(MapEntry('image_indices', jsonEncode(indices)));
 
-      // Add images
+      // Add original images
       for (int i = 0; i < pollOptions.length; i++) {
         final imageFile = pollOptions[i];
         final String ext = path.extension(imageFile.path).toLowerCase();
@@ -1664,10 +1929,13 @@ class ApiService with UtilityMixin {
         return response.data as Map<String, dynamic>;
       } else if (response.statusCode == 413) {
         throw Exception(
-          'Image too large. Maximum size allowed is ${maxFileSizeMB}MB',
+          'Image payload too large (413). Payload exceeds server limit.',
         );
-      } else if (response.statusCode == 400) {
-        final errorMsg = response.data?['message'] ?? 'Bad request';
+      } else if (response.data is Map) {
+        final errorMsg = response.data['message'] ??
+            response.data['detail'] ??
+            response.data['error'] ??
+            'Failed to upload poll';
         throw Exception(errorMsg);
       }
       throw Exception('Failed to upload poll. Status: ${response.statusCode}');
@@ -1676,11 +1944,23 @@ class ApiService with UtilityMixin {
 
       if (e.response?.statusCode == 413) {
         throw Exception(
-          'Image too large. Maximum size allowed is ${maxFileSizeMB}MB',
+          'Image payload too large (413). Please check server upload limits.',
         );
-      } else if (e.response?.statusCode == 400) {
-        final errorMsg = e.response?.data?['message'] ?? 'Bad request';
+      } else if (e.response?.data is Map) {
+        final errorMsg = e.response?.data['message']?.toString() ??
+            e.response?.data['detail']?.toString() ??
+            e.response?.data['error']?.toString() ??
+            'Failed to create image poll';
         throw Exception(errorMsg);
+      } else if (e.response?.data is String &&
+          (e.response!.data as String).trim().isNotEmpty) {
+        final str = (e.response!.data as String).trim();
+        if (str.contains('<html') || str.contains('<HTML')) {
+          throw Exception(
+            'Server error (${e.response?.statusCode ?? "unknown"})',
+          );
+        }
+        throw Exception(str);
       } else if (e.type == DioExceptionType.connectionTimeout) {
         throw Exception(
           'Connection timeout. Please check your internet connection',

@@ -66,6 +66,8 @@ class _SinglePostDetailsState extends State<SinglePostDetails>
   Map<String, bool> likedUsersLoading = {};
 
   bool _isLiked = false;
+  bool _isSaved = false;
+  bool _isSaveLoading = false;
   int _likesCount = 0;
   int _commentsCount = 0;
   int _sharesCount = 0;
@@ -112,6 +114,7 @@ class _SinglePostDetailsState extends State<SinglePostDetails>
         _post = result;
         _profileImageBytes = imageBytes;
         _isLiked = result.isLiked;
+        _isSaved = result.isSaved;
         _likesCount = result.likesCount;
         _commentsCount = result.commentsCount;
         _sharesCount = result.sharesCount;
@@ -2045,41 +2048,87 @@ class _SinglePostDetailsState extends State<SinglePostDetails>
                 ),
               );
             },
-            child: CircleAvatar(
-              radius: 20,
-              backgroundColor: Theme.of(
-                context,
-              ).colorScheme.onPrimary.withOpacity(0.1),
-              backgroundImage: _profileImageBytes != null
-                  ? MemoryImage(_profileImageBytes!)
-                  : (_post!.user.profileImage.isNotEmpty
-                        ? NetworkImage(_post!.user.profileImage)
-                        : null),
-              child:
-                  _profileImageBytes == null && _post!.user.profileImage.isEmpty
-                  ? Text(
-                      initial,
-                      style: AppTextStyles.subText.copyWith(
-                        color: Theme.of(context).colorScheme.onPrimary,
-                        fontWeight: FontWeight.w500,
-                        fontSize: 18,
-                      ),
-                    )
-                  : null,
-            ),
+            child: (username.trim().toLowerCase() == 'polzet_ai' ||
+                    username.trim().toLowerCase() == 'polet_ai')
+                ? SizedBox(
+                    width: 45.w,
+                    height: 45.h,
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        ClipOval(
+                          child: Center(
+                            child: Padding(
+                              padding: const EdgeInsets.only(
+                                top: 8,
+                                bottom: 0,
+                                left: 10,
+                                right: 9,
+                              ),
+                              child: Image.asset(
+                                Assets.images.icSplash.path,
+                              ),
+                            ),
+                          ),
+                        ),
+                        Positioned.fill(
+                          child: Image.asset(
+                            Assets.images.aiFrame.path,
+                            height: 55,
+                            width: 55,
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
+                : CircleAvatar(
+                    radius: 20,
+                    backgroundColor: Theme.of(
+                      context,
+                    ).colorScheme.onPrimary.withOpacity(0.1),
+                    backgroundImage: _profileImageBytes != null
+                        ? MemoryImage(_profileImageBytes!)
+                        : (_post!.user.profileImage.isNotEmpty
+                              ? NetworkImage(_post!.user.profileImage)
+                              : null),
+                    child:
+                        _profileImageBytes == null && _post!.user.profileImage.isEmpty
+                        ? Text(
+                            initial,
+                            style: AppTextStyles.subText.copyWith(
+                              color: Theme.of(context).colorScheme.onPrimary,
+                              fontWeight: FontWeight.w500,
+                              fontSize: 18,
+                            ),
+                          )
+                        : null,
+                  ),
           ),
 
           SizedBox(width: 8.w),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                '${post.firstName} ${post.lastName}'.trim(),
-                style: TextStyle(
-                  fontSize: 11.sp,
-                  fontWeight: FontWeight.w600,
-                  color: txt.title,
-                ),
+              Row(
+                children: [
+                  Text(
+                    '${post.firstName} ${post.lastName}'.trim(),
+                    style: TextStyle(
+                      fontSize: 11.sp,
+                      fontWeight: FontWeight.w600,
+                      color: txt.title,
+                    ),
+                  ),
+                  if (username.trim().toLowerCase() == 'polzet_ai' ||
+                      username.trim().toLowerCase() == 'polet_ai') ...[
+                    SizedBox(width: 4.w),
+                    Image.asset(
+                      Assets.images.icVerify.path,
+                      height: 13,
+                      width: 13,
+                    ),
+                  ],
+                ],
               ),
               Row(
                 children: [
@@ -2733,6 +2782,23 @@ class _SinglePostDetailsState extends State<SinglePostDetails>
               ],
             ),
           ),
+          const Spacer(),
+          GestureDetector(
+            onTap: _toggleSave,
+            child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 200),
+              transitionBuilder: (child, animation) =>
+                  ScaleTransition(scale: animation, child: child),
+              child: _isSaved
+                  ? AppIcons.filledSave(
+                      key: const ValueKey('saved_filled'),
+                      color: Theme.of(context).colorScheme.onPrimary,
+                    )
+                  : AppIcons.outlineSave(
+                      key: const ValueKey('saved_outline'),
+                    ),
+            ),
+          ),
         ],
       ),
     );
@@ -2824,6 +2890,47 @@ class _SinglePostDetailsState extends State<SinglePostDetails>
           _isLiked = prev;
           _likesCount = prevCount;
           postLikedUsers[postId] = previousLikedUsers;
+        });
+      }
+    }
+  }
+
+  Future<void> _toggleSave() async {
+    if (_post == null || _isSaveLoading) return;
+
+    final previousIsSaved = _isSaved;
+
+    setState(() {
+      _isSaved = !_isSaved;
+      _isSaveLoading = true;
+    });
+
+    try {
+      final res = await ApiService().toggleSavePost(postId: _post!.id);
+      if (mounted) {
+        final dynamic savedVal =
+            res['is_saved'] ?? res['is_saved_by_current_user'] ?? res['saved'];
+        if (savedVal != null) {
+          final bool serverSaved = savedVal == true ||
+              savedVal == 1 ||
+              savedVal.toString().toLowerCase() == 'true';
+          setState(() {
+            _isSaved = serverSaved;
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint('Error toggling save post: $e');
+      if (mounted) {
+        setState(() {
+          _isSaved = previousIsSaved;
+        });
+        showToast(message: 'Failed to update save status');
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSaveLoading = false;
         });
       }
     }

@@ -12,13 +12,17 @@ import '../button/back_button.dart';
 class CommonAppBar extends StatelessWidget implements PreferredSizeWidget {
   final String title;
   final bool showBackButton;
+  final VoidCallback? onBack;
   final List<Widget>? actions;
+  final double? titleSpacing;
 
   const CommonAppBar({
     super.key,
     required this.title,
     this.showBackButton = true,
+    this.onBack,
     this.actions,
+    this.titleSpacing,
   });
 
   @override
@@ -28,12 +32,12 @@ class CommonAppBar extends StatelessWidget implements PreferredSizeWidget {
       leading: showBackButton
           ? Padding(
               padding: EdgeInsets.only(left: 8.w),
-              child: const PrimaryBackButton(),
+              child: PrimaryBackButton(onTap: onBack),
             )
           : null,
-      leadingWidth: showBackButton ? 48.w : 0,
+      leadingWidth: showBackButton ? 45.w : 0,
       centerTitle: false,
-      titleSpacing: showBackButton ? 4.w : 10.w,
+      titleSpacing: titleSpacing ?? (showBackButton ? 4.w : 18.w),
       title: Text(
         title,
         style: AppTextStyles.pageTitleTextStyle(

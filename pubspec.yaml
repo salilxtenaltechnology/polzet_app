@@ -79,7 +79,9 @@ flutter_gen:
 flutter_launcher_icons: # Fixed name (was flutter_icons)
   android: "launcher_icon"
   ios: true
-  image_path: "assets/images/ic_app_foreground.png"
+  image_path: "assets/images/app_icon.png"
+  remove_alpha_ios: true
+  
   adaptive_icon_background: "assets/images/icon_background.png"
   adaptive_icon_foreground: "assets/images/ic_app_foreground.png"
 

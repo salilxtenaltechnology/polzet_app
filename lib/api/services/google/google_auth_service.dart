@@ -14,17 +14,26 @@ import '../fcm/fcm_service.dart';
 import '../notification/notification_services.dart';
 
 class GoogleAuthService {
- static const String _serverClientId =
-    '470797111076-oq07ifq4rpgben72r6ikg0b7faorf06k.apps.googleusercontent.com';
+  static const String _serverClientId =
+      '470797111076-oq07ifq4rpgben72r6ikg0b7faorf06k.apps.googleusercontent.com';
+  static const String _iosClientId =
+      '470797111076-58rdcmqclbkkhu2jhg8up2tq751v8jia.apps.googleusercontent.com';
 
   static final GoogleSignIn _googleSignIn = GoogleSignIn.instance;
   static StreamSubscription<GoogleSignInAuthenticationEvent>? _authSub;
+  static bool _isInitialized = false;
 
   // ── Initialize once ──────────────────────────────────────────
   static Future<void> initialize({
     required Function(GoogleSignInAccount) onSignIn,
   }) async {
-    await _googleSignIn.initialize(serverClientId: _serverClientId);
+    if (!_isInitialized) {
+      await _googleSignIn.initialize(
+        clientId: Platform.isIOS ? _iosClientId : null,
+        serverClientId: _serverClientId,
+      );
+      _isInitialized = true;
+    }
     _authSub?.cancel();
     _authSub = _googleSignIn.authenticationEvents.listen((event) {
       if (event is GoogleSignInAuthenticationEventSignIn) {
@@ -49,7 +58,7 @@ class GoogleAuthService {
     required Function() onLoadingDone,
   }) async {
     try {
-final GoogleSignInAuthentication auth = user.authentication;
+      final GoogleSignInAuthentication auth = user.authentication;
       final String? idToken = auth.idToken;
 
       if (idToken == null) {
@@ -127,7 +136,7 @@ final GoogleSignInAuthentication auth = user.authentication;
 
       if (context.mounted) {
         final Widget destination = isNewUser
-            ? const TermsAcceptance(isNewUser: true)
+            ? const TermsAcceptance(isNewUser: true, showCountryLanguage: true)
             : const HomeScreen(initialIndex: 0);
 
         Navigator.pushAndRemoveUntil(

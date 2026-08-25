@@ -15,7 +15,7 @@ class FlowScaffold extends StatelessWidget {
   final Widget body;
   final String primaryLabel;
   final VoidCallback? onPrimary;
-  final VoidCallback onSkip;
+  final VoidCallback? onSkip;
 
   const FlowScaffold({
     super.key,
@@ -27,7 +27,7 @@ class FlowScaffold extends StatelessWidget {
     required this.body,
     required this.primaryLabel,
     required this.onPrimary,
-    required this.onSkip,
+    this.onSkip,
   });
 
   @override
@@ -75,7 +75,7 @@ class FlowScaffold extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 10),
                     Text(
                       title,
                       textAlign: TextAlign.center,
@@ -85,7 +85,7 @@ class FlowScaffold extends StatelessWidget {
                         letterSpacing: -0.3,
                       ),
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 5),
                     Text(
                       subtitle,
                       textAlign: TextAlign.center,
@@ -137,18 +137,20 @@ class FlowScaffold extends StatelessWidget {
                       ),
                     ),
                   ),
-                  const SizedBox(height: 20),
-                  GestureDetector(
-                    onTap: onSkip,
-                    child: Text(
-                      'Skip for now',
-                      style: AppTextStyles.bodyText.copyWith(
-                        fontSize: 14.5,
-                        fontWeight: FontWeight.w500,
-                        color: const Color(0xFF6B7280),
+                  if (onSkip != null) ...[
+                    const SizedBox(height: 20),
+                    GestureDetector(
+                      onTap: onSkip,
+                      child: Text(
+                        'Skip for now',
+                        style: AppTextStyles.bodyText.copyWith(
+                          fontSize: 14.5,
+                          fontWeight: FontWeight.w500,
+                          color: const Color(0xFF6B7280),
+                        ),
                       ),
                     ),
-                  ),
+                  ],
                   const SizedBox(height: 10),
                 ],
               ),

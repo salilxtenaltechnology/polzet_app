@@ -384,20 +384,20 @@ class _ShareBottomSheetState extends State<ShareBottomSheet> {
   Widget build(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     final txt = AppTextColors.of(context);
-    return SafeArea(
-      top: false,
-      child: Padding(
-        padding: EdgeInsets.only(
-          bottom: MediaQuery.of(context).viewInsets.bottom,
+    return Container(
+      height: 0.8.sh,
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.tertiaryContainer,
+        borderRadius: const BorderRadius.only(
+          topLeft: Radius.circular(AppRadius.modal),
+          topRight: Radius.circular(AppRadius.modal),
         ),
-        child: Container(
-          height: 0.8.sh,
-          decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.tertiaryContainer,
-            borderRadius: const BorderRadius.only(
-              topLeft: Radius.circular(AppRadius.modal),
-              topRight: Radius.circular(AppRadius.modal),
-            ),
+      ),
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom,
           ),
           child: Column(
             children: [
@@ -491,6 +491,13 @@ class _ShareBottomSheetState extends State<ShareBottomSheet> {
                           final avatarUrl = _userAvatar(item);
                           final name = _userName(item);
                           final isGroup = item['is_group'] == true;
+                          final rawUsername = (item['username'] ?? item['name'] ?? name)
+                              .toString()
+                              .trim()
+                              .toLowerCase();
+                          final bool isPolzetAi = !isGroup && rawUsername == 'polzet_ai';
+                          final bool isVerified =
+                              !isGroup && (isPolzetAi || rawUsername == 'polzet');
 
                           final isSelected = isGroup
                               ? _selectedGroupIds.contains(item['id'])
@@ -519,7 +526,39 @@ class _ShareBottomSheetState extends State<ShareBottomSheet> {
                               children: [
                                 Stack(
                                   children: [
-                                    if (isGroup &&
+                                    if (isPolzetAi)
+                                      SizedBox(
+                                        height: 60,
+                                        width: 60,
+                                        child: Stack(
+                                          alignment: Alignment.center,
+                                          children: [
+                                            ClipOval(
+                                              child: Center(
+                                                child: Padding(
+                                                  padding: const EdgeInsets.only(
+                                                    top: 10,
+                                                    bottom: 0,
+                                                    left: 12,
+                                                    right: 10,
+                                                  ),
+                                                  child: Image.asset(
+                                                    Assets.images.icSplash.path,
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                            Positioned.fill(
+                                              child: Image.asset(
+                                                Assets.images.aiFrame.path,
+                                                height: 72,
+                                                width: 72,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      )
+                                    else if (isGroup &&
                                         (avatarUrl == null ||
                                             avatarUrl.trim().isEmpty))
                                       _buildGroupAvatarStack(
@@ -674,16 +713,32 @@ class _ShareBottomSheetState extends State<ShareBottomSheet> {
                                   ],
                                 ),
                                 const SizedBox(height: 8),
-                                Text(
-                                  name,
-                                  style: AppTextStyles.bodyText.copyWith(
-                                    fontSize: 12.5,
-                                    fontWeight: FontWeight.w400,
-                                    color: txt.title,
-                                  ),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  textAlign: TextAlign.center,
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Flexible(
+                                      child: Text(
+                                        name,
+                                        style: AppTextStyles.bodyText.copyWith(
+                                          fontSize: 12.5,
+                                          fontWeight: FontWeight.w400,
+                                          color: txt.title,
+                                        ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        textAlign: TextAlign.center,
+                                      ),
+                                    ),
+                                    if (isVerified) ...[
+                                      const SizedBox(width: 3),
+                                      Image.asset(
+                                        Assets.images.icVerify.path,
+                                        height: 12,
+                                        width: 12,
+                                      ),
+                                    ],
+                                  ],
                                 ),
                               ],
                             ),

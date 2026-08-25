@@ -64,7 +64,7 @@ class DefaultFirebaseOptions {
     messagingSenderId: '470797111076',
     projectId: 'polzet-notifications',
     storageBucket: 'polzet-notifications.firebasestorage.app',
-    iosBundleId: 'com.example.polzetApp',
+    iosBundleId: 'com.polzet.com',
   );
 
   static const FirebaseOptions macos = FirebaseOptions(
@@ -73,7 +73,7 @@ class DefaultFirebaseOptions {
     messagingSenderId: '470797111076',
     projectId: 'polzet-notifications',
     storageBucket: 'polzet-notifications.firebasestorage.app',
-    iosBundleId: 'com.example.polzetApp',
+    iosBundleId: 'com.polzet.com',
   );
 
   static const FirebaseOptions windows = FirebaseOptions(

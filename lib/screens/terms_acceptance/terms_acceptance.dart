@@ -17,7 +17,13 @@ import '../flow/flow_screens.dart';
 
 class TermsAcceptance extends StatefulWidget {
   final bool isNewUser;
-  const TermsAcceptance({super.key, this.isNewUser = false});
+  final bool showCountryLanguage;
+
+  const TermsAcceptance({
+    super.key,
+    this.isNewUser = false,
+    this.showCountryLanguage = false,
+  });
 
   @override
   State<TermsAcceptance> createState() => _TermsAcceptanceScreenState();
@@ -89,7 +95,10 @@ class _TermsAcceptanceScreenState extends State<TermsAcceptance>
           listen: false,
         ).setPrivacyStatus(true);
         if (widget.isNewUser) {
-          navigationPushReplacement(context, const FlowScreen());
+          navigationPushReplacement(
+            context,
+            FlowScreen(showCountryLanguage: widget.showCountryLanguage),
+          );
         } else {
           navigationPushReplacement(context, const HomeScreen(initialIndex: 0));
         }

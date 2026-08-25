@@ -25,7 +25,7 @@ class FcmApiService {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $accessToken',
         },
-        body: jsonEncode({'token': fcmToken, 'platform': 'android'}),
+        body: jsonEncode({'token': fcmToken, 'platform': platform}),
       );
 
       if (response.statusCode == 200 || response.statusCode == 201) {

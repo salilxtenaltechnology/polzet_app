@@ -18,6 +18,7 @@ import '../../../../../core/themes/app_text_colors.dart';
 import '../../../../../languages/l10n/generated/app_localizations.dart';
 import '../../../home feed/rank/result/things/things_result_screen.dart';
 import '../../../home feed/rank/submit/rank_submitted_screen.dart';
+import 'package:polzet_app/gen/assets.gen.dart';
 
 class SinglePostThingsRanking extends StatefulWidget {
   final SinglePostModel post;
@@ -206,32 +207,78 @@ class _SinglePostThingsRankingState extends State<SinglePostThingsRanking> {
         children: [
           Row(
             children: [
-              CircleAvatar(
-                radius: 20,
-                backgroundColor: Theme.of(
-                  context,
-                ).colorScheme.onPrimary.withOpacity(0.15),
-                backgroundImage: avatarImage,
-                child: avatarImage == null
-                    ? Text(
-                        initial,
-                        style: AppTextStyles.cardTitle.copyWith(
-                          color: Theme.of(context).colorScheme.onPrimary,
-                        ),
-                      )
-                    : null,
-              ),
+              username.trim().toLowerCase() == 'polzet_ai' ||
+                      username.trim().toLowerCase() == 'polet_ai'
+                  ? SizedBox(
+                      width: 45,
+                      height: 45,
+                      child: Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          ClipOval(
+                            child: Center(
+                              child: Padding(
+                                padding: const EdgeInsets.only(
+                                  top: 8,
+                                  bottom: 0,
+                                  left: 10,
+                                  right: 9,
+                                ),
+                                child: Image.asset(
+                                  Assets.images.icSplash.path,
+                                ),
+                              ),
+                            ),
+                          ),
+                          Positioned.fill(
+                            child: Image.asset(
+                              Assets.images.aiFrame.path,
+                              height: 55,
+                              width: 55,
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
+                  : CircleAvatar(
+                      radius: 20,
+                      backgroundColor: Theme.of(
+                        context,
+                      ).colorScheme.onPrimary.withOpacity(0.15),
+                      backgroundImage: avatarImage,
+                      child: avatarImage == null
+                          ? Text(
+                              initial,
+                              style: AppTextStyles.cardTitle.copyWith(
+                                color: Theme.of(context).colorScheme.onPrimary,
+                              ),
+                            )
+                          : null,
+                    ),
               const SizedBox(width: 10),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      '${post.firstName} ${post.lastName}'.trim(),
-                      style: AppTextStyles.sectionHeading.copyWith(
-                        color: txt.title,
-                        fontSize: 14,
-                      ),
+                    Row(
+                      children: [
+                        Text(
+                          '${post.firstName} ${post.lastName}'.trim(),
+                          style: AppTextStyles.sectionHeading.copyWith(
+                            color: txt.title,
+                            fontSize: 14,
+                          ),
+                        ),
+                        if (username.trim().toLowerCase() == 'polzet_ai' ||
+                            username.trim().toLowerCase() == 'polet_ai') ...[
+                          const SizedBox(width: 4),
+                          Image.asset(
+                            Assets.images.icVerify.path,
+                            height: 13,
+                            width: 13,
+                          ),
+                        ],
+                      ],
                     ),
                     Row(
                       children: [

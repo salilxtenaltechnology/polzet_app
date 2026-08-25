@@ -128,7 +128,6 @@ class _AddNewPollState extends State<AddNewPoll>
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    SizedBox(height: 10.h),
                     Text(
                       AppLocalizations.of(
                         context,

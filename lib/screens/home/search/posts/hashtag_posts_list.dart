@@ -54,6 +54,8 @@ class _HashtagPostsListState extends State<HashtagPostsList> {
 
   // Per-post like state
   final Map<String, bool> _likedMap = {};
+  final Map<String, bool> _savedMap = {};
+  final Map<String, bool> _saveLoadingMap = {};
   final Map<String, int> _likesCountMap = {};
   final Map<String, int> _commentsCountMap = {};
   final Map<String, int> _sharesCountMap = {};
@@ -155,6 +157,7 @@ class _HashtagPostsListState extends State<HashtagPostsList> {
   void _initPostState(List<HashtagPostModel> posts) {
     for (final post in posts) {
       _likedMap[post.id] = post.isLikedByCurrentUser;
+      _savedMap[post.id] = post.isSaved;
       _likesCountMap[post.id] = post.likesCount;
       _commentsCountMap[post.id] = post.commentsCount;
       _sharesCountMap[post.id] = post.sharesCount;
@@ -226,6 +229,52 @@ class _HashtagPostsListState extends State<HashtagPostsList> {
         setState(() {
           _likedMap[postId] = prev;
           _likesCountMap[postId] = prevCount;
+        });
+      }
+    }
+  }
+
+  // ── Save ───────────────────────────────────────────────────────────────────
+  Future<void> _toggleSavePost(String postId) async {
+    if (_saveLoadingMap[postId] == true) return;
+
+    final post = _posts.firstWhere(
+      (p) => p.id == postId,
+      orElse: () => _posts[0],
+    );
+    final previousIsSaved = _savedMap[postId] ?? post.isSaved;
+
+    setState(() {
+      _savedMap[postId] = !previousIsSaved;
+      _saveLoadingMap[postId] = true;
+    });
+
+    try {
+      final res = await ApiService().toggleSavePost(postId: postId);
+      if (mounted) {
+        final dynamic savedVal =
+            res['is_saved'] ?? res['is_saved_by_current_user'] ?? res['saved'];
+        if (savedVal != null) {
+          final bool serverSaved = savedVal == true ||
+              savedVal == 1 ||
+              savedVal.toString().toLowerCase() == 'true';
+          setState(() {
+            _savedMap[postId] = serverSaved;
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint('Error toggling save post: $e');
+      if (mounted) {
+        setState(() {
+          _savedMap[postId] = previousIsSaved;
+        });
+        showToast(message: 'Failed to update save status');
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _saveLoadingMap[postId] = false;
         });
       }
     }
@@ -381,6 +430,7 @@ class _HashtagPostsListState extends State<HashtagPostsList> {
     final txt = AppTextColors.of(context);
     final isImage = _isImagePoll(post);
     final isLiked = _likedMap[post.id] ?? false;
+    final isSaved = _savedMap[post.id] ?? post.isSaved;
     final likesCount = _likesCountMap[post.id] ?? 0;
     final commentsCount = _commentsCountMap[post.id] ?? 0;
     final sharesCount = _sharesCountMap[post.id] ?? 0;
@@ -490,6 +540,7 @@ class _HashtagPostsListState extends State<HashtagPostsList> {
           _buildInteractionBar(
             post: post,
             isLiked: isLiked,
+            isSaved: isSaved,
             likesCount: likesCount,
             commentsCount: commentsCount,
             sharesCount: sharesCount,
@@ -768,6 +819,7 @@ class _HashtagPostsListState extends State<HashtagPostsList> {
                 .toList(),
       isLiked: _likedMap[post.id] ?? post.isLikedByCurrentUser,
       isPolledByCurrentUser: post.isPolledByCurrentUser,
+      isSaved: _savedMap[post.id] ?? post.isSaved,
       locationName: post.locationName,
       commentsCount: post.commentsCount,
       likesCount: _likesCountMap[post.id] ?? post.likesCount,
@@ -2739,6 +2791,7 @@ class _HashtagPostsListState extends State<HashtagPostsList> {
   Widget _buildInteractionBar({
     required HashtagPostModel post,
     required bool isLiked,
+    required bool isSaved,
     required int likesCount,
     required int commentsCount,
     required int sharesCount,
@@ -2825,6 +2878,23 @@ class _HashtagPostsListState extends State<HashtagPostsList> {
                   ),
                 ),
               ],
+            ),
+          ),
+          const Spacer(),
+          GestureDetector(
+            onTap: () => _toggleSavePost(post.id),
+            child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 200),
+              transitionBuilder: (child, animation) =>
+                  ScaleTransition(scale: animation, child: child),
+              child: isSaved
+                  ? AppIcons.filledSave(
+                      key: const ValueKey('saved_filled'),
+                      color: Theme.of(context).colorScheme.onPrimary,
+                    )
+                  : AppIcons.outlineSave(
+                      key: const ValueKey('saved_outline'),
+                    ),
             ),
           ),
         ],

@@ -9,7 +9,7 @@
 	<key>PLIST_VERSION</key>
 	<string>1</string>
 	<key>BUNDLE_ID</key>
-	<string>com.example.polzetApp</string>
+	<string>com.polzet.com</string>
 	<key>PROJECT_ID</key>
 	<string>polzet-notifications</string>
 	<key>STORAGE_BUCKET</key>
@@ -26,5 +26,9 @@
 	<true></true>
 	<key>GOOGLE_APP_ID</key>
 	<string>1:470797111076:ios:731343ba61472f0bf4adb1</string>
+	<key>CLIENT_ID</key>
+	<string>470797111076-58rdcmqclbkkhu2jhg8up2tq751v8jia.apps.googleusercontent.com</string>
+	<key>REVERSED_CLIENT_ID</key>
+	<string>com.googleusercontent.apps.470797111076-58rdcmqclbkkhu2jhg8up2tq751v8jia</string>
 </dict>
 </plist>

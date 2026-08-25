@@ -74,6 +74,10 @@ class $AssetsImagesGen {
   AssetGenImage get aiFrame =>
       const AssetGenImage('assets/images/ai_frame.png');
 
+  /// File path: assets/images/app_icon.png
+  AssetGenImage get appIcon =>
+      const AssetGenImage('assets/images/app_icon.png');
+
   /// File path: assets/images/bg.png
   AssetGenImage get bg => const AssetGenImage('assets/images/bg.png');
 
@@ -173,6 +177,14 @@ class $AssetsImagesGen {
   AssetGenImage get icCamera =>
       const AssetGenImage('assets/images/ic_camera.png');
 
+  /// File path: assets/images/ic_country.png
+  AssetGenImage get icCountry =>
+      const AssetGenImage('assets/images/ic_country.png');
+
+  /// File path: assets/images/ic_current_affairs.png
+  AssetGenImage get icCurrentAffairs =>
+      const AssetGenImage('assets/images/ic_current_affairs.png');
+
   /// File path: assets/images/ic_darkmode.png
   AssetGenImage get icDarkmode =>
       const AssetGenImage('assets/images/ic_darkmode.png');
@@ -192,6 +204,14 @@ class $AssetsImagesGen {
   /// File path: assets/images/ic_feedback.png
   AssetGenImage get icFeedback =>
       const AssetGenImage('assets/images/ic_feedback.png');
+
+  /// File path: assets/images/ic_finance.png
+  AssetGenImage get icFinance =>
+      const AssetGenImage('assets/images/ic_finance.png');
+
+  /// File path: assets/images/ic_fiteness.png
+  AssetGenImage get icFiteness =>
+      const AssetGenImage('assets/images/ic_fiteness.png');
 
   /// File path: assets/images/ic_food.png
   AssetGenImage get icFood => const AssetGenImage('assets/images/ic_food.png');
@@ -218,9 +238,16 @@ class $AssetsImagesGen {
   AssetGenImage get icImagePoll =>
       const AssetGenImage('assets/images/ic_image_poll.png');
 
+  /// File path: assets/images/ic_interest.png
+  AssetGenImage get icInterest =>
+      const AssetGenImage('assets/images/ic_interest.png');
+
   /// File path: assets/images/ic_language.png
   AssetGenImage get icLanguage =>
       const AssetGenImage('assets/images/ic_language.png');
+
+  /// File path: assets/images/ic_meme.png
+  AssetGenImage get icMeme => const AssetGenImage('assets/images/ic_meme.png');
 
   /// File path: assets/images/ic_message.png
   AssetGenImage get icMessage =>
@@ -229,6 +256,10 @@ class $AssetsImagesGen {
   /// File path: assets/images/ic_movie.png
   AssetGenImage get icMovie =>
       const AssetGenImage('assets/images/ic_movie.png');
+
+  /// File path: assets/images/ic_music.png
+  AssetGenImage get icMusic =>
+      const AssetGenImage('assets/images/ic_music.png');
 
   /// File path: assets/images/ic_muted.png
   AssetGenImage get icMuted =>
@@ -244,6 +275,14 @@ class $AssetsImagesGen {
   /// File path: assets/images/ic_poll.png
   AssetGenImage get icPoll => const AssetGenImage('assets/images/ic_poll.png');
 
+  /// File path: assets/images/ic_preference.png
+  AssetGenImage get icPreference =>
+      const AssetGenImage('assets/images/ic_preference.png');
+
+  /// File path: assets/images/ic_relationships.png
+  AssetGenImage get icRelationships =>
+      const AssetGenImage('assets/images/ic_relationships.png');
+
   /// File path: assets/images/ic_save.png
   AssetGenImage get icSave => const AssetGenImage('assets/images/ic_save.png');
 
@@ -258,6 +297,9 @@ class $AssetsImagesGen {
   /// File path: assets/images/ic_sports.png
   AssetGenImage get icSports =>
       const AssetGenImage('assets/images/ic_sports.png');
+
+  /// File path: assets/images/ic_tech.png
+  AssetGenImage get icTech => const AssetGenImage('assets/images/ic_tech.png');
 
   /// File path: assets/images/ic_technology.png
   AssetGenImage get icTechnology =>
@@ -422,6 +464,7 @@ class $AssetsImagesGen {
     addGroup,
     addImage,
     aiFrame,
+    appIcon,
     bg,
     bgChatDark,
     bgChatLight,
@@ -448,11 +491,15 @@ class $AssetsImagesGen {
     icBlockAccount,
     icBook,
     icCamera,
+    icCountry,
+    icCurrentAffairs,
     icDarkmode,
     icDelete,
     icDisagree,
     icFashion,
     icFeedback,
+    icFinance,
+    icFiteness,
     icFood,
     icGame,
     icGoogle,
@@ -460,17 +507,23 @@ class $AssetsImagesGen {
     icHelpSupport,
     icHot,
     icImagePoll,
+    icInterest,
     icLanguage,
+    icMeme,
     icMessage,
     icMovie,
+    icMusic,
     icMuted,
     icNotifications,
     icPin,
     icPoll,
+    icPreference,
+    icRelationships,
     icSave,
     icSecurity,
     icSplash,
     icSports,
+    icTech,
     icTechnology,
     icTermsConditions,
     icTextPoll,

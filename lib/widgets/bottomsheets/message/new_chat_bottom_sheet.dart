@@ -366,21 +366,21 @@ class _NewChatBottomSheetState extends State<NewChatBottomSheet>
     final txt = AppTextColors.of(context);
     final l10n = AppLocalizations.of(context);
 
-    return SafeArea(
-      top: false,
-      child: Padding(
-        padding: EdgeInsets.only(
-          bottom: MediaQuery.of(context).viewInsets.bottom,
+    return Container(
+      height: 0.8.sh,
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.tertiaryContainer,
+        borderRadius: const BorderRadius.only(
+          topLeft: Radius.circular(AppRadius.modal),
+          topRight: Radius.circular(AppRadius.modal),
         ),
-        child: Container(
-          height: 0.8.sh,
-          width: double.infinity,
-          decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.tertiaryContainer,
-            borderRadius: const BorderRadius.only(
-              topLeft: Radius.circular(AppRadius.modal),
-              topRight: Radius.circular(AppRadius.modal),
-            ),
+      ),
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom,
           ),
           child: Column(
             children: [

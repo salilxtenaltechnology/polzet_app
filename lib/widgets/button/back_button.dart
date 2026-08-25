@@ -3,15 +3,15 @@
 import 'package:flutter/material.dart';
 
 class PrimaryBackButton extends StatelessWidget {
-  const PrimaryBackButton({super.key});
+  final VoidCallback? onTap;
+
+  const PrimaryBackButton({super.key, this.onTap});
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: () {
-        Navigator.pop(context);
-      },
-      child:  Icon(
+      onTap: onTap ?? () => Navigator.pop(context),
+      child: Icon(
         Icons.arrow_back_ios,
         color: Theme.of(context).colorScheme.onBackground,
         size: 24,

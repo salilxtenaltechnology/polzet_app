@@ -5,7 +5,7 @@ class ApiConfig {
   // testbackend.polzet.in : For Test
   // www.polzet.com : Official Domain
 
-  static String domainUrl = 'testbackend.polzet.in';
+  static String domainUrl = 'prodbackend.polzet.in';
 
   static String get baseUrl {
     const protocol = useHttps ? 'https' : 'http';

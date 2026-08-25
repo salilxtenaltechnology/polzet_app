@@ -19,8 +19,10 @@ import '../../../../gen/assets.gen.dart';
 import '../../../../languages/l10n/generated/app_localizations.dart';
 import '../../../../provider/user_provider.dart';
 import '../../../../widgets/appbar/common_appbar.dart';
+import '../../../../widgets/banner/ai_generation_limit_banner.dart';
 import '../../../../widgets/button/primary_button.dart';
 import '../../../../widgets/button/generate_question_button.dart';
+import '../../../../widgets/button/generate_description_button.dart';
 import '../../../../widgets/custom_text_styles.dart';
 import '../../../../widgets/dotted_border/dotted_border.dart';
 import '../../../../widgets/show_toast.dart';
@@ -51,6 +53,54 @@ class _NewImagePollState extends State<NewImagePoll> {
   bool _isGeneratingDescription = false;
   bool _hasGeneratedDescription = false;
   bool _isMultiChoice = false;
+
+  int _remainingGenerations = 5;
+  int _dailyLimit = 5;
+
+  Future<void> _loadSavedAiLimit() async {
+    final limitData = await SharedPrefService.getAiLimitData();
+    if (mounted) {
+      setState(() {
+        _remainingGenerations = limitData['remaining'] ?? 5;
+        _dailyLimit = limitData['daily_limit'] ?? 5;
+      });
+    }
+  }
+
+  void _updateAiLimitFromResponse(Map<String, dynamic>? response) {
+    if (response == null) return;
+    final rawRemaining = response['remaining'] ?? response['data']?['remaining'];
+    final rawLimit = response['daily_limit'] ?? response['data']?['daily_limit'];
+
+    if (rawRemaining != null) {
+      final parsedRemaining = int.tryParse(rawRemaining.toString());
+      if (parsedRemaining != null && mounted) {
+        setState(() {
+          _remainingGenerations = parsedRemaining;
+        });
+      }
+    } else {
+      if (mounted && _remainingGenerations > 0) {
+        setState(() {
+          _remainingGenerations -= 1;
+        });
+      }
+    }
+
+    if (rawLimit != null) {
+      final parsedLimit = int.tryParse(rawLimit.toString());
+      if (parsedLimit != null && mounted) {
+        setState(() {
+          _dailyLimit = parsedLimit;
+        });
+      }
+    }
+
+    SharedPrefService.saveAiLimitData(
+      remaining: _remainingGenerations,
+      dailyLimit: _dailyLimit,
+    );
+  }
 
   // Hint animation state
   int _currentHintIndex = 0;
@@ -86,6 +136,7 @@ class _NewImagePollState extends State<NewImagePoll> {
   @override
   void initState() {
     super.initState();
+    _loadSavedAiLimit();
     questionController.addListener(_onQuestionChanged);
     _startHintAnimation();
   }
@@ -111,6 +162,14 @@ class _NewImagePollState extends State<NewImagePoll> {
   }
 
   Future<void> generateQuestion() async {
+    if (_remainingGenerations <= 0) {
+      showToast(
+        message:
+            'No AI generations left today. Your credits will reset tomorrow.',
+      );
+      return;
+    }
+
     final query = questionController.text.trim();
 
     if (query.isEmpty) {
@@ -127,6 +186,8 @@ class _NewImagePollState extends State<NewImagePoll> {
     try {
       final response = await service.generateQuestion(input: query);
       debugPrint('generateQuestion response: $response');
+      _updateAiLimitFromResponse(response);
+
       final questionText = response['question']?.toString();
       if (questionText != null && questionText.trim().isNotEmpty) {
         setState(() {
@@ -173,8 +234,16 @@ class _NewImagePollState extends State<NewImagePoll> {
     return ['Option 1', 'Option 2'];
   }
 
-  /// Generate description and hashtags for the poll using AI
+  /// Generate description for the poll using AI
   Future<void> generateDescription() async {
+    if (_remainingGenerations <= 0) {
+      showToast(
+        message:
+            'No AI generations left today. Your credits will reset tomorrow.',
+      );
+      return;
+    }
+
     final question = questionController.text.trim();
     final options = _getValidOptions();
 
@@ -190,39 +259,21 @@ class _NewImagePollState extends State<NewImagePoll> {
     });
 
     try {
-      // 1. Generate description
       final descResponse = await service.generateDescription(
         question: question,
         options: options,
       );
       debugPrint('generateDescription response: $descResponse');
+      _updateAiLimitFromResponse(descResponse);
+
       final String descriptionText =
           (descResponse["description"] ?? descResponse["data"]?["description"])
               ?.toString()
               .trim() ??
           '';
 
-      if (descriptionText.isNotEmpty) {
-        setState(() {
-          descriptionController.text = descriptionText;
-          descriptionController.selection = TextSelection.fromPosition(
-            TextPosition(offset: descriptionController.text.length),
-          );
-          _hasGeneratedDescription = true;
-        });
-      }
-
-      // 2. Generate hashtags using question and description
-      final String activeDescription = descriptionController.text.trim();
-      final hashtagResponse = await service.generateHashtags(
-        question: question,
-        description:
-            activeDescription.isNotEmpty ? activeDescription : question,
-      );
-      debugPrint('generateHashtags response: $hashtagResponse');
-
       final dynamic rawHashtags =
-          hashtagResponse['hashtags'] ?? hashtagResponse['data']?['hashtags'];
+          descResponse['hashtags'] ?? descResponse['data']?['hashtags'];
       List<String> hashtagsList = [];
       if (rawHashtags is List) {
         hashtagsList = rawHashtags
@@ -237,35 +288,32 @@ class _NewImagePollState extends State<NewImagePoll> {
             .toList();
       }
 
+      String fullText = descriptionText;
       if (hashtagsList.isNotEmpty) {
         final formattedHashtags = hashtagsList
             .map((h) => h.startsWith('#') ? h : '#$h')
             .join(' ');
+        if (fullText.isNotEmpty) {
+          fullText = '$fullText\n\n$formattedHashtags';
+        } else {
+          fullText = formattedHashtags;
+        }
+      }
 
+      if (fullText.isNotEmpty) {
         setState(() {
-          final String baseText = descriptionText.isNotEmpty
-              ? descriptionText
-              : descriptionController.text.trim();
-          if (baseText.isNotEmpty) {
-            descriptionController.text = '$baseText\n\n$formattedHashtags';
-          } else {
-            descriptionController.text = formattedHashtags;
-          }
+          descriptionController.text = fullText;
           descriptionController.selection = TextSelection.fromPosition(
             TextPosition(offset: descriptionController.text.length),
           );
           _hasGeneratedDescription = true;
         });
-      }
-
-      if (descriptionText.isNotEmpty || hashtagsList.isNotEmpty) {
-        showToast(message: 'Description & hashtags generated!');
+        showToast(message: 'Description generated!');
       } else {
         showToast(
           message:
               descResponse['message']?.toString() ??
-              hashtagResponse['message']?.toString() ??
-              'Failed to generate description & hashtags',
+              'Failed to generate description',
         );
       }
     } catch (e) {
@@ -521,15 +569,19 @@ class _NewImagePollState extends State<NewImagePoll> {
     });
 
     try {
-      final labels = _labelControllers.map((c) => c.text.trim()).toList();
+      final labels = List.generate(
+        _selectedImages.length,
+        (i) => (i < _labelControllers.length)
+            ? _labelControllers[i].text.trim()
+            : '',
+      );
 
-      // Upload the poll
-      Map<String, dynamic>? result = await ApiService.uploadImagePoll(
+      final response = await ApiService.uploadImagePoll(
         question: questionController.text.trim(),
         description: descriptionController.text.trim(),
         pollOptions: _selectedImages,
-        maxOptions: maxImages,
         labels: labels,
+        maxOptions: maxImages,
         votingType: _isMultiChoice ? "ranking" : "single_choice",
         authToken: accessToken,
         onProgress: (progress) {
@@ -544,7 +596,8 @@ class _NewImagePollState extends State<NewImagePoll> {
         },
       );
 
-      if (result != null && mounted) {
+      if (response != null) {
+        if (!mounted) return;
         showToast(message: 'New image poll created!');
         questionController.clear();
         descriptionController.clear();
@@ -559,34 +612,15 @@ class _NewImagePollState extends State<NewImagePoll> {
         });
         // Clear cached posts so the profile screen updates immediately
         Provider.of<UserProvider>(context, listen: false).clearUserPostsCache();
-        Navigator.of(context).pop(result);
+        Navigator.of(context).pop(response);
       }
     } catch (e) {
       if (kDebugMode) {
-        print('Error creating poll: $e');
+        print('Error creating image poll: $e');
       }
-
-      if (mounted) {
-        String errorMessage = e.toString().replaceAll('Exception: ', '');
-
-        if (errorMessage.contains('too large') ||
-            errorMessage.contains('10MB')) {
-          showToast(
-            message: 'Image too large. Maximum size allowed is 10MB per image',
-          );
-        } else if (errorMessage.contains('internet') ||
-            errorMessage.contains('network')) {
-          showToast(message: 'Network error. Please check your connection');
-        } else if (errorMessage.contains('timeout')) {
-          showToast(message: 'Upload timeout. Please try again');
-        } else {
-          showToast(
-            message: errorMessage.isEmpty
-                ? 'Error uploading poll'
-                : errorMessage,
-          );
-        }
-      }
+      if (!mounted) return;
+      final errorMessage = e.toString().replaceAll('Exception: ', '');
+      showToast(message: errorMessage);
     } finally {
       if (mounted) {
         setState(() {
@@ -610,6 +644,10 @@ class _NewImagePollState extends State<NewImagePoll> {
         padding: EdgeInsets.symmetric(horizontal: 12.w),
         children: [
           SizedBox(height: 10.h),
+          AiGenerationLimitBanner(
+            remainingGenerations: _remainingGenerations,
+          ),
+          SizedBox(height: 15.h),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -655,14 +693,14 @@ class _NewImagePollState extends State<NewImagePoll> {
                   style: CustomTextStyles.lblPrimaryText(context),
                 ),
               ),
-              // SizedBox(
-              //   height: 30,
-              //   child: GenerateDescriptionButton(
-              //     isGenerating: _isGeneratingDescription,
-              //     hasGenerated: _hasGeneratedDescription,
-              //     onTap: _isGeneratingDescription ? null : generateDescription,
-              //   ),
-              // ),
+              SizedBox(
+                height: 30,
+                child: GenerateDescriptionButton(
+                  isGenerating: _isGeneratingDescription,
+                  hasGenerated: _hasGeneratedDescription,
+                  onTap: _isGeneratingDescription ? null : generateDescription,
+                ),
+              ),
             ],
           ),
           SizedBox(height: 7.h),

@@ -494,6 +494,71 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen>
     }
   }
 
+  Widget _buildProfileAvatar({
+    required String username,
+    required String? profileImage,
+    required double radius,
+  }) {
+    final cleanUsername = username.trim().toLowerCase();
+    final double diameter = radius * 2;
+
+    if (cleanUsername == 'polzet_ai') {
+      final scale = diameter / 45.0;
+      return SizedBox(
+        width: diameter,
+        height: diameter,
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            ClipOval(
+              child: Center(
+                child: Padding(
+                  padding: EdgeInsets.only(
+                    top: 8 * scale,
+                    bottom: 0,
+                    left: 10 * scale,
+                    right: 9 * scale,
+                  ),
+                  child: Image.asset(
+                    Assets.images.icSplash.path,
+                  ),
+                ),
+              ),
+            ),
+            Positioned.fill(
+              child: Image.asset(
+                Assets.images.aiFrame.path,
+                height: diameter * (55.0 / 45.0),
+                width: diameter * (55.0 / 45.0),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    final avatar = _avatarProvider(profileImage);
+    final initial = username.isNotEmpty ? username[0].toUpperCase() : 'P';
+
+    return CircleAvatar(
+      radius: radius,
+      backgroundColor: Theme.of(
+        context,
+      ).colorScheme.onPrimary.withOpacity(0.08),
+      backgroundImage: avatar,
+      child: avatar == null
+          ? Text(
+              initial,
+              style: AppTextStyles.cardTitle.copyWith(
+                color: Theme.of(context).colorScheme.onPrimary,
+                fontWeight: FontWeight.w500,
+                fontSize: radius * 0.9,
+              ),
+            )
+          : null,
+    );
+  }
+
   // ── Build ─────────────────────────────────────────────────────────────────
 
   @override
@@ -1485,7 +1550,9 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen>
 
   Widget _buildAccountTile(SearchAccount acc) {
     final txt = AppTextColors.of(context);
-    final avatar = _avatarProvider(acc.profileImage);
+    final isPolzetAi = acc.username.trim().toLowerCase() == 'polzet_ai';
+    final isVerified = isPolzetAi || acc.username.trim().toLowerCase() == 'polzet';
+
     return GestureDetector(
       onTap: () => navigationPush(
         context,
@@ -1495,41 +1562,40 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen>
         padding: EdgeInsetsGeometry.symmetric(horizontal: 12.w, vertical: 7),
         child: Row(
           children: [
-            CircleAvatar(
+            _buildProfileAvatar(
+              username: acc.username,
+              profileImage: acc.profileImage,
               radius: 20,
-              backgroundColor: Theme.of(
-                context,
-              ).colorScheme.onPrimary.withOpacity(0.08),
-              backgroundImage: avatar,
-              child: avatar == null
-                  ? Text(
-                      acc.username.isNotEmpty
-                          ? acc.username[0].toUpperCase()
-                          : 'P',
-                      style: TextStyle(
-                        fontSize: 13.5.sp,
-                        fontWeight: FontWeight.w600,
-                        color: Theme.of(
-                          context,
-                        ).colorScheme.onPrimary.withOpacity(0.8),
-                      ),
-                    )
-                  : null,
             ),
             SizedBox(width: 7.w),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    acc.username,
-                    style: AppTextStyles.bodyText.copyWith(
-                      color: txt.body,
-                      fontSize: 14.5,
-                      fontWeight: FontWeight.w500,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Flexible(
+                        child: Text(
+                          acc.username,
+                          style: AppTextStyles.bodyText.copyWith(
+                            color: txt.body,
+                            fontSize: 14.5,
+                            fontWeight: FontWeight.w500,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      if (isVerified) ...[
+                        SizedBox(width: 4.w),
+                        Image.asset(
+                          Assets.images.icVerify.path,
+                          height: 13,
+                          width: 13,
+                        ),
+                      ],
+                    ],
                   ),
                   Text(
                     acc.fullName.isEmpty ? acc.username : acc.fullName,
@@ -1582,9 +1648,9 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen>
 
     // Header
     final author = post.author;
-    final initial = author.username.isNotEmpty
-        ? author.username[0].toUpperCase()
-        : 'P';
+    final isPolzetAi = author.username.trim().toLowerCase() == 'polzet_ai';
+    final isVerified = isPolzetAi || author.username.trim().toLowerCase() == 'polzet';
+
     final name = '${author.firstName} ${author.lastName}'.trim();
     final displayName = name.isNotEmpty ? name : author.username;
 
@@ -1623,24 +1689,10 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen>
                       ),
                     );
                   },
-                  child: CircleAvatar(
+                  child: _buildProfileAvatar(
+                    username: author.username,
+                    profileImage: author.profileImage,
                     radius: 19.5,
-                    backgroundColor: Theme.of(
-                      context,
-                    ).colorScheme.onPrimary.withOpacity(0.1),
-                    backgroundImage: _avatarProvider(author.profileImage),
-                    child:
-                        author.profileImage == null ||
-                            author.profileImage!.isEmpty
-                        ? Text(
-                            initial,
-                            style: AppTextStyles.cardTitle.copyWith(
-                              color: Theme.of(context).colorScheme.onPrimary,
-                              fontWeight: FontWeight.w500,
-                              fontSize: 18,
-                            ),
-                          )
-                        : null,
                   ),
                 ),
                 SizedBox(width: 8.w),
@@ -1648,13 +1700,28 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen>
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        displayName,
-                        style: AppTextStyles.sectionHeading.copyWith(
-                          color: txt.title,
-                          fontSize: 14,
-                        ),
-                        overflow: TextOverflow.ellipsis,
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          Flexible(
+                            child: Text(
+                              displayName,
+                              style: AppTextStyles.sectionHeading.copyWith(
+                                color: txt.title,
+                                fontSize: 14,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          if (isVerified) ...[
+                            SizedBox(width: 4.w),
+                            Image.asset(
+                              Assets.images.icVerify.path,
+                              height: 13,
+                              width: 13,
+                            ),
+                          ],
+                        ],
                       ),
                       Row(
                         children: [

@@ -1330,6 +1330,38 @@ class MessageListState extends State<MessageList>
     return null;
   }
 
+  bool _isPolzetAiUsername(String? username) {
+    if (username == null) return false;
+    final u = username.trim().toLowerCase();
+    return u == 'polzet_ai' || u == 'polet_ai';
+  }
+
+  bool _isPolzetAiChat(Map<String, dynamic> chat) {
+    final otherUsername = _getOtherUsername(chat);
+    if (_isPolzetAiUsername(otherUsername)) return true;
+
+    final username = chat['username']?.toString();
+    if (_isPolzetAiUsername(username)) return true;
+
+    final displayName = chat['display_name']?.toString();
+    if (_isPolzetAiUsername(displayName)) return true;
+
+    final title = chat['title']?.toString();
+    if (_isPolzetAiUsername(title)) return true;
+
+    final members = chat['members'] as List?;
+    if (members != null) {
+      for (final m in members) {
+        if (m is Map<String, dynamic>) {
+          final user = m['user'] as Map<String, dynamic>?;
+          final uName = user?['username']?.toString();
+          if (_isPolzetAiUsername(uName)) return true;
+        }
+      }
+    }
+    return false;
+  }
+
   String? _getOtherUsername(Map<String, dynamic> chat) {
     final userProvider = Provider.of<UserProvider>(context, listen: false);
     final currentUserId = userProvider.userId;
@@ -1632,85 +1664,117 @@ class MessageListState extends State<MessageList>
                 onTap: () => _openChat(chat, title, avatarUrl),
                 onLongPress: () => _showChatOptionsDialog(chat, title),
                 contentPadding: EdgeInsets.symmetric(horizontal: 10.w),
-                leading: chat['chat_type'] == 'group'
-                    ? (avatarUrl == null || avatarUrl.trim().isEmpty
-                          ? _buildGroupAvatarStack(
-                              members: chat['members'] as List?,
-                              size: 55,
-                              isDarkMode: isDarkMode,
-                              context: context,
-                            )
-                          : CircleAvatar(
-                              radius: 19.r,
-                              backgroundColor: isDarkMode
-                                  ? const Color(0xFF252525)
-                                  : Theme.of(
-                                      context,
-                                    ).primaryColor.withOpacity(0.08),
-                              backgroundImage: avatarProvider,
-                              child: avatarProvider == null
-                                  ? Text(
-                                      title.isNotEmpty
-                                          ? title[0].toUpperCase()
-                                          : 'P',
-                                      style: AppTextStyles.subText.copyWith(
-                                        color: Theme.of(context)
-                                            .colorScheme
-                                            .onPrimary
-                                            .withOpacity(0.8),
-                                        fontWeight: FontWeight.w500,
-                                        fontSize: 24,
-                                      ),
-                                    )
-                                  : null,
-                            ))
-                    : Stack(
-                        children: [
-                          CircleAvatar(
-                            radius: 19.r,
-                            backgroundColor: isDarkMode
-                                ? const Color(0xFF252525)
-                                : Theme.of(
-                                    context,
-                                  ).primaryColor.withOpacity(0.08),
-                            backgroundImage: avatarProvider,
-                            child: avatarProvider == null
-                                ? Text(
-                                    title.isNotEmpty
-                                        ? title[0].toUpperCase()
-                                        : 'P',
-                                    style: AppTextStyles.subText.copyWith(
-                                      color: Theme.of(
-                                        context,
-                                      ).colorScheme.onPrimary.withOpacity(0.8),
-                                      fontWeight: FontWeight.w500,
-                                      fontSize: 20,
-                                    ),
-                                  )
-                                : null,
-                          ),
-                          if (chat['chat_type'] == 'private' &&
-                              _isOtherMemberOnline(chat))
-                            Positioned(
-                              bottom: 0,
-                              right: 0,
-                              child: Container(
-                                width: 10.w,
-                                height: 10.h,
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFF4CAF50),
-                                  shape: BoxShape.circle,
-                                  border: Border.all(
-                                    color: Theme.of(
-                                      context,
-                                    ).colorScheme.background,
-                                    width: 1.8,
+                leading: _isPolzetAiChat(chat)
+                    ? SizedBox(
+                        width: 45.w,
+                        height: 45.h,
+                        child: Stack(
+                          alignment: Alignment.center,
+                          children: [
+                            ClipOval(
+                              child: Center(
+                                child: Padding(
+                                  padding: const EdgeInsets.only(
+                                    top: 8,
+                                    bottom: 0,
+                                    left: 10,
+                                    right: 9,
+                                  ),
+                                  child: Image.asset(
+                                    Assets.images.icSplash.path,
                                   ),
                                 ),
                               ),
                             ),
-                        ],
-                      ),
+                            Positioned.fill(
+                              child: Image.asset(
+                                Assets.images.aiFrame.path,
+                                height: 55,
+                                width: 55,
+                              ),
+                            ),
+                          ],
+                        ),
+                      )
+                    : (chat['chat_type'] == 'group'
+                        ? (avatarUrl == null || avatarUrl.trim().isEmpty
+                              ? _buildGroupAvatarStack(
+                                  members: chat['members'] as List?,
+                                  size: 55,
+                                  isDarkMode: isDarkMode,
+                                  context: context,
+                                )
+                              : CircleAvatar(
+                                  radius: 19.r,
+                                  backgroundColor: isDarkMode
+                                      ? const Color(0xFF252525)
+                                      : Theme.of(
+                                          context,
+                                        ).primaryColor.withOpacity(0.08),
+                                  backgroundImage: avatarProvider,
+                                  child: avatarProvider == null
+                                      ? Text(
+                                          title.isNotEmpty
+                                              ? title[0].toUpperCase()
+                                              : 'P',
+                                          style: AppTextStyles.subText.copyWith(
+                                            color: Theme.of(context)
+                                                .colorScheme
+                                                .onPrimary
+                                                .withOpacity(0.8),
+                                            fontWeight: FontWeight.w500,
+                                            fontSize: 24,
+                                          ),
+                                        )
+                                      : null,
+                                ))
+                        : Stack(
+                            children: [
+                              CircleAvatar(
+                                radius: 19.r,
+                                backgroundColor: isDarkMode
+                                    ? const Color(0xFF252525)
+                                    : Theme.of(
+                                        context,
+                                      ).primaryColor.withOpacity(0.08),
+                                backgroundImage: avatarProvider,
+                                child: avatarProvider == null
+                                    ? Text(
+                                        title.isNotEmpty
+                                            ? title[0].toUpperCase()
+                                            : 'P',
+                                        style: AppTextStyles.subText.copyWith(
+                                          color: Theme.of(
+                                            context,
+                                          ).colorScheme.onPrimary.withOpacity(0.8),
+                                          fontWeight: FontWeight.w500,
+                                          fontSize: 20,
+                                        ),
+                                      )
+                                    : null,
+                              ),
+                              if (chat['chat_type'] == 'private' &&
+                                  _isOtherMemberOnline(chat))
+                                Positioned(
+                                  bottom: 0,
+                                  right: 0,
+                                  child: Container(
+                                    width: 10.w,
+                                    height: 10.h,
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFF4CAF50),
+                                      shape: BoxShape.circle,
+                                      border: Border.all(
+                                        color: Theme.of(
+                                          context,
+                                        ).colorScheme.background,
+                                        width: 1.8,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          )),
                 title: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -1726,6 +1790,14 @@ class MessageListState extends State<MessageList>
                         ),
                       ),
                     ),
+                    if (_isPolzetAiChat(chat)) ...[
+                      SizedBox(width: 4.w),
+                      Image.asset(
+                        Assets.images.icVerify.path,
+                        height: 13,
+                        width: 13,
+                      ),
+                    ],
                     if (_isChatFavourite(chat)) ...[
                       SizedBox(width: 4.w),
                       Icon(
@@ -2249,6 +2321,7 @@ class MessageListState extends State<MessageList>
   }) {
     final List<String?> profileUrls = [];
     final List<String> initials = [];
+    final List<String?> usernames = [];
 
     if (members != null) {
       for (final member in members) {
@@ -2261,10 +2334,12 @@ class MessageListState extends State<MessageList>
                       user['profile_picture_url'] ??
                       user['avatar'])
                   ?.toString();
-          final name = (user['name'] ?? user['username'] ?? 'Unknown')
+          final username = user['username']?.toString();
+          final name = (user['name'] ?? username ?? 'Unknown')
               .toString();
           profileUrls.add(profileUrl);
           initials.add(name.isNotEmpty ? name[0].toUpperCase() : '?');
+          usernames.add(username);
         }
       }
     }
@@ -2305,6 +2380,7 @@ class MessageListState extends State<MessageList>
               size: circleSize,
               isDarkMode: isDarkMode,
               context: context,
+              username: usernames.isNotEmpty ? usernames[0] : null,
             ),
           ),
           if (profileUrls.length > 1)
@@ -2318,6 +2394,7 @@ class MessageListState extends State<MessageList>
                 isDarkMode: isDarkMode,
                 context: context,
                 hasBorder: true,
+                username: usernames.length > 1 ? usernames[1] : null,
               ),
             ),
         ],
@@ -2332,7 +2409,51 @@ class MessageListState extends State<MessageList>
     required bool isDarkMode,
     required BuildContext context,
     bool hasBorder = false,
+    String? username,
   }) {
+    if (_isPolzetAiUsername(username) ||
+        _isPolzetAiUsername(profileUrl)) {
+      return Container(
+        width: size,
+        height: size,
+        decoration: hasBorder
+            ? BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: Theme.of(context).colorScheme.background,
+                  width: 1.5,
+                ),
+              )
+            : null,
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            ClipOval(
+              child: Center(
+                child: Padding(
+                  padding: const EdgeInsets.only(
+                    top: 6,
+                    bottom: 0,
+                    left: 8,
+                    right: 7,
+                  ),
+                  child: Image.asset(
+                    Assets.images.icSplash.path,
+                    fit: BoxFit.contain,
+                  ),
+                ),
+              ),
+            ),
+            Positioned.fill(
+              child: Image.asset(
+                Assets.images.aiFrame.path,
+                fit: BoxFit.contain,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
     final ImageProvider? avatarProvider =
         (profileUrl == null || profileUrl.trim().isEmpty)
         ? AssetImage(Assets.images.icAvatar.path)

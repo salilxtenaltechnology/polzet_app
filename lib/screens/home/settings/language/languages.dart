@@ -33,7 +33,8 @@ class _LanguagesState extends State<Languages> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    currentLanguage = AppLocalizations.of(context)!.localeName;
+    final localeName = AppLocalizations.of(context)?.localeName;
+    currentLanguage = localeName != null ? localeName.split('_').first : 'en';
   }
 
   void _changeLanguage(String code) {

@@ -100,7 +100,7 @@ class _FirstStepScreenState extends State<FirstStepScreen> {
   Widget build(BuildContext context) {
     return FlowScaffold(
       currentStep: 1,
-      totalSteps: 3,
+      totalSteps: 4,
       onBack: widget.onBack,
       title: "Let's set up your profile",
       subtitle: 'Add a photo and your name so people can recognize you',

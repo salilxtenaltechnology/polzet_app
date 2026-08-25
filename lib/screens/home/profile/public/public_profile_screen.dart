@@ -34,6 +34,7 @@ import 'chase/public_chase_list.dart';
 import '../widgets/profile_image_preview.dart';
 import '../../../../widgets/image/app_cached_network_image.dart';
 import '../../../../widgets/expandable_bio.dart';
+import '../../../../widgets/expandable_description_with_hashtags.dart';
 
 import '../../../../api/api_service.dart';
 import '../../../../models/posts/user_post_model.dart';
@@ -2281,7 +2282,17 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
                         ),
                     ],
                   ),
-                  SizedBox(height: 16.h),
+                  if (post.description.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 5),
+                      child: _buildDescriptionWithHashtags(
+                        context,
+                        post.description,
+                        txt,
+                      ),
+                    ),
+                  if (poll.question.isNotEmpty || post.description.isNotEmpty)
+                    SizedBox(height: 12.h),
                   if (isImage)
                     _buildImagesStack(post)
                   else if (post.is_polled_by_current_user)
@@ -4227,53 +4238,10 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
     String description,
     AppTextColors txt,
   ) {
-    if (!description.contains('#')) {
-      return Text(
-        description,
-        style: AppTextStyles.bodyText.copyWith(
-          color: txt.body,
-          fontSize: 13.5,
-          fontWeight: FontWeight.w400,
-        ),
-      );
-    }
-
-    final RegExp exp = RegExp(r'(#[a-zA-Z0-9_]+)');
-    final List<TextSpan> spans = [];
-
-    description.splitMapJoin(
-      exp,
-      onMatch: (Match match) {
-        spans.add(
-          TextSpan(
-            text: match.group(0),
-            style: AppTextStyles.bodyText.copyWith(
-              color: Theme.of(context).colorScheme.onPrimary,
-              fontSize: 16,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        );
-        return '';
-      },
-      onNonMatch: (String text) {
-        if (text.isNotEmpty) {
-          spans.add(
-            TextSpan(
-              text: text,
-              style: AppTextStyles.bodyText.copyWith(
-                color: txt.body,
-                fontSize: 14,
-                fontWeight: FontWeight.w400,
-              ),
-            ),
-          );
-        }
-        return '';
-      },
+    return ExpandableDescriptionWithHashtags(
+      description: description,
+      txt: txt,
     );
-
-    return RichText(text: TextSpan(children: spans));
   }
 }
 

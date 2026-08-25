@@ -20,6 +20,7 @@ import '../../../home feed/rank/result/image/image_preview_screen.dart';
 import '../../../home feed/rank/result/image/image_result_screen.dart';
 import '../../../home feed/rank/submit/rank_submitted_screen.dart';
 import '../../../profile/public/public_profile_screen.dart';
+import 'package:polzet_app/gen/assets.gen.dart';
 
 class SinglePostImageRanking extends StatefulWidget {
   final SinglePostModel post;
@@ -226,39 +227,91 @@ class _SinglePostImageRankingState extends State<SinglePostImageRanking> with Ut
           // User row
           Row(
             children: [
-              GestureDetector(
-                onTap: () {
-                  navigationPush(context, PublicProfileScreen(userId: post.user.uuid, username: username));
-                },
-                child: CircleAvatar(
-                  radius: 20,
-                  backgroundColor: Theme.of(
-                    context,
-                  ).colorScheme.onPrimary.withOpacity(0.1),
-                  backgroundImage: avatarImage,
-                  child: avatarImage == null
-                      ? Text(
-                          initial,
-                          style: AppTextStyles.cardTitle.copyWith(
-                            color: Theme.of(context).colorScheme.onPrimary,
-                            fontWeight: FontWeight.w500,
-                            fontSize: 18,
+              username.trim().toLowerCase() == 'polzet_ai' ||
+                      username.trim().toLowerCase() == 'polet_ai'
+                  ? SizedBox(
+                      width: 45,
+                      height: 45,
+                      child: Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          ClipOval(
+                            child: Center(
+                              child: Padding(
+                                padding: const EdgeInsets.only(
+                                  top: 8,
+                                  bottom: 0,
+                                  left: 10,
+                                  right: 9,
+                                ),
+                                child: Image.asset(
+                                  Assets.images.icSplash.path,
+                                ),
+                              ),
+                            ),
                           ),
-                        )
-                      : null,
-                ),
-              ),
+                          Positioned.fill(
+                            child: Image.asset(
+                              Assets.images.aiFrame.path,
+                              height: 55,
+                              width: 55,
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
+                  : GestureDetector(
+                      onTap: () {
+                        navigationPush(
+                          context,
+                          PublicProfileScreen(
+                            userId: post.user.uuid,
+                            username: username,
+                          ),
+                        );
+                      },
+                      child: CircleAvatar(
+                        radius: 20,
+                        backgroundColor: Theme.of(
+                          context,
+                        ).colorScheme.onPrimary.withOpacity(0.1),
+                        backgroundImage: avatarImage,
+                        child: avatarImage == null
+                            ? Text(
+                                initial,
+                                style: AppTextStyles.cardTitle.copyWith(
+                                  color: Theme.of(context).colorScheme.onPrimary,
+                                  fontWeight: FontWeight.w500,
+                                  fontSize: 18,
+                                ),
+                              )
+                            : null,
+                      ),
+                    ),
               const SizedBox(width: 10),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      '${post.firstName} ${post.lastName}'.trim(),
-                      style: AppTextStyles.sectionHeading.copyWith(
-                        color: txt.title,
-                        fontSize: 14,
-                      ),
+                    Row(
+                      children: [
+                        Text(
+                          '${post.firstName} ${post.lastName}'.trim(),
+                          style: AppTextStyles.sectionHeading.copyWith(
+                            color: txt.title,
+                            fontSize: 14,
+                          ),
+                        ),
+                        if (username.trim().toLowerCase() == 'polzet_ai' ||
+                            username.trim().toLowerCase() == 'polet_ai') ...[
+                          const SizedBox(width: 4),
+                          Image.asset(
+                            Assets.images.icVerify.path,
+                            height: 13,
+                            width: 13,
+                          ),
+                        ],
+                      ],
                     ),
                     Row(
                       children: [

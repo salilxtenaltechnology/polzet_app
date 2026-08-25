@@ -37,6 +37,7 @@ import 'rank/image/user_image_ranking.dart';
 import 'rank/things/user_things_ranking.dart';
 import 'widgets/profile_image_preview.dart';
 import '../../../widgets/expandable_bio.dart';
+import '../../../widgets/expandable_description_with_hashtags.dart';
 
 class ProfileScreen extends StatefulWidget {
   final String handle;
@@ -1191,53 +1192,10 @@ class _ProfileScreenState extends State<ProfileScreen>
     String description,
     AppTextColors txt,
   ) {
-    if (!description.contains('#')) {
-      return Text(
-        description,
-        style: AppTextStyles.bodyText.copyWith(
-          color: txt.body,
-          fontSize: 13.5,
-          fontWeight: FontWeight.w400,
-        ),
-      );
-    }
-
-    final RegExp exp = RegExp(r'(#[a-zA-Z0-9_]+)');
-    final List<TextSpan> spans = [];
-
-    description.splitMapJoin(
-      exp,
-      onMatch: (Match match) {
-        spans.add(
-          TextSpan(
-            text: match.group(0),
-            style: AppTextStyles.bodyText.copyWith(
-              color: Theme.of(context).colorScheme.onPrimary,
-              fontSize: 16,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        );
-        return '';
-      },
-      onNonMatch: (String text) {
-        if (text.isNotEmpty) {
-          spans.add(
-            TextSpan(
-              text: text,
-              style: AppTextStyles.bodyText.copyWith(
-                color: txt.body,
-                fontSize: 14,
-                fontWeight: FontWeight.w400,
-              ),
-            ),
-          );
-        }
-        return '';
-      },
+    return ExpandableDescriptionWithHashtags(
+      description: description,
+      txt: txt,
     );
-
-    return RichText(text: TextSpan(children: spans));
   }
 
   Widget _buildSimplePostCard(
@@ -1806,7 +1764,17 @@ class _ProfileScreenState extends State<ProfileScreen>
                         ),
                       ],
                     ),
-                    SizedBox(height: 12.h),
+                    if (post.description.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 5),
+                        child: _buildDescriptionWithHashtags(
+                          context,
+                          post.description,
+                          txt,
+                        ),
+                      ),
+                    if (poll.question.isNotEmpty || post.description.isNotEmpty)
+                      SizedBox(height: 12.h),
                     if (isImage)
                       _buildImagesStack(post)
                     else
@@ -1934,7 +1902,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                           child: isSaved
                               ? AppIcons.filledSave(
                                   key: const ValueKey('saved_filled'),
-                                  color: Theme.of(context).colorScheme.primary,
+                                  color: Theme.of(context).colorScheme.onPrimary,
                                 )
                               : AppIcons.outlineSave(
                                   key: const ValueKey('saved_outline'),

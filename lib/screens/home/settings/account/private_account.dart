@@ -152,7 +152,7 @@ class _PrivateAccountState extends State<PrivateAccount> {
       ),
 
       body: isLoading
-          ? Center(child: Loader(color: Theme.of(context).colorScheme.primary))
+          ? Center(child: Loader(color: Theme.of(context).colorScheme.onPrimary))
           : Stack(
               children: [
                 Padding(
@@ -199,7 +199,7 @@ class _PrivateAccountState extends State<PrivateAccount> {
                 ),
                 if (isUpdating)
                   Center(
-                    child: Loader(color: Theme.of(context).colorScheme.primary),
+                    child: Loader(color: Theme.of(context).colorScheme.onPrimary),
                   ),
               ],
             ),

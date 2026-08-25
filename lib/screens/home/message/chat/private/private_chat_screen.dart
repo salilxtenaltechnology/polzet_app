@@ -61,6 +61,24 @@ class _PrivateChatScreenState extends State<PrivateChatScreen>
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   late Stream<List<ChatMessage>> _messagesStream;
+  bool _isPolzetAiUsername(String? username) {
+    if (username == null) return false;
+    final u = username.trim().toLowerCase();
+    return u == 'polzet_ai' || u == 'polet_ai';
+  }
+
+  bool _isPolzetAiChat() {
+    if (_isPolzetAiUsername(widget.username)) return true;
+    if (_isPolzetAiUsername(widget.memberName)) return true;
+    if (widget.chat != null) {
+      final title = widget.chat!['title']?.toString();
+      if (_isPolzetAiUsername(title)) return true;
+      final displayName = widget.chat!['display_name']?.toString();
+      if (_isPolzetAiUsername(displayName)) return true;
+    }
+    return false;
+  }
+
   late bool _isUserBlock;
 
   int _previousMessageCount = 0;
@@ -557,42 +575,90 @@ class _PrivateChatScreenState extends State<PrivateChatScreen>
                 },
                 child: Row(
                   children: [
-                    CircleAvatar(
-                      radius: 19,
-                      backgroundColor: Theme.of(
-                        context,
-                      ).colorScheme.onPrimary.withOpacity(0.1),
-                      backgroundImage: avatarUrl != null
-                          ? NetworkImage(avatarUrl)
-                          : null,
-                      child: avatarUrl == null
-                          ? Text(
-                              name.isNotEmpty
-                                  ? name[0].toUpperCase()
-                                  : (username.isNotEmpty
-                                        ? username[0].toUpperCase()
-                                        : 'P'),
-                              style: TextStyle(
-                                fontSize: 18,
-                                color: Theme.of(context).colorScheme.onPrimary,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            )
-                          : null,
-                    ),
+                    _isPolzetAiUsername(username)
+                        ? SizedBox(
+                            width: 45.w,
+                            height: 45.h,
+                            child: Stack(
+                              alignment: Alignment.center,
+                              children: [
+                                ClipOval(
+                                  child: Center(
+                                    child: Padding(
+                                      padding: const EdgeInsets.only(
+                                        top: 8,
+                                        bottom: 0,
+                                        left: 10,
+                                        right: 9,
+                                      ),
+                                      child: Image.asset(
+                                        Assets.images.icSplash.path,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                Positioned.fill(
+                                  child: Image.asset(
+                                    Assets.images.aiFrame.path,
+                                    height: 55,
+                                    width: 55,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          )
+                        : CircleAvatar(
+                            radius: 19,
+                            backgroundColor: Theme.of(
+                              context,
+                            ).colorScheme.onPrimary.withOpacity(0.1),
+                            backgroundImage: avatarUrl != null
+                                ? NetworkImage(avatarUrl)
+                                : null,
+                            child: avatarUrl == null
+                                ? Text(
+                                    name.isNotEmpty
+                                        ? name[0].toUpperCase()
+                                        : (username.isNotEmpty
+                                              ? username[0].toUpperCase()
+                                              : 'P'),
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.onPrimary,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  )
+                                : null,
+                          ),
                     SizedBox(width: 8.w),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            name.isNotEmpty ? name : username,
-                            style: AppTextStyles.sectionHeading.copyWith(
-                              color: txt.title,
-                              fontSize: 14,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
+                          Row(
+                            children: [
+                              Flexible(
+                                child: Text(
+                                  name.isNotEmpty ? name : username,
+                                  style: AppTextStyles.sectionHeading.copyWith(
+                                    color: txt.title,
+                                    fontSize: 14,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              if (_isPolzetAiUsername(username)) ...[
+                                SizedBox(width: 4.w),
+                                Image.asset(
+                                  Assets.images.icVerify.path,
+                                  height: 13,
+                                  width: 13,
+                                ),
+                              ],
+                            ],
                           ),
                           Row(
                             children: [
@@ -696,42 +762,86 @@ class _PrivateChatScreenState extends State<PrivateChatScreen>
         ),
         child: Row(
           children: [
-            CircleAvatar(
-              radius: 21,
-              backgroundColor: Theme.of(
-                context,
-              ).colorScheme.onPrimary.withOpacity(0.1),
-              backgroundImage: avatarUrl != null
-                  ? NetworkImage(avatarUrl)
-                  : null,
-              child: avatarUrl == null
-                  ? Text(
-                      displayName.isNotEmpty
-                          ? displayName[0].toUpperCase()
-                          : 'P',
-                      style: TextStyle(
-                        fontSize: 18,
-                        color: Theme.of(context).colorScheme.onPrimary,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    )
-                  : null,
-            ),
+            _isPolzetAiUsername(username)
+                ? SizedBox(
+                    width: 45.w,
+                    height: 45.h,
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        ClipOval(
+                          child: Center(
+                            child: Padding(
+                              padding: const EdgeInsets.only(
+                                top: 8,
+                                bottom: 0,
+                                left: 10,
+                                right: 9,
+                              ),
+                              child: Image.asset(Assets.images.icSplash.path),
+                            ),
+                          ),
+                        ),
+                        Positioned.fill(
+                          child: Image.asset(
+                            Assets.images.aiFrame.path,
+                            height: 55,
+                            width: 55,
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
+                : CircleAvatar(
+                    radius: 21,
+                    backgroundColor: Theme.of(
+                      context,
+                    ).colorScheme.onPrimary.withOpacity(0.1),
+                    backgroundImage: avatarUrl != null
+                        ? NetworkImage(avatarUrl)
+                        : null,
+                    child: avatarUrl == null
+                        ? Text(
+                            displayName.isNotEmpty
+                                ? displayName[0].toUpperCase()
+                                : 'P',
+                            style: TextStyle(
+                              fontSize: 18,
+                              color: Theme.of(context).colorScheme.onPrimary,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          )
+                        : null,
+                  ),
             SizedBox(width: 10.w),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(
-                    displayName,
-                    style: AppTextStyles.sectionHeading.copyWith(
-                      color: Theme.of(context).colorScheme.onBackground,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+                  Row(
+                    children: [
+                      Flexible(
+                        child: Text(
+                          displayName,
+                          style: AppTextStyles.sectionHeading.copyWith(
+                            color: Theme.of(context).colorScheme.onBackground,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      if (_isPolzetAiUsername(username)) ...[
+                        SizedBox(width: 4.w),
+                        Image.asset(
+                          Assets.images.icVerify.path,
+                          height: 13,
+                          width: 13,
+                        ),
+                      ],
+                    ],
                   ),
                   SizedBox(height: 2.h),
                   Text(
@@ -752,8 +862,6 @@ class _PrivateChatScreenState extends State<PrivateChatScreen>
       ),
     );
   }
-
-
 
   Widget _buildSharedGroupCard(BuildContext context, ChatMessage message) {
     return SharedGroupCard(
@@ -1187,51 +1295,85 @@ class _PrivateChatScreenState extends State<PrivateChatScreen>
             children: [
               SizedBox(width: 12.w),
               const PrimaryBackButton(),
-              Stack(
-                children: [
-                  CircleAvatar(
-                    radius: 19,
-                    backgroundColor: Theme.of(
-                      context,
-                    ).colorScheme.onPrimary.withOpacity(0.1),
-                    backgroundImage: avatarProvider,
-                    child: avatarProvider == null
-                        ? Text(
-                            initial,
-                            style: AppTextStyles.cardTitle.copyWith(
-                              fontSize: 17,
-                              fontWeight: FontWeight.w600,
-                              color: Theme.of(
-                                context,
-                              ).colorScheme.onPrimary.withOpacity(0.8),
-                            ),
-                          )
-                        : null,
-                  ),
-                  // Green dot when member is online
-                  Consumer<PrivateChatProvider>(
-                    builder: (_, p, __) {
-                      if (!p.isMemberOnline) return const SizedBox.shrink();
-                      return Positioned(
-                        bottom: 0,
-                        right: 0,
-                        child: Container(
-                          width: 9.w,
-                          height: 9.w,
-                          decoration: BoxDecoration(
-                            color: Colors.green,
-                            shape: BoxShape.circle,
-                            border: Border.all(
-                              color: Theme.of(context).colorScheme.background,
-                              width: 1.5,
+              _isPolzetAiChat()
+                  ? SizedBox(
+                      width: 45.w,
+                      height: 45.h,
+                      child: Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          ClipOval(
+                            child: Center(
+                              child: Padding(
+                                padding: const EdgeInsets.only(
+                                  top: 11,
+                                  bottom: 6,
+                                  left: 10,
+                                  right: 9,
+                                ),
+                                child: Image.asset(Assets.images.icSplash.path),
+                              ),
                             ),
                           ),
+                          Positioned.fill(
+                            child: Image.asset(
+                              Assets.images.aiFrame.path,
+                              height: 55,
+                              width: 55,
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
+                  : Stack(
+                      children: [
+                        CircleAvatar(
+                          radius: 19,
+                          backgroundColor: Theme.of(
+                            context,
+                          ).colorScheme.onPrimary.withOpacity(0.1),
+                          backgroundImage: avatarProvider,
+                          child: avatarProvider == null
+                              ? Text(
+                                  initial,
+                                  style: AppTextStyles.cardTitle.copyWith(
+                                    fontSize: 17,
+                                    fontWeight: FontWeight.w600,
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onPrimary.withOpacity(0.8),
+                                  ),
+                                )
+                              : null,
                         ),
-                      );
-                    },
-                  ),
-                ],
-              ),
+                        // Green dot when member is online
+                        Consumer<PrivateChatProvider>(
+                          builder: (_, p, __) {
+                            if (!p.isMemberOnline) {
+                              return const SizedBox.shrink();
+                            }
+                            return Positioned(
+                              bottom: 0,
+                              right: 0,
+                              child: Container(
+                                width: 9.w,
+                                height: 9.w,
+                                decoration: BoxDecoration(
+                                  color: Colors.green,
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.background,
+                                    width: 1.5,
+                                  ),
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      ],
+                    ),
               SizedBox(width: 7.w),
               // ── Name + typing / online status ──────────────────────────────
               GestureDetector(
@@ -1261,13 +1403,25 @@ class _PrivateChatScreenState extends State<PrivateChatScreen>
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Text(
-                      widget.memberName ?? 'Polzet User',
-                      style: AppTextStyles.bodyText.copyWith(
-                        color: txt.title,
-                        fontSize: 14.5,
-                        fontWeight: FontWeight.w500,
-                      ),
+                    Row(
+                      children: [
+                        Text(
+                          widget.memberName ?? 'Polzet User',
+                          style: AppTextStyles.bodyText.copyWith(
+                            color: txt.title,
+                            fontSize: 14.5,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        if (_isPolzetAiChat()) ...[
+                          SizedBox(width: 4.w),
+                          Image.asset(
+                            Assets.images.icVerify.path,
+                            height: 13,
+                            width: 13,
+                          ),
+                        ],
+                      ],
                     ),
                     Consumer<PrivateChatProvider>(
                       builder: (_, p, __) {

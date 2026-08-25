@@ -106,12 +106,25 @@ class _EmailLoginScreenState extends State<EmailLoginScreen> with UtilityMixin {
 
   /* ─── Google Auth  ───── */
   Future<void> _handleGoogleSignIn() async {
-    setState(() => _isGoogleLoading = true);
+    setState(() {
+      _isGoogleLoading = true;
+      _errorMessage = '';
+    });
     try {
       await GoogleAuthService.authenticate();
     } catch (e) {
       if (kDebugMode) print('Google sign in error: $e');
-      if (mounted) setState(() => _isGoogleLoading = false);
+      if (mounted) {
+        setState(() {
+          _isGoogleLoading = false;
+          final errStr = e.toString();
+          if (errStr.contains('canceled') || errStr.contains('Canceled')) {
+            _errorMessage = 'Sign in was canceled.';
+          } else {
+            _errorMessage = 'Google sign in error. Please check account & network.';
+          }
+        });
+      }
     }
   }
 

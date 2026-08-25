@@ -7,7 +7,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>Polzet App</string>
+	<string>Polzet</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -29,7 +29,38 @@
 		<string>instagram</string>
 		<string>whatsapp</string>
 		<string>mailto</string>
+		<string>https</string>
+		<string>http</string>
 	</array>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLName</key>
+			<string>com.polzet.com</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>polzet</string>
+				<string>com.googleusercontent.apps.470797111076-oq07ifq4rpgben72r6ikg0b7faorf06k</string>
+				<string>com.googleusercontent.apps.470797111076-58rdcmqclbkkhu2jhg8up2tq751v8jia</string>
+			</array>
+		</dict>
+	</array>
+	<key>GIDClientID</key>
+	<string>470797111076-58rdcmqclbkkhu2jhg8up2tq751v8jia.apps.googleusercontent.com</string>
+	<key>FlutterDeepLinkingEnabled</key>
+	<true/>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>fetch</string>
+		<string>remote-notification</string>
+	</array>
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsArbitraryLoads</key>
+		<true/>
+	</dict>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>UIApplicationSceneManifest</key>
@@ -62,18 +93,16 @@
 	<key>UISupportedInterfaceOrientations</key>
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>
-		<string>UIInterfaceOrientationLandscapeLeft</string>
-		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
 	<key>UISupportedInterfaceOrientations~ipad</key>
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>
 		<string>UIInterfaceOrientationPortraitUpsideDown</string>
-		<string>UIInterfaceOrientationLandscapeLeft</string>
-		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>This app requires access to your photo library to select photos for polls and profile pictures.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>This app requires access to save photos to your photo library.</string>
 	<key>NSCameraUsageDescription</key>
 	<string>This app requires access to your camera to take photos for polls and profile pictures.</string>
 	<key>NSMicrophoneUsageDescription</key>

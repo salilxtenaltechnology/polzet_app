@@ -15,6 +15,7 @@ class SinglePostModel {
   final List<SinglePostLike> viewLikes;
   final bool isLiked;
   final bool isPolledByCurrentUser;
+  final bool isSaved;
   final String? locationName;
   final int commentsCount;
   final int likesCount;
@@ -34,6 +35,7 @@ class SinglePostModel {
     required this.viewLikes,
     required this.isLiked,
     required this.isPolledByCurrentUser,
+    required this.isSaved,
     this.locationName,
     required this.commentsCount,
     required this.likesCount,
@@ -73,6 +75,7 @@ class SinglePostModel {
           [],
       isLiked: json['is_liked'] as bool? ?? false,
       isPolledByCurrentUser: json['is_polled_by_current_user'] as bool? ?? false,
+      isSaved: json['is_saved'] as bool? ?? false,
       locationName: json['location_name'] as String?,
       commentsCount: json['comments_count'] as int? ?? 0,
       likesCount: json['likes_count'] as int? ?? 0,
@@ -94,6 +97,7 @@ class SinglePostModel {
     'view_likes': viewLikes.map((e) => e.toJson()).toList(),
     'is_liked': isLiked,
     'is_polled_by_current_user': isPolledByCurrentUser,
+    'is_saved': isSaved,
     'location_name': locationName,
     'comments_count': commentsCount,
     'likes_count': likesCount,

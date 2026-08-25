@@ -10,6 +10,7 @@ import '../../../../../api/api_service.dart';
 import '../../../../../core/constants/app_radius.dart';
 import '../../../../../core/themes/app_text_colors.dart';
 import '../../../../../core/themes/app_text_styles.dart';
+import '../../../../../gen/assets.gen.dart';
 import '../../../../../languages/l10n/generated/app_localizations.dart';
 import '../../../../../mixin/utility_mixins.dart';
 import '../../../../../provider/user_provider.dart';
@@ -436,7 +437,10 @@ class _PublicChaseListState extends State<PublicChaseList>
     final isOnline = user['is_online'] as bool? ?? false;
     final followStatus = user['follow_status'] ?? 'none';
     final isPrivate = user['is_private'] == true;
- 
+    final cleanUsername = (userName as String).trim().toLowerCase();
+    final bool isPolzetAi = cleanUsername == 'polzet_ai';
+    final bool isVerified = isPolzetAi || cleanUsername == 'polzet';
+
     return GestureDetector(
       onTap: () {
         navigationPush(
@@ -459,15 +463,30 @@ class _PublicChaseListState extends State<PublicChaseList>
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   if ('$firstName $lastName'.trim().isNotEmpty) ...[
-                    Text(
-                      '$userName',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: AppTextStyles.bodyText.copyWith(
-                        color: txt.body,
-                        fontSize: 14.5,
-                        fontWeight: FontWeight.w500,
-                      ),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Flexible(
+                          child: Text(
+                            userName,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: AppTextStyles.bodyText.copyWith(
+                              color: txt.body,
+                              fontSize: 14.5,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                        if (isVerified) ...[
+                          SizedBox(width: 4.w),
+                          Image.asset(
+                            Assets.images.icVerify.path,
+                            height: 13,
+                            width: 13,
+                          ),
+                        ],
+                      ],
                     ),
                     Text(
                       '$firstName $lastName'.trim(),
@@ -480,18 +499,33 @@ class _PublicChaseListState extends State<PublicChaseList>
                       overflow: TextOverflow.ellipsis,
                     ),
                   ] else ...[
-                    Text(
-                      '$userName',
-                      style: AppTextStyles.bodyText.copyWith(
-                        color: txt.body,
-                        fontSize: 14.5,
-                        fontWeight: FontWeight.w500,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Flexible(
+                          child: Text(
+                            userName,
+                            style: AppTextStyles.bodyText.copyWith(
+                              color: txt.body,
+                              fontSize: 14.5,
+                              fontWeight: FontWeight.w500,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        if (isVerified) ...[
+                          SizedBox(width: 4.w),
+                          Image.asset(
+                            Assets.images.icVerify.path,
+                            height: 13,
+                            width: 13,
+                          ),
+                        ],
+                      ],
                     ),
                     Text(
-                      '$userName',
+                      userName,
                       style: AppTextStyles.bodyText.copyWith(
                         fontSize: 12.5,
                         color: txt.muted,
@@ -524,6 +558,42 @@ class _PublicChaseListState extends State<PublicChaseList>
   }
  
   Widget _buildAvatar(String userName, String? avatarUrl, bool isOnline) {
+    final cleanUsername = userName.trim().toLowerCase();
+    if (cleanUsername == 'polzet_ai') {
+      return Container(
+        height: 35.h,
+        width: 35.w,
+        margin: EdgeInsets.only(right: 5.w),
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            ClipOval(
+              child: Center(
+                child: Padding(
+                  padding: const EdgeInsets.only(
+                    top: 6,
+                    bottom: 0,
+                    left: 7,
+                    right: 7,
+                  ),
+                  child: Image.asset(
+                    Assets.images.icSplash.path,
+                  ),
+                ),
+              ),
+            ),
+            Positioned.fill(
+              child: Image.asset(
+                Assets.images.aiFrame.path,
+                height: 42.h,
+                width: 42.w,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
     final imageBytes = getConvertImage(avatarUrl);
     final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
     return Stack(

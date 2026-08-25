@@ -369,6 +369,9 @@ class _UserChaseState extends State<UserChase>
     final userId = user['user_id']?.toString() ?? '';
     final followStatus = user['follow_status'] as String? ?? '';
     final isPrivate = user['is_private'] == true;
+    final cleanUsername = username.trim().toLowerCase();
+    final bool isPolzetAi = cleanUsername == 'polzet_ai';
+    final bool isVerified = isPolzetAi || cleanUsername == 'polzet';
 
     return GestureDetector(
       onTap: () => navigationPush(
@@ -381,29 +384,85 @@ class _UserChaseState extends State<UserChase>
           mainAxisAlignment: MainAxisAlignment.start,
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Container(
-              height: 35.h,
-              width: 35.w,
-              margin: EdgeInsets.only(right: 5.w),
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: Theme.of(context).colorScheme.outline,
-                  width: 0.7,
+            if (isPolzetAi)
+              Container(
+                height: 38.h,
+                width: 38.w,
+                margin: EdgeInsets.only(right: 5.w),
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    ClipOval(
+                      child: Center(
+                        child: Padding(
+                          padding: const EdgeInsets.only(
+                            top: 6,
+                            bottom: 0,
+                            left: 9,
+                            right: 7,
+                          ),
+                          child: Image.asset(
+                            Assets.images.icSplash.path,
+                          ),
+                        ),
+                      ),
+                    ),
+                    Positioned.fill(
+                      child: Image.asset(
+                        Assets.images.aiFrame.path,
+                        height: 44.h,
+                        width: 44.w,
+                      ),
+                    ),
+                  ],
                 ),
-                color: isDarkMode
-                    ? const Color(0xFF252525)
-                    : Theme.of(context).primaryColor.withOpacity(0.08),
-              ),
-              child: ClipOval(
-                child: (() {
-                  if (profilePic != null && profilePic.isNotEmpty) {
-                    final bytes = getProfileImage(profilePic);
-                    if (bytes != null) {
-                      return Image.memory(
-                        bytes,
+              )
+            else
+              Container(
+                height: 35.h,
+                width: 35.w,
+                margin: EdgeInsets.only(right: 5.w),
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: Theme.of(context).colorScheme.outline,
+                    width: 0.7,
+                  ),
+                  color: isDarkMode
+                      ? const Color(0xFF252525)
+                      : Theme.of(context).primaryColor.withOpacity(0.08),
+                ),
+                child: ClipOval(
+                  child: (() {
+                    if (profilePic != null && profilePic.isNotEmpty) {
+                      final bytes = getProfileImage(profilePic);
+                      if (bytes != null) {
+                        return Image.memory(
+                          bytes,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => Center(
+                            child: Text(
+                              firstLetter,
+                              style: TextStyle(
+                                fontSize: 17,
+                                fontWeight: FontWeight.w500,
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onPrimary.withOpacity(0.8),
+                              ),
+                            ),
+                          ),
+                        );
+                      }
+                      final imageUrl = profilePic.startsWith('http')
+                          ? profilePic
+                          : (profilePic.startsWith('/')
+                                ? '${ApiConfig.baseUrlImage}$profilePic'
+                                : '${ApiConfig.baseUrlImage}/$profilePic');
+                      return CachedNetworkImage(
+                        imageUrl: imageUrl,
                         fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => Center(
+                        errorWidget: (_, __, ___) => Center(
                           child: Text(
                             firstLetter,
                             style: TextStyle(
@@ -417,43 +476,21 @@ class _UserChaseState extends State<UserChase>
                         ),
                       );
                     }
-                    final imageUrl = profilePic.startsWith('http')
-                        ? profilePic
-                        : (profilePic.startsWith('/')
-                              ? '${ApiConfig.baseUrlImage}$profilePic'
-                              : '${ApiConfig.baseUrlImage}/$profilePic');
-                    return CachedNetworkImage(
-                      imageUrl: imageUrl,
-                      fit: BoxFit.cover,
-                      errorWidget: (_, __, ___) => Center(
-                        child: Text(
-                          firstLetter,
-                          style: TextStyle(
-                            fontSize: 17,
-                            fontWeight: FontWeight.w500,
-                            color: Theme.of(
-                              context,
-                            ).colorScheme.onPrimary.withOpacity(0.8),
-                          ),
+                    return Center(
+                      child: Text(
+                        firstLetter,
+                        style: TextStyle(
+                          fontSize: 17,
+                          fontWeight: FontWeight.w500,
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onPrimary.withOpacity(0.8),
                         ),
                       ),
                     );
-                  }
-                  return Center(
-                    child: Text(
-                      firstLetter,
-                      style: TextStyle(
-                        fontSize: 17,
-                        fontWeight: FontWeight.w500,
-                        color: Theme.of(
-                          context,
-                        ).colorScheme.onPrimary.withOpacity(0.8),
-                      ),
-                    ),
-                  );
-                })(),
+                  })(),
+                ),
               ),
-            ),
             const SizedBox(width: 5),
             // Username
             Expanded(
@@ -462,15 +499,30 @@ class _UserChaseState extends State<UserChase>
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   if ('$firstName $lastName'.trim().isNotEmpty) ...[
-                    Text(
-                      username,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: AppTextStyles.bodyText.copyWith(
-                        color: txt.body,
-                        fontSize: 14.5,
-                        fontWeight: FontWeight.w500,
-                      ),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Flexible(
+                          child: Text(
+                            username,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: AppTextStyles.bodyText.copyWith(
+                              color: txt.body,
+                              fontSize: 14.5,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                        if (isVerified) ...[
+                          SizedBox(width: 4.w),
+                          Image.asset(
+                            Assets.images.icVerify.path,
+                            height: 13,
+                            width: 13,
+                          ),
+                        ],
+                      ],
                     ),
                     Text(
                       '$firstName $lastName'.trim(),
@@ -483,15 +535,30 @@ class _UserChaseState extends State<UserChase>
                       overflow: TextOverflow.ellipsis,
                     ),
                   ] else ...[
-                    Text(
-                      username,
-                      style: AppTextStyles.bodyText.copyWith(
-                        color: txt.body,
-                        fontSize: 14.5,
-                        fontWeight: FontWeight.w500,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Flexible(
+                          child: Text(
+                            username,
+                            style: AppTextStyles.bodyText.copyWith(
+                              color: txt.body,
+                              fontSize: 14.5,
+                              fontWeight: FontWeight.w500,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        if (isVerified) ...[
+                          SizedBox(width: 4.w),
+                          Image.asset(
+                            Assets.images.icVerify.path,
+                            height: 13,
+                            width: 13,
+                          ),
+                        ],
+                      ],
                     ),
                     Text(
                       username,

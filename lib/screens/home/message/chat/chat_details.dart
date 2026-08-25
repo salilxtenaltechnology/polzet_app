@@ -62,6 +62,24 @@ class _ChatDetailsState extends State<ChatDetails> with UtilityMixin {
   bool _isEditingName = false;
   bool _isUploadingImage = false;
   late TextEditingController _nameController;
+  bool _isPolzetAiUsername(String? username) {
+    if (username == null) return false;
+    final u = username.trim().toLowerCase();
+    return u == 'polzet_ai' || u == 'polet_ai';
+  }
+
+  bool _isPolzetAiChat() {
+    if (_isPolzetAiUsername(widget.username)) return true;
+    if (_isPolzetAiUsername(widget.chatName)) return true;
+    if (widget.chat != null) {
+      final title = widget.chat!['title']?.toString();
+      if (_isPolzetAiUsername(title)) return true;
+      final displayName = widget.chat!['display_name']?.toString();
+      if (_isPolzetAiUsername(displayName)) return true;
+    }
+    return false;
+  }
+
   late bool _isUserBlock;
 
   @override
@@ -226,6 +244,7 @@ class _ChatDetailsState extends State<ChatDetails> with UtilityMixin {
   }) {
     final List<String?> profileUrls = [];
     final List<String> initials = [];
+    final List<String?> usernames = [];
 
     if (members != null) {
       for (final member in members) {
@@ -238,6 +257,7 @@ class _ChatDetailsState extends State<ChatDetails> with UtilityMixin {
                       user['profile_picture_url'] ??
                       user['avatar'])
                   ?.toString();
+          final username = user['username']?.toString();
           if (profileUrl != null &&
               profileUrl.trim().isNotEmpty &&
               profileUrl != 'null') {
@@ -249,10 +269,11 @@ class _ChatDetailsState extends State<ChatDetails> with UtilityMixin {
           } else {
             profileUrl = Assets.images.icAvatar.path;
           }
-          final name = (user['name'] ?? user['username'] ?? 'Unknown')
+          final name = (user['name'] ?? username ?? 'Unknown')
               .toString();
           profileUrls.add(profileUrl);
           initials.add(name.isNotEmpty ? name[0].toUpperCase() : '?');
+          usernames.add(username);
         }
       }
     }
@@ -279,6 +300,7 @@ class _ChatDetailsState extends State<ChatDetails> with UtilityMixin {
               size: circleSize,
               isDarkMode: isDarkMode,
               context: context,
+              username: usernames.isNotEmpty ? usernames[0] : null,
             ),
           ),
           Positioned(
@@ -291,6 +313,7 @@ class _ChatDetailsState extends State<ChatDetails> with UtilityMixin {
               isDarkMode: isDarkMode,
               context: context,
               hasBorder: true,
+              username: usernames.length > 1 ? usernames[1] : null,
             ),
           ),
         ],
@@ -305,7 +328,51 @@ class _ChatDetailsState extends State<ChatDetails> with UtilityMixin {
     required bool isDarkMode,
     required BuildContext context,
     bool hasBorder = false,
+    String? username,
   }) {
+    if (_isPolzetAiUsername(username) ||
+        _isPolzetAiUsername(profileUrl)) {
+      return Container(
+        width: size,
+        height: size,
+        decoration: hasBorder
+            ? BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: Theme.of(context).colorScheme.background,
+                  width: 1.5,
+                ),
+              )
+            : null,
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            ClipOval(
+              child: Center(
+                child: Padding(
+                  padding: const EdgeInsets.only(
+                    top: 6,
+                    bottom: 0,
+                    left: 8,
+                    right: 7,
+                  ),
+                  child: Image.asset(
+                    Assets.images.icSplash.path,
+                    fit: BoxFit.contain,
+                  ),
+                ),
+              ),
+            ),
+            Positioned.fill(
+              child: Image.asset(
+                Assets.images.aiFrame.path,
+                fit: BoxFit.contain,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
     final ImageProvider? avatarProvider =
         (profileUrl == null ||
             profileUrl.trim().isEmpty ||
@@ -559,56 +626,87 @@ class _ChatDetailsState extends State<ChatDetails> with UtilityMixin {
                     child: SizedBox(
                       height: 90.h,
                       width: 90.w,
-                      child:
-                          widget.isGroupChat &&
-                              (profileUrl == null ||
-                                  profileUrl.trim().isEmpty ||
-                                  profileUrl == 'null')
-                          ? _buildGroupAvatarStack(
-                              members: members,
-                              size: 90.w,
-                              isDarkMode:
-                                  Theme.of(context).brightness ==
-                                  Brightness.dark,
-                              context: context,
-                            )
-                          : Container(
-                              margin: EdgeInsets.only(bottom: 10.h),
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: provider == null
-                                    ? Theme.of(
-                                        context,
-                                      ).colorScheme.onPrimary.withOpacity(0.1)
-                                    : null,
-                                border: Border.all(
-                                  color: Theme.of(
-                                    context,
-                                  ).colorScheme.onBackground.withOpacity(0.1),
-                                  width: 1.w,
-                                ),
-                                image: provider != null
-                                    ? DecorationImage(
-                                        image: provider,
-                                        fit: BoxFit.cover,
-                                      )
-                                    : null,
-                              ),
-                              child: provider == null
-                                  ? Center(
-                                      child: Text(
-                                        initial,
-                                        style: AppTextStyles.cardTitle.copyWith(
-                                          fontSize: 30,
-                                          fontWeight: FontWeight.w600,
-                                          color: Theme.of(
-                                            context,
-                                          ).colorScheme.onPrimary,
+                      child: _isPolzetAiChat()
+                          ? SizedBox(
+                              height: 90.h,
+                              width: 90.w,
+                              child: Stack(
+                                alignment: Alignment.center,
+                                children: [
+                                  ClipOval(
+                                    child: Center(
+                                      child: Padding(
+                                        padding: const EdgeInsets.only(
+                                          top: 16,
+                                          bottom: 0,
+                                          left: 20,
+                                          right: 18,
+                                        ),
+                                        child: Image.asset(
+                                          Assets.images.icSplash.path,
                                         ),
                                       ),
-                                    )
-                                  : null,
-                            ),
+                                    ),
+                                  ),
+                                  Positioned.fill(
+                                    child: Image.asset(
+                                      Assets.images.aiFrame.path,
+                                      height: 110,
+                                      width: 110,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            )
+                          : (widget.isGroupChat &&
+                                  (profileUrl == null ||
+                                      profileUrl.trim().isEmpty ||
+                                      profileUrl == 'null')
+                              ? _buildGroupAvatarStack(
+                                  members: members,
+                                  size: 90.w,
+                                  isDarkMode:
+                                      Theme.of(context).brightness ==
+                                      Brightness.dark,
+                                  context: context,
+                                )
+                              : Container(
+                                  margin: EdgeInsets.only(bottom: 10.h),
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: provider == null
+                                        ? Theme.of(
+                                            context,
+                                          ).colorScheme.onPrimary.withOpacity(0.1)
+                                        : null,
+                                    border: Border.all(
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.onBackground.withOpacity(0.1),
+                                      width: 1.w,
+                                    ),
+                                    image: provider != null
+                                        ? DecorationImage(
+                                            image: provider,
+                                            fit: BoxFit.cover,
+                                          )
+                                        : null,
+                                  ),
+                                  child: provider == null
+                                      ? Center(
+                                          child: Text(
+                                            initial,
+                                            style: AppTextStyles.cardTitle.copyWith(
+                                              fontSize: 30,
+                                              fontWeight: FontWeight.w600,
+                                              color: Theme.of(
+                                                context,
+                                              ).colorScheme.onPrimary,
+                                            ),
+                                          ),
+                                        )
+                                      : null,
+                                )),
                     ),
                   ),
 
@@ -727,6 +825,14 @@ class _ChatDetailsState extends State<ChatDetails> with UtilityMixin {
                         fontWeight: FontWeight.w600,
                       ),
                     ),
+                    if (_isPolzetAiChat()) ...[
+                      SizedBox(width: 4.w),
+                      Image.asset(
+                        Assets.images.icVerify.path,
+                        height: 13,
+                        width: 13,
+                      ),
+                    ],
                     if (widget.isGroupChat && isAdmin) ...[
                       SizedBox(width: 6.w),
                       GestureDetector(

@@ -180,17 +180,17 @@ class _AddMemberBottomSheetState extends State<AddMemberBottomSheet>
   Widget build(BuildContext context) {
     final txt = AppTextColors.of(context);
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    return SafeArea(
-       top: false,
-      child: Container(
-        height: MediaQuery.of(context).size.height * 0.85,
-        decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.tertiaryContainer,
-          borderRadius: const BorderRadius.only(
-            topLeft: Radius.circular(AppRadius.modal),
-            topRight: Radius.circular(AppRadius.modal),
-          ),
+    return Container(
+      height: MediaQuery.of(context).size.height * 0.85,
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.tertiaryContainer,
+        borderRadius: const BorderRadius.only(
+          topLeft: Radius.circular(AppRadius.modal),
+          topRight: Radius.circular(AppRadius.modal),
         ),
+      ),
+      child: SafeArea(
+        top: false,
         child: Column(
           children: [
             Container(

@@ -1,4 +1,4 @@
-// ignore_for_file: unused_element, deprecated_member_use
+// ignore_for_file: unused_element, deprecated_member_use, unused_field
 
 import 'dart:io';
 
@@ -21,8 +21,10 @@ import '../../../../widgets/country_code/code_bottomsheet.dart';
 import '../../../../widgets/dialog/custom_diolog.dart';
 import '../../../../core/themes/app_text_styles.dart';
 import '../../../../widgets/base64/image_convert.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../../../../api/api_config.dart';
 import '../../../../widgets/bottomsheets/verify/profile_email_verify_bottom_sheet.dart';
+import '../../../../widgets/bottomsheets/verify/profile_phone_verify_bottom_sheet.dart';
 import '../../../../widgets/show_toast.dart';
 
 class EditProfile extends StatefulWidget {
@@ -51,6 +53,9 @@ class _EditProfileState extends State<EditProfile> {
   String _originalEmail = '';
   bool _isVerifyingEmail = false;
 
+  String _originalPhone = '';
+  bool _isVerifyingPhone = false;
+
   String _selectedGender = 'Prefer not to say';
   String _originalFirstName = '';
   String _originalLastName = '';
@@ -71,6 +76,7 @@ class _EditProfileState extends State<EditProfile> {
     dialCode: '+91',
     flag: '🇮🇳',
   );
+
   @override
   void initState() {
     super.initState();
@@ -84,6 +90,7 @@ class _EditProfileState extends State<EditProfile> {
     _usernameController.addListener(_onFieldChanged);
     _bioController.addListener(_onFieldChanged);
     _emailController.addListener(_onFieldChanged);
+    _phoneController.addListener(_onFieldChanged);
   }
 
   void _onFieldChanged() {
@@ -128,6 +135,16 @@ class _EditProfileState extends State<EditProfile> {
     _bioController.text = userProvider.bio ?? '';
     _emailController.text = userProvider.email ?? '';
     _phoneController.text = userProvider.mobile_number ?? '';
+    _originalPhone = _phoneController.text.trim();
+
+    if (userProvider.country_code != null && userProvider.country_code!.isNotEmpty) {
+      final code = userProvider.country_code!.replaceAll('+', '');
+      final country = getCountryByDialCode(code);
+      if (country != null) {
+        _selectedCountry = country;
+      }
+    }
+
     _dob = userProvider.dob != null ? DateTime.parse(userProvider.dob!) : null;
     final rawGender = (userProvider.gender ?? 'Prefer not to say').replaceAll(
       '_',
@@ -349,6 +366,112 @@ class _EditProfileState extends State<EditProfile> {
     }
   }
 
+  Future<void> _verifyPhone() async {
+    final cleanPhone = _phoneController.text
+        .trim()
+        .replaceAll(RegExp(r'[\s\-().+]'), '');
+
+    if (cleanPhone.isEmpty) {
+      showToast(message: 'Please enter mobile number');
+      return;
+    }
+
+    if (cleanPhone.length < 7 || cleanPhone.length > 15) {
+      showToast(message: 'Please enter a valid mobile number');
+      return;
+    }
+
+    setState(() => _isVerifyingPhone = true);
+
+    try {
+      final countryCode = _selectedCountry.dialCode;
+
+      // 1. Call ApiService numberVerifyRequest
+      final result = await ApiService().numberVerifyRequest(
+        countryCode: countryCode,
+        mobileNumber: cleanPhone,
+      );
+
+      if (!mounted) return;
+
+      final bool isSuccess = result['status'] == 'success' ||
+          result['success'] == true ||
+          result['data'] != null;
+
+      if (!isSuccess) {
+        final errorMsg = result['message']?.toString() ??
+            result['data']?['message']?.toString() ??
+            'Failed to send OTP';
+        showToast(message: errorMsg);
+        setState(() => _isVerifyingPhone = false);
+        return;
+      }
+
+      // 2. Trigger Firebase Auth SMS OTP request
+      final fullPhoneNumber = '$countryCode$cleanPhone';
+      await FirebaseAuth.instance.verifyPhoneNumber(
+        phoneNumber: fullPhoneNumber,
+        timeout: const Duration(seconds: 60),
+        codeSent: (String verificationId, int? resendToken) async {
+          if (!mounted) return;
+          setState(() => _isVerifyingPhone = false);
+
+          // 3. Open bottom sheet to enter OTP
+          final verified = await showModalBottomSheet<bool>(
+            context: context,
+            isScrollControlled: true,
+            backgroundColor: Colors.transparent,
+            builder: (context) => ProfilePhoneVerifyBottomSheet(
+              countryCode: countryCode,
+              mobileNumber: cleanPhone,
+              verificationId: verificationId,
+              resendToken: resendToken,
+            ),
+          );
+
+          if (verified == true && mounted) {
+            setState(() {
+              _originalPhone = cleanPhone;
+            });
+            final userProvider =
+                Provider.of<UserProvider>(context, listen: false);
+            await userProvider.loadUserData();
+            showToast(message: 'Mobile number verified successfully');
+          }
+        },
+        verificationFailed: (FirebaseAuthException e) {
+          if (!mounted) return;
+          setState(() => _isVerifyingPhone = false);
+          String errorMessage;
+          switch (e.code) {
+            case 'invalid-phone-number':
+              errorMessage = 'Invalid phone number format.';
+              break;
+            case 'too-many-requests':
+              errorMessage = 'Too many attempts. Please try again later.';
+              break;
+            case 'network-request-failed':
+              errorMessage = 'Network error. Please check your connection.';
+              break;
+            default:
+              errorMessage = e.message ?? 'Failed to send OTP. Try again.';
+          }
+          showToast(message: errorMessage);
+        },
+        codeAutoRetrievalTimeout: (String verificationId) {},
+        verificationCompleted: (PhoneAuthCredential credential) {},
+      );
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isVerifyingPhone = false);
+        final errorMsg = e.toString().contains('Exception:')
+            ? e.toString().replaceAll('Exception:', '').trim()
+            : e.toString();
+        showToast(message: errorMsg);
+      }
+    }
+  }
+
   // ── Country picker ─────────────────────────────────────────────────────────
   void _showCountryPicker() {
     showModalBottomSheet(
@@ -376,6 +499,7 @@ class _EditProfileState extends State<EditProfile> {
         data: Theme.of(context).copyWith(
           colorScheme: Theme.of(context).colorScheme.copyWith(
             primary: Theme.of(context).colorScheme.primary,
+            onPrimary: Colors.white,
           ),
         ),
         child: child!,
@@ -856,9 +980,44 @@ class _EditProfileState extends State<EditProfile> {
                   controller: _phoneController,
                   hint: AppLocalizations.of(context)!.enteryourphonenumber,
                   keyboardType: TextInputType.phone,
-                  isReadOnly: true,
+                  isReadOnly: _originalPhone.isNotEmpty,
+                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                 ),
               ),
+            ],
+          ),
+          const SizedBox(height: 5),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              _isVerifyingPhone
+                  ? const Padding(
+                      padding: EdgeInsets.only(right: 8),
+                      child: SizedBox(
+                        width: 14,
+                        height: 14,
+                        child: CircularProgressIndicator(strokeWidth: 1.5),
+                      ),
+                    )
+                  : GestureDetector(
+                      onTap:
+                          (_phoneController.text.trim() != _originalPhone &&
+                              _phoneController.text.trim().isNotEmpty)
+                          ? _verifyPhone
+                          : null,
+                      child: Text(
+                        'Verify',
+                        style: AppTextStyles.subText.copyWith(
+                          fontSize: 14,
+                          color:
+                              (_phoneController.text.trim() != _originalPhone &&
+                                  _phoneController.text.trim().isNotEmpty)
+                              ? Theme.of(context).colorScheme.primary
+                              : Colors.transparent,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
             ],
           ),
           const SizedBox(height: 16),

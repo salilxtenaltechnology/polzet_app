@@ -34,6 +34,7 @@ class HashtagPostModel {
   final List<HashtagLikeUser> viewLikes;
   final bool isLikedByCurrentUser;
   final bool isPolledByCurrentUser;
+  final bool isSaved;
   final String? locationName;
   final int commentsCount;
   final int sharesCount;
@@ -51,6 +52,7 @@ class HashtagPostModel {
     required this.viewLikes,
     required this.isLikedByCurrentUser,
     required this.isPolledByCurrentUser,
+    required this.isSaved,
     this.locationName,
     required this.commentsCount,
     required this.sharesCount,
@@ -74,6 +76,7 @@ class HashtagPostModel {
           .toList(),
       isLikedByCurrentUser: json['is_liked_by_current_user'] ?? false,
       isPolledByCurrentUser: json['is_polled_by_current_user'] ?? false,
+      isSaved: json['is_saved'] ?? json['is_saved_by_current_user'] ?? json['saved'] ?? false,
       locationName: json['location_name'],
       commentsCount: json['comments_count'] ?? 0,
       sharesCount: json['shares_count'] ?? 0,

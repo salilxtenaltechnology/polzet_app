@@ -19,8 +19,10 @@ class UserProvider with ChangeNotifier {
   String? lastName;
   String? email;
   String? bio;
+  List<dynamic>? interests;
   String? dob;
   String? gender;
+  String? country;
   String? country_code;
   String? mobile_number;
   String? next_username_change;
@@ -79,6 +81,9 @@ class UserProvider with ChangeNotifier {
 
   Future<void> prefetchUserPosts() async {
     if (username == null || username!.isEmpty) return;
+    final token = await SharedPrefService.getToken();
+    if (token == null || token.isEmpty) return;
+
     final currentUsername = username!;
 
     if (cachedThingsPostsMap.containsKey(currentUsername) &&
@@ -105,7 +110,7 @@ class UserProvider with ChangeNotifier {
       final images = await apiService.fetchPostsImages(currentUsername);
       cachedImagesPostsMap[currentUsername] = images.where((post) {
         return post.polls.any(
-          (poll) => poll.options.any((o) => o.image != null) ?? false,
+          (poll) => poll.options.any((o) => o.image != null),
         );
       }).toList();
     } catch (e) {
@@ -126,10 +131,7 @@ class UserProvider with ChangeNotifier {
     if (cachedInsightsData != null) return;
     try {
       final token = await SharedPrefService.getToken();
-      if (token == null || token.isEmpty) {
-        debugPrint('ℹ️ UserProvider: Skipping insights prefetch because there is no active token.');
-        return;
-      }
+      if (token == null || token.isEmpty) return;
       cachedInsightsData = await apiService.getInsightsData();
       notifyListeners();
     } catch (e) {
@@ -198,11 +200,23 @@ class UserProvider with ChangeNotifier {
       SharedPrefService.saveUserEmail(email!);
     }
     bio = data['bio'];
+    if (data['interests'] != null) {
+      interests = List<dynamic>.from(data['interests']);
+    } else {
+      interests = null;
+    }
     dob = data['dob'];
     gender = data['gender'];
+    country = data['country'];
     country_code = data['country_code'];
     mobile_number = data['mobile_number'];
     next_username_change = data['next_username_change'];
+
+    try {
+      _user = UserModel.fromJson(data);
+    } catch (e) {
+      debugPrint('⚠️ UserProvider: Error building UserModel from json: $e');
+    }
 
     // Auth
     has_google_auth = data['has_google_auth'];
@@ -320,9 +334,12 @@ class UserProvider with ChangeNotifier {
       case 'lastName':           lastName = value; break;
       case 'email':              email = value; break;
       case 'bio':                bio = value; break;
+      case 'interests':          interests = value != null ? List<dynamic>.from(value) : null; break;
       case 'dob':                dob = value; break;
       case 'gender':             gender = value; break;
+      case 'country':            country = value; break;
       case 'country_code':       country_code = value; break;
+      case 'countryCode':        country_code = value; break;
       case 'mobile_number':      mobile_number = value; break;
       case 'next_username_change': next_username_change = value; break;
       case 'has_google_auth':    has_google_auth = value; break;
@@ -376,9 +393,12 @@ class UserProvider with ChangeNotifier {
     lastName = null;
     email = null;
     bio = null;
+    interests = null;
     dob = null;
     gender = null;
+    country = null;
     country_code = null;
+    _user = null;
     mobile_number = null;
     next_username_change = null;
     has_google_auth = null;

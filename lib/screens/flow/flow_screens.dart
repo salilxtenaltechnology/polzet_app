@@ -11,9 +11,16 @@ import '../home/home_imports.dart';
 import 'first_step_screen.dart';
 import 'second_step_screen.dart';
 import 'third_step_screen.dart';
+import 'fourth_step_screen.dart';
 
 class FlowScreen extends StatefulWidget {
-  const FlowScreen({super.key});
+  final bool showCountryLanguage;
+
+  const FlowScreen({
+    super.key,
+    this.showCountryLanguage = false,
+  });
+
   @override
   State<FlowScreen> createState() => _FlowScreenState();
 }
@@ -47,7 +54,7 @@ class _FlowScreenState extends State<FlowScreen> {
   }
 
   void _next() {
-    if (_step < 2) setState(() => _step++);
+    if (_step < 3) setState(() => _step++);
   }
 
   void _back() {
@@ -85,12 +92,19 @@ class _FlowScreenState extends State<FlowScreen> {
           ),
         1 => SecondStepScreen(
             key: const ValueKey(1),
+            showCountryLanguage: widget.showCountryLanguage,
             onContinue: _next,
             onSkip: _skip,
             onBack: _back,
           ),
-        _ => ThirdStepScreen(
+        2 => ThirdStepScreen(
             key: const ValueKey(2),
+            onContinue: _next,
+            onSkip: _skip,
+            onBack: _back,
+          ),
+        _ => FourthStepScreen(
+            key: const ValueKey(3),
             onContinue: _goHome,
             onSkip: _goHome,
             onBack: _back,

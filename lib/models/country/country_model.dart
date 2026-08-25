@@ -12,7 +12,7 @@ class Country {
   });
 }
 
-final List<Country> _allCountries = [
+final List<Country> allCountries = [
   Country(name: 'Afghanistan', code: 'AF', dialCode: '+93', flag: '🇦🇫'),
   Country(name: 'Albania', code: 'AL', dialCode: '+355', flag: '🇦🇱'),
   Country(name: 'Algeria', code: 'DZ', dialCode: '+213', flag: '🇩🇿'),
@@ -73,17 +73,17 @@ final List<Country> _allCountries = [
 /// Returns a [Country] by its dial code (without the leading '+').
 Country? getCountryByDialCode(String dialCode) {
   try {
-    return _allCountries.firstWhere(
+    return allCountries.firstWhere(
       (country) => country.dialCode == '+$dialCode',
-      orElse: () => _allCountries.firstWhere(
+      orElse: () => allCountries.firstWhere(
         (country) => country.dialCode == '+1', // Default to US
-        orElse: () => _allCountries.first,
+        orElse: () => allCountries.first,
       ),
     );
   } catch (e) {
-    return _allCountries.firstWhere(
+    return allCountries.firstWhere(
       (country) => country.dialCode == '+1',
-      orElse: () => _allCountries.first,
+      orElse: () => allCountries.first,
     );
   }
 }

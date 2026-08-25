@@ -67,6 +67,7 @@ class ApiConstants {
   static String likePost = "$baseUrl/posts";
   static String topVoters = "$baseUrl/polls";
   static String privacyPolicy = "$baseUrl/privacy_status";
+  static String interests = "$baseUrl/interests";
   static String feedback = "$baseUrl/feedback/report";
   static String logout = "$baseUrl/logout";
   static String deleteAccount = "$baseUrl/users/delete_account";

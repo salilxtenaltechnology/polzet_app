@@ -14,12 +14,13 @@ class UserPostResponse {
 
   factory UserPostResponse.fromJson(Map<String, dynamic> json) {
     return UserPostResponse(
-      count: json['count'] as int,
-      next: json['next'] as String?,
-      previous: json['previous'] as String?,
-      results: (json['results'] as List<dynamic>)
-          .map((e) => UserPostModel.fromJson(e as Map<String, dynamic>))
-          .toList(),
+      count: _toInt(json['count']),
+      next: json['next']?.toString(),
+      previous: json['previous']?.toString(),
+      results: (json['results'] as List<dynamic>?)
+              ?.map((e) => UserPostModel.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          [],
     );
   }
 

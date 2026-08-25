@@ -255,7 +255,7 @@ class NotificationRouter {
             debugPrint(
               '⚠️ NotificationRouter: username is empty, fallback to notifications tab',
             );
-            return const HomeScreen(initialIndex: 3);
+            return const HomeScreen(initialIndex: 0);
           }
           return SinglePostDetails(postId: postId, username: postUsername);
         } else {
@@ -399,7 +399,7 @@ class NotificationRouter {
     } catch (e) {
       debugPrint('❌ Error resolving notification destination: $e');
     }
-    return const HomeScreen(initialIndex: 3);
+    return const HomeScreen(initialIndex: 0);
   }
 
   // ENHANCED: Handle navigation imperatively (background / foreground taps)
@@ -730,7 +730,7 @@ class NotificationRouter {
   void _navigateToNotificationsTab(BuildContext context) {
     debugPrint('🔔 Navigating to notifications tab (fallback)');
     Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute(builder: (_) => const HomeScreen(initialIndex: 3)),
+      MaterialPageRoute(builder: (_) => const HomeScreen(initialIndex: 0)),
       (route) => false,
     );
   }

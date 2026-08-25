@@ -1086,7 +1086,7 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
                         child: isSaved
                             ? AppIcons.filledSave(
                                 key: const ValueKey('saved_filled'),
-                                color: Theme.of(context).colorScheme.primary,
+                                color: Theme.of(context).colorScheme.onPrimary,
                               )
                             : AppIcons.outlineSave(
                                 key: const ValueKey('saved_outline'),

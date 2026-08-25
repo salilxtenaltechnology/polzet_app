@@ -10,6 +10,8 @@ class UserModel {
   final String? profilePicture;
   final String? coverPhoto;
   final String? bio;
+  final List<dynamic>? interests;
+  final String? country;
   final DateTime nextUsernameChange;
   final String? profilePictureUrl;
   final String? coverPhotoUrl;
@@ -26,6 +28,8 @@ class UserModel {
     this.profilePicture,
     this.coverPhoto,
     this.bio,
+    this.interests,
+    this.country,
     required this.nextUsernameChange,
     this.profilePictureUrl,
     this.coverPhotoUrl,
@@ -33,18 +37,20 @@ class UserModel {
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
     return UserModel(
-      username: json['username'],
-      email: json['email'],
-      firstName: json['first_name'],
-      lastName: json['last_name'],
-      dob: json['dob'],
+      username: json['username'] ?? '',
+      email: json['email'] ?? '',
+      firstName: json['first_name'] ?? '',
+      lastName: json['last_name'] ?? '',
+      dob: json['dob'] ?? '',
       gender: json['gender'],
-      countryCode: json['country_code'],
-      mobileNumber: json['mobile_number'],
+      countryCode: json['country_code'] ?? json['country'] ?? '',
+      mobileNumber: json['mobile_number'] ?? '',
       profilePicture: json['profile_picture'],
       coverPhoto: json['cover_photo'],
       bio: json['bio'],
-      nextUsernameChange: DateTime.parse(json['next_username_change']),
+      interests: json['interests'] != null ? List<dynamic>.from(json['interests']) : null,
+      country: json['country'] ?? json['country_code'],
+      nextUsernameChange: DateTime.parse(json['next_username_change'] ?? DateTime.now().toIso8601String()),
       profilePictureUrl: json['profile_picture_url'],
       coverPhotoUrl: json['cover_photo_url'],
     );
@@ -63,6 +69,8 @@ class UserModel {
       'profile_picture': profilePicture,
       'cover_photo': coverPhoto,
       'bio': bio,
+      'interests': interests,
+      'country': country,
       'next_username_change': nextUsernameChange.toIso8601String(),
       'profile_picture_url': profilePictureUrl,
       'cover_photo_url': coverPhotoUrl,

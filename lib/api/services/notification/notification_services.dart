@@ -1456,6 +1456,12 @@ class NotificationService {
         return;
       }
 
+      await _fcm.setForegroundNotificationPresentationOptions(
+        alert: true,
+        badge: true,
+        sound: true,
+      );
+
       String? token = await _fcm.getToken();
       if (token != null) {
         debugPrint("📱 FCM Token: $token");

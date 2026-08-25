@@ -231,4 +231,44 @@ class SharedPrefService {
       await prefs.setBool(_firstLaunchKey, false);
     }
   }
+
+  //*----- AI Daily Limit Persistence -----*//
+  static const String _aiRemainingGenerationsKey = 'ai_remaining_generations';
+  static const String _aiDailyLimitKey = 'ai_daily_limit';
+  static const String _aiLastResetDateKey = 'ai_last_reset_date';
+
+  static String _getTodayDateString() {
+    final now = DateTime.now();
+    return '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+  }
+
+  static Future<Map<String, int>> getAiLimitData() async {
+    final prefs = await SharedPreferences.getInstance();
+    final today = _getTodayDateString();
+    final lastResetDate = prefs.getString(_aiLastResetDateKey);
+    final savedLimit = prefs.getInt(_aiDailyLimitKey) ?? 5;
+
+    if (lastResetDate != today) {
+      // New day -> Reset to daily limit
+      await prefs.setString(_aiLastResetDateKey, today);
+      await prefs.setInt(_aiRemainingGenerationsKey, savedLimit);
+      return {'remaining': savedLimit, 'daily_limit': savedLimit};
+    }
+
+    final remaining = prefs.getInt(_aiRemainingGenerationsKey) ?? savedLimit;
+    return {'remaining': remaining, 'daily_limit': savedLimit};
+  }
+
+  static Future<void> saveAiLimitData({
+    required int remaining,
+    int? dailyLimit,
+  }) async {
+    final prefs = await SharedPreferences.getInstance();
+    final today = _getTodayDateString();
+    await prefs.setString(_aiLastResetDateKey, today);
+    await prefs.setInt(_aiRemainingGenerationsKey, remaining);
+    if (dailyLimit != null) {
+      await prefs.setInt(_aiDailyLimitKey, dailyLimit);
+    }
+  }
 }

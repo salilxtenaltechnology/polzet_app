@@ -29,6 +29,7 @@ import 'feedback/feedback.dart';
 import 'help and support/help_support.dart';
 import 'language/language_import.dart';
 import 'notifications/notifications.dart';
+import 'preferences/content_preferences.dart';
 import 'privacy/privacy_policy.dart';
 import 'security/security.dart';
 import 'terms and conditions/terms_and_conditions.dart';
@@ -139,7 +140,14 @@ class _SettingsScreenState extends State<SettingsScreen>
           },
           activeColor: Theme.of(context).colorScheme.primary,
         ),
-        keywords: ['dark', 'mode', 'theme', 'light', 'appearance', 'background'],
+        keywords: [
+          'dark',
+          'mode',
+          'theme',
+          'light',
+          'appearance',
+          'background',
+        ],
       ),
       // Security
       SettingsSearchItem(
@@ -159,7 +167,14 @@ class _SettingsScreenState extends State<SettingsScreen>
         onTap: () {
           navigationPush(context, const PrivateAccount());
         },
-        keywords: ['privacy', 'private', 'account', 'activity', 'polls', 'control'],
+        keywords: [
+          'privacy',
+          'private',
+          'account',
+          'activity',
+          'polls',
+          'control',
+        ],
       ),
       // Blocked Accounts
       SettingsSearchItem(
@@ -169,7 +184,14 @@ class _SettingsScreenState extends State<SettingsScreen>
         onTap: () {
           navigationPush(context, const BlockAccounts());
         },
-        keywords: ['block', 'blocked', 'accounts', 'manage', 'people', 'unblock'],
+        keywords: [
+          'block',
+          'blocked',
+          'accounts',
+          'manage',
+          'people',
+          'unblock',
+        ],
       ),
       // Notifications
       SettingsSearchItem(
@@ -189,7 +211,39 @@ class _SettingsScreenState extends State<SettingsScreen>
         onTap: () {
           navigationPush(context, const Languages());
         },
-        keywords: ['language', 'english', 'spanish', 'indonesian', 'app language', 'preferred'],
+        keywords: [
+          'language',
+          'english',
+          'spanish',
+          'indonesian',
+          'app language',
+          'preferred',
+        ],
+      ),
+      // Content Preferences
+      SettingsSearchItem(
+        title: 'Content Preferences',
+        subtitle: 'Choose what you want to see on Polzet',
+        iconAsset: Assets.images.icPreference.path,
+        onTap: () {
+          navigationPush(
+            context,
+            const ContentPreferences(),
+          );
+        },
+        keywords: [
+          'preferences',
+          'preference',
+          'content preferences',
+          'content',
+          'manage',
+          'country',
+          'interest',
+          'interests',
+          'topics',
+          'feed',
+          'see',
+        ],
       ),
       // Help & Support
       SettingsSearchItem(
@@ -266,65 +320,76 @@ class _SettingsScreenState extends State<SettingsScreen>
             Expanded(
               child: _searchQuery.isNotEmpty
                   ? (filteredItems.isEmpty
-                      ? SingleChildScrollView(
-                          physics: const AlwaysScrollableScrollPhysics(),
-                          child: Center(
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(vertical: 60.0, horizontal: 24.0),
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(
-                                    Icons.search_off_rounded,
-                                    size: 60,
-                                    color: Theme.of(context).colorScheme.onPrimary.withOpacity(0.4),
-                                  ),
-                                  const SizedBox(height: 16),
-                                  Text(
-                                    'No matching settings found',
-                                    style: AppTextStyles.cardTitle.copyWith(
-                                      color: txt.title,
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w600,
+                        ? SingleChildScrollView(
+                            physics: const AlwaysScrollableScrollPhysics(),
+                            child: Center(
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 60.0,
+                                  horizontal: 24.0,
+                                ),
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(
+                                      Icons.search_off_rounded,
+                                      size: 60,
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.onPrimary.withOpacity(0.4),
                                     ),
-                                  ),
-                                  const SizedBox(height: 8),
-                                  Text(
-                                    'Try searching for other terms like "privacy", "password", or "language".',
-                                    textAlign: TextAlign.center,
-                                    style: AppTextStyles.bodyText.copyWith(
-                                      color: txt.muted,
-                                      fontSize: 13,
+                                    const SizedBox(height: 16),
+                                    Text(
+                                      'No matching settings found',
+                                      style: AppTextStyles.cardTitle.copyWith(
+                                        color: txt.title,
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w600,
+                                      ),
                                     ),
-                                  ),
-                                ],
+                                    const SizedBox(height: 8),
+                                    Text(
+                                      'Try searching for other terms like "privacy", "password", or "language".',
+                                      textAlign: TextAlign.center,
+                                      style: AppTextStyles.bodyText.copyWith(
+                                        color: txt.muted,
+                                        fontSize: 13,
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
                             ),
-                          ),
-                        )
-                      : ListView(
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                          children: [
-                            _buildCard(
-                              children: List.generate(
-                                filteredItems.length * 2 - 1,
-                                (index) {
-                                  if (index.isOdd) return _buildDivider();
-                                  final item = filteredItems[index ~/ 2];
-                                  if (item.trailing != null) {
-                                    return _buildSearchToggleTile(item);
-                                  } else if (item.iconData != null) {
-                                    return _buildSearchTextTile(item);
-                                  } else {
-                                    return _buildSearchNavTile(item);
-                                  }
-                                },
-                              ),
+                          )
+                        : ListView(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 8,
                             ),
-                          ],
-                        ))
+                            children: [
+                              _buildCard(
+                                children: List.generate(
+                                  filteredItems.length * 2 - 1,
+                                  (index) {
+                                    if (index.isOdd) return _buildDivider();
+                                    final item = filteredItems[index ~/ 2];
+                                    if (item.trailing != null) {
+                                      return _buildSearchToggleTile(item);
+                                    } else if (item.iconData != null) {
+                                      return _buildSearchTextTile(item);
+                                    } else {
+                                      return _buildSearchNavTile(item);
+                                    }
+                                  },
+                                ),
+                              ),
+                            ],
+                          ))
                   : SingleChildScrollView(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 8,
+                      ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -348,7 +413,9 @@ class _SettingsScreenState extends State<SettingsScreen>
                           const SizedBox(height: 15),
 
                           // ── Account ───────────────────────────────────────
-                          _buildSectionLabel(AppLocalizations.of(context)!.account),
+                          _buildSectionLabel(
+                            AppLocalizations.of(context)!.account,
+                          ),
                           const SizedBox(height: 8),
                           _buildCard(
                             children: [
@@ -365,23 +432,33 @@ class _SettingsScreenState extends State<SettingsScreen>
                               _buildDivider(),
                               _buildNavTile(
                                 icon: Assets.images.icAccountPrivacy.path,
-                                title: AppLocalizations.of(context)!.accountprivacy,
+                                title: AppLocalizations.of(
+                                  context,
+                                )!.accountprivacy,
                                 subtitle: AppLocalizations.of(
                                   context,
                                 )!.controlwhocanviewyouractivityandpolls,
                                 onTap: () {
-                                  navigationPush(context, const PrivateAccount());
+                                  navigationPush(
+                                    context,
+                                    const PrivateAccount(),
+                                  );
                                 },
                               ),
                               _buildDivider(),
                               _buildNavTile(
                                 icon: Assets.images.icBlockAccount.path,
-                                title: AppLocalizations.of(context)!.blockedaccounts,
+                                title: AppLocalizations.of(
+                                  context,
+                                )!.blockedaccounts,
                                 subtitle: AppLocalizations.of(
                                   context,
                                 )!.managepeopleyouveblockedonpolzet,
                                 onTap: () {
-                                  navigationPush(context, const BlockAccounts());
+                                  navigationPush(
+                                    context,
+                                    const BlockAccounts(),
+                                  );
                                 },
                               ),
                             ],
@@ -396,12 +473,17 @@ class _SettingsScreenState extends State<SettingsScreen>
                             children: [
                               _buildNavTile(
                                 icon: Assets.images.icNotifications.path,
-                                title: AppLocalizations.of(context)!.notifications,
+                                title: AppLocalizations.of(
+                                  context,
+                                )!.notifications,
                                 subtitle: AppLocalizations.of(
                                   context,
                                 )!.choosewhatupdatesandalertsyouwanttoreceive,
                                 onTap: () {
-                                  navigationPush(context, const NotificationsSettings());
+                                  navigationPush(
+                                    context,
+                                    const NotificationsSettings(),
+                                  );
                                 },
                               ),
                               _buildDivider(),
@@ -415,19 +497,36 @@ class _SettingsScreenState extends State<SettingsScreen>
                                   navigationPush(context, const Languages());
                                 },
                               ),
+                              _buildDivider(),
+                              _buildNavTile(
+                                icon: Assets.images.icPreference.path,
+                                title: 'Content Preferences',
+                                subtitle:
+                                    'Choose what you want to see on Polzet',
+                                onTap: () {
+                                  navigationPush(
+                                    context,
+                                    const ContentPreferences(),
+                                  );
+                                },
+                              ),
                             ],
                           ),
 
                           const SizedBox(height: 15),
 
                           // ── Support & About ───────────────────────────────
-                          _buildSectionLabel(AppLocalizations.of(context)!.supportandabout),
+                          _buildSectionLabel(
+                            AppLocalizations.of(context)!.supportandabout,
+                          ),
                           const SizedBox(height: 8),
                           _buildCard(
                             children: [
                               _buildNavTile(
                                 icon: Assets.images.icHelpSupport.path,
-                                title: AppLocalizations.of(context)!.helpandsupport,
+                                title: AppLocalizations.of(
+                                  context,
+                                )!.helpandsupport,
                                 subtitle: AppLocalizations.of(
                                   context,
                                 )!.gethelpwithyouraccount,
@@ -438,34 +537,49 @@ class _SettingsScreenState extends State<SettingsScreen>
                               _buildDivider(),
                               _buildNavTile(
                                 icon: Assets.images.icFeedback.path,
-                                title: AppLocalizations.of(context)!.feedbackttl,
+                                title: AppLocalizations.of(
+                                  context,
+                                )!.feedbackttl,
                                 subtitle: AppLocalizations.of(
                                   context,
                                 )!.shareyourthoughtsandhelpimprovepolzet,
                                 onTap: () {
-                                  navigationPush(context, const FeedbackScreen());
+                                  navigationPush(
+                                    context,
+                                    const FeedbackScreen(),
+                                  );
                                 },
                               ),
                               _buildDivider(),
                               _buildNavTile(
                                 icon: Assets.images.icTermsConditions.path,
-                                title: AppLocalizations.of(context)!.termsandconditions,
+                                title: AppLocalizations.of(
+                                  context,
+                                )!.termsandconditions,
                                 subtitle: AppLocalizations.of(
                                   context,
                                 )!.readtherulesandguidelinesforusingpolzet,
                                 onTap: () {
-                                  navigationPush(context, const TermsAndConditions());
+                                  navigationPush(
+                                    context,
+                                    const TermsAndConditions(),
+                                  );
                                 },
                               ),
                               _buildDivider(),
                               _buildNavTile(
                                 icon: Assets.images.icTermsConditions.path,
-                                title: AppLocalizations.of(context)!.privacypolicy,
+                                title: AppLocalizations.of(
+                                  context,
+                                )!.privacypolicy,
                                 subtitle: AppLocalizations.of(
                                   context,
                                 )!.readtherulesandguidelinesforusingpolzet,
                                 onTap: () {
-                                  navigationPush(context, const PrivacyPolicy());
+                                  navigationPush(
+                                    context,
+                                    const PrivacyPolicy(),
+                                  );
                                 },
                               ),
                             ],
@@ -716,7 +830,7 @@ class _SettingsScreenState extends State<SettingsScreen>
             });
           },
           decoration: InputDecoration(
-            hintText: AppLocalizations.of(context)!.searchsettingsfeatures, 
+            hintText: AppLocalizations.of(context)!.searchsettingsfeatures,
             hintStyle: AppTextStyles.bodyText.copyWith(
               color: const Color(0XFF898989),
               fontWeight: FontWeight.w400,
