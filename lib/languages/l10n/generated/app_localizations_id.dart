@@ -1738,7 +1738,7 @@ class AppLocalizationsId extends AppLocalizations {
   String get groups => 'Grup';
 
   @override
-  String get shareprofile => 'Bagikan profil';
+  String get shareprofile => 'Bagikan Profil';
 
   @override
   String get images => 'gambar';
@@ -2296,10 +2296,10 @@ class AppLocalizationsId extends AppLocalizations {
   String get pleaseselecttwoimages => 'Silakan pilih 2 gambar';
 
   @override
-  String get markasread => 'Tandai sudah dibaca';
+  String get markasread => 'Tandai sebagai sudah dibaca';
 
   @override
-  String get markasunread => 'Tandai belum dibaca';
+  String get markasunread => 'Tandai sebagai belum dibaca';
 
   @override
   String get archivedgroups => 'Grup yang Diarsipkan';
@@ -2349,4 +2349,103 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String get trendingpolls => 'Polling yang Sedang Tren';
+
+  @override
+  String get contentpreferences => 'Preferensi Konten';
+
+  @override
+  String get choosewhatyouwanttoseeonpolzet =>
+      'Pilih apa yang ingin Anda lihat di Polzet';
+
+  @override
+  String get country => 'Negara';
+
+  @override
+  String get choosethecountryforyourcontentandpolls =>
+      'Pilih negara untuk konten dan polling Anda';
+
+  @override
+  String get interests => 'Minat';
+
+  @override
+  String get choosethetopicsyouwanttoseemoreof =>
+      'Pilih topik yang ingin Anda lihat lebih banyak';
+
+  @override
+  String get searchcountry => 'Cari negara';
+
+  @override
+  String get searchinterest => 'Cari minat';
+
+  @override
+  String get nointerestsfound => 'Tidak ada minat yang ditemukan';
+
+  @override
+  String get nocountriesfound => 'Tidak ada negara yang ditemukan';
+
+  @override
+  String get copyprofilelink => 'Salin Tautan Profil';
+
+  @override
+  String get noaigenerationsleft =>
+      'Tidak ada generasi AI yang tersisa hari ini';
+
+  @override
+  String get creditsresettomorrow => 'Kredit Anda akan direset besok';
+
+  @override
+  String get lefttoday => 'tersisa hari ini';
+
+  @override
+  String get comingsoon => 'SEGERA HADIR';
+
+  @override
+  String get newfeaturescomingsoon => 'Fitur baru segera hadir';
+
+  @override
+  String get comingsoondescription =>
+      'Kami sedang mengembangkan alat profil bisnis yang canggih, analitik lanjutan, dan lebih banyak cara untuk mengembangkan kehadiran Anda di Polzet.';
+
+  @override
+  String get indevelopment => 'Dalam Pengembangan';
+
+  @override
+  String get businessprofiletools => 'Alat Profil Bisnis';
+
+  @override
+  String get businessprofiletoolsdescription =>
+      'Branding kustom, lencana terverifikasi, tombol aksi, & tautan bisnis.';
+
+  @override
+  String get comingq4 => 'Hadir Kuartal 4';
+
+  @override
+  String get advancedanalytics => 'Analitik Lanjutan';
+
+  @override
+  String get advancedanalyticsdescription =>
+      'Rincian demografis, jam aktivitas puncak, & statistik retensi pemilih.';
+
+  @override
+  String get planned => 'Direncanakan';
+
+  @override
+  String get growthandpromotions => 'Pertumbuhan & Promosi';
+
+  @override
+  String get growthandpromotionsdescription =>
+      'Penempatan polling yang ditingkatkan, jangkauan tertarget, & retargeting audiens.';
+
+  @override
+  String get getvipearlyaccess => 'Dapatkan Akses Awal VIP';
+
+  @override
+  String get vipearlyaccessdescription =>
+      'Jadilah yang pertama menguji alat baru saat diluncurkan.';
+
+  @override
+  String get onearlyaccesslist => 'Anda ada di daftar akses awal!';
+
+  @override
+  String get joinwaitlist => 'Gabung Daftar Tunggu';
 }

@@ -568,8 +568,8 @@ class MessageListState extends State<MessageList>
                       if (_isLastMessageFromOtherUser(chat)) ...[
                         _buildPopupItem(
                           text: _unreadCount(chat) > 0
-                              ? 'Mark as read'
-                              : 'Mark as unread',
+                              ? AppLocalizations.of(context)!.markasread
+                              : AppLocalizations.of(context)!.markasunread,
                           isDarkMode: isDarkMode,
                           onTap: () async {
                             Navigator.pop(context);

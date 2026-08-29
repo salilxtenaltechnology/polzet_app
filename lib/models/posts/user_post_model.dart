@@ -18,7 +18,8 @@ class UserPostResponse {
       next: json['next']?.toString(),
       previous: json['previous']?.toString(),
       results: (json['results'] as List<dynamic>?)
-              ?.map((e) => UserPostModel.fromJson(e as Map<String, dynamic>))
+              ?.whereType<Map>()
+              .map((e) => UserPostModel.fromJson(Map<String, dynamic>.from(e)))
               .toList() ??
           [],
     );
@@ -82,7 +83,7 @@ class UserPostModel {
 
   factory UserPostModel.fromJson(Map<String, dynamic> json) {
     final userMap =
-        json['user'] is Map ? json['user'] as Map<String, dynamic> : null;
+        json['user'] is Map ? Map<String, dynamic>.from(json['user'] as Map) : null;
     return UserPostModel(
       id: (json['uuid'] ?? json['id'] ?? '').toString(),
       user: userMap != null
@@ -95,28 +96,29 @@ class UserPostModel {
           ? userMap['last_name']?.toString()
           : json['last_name']?.toString(),
       userProfileImage: userMap != null
-          ? userMap['profile_image']?.toString()
+          ? (userMap['profile_image'] ?? userMap['avatar_url'])?.toString()
           : json['profile_image']?.toString(),
       userId: userMap != null
-          ? (userMap['userid'] ?? userMap['id'] ?? '').toString()
-          : json['user_id']?.toString(),
+          ? (userMap['uuid'] ?? userMap['userid'] ?? userMap['id'] ?? '').toString()
+          : (json['user_id'] ?? json['userid'] ?? '').toString(),
       description: json['description']?.toString() ?? '',
-      createdAt: DateTime.parse(
-        json['created_at']?.toString() ?? DateTime.now().toIso8601String(),
-      ),
+      createdAt: DateTime.tryParse(json['created_at']?.toString() ?? '') ?? DateTime.now(),
       images:
           (json['images'] as List<dynamic>?)
-              ?.map((e) => PostImage.fromJson(e as Map<String, dynamic>))
+              ?.whereType<Map>()
+              .map((e) => PostImage.fromJson(Map<String, dynamic>.from(e)))
               .toList() ??
           [],
       polls:
           (json['polls'] as List<dynamic>?)
-              ?.map((e) => UserPollQuestion.fromJson(e as Map<String, dynamic>))
+              ?.whereType<Map>()
+              .map((e) => UserPollQuestion.fromJson(Map<String, dynamic>.from(e)))
               .toList() ??
           [],
       comments:
           (json['comments'] as List<dynamic>?)
-              ?.map((e) => Comment.fromJson(e as Map<String, dynamic>))
+              ?.whereType<Map>()
+              .map((e) => Comment.fromJson(Map<String, dynamic>.from(e)))
               .toList() ??
           [],
       likesCount: _toInt(json['likes_count']),
@@ -140,18 +142,26 @@ class UserPostModel {
   int get commentsCount => comments.isNotEmpty ? comments.length : commentCount;
 
   bool get hasPollImages {
-    return polls.any(
-      (poll) => poll.options.any((option) => option.image != null),
-    );
+    final isPolzetAi = user.trim().toLowerCase() == 'polzet_ai';
+    return (isPolzetAi && images.isNotEmpty) ||
+        polls.any(
+          (poll) => poll.options.any((option) => option.image != null),
+        );
   }
 
-  bool get isImagePoll =>
-      polls.isNotEmpty &&
-      polls.any((p) => p.options.any((o) => o.image != null));
+  bool get isImagePoll {
+    final isPolzetAi = user.trim().toLowerCase() == 'polzet_ai';
+    return (isPolzetAi && images.isNotEmpty) ||
+        (polls.isNotEmpty &&
+            polls.any((p) => p.options.any((o) => o.image != null)));
+  }
 
-  bool get isTextPoll =>
-      polls.isNotEmpty &&
-      polls.every((p) => p.options.every((o) => o.text != null && o.image == null));
+  bool get isTextPoll {
+    final isPolzetAi = user.trim().toLowerCase() == 'polzet_ai';
+    if (isPolzetAi && images.isNotEmpty) return false;
+    return polls.isNotEmpty &&
+        polls.every((p) => p.options.every((o) => o.text != null && o.image == null));
+  }
 
   Map<String, dynamic> toJson() {
     return {
@@ -230,6 +240,23 @@ class PostImage {
     required this.voteCount,
   });
 
+  String resolvedUrl(String baseUrl) {
+    if (url.isEmpty) return '';
+    if (url.startsWith('http') || url.startsWith('data:image')) return url;
+    if (url.startsWith('/')) return '$baseUrl$url';
+    return '$baseUrl/$url';
+  }
+
+  String resolvedThumbnailUrl(String baseUrl) {
+    if (thumbnailUrl.isEmpty) return '';
+    if (thumbnailUrl.startsWith('http') ||
+        thumbnailUrl.startsWith('data:image')) {
+      return thumbnailUrl;
+    }
+    if (thumbnailUrl.startsWith('/')) return '$baseUrl$thumbnailUrl';
+    return '$baseUrl/$thumbnailUrl';
+  }
+
   factory PostImage.fromJson(Map<String, dynamic> json) {
     return PostImage(
       id: _toInt(json['id']),
@@ -276,8 +303,10 @@ class UserPollQuestion {
 
   factory UserPollQuestion.fromJson(Map<String, dynamic> json) {
     final List<UserPollOption> optionsVal = (json['options'] as List<dynamic>?)
-        ?.map((e) => UserPollOption.fromJson(e as Map<String, dynamic>))
-        .toList() ?? [];
+            ?.whereType<Map>()
+            .map((e) => UserPollOption.fromJson(Map<String, dynamic>.from(e)))
+            .toList() ??
+        [];
 
     String totalVotesVal = json['total_votes']?.toString() ?? '0';
     if (totalVotesVal == '0' || totalVotesVal.isEmpty) {
@@ -340,15 +369,17 @@ class UserPollOption {
   });
 
   factory UserPollOption.fromJson(Map<String, dynamic> json) {
-    final imageVal = json['image'] != null
-        ? PollOptionImage.fromJson(json['image'] as Map<String, dynamic>)
+    final imageVal = (json['image'] is Map)
+        ? PollOptionImage.fromJson(Map<String, dynamic>.from(json['image'] as Map))
         : null;
     return UserPollOption(
       id: _toInt(json['id']),
       text: json['text']?.toString(),
       image: imageVal,
       voteCount: json['vote_count']?.toString() ?? '0',
-      percentage: (json['percentage'] ?? 0).toDouble(),
+      percentage: (json['percentage'] is num)
+          ? (json['percentage'] as num).toDouble()
+          : (double.tryParse(json['percentage']?.toString() ?? '0') ?? 0.0),
       voters: json['voters'] as List<dynamic>? ?? [],
     );
   }
@@ -423,12 +454,22 @@ class Comment {
   Comment({this.id, this.user, this.text, this.createdAt});
 
   factory Comment.fromJson(Map<String, dynamic> json) {
+    String? userStr;
+    final userVal = json['user'];
+    if (userVal is Map) {
+      userStr = userVal['username']?.toString() ??
+          userVal['name']?.toString() ??
+          userVal['id']?.toString() ??
+          userVal['uuid']?.toString();
+    } else if (userVal != null) {
+      userStr = userVal.toString();
+    }
     return Comment(
       id: _toIntNullable(json['id']),
-      user: json['user'] as String?,
-      text: json['text'] as String?,
+      user: userStr,
+      text: json['text']?.toString(),
       createdAt: json['created_at'] != null
-          ? DateTime.parse(json['created_at'] as String)
+          ? DateTime.tryParse(json['created_at'].toString())
           : null,
     );
   }

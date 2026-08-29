@@ -293,7 +293,7 @@ class _ImagePostsListState extends State<ImagePostsList> {
 
         Provider.of<UserProvider>(context, listen: false).notifyPostDeleted(postId);
 
-        showToast(message: 'Post deleted successfully');
+        showToast(message: 'Post deleted');
       } else {
         showToast(message: 'Failed to delete post');
       }

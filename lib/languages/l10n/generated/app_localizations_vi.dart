@@ -2299,10 +2299,10 @@ class AppLocalizationsVi extends AppLocalizations {
   String get pleaseselecttwoimages => 'Vui lòng chọn 2 hình ảnh';
 
   @override
-  String get markasread => 'Đánh dấu đã đọc';
+  String get markasread => 'Đánh dấu là đã đọc';
 
   @override
-  String get markasunread => 'Đánh dấu chưa đọc';
+  String get markasunread => 'Đánh dấu là chưa đọc';
 
   @override
   String get archivedgroups => 'Nhóm đã lưu trữ';
@@ -2353,4 +2353,103 @@ class AppLocalizationsVi extends AppLocalizations {
 
   @override
   String get trendingpolls => 'Bình chọn thịnh hành';
+
+  @override
+  String get contentpreferences => 'Tùy chọn nội dung';
+
+  @override
+  String get choosewhatyouwanttoseeonpolzet =>
+      'Chọn những gì bạn muốn xem trên Polzet';
+
+  @override
+  String get country => 'Quốc gia';
+
+  @override
+  String get choosethecountryforyourcontentandpolls =>
+      'Chọn quốc gia cho nội dung và khảo sát của bạn';
+
+  @override
+  String get interests => 'Sở thích';
+
+  @override
+  String get choosethetopicsyouwanttoseemoreof =>
+      'Chọn các chủ đề bạn muốn xem thêm';
+
+  @override
+  String get searchcountry => 'Tìm kiếm quốc gia';
+
+  @override
+  String get searchinterest => 'Tìm kiếm sở thích';
+
+  @override
+  String get nointerestsfound => 'Không tìm thấy sở thích nào';
+
+  @override
+  String get nocountriesfound => 'Không tìm thấy quốc gia nào';
+
+  @override
+  String get copyprofilelink => 'Sao chép liên kết hồ sơ';
+
+  @override
+  String get noaigenerationsleft => 'Không còn lượt tạo AI nào hôm nay';
+
+  @override
+  String get creditsresettomorrow =>
+      'Tín dụng của bạn sẽ được đặt lại vào ngày mai';
+
+  @override
+  String get lefttoday => 'còn lại hôm nay';
+
+  @override
+  String get comingsoon => 'SẮP RA MẮT';
+
+  @override
+  String get newfeaturescomingsoon => 'Tính năng mới sắp ra mắt';
+
+  @override
+  String get comingsoondescription =>
+      'Chúng tôi đang phát triển các công cụ hồ sơ doanh nghiệp mạnh mẽ, phân tích nâng cao, và nhiều cách hơn để phát triển sự hiện diện của bạn trên Polzet.';
+
+  @override
+  String get indevelopment => 'Đang phát triển';
+
+  @override
+  String get businessprofiletools => 'Công cụ hồ sơ doanh nghiệp';
+
+  @override
+  String get businessprofiletoolsdescription =>
+      'Thương hiệu tùy chỉnh, huy hiệu đã xác minh, nút hành động, & liên kết doanh nghiệp.';
+
+  @override
+  String get comingq4 => 'Ra mắt vào Quý 4';
+
+  @override
+  String get advancedanalytics => 'Phân tích nâng cao';
+
+  @override
+  String get advancedanalyticsdescription =>
+      'Phân tích nhân khẩu học, giờ hoạt động cao điểm, & thống kê giữ chân người bình chọn.';
+
+  @override
+  String get planned => 'Đã lên kế hoạch';
+
+  @override
+  String get growthandpromotions => 'Tăng trưởng & Khuyến mãi';
+
+  @override
+  String get growthandpromotionsdescription =>
+      'Vị trí bình chọn được đẩy mạnh, tiếp cận có mục tiêu, & nhắm mục tiêu lại đối tượng.';
+
+  @override
+  String get getvipearlyaccess => 'Nhận Quyền Truy Cập Sớm VIP';
+
+  @override
+  String get vipearlyaccessdescription =>
+      'Trở thành người đầu tiên thử nghiệm các công cụ mới khi ra mắt.';
+
+  @override
+  String get onearlyaccesslist => 'Bạn đã có trong danh sách truy cập sớm!';
+
+  @override
+  String get joinwaitlist => 'Tham gia danh sách chờ';
 }

@@ -226,10 +226,7 @@ class _SettingsScreenState extends State<SettingsScreen>
         subtitle: 'Choose what you want to see on Polzet',
         iconAsset: Assets.images.icPreference.path,
         onTap: () {
-          navigationPush(
-            context,
-            const ContentPreferences(),
-          );
+          navigationPush(context, const ContentPreferences());
         },
         keywords: [
           'preferences',
@@ -467,7 +464,9 @@ class _SettingsScreenState extends State<SettingsScreen>
                           const SizedBox(height: 15),
 
                           // ── Preferences ───────────────────────────────────
-                          _buildSectionLabel('Preferences'),
+                          _buildSectionLabel(
+                            AppLocalizations.of(context)!.preferences,
+                          ),
                           const SizedBox(height: 8),
                           _buildCard(
                             children: [
@@ -500,9 +499,9 @@ class _SettingsScreenState extends State<SettingsScreen>
                               _buildDivider(),
                               _buildNavTile(
                                 icon: Assets.images.icPreference.path,
-                                title: 'Content Preferences',
+                                title: AppLocalizations.of(context)!.contentpreferences,
                                 subtitle:
-                                    'Choose what you want to see on Polzet',
+                                    AppLocalizations.of(context)!.choosewhatyouwanttoseeonpolzet,
                                 onTap: () {
                                   navigationPush(
                                     context,

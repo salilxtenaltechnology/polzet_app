@@ -2,9 +2,12 @@
 
 import 'package:polzet_app/core/constants/feather_icons_compat.dart';
 import 'dart:ui';
+import 'package:flutter/services.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:intl/intl.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:polzet_app/gen/assets.gen.dart';
 import 'package:polzet_app/widgets/base64/image_convert.dart';
 import 'package:provider/provider.dart';
@@ -27,6 +30,7 @@ import '../../../home feed/rank/result/things/things_result_screen.dart';
 import '../../../search/posts/rank/single_post_image_ranking.dart';
 import '../../../search/posts/rank/single_post_things_ranking.dart';
 import '../../../profile/public/public_profile_screen.dart';
+import '../../../search/posts/single_post_details.dart';
 import '../chat_details.dart';
 import '../../../../../widgets/card/shared_group_card.dart';
 import '../../../../../widgets/dialog/custom_diolog.dart';
@@ -80,6 +84,110 @@ class _PrivateChatScreenState extends State<PrivateChatScreen>
   }
 
   late bool _isUserBlock;
+
+  ChatMessage? _selectedMessage;
+
+  bool _isMessageSelected(ChatMessage message) {
+    if (_selectedMessage == null) return false;
+    if (identical(_selectedMessage, message)) return true;
+    if (_selectedMessage!.id != null && message.id != null) {
+      return _selectedMessage!.id.toString() == message.id.toString();
+    }
+    return _selectedMessage!.created_at == message.created_at &&
+        _selectedMessage!.text == message.text &&
+        _selectedMessage!.isSentByMe == message.isSentByMe;
+  }
+
+  Future<void> _copySelectedMessage() async {
+    if (_selectedMessage != null && _selectedMessage!.text.isNotEmpty) {
+      await Clipboard.setData(ClipboardData(text: _selectedMessage!.text));
+      showToast(message: 'Message copied');
+      setState(() {
+        _selectedMessage = null;
+      });
+    }
+  }
+
+  void _deleteSelectedMessage() {
+    if (_selectedMessage == null) return;
+    final messageToDelete = _selectedMessage!;
+
+    showDeleteMessageDialog(
+      context,
+      () async {
+        Navigator.of(context).pop();
+        setState(() {
+          _selectedMessage = null;
+        });
+
+        dynamic messageId = messageToDelete.id;
+        dynamic chatId = messageToDelete.chatId ??
+            _resolvedChatId ??
+            widget.chatId ??
+            provider.chatId;
+
+        // Try to find matching message in provider's updated list if id is missing
+        if (messageId == null) {
+          final matched = provider.messages.firstWhere(
+            (m) =>
+                m.id != null &&
+                m.text == messageToDelete.text &&
+                m.isSentByMe == messageToDelete.isSentByMe,
+            orElse: () => messageToDelete,
+          );
+          messageId = matched.id;
+          chatId ??= matched.chatId;
+        }
+
+        // If chatId is still missing and we have userId, resolve chatId
+        if (chatId == null && widget.userId != null) {
+          try {
+            final chatResponse = await _apiService.createPrivateChatId(
+              withUserId: widget.userId.toString(),
+            );
+            chatId = chatResponse['id']?.toString();
+            _resolvedChatId = chatId;
+          } catch (e) {
+            debugPrint('Error creating/fetching chat id: $e');
+          }
+        }
+
+        // If messageId is still missing, refresh history to get server IDs
+        if (messageId == null && chatId != null) {
+          try {
+            await provider.fetchMessageHistory();
+            final matched = provider.messages.firstWhere(
+              (m) =>
+                  m.id != null &&
+                  m.text == messageToDelete.text &&
+                  m.isSentByMe == messageToDelete.isSentByMe,
+              orElse: () => messageToDelete,
+            );
+            messageId = matched.id;
+            chatId ??= matched.chatId;
+          } catch (e) {
+            debugPrint('Error refreshing history for message ID: $e');
+          }
+        }
+
+        if (messageId == null || chatId == null) {
+          showToast(message: 'Unable to delete message: Missing ID');
+          return;
+        }
+
+        try {
+          await provider.deleteMessage(
+            messageId: messageId,
+            chatId: chatId,
+          );
+          showToast(message: 'Message deleted');
+        } catch (e) {
+          debugPrint('❌ Failed to delete message: $e');
+          showToast(message: e.toString().replaceAll('Exception: ', ''));
+        }
+      },
+    );
+  }
 
   int _previousMessageCount = 0;
   ChatMessage? _previousLastMessage;
@@ -374,6 +482,160 @@ class _PrivateChatScreenState extends State<PrivateChatScreen>
     } else {
       return DateFormat('dd/MM/yyyy').format(date);
     }
+  }
+
+  static final RegExp _urlRegex = RegExp(
+    r'((?:https?:\/\/|www\.)[^\s<>()]+(?:\([^\s<>()]+\)|[^\s`!()\[\]{};:\x27"\x22.,<>?«»“”‘’]))|(polzet:\/\/[^\s]+)',
+    caseSensitive: false,
+  );
+
+  Map<String, String>? _extractPostInfoFromUri(Uri uri) {
+    try {
+      // 1. Custom scheme: polzet://post/{username}/{postId}
+      if (uri.scheme == 'polzet' && uri.host == 'post') {
+        final segments = uri.pathSegments.where((s) => s.isNotEmpty).toList();
+        if (segments.length >= 2) {
+          return {
+            'username': segments[0],
+            'postId': segments[1],
+          };
+        }
+      }
+
+      // 2. HTTPS / HTTP link with polzet domain or deepLinkHost
+      final host = uri.host.toLowerCase();
+      final isPolzetHost = host.contains('polzet.com') ||
+          host.contains('polzet.in') ||
+          host == ApiConfig.deepLinkHost.toLowerCase();
+
+      if (isPolzetHost) {
+        final segments = uri.pathSegments.where((s) => s.isNotEmpty).toList();
+        // Format: /post/{username}/{postId}
+        if (segments.length >= 3 && segments[0].toLowerCase() == 'post') {
+          return {
+            'username': segments[1],
+            'postId': segments[2],
+          };
+        }
+        // Format: /post/{postId}
+        if (segments.length == 2 && segments[0].toLowerCase() == 'post') {
+          return {
+            'username': 'user',
+            'postId': segments[1],
+          };
+        }
+      }
+    } catch (e) {
+      debugPrint('Error parsing post URI: $e');
+    }
+    return null;
+  }
+
+  Future<void> _handleLinkTap(BuildContext context, String rawUrl) async {
+    if (_selectedMessage != null) {
+      return;
+    }
+
+    String formattedUrl = rawUrl.trim();
+    if (!formattedUrl.startsWith('http://') &&
+        !formattedUrl.startsWith('https://') &&
+        !formattedUrl.startsWith('polzet://')) {
+      formattedUrl = 'https://$formattedUrl';
+    }
+
+    try {
+      final uri = Uri.parse(formattedUrl);
+
+      // Check if it is a current app post link
+      final postInfo = _extractPostInfoFromUri(uri);
+      if (postInfo != null) {
+        if (context.mounted) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => SinglePostDetails(
+                username: postInfo['username']!,
+                postId: postInfo['postId']!,
+              ),
+            ),
+          );
+        }
+        return;
+      }
+
+      // Otherwise launch in chrome / external application
+      if (await canLaunchUrl(uri)) {
+        final launched = await launchUrl(
+          uri,
+          mode: LaunchMode.externalApplication,
+        );
+        if (!launched) {
+          await launchUrl(uri, mode: LaunchMode.platformDefault);
+        }
+      } else {
+        showToast(message: 'Could not open link');
+      }
+    } catch (e) {
+      debugPrint('Error opening link: $e');
+      showToast(message: 'Invalid link');
+    }
+  }
+
+  Widget _buildMessageText(
+    BuildContext context, {
+    required String text,
+    required TextStyle baseStyle,
+    required bool isSentByMe,
+  }) {
+    final matches = _urlRegex.allMatches(text);
+    if (matches.isEmpty) {
+      return Text(text, style: baseStyle);
+    }
+
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final linkColor = isSentByMe
+        ? const Color(0xFF90CAF9)
+        : (isDarkMode ? const Color(0xFF64B5F6) : const Color(0xFF1976D2));
+
+    final List<InlineSpan> spans = [];
+    int lastIndex = 0;
+
+    for (final match in matches) {
+      if (match.start > lastIndex) {
+        spans.add(TextSpan(
+          text: text.substring(lastIndex, match.start),
+          style: baseStyle,
+        ));
+      }
+
+      final url = match.group(0)!;
+      spans.add(
+        TextSpan(
+          text: url,
+          style: baseStyle.copyWith(
+            color: linkColor,
+            decoration: TextDecoration.underline,
+            decorationColor: linkColor,
+          ),
+          recognizer: TapGestureRecognizer()
+            ..onTap = () {
+              _handleLinkTap(context, url);
+            },
+        ),
+      );
+      lastIndex = match.end;
+    }
+
+    if (lastIndex < text.length) {
+      spans.add(TextSpan(
+        text: text.substring(lastIndex),
+        style: baseStyle,
+      ));
+    }
+
+    return Text.rich(
+      TextSpan(children: spans),
+    );
   }
 
   // ── Message status icon (pending / failed / sent / read) ──────────────────────────
@@ -1115,15 +1377,17 @@ class _PrivateChatScreenState extends State<PrivateChatScreen>
           crossAxisAlignment: WrapCrossAlignment.end,
           spacing: 4.w,
           children: [
-            Text(
-              message.text,
-              style: AppTextStyles.bodyText.copyWith(
+            _buildMessageText(
+              context,
+              text: message.text,
+              baseStyle: AppTextStyles.bodyText.copyWith(
                 color: message.isSentByMe
                     ? Colors.white
                     : Theme.of(context).colorScheme.onBackground,
                 fontSize: 13,
                 fontWeight: FontWeight.w400,
               ),
+              isSentByMe: message.isSentByMe,
             ),
             Row(
               mainAxisSize: MainAxisSize.min,
@@ -1146,6 +1410,11 @@ class _PrivateChatScreenState extends State<PrivateChatScreen>
         ),
       ),
     );
+
+    final isTextMessage = message.sharedPost == null &&
+        message.sharedProfile == null &&
+        message.sharedGroup == null &&
+        message.text.trim().isNotEmpty;
 
     if (message.sharedPost != null) {
       return Column(
@@ -1183,7 +1452,37 @@ class _PrivateChatScreenState extends State<PrivateChatScreen>
       );
     }
 
-    return bubble;
+    if (!isTextMessage) {
+      return bubble;
+    }
+
+    final isSelected = _isMessageSelected(message);
+
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onLongPress: () {
+        setState(() {
+          _selectedMessage = message;
+        });
+      },
+      onTap: _selectedMessage != null
+          ? () {
+              setState(() {
+                if (_isMessageSelected(message)) {
+                  _selectedMessage = null;
+                } else {
+                  _selectedMessage = message;
+                }
+              });
+            }
+          : null,
+      child: Container(
+        color: isSelected
+            ? Theme.of(context).colorScheme.primary.withOpacity(0.18)
+            : Colors.transparent,
+        child: bubble,
+      ),
+    );
   }
 
   // ── Top loader for pagination ──────────────────────────────────────────────
@@ -1284,13 +1583,76 @@ class _PrivateChatScreenState extends State<PrivateChatScreen>
 
     return SafeArea(
       top: false,
-      child: Scaffold(
-        backgroundColor: Theme.of(context).colorScheme.background,
-        appBar: AppBar(
-          toolbarHeight: 40.h,
-          automaticallyImplyLeading: false,
-          leadingWidth: double.infinity,
-          leading: Row(
+      child: PopScope(
+        canPop: _selectedMessage == null,
+        onPopInvoked: (didPop) {
+          if (didPop) return;
+          if (_selectedMessage != null) {
+            setState(() {
+              _selectedMessage = null;
+            });
+          }
+        },
+        child: Scaffold(
+          backgroundColor: Theme.of(context).colorScheme.background,
+          appBar: _selectedMessage != null
+              ? AppBar(
+                  toolbarHeight: 40.h,
+                  automaticallyImplyLeading: false,
+                  leadingWidth: double.infinity,
+                  backgroundColor: Theme.of(context).colorScheme.background,
+                  surfaceTintColor: Theme.of(context).colorScheme.background,
+                  leading: Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      SizedBox(width: 4.w),
+                      IconButton(
+                        icon: Icon(
+                          Icons.close,
+                          size: 22,
+                          color: Theme.of(context).colorScheme.onBackground,
+                        ),
+                        onPressed: () {
+                          setState(() {
+                            _selectedMessage = null;
+                          });
+                        },
+                      ),
+                      SizedBox(width: 8.w),
+                      Text(
+                        '1',
+                        style: AppTextStyles.bodyText.copyWith(
+                          color: txt.title,
+                          fontSize: 16.sp,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const Spacer(),
+                      IconButton(
+                        icon: Icon(
+                          Icons.copy_rounded,
+                          size: 20,
+                          color: Theme.of(context).colorScheme.onBackground,
+                        ),
+                        onPressed: _copySelectedMessage,
+                      ),
+                      IconButton(
+                        icon: Icon(
+                          Icons.delete_outline_rounded,
+                          size: 22,
+                          color: Theme.of(context).colorScheme.onBackground,
+                        ),
+                        onPressed: _deleteSelectedMessage,
+                      ),
+                      SizedBox(width: 4.w),
+                    ],
+                  ),
+                )
+              : AppBar(
+                  toolbarHeight: 40.h,
+                  automaticallyImplyLeading: false,
+                  leadingWidth: double.infinity,
+                  leading: Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               SizedBox(width: 12.w),
@@ -1527,7 +1889,16 @@ class _PrivateChatScreenState extends State<PrivateChatScreen>
           backgroundColor: Theme.of(context).colorScheme.background,
           surfaceTintColor: Theme.of(context).colorScheme.background,
         ),
-        body: Container(
+        body: GestureDetector(
+          behavior: HitTestBehavior.translucent,
+          onTap: () {
+            if (_selectedMessage != null) {
+              setState(() {
+                _selectedMessage = null;
+              });
+            }
+          },
+          child: Container(
           decoration: BoxDecoration(
             image: DecorationImage(
               image: isDarkMode
@@ -1929,6 +2300,8 @@ class _PrivateChatScreenState extends State<PrivateChatScreen>
                     ),
                   ],
                 ),
+        ),
+          ),
         ),
       ),
     );

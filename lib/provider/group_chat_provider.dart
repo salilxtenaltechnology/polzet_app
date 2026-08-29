@@ -176,7 +176,6 @@ class GroupChatProvider extends ChangeNotifier {
   bool _shouldReconnect = false;
 
   static const int _maxReconnectAttempts = 5;
-  static const Duration _pendingConfirmTimeout = Duration(seconds: 4);
 
   bool get isPresenceConnected => _isPresenceConnected;
   bool get isMessageConnected => _isMessageConnected;
@@ -326,6 +325,8 @@ class GroupChatProvider extends ChangeNotifier {
       final fetched = response.results
           .map(
             (item) => ChatMessage(
+              id: item.id,
+              chatId: item.chat.toString().isNotEmpty ? item.chat : cid,
               text: item.message,
               created_at: item.created_at,
               isSentByMe: _currentUsername != null
@@ -383,6 +384,8 @@ class GroupChatProvider extends ChangeNotifier {
       final fetched = response.results
           .map(
             (item) => ChatMessage(
+              id: item.id,
+              chatId: item.chat.toString().isNotEmpty ? item.chat : cid,
               text: item.message,
               created_at: item.created_at,
               isSentByMe: _currentUsername != null
@@ -434,6 +437,8 @@ class GroupChatProvider extends ChangeNotifier {
       final fetched = response.results
           .map(
             (item) => ChatMessage(
+              id: item.id,
+              chatId: item.chat.toString().isNotEmpty ? item.chat : cid,
               text: item.message,
               created_at: item.created_at,
               isSentByMe: item.isSentBy(_currentUsername),
@@ -727,6 +732,16 @@ class GroupChatProvider extends ChangeNotifier {
 
       if (type == 'read_receipt') return;
 
+      if (type == 'message_deleted' || type == 'delete_message') {
+        final dynamic deletedId = data['message_id'] ??
+            data['id'] ??
+            (data['message'] is Map ? data['message']['id'] : null);
+        if (deletedId != null) {
+          removeMessageById(deletedId);
+        }
+        return;
+      }
+
       // ✅ Accept both "new_message" and legacy "chat_message"
       if (type == 'new_message' || type == 'chat_message') {
         final msgMap = data['message'] as Map<String, dynamic>?;
@@ -735,6 +750,8 @@ class GroupChatProvider extends ChangeNotifier {
         final int? serverId = msgMap['id'] is int
             ? msgMap['id'] as int
             : int.tryParse(msgMap['id']?.toString() ?? '');
+        final dynamic serverChatId =
+            msgMap['chat'] ?? msgMap['chat_id'] ?? _chatId;
         final String text = msgMap['text']?.toString() ?? '';
         if (text.isEmpty) return;
 
@@ -771,6 +788,7 @@ class GroupChatProvider extends ChangeNotifier {
           if (pendingIndex != -1) {
             _messages[pendingIndex] = ChatMessage(
               id: serverId,
+              chatId: serverChatId,
               text: text,
               created_at: serverTimestamp,
               isSentByMe: true,
@@ -791,6 +809,7 @@ class GroupChatProvider extends ChangeNotifier {
         _messages.add(
           ChatMessage(
             id: serverId,
+            chatId: serverChatId,
             text: text,
             created_at: serverTimestamp,
             isSentByMe: isSentByMe,
@@ -939,9 +958,11 @@ class GroupChatProvider extends ChangeNotifier {
   Future<void> sendMessage(String text) async {
     final trimmed = text.trim();
     if (trimmed.isEmpty) return;
-    if (_chatId == null) return;
+    final cid = _chatId;
+    if (cid == null) return;
 
     final optimistic = ChatMessage(
+      chatId: cid,
       text: trimmed,
       created_at: DateTime.now(),
       isSentByMe: true,
@@ -953,31 +974,44 @@ class GroupChatProvider extends ChangeNotifier {
     _emitMessages();
 
     try {
-      final cid = _chatId;
-      if (cid != null) {
-        await ApiService().sendMessage(chatId: cid, text: trimmed);
+      final response = await ApiService().sendMessage(chatId: cid, text: trimmed);
+
+      Map<String, dynamic> msgMap = response;
+      if (response['data'] is Map<String, dynamic>) {
+        msgMap = response['data'] as Map<String, dynamic>;
+      } else if (response['message'] is Map<String, dynamic>) {
+        msgMap = response['message'] as Map<String, dynamic>;
       }
 
-      Future.delayed(_pendingConfirmTimeout, () {
-        final pendingIndex = _messages.lastIndexWhere(
-          (m) => m.isSentByMe && m.isPending && m.text == trimmed,
+      final dynamic serverId =
+          msgMap['id'] ?? msgMap['message_id'] ?? msgMap['_id'];
+      final dynamic serverChatId =
+          msgMap['chat'] ?? msgMap['chat_id'] ?? cid;
+      final serverTimestamp = DateTime.tryParse(
+            msgMap['created_at']?.toString() ?? '',
+          )?.toLocal() ??
+          DateTime.now();
+
+      final pendingIndex = _messages.lastIndexWhere(
+        (m) => m.isSentByMe && m.isPending && m.text == trimmed,
+      );
+      if (pendingIndex != -1) {
+        _messages[pendingIndex] = ChatMessage(
+          id: serverId,
+          chatId: serverChatId,
+          text: trimmed,
+          created_at: serverTimestamp,
+          isSentByMe: true,
+          isPending: false,
+          senderUsername: _currentUsername,
+          senderId: _currentUserId?.toString(),
+          sharedPost: msgMap['shared_post'] as Map<String, dynamic>?,
+          sharedProfile: msgMap['shared_profile'] as Map<String, dynamic>?,
+          sharedGroup: msgMap['shared_group'] as Map<String, dynamic>?,
         );
-        if (pendingIndex != -1) {
-          debugPrint(
-            '⏱ [Group] Fallback: auto-confirming pending message: $trimmed',
-          );
-          _messages[pendingIndex] = ChatMessage(
-            text: trimmed,
-            created_at: _messages[pendingIndex].created_at,
-            isSentByMe: true,
-            isPending: false,
-            senderUsername: _currentUsername,
-            senderId: _currentUserId?.toString(),
-          );
-          _saveCachedMessages();
-          _emitMessages();
-        }
-      });
+        _saveCachedMessages();
+        _emitMessages();
+      }
     } catch (e) {
       debugPrint('❌ [Group] sendMessage API failed: $e');
       final pendingIndex = _messages.lastIndexWhere(
@@ -985,6 +1019,7 @@ class GroupChatProvider extends ChangeNotifier {
       );
       if (pendingIndex != -1) {
         _messages[pendingIndex] = ChatMessage(
+          chatId: cid,
           text: trimmed,
           created_at: _messages[pendingIndex].created_at,
           isSentByMe: true,
@@ -1034,6 +1069,42 @@ class GroupChatProvider extends ChangeNotifier {
       _chat!['profile_url'] = url;
     }
     notifyListeners();
+  }
+
+  Future<void> deleteMessage({
+    required dynamic messageId,
+    dynamic chatId,
+    String deleteType = 'everyone',
+  }) async {
+    final targetChatId = chatId ?? _chatId;
+    if (targetChatId == null) {
+      throw Exception('Chat ID is missing');
+    }
+    if (messageId == null) {
+      throw Exception('Message ID is missing');
+    }
+
+    await ApiService().deleteMessage(
+      chatId: targetChatId.toString(),
+      messageId: messageId.toString(),
+      deleteType: deleteType,
+    );
+
+    removeMessageById(messageId);
+  }
+
+  void removeMessageById(dynamic messageId) {
+    if (messageId == null) return;
+    final idStr = messageId.toString();
+    final index = _messages.indexWhere(
+      (m) => m.id != null && m.id.toString() == idStr,
+    );
+    if (index != -1) {
+      _messages.removeAt(index);
+      _saveCachedMessages();
+      _emitMessages();
+      notifyListeners();
+    }
   }
 
   Future<Map<String, dynamic>> deleteGroup() async {

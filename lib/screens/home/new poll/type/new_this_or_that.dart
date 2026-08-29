@@ -60,15 +60,15 @@ class _NewThisOrThatState extends State<NewThisOrThat> {
   bool _isGeneratingQuestion = false;
   bool _hasGeneratedQuestion = false;
 
-  int _remainingGenerations = 5;
-  int _dailyLimit = 5;
+  int _remainingGenerations = 8;
+  int _dailyLimit = 8;
 
   Future<void> _loadSavedAiLimit() async {
     final limitData = await SharedPrefService.getAiLimitData();
     if (mounted) {
       setState(() {
-        _remainingGenerations = limitData['remaining'] ?? 5;
-        _dailyLimit = limitData['daily_limit'] ?? 5;
+        _remainingGenerations = limitData['remaining'] ?? 8;
+        _dailyLimit = limitData['daily_limit'] ?? 8;
       });
     }
   }
@@ -561,7 +561,11 @@ class _NewThisOrThatState extends State<NewThisOrThat> {
                     child: GenerateQuestionButton(
                       isGenerating: _isGeneratingQuestion,
                       hasGenerated: _hasGeneratedQuestion,
-                      onTap: _isGeneratingQuestion ? null : generateQuestion,
+                      isEnabled: _remainingGenerations > 0,
+                      onTap:
+                          (_isGeneratingQuestion || _remainingGenerations <= 0)
+                              ? null
+                              : generateQuestion,
                     ),
                   ),
                 ],

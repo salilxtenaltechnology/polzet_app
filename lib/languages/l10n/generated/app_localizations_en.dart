@@ -554,7 +554,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get enteryourphonenumber => 'Enter phone number';
 
   @override
-  String get savechanges => 'Save Chages';
+  String get savechanges => 'Save Changes';
 
   @override
   String get changepassword => 'Change Password';
@@ -1729,7 +1729,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get groups => 'Groups';
 
   @override
-  String get shareprofile => 'Share profile';
+  String get shareprofile => 'Share Profile';
 
   @override
   String get images => 'Images';
@@ -2334,4 +2334,102 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get trendingpolls => 'Trending Polls';
+
+  @override
+  String get contentpreferences => 'Content Preferences';
+
+  @override
+  String get choosewhatyouwanttoseeonpolzet =>
+      'Choose what you want to see on Polzet';
+
+  @override
+  String get country => 'Country';
+
+  @override
+  String get choosethecountryforyourcontentandpolls =>
+      'Choose the country for your content and polls';
+
+  @override
+  String get interests => 'Interests';
+
+  @override
+  String get choosethetopicsyouwanttoseemoreof =>
+      'Choose the topics you want to see more of';
+
+  @override
+  String get searchcountry => 'Search country';
+
+  @override
+  String get searchinterest => 'Search interest';
+
+  @override
+  String get nointerestsfound => 'No interests found';
+
+  @override
+  String get nocountriesfound => 'No countries found';
+
+  @override
+  String get copyprofilelink => 'Copy Profile Link';
+
+  @override
+  String get noaigenerationsleft => 'No AI generations left today';
+
+  @override
+  String get creditsresettomorrow => 'Your credits will reset tomorrow';
+
+  @override
+  String get lefttoday => 'left today';
+
+  @override
+  String get comingsoon => 'COMING SOON';
+
+  @override
+  String get newfeaturescomingsoon => 'New features coming soon';
+
+  @override
+  String get comingsoondescription =>
+      'We\'re working on powerful business profile tools, advanced analytics, and more ways to grow your presence on Polzet.';
+
+  @override
+  String get indevelopment => 'In Development';
+
+  @override
+  String get businessprofiletools => 'Business Profile Tools';
+
+  @override
+  String get businessprofiletoolsdescription =>
+      'Custom branding, verified badges, action buttons, & business links.';
+
+  @override
+  String get comingq4 => 'Coming Q4';
+
+  @override
+  String get advancedanalytics => 'Advanced Analytics';
+
+  @override
+  String get advancedanalyticsdescription =>
+      'Demographic breakdown, peak activity hours, & voter retention stats.';
+
+  @override
+  String get planned => 'Planned';
+
+  @override
+  String get growthandpromotions => 'Growth & Promotions';
+
+  @override
+  String get growthandpromotionsdescription =>
+      'Boosted poll placement, targeted reach, & audience retargeting.';
+
+  @override
+  String get getvipearlyaccess => 'Get VIP Early Access';
+
+  @override
+  String get vipearlyaccessdescription =>
+      'Be the first to test new tools when they launch.';
+
+  @override
+  String get onearlyaccesslist => 'You\'re on the early access list!';
+
+  @override
+  String get joinwaitlist => 'Join Waitlist';
 }

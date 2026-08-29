@@ -3157,6 +3157,31 @@ class ApiService with UtilityMixin {
     }
   }
 
+  Future<Map<String, dynamic>> deleteMessage({
+    required dynamic chatId,
+    required dynamic messageId,
+    String deleteType = 'everyone',
+  }) async {
+    try {
+      final response = await _dio.delete(
+        '${ApiConstants.baseUrl}/chats/$chatId/messages/$messageId',
+        data: {
+          'delete_type': deleteType,
+        },
+        options: Options(headers: await _getAuthHeaders()),
+      );
+
+      if (response.data is Map<String, dynamic>) {
+        return response.data as Map<String, dynamic>;
+      }
+      return {'message': response.data?.toString() ?? 'Message deleted'};
+    } on DioException catch (e) {
+      throw _handleDioError(e);
+    } catch (e) {
+      throw Exception('Failed to delete message: $e');
+    }
+  }
+
   Future<Map<String, dynamic>> createPrivateChatId({
     required String withUserId,
   }) async {
@@ -3186,22 +3211,23 @@ class ApiService with UtilityMixin {
     }
   }
 
-  Future<void> sendMessage({
+  Future<Map<String, dynamic>> sendMessage({
     required dynamic chatId,
     required String text,
   }) async {
     try {
       debugPrint('📤 Sending message to server — chatId: $chatId, text: $text');
 
-      await _dio.post(
+      final response = await _dio.post(
         '${ApiConstants.sendMessage}/$chatId/messages',
         data: {'text': text},
         options: Options(headers: await _getAuthHeaders()),
       );
 
-      // debugPrint(
-      //   'sendMessage response [${response.statusCode}]: ${response.data}',
-      // );
+      if (response.data is Map<String, dynamic>) {
+        return response.data as Map<String, dynamic>;
+      }
+      return {'data': response.data};
     } on DioException catch (e) {
       debugPrint(
         '❌ sendMessage DioException: '

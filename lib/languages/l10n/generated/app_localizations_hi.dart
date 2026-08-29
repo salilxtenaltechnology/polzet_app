@@ -556,7 +556,7 @@ class AppLocalizationsHi extends AppLocalizations {
   String get enteryourphonenumber => 'फ़ोन नंबर दर्ज करें';
 
   @override
-  String get savechanges => 'परिवर्तनों को सुरक्षित करें';
+  String get savechanges => 'परिवर्तन सहेजें';
 
   @override
   String get changepassword => 'पासवर्ड बदलें';
@@ -1734,7 +1734,7 @@ class AppLocalizationsHi extends AppLocalizations {
   String get groups => 'समूह';
 
   @override
-  String get shareprofile => 'प्रोफ़ाइल शेयर करें';
+  String get shareprofile => 'प्रोफ़ाइल साझा करें';
 
   @override
   String get images => 'छवियाँ';
@@ -2286,10 +2286,10 @@ class AppLocalizationsHi extends AppLocalizations {
   String get pleaseselecttwoimages => 'कृपया 2 तस्वीरें चुनें';
 
   @override
-  String get markasread => 'पढ़ा हुआ चिह्नित करें';
+  String get markasread => 'पठित के रूप में चिह्नित करें';
 
   @override
-  String get markasunread => 'अपठित चिह्नित करें';
+  String get markasunread => 'अपठित के रूप में चिह्नित करें';
 
   @override
   String get archivedgroups => 'संग्रहीत समूह';
@@ -2338,4 +2338,102 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get trendingpolls => 'ट्रेंडिंग पोल';
+
+  @override
+  String get contentpreferences => 'सामग्री प्राथमिकताएं';
+
+  @override
+  String get choosewhatyouwanttoseeonpolzet =>
+      'चुनें कि आप Polzet पर क्या देखना चाहते हैं';
+
+  @override
+  String get country => 'देश';
+
+  @override
+  String get choosethecountryforyourcontentandpolls =>
+      'अपनी सामग्री और पोल के लिए देश चुनें';
+
+  @override
+  String get interests => 'रुचियां';
+
+  @override
+  String get choosethetopicsyouwanttoseemoreof =>
+      'उन विषयों को चुनें जिनके बारे में आप अधिक देखना चाहते हैं';
+
+  @override
+  String get searchcountry => 'देश खोजें';
+
+  @override
+  String get searchinterest => 'रुचि खोजें';
+
+  @override
+  String get nointerestsfound => 'कोई रुचि नहीं मिली';
+
+  @override
+  String get nocountriesfound => 'कोई देश नहीं मिला';
+
+  @override
+  String get copyprofilelink => 'प्रोफ़ाइल लिंक कॉपी करें';
+
+  @override
+  String get noaigenerationsleft => 'आज कोई AI जनरेशन शेष नहीं है';
+
+  @override
+  String get creditsresettomorrow => 'आपके क्रेडिट कल रीसेट हो जाएंगे';
+
+  @override
+  String get lefttoday => 'आज शेष';
+
+  @override
+  String get comingsoon => 'जल्द आ रहा है';
+
+  @override
+  String get newfeaturescomingsoon => 'नई सुविधाएं जल्द आ रही हैं';
+
+  @override
+  String get comingsoondescription =>
+      'हम शक्तिशाली बिज़नेस प्रोफ़ाइल टूल, उन्नत एनालिटिक्स, और Polzet पर आपकी उपस्थिति बढ़ाने के और तरीकों पर काम कर रहे हैं।';
+
+  @override
+  String get indevelopment => 'विकास में';
+
+  @override
+  String get businessprofiletools => 'बिज़नेस प्रोफ़ाइल टूल';
+
+  @override
+  String get businessprofiletoolsdescription =>
+      'कस्टम ब्रांडिंग, सत्यापित बैज, एक्शन बटन, और बिज़नेस लिंक।';
+
+  @override
+  String get comingq4 => 'चौथी तिमाही में आ रहा है';
+
+  @override
+  String get advancedanalytics => 'उन्नत एनालिटिक्स';
+
+  @override
+  String get advancedanalyticsdescription =>
+      'जनसांख्यिकीय विवरण, सबसे व्यस्त गतिविधि के घंटे, और मतदाता प्रतिधारण आंकड़े।';
+
+  @override
+  String get planned => 'योजनाबद्ध';
+
+  @override
+  String get growthandpromotions => 'विकास और प्रचार';
+
+  @override
+  String get growthandpromotionsdescription =>
+      'बढ़ावा दिया गया पोल प्लेसमेंट, लक्षित पहुंच, और ऑडियंस रीटार्गेटिंग।';
+
+  @override
+  String get getvipearlyaccess => 'VIP शीघ्र पहुंच प्राप्त करें';
+
+  @override
+  String get vipearlyaccessdescription =>
+      'लॉन्च होने पर नए टूल का परीक्षण करने वाले पहले व्यक्ति बनें।';
+
+  @override
+  String get onearlyaccesslist => 'आप शीघ्र पहुंच सूची में हैं!';
+
+  @override
+  String get joinwaitlist => 'प्रतीक्षा सूची में शामिल हों';
 }

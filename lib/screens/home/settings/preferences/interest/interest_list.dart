@@ -7,6 +7,7 @@ import '../../../../../api/api_service.dart';
 import '../../../../../core/themes/app_text_colors.dart';
 import '../../../../../core/themes/app_text_styles.dart';
 import '../../../../../gen/assets.gen.dart';
+import '../../../../../languages/l10n/generated/app_localizations.dart';
 import '../../../../../provider/user_provider.dart';
 import '../../../../../widgets/appbar/common_appbar.dart';
 import '../../../../../widgets/loader.dart';
@@ -174,7 +175,7 @@ class _InterestListState extends State<InterestList> {
           ),
           onChanged: _filterInterests,
           decoration: InputDecoration(
-            hintText: 'Search interest',
+            hintText: AppLocalizations.of(context)!.searchinterest,
             hintStyle: AppTextStyles.bodyText.copyWith(
               color: const Color(0XFF898989),
               fontWeight: FontWeight.w400,
@@ -227,7 +228,7 @@ class _InterestListState extends State<InterestList> {
 
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.background,
-      appBar: const CommonAppBar(title: 'Interests', showBackButton: true),
+      appBar:  CommonAppBar(title: AppLocalizations.of(context)!.interests, showBackButton: true),
       body: Column(
         children: [
           _buildSearchBar(),
@@ -241,7 +242,7 @@ class _InterestListState extends State<InterestList> {
                 : _filteredInterests.isEmpty
                 ? Center(
                     child: Text(
-                      'No interests found',
+                      AppLocalizations.of(context)!.nointerestsfound,
                       style: AppTextStyles.bodyText.copyWith(
                         color: txt.muted,
                         fontSize: 14,
@@ -439,8 +440,7 @@ class _InterestListState extends State<InterestList> {
                   color: Colors.white,
                 ),
               )
-            : Text(
-                'Save Changes',
+            : Text(AppLocalizations.of(context)!.savechanges,
                 style: AppTextStyles.bodyText.copyWith(
                   fontSize: 15,
                   fontWeight: FontWeight.w500,

@@ -242,11 +242,18 @@ class SharedPrefService {
     return '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
   }
 
+  static const int defaultDailyAiLimit = 8;
+
   static Future<Map<String, int>> getAiLimitData() async {
     final prefs = await SharedPreferences.getInstance();
     final today = _getTodayDateString();
     final lastResetDate = prefs.getString(_aiLastResetDateKey);
-    final savedLimit = prefs.getInt(_aiDailyLimitKey) ?? 5;
+    int savedLimit = prefs.getInt(_aiDailyLimitKey) ?? defaultDailyAiLimit;
+
+    if (savedLimit < defaultDailyAiLimit) {
+      savedLimit = defaultDailyAiLimit;
+      await prefs.setInt(_aiDailyLimitKey, defaultDailyAiLimit);
+    }
 
     if (lastResetDate != today) {
       // New day -> Reset to daily limit
@@ -270,5 +277,18 @@ class SharedPrefService {
     if (dailyLimit != null) {
       await prefs.setInt(_aiDailyLimitKey, dailyLimit);
     }
+  }
+
+  //*----- VIP Early Access Waitlist -----*//
+  static const String _vipWaitlistJoinedKey = 'vip_waitlist_joined';
+
+  static Future<bool> isVipWaitlistJoined() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_vipWaitlistJoinedKey) ?? false;
+  }
+
+  static Future<void> setVipWaitlistJoined([bool joined = true]) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_vipWaitlistJoinedKey, joined);
   }
 }

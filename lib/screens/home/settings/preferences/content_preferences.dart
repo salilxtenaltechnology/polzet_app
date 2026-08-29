@@ -7,6 +7,7 @@ import '../../../../core/constants/app_radius.dart';
 import '../../../../core/themes/app_text_colors.dart';
 import '../../../../core/themes/app_text_styles.dart';
 import '../../../../gen/assets.gen.dart';
+import '../../../../languages/l10n/generated/app_localizations.dart';
 import '../../../../mixin/utility_mixins.dart';
 import '../../../../widgets/appbar/common_appbar.dart';
 import 'country/country_list.dart';
@@ -25,8 +26,8 @@ class _ContentPreferencesState extends State<ContentPreferences>
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.background,
-      appBar: const CommonAppBar(
-        title: 'Content Preferences',
+      appBar:  CommonAppBar(
+        title: AppLocalizations.of(context)!.contentpreferences,
         showBackButton: true,
       ),
       body: Padding(
@@ -35,8 +36,8 @@ class _ContentPreferencesState extends State<ContentPreferences>
           children: [
             _buildNavTile(
               icon: Assets.images.icCountry.path,
-              title: 'Country',
-              subtitle: 'Choose the country for your content and polls',
+              title: AppLocalizations.of(context)!.country,
+              subtitle: AppLocalizations.of(context)!.choosethecountryforyourcontentandpolls,
               onTap: () {
                 navigationPush(context, const CountryList());
               },
@@ -46,8 +47,8 @@ class _ContentPreferencesState extends State<ContentPreferences>
             const SizedBox(height:8),
             _buildNavTile(
               icon: Assets.images.icInterest.path,
-              title: 'Interests',
-              subtitle: 'Choose the topics you want to see more of',
+              title: AppLocalizations.of(context)!.interests,
+              subtitle: AppLocalizations.of(context)!.choosethetopicsyouwanttoseemoreof,
               onTap: () {
                 navigationPush(context, const InterestList());
               },

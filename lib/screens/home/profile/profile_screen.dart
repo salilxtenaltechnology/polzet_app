@@ -525,7 +525,7 @@ class _ProfileScreenState extends State<ProfileScreen>
             }
           });
         }
-        showToast(message: 'Post deleted successfully');
+        showToast(message: 'Post deleted');
       } else {
         showToast(message: 'Failed to delete post');
       }

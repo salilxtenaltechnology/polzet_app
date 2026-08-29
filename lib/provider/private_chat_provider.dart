@@ -94,7 +94,6 @@ class PrivateChatProvider extends ChangeNotifier {
   bool _shouldReconnect = false;
 
   static const int _maxReconnectAttempts = 5;
-  static const Duration _pendingConfirmTimeout = Duration(seconds: 4);
 
   bool _isMemberOnline = false;
 
@@ -236,6 +235,7 @@ class PrivateChatProvider extends ChangeNotifier {
           .map(
             (item) => ChatMessage(
               id: item.id,
+              chatId: item.chat.toString().isNotEmpty ? item.chat : cid,
               text: item.message,
               created_at: item.created_at,
               isRead: item.isRead,
@@ -245,6 +245,9 @@ class PrivateChatProvider extends ChangeNotifier {
               sharedPost: item.sharedPost,
               sharedProfile: item.sharedProfile,
               sharedGroup: item.sharedGroup,
+              senderId: item.sender.id,
+              senderUsername: item.sender.username,
+              senderProfileImage: item.sender.profileImage,
             ),
           )
           .toList()
@@ -295,6 +298,7 @@ class PrivateChatProvider extends ChangeNotifier {
           .map(
             (item) => ChatMessage(
               id: item.id,
+              chatId: item.chat.toString().isNotEmpty ? item.chat : cid,
               text: item.message,
               created_at: item.created_at,
               isRead: item.isRead,
@@ -304,6 +308,9 @@ class PrivateChatProvider extends ChangeNotifier {
               sharedPost: item.sharedPost,
               sharedProfile: item.sharedProfile,
               sharedGroup: item.sharedGroup,
+              senderId: item.sender.id,
+              senderUsername: item.sender.username,
+              senderProfileImage: item.sender.profileImage,
             ),
           )
           .toList();
@@ -344,6 +351,7 @@ class PrivateChatProvider extends ChangeNotifier {
           .map(
             (item) => ChatMessage(
               id: item.id,
+              chatId: item.chat.toString().isNotEmpty ? item.chat : cid,
               text: item.message,
               created_at: item.created_at,
               isRead: item.isRead,
@@ -351,6 +359,9 @@ class PrivateChatProvider extends ChangeNotifier {
               sharedPost: item.sharedPost,
               sharedProfile: item.sharedProfile,
               sharedGroup: item.sharedGroup,
+              senderId: item.sender.id,
+              senderUsername: item.sender.username,
+              senderProfileImage: item.sender.profileImage,
             ),
           )
           .toList();
@@ -580,13 +591,25 @@ class PrivateChatProvider extends ChangeNotifier {
       final data = jsonDecode(raw as String) as Map<String, dynamic>;
       final String type = data['type']?.toString() ?? '';
 
-      if (type == 'new_message') {
+      if (type == 'message_deleted' || type == 'delete_message') {
+        final dynamic deletedId = data['message_id'] ??
+            data['id'] ??
+            (data['message'] is Map ? data['message']['id'] : null);
+        if (deletedId != null) {
+          removeMessageById(deletedId);
+        }
+        return;
+      }
+
+      if (type == 'new_message' || type == 'chat_message') {
         final msgMap = data['message'] as Map<String, dynamic>?;
         if (msgMap == null) return;
 
         final int? serverId = msgMap['id'] is int
             ? msgMap['id'] as int
             : int.tryParse(msgMap['id']?.toString() ?? '');
+        final dynamic serverChatId =
+            msgMap['chat'] ?? msgMap['chat_id'] ?? _chatId;
         final String text = msgMap['text']?.toString() ?? '';
         if (text.isEmpty) return;
 
@@ -616,10 +639,12 @@ class PrivateChatProvider extends ChangeNotifier {
           if (pendingIndex != -1) {
             _messages[pendingIndex] = ChatMessage(
               id: serverId, // ← stamp the real id
+              chatId: serverChatId,
               text: text,
               created_at: serverTimestamp,
               isSentByMe: true,
               isPending: false,
+              senderId: senderId?.toString(),
               sharedPost: msgMap['shared_post'] as Map<String, dynamic>?,
               sharedProfile: msgMap['shared_profile'] as Map<String, dynamic>?,
               sharedGroup: msgMap['shared_group'] as Map<String, dynamic>?,
@@ -633,10 +658,12 @@ class PrivateChatProvider extends ChangeNotifier {
         _messages.add(
           ChatMessage(
             id: serverId,
+            chatId: serverChatId,
             text: text,
             created_at: serverTimestamp,
             isSentByMe: isSentByMe,
             isPending: false,
+            senderId: senderId?.toString(),
             sharedPost: msgMap['shared_post'] as Map<String, dynamic>?,
             sharedProfile: msgMap['shared_profile'] as Map<String, dynamic>?,
             sharedGroup: msgMap['shared_group'] as Map<String, dynamic>?,
@@ -765,9 +792,11 @@ class PrivateChatProvider extends ChangeNotifier {
   Future<void> sendMessage(String text) async {
     final trimmed = text.trim();
     if (trimmed.isEmpty) return;
-    if (_chatId == null) return;
+    final cid = _chatId;
+    if (cid == null) return;
 
     final optimistic = ChatMessage(
+      chatId: cid,
       text: trimmed,
       created_at: DateTime.now(),
       isSentByMe: true,
@@ -779,28 +808,44 @@ class PrivateChatProvider extends ChangeNotifier {
     _emitMessages();
 
     try {
-      final cid = _chatId;
-      if (cid != null) {
-        await ApiService().sendMessage(chatId: cid, text: trimmed);
+      final response = await ApiService().sendMessage(chatId: cid, text: trimmed);
+
+      Map<String, dynamic> msgMap = response;
+      if (response['data'] is Map<String, dynamic>) {
+        msgMap = response['data'] as Map<String, dynamic>;
+      } else if (response['message'] is Map<String, dynamic>) {
+        msgMap = response['message'] as Map<String, dynamic>;
       }
 
-      Future.delayed(_pendingConfirmTimeout, () {
-        final pendingIndex = _messages.lastIndexWhere(
-          (m) => m.isSentByMe && m.isPending && m.text == trimmed,
+      final dynamic serverId =
+          msgMap['id'] ?? msgMap['message_id'] ?? msgMap['_id'];
+      final dynamic serverChatId =
+          msgMap['chat'] ?? msgMap['chat_id'] ?? cid;
+      final serverTimestamp = DateTime.tryParse(
+            msgMap['created_at']?.toString() ?? '',
+          )?.toLocal() ??
+          DateTime.now();
+
+      final pendingIndex = _messages.lastIndexWhere(
+        (m) => m.isSentByMe && m.isPending && m.text == trimmed,
+      );
+      if (pendingIndex != -1) {
+        _messages[pendingIndex] = ChatMessage(
+          id: serverId,
+          chatId: serverChatId,
+          text: trimmed,
+          created_at: serverTimestamp,
+          isSentByMe: true,
+          isPending: false,
+          senderUsername: _currentUsername,
+          senderId: currentUserId?.toString(),
+          sharedPost: msgMap['shared_post'] as Map<String, dynamic>?,
+          sharedProfile: msgMap['shared_profile'] as Map<String, dynamic>?,
+          sharedGroup: msgMap['shared_group'] as Map<String, dynamic>?,
         );
-        if (pendingIndex != -1) {
-          _messages[pendingIndex] = ChatMessage(
-            text: trimmed,
-            created_at: _messages[pendingIndex].created_at,
-            isSentByMe: true,
-            isPending: false,
-            senderUsername: _currentUsername,
-            senderId: currentUserId?.toString(),
-          );
-          _saveCachedMessages();
-          _emitMessages();
-        }
-      });
+        _saveCachedMessages();
+        _emitMessages();
+      }
     } catch (e) {
       debugPrint('❌ sendMessage API failed: $e');
       final pendingIndex = _messages.lastIndexWhere(
@@ -808,6 +853,7 @@ class PrivateChatProvider extends ChangeNotifier {
       );
       if (pendingIndex != -1) {
         _messages[pendingIndex] = ChatMessage(
+          chatId: cid,
           text: trimmed,
           created_at: _messages[pendingIndex].created_at,
           isSentByMe: true,
@@ -819,6 +865,42 @@ class PrivateChatProvider extends ChangeNotifier {
         _saveCachedMessages();
         _emitMessages();
       }
+    }
+  }
+
+  Future<void> deleteMessage({
+    required dynamic messageId,
+    dynamic chatId,
+    String deleteType = 'everyone',
+  }) async {
+    final targetChatId = chatId ?? _chatId;
+    if (targetChatId == null) {
+      throw Exception('Chat ID is missing');
+    }
+    if (messageId == null) {
+      throw Exception('Message ID is missing');
+    }
+
+    await ApiService().deleteMessage(
+      chatId: targetChatId.toString(),
+      messageId: messageId.toString(),
+      deleteType: deleteType,
+    );
+
+    removeMessageById(messageId);
+  }
+
+  void removeMessageById(dynamic messageId) {
+    if (messageId == null) return;
+    final idStr = messageId.toString();
+    final index = _messages.indexWhere(
+      (m) => m.id != null && m.id.toString() == idStr,
+    );
+    if (index != -1) {
+      _messages.removeAt(index);
+      _saveCachedMessages();
+      _emitMessages();
+      notifyListeners();
     }
   }
 

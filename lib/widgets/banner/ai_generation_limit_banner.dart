@@ -27,7 +27,7 @@ class AiGenerationLimitBanner extends StatelessWidget {
       bgColor = isDark ? const Color(0xFF3D2C1A) : const Color(0xFFFFF4E5);
       contentColor = const Color(0xFFE58D03);
     } else {
-      // 5, 4: Green state
+      // 8, 7, 6, 5, 4: Green state
       bgColor = isDark ? const Color(0xFF173524) : const Color(0xFFE7F6EC);
       contentColor = const Color(0xFF0F9960);
     }

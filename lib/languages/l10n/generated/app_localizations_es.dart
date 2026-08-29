@@ -2358,4 +2358,102 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get trendingpolls => 'Encuestas en tendencia';
+
+  @override
+  String get contentpreferences => 'Preferencias de contenido';
+
+  @override
+  String get choosewhatyouwanttoseeonpolzet =>
+      'Elige qué quieres ver en Polzet';
+
+  @override
+  String get country => 'País';
+
+  @override
+  String get choosethecountryforyourcontentandpolls =>
+      'Elige el país para tu contenido y encuestas';
+
+  @override
+  String get interests => 'Intereses';
+
+  @override
+  String get choosethetopicsyouwanttoseemoreof =>
+      'Elige los temas de los que quieres ver más';
+
+  @override
+  String get searchcountry => 'Buscar país';
+
+  @override
+  String get searchinterest => 'Buscar interés';
+
+  @override
+  String get nointerestsfound => 'No se encontraron intereses';
+
+  @override
+  String get nocountriesfound => 'No se encontraron países';
+
+  @override
+  String get copyprofilelink => 'Copiar enlace del perfil';
+
+  @override
+  String get noaigenerationsleft => 'No te quedan generaciones de IA por hoy';
+
+  @override
+  String get creditsresettomorrow => 'Tus créditos se restablecerán mañana';
+
+  @override
+  String get lefttoday => 'restantes hoy';
+
+  @override
+  String get comingsoon => 'PRÓXIMAMENTE';
+
+  @override
+  String get newfeaturescomingsoon => 'Nuevas funciones próximamente';
+
+  @override
+  String get comingsoondescription =>
+      'Estamos trabajando en potentes herramientas de perfil comercial, análisis avanzados y más formas de hacer crecer tu presencia en Polzet.';
+
+  @override
+  String get indevelopment => 'En desarrollo';
+
+  @override
+  String get businessprofiletools => 'Herramientas de perfil comercial';
+
+  @override
+  String get businessprofiletoolsdescription =>
+      'Marca personalizada, insignias verificadas, botones de acción y enlaces comerciales.';
+
+  @override
+  String get comingq4 => 'Llega en el cuarto trimestre';
+
+  @override
+  String get advancedanalytics => 'Análisis avanzados';
+
+  @override
+  String get advancedanalyticsdescription =>
+      'Desglose demográfico, horas de mayor actividad y estadísticas de retención de votantes.';
+
+  @override
+  String get planned => 'Planeado';
+
+  @override
+  String get growthandpromotions => 'Crecimiento y promociones';
+
+  @override
+  String get growthandpromotionsdescription =>
+      'Ubicación destacada de encuestas, alcance dirigido y retargeting de audiencia.';
+
+  @override
+  String get getvipearlyaccess => 'Obtén acceso VIP anticipado';
+
+  @override
+  String get vipearlyaccessdescription =>
+      'Sé el primero en probar las nuevas herramientas cuando se lancen.';
+
+  @override
+  String get onearlyaccesslist => '¡Estás en la lista de acceso anticipado!';
+
+  @override
+  String get joinwaitlist => 'Unirse a la lista de espera';
 }

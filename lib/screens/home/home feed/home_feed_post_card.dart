@@ -2446,11 +2446,9 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
         ? poll.options[1].percentage
         : 0.0;
 
-    final firstImage = poll.options.isEmpty
-        ? null
-        : (poll.options
-              .firstWhere((o) => o.image != null, orElse: () => poll.options[0])
-              .image);
+    final firstImage = poll.options.any((o) => o.image != null)
+        ? poll.options.firstWhere((o) => o.image != null).image
+        : (post.images.isNotEmpty ? post.images.first : null);
 
     return GestureDetector(
       onTap: () {
@@ -3257,6 +3255,9 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
 
     final hasUserPolled = post.isPolledByCurrentUser;
     final isSingleChoice = poll.vottingType == 'single_choice';
+    final hasPostImage =
+        post.images.isNotEmpty && post.images.first.url.isNotEmpty;
+    final PollOptionImage? postImage = hasPostImage ? post.images.first : null;
 
     return GestureDetector(
       onTap: () {
@@ -3284,7 +3285,19 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
           children: [
             if (poll.question.isNotEmpty) ...[
               SizedBox(height: 5.h),
-              _buildQuestionRow(context, poll, txt),
+              _buildQuestionRow(
+                context,
+                poll,
+                txt,
+                onVotesTap: () {
+                  BottomSheetUtils.showPollVotersBottomSheet(
+                    context: context,
+                    postId: post.id.toString(),
+                    question: poll.question,
+                    pollType: poll.pollType,
+                  );
+                },
+              ),
             ],
             if (post.description.isNotEmpty)
               Padding(
@@ -3297,6 +3310,20 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
               ),
             if (poll.question.isNotEmpty || post.description.isNotEmpty)
               const SizedBox(height: 12),
+            if (postImage != null) ...[
+              Container(
+                margin: const EdgeInsets.only(bottom: 12),
+                height: 165.h,
+                width: double.infinity,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(AppRadius.button),
+                  child: AppCachedNetworkImage(
+                    imageUrl: postImage.resolvedUrl(ApiConfig.baseUrlImage),
+                    fit: BoxFit.cover,
+                  ),
+                ),
+              ),
+            ],
 
             ...poll.options.asMap().entries.map((entry) {
               if (entry.value.text == null || entry.value.text!.isEmpty) {

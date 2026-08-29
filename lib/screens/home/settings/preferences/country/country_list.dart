@@ -7,6 +7,7 @@ import 'package:provider/provider.dart';
 import '../../../../../api/api_service.dart';
 import '../../../../../core/themes/app_text_colors.dart';
 import '../../../../../core/themes/app_text_styles.dart';
+import '../../../../../languages/l10n/generated/app_localizations.dart';
 import '../../../../../models/country/country_model.dart';
 import '../../../../../provider/user_provider.dart';
 import '../../../../../widgets/appbar/common_appbar.dart';
@@ -117,7 +118,7 @@ class _CountryListState extends State<CountryList> {
           ),
           onChanged: _filterCountries,
           decoration: InputDecoration(
-            hintText: 'Search country',
+            hintText: AppLocalizations.of(context)!.searchcountry,
             hintStyle: AppTextStyles.bodyText.copyWith(
               color: const Color(0XFF898989),
               fontWeight: FontWeight.w400,
@@ -169,7 +170,7 @@ class _CountryListState extends State<CountryList> {
 
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.background,
-      appBar: const CommonAppBar(title: 'Country', showBackButton: true),
+      appBar:  CommonAppBar(title: AppLocalizations.of(context)!.country, showBackButton: true),
       body: Column(
         children: [
           _buildSearchBar(),
@@ -179,7 +180,7 @@ class _CountryListState extends State<CountryList> {
             child: _filteredCountries.isEmpty
                 ? Center(
                     child: Text(
-                      'No countries found',
+                    AppLocalizations.of(context)!.nocountriesfound,
                       style: AppTextStyles.bodyText.copyWith(
                         color: txt.muted,
                         fontSize: 14.sp,
@@ -290,7 +291,7 @@ class _CountryListState extends State<CountryList> {
                 ),
               )
             : Text(
-                'Save Changes',
+              AppLocalizations.of(context)!.savechanges,
                 style: AppTextStyles.bodyText.copyWith(
                   fontSize: 15,
                   fontWeight: FontWeight.w500,

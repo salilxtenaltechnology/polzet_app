@@ -22,6 +22,7 @@ import 'pin_security_diolog.dart';
 import 'report_chat_diolog.dart';
 import 'message/delete_chat_diolog.dart';
 import 'message/clear_chat_diolog.dart';
+import 'message/delete_message_diolog.dart';
 
 // loading diolog
 void showLoadingDialog(BuildContext context) {
@@ -143,3 +144,9 @@ void showDeleteChatDiolog(BuildContext context, VoidCallback onTap) {
 void showClearChatDiolog(BuildContext context, VoidCallback onTap) {
   diologanimation(context, ClearChatDiolog(onPressed: onTap));
 }
+
+// delete message diolog
+void showDeleteMessageDialog(BuildContext context, VoidCallback onTap) {
+  diologanimation(context, DeleteMessageDialog(onPressed: onTap));
+}
+

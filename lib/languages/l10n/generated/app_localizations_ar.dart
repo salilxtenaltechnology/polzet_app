@@ -2266,10 +2266,10 @@ class AppLocalizationsAr extends AppLocalizations {
   String get pleaseselecttwoimages => 'الرجاء اختيار صورتين';
 
   @override
-  String get markasread => 'وضع علامة مقروء';
+  String get markasread => 'تحديد كمقروء';
 
   @override
-  String get markasunread => 'وضع علامة غير مقروء';
+  String get markasunread => 'تحديد كغير مقروء';
 
   @override
   String get archivedgroups => 'المجموعات المؤرشفة';
@@ -2319,4 +2319,101 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get trendingpolls => 'الاستطلاعات الرائجة';
+
+  @override
+  String get contentpreferences => 'تفضيلات المحتوى';
+
+  @override
+  String get choosewhatyouwanttoseeonpolzet => 'اختر ما تريد رؤيته على Polzet';
+
+  @override
+  String get country => 'الدولة';
+
+  @override
+  String get choosethecountryforyourcontentandpolls =>
+      'اختر الدولة الخاصة بمحتواك واستطلاعاتك';
+
+  @override
+  String get interests => 'الاهتمامات';
+
+  @override
+  String get choosethetopicsyouwanttoseemoreof =>
+      'اختر المواضيع التي تريد رؤية المزيد منها';
+
+  @override
+  String get searchcountry => 'البحث عن دولة';
+
+  @override
+  String get searchinterest => 'البحث عن اهتمام';
+
+  @override
+  String get nointerestsfound => 'لم يتم العثور على اهتمامات';
+
+  @override
+  String get nocountriesfound => 'لم يتم العثور على دول';
+
+  @override
+  String get copyprofilelink => 'نسخ رابط الملف الشخصي';
+
+  @override
+  String get noaigenerationsleft => 'لا توجد إنشاءات ذكاء اصطناعي متبقية اليوم';
+
+  @override
+  String get creditsresettomorrow => 'سيتم إعادة تعيين رصيدك غدًا';
+
+  @override
+  String get lefttoday => 'متبقٍ اليوم';
+
+  @override
+  String get comingsoon => 'قريبًا';
+
+  @override
+  String get newfeaturescomingsoon => 'ميزات جديدة قريبًا';
+
+  @override
+  String get comingsoondescription =>
+      'نعمل على أدوات ملف الأعمال القوية، والتحليلات المتقدمة، وطرق أخرى لتنمية حضورك على Polzet.';
+
+  @override
+  String get indevelopment => 'قيد التطوير';
+
+  @override
+  String get businessprofiletools => 'أدوات الملف التجاري';
+
+  @override
+  String get businessprofiletoolsdescription =>
+      'علامة تجارية مخصصة، شارات موثقة، أزرار إجراءات، وروابط الأعمال.';
+
+  @override
+  String get comingq4 => 'قادم في الربع الرابع';
+
+  @override
+  String get advancedanalytics => 'تحليلات متقدمة';
+
+  @override
+  String get advancedanalyticsdescription =>
+      'تحليل ديموغرافي، ساعات النشاط الأعلى، وإحصاءات الاحتفاظ بالناخبين.';
+
+  @override
+  String get planned => 'مخطط له';
+
+  @override
+  String get growthandpromotions => 'النمو والعروض الترويجية';
+
+  @override
+  String get growthandpromotionsdescription =>
+      'تعزيز موضع الاستطلاع، الوصول المستهدف، وإعادة استهداف الجمهور.';
+
+  @override
+  String get getvipearlyaccess => 'احصل على وصول مبكر VIP';
+
+  @override
+  String get vipearlyaccessdescription =>
+      'كن أول من يختبر الأدوات الجديدة عند إطلاقها.';
+
+  @override
+  String get onearlyaccesslist => 'أنت على قائمة الوصول المبكر!';
+
+  @override
+  String get joinwaitlist => 'انضم إلى قائمة الانتظار';
 }

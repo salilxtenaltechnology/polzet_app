@@ -937,15 +937,21 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
       });
     }
 
+    final isPolzetAiProfile =
+        username.trim().toLowerCase() == 'polzet_ai';
+
     await Future.wait([
       apiService
           .fetchPostsImages(username)
           .then((posts) {
             if (mounted) {
               final mappedPosts = posts.where((post) {
-                return post.polls.any(
-                  (poll) => poll.options.any((o) => o.image != null),
-                );
+                final isPolzetAiPost = isPolzetAiProfile ||
+                    post.user.trim().toLowerCase() == 'polzet_ai';
+                return (isPolzetAiPost && post.images.isNotEmpty) ||
+                    post.polls.any(
+                      (poll) => poll.options.any((o) => o.image != null),
+                    );
               }).toList();
               for (var post in mappedPosts) {
                 postLikeStates[post.id] = post.isLiked;
@@ -985,6 +991,9 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
             if (mounted) {
               final mappedPosts = posts.where((post) {
                 if (post.polls.isEmpty) return false;
+                final isPolzetAiPost = isPolzetAiProfile ||
+                    post.user.trim().toLowerCase() == 'polzet_ai';
+                if (isPolzetAiPost && post.images.isNotEmpty) return false;
                 return post.polls.every(
                   (poll) => poll.options.every(
                     (o) =>
@@ -1066,6 +1075,9 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
     final viewLikes = postLikedUsers[post.id] ?? [];
     final currentUsername = userProvider.userProfile?.username ?? '';
     final profile = userProvider.userProfile;
+    final isPolzetAi = post.user.trim().toLowerCase() == 'polzet_ai' ||
+        currentUsername.trim().toLowerCase() == 'polzet_ai' ||
+        (widget.username ?? '').trim().toLowerCase() == 'polzet_ai';
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     final double pct1 = (poll.options.isNotEmpty)
         ? poll.options[0].percentage
@@ -2293,8 +2305,122 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
                     ),
                   if (poll.question.isNotEmpty || post.description.isNotEmpty)
                     SizedBox(height: 12.h),
-                  if (isImage)
-                    _buildImagesStack(post)
+                  if (isImage) ...[
+                    if (isPolzetAi &&
+                        post.images.isNotEmpty &&
+                        !_hasImageOptions(poll)) ...[
+                      GestureDetector(
+                        onTap: () {
+                          if (post.is_polled_by_current_user) {
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) => ThingsResultScreen(
+                                  username: post.user,
+                                  postId: post.id.toString(),
+                                ),
+                              ),
+                            );
+                          } else {
+                            final userProvider =
+                                Provider.of<PublicProfileProvider>(
+                              context,
+                              listen: false,
+                            );
+                            Navigator.of(context)
+                                .push(
+                                  MaterialPageRoute(
+                                    builder: (_) => PublicUserThingsRanking(
+                                      firstName:
+                                          userProvider.userProfile?.firstName ??
+                                              '',
+                                      lastName:
+                                          userProvider.userProfile?.lastName ??
+                                              '',
+                                      profileImage: (userProvider
+                                                  .userProfile?.username
+                                                  .toLowerCase() ==
+                                              'polzet_ai')
+                                          ? Assets.images.icSplash.path
+                                          : userProvider
+                                              .userProfile?.profilePictureUrl,
+                                      post: post,
+                                      poll: poll,
+                                    ),
+                                  ),
+                                )
+                                .then((result) {
+                                  if (result == true) {
+                                    setState(() {});
+                                    _loadData();
+                                  }
+                                });
+                          }
+                        },
+                        child: Container(
+                          margin: const EdgeInsets.only(bottom: 12),
+                          height: 165.h,
+                          width: double.infinity,
+                          child: ClipRRect(
+                            borderRadius:
+                                BorderRadius.circular(AppRadius.button),
+                            child: AppCachedNetworkImage(
+                              imageUrl: post.images.first
+                                  .resolvedUrl(ApiConfig.baseUrlImage),
+                              fit: BoxFit.cover,
+                            ),
+                          ),
+                        ),
+                      ),
+                      if (post.is_polled_by_current_user)
+                        _buildPolledTextOptions(poll, () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => ThingsResultScreen(
+                                username: post.user,
+                                postId: post.id.toString(),
+                              ),
+                            ),
+                          );
+                        })
+                      else
+                        _buildTextOptions(poll, () {
+                          final userProvider =
+                              Provider.of<PublicProfileProvider>(
+                            context,
+                            listen: false,
+                          );
+                          Navigator.of(context)
+                              .push(
+                                MaterialPageRoute(
+                                  builder: (_) => PublicUserThingsRanking(
+                                    firstName:
+                                        userProvider.userProfile?.firstName ??
+                                            '',
+                                    lastName:
+                                        userProvider.userProfile?.lastName ??
+                                            '',
+                                    profileImage: (userProvider
+                                                .userProfile?.username
+                                                .toLowerCase() ==
+                                            'polzet_ai')
+                                        ? Assets.images.icSplash.path
+                                        : userProvider
+                                            .userProfile?.profilePictureUrl,
+                                    post: post,
+                                    poll: poll,
+                                  ),
+                                ),
+                              )
+                              .then((result) {
+                                if (result == true) {
+                                  setState(() {});
+                                  _loadData();
+                                }
+                              });
+                        }),
+                    ] else
+                      _buildImagesStack(post),
+                  ]
                   else if (post.is_polled_by_current_user)
                     // Already voted → show results
                     _buildPolledTextOptions(poll, () {

@@ -1167,7 +1167,7 @@ abstract class AppLocalizations {
   /// No description provided for @savechanges.
   ///
   /// In en, this message translates to:
-  /// **'Save Chages'**
+  /// **'Save Changes'**
   String get savechanges;
 
   /// No description provided for @changepassword.
@@ -3243,7 +3243,7 @@ abstract class AppLocalizations {
   /// No description provided for @shareprofile.
   ///
   /// In en, this message translates to:
-  /// **'Share profile'**
+  /// **'Share Profile'**
   String get shareprofile;
 
   /// No description provided for @images.
@@ -4350,6 +4350,186 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Trending Polls'**
   String get trendingpolls;
+
+  /// No description provided for @contentpreferences.
+  ///
+  /// In en, this message translates to:
+  /// **'Content Preferences'**
+  String get contentpreferences;
+
+  /// No description provided for @choosewhatyouwanttoseeonpolzet.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose what you want to see on Polzet'**
+  String get choosewhatyouwanttoseeonpolzet;
+
+  /// No description provided for @country.
+  ///
+  /// In en, this message translates to:
+  /// **'Country'**
+  String get country;
+
+  /// No description provided for @choosethecountryforyourcontentandpolls.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose the country for your content and polls'**
+  String get choosethecountryforyourcontentandpolls;
+
+  /// No description provided for @interests.
+  ///
+  /// In en, this message translates to:
+  /// **'Interests'**
+  String get interests;
+
+  /// No description provided for @choosethetopicsyouwanttoseemoreof.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose the topics you want to see more of'**
+  String get choosethetopicsyouwanttoseemoreof;
+
+  /// No description provided for @searchcountry.
+  ///
+  /// In en, this message translates to:
+  /// **'Search country'**
+  String get searchcountry;
+
+  /// No description provided for @searchinterest.
+  ///
+  /// In en, this message translates to:
+  /// **'Search interest'**
+  String get searchinterest;
+
+  /// No description provided for @nointerestsfound.
+  ///
+  /// In en, this message translates to:
+  /// **'No interests found'**
+  String get nointerestsfound;
+
+  /// No description provided for @nocountriesfound.
+  ///
+  /// In en, this message translates to:
+  /// **'No countries found'**
+  String get nocountriesfound;
+
+  /// No description provided for @copyprofilelink.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy Profile Link'**
+  String get copyprofilelink;
+
+  /// No description provided for @noaigenerationsleft.
+  ///
+  /// In en, this message translates to:
+  /// **'No AI generations left today'**
+  String get noaigenerationsleft;
+
+  /// No description provided for @creditsresettomorrow.
+  ///
+  /// In en, this message translates to:
+  /// **'Your credits will reset tomorrow'**
+  String get creditsresettomorrow;
+
+  /// No description provided for @lefttoday.
+  ///
+  /// In en, this message translates to:
+  /// **'left today'**
+  String get lefttoday;
+
+  /// No description provided for @comingsoon.
+  ///
+  /// In en, this message translates to:
+  /// **'COMING SOON'**
+  String get comingsoon;
+
+  /// No description provided for @newfeaturescomingsoon.
+  ///
+  /// In en, this message translates to:
+  /// **'New features coming soon'**
+  String get newfeaturescomingsoon;
+
+  /// No description provided for @comingsoondescription.
+  ///
+  /// In en, this message translates to:
+  /// **'We\'re working on powerful business profile tools, advanced analytics, and more ways to grow your presence on Polzet.'**
+  String get comingsoondescription;
+
+  /// No description provided for @indevelopment.
+  ///
+  /// In en, this message translates to:
+  /// **'In Development'**
+  String get indevelopment;
+
+  /// No description provided for @businessprofiletools.
+  ///
+  /// In en, this message translates to:
+  /// **'Business Profile Tools'**
+  String get businessprofiletools;
+
+  /// No description provided for @businessprofiletoolsdescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom branding, verified badges, action buttons, & business links.'**
+  String get businessprofiletoolsdescription;
+
+  /// No description provided for @comingq4.
+  ///
+  /// In en, this message translates to:
+  /// **'Coming Q4'**
+  String get comingq4;
+
+  /// No description provided for @advancedanalytics.
+  ///
+  /// In en, this message translates to:
+  /// **'Advanced Analytics'**
+  String get advancedanalytics;
+
+  /// No description provided for @advancedanalyticsdescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Demographic breakdown, peak activity hours, & voter retention stats.'**
+  String get advancedanalyticsdescription;
+
+  /// No description provided for @planned.
+  ///
+  /// In en, this message translates to:
+  /// **'Planned'**
+  String get planned;
+
+  /// No description provided for @growthandpromotions.
+  ///
+  /// In en, this message translates to:
+  /// **'Growth & Promotions'**
+  String get growthandpromotions;
+
+  /// No description provided for @growthandpromotionsdescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Boosted poll placement, targeted reach, & audience retargeting.'**
+  String get growthandpromotionsdescription;
+
+  /// No description provided for @getvipearlyaccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Get VIP Early Access'**
+  String get getvipearlyaccess;
+
+  /// No description provided for @vipearlyaccessdescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Be the first to test new tools when they launch.'**
+  String get vipearlyaccessdescription;
+
+  /// No description provided for @onearlyaccesslist.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'re on the early access list!'**
+  String get onearlyaccesslist;
+
+  /// No description provided for @joinwaitlist.
+  ///
+  /// In en, this message translates to:
+  /// **'Join Waitlist'**
+  String get joinwaitlist;
 }
 
 class _AppLocalizationsDelegate

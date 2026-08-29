@@ -8,12 +8,14 @@ class GenerateOptionButton extends StatefulWidget {
   final VoidCallback? onTap;
   final bool isGenerating;
   final bool hasGenerated;
+  final bool isEnabled;
 
   const GenerateOptionButton({
     super.key,
     this.onTap,
     this.isGenerating = false,
     this.hasGenerated = false,
+    this.isEnabled = true,
   });
 
   @override
@@ -35,7 +37,7 @@ class _GenerateOptionButtonState extends State<GenerateOptionButton>
       duration: const Duration(milliseconds: 2000),
     );
 
-    if (widget.isGenerating) {
+    if (widget.isGenerating && widget.isEnabled) {
       _borderController.repeat();
     }
 
@@ -52,7 +54,9 @@ class _GenerateOptionButtonState extends State<GenerateOptionButton>
   @override
   void didUpdateWidget(covariant GenerateOptionButton oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.isGenerating != oldWidget.isGenerating) {
+    if (!widget.isEnabled) {
+      _borderController.stop();
+    } else if (widget.isGenerating != oldWidget.isGenerating) {
       if (widget.isGenerating) {
         _borderController.repeat();
       } else {
@@ -72,26 +76,29 @@ class _GenerateOptionButtonState extends State<GenerateOptionButton>
     super.dispose();
   }
 
+  bool get _canInteract =>
+      widget.isEnabled && !widget.isGenerating && widget.onTap != null;
+
   void _handleTapDown(TapDownDetails details) {
-    if (!widget.isGenerating) {
+    if (_canInteract) {
       _scaleController.forward();
     }
   }
 
   void _handleTapUp(TapUpDetails details) {
-    if (!widget.isGenerating) {
+    if (_canInteract) {
       _scaleController.reverse();
     }
   }
 
   void _handleTapCancel() {
-    if (!widget.isGenerating) {
+    if (_canInteract) {
       _scaleController.reverse();
     }
   }
 
   void _handleTap() {
-    if (widget.isGenerating || widget.onTap == null) return;
+    if (!_canInteract) return;
 
     // Trigger spin rotation animation on tap
     if (!_borderController.isAnimating) {
@@ -108,7 +115,13 @@ class _GenerateOptionButtonState extends State<GenerateOptionButton>
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final cardBgColor = isDark ? Colors.transparent : Colors.white;
+    final cardBgColor = widget.isEnabled
+        ? (isDark ? Colors.transparent : Colors.white)
+        : (isDark ? const Color(0x0DFFFFFF) : const Color(0xFFF3F4F6));
+
+    final contentColor = widget.isEnabled
+        ? Theme.of(context).colorScheme.onPrimary
+        : (isDark ? const Color(0xFF6B7280) : const Color(0xFF9CA3AF));
 
     String labelText;
     if (widget.isGenerating) {
@@ -120,10 +133,10 @@ class _GenerateOptionButtonState extends State<GenerateOptionButton>
     }
 
     return GestureDetector(
-      onTapDown: _handleTapDown,
-      onTapUp: _handleTapUp,
-      onTapCancel: _handleTapCancel,
-      onTap: _handleTap,
+      onTapDown: widget.isEnabled ? _handleTapDown : null,
+      onTapUp: widget.isEnabled ? _handleTapUp : null,
+      onTapCancel: widget.isEnabled ? _handleTapCancel : null,
+      onTap: widget.isEnabled ? _handleTap : null,
       behavior: HitTestBehavior.opaque,
       child: AnimatedBuilder(
         animation: Listenable.merge([_borderController, _scaleAnimation]),
@@ -135,20 +148,24 @@ class _GenerateOptionButtonState extends State<GenerateOptionButton>
                 animationValue: _borderController.value,
                 strokeWidth: 1.5,
                 radius: 8.0,
+                isEnabled: widget.isEnabled,
+                isDark: isDark,
               ),
               child: Container(
                 padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 5.h),
                 decoration: BoxDecoration(
                   color: cardBgColor,
                   borderRadius: BorderRadius.circular(8.0),
-                  boxShadow: const [
-                    BoxShadow(
-                      color: Color(0x1F8B2544),
-                      blurRadius: 5,
-                      spreadRadius: 0,
-                      offset: Offset(0, 2),
-                    ),
-                  ],
+                  boxShadow: widget.isEnabled
+                      ? const [
+                          BoxShadow(
+                            color: Color(0x1F8B2544),
+                            blurRadius: 5,
+                            spreadRadius: 0,
+                            offset: Offset(0, 2),
+                          ),
+                        ]
+                      : null,
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
@@ -156,16 +173,16 @@ class _GenerateOptionButtonState extends State<GenerateOptionButton>
                     Builder(
                       builder: (context) {
                         final bool isAnimating =
-                            widget.isGenerating ||
-                            _borderController.isAnimating;
+                            widget.isEnabled &&
+                            (widget.isGenerating ||
+                                _borderController.isAnimating);
                         final double pulse = isAnimating
                             ? math.sin(_borderController.value * 2 * math.pi)
                             : 0.0;
                         final double iconScale = 1.0 + (0.22 * pulse);
-                        final double iconOpacity = (1.0 + (0.35 * pulse)).clamp(
-                          0.4,
-                          1.0,
-                        );
+                        final double iconOpacity = widget.isEnabled
+                            ? (1.0 + (0.35 * pulse)).clamp(0.4, 1.0)
+                            : 1.0;
 
                         return Transform.scale(
                           scale: iconScale,
@@ -174,7 +191,7 @@ class _GenerateOptionButtonState extends State<GenerateOptionButton>
                             child: Assets.images.icAssistant.image(
                               width: 12.w,
                               height: 12.h,
-                              color: Theme.of(context).colorScheme.onPrimary,
+                              color: contentColor,
                             ),
                           ),
                         );
@@ -186,7 +203,7 @@ class _GenerateOptionButtonState extends State<GenerateOptionButton>
                       style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.w500,
-                        color: Theme.of(context).colorScheme.onPrimary,
+                        color: contentColor,
                       ),
                     ),
                   ],
@@ -204,11 +221,15 @@ class _GradientBorderPainter extends CustomPainter {
   final double animationValue;
   final double strokeWidth;
   final double radius;
+  final bool isEnabled;
+  final bool isDark;
 
   _GradientBorderPainter({
     required this.animationValue,
     required this.strokeWidth,
     required this.radius,
+    this.isEnabled = true,
+    this.isDark = false,
   });
 
   @override
@@ -223,8 +244,12 @@ class _GradientBorderPainter extends CustomPainter {
 
     final paint = Paint()
       ..style = PaintingStyle.stroke
-      ..strokeWidth = strokeWidth
-      ..shader = LinearGradient(
+      ..strokeWidth = strokeWidth;
+
+    if (!isEnabled) {
+      paint.color = isDark ? const Color(0x26FFFFFF) : const Color(0xFFE5E7EB);
+    } else {
+      paint.shader = LinearGradient(
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
         colors: const [
@@ -234,6 +259,7 @@ class _GradientBorderPainter extends CustomPainter {
         ],
         transform: GradientRotation(animationValue * 2 * math.pi),
       ).createShader(rect);
+    }
 
     canvas.drawRRect(rrect, paint);
   }
@@ -242,6 +268,8 @@ class _GradientBorderPainter extends CustomPainter {
   bool shouldRepaint(covariant _GradientBorderPainter oldDelegate) {
     return oldDelegate.animationValue != animationValue ||
         oldDelegate.strokeWidth != strokeWidth ||
-        oldDelegate.radius != radius;
+        oldDelegate.radius != radius ||
+        oldDelegate.isEnabled != isEnabled ||
+        oldDelegate.isDark != isDark;
   }
 }

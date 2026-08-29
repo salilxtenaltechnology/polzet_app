@@ -5,11 +5,13 @@ class DottedBorderPainter extends CustomPainter {
   final Color color;
   final double strokeWidth;
   final double gap;
+  final double borderRadius;
 
   DottedBorderPainter({
     required this.color,
     this.strokeWidth = 1,
     this.gap = 5,
+    this.borderRadius = 10.0,
   });
 
   @override
@@ -19,16 +21,15 @@ class DottedBorderPainter extends CustomPainter {
       ..strokeWidth = strokeWidth
       ..style = PaintingStyle.stroke;
 
-    const borderRadius = 10.0;
     final rect = Rect.fromLTWH(
-      strokeWidth / 1,
-      strokeWidth / 1,
+      strokeWidth / 2,
+      strokeWidth / 2,
       size.width - strokeWidth,
       size.height - strokeWidth,
     );
     final rrect = RRect.fromRectAndRadius(
       rect,
-      const Radius.circular(borderRadius),
+      Radius.circular(borderRadius),
     );
 
     _drawDottedRRect(canvas, paint, rrect);
@@ -53,6 +54,7 @@ class DottedBorderPainter extends CustomPainter {
   bool shouldRepaint(DottedBorderPainter oldDelegate) {
     return oldDelegate.color != color ||
         oldDelegate.strokeWidth != strokeWidth ||
-        oldDelegate.gap != gap;
+        oldDelegate.gap != gap ||
+        oldDelegate.borderRadius != borderRadius;
   }
 }

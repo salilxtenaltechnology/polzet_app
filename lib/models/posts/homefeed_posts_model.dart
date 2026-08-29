@@ -57,6 +57,7 @@ class HomeFeedPost {
   final String description;
   final String createdAt;
   final List<HomeFeedPoll> polls;
+  final List<PollOptionImage> images;
   final int likesCount;
   final bool isLikedByCurrentUser;
   final int commentsCount;
@@ -73,6 +74,7 @@ class HomeFeedPost {
     required this.description,
     required this.createdAt,
     required this.polls,
+    this.images = const [],
     required this.likesCount,
     required this.isLikedByCurrentUser,
     required this.commentsCount,
@@ -93,6 +95,10 @@ class HomeFeedPost {
         polls: _parseList<HomeFeedPoll>(
           json['polls'],
           (item) => HomeFeedPoll.fromJson(item),
+        ),
+        images: _parseList<PollOptionImage>(
+          json['images'],
+          (item) => PollOptionImage.fromJson(item),
         ),
         likesCount: _parseToInt(json['likes_count']),
         isLikedByCurrentUser: json['is_liked_by_current_user'] == true,
@@ -120,6 +126,7 @@ class HomeFeedPost {
       'description': description,
       'created_at': createdAt,
       'polls': polls.map((poll) => poll.toJson()).toList(),
+      'images': images.map((image) => image.toJson()).toList(),
       'likes_count': likesCount,
       'is_liked_by_current_user': isLikedByCurrentUser,
       'comments_count': commentsCount,
