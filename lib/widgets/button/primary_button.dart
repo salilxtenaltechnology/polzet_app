@@ -35,7 +35,9 @@ class PrimaryButton extends StatelessWidget {
           top: 5.h,
         ),
         decoration: BoxDecoration(
-          color: AppColors.primaryColor,
+          color: (onPressed == null && !isLoading)
+              ? AppColors.primaryColor.withOpacity(0.4)
+              : AppColors.primaryColor,
           borderRadius: AppRadius.buttonRadius,
         ),
         child: Center(
@@ -44,7 +46,9 @@ class PrimaryButton extends StatelessWidget {
               : Text(
                   title,
                   style: AppTextStyles.bodyText.copyWith(
-                    color: Colors.white,
+                    color: (onPressed == null && !isLoading)
+                        ? Colors.white.withOpacity(0.6)
+                        : Colors.white,
                     fontWeight: FontWeight.w500,
                   ),
                 ),

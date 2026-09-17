@@ -87,6 +87,9 @@ class _ProfileScreenState extends State<ProfileScreen>
   List<UserPostModel>? _savedPosts;
   bool _isLoadingThings = true;
   bool _isLoadingImages = true;
+  bool _isLoadingMorePosts = false;
+  bool _hasMorePosts = false;
+  int _postsCurrentPage = 1;
   bool _isLoadingSaved = true;
   bool _isLoadingSavedMore = false;
   bool _hasMoreSaved = false;
@@ -306,61 +309,143 @@ class _ProfileScreenState extends State<ProfileScreen>
     ]);
   }
 
-  Future<void> _fetchPosts() async {
+  Future<void> _fetchPosts({bool isRefresh = false}) async {
     final userProvider = Provider.of<UserProvider>(context, listen: false);
     final username = userProvider.username;
     if (username == null || username.isEmpty) return;
 
-    try {
-      final things = await apiService.fetchOnlyPollPosts(username);
-      if (mounted) {
-        setState(() {
-          _thingsPosts = things.where((post) {
-            if (post.polls.isEmpty) return false;
-            return post.polls.every(
-              (poll) =>
-                  poll.options != null &&
-                  poll.options!.every(
-                    (o) =>
-                        o.text != null && o.text!.isNotEmpty && o.image == null,
-                  ),
-            );
-          }).toList();
-          userProvider.cachedThingsPostsMap[username] = _thingsPosts!;
-          _initializePostStates(_thingsPosts!);
-          _isLoadingThings = false;
-        });
-      }
-    } catch (e) {
-      if (mounted) setState(() => _isLoadingThings = false);
+    if (isRefresh) {
+      _postsCurrentPage = 1;
+      _hasMorePosts = false;
+      _isLoadingMorePosts = false;
     }
 
     try {
-      final images = await apiService.fetchPostsImages(username);
+      final response = await apiService.fetchUserPostsResponse(
+        username,
+        page: 1,
+      );
+      if (mounted) {
+        final things = response.results.where((post) {
+          if (post.polls.isEmpty) return false;
+          return post.polls.every(
+            (poll) =>
+                poll.options != null &&
+                poll.options!.every(
+                  (o) =>
+                      o.text != null && o.text!.isNotEmpty && o.image == null,
+                ),
+          );
+        }).toList();
+
+        final images = response.results.where((post) {
+          final isPolzetAi = post.user.trim().toLowerCase() == 'polzet_ai';
+          return (isPolzetAi && post.images.isNotEmpty) ||
+              post.polls.any(
+                (poll) => poll.options?.any((o) => o.image != null) ?? false,
+              );
+        }).toList();
+
+        setState(() {
+          _thingsPosts = things;
+          _imagesPosts = images;
+          _postsCurrentPage = 1;
+          _hasMorePosts = response.next != null && response.next!.isNotEmpty;
+          _totalPollsCount = response.count;
+          _isLoadingThings = false;
+          _isLoadingImages = false;
+        });
+
+        _initializePostStates(response.results);
+
+        userProvider.cachedThingsPostsMap[username] = _thingsPosts!;
+        userProvider.cachedImagesPostsMap[username] = _imagesPosts!;
+        userProvider.cachedTotalPollsCountMap[username] = response.count;
+      }
+    } catch (e) {
+      debugPrint('Error fetching profile posts: $e');
       if (mounted) {
         setState(() {
-          _imagesPosts = images.where((post) {
-            return post.polls.any(
-              (poll) => poll.options?.any((o) => o.image != null) ?? false,
-            );
-          }).toList();
-          userProvider.cachedImagesPostsMap[username] = _imagesPosts!;
-          _initializePostStates(_imagesPosts!);
+          _isLoadingThings = false;
           _isLoadingImages = false;
         });
       }
-    } catch (e) {
-      if (mounted) setState(() => _isLoadingImages = false);
     }
+  }
 
-    if (mounted) {
-      setState(() {
-        _totalPollsCount =
-            (_thingsPosts?.length ?? 0) + (_imagesPosts?.length ?? 0);
-        if (_totalPollsCount != null) {
-          userProvider.cachedTotalPollsCountMap[username] = _totalPollsCount!;
-        }
-      });
+  Future<void> _fetchMorePosts() async {
+    if (_isLoadingMorePosts || !_hasMorePosts) return;
+
+    final userProvider = Provider.of<UserProvider>(context, listen: false);
+    final username = userProvider.username;
+    if (username == null || username.isEmpty) return;
+
+    setState(() {
+      _isLoadingMorePosts = true;
+    });
+
+    try {
+      final nextPage = _postsCurrentPage + 1;
+      final response = await apiService.fetchUserPostsResponse(
+        username,
+        page: nextPage,
+      );
+
+      if (mounted) {
+        final newThings = response.results.where((post) {
+          if (post.polls.isEmpty) return false;
+          return post.polls.every(
+            (poll) =>
+                poll.options != null &&
+                poll.options!.every(
+                  (o) =>
+                      o.text != null && o.text!.isNotEmpty && o.image == null,
+                ),
+          );
+        }).toList();
+
+        final newImages = response.results.where((post) {
+          final isPolzetAi = post.user.trim().toLowerCase() == 'polzet_ai';
+          return (isPolzetAi && post.images.isNotEmpty) ||
+              post.polls.any(
+                (poll) => poll.options?.any((o) => o.image != null) ?? false,
+              );
+        }).toList();
+
+        setState(() {
+          _thingsPosts ??= [];
+          _imagesPosts ??= [];
+
+          for (final item in newThings) {
+            if (!_thingsPosts!.any((p) => p.id == item.id)) {
+              _thingsPosts!.add(item);
+            }
+          }
+
+          for (final item in newImages) {
+            if (!_imagesPosts!.any((p) => p.id == item.id)) {
+              _imagesPosts!.add(item);
+            }
+          }
+
+          _postsCurrentPage = nextPage;
+          _hasMorePosts = response.next != null && response.next!.isNotEmpty;
+          _isLoadingMorePosts = false;
+        });
+
+        _initializePostStates(response.results);
+
+        userProvider.cachedThingsPostsMap[username] = _thingsPosts!;
+        userProvider.cachedImagesPostsMap[username] = _imagesPosts!;
+        userProvider.cachedTotalPollsCountMap[username] = response.count;
+      }
+    } catch (e) {
+      debugPrint('Error fetching more profile posts: $e');
+      if (mounted) {
+        setState(() {
+          _isLoadingMorePosts = false;
+        });
+      }
     }
   }
 
@@ -755,18 +840,43 @@ class _ProfileScreenState extends State<ProfileScreen>
                           ],
                         ),
                       )
-                    : ListView.builder(
-                        physics: const AlwaysScrollableScrollPhysics(),
-                        padding: EdgeInsets.fromLTRB(10.w, 12.h, 10.w, 100),
-                        itemCount: _thingsPosts!.length,
-                        itemBuilder: (context, index) {
-                          return _buildSimplePostCard(
-                            _thingsPosts![index],
-                            isImage: false,
-                            userProvider: userProvider,
-                            index: index,
-                          );
+                    : NotificationListener<ScrollNotification>(
+                        onNotification: (scrollInfo) {
+                          if (!_isLoadingMorePosts &&
+                              _hasMorePosts &&
+                              scrollInfo.metrics.pixels >=
+                                  scrollInfo.metrics.maxScrollExtent - 200) {
+                            _fetchMorePosts();
+                          }
+                          return false;
                         },
+                        child: ListView.builder(
+                          physics: const AlwaysScrollableScrollPhysics(),
+                          padding: EdgeInsets.fromLTRB(10.w, 12.h, 10.w, 100),
+                          itemCount: _thingsPosts!.length +
+                              (_isLoadingMorePosts ? 1 : 0),
+                          itemBuilder: (context, index) {
+                            if (index < _thingsPosts!.length) {
+                              return _buildSimplePostCard(
+                                _thingsPosts![index],
+                                isImage: false,
+                                userProvider: userProvider,
+                                index: index,
+                              );
+                            } else {
+                              return Padding(
+                                padding: EdgeInsets.symmetric(vertical: 16.h),
+                                child: Center(
+                                  child: Loader(
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onPrimary,
+                                  ),
+                                ),
+                              );
+                            }
+                          },
+                        ),
                       ),
                 _isLoadingImages
                     ? Center(
@@ -818,18 +928,43 @@ class _ProfileScreenState extends State<ProfileScreen>
                           ],
                         ),
                       )
-                    : ListView.builder(
-                        physics: const AlwaysScrollableScrollPhysics(),
-                        padding: EdgeInsets.fromLTRB(10.w, 12.h, 10.w, 100),
-                        itemCount: _imagesPosts!.length,
-                        itemBuilder: (context, index) {
-                          return _buildSimplePostCard(
-                            _imagesPosts![index],
-                            isImage: true,
-                            userProvider: userProvider,
-                            index: index,
-                          );
+                    : NotificationListener<ScrollNotification>(
+                        onNotification: (scrollInfo) {
+                          if (!_isLoadingMorePosts &&
+                              _hasMorePosts &&
+                              scrollInfo.metrics.pixels >=
+                                  scrollInfo.metrics.maxScrollExtent - 200) {
+                            _fetchMorePosts();
+                          }
+                          return false;
                         },
+                        child: ListView.builder(
+                          physics: const AlwaysScrollableScrollPhysics(),
+                          padding: EdgeInsets.fromLTRB(10.w, 12.h, 10.w, 100),
+                          itemCount: _imagesPosts!.length +
+                              (_isLoadingMorePosts ? 1 : 0),
+                          itemBuilder: (context, index) {
+                            if (index < _imagesPosts!.length) {
+                              return _buildSimplePostCard(
+                                _imagesPosts![index],
+                                isImage: true,
+                                userProvider: userProvider,
+                                index: index,
+                              );
+                            } else {
+                              return Padding(
+                                padding: EdgeInsets.symmetric(vertical: 16.h),
+                                child: Center(
+                                  child: Loader(
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onPrimary,
+                                  ),
+                                ),
+                              );
+                            }
+                          },
+                        ),
                       ),
                 _isLoadingSaved
                     ? Center(
@@ -1237,6 +1372,9 @@ class _ProfileScreenState extends State<ProfileScreen>
         ? post.user
         : (userProvider.username ?? 'polzet_user');
 
+    final bool isPolzetAi = post.user.trim().toLowerCase() == 'polzet_ai' ||
+        postUsername.trim().toLowerCase() == 'polzet_ai';
+
     final String postDisplayName = (post.userFirstName != null &&
             post.userFirstName!.isNotEmpty)
         ? '${post.userFirstName} ${post.userLastName ?? ''}'.trim()
@@ -1250,6 +1388,12 @@ class _ProfileScreenState extends State<ProfileScreen>
             post.userProfileImage!.isNotEmpty)
         ? post.userProfileImage
         : (post.user == userProvider.username ? userProvider.profile_picture : null);
+
+    final bool isAuthor = post.user.isEmpty ||
+        post.user == userProvider.username ||
+        (userProvider.userId != null &&
+            post.userId != null &&
+            post.userId == userProvider.userId?.toString());
 
     return ProfilePostCardAnimation(
       index: index,
@@ -1289,70 +1433,114 @@ class _ProfileScreenState extends State<ProfileScreen>
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
-                        Container(
+                        SizedBox(
                           width: 42,
                           height: 42,
-                          decoration:
-                              const BoxDecoration(shape: BoxShape.circle),
-                          child: ClipOval(
-                            child: (() {
-                              if (postProfilePic != null &&
-                                  postProfilePic.isNotEmpty) {
-                                if (postProfilePic ==
-                                    userProvider.profile_picture) {
-                                  final cachedImage = _getCachedProfileImage(
-                                    postProfilePic,
-                                    userProvider,
-                                  );
-                                  if (cachedImage != null) {
-                                    return Image.memory(
-                                      cachedImage,
+                          child: Stack(
+                            alignment: Alignment.center,
+                            children: [
+                              ClipOval(
+                                child: (() {
+                                  if (isPolzetAi) {
+                                    return Center(
+                                      child: Padding(
+                                        padding: const EdgeInsets.only(
+                                          top: 8,
+                                          bottom: 0,
+                                          left: 10,
+                                          right: 9,
+                                        ),
+                                        child: Image.asset(
+                                          Assets.images.icSplash.path,
+                                        ),
+                                      ),
+                                    );
+                                  }
+                                  if (postProfilePic != null &&
+                                      postProfilePic.isNotEmpty) {
+                                    if (postProfilePic ==
+                                        userProvider.profile_picture) {
+                                      final cachedImage =
+                                          _getCachedProfileImage(
+                                        postProfilePic,
+                                        userProvider,
+                                      );
+                                      if (cachedImage != null) {
+                                        return Image.memory(
+                                          cachedImage,
+                                          fit: BoxFit.cover,
+                                          width: double.infinity,
+                                          height: double.infinity,
+                                          errorBuilder: (_, __, ___) =>
+                                              _AvatarPlaceholder(
+                                            username: postUsername,
+                                            fontSize: 18,
+                                          ),
+                                        );
+                                      }
+                                    }
+                                    final imageUrl =
+                                        postProfilePic.startsWith('http')
+                                            ? postProfilePic
+                                            : (postProfilePic.startsWith('/')
+                                                ? '${ApiConfig.baseUrlImage}$postProfilePic'
+                                                : '${ApiConfig.baseUrlImage}/$postProfilePic');
+                                    return CachedNetworkImage(
+                                      imageUrl: imageUrl,
                                       fit: BoxFit.cover,
                                       width: double.infinity,
                                       height: double.infinity,
-                                      errorBuilder: (_, __, ___) =>
+                                      errorWidget: (_, __, ___) =>
                                           _AvatarPlaceholder(
                                         username: postUsername,
                                         fontSize: 18,
                                       ),
                                     );
                                   }
-                                }
-                                final imageUrl = postProfilePic.startsWith('http')
-                                    ? postProfilePic
-                                    : (postProfilePic.startsWith('/')
-                                        ? '${ApiConfig.baseUrlImage}$postProfilePic'
-                                        : '${ApiConfig.baseUrlImage}/$postProfilePic');
-                                return CachedNetworkImage(
-                                  imageUrl: imageUrl,
-                                  fit: BoxFit.cover,
-                                  width: double.infinity,
-                                  height: double.infinity,
-                                  errorWidget: (_, __, ___) => _AvatarPlaceholder(
+                                  return _AvatarPlaceholder(
                                     username: postUsername,
                                     fontSize: 18,
+                                  );
+                                })(),
+                              ),
+                              if (isPolzetAi)
+                                Positioned.fill(
+                                  child: Image.asset(
+                                    Assets.images.aiFrame.path,
+                                    height: 55,
+                                    width: 55,
                                   ),
-                                );
-                              }
-                              return _AvatarPlaceholder(
-                                username: postUsername,
-                                fontSize: 18,
-                              );
-                            })(),
+                                ),
+                            ],
                           ),
                         ),
                         const SizedBox(width: 7),
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(
-                              userProvider.isLoading && post.user.isEmpty
-                                  ? '-'
-                                  : postDisplayName,
-                              style: AppTextStyles.sectionHeading.copyWith(
-                                color: txt.title,
-                                fontSize: 14,
-                              ),
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                Text(
+                                  userProvider.isLoading && post.user.isEmpty
+                                      ? '-'
+                                      : postDisplayName,
+                                  style: AppTextStyles.sectionHeading.copyWith(
+                                    color: txt.title,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                                if (isPolzetAi ||
+                                    postUsername.trim().toLowerCase() ==
+                                        'polzet') ...[
+                                  SizedBox(width: 4.w),
+                                  Image.asset(
+                                    Assets.images.icVerify.path,
+                                    height: 13,
+                                    width: 13,
+                                  ),
+                                ],
+                              ],
                             ),
 
                             Row(
@@ -1383,20 +1571,274 @@ class _ProfileScreenState extends State<ProfileScreen>
                     ),
                   ),
                   const Spacer(),
-                  if (post.user.isEmpty || post.user == userProvider.username)
-                    GestureDetector(
-                      onTap: () {
+                  if (isPolzetAi) ...[
+                    Container(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 10.w,
+                        vertical: 7.h,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.onPrimary.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(AppRadius.button),
+                      ),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Image.asset(
+                            "assets/images/ic_ai_pick.png",
+                            height: 15,
+                            width: 15,
+                            color: Theme.of(context).colorScheme.onPrimary,
+                          ),
+                          SizedBox(width: 4.w),
+                          Text(
+                            'AI Pick',
+                            style: AppTextStyles.subText.copyWith(
+                              fontSize: 11.sp,
+                              fontWeight: FontWeight.w500,
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.onBackground,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                  GestureDetector(
+                    onTapDown: (TapDownDetails details) async {
+                      final screenSize = MediaQuery.of(context).size;
+                      final double tapY = details.globalPosition.dy;
+                      final double tapX = details.globalPosition.dx;
+                      final bool showAbove = tapY > screenSize.height - 180;
+
+                      final result = await showGeneralDialog<String>(
+                        context: context,
+                        barrierDismissible: true,
+                        barrierLabel: 'Dismiss',
+                        barrierColor: Colors.black.withOpacity(0.35),
+                        transitionDuration:
+                            const Duration(milliseconds: 160),
+                        pageBuilder: (ctx, anim1, anim2) {
+                          return Stack(
+                            children: [
+                              Positioned(
+                                top: showAbove ? null : tapY + 8,
+                                bottom: showAbove
+                                    ? (screenSize.height - tapY + 8)
+                                    : null,
+                                right: (screenSize.width - tapX - 20)
+                                    .clamp(12.0, screenSize.width - 160.0),
+                                child: Material(
+                                  color: Colors.transparent,
+                                  child: Container(
+                                    width: 155,
+                                    decoration: BoxDecoration(
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.tertiaryContainer,
+                                      borderRadius:
+                                          BorderRadius.circular(10),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color:
+                                              Colors.black.withOpacity(0.18),
+                                          blurRadius: 12,
+                                          offset: const Offset(0, 4),
+                                        ),
+                                      ],
+                                    ),
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 4,
+                                    ),
+                                    child: Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        if (post.is_polled_by_current_user ||
+                                            isAuthor)
+                                          InkWell(
+                                            onTap: () => Navigator.pop(
+                                              ctx,
+                                              'view_result',
+                                            ),
+                                            child: Container(
+                                              width: double.infinity,
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                horizontal: 14,
+                                                vertical: 9,
+                                              ),
+                                              child: Text(
+                                                'View Result',
+                                                style: AppTextStyles.bodyText
+                                                    .copyWith(
+                                                  color: txt.title,
+                                                  fontWeight: FontWeight.w500,
+                                                  fontSize: 13.5,
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                        InkWell(
+                                          onTap: () => Navigator.pop(
+                                            ctx,
+                                            'save_poll',
+                                          ),
+                                          child: Container(
+                                            width: double.infinity,
+                                            padding:
+                                                const EdgeInsets.symmetric(
+                                              horizontal: 14,
+                                              vertical: 9,
+                                            ),
+                                            child: Text(
+                                              isSaved
+                                                  ? 'Unsave poll'
+                                                  : 'Save poll',
+                                              style: AppTextStyles.bodyText
+                                                  .copyWith(
+                                                color: txt.title,
+                                                fontWeight: FontWeight.w500,
+                                                fontSize: 13.5,
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                        if (!isAuthor && post.user.isNotEmpty)
+                                          InkWell(
+                                            onTap: () => Navigator.pop(
+                                              ctx,
+                                              'go_to_profile',
+                                            ),
+                                            child: Container(
+                                              width: double.infinity,
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                horizontal: 14,
+                                                vertical: 9,
+                                              ),
+                                              child: Text(
+                                                'Go to profile',
+                                                style: AppTextStyles.bodyText
+                                                    .copyWith(
+                                                  color: txt.title,
+                                                  fontWeight: FontWeight.w500,
+                                                  fontSize: 13.5,
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                        if (isAuthor)
+                                          InkWell(
+                                            onTap: () => Navigator.pop(
+                                              ctx,
+                                              'delete_poll',
+                                            ),
+                                            child: Container(
+                                              width: double.infinity,
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                horizontal: 14,
+                                                vertical: 9,
+                                              ),
+                                              child: Text(
+                                                'Delete poll',
+                                                style: AppTextStyles.bodyText
+                                                    .copyWith(
+                                                  color: Colors.red,
+                                                  fontWeight: FontWeight.w500,
+                                                  fontSize: 13.5,
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          );
+                        },
+                        transitionBuilder: (ctx, anim1, anim2, child) {
+                          return FadeTransition(
+                            opacity: anim1,
+                            child: ScaleTransition(
+                              scale: CurvedAnimation(
+                                parent: anim1,
+                                curve: Curves.easeOutCubic,
+                              ),
+                              alignment: showAbove
+                                  ? Alignment.bottomRight
+                                  : Alignment.topRight,
+                              child: child,
+                            ),
+                          );
+                        },
+                      );
+
+                      if (result == 'view_result') {
+                        final hasImages = _hasImageOptions(poll);
+                        if (hasImages) {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => ImageResultScreen(
+                                username: post.user.isNotEmpty
+                                    ? post.user
+                                    : (userProvider.username ?? ''),
+                                postId: post.id,
+                              ),
+                            ),
+                          );
+                        } else {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => ThingsResultScreen(
+                                username: post.user.isNotEmpty
+                                    ? post.user
+                                    : (userProvider.username ?? ''),
+                                postId: post.id,
+                              ),
+                            ),
+                          );
+                        }
+                      } else if (result == 'save_poll') {
+                        _toggleSavePost(post);
+                      } else if (result == 'go_to_profile') {
+                        if (post.user.isNotEmpty &&
+                            post.user != userProvider.username) {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => PublicProfileScreen(
+                                userId: post.userId,
+                                username: post.user,
+                              ),
+                            ),
+                          );
+                        }
+                      } else if (result == 'delete_poll') {
                         showUserDeletePostDiolog(context, () {
                           Navigator.pop(context);
                           _deletePost(post.id);
                         });
-                      },
-                      child: const Icon(
-                        FeatherIcons.moreVertical,
-                        size: 22,
-                        color: Color(0xFF727272),
+                      }
+                    },
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 4,
+                        vertical: 6,
+                      ),
+                      child: Icon(
+                        Icons.more_vert,
+                        size: 20,
+                        color: Theme.of(context).colorScheme.onBackground,
                       ),
                     ),
+                  ),
                 ],
               ),
             ),
@@ -1775,9 +2217,105 @@ class _ProfileScreenState extends State<ProfileScreen>
                       ),
                     if (poll.question.isNotEmpty || post.description.isNotEmpty)
                       SizedBox(height: 12.h),
-                    if (isImage)
-                      _buildImagesStack(post)
-                    else
+                    if (isImage) ...[
+                      if (isPolzetAi &&
+                          post.images.isNotEmpty &&
+                          !_hasImageOptions(poll)) ...[
+                        GestureDetector(
+                          onTap: () {
+                            if (post.is_polled_by_current_user) {
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (_) => ThingsResultScreen(
+                                    username: post.user,
+                                    postId: post.id,
+                                  ),
+                                ),
+                              );
+                            } else {
+                              Navigator.of(context)
+                                  .push(
+                                    MaterialPageRoute(
+                                      builder: (_) => UserThingsRanking(
+                                        firstName: post.userFirstName ??
+                                            (post.user == userProvider.username
+                                                ? userProvider.firstName
+                                                : ''),
+                                        lastName: post.userLastName ??
+                                            (post.user == userProvider.username
+                                                ? userProvider.lastName
+                                                : ''),
+                                        profileImage: postProfilePic,
+                                        post: post,
+                                        poll: poll,
+                                      ),
+                                    ),
+                                  )
+                                  .then((result) {
+                                    if (result == true) {
+                                      setState(() {});
+                                      _fetchSavedPosts();
+                                      _fetchPosts();
+                                    }
+                                  });
+                            }
+                          },
+                          child: Container(
+                            margin: const EdgeInsets.only(bottom: 12),
+                            height: 165.h,
+                            width: double.infinity,
+                            child: ClipRRect(
+                              borderRadius:
+                                  BorderRadius.circular(AppRadius.button),
+                              child: AppCachedNetworkImage(
+                                imageUrl: post.images.first
+                                    .resolvedUrl(ApiConfig.baseUrlImage),
+                                fit: BoxFit.cover,
+                              ),
+                            ),
+                          ),
+                        ),
+                        _buildTextOptions(poll, () {
+                          if (post.is_polled_by_current_user) {
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) => ThingsResultScreen(
+                                  username: post.user,
+                                  postId: post.id,
+                                ),
+                              ),
+                            );
+                          } else {
+                            Navigator.of(context)
+                                .push(
+                                  MaterialPageRoute(
+                                    builder: (_) => UserThingsRanking(
+                                      firstName: post.userFirstName ??
+                                          (post.user == userProvider.username
+                                              ? userProvider.firstName
+                                              : ''),
+                                      lastName: post.userLastName ??
+                                          (post.user == userProvider.username
+                                              ? userProvider.lastName
+                                              : ''),
+                                      profileImage: postProfilePic,
+                                      post: post,
+                                      poll: poll,
+                                    ),
+                                  ),
+                                )
+                                .then((result) {
+                                  if (result == true) {
+                                    setState(() {});
+                                    _fetchSavedPosts();
+                                    _fetchPosts();
+                                  }
+                                });
+                          }
+                        }),
+                      ] else
+                        _buildImagesStack(post),
+                    ] else
                       _buildTextOptions(poll, () {
                         if (post.is_polled_by_current_user) {
                           Navigator.of(context).push(
@@ -1789,17 +2327,19 @@ class _ProfileScreenState extends State<ProfileScreen>
                             ),
                           );
                         } else {
-                          final userProvider = Provider.of<UserProvider>(
-                            context,
-                            listen: false,
-                          );
                           Navigator.of(context)
                               .push(
                                 MaterialPageRoute(
                                   builder: (_) => UserThingsRanking(
-                                    firstName: userProvider.firstName,
-                                    lastName: userProvider.lastName,
-                                    profileImage: userProvider.profile_picture,
+                                    firstName: post.userFirstName ??
+                                        (post.user == userProvider.username
+                                            ? userProvider.firstName
+                                            : ''),
+                                    lastName: post.userLastName ??
+                                        (post.user == userProvider.username
+                                            ? userProvider.lastName
+                                            : ''),
+                                    profileImage: postProfilePic,
                                     post: post,
                                     poll: poll,
                                   ),
@@ -1808,6 +2348,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                               .then((result) {
                                 if (result == true) {
                                   setState(() {});
+                                  _fetchSavedPosts();
                                   _fetchPosts();
                                 }
                               });

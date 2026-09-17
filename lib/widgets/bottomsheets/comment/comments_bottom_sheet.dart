@@ -579,7 +579,7 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
                           : Theme.of(context).colorScheme.outline,
                       width: 1,
                     ),
-                    borderRadius: BorderRadius.circular(50),
+                    borderRadius: BorderRadius.circular(AppRadius.button),
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderSide: BorderSide(

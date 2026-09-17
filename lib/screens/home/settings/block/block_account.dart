@@ -13,6 +13,10 @@ import '../../../../languages/l10n/generated/app_localizations.dart';
 import '../../../../widgets/appbar/common_appbar.dart';
 import '../../../../widgets/base64/image_convert.dart';
 import 'package:polzet_app/api/api_config.dart';
+import '../../../../gen/assets.gen.dart';
+import '../../../../widgets/dialog/custom_diolog.dart';
+import '../../../../widgets/show_toast.dart';
+import '../../profile/public/public_profile_screen.dart';
 
 class BlockAccounts extends StatefulWidget {
   const BlockAccounts({super.key});
@@ -44,6 +48,9 @@ class _BlockUsersState extends State<BlockAccounts> {
     if (result['success'] != true) {
       // Revert on failure
       setState(() => _isBlockedMap[userId] = currentlyBlocked);
+      if (result['message'] != null) {
+        showToast(message: result['message'].toString());
+      }
     }
   }
 
@@ -92,18 +99,32 @@ class _BlockUsersState extends State<BlockAccounts> {
             );
           }
 
-          return ListView.builder(
-            itemCount: users.length,
-
-            itemBuilder: (context, index) {
+          return RefreshIndicator(
+            onRefresh: () async {
+              setState(() {
+                _blockedUsersFuture = _apiService.getBlockedUsers();
+              });
+              await _blockedUsersFuture;
+            },
+            child: ListView.builder(
+              physics: const AlwaysScrollableScrollPhysics(),
+              itemCount: users.length,
+              itemBuilder: (context, index) {
               final user = users[index];
               final dynamic userId = user['id'];
               final profilePic = user['profile_picture_url'];
               final bool isBlocked = _isBlockedMap[userId] ?? true;
 
-              final firstLetter = (user['username'] as String).isNotEmpty
-                  ? (user['username'] as String).substring(0, 1).toUpperCase()
-                  : '';
+              final String username = (user['username'] ?? '').toString();
+              final String currentUsername =
+                  username.trim().toLowerCase();
+              final firstLetter = username.isNotEmpty
+                  ? username.substring(0, 1).toUpperCase()
+                  : 'P';
+              final profileBytes =
+                  profilePic != null && profilePic.toString().isNotEmpty
+                      ? getProfileImage(profilePic.toString())
+                      : null;
 
               return Padding(
                 padding: EdgeInsetsGeometry.symmetric(
@@ -112,81 +133,183 @@ class _BlockUsersState extends State<BlockAccounts> {
                 ),
                 child: Row(
                   children: [
-                    Container(
-                      height: 40,
-                      width: 40,
-                      margin: EdgeInsets.only(right: 5.w),
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: Theme.of(context).colorScheme.outline,
-                          width: 0.7,
-                        ),
-                        image: profilePic != null && profilePic.toString().isNotEmpty
-                            ? DecorationImage(
-                                image: getProfileImage(profilePic) != null
-                                    ? MemoryImage(getProfileImage(profilePic)!)
-                                    : NetworkImage(profilePic.toString().startsWith('http')
-                                        ? profilePic.toString()
-                                        : '${ApiConfig.baseUrlImage}$profilePic') as ImageProvider,
-                                fit: BoxFit.cover,
+                    GestureDetector(
+                      onTap: () {
+                        if (username.isNotEmpty) {
+                          Navigator.of(context)
+                              .push(
+                                MaterialPageRoute(
+                                  builder: (context) => PublicProfileScreen(
+                                    userId: userId?.toString(),
+                                    username: username,
+                                  ),
+                                ),
                               )
-                            : null,
-                        color: profilePic == null
-                            ? (isDarkMode
-                                  ? const Color(0xFF252525)
-                                  : Theme.of(
-                                      context,
-                                    ).primaryColor.withOpacity(0.08))
-                            : null,
-                      ),
-                      child: profilePic == null
-                          ? Center(
-                              child: Text(
-                                firstLetter,
-                                style: TextStyle(
-                                  fontSize: 13.sp,
-                                  fontWeight: FontWeight.w500,
-                                  color: Theme.of(
-                                    context,
-                                  ).colorScheme.onPrimary.withOpacity(0.8),
+                              .then((_) {
+                                setState(() {
+                                  _blockedUsersFuture =
+                                      _apiService.getBlockedUsers();
+                                });
+                              });
+                        }
+                      },
+                      behavior: HitTestBehavior.opaque,
+                      child: SizedBox(
+                        height: 42,
+                        width: 42,
+                        child: Stack(
+                          alignment: Alignment.center,
+                          children: [
+                            ClipOval(
+                              child: (() {
+                                if (currentUsername == 'polzet_ai') {
+                                  return Center(
+                                    child: Padding(
+                                      padding: const EdgeInsets.only(
+                                        top: 7,
+                                        bottom: 0,
+                                        left: 9,
+                                        right: 8,
+                                      ),
+                                      child: Image.asset(
+                                        Assets.images.icSplash.path,
+                                      ),
+                                    ),
+                                  );
+                                }
+                                return CircleAvatar(
+                                  radius: 20,
+                                  backgroundColor: isDarkMode
+                                      ? const Color(0xFF252525)
+                                      : Theme.of(
+                                          context,
+                                        ).primaryColor.withOpacity(0.08),
+                                  backgroundImage: profileBytes != null
+                                      ? MemoryImage(profileBytes)
+                                      : (profilePic != null &&
+                                              profilePic
+                                                  .toString()
+                                                  .isNotEmpty
+                                          ? NetworkImage(
+                                              profilePic
+                                                      .toString()
+                                                      .startsWith('http')
+                                                  ? profilePic.toString()
+                                                  : '${ApiConfig.baseUrlImage}$profilePic',
+                                            )
+                                          : null),
+                                  child: profileBytes == null &&
+                                          (profilePic == null ||
+                                              profilePic.toString().isEmpty)
+                                      ? Text(
+                                          firstLetter,
+                                          style: TextStyle(
+                                            fontSize: 13.sp,
+                                            fontWeight: FontWeight.w500,
+                                            color: Theme.of(
+                                              context,
+                                            ).colorScheme.onPrimary.withOpacity(0.8),
+                                          ),
+                                        )
+                                      : null,
+                                );
+                              })(),
+                            ),
+                            if (currentUsername == 'polzet_ai')
+                              Positioned.fill(
+                                child: Image.asset(
+                                  Assets.images.aiFrame.path,
+                                  height: 50,
+                                  width: 50,
                                 ),
                               ),
-                            )
-                          : null,
+                          ],
+                        ),
+                      ),
                     ),
-                    SizedBox(width: 5.w),
+                    SizedBox(width: 8.w),
                     Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            '${user['username']}',
-                            style: AppTextStyles.bodyText.copyWith(
-                              color: txt.body,
-                              fontSize: 14.5,
-                              fontWeight: FontWeight.w500,
+                      child: GestureDetector(
+                        onTap: () {
+                          if (username.isNotEmpty) {
+                            Navigator.of(context)
+                                .push(
+                                  MaterialPageRoute(
+                                    builder: (context) => PublicProfileScreen(
+                                      userId: userId?.toString(),
+                                      username: username,
+                                    ),
+                                  ),
+                                )
+                                .then((_) {
+                                  setState(() {
+                                    _blockedUsersFuture =
+                                        _apiService.getBlockedUsers();
+                                  });
+                                });
+                          }
+                        },
+                        behavior: HitTestBehavior.opaque,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                Flexible(
+                                  child: Text(
+                                    username,
+                                    style: AppTextStyles.bodyText.copyWith(
+                                      color: txt.body,
+                                      fontSize: 14.5,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                                if (currentUsername == 'polzet_ai' ||
+                                    currentUsername == 'polzet') ...[
+                                  SizedBox(width: 4.w),
+                                  Image.asset(
+                                    Assets.images.icVerify.path,
+                                    height: 13,
+                                    width: 13,
+                                  ),
+                                ],
+                              ],
                             ),
-                          ),
-                          Text(
-                            (user['first_name'] != null &&
-                                    user['last_name'] != null &&
-                                    user['first_name'].toString().isNotEmpty &&
-                                    user['last_name'].toString().isNotEmpty)
-                                ? '${user['first_name']} ${user['last_name']}'
-                                : '${user['username']}',
-                            style: AppTextStyles.bodyText.copyWith(
-                              fontSize: 12.5,
-                              color: txt.muted,
-                              fontWeight: FontWeight.w500,
+                            Text(
+                              (user['first_name'] != null &&
+                                      user['last_name'] != null &&
+                                      user['first_name'].toString().isNotEmpty &&
+                                      user['last_name'].toString().isNotEmpty)
+                                  ? '${user['first_name']} ${user['last_name']}'
+                                  : username,
+                              style: AppTextStyles.bodyText.copyWith(
+                                fontSize: 12.5,
+                                color: txt.muted,
+                                fontWeight: FontWeight.w500,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
                     GestureDetector(
-                      onTap: () => _toggleBlock(userId, isBlocked),
+                      onTap: () {
+                        showBlockUserDiolog(
+                          context,
+                          () {
+                            Navigator.of(context).pop();
+                            _toggleBlock(userId, isBlocked);
+                          },
+                          isBlocked,
+                        );
+                      },
                       child: AnimatedContainer(
                         duration: const Duration(milliseconds: 250),
                         curve: Curves.easeInOut,
@@ -219,7 +342,9 @@ class _BlockUsersState extends State<BlockAccounts> {
                           child: AnimatedSwitcher(
                             duration: const Duration(milliseconds: 200),
                             child: Text(
-                              isBlocked ? 'Unblock' : 'Block',
+                              isBlocked
+                                  ? AppLocalizations.of(context)!.unblock
+                                  : AppLocalizations.of(context)!.block,
                               key: ValueKey(isBlocked),
                               style: AppTextStyles.subText.copyWith(
                                 color: isBlocked
@@ -244,8 +369,9 @@ class _BlockUsersState extends State<BlockAccounts> {
                 ),
               );
             },
-          );
-        },
+          ),
+        );
+      },
       ),
     );
   }

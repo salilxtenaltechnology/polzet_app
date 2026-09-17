@@ -659,6 +659,24 @@ class NotificationService {
             body = '$sender sent you a chase request.';
           }
           break;
+        case 'AI_NEW_POST':
+          if (!hasCustomTitle) {
+            title =
+                notificationData['title']?.toString() ??
+                data['title']?.toString() ??
+                'New AI Poll';
+          }
+          if (!hasCustomBody) {
+            body =
+                notificationData['post_description']?.toString() ??
+                data['post_description']?.toString() ??
+                notificationData['body']?.toString() ??
+                data['body']?.toString() ??
+                notificationData['message_preview']?.toString() ??
+                data['message_preview']?.toString() ??
+                '';
+          }
+          break;
       }
     }
 
@@ -1085,13 +1103,23 @@ class NotificationService {
       } else {
         if (profilePath != null) {
           notificationLargeIcon = FilePathAndroidBitmap(profilePath);
+        } else if (thumbPath != null) {
+          notificationLargeIcon = FilePathAndroidBitmap(thumbPath);
         }
 
         if (thumbPath != null) {
           styleInformation = BigPictureStyleInformation(
             FilePathAndroidBitmap(thumbPath),
             largeIcon: notificationLargeIcon,
-            hideExpandedLargeIcon: false,
+            contentTitle: content.title,
+            summaryText: content.body,
+            hideExpandedLargeIcon: profilePath == null,
+          );
+        } else {
+          styleInformation = BigTextStyleInformation(
+            content.body,
+            contentTitle: content.title,
+            summaryText: isAiNewPost ? 'Polzet AI' : null,
           );
         }
       }
@@ -1805,13 +1833,23 @@ class NotificationService {
       } else {
         if (profilePath != null) {
           notificationLargeIcon = FilePathAndroidBitmap(profilePath);
+        } else if (thumbPath != null) {
+          notificationLargeIcon = FilePathAndroidBitmap(thumbPath);
         }
 
         if (thumbPath != null) {
           styleInformation = BigPictureStyleInformation(
             FilePathAndroidBitmap(thumbPath),
             largeIcon: notificationLargeIcon,
-            hideExpandedLargeIcon: false,
+            contentTitle: content.title,
+            summaryText: content.body,
+            hideExpandedLargeIcon: profilePath == null,
+          );
+        } else {
+          styleInformation = BigTextStyleInformation(
+            content.body,
+            contentTitle: content.title,
+            summaryText: isAiNewPost ? 'Polzet AI' : null,
           );
         }
       }
@@ -2679,13 +2717,23 @@ class NotificationService {
       } else {
         if (profilePath != null) {
           notificationLargeIcon = FilePathAndroidBitmap(profilePath);
+        } else if (thumbPath != null) {
+          notificationLargeIcon = FilePathAndroidBitmap(thumbPath);
         }
 
         if (thumbPath != null) {
           styleInformation = BigPictureStyleInformation(
             FilePathAndroidBitmap(thumbPath),
             largeIcon: notificationLargeIcon,
-            hideExpandedLargeIcon: false,
+            contentTitle: content.title,
+            summaryText: content.body,
+            hideExpandedLargeIcon: profilePath == null,
+          );
+        } else {
+          styleInformation = BigTextStyleInformation(
+            content.body,
+            contentTitle: content.title,
+            summaryText: isAiNewPost ? 'Polzet AI' : null,
           );
         }
       }
@@ -2887,6 +2935,16 @@ class NotificationService {
       final response = await http.get(Uri.parse(absoluteUrl));
       if (response.statusCode == 200) {
         var bytes = response.bodyBytes;
+        String extension = 'png';
+        final cleanUrl = url.split('?').first.toLowerCase();
+        if (cleanUrl.endsWith('.jpg') || cleanUrl.endsWith('.jpeg')) {
+          extension = 'jpg';
+        } else if (cleanUrl.endsWith('.webp')) {
+          extension = 'webp';
+        } else if (cleanUrl.endsWith('.gif')) {
+          extension = 'gif';
+        }
+
         if (cropToCircle) {
           try {
             var originalImage = img.decodeImage(bytes);
@@ -2896,12 +2954,17 @@ class NotificationService {
               }
               final circleImage = img.copyCropCircle(originalImage);
               bytes = Uint8List.fromList(img.encodePng(circleImage));
+              extension = 'png';
             }
           } catch (e) {
             debugPrint('❌ Error cropping image to circle: $e');
           }
         }
-        final filePath = '${Directory.systemTemp.path}/$fileName';
+        final baseName = fileName.replaceAll(
+          RegExp(r'\.(png|jpg|jpeg|webp|gif)$', caseSensitive: false),
+          '',
+        );
+        final filePath = '${Directory.systemTemp.path}/$baseName.$extension';
         final file = File(filePath);
         await file.writeAsBytes(bytes);
         return filePath;

@@ -116,6 +116,7 @@ class _SinglePostImageRankingState extends State<SinglePostImageRanking> with Ut
       if (!mounted) return;
 
       if (result['success'] == true) {
+        widget.post.isPolledByCurrentUser = true;
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(
             builder: (_) => RankSubmittedScreen(
@@ -157,18 +158,26 @@ class _SinglePostImageRankingState extends State<SinglePostImageRanking> with Ut
                 padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
                 proxyDecorator: _proxyDecorator,
                 onReorder: _onReorder,
-                buildDefaultDragHandles: false,
                 header: _buildPostHeader(),
                 itemCount: _orderedImages.length,
                 itemBuilder: (context, index) {
                   final option = _orderedImages[index];
-                  return _SinglePostRankImageCard(
-                    key: ValueKey(option.id),
+                  final itemKey = ValueKey(option.hashCode);
+
+                  final card = _SinglePostRankImageCard(
                     option: option,
                     rank: _hasRanked ? index + 1 : null,
                     allImages: _orderedImages,
                     index: index,
                     resolveUrl: _resolveUrl,
+                  );
+
+                  return KeyedSubtree(
+                    key: itemKey,
+                    child: Padding(
+                      padding: const EdgeInsets.only(bottom: 10),
+                      child: card,
+                    ),
                   );
                 },
               ),
@@ -189,7 +198,7 @@ class _SinglePostImageRankingState extends State<SinglePostImageRanking> with Ut
     return AnimatedBuilder(
       animation: animation,
       builder: (_, __) => Material(
-        elevation: 1,
+        color: Colors.transparent,
         borderRadius: BorderRadius.circular(AppRadius.card),
         child: child,
       ),
@@ -416,7 +425,6 @@ class _SinglePostRankImageCard extends StatelessWidget {
   final String Function(String) resolveUrl;
 
   const _SinglePostRankImageCard({
-    super.key,
     required this.option,
     required this.rank,
     required this.allImages,
@@ -428,94 +436,78 @@ class _SinglePostRankImageCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final imageUrl = option.image != null ? resolveUrl(option.image!.url) : '';
 
-    return ReorderableDragStartListener(
-      index: index,
-      child: Padding(
-        padding: const EdgeInsets.only(bottom: 10),
-        child: Stack(
-          children: [
-            // ── Full-width cover image ─────────────────────────────────────
-            GestureDetector(
-              onTap: () {
-                final urls = allImages
-                    .where((o) => o.image != null)
-                    .map((o) => resolveUrl(o.image!.url))
-                    .toList();
+    return Stack(
+      children: [
+        // ── Full-width cover image ─────────────────────────────────────
+        GestureDetector(
+          onTap: () {
+            final urls = allImages
+                .where((o) => o.image != null)
+                .map((o) => resolveUrl(o.image!.url))
+                .toList();
 
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    fullscreenDialog: true,
-                    builder: (_) => ImagePreviewScreen(
-                      imageUrls: urls,
-                      initialIndex: index,
-                    ),
-                  ),
-                );
-              },
-              child: Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(AppRadius.card),
-                  border: Border.all(
-                    color: Theme.of(context).colorScheme.outlineVariant,
-                    width: 1,
-                  ),
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(AppRadius.card),
-                  child: imageUrl.isNotEmpty
-                      ? Image.network(
-                          imageUrl,
-                          width: double.infinity,
-                          height: 200,
-                          fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => _placeholder(),
-                          loadingBuilder: (_, child, progress) {
-                            if (progress == null) return child;
-                            return SizedBox(
-                              height: 200,
-                              child: Center(
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  value: progress.expectedTotalBytes != null
-                                      ? progress.cumulativeBytesLoaded /
-                                            progress.expectedTotalBytes!
-                                      : null,
-                                ),
-                              ),
-                            );
-                          },
-                        )
-                      : _placeholder(),
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                fullscreenDialog: true,
+                builder: (_) => ImagePreviewScreen(
+                  imageUrls: urls,
+                  initialIndex: index,
                 ),
               ),
+            );
+          },
+          child: Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(AppRadius.card),
+              border: Border.all(
+                color: Theme.of(context).colorScheme.outlineVariant,
+                width: 1,
+              ),
             ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(AppRadius.card),
+              child: imageUrl.isNotEmpty
+                  ? Image.network(
+                      imageUrl,
+                      width: double.infinity,
+                      height: 200,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => _placeholder(),
+                    )
+                  : _placeholder(),
+            ),
+          ),
+        ),
 
-            // ── Rank badge overlay ─────────────────────────────────────────
-            if (rank != null)
-              Positioned(
-                top: 10,
-                right: 10,
-                child: Container(
-                  width: 28,
-                  height: 28,
-                  decoration: const BoxDecoration(
-                    color: Color(0xFFB82B53),
-                    shape: BoxShape.circle,
-                  ),
-                  alignment: Alignment.center,
+        // ── Rank badge overlay ─────────────────────────────────────────
+        if (rank != null)
+          Positioned(
+            top: 10,
+            right: 10,
+            child: AnimatedScale(
+              scale: 1.0,
+              duration: const Duration(milliseconds: 200),
+              child: Container(
+                width: 28,
+                height: 28,
+                decoration: const BoxDecoration(
+                  color: Color(0xFFB82B53),
+                  shape: BoxShape.circle,
+                ),
+                child: Center(
                   child: Text(
                     rank.toString(),
                     style: AppTextStyles.subText.copyWith(
                       color: Colors.white,
                       fontWeight: FontWeight.w600,
-                      fontSize: 12,
+                      fontSize: 13,
                     ),
                   ),
                 ),
               ),
-          ],
-        ),
-      ),
+            ),
+          ),
+      ],
     );
   }
 

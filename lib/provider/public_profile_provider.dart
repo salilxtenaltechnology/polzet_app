@@ -255,6 +255,13 @@ class PublicProfileProvider extends ChangeNotifier {
     }
   }
 
+  void updateBlockedStatus(bool isBlocked) {
+    if (_userProfile != null) {
+      _userProfile = _userProfile!.copyWith(isBlocked: isBlocked);
+      notifyListeners();
+    }
+  }
+
   void clearProfile() {
     _profileResponse = null;
     _userProfile = null;

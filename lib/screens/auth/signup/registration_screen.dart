@@ -67,33 +67,52 @@ class _RegistrationScreenState extends State<RegistrationScreen>
 
   static const Map<String, String> _languageCodeMap = {
     'Arabic': 'ar',
+    'Chinese': 'zh',
     'English': 'en',
+    'French': 'fr',
     'German': 'de',
     'Hindi': 'hi',
     'Indonasian': 'id',
     'Indonesian': 'id',
+    'Italian': 'it',
+    'Japanese': 'ja',
+    'Korean': 'ko',
+    'Portuguese': 'pt',
+    'Russian': 'ru',
     'Spanish': 'es',
     'Vietnamese': 'vi',
   };
 
   static const Map<String, String> _codeToLanguageMap = {
     'ar': 'Arabic',
+    'zh': 'Chinese',
     'en': 'English',
+    'fr': 'French',
     'de': 'German',
     'hi': 'Hindi',
     'id': 'Indonasian',
+    'it': 'Italian',
+    'ja': 'Japanese',
+    'ko': 'Korean',
+    'pt': 'Portuguese',
+    'ru': 'Russian',
     'es': 'Spanish',
     'vi': 'Vietnamese',
   };
 
-
-
   final List<String> _languages = const [
     'Arabic',
+    'Chinese',
     'English',
+    'French',
     'German',
     'Hindi',
     'Indonasian',
+    'Italian',
+    'Japanese',
+    'Korean',
+    'Portuguese',
+    'Russian',
     'Spanish',
     'Vietnamese',
   ];

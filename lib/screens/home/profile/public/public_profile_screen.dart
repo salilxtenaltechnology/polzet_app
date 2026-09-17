@@ -2,6 +2,8 @@
 import 'package:polzet_app/core/constants/feather_icons_compat.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:polzet_app/screens/home/message/chat/private/info/private_user_report.dart';
+import '../../../../widgets/bottomsheets/report/report_submitted_bottom_sheet.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../widgets/show_toast.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -46,6 +48,9 @@ import '../../../../models/like/like_uers_model.dart';
 import '../../../../core/utils/like_util.dart';
 import '../../../../api/services/share/share_service.dart';
 import '../../../../api/services/link/deeplink_generator_service.dart';
+import '../../../../models/public/public_profile_model.dart';
+import '../../../../core/constants/app_colors.dart';
+import '../../../../widgets/dialog/custom_diolog.dart';
 
 enum FollowStatus { none, rechase, chase, both, pending }
 
@@ -80,8 +85,41 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
   String? resolvedUserId;
   Future<String?>? _authTokenFuture;
   bool isLoadingPosts = true;
+  bool isLoadingMorePosts = false;
+  bool hasMorePosts = false;
+  int postsCurrentPage = 1;
+  int? totalPollsCount;
   List<UserPostModel> cachedThingsPosts = [];
   List<UserPostModel> cachedImagesPosts = [];
+
+  void _initializePostStates(List<UserPostModel> posts) {
+    for (var post in posts) {
+      postLikeStates[post.id] = post.isLiked;
+      postSaveStates[post.id] = post.isSaved;
+      postLikeCounts[post.id] = post.likesCount;
+      postCommentsCounts[post.id] = post.comments.length;
+      postSharesCounts[post.id] = post.sharesCount;
+      if (post.likesCount > 0) _fetchLikedUsersSilently(post.id);
+
+      if (locallyVotedPostIds.contains(post.id)) {
+        post.is_polled_by_current_user = true;
+        final updatedTotalVotes = locallyUpdatedTotalVotes[post.id];
+        final optPctMap = locallyUpdatedPercentages[post.id];
+        for (var poll in post.polls) {
+          if (updatedTotalVotes != null) {
+            poll.totalVotes = updatedTotalVotes;
+          }
+          if (optPctMap != null) {
+            for (var option in poll.options) {
+              if (optPctMap.containsKey(option.id)) {
+                option.percentage = optPctMap[option.id]!;
+              }
+            }
+          }
+        }
+      }
+    }
+  }
 
   Map<String, bool> postLikeStates = {};
   Map<String, bool> postSaveStates = {};
@@ -97,9 +135,89 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
   final Map<String, Map<dynamic, double>> locallyUpdatedPercentages = {};
   final Map<String, String> locallyUpdatedTotalVotes = {};
 
+  bool? _localIsBlocked;
+  bool? _localIsReported;
   FollowStatus? _localFollowStatus;
   FollowStatus? _serverFollowStatus;
   bool _isProcessingRequest = false;
+
+  bool _getIsBlocked(ProfileData? profile) {
+    if (_localIsBlocked != null) return _localIsBlocked!;
+    return profile?.isBlocked ?? false;
+  }
+
+  bool _getIsReported(ProfileData? profile) {
+    if (_localIsReported != null) return _localIsReported!;
+    return profile?.isReported ?? false;
+  }
+
+  void _showBlockUserConfirmationDialog({required bool isUserBlock}) {
+    showBlockUserDiolog(context, () async {
+      Navigator.of(context).pop();
+      await _handleBlockToggle(isUserBlock);
+    }, isUserBlock);
+  }
+
+  Future<void> _handleBlockToggle(bool currentlyBlocked) async {
+    final publicProfileProvider = Provider.of<PublicProfileProvider>(
+      context,
+      listen: false,
+    );
+    final targetUserId =
+        resolvedUserId ??
+        widget.userId ??
+        publicProfileProvider.userProfile?.userId ??
+        publicProfileProvider.userProfile?.id;
+
+    if (targetUserId == null || targetUserId.toString().isEmpty) {
+      showToast(message: 'User ID not found');
+      return;
+    }
+
+    final result = currentlyBlocked
+        ? await apiService.unblockUser(targetUserId)
+        : await apiService.blockUser(targetUserId);
+
+    if (!mounted) return;
+
+    if (result['success'] == true) {
+      final newBlockedState = !currentlyBlocked;
+      setState(() {
+        _localIsBlocked = newBlockedState;
+        if (newBlockedState) {
+          _localFollowStatus = FollowStatus.none;
+        }
+      });
+
+      publicProfileProvider.updateBlockedStatus(newBlockedState);
+
+      if (result['message'] != null &&
+          result['message'].toString().trim().isNotEmpty) {
+        showToast(message: result['message'].toString());
+      } else {
+        showToast(
+          message: newBlockedState
+              ? 'User blocked successfully'
+              : 'User unblocked successfully',
+        );
+      }
+
+      if (!newBlockedState) {
+        await _handleRefresh();
+      }
+    } else {
+      if (result['message'] != null &&
+          result['message'].toString().trim().isNotEmpty) {
+        showToast(message: result['message'].toString());
+      } else {
+        showToast(
+          message: currentlyBlocked
+              ? 'Failed to unblock user'
+              : 'Failed to block user',
+        );
+      }
+    }
+  }
 
   late TabController _tabController;
 
@@ -384,7 +502,9 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
                 poll: poll,
                 firstName: userProvider.userProfile?.firstName ?? '',
                 lastName: userProvider.userProfile?.lastName ?? '',
-                profileImage: (userProvider.userProfile?.username.toLowerCase() == 'polzet_ai')
+                profileImage:
+                    (userProvider.userProfile?.username.toLowerCase() ==
+                        'polzet_ai')
                     ? Assets.images.icSplash.path
                     : userProvider.userProfile?.profilePictureUrl,
               ),
@@ -516,7 +636,8 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
       final dynamic savedVal =
           res['is_saved'] ?? res['is_saved_by_current_user'] ?? res['saved'];
       if (savedVal != null && mounted) {
-        final bool serverSaved = savedVal == true ||
+        final bool serverSaved =
+            savedVal == true ||
             savedVal == 1 ||
             savedVal.toString().toLowerCase() == 'true';
         setState(() {
@@ -546,6 +667,7 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
     final publicProfileProvider = Provider.of<PublicProfileProvider>(context);
 
     final profile = publicProfileProvider.userProfile;
+    final isUserBlocked = _getIsBlocked(profile);
     final effectiveStatus = _getEffectiveFollowStatus(
       profile?.followStatus,
       profile != null,
@@ -648,7 +770,7 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
               offset: const Offset(0, 45),
               elevation: 2,
               padding: EdgeInsets.zero,
-              onSelected: (String result) {
+              onSelected: (String result) async {
                 if (profile == null) return;
                 if (result == 'Share Profile') {
                   ShareService.shareProfile(
@@ -663,6 +785,36 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
                   Clipboard.setData(ClipboardData(text: link)).then((_) {
                     showToast(message: 'Link copied');
                   });
+                } else if (result == 'Block User' ||
+                    result == 'Unblock User' ||
+                    result ==
+                        (AppLocalizations.of(context)?.blockuser ??
+                            'Block User') ||
+                    result ==
+                        (AppLocalizations.of(context)?.unblockuser ??
+                            'Unblock User')) {
+                  _showBlockUserConfirmationDialog(isUserBlock: isUserBlocked);
+                } else if (result == 'Report') {
+                  final bool isUserReported = _getIsReported(profile);
+                  if (isUserReported) {
+                    showReportSubmittedBottomSheet(context);
+                  } else {
+                    final targetId = resolvedUserId ??
+                        (profile.id.isNotEmpty
+                            ? profile.id
+                            : (profile.userId.isNotEmpty
+                                ? profile.userId
+                                : widget.userId?.toString()));
+                    final reportResult = await navigationPush(
+                      context,
+                      PrivateUserReport(userId: targetId),
+                    );
+                    if (reportResult == true && mounted) {
+                      setState(() {
+                        _localIsReported = true;
+                      });
+                    }
+                  }
                 }
               },
               itemBuilder: (BuildContext context) {
@@ -686,6 +838,14 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
                 return <PopupMenuEntry<String>>[
                   buildItem('Share Profile'),
                   buildItem('Copy Profile Link'),
+                  buildItem(
+                    isUserBlocked
+                        ? (AppLocalizations.of(context)?.unblockuser ??
+                              'Unblock User')
+                        : (AppLocalizations.of(context)?.blockuser ??
+                              'Block User'),
+                  ),
+                  buildItem('Report'),
                 ];
               },
             ),
@@ -696,15 +856,15 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
         onRefresh: _handleRefresh,
         color: Theme.of(context).colorScheme.onPrimary,
         child: NestedScrollView(
-          physics: canViewPosts
+          physics: (canViewPosts && !isUserBlocked)
               ? const AlwaysScrollableScrollPhysics()
-              : const NeverScrollableScrollPhysics(),
+              : const AlwaysScrollableScrollPhysics(),
           headerSliverBuilder: (context, innerBoxIsScrolled) {
             return [
               SliverToBoxAdapter(
                 child: _buildHeader(top, publicProfileProvider),
               ),
-              if (canViewPosts)
+              if (canViewPosts && !isUserBlocked)
                 SliverPersistentHeader(
                   pinned: true,
                   delegate: _SliverAppBarDelegate(
@@ -734,7 +894,9 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
                 ),
             ];
           },
-          body: canViewPosts
+          body: isUserBlocked
+              ? _buildBlockedUserView(context, txt, isDarkMode)
+              : canViewPosts
               ? TabBarView(
                   controller: _tabController,
                   children: [
@@ -776,17 +938,51 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
                               ],
                             ),
                           )
-                        : ListView.builder(
-                            physics: const AlwaysScrollableScrollPhysics(),
-                            padding: EdgeInsets.fromLTRB(10.w, 12.h, 10.w, 100),
-                            itemCount: cachedThingsPosts.length,
-                            itemBuilder: (context, index) {
-                              return _buildSimplePostCard(
-                                cachedThingsPosts[index],
-                                isImage: false,
-                                userProvider: publicProfileProvider,
-                              );
+                        : NotificationListener<ScrollNotification>(
+                            onNotification: (scrollInfo) {
+                              if (!isLoadingMorePosts &&
+                                  hasMorePosts &&
+                                  scrollInfo.metrics.pixels >=
+                                      scrollInfo.metrics.maxScrollExtent -
+                                          200) {
+                                _fetchMorePosts();
+                              }
+                              return false;
                             },
+                            child: ListView.builder(
+                              physics: const AlwaysScrollableScrollPhysics(),
+                              padding: EdgeInsets.fromLTRB(
+                                10.w,
+                                12.h,
+                                10.w,
+                                100,
+                              ),
+                              itemCount:
+                                  cachedThingsPosts.length +
+                                  (isLoadingMorePosts ? 1 : 0),
+                              itemBuilder: (context, index) {
+                                if (index < cachedThingsPosts.length) {
+                                  return _buildSimplePostCard(
+                                    cachedThingsPosts[index],
+                                    isImage: false,
+                                    userProvider: publicProfileProvider,
+                                  );
+                                } else {
+                                  return Padding(
+                                    padding: EdgeInsets.symmetric(
+                                      vertical: 16.h,
+                                    ),
+                                    child: Center(
+                                      child: Loader(
+                                        color: Theme.of(
+                                          context,
+                                        ).colorScheme.onPrimary,
+                                      ),
+                                    ),
+                                  );
+                                }
+                              },
+                            ),
                           ),
                     isLoadingPosts
                         ? Center(
@@ -821,17 +1017,51 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
                               ],
                             ),
                           )
-                        : ListView.builder(
-                            physics: const AlwaysScrollableScrollPhysics(),
-                            padding: EdgeInsets.fromLTRB(10.w, 12.h, 10.w, 100),
-                            itemCount: cachedImagesPosts.length,
-                            itemBuilder: (context, index) {
-                              return _buildSimplePostCard(
-                                cachedImagesPosts[index],
-                                isImage: true,
-                                userProvider: publicProfileProvider,
-                              );
+                        : NotificationListener<ScrollNotification>(
+                            onNotification: (scrollInfo) {
+                              if (!isLoadingMorePosts &&
+                                  hasMorePosts &&
+                                  scrollInfo.metrics.pixels >=
+                                      scrollInfo.metrics.maxScrollExtent -
+                                          200) {
+                                _fetchMorePosts();
+                              }
+                              return false;
                             },
+                            child: ListView.builder(
+                              physics: const AlwaysScrollableScrollPhysics(),
+                              padding: EdgeInsets.fromLTRB(
+                                10.w,
+                                12.h,
+                                10.w,
+                                100,
+                              ),
+                              itemCount:
+                                  cachedImagesPosts.length +
+                                  (isLoadingMorePosts ? 1 : 0),
+                              itemBuilder: (context, index) {
+                                if (index < cachedImagesPosts.length) {
+                                  return _buildSimplePostCard(
+                                    cachedImagesPosts[index],
+                                    isImage: true,
+                                    userProvider: publicProfileProvider,
+                                  );
+                                } else {
+                                  return Padding(
+                                    padding: EdgeInsets.symmetric(
+                                      vertical: 16.h,
+                                    ),
+                                    child: Center(
+                                      child: Loader(
+                                        color: Theme.of(
+                                          context,
+                                        ).colorScheme.onPrimary,
+                                      ),
+                                    ),
+                                  );
+                                }
+                              },
+                            ),
                           ),
                   ],
                 )
@@ -895,6 +1125,7 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
   Future<void> _handleRefresh() async {
     _serverFollowStatus = null;
     _localFollowStatus = null;
+    _localIsBlocked = null;
     final publicProfileProvider = Provider.of<PublicProfileProvider>(
       context,
       listen: false,
@@ -931,115 +1162,143 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
         publicProfileProvider.userProfile?.username ?? widget.username;
     if (username == null || username.isEmpty) return;
 
-    if (!isRefresh) {
+    if (isRefresh) {
+      postsCurrentPage = 1;
+      hasMorePosts = false;
+      isLoadingMorePosts = false;
+    } else {
       setState(() {
         isLoadingPosts = true;
       });
     }
 
-    final isPolzetAiProfile =
-        username.trim().toLowerCase() == 'polzet_ai';
+    try {
+      final response = await apiService.fetchUserPostsResponse(
+        username,
+        page: 1,
+      );
+      if (mounted) {
+        final isPolzetAiProfile = username.trim().toLowerCase() == 'polzet_ai';
 
-    await Future.wait([
-      apiService
-          .fetchPostsImages(username)
-          .then((posts) {
-            if (mounted) {
-              final mappedPosts = posts.where((post) {
-                final isPolzetAiPost = isPolzetAiProfile ||
-                    post.user.trim().toLowerCase() == 'polzet_ai';
-                return (isPolzetAiPost && post.images.isNotEmpty) ||
-                    post.polls.any(
-                      (poll) => poll.options.any((o) => o.image != null),
-                    );
-              }).toList();
-              for (var post in mappedPosts) {
-                postLikeStates[post.id] = post.isLiked;
-                postSaveStates[post.id] = post.isSaved;
-                postLikeCounts[post.id] = post.likesCount;
-                postCommentsCounts[post.id] = post.comments.length;
-                postSharesCounts[post.id] = post.sharesCount;
-                if (post.likesCount > 0) _fetchLikedUsersSilently(post.id);
+        final mappedThings = response.results.where((post) {
+          if (post.polls.isEmpty) return false;
+          final isPolzetAiPost =
+              isPolzetAiProfile ||
+              post.user.trim().toLowerCase() == 'polzet_ai';
+          if (isPolzetAiPost && post.images.isNotEmpty) return false;
+          return post.polls.every(
+            (poll) => poll.options.every(
+              (o) => o.text != null && o.text!.isNotEmpty && o.image == null,
+            ),
+          );
+        }).toList();
 
-                if (locallyVotedPostIds.contains(post.id)) {
-                  post.is_polled_by_current_user = true;
-                  final updatedTotalVotes = locallyUpdatedTotalVotes[post.id];
-                  final optPctMap = locallyUpdatedPercentages[post.id];
-                  for (var poll in post.polls) {
-                    if (updatedTotalVotes != null) {
-                      poll.totalVotes = updatedTotalVotes;
-                    }
-                    if (optPctMap != null) {
-                      for (var option in poll.options) {
-                        if (optPctMap.containsKey(option.id)) {
-                          option.percentage = optPctMap[option.id]!;
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-              setState(() {
-                cachedImagesPosts = mappedPosts;
-              });
-            }
-          })
-          .catchError((_) {}),
-      apiService
-          .fetchOnlyPollPosts(username)
-          .then((posts) {
-            if (mounted) {
-              final mappedPosts = posts.where((post) {
-                if (post.polls.isEmpty) return false;
-                final isPolzetAiPost = isPolzetAiProfile ||
-                    post.user.trim().toLowerCase() == 'polzet_ai';
-                if (isPolzetAiPost && post.images.isNotEmpty) return false;
-                return post.polls.every(
-                  (poll) => poll.options.every(
-                    (o) =>
-                        o.text != null && o.text!.isNotEmpty && o.image == null,
-                  ),
-                );
-              }).toList();
-              for (var post in mappedPosts) {
-                postLikeStates[post.id] = post.isLiked;
-                postSaveStates[post.id] = post.isSaved;
-                postLikeCounts[post.id] = post.likesCount;
-                postCommentsCounts[post.id] = post.comments.length;
-                postSharesCounts[post.id] = post.sharesCount;
-                if (post.likesCount > 0) _fetchLikedUsersSilently(post.id);
+        final mappedImages = response.results.where((post) {
+          final isPolzetAiPost =
+              isPolzetAiProfile ||
+              post.user.trim().toLowerCase() == 'polzet_ai';
+          return (isPolzetAiPost && post.images.isNotEmpty) ||
+              post.polls.any(
+                (poll) => poll.options.any((o) => o.image != null),
+              );
+        }).toList();
 
-                if (locallyVotedPostIds.contains(post.id)) {
-                  post.is_polled_by_current_user = true;
-                  final updatedTotalVotes = locallyUpdatedTotalVotes[post.id];
-                  final optPctMap = locallyUpdatedPercentages[post.id];
-                  for (var poll in post.polls) {
-                    if (updatedTotalVotes != null) {
-                      poll.totalVotes = updatedTotalVotes;
-                    }
-                    if (optPctMap != null) {
-                      for (var option in poll.options) {
-                        if (optPctMap.containsKey(option.id)) {
-                          option.percentage = optPctMap[option.id]!;
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-              setState(() {
-                cachedThingsPosts = mappedPosts;
-              });
-            }
-          })
-          .catchError((_) {}),
-    ]).whenComplete(() {
+        _initializePostStates(response.results);
+
+        setState(() {
+          cachedThingsPosts = mappedThings;
+          cachedImagesPosts = mappedImages;
+          postsCurrentPage = 1;
+          hasMorePosts = response.next != null && response.next!.isNotEmpty;
+          totalPollsCount = response.count;
+          isLoadingPosts = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error loading public profile posts: $e');
       if (mounted) {
         setState(() {
           isLoadingPosts = false;
         });
       }
+    }
+  }
+
+  Future<void> _fetchMorePosts() async {
+    if (isLoadingMorePosts || !hasMorePosts) return;
+
+    final publicProfileProvider = Provider.of<PublicProfileProvider>(
+      context,
+      listen: false,
+    );
+    final username =
+        publicProfileProvider.userProfile?.username ?? widget.username;
+    if (username == null || username.isEmpty) return;
+
+    setState(() {
+      isLoadingMorePosts = true;
     });
+
+    try {
+      final nextPage = postsCurrentPage + 1;
+      final response = await apiService.fetchUserPostsResponse(
+        username,
+        page: nextPage,
+      );
+
+      if (mounted) {
+        final isPolzetAiProfile = username.trim().toLowerCase() == 'polzet_ai';
+
+        final mappedThings = response.results.where((post) {
+          if (post.polls.isEmpty) return false;
+          final isPolzetAiPost =
+              isPolzetAiProfile ||
+              post.user.trim().toLowerCase() == 'polzet_ai';
+          if (isPolzetAiPost && post.images.isNotEmpty) return false;
+          return post.polls.every(
+            (poll) => poll.options.every(
+              (o) => o.text != null && o.text!.isNotEmpty && o.image == null,
+            ),
+          );
+        }).toList();
+
+        final mappedImages = response.results.where((post) {
+          final isPolzetAiPost =
+              isPolzetAiProfile ||
+              post.user.trim().toLowerCase() == 'polzet_ai';
+          return (isPolzetAiPost && post.images.isNotEmpty) ||
+              post.polls.any(
+                (poll) => poll.options.any((o) => o.image != null),
+              );
+        }).toList();
+
+        _initializePostStates(response.results);
+
+        setState(() {
+          for (final item in mappedThings) {
+            if (!cachedThingsPosts.any((p) => p.id == item.id)) {
+              cachedThingsPosts.add(item);
+            }
+          }
+          for (final item in mappedImages) {
+            if (!cachedImagesPosts.any((p) => p.id == item.id)) {
+              cachedImagesPosts.add(item);
+            }
+          }
+          postsCurrentPage = nextPage;
+          hasMorePosts = response.next != null && response.next!.isNotEmpty;
+          totalPollsCount = response.count;
+          isLoadingMorePosts = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error fetching more public profile posts: $e');
+      if (mounted) {
+        setState(() {
+          isLoadingMorePosts = false;
+        });
+      }
+    }
   }
 
   String _timeAgo(DateTime dt) {
@@ -1075,7 +1334,8 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
     final viewLikes = postLikedUsers[post.id] ?? [];
     final currentUsername = userProvider.userProfile?.username ?? '';
     final profile = userProvider.userProfile;
-    final isPolzetAi = post.user.trim().toLowerCase() == 'polzet_ai' ||
+    final isPolzetAi =
+        post.user.trim().toLowerCase() == 'polzet_ai' ||
         currentUsername.trim().toLowerCase() == 'polzet_ai' ||
         (widget.username ?? '').trim().toLowerCase() == 'polzet_ai';
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
@@ -1146,11 +1406,14 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
                                 fontSize: 18,
                               );
                             }
-                            final String profilePic = (profile.profilePictureUrl != null && profile.profilePictureUrl!.isNotEmpty)
+                            final String profilePic =
+                                (profile.profilePictureUrl != null &&
+                                    profile.profilePictureUrl!.isNotEmpty)
                                 ? profile.profilePictureUrl!
-                                : ((profile.profilePicture != null && profile.profilePicture!.isNotEmpty)
-                                    ? profile.profilePicture!
-                                    : (profile.profileThumbnailUrl ?? ''));
+                                : ((profile.profilePicture != null &&
+                                          profile.profilePicture!.isNotEmpty)
+                                      ? profile.profilePicture!
+                                      : (profile.profileThumbnailUrl ?? ''));
                             if (profilePic.isNotEmpty) {
                               final cachedImage = getConvertImage(profilePic);
                               if (cachedImage != null) {
@@ -1159,10 +1422,11 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
                                   fit: BoxFit.cover,
                                   width: double.infinity,
                                   height: double.infinity,
-                                  errorBuilder: (_, __, ___) => _AvatarPlaceholder(
-                                    username: profile.username,
-                                    fontSize: 18,
-                                  ),
+                                  errorBuilder: (_, __, ___) =>
+                                      _AvatarPlaceholder(
+                                        username: profile.username,
+                                        fontSize: 18,
+                                      ),
                                 );
                               } else if (profilePic.startsWith('http') ||
                                   profilePic.startsWith('/') ||
@@ -1177,10 +1441,11 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
                                   fit: BoxFit.cover,
                                   width: double.infinity,
                                   height: double.infinity,
-                                  errorWidget: (_, __, ___) => _AvatarPlaceholder(
-                                    username: profile.username,
-                                    fontSize: 18,
-                                  ),
+                                  errorWidget: (_, __, ___) =>
+                                      _AvatarPlaceholder(
+                                        username: profile.username,
+                                        fontSize: 18,
+                                      ),
                                 );
                               }
                             }
@@ -1198,7 +1463,7 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
                         Positioned.fill(
                           child: Image.asset(
                             Assets.images.aiFrame.path,
-                            height: 60, 
+                            height: 60,
                             width: 60,
                           ),
                         ),
@@ -1212,7 +1477,9 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
                   children: [
                     Text(
                       () {
-                        if (userProvider.isLoading || profile == null) return '-';
+                        if (userProvider.isLoading || profile == null) {
+                          return '-';
+                        }
                         final fn = profile.firstName.trim();
                         final ln = profile.lastName.trim();
                         final fullName = '$fn $ln'.trim();
@@ -1242,9 +1509,10 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
                           ),
                         ),
                         if (['polzet_ai', 'polzet'].contains(
-                            (profile?.username ?? widget.username ?? '')
-                                .trim()
-                                .toLowerCase())) ...[
+                          (profile?.username ?? widget.username ?? '')
+                              .trim()
+                              .toLowerCase(),
+                        )) ...[
                           const SizedBox(width: 4),
                           Image.asset(
                             Assets.images.icVerify.path,
@@ -2323,26 +2591,27 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
                           } else {
                             final userProvider =
                                 Provider.of<PublicProfileProvider>(
-                              context,
-                              listen: false,
-                            );
+                                  context,
+                                  listen: false,
+                                );
                             Navigator.of(context)
                                 .push(
                                   MaterialPageRoute(
                                     builder: (_) => PublicUserThingsRanking(
                                       firstName:
                                           userProvider.userProfile?.firstName ??
-                                              '',
+                                          '',
                                       lastName:
                                           userProvider.userProfile?.lastName ??
-                                              '',
-                                      profileImage: (userProvider
-                                                  .userProfile?.username
+                                          '',
+                                      profileImage:
+                                          (userProvider.userProfile?.username
                                                   .toLowerCase() ==
                                               'polzet_ai')
                                           ? Assets.images.icSplash.path
                                           : userProvider
-                                              .userProfile?.profilePictureUrl,
+                                                .userProfile
+                                                ?.profilePictureUrl,
                                       post: post,
                                       poll: poll,
                                     ),
@@ -2361,11 +2630,13 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
                           height: 165.h,
                           width: double.infinity,
                           child: ClipRRect(
-                            borderRadius:
-                                BorderRadius.circular(AppRadius.button),
+                            borderRadius: BorderRadius.circular(
+                              AppRadius.button,
+                            ),
                             child: AppCachedNetworkImage(
-                              imageUrl: post.images.first
-                                  .resolvedUrl(ApiConfig.baseUrlImage),
+                              imageUrl: post.images.first.resolvedUrl(
+                                ApiConfig.baseUrlImage,
+                              ),
                               fit: BoxFit.cover,
                             ),
                           ),
@@ -2386,26 +2657,27 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
                         _buildTextOptions(poll, () {
                           final userProvider =
                               Provider.of<PublicProfileProvider>(
-                            context,
-                            listen: false,
-                          );
+                                context,
+                                listen: false,
+                              );
                           Navigator.of(context)
                               .push(
                                 MaterialPageRoute(
                                   builder: (_) => PublicUserThingsRanking(
                                     firstName:
                                         userProvider.userProfile?.firstName ??
-                                            '',
+                                        '',
                                     lastName:
                                         userProvider.userProfile?.lastName ??
-                                            '',
-                                    profileImage: (userProvider
-                                                .userProfile?.username
+                                        '',
+                                    profileImage:
+                                        (userProvider.userProfile?.username
                                                 .toLowerCase() ==
                                             'polzet_ai')
                                         ? Assets.images.icSplash.path
                                         : userProvider
-                                            .userProfile?.profilePictureUrl,
+                                              .userProfile
+                                              ?.profilePictureUrl,
                                     post: post,
                                     poll: poll,
                                   ),
@@ -2420,8 +2692,7 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
                         }),
                     ] else
                       _buildImagesStack(post),
-                  ]
-                  else if (post.is_polled_by_current_user)
+                  ] else if (post.is_polled_by_current_user)
                     // Already voted → show results
                     _buildPolledTextOptions(poll, () {
                       Navigator.of(context).push(
@@ -2448,9 +2719,14 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
                                     userProvider.userProfile?.firstName ?? '',
                                 lastName:
                                     userProvider.userProfile?.lastName ?? '',
-                                profileImage: (userProvider.userProfile?.username.toLowerCase() == 'polzet_ai')
+                                profileImage:
+                                    (userProvider.userProfile?.username
+                                            .toLowerCase() ==
+                                        'polzet_ai')
                                     ? Assets.images.icSplash.path
-                                    : userProvider.userProfile!.profilePictureUrl,
+                                    : userProvider
+                                          .userProfile!
+                                          .profilePictureUrl,
                                 post: post,
                                 poll: poll,
                               ),
@@ -2933,6 +3209,7 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
   Widget _buildHeader(double topPadding, PublicProfileProvider userProvider) {
     final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
     final profile = userProvider.userProfile;
+    final bool isUserBlocked = _getIsBlocked(profile);
     final effectiveStatus = _getEffectiveFollowStatus(
       profile?.followStatus,
       profile != null,
@@ -2957,8 +3234,7 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
               if (currentUsername == 'polzet_ai') return;
               final String? originalImageSource =
                   profile?.profilePicture ?? profile?.profilePictureUrl;
-              if (originalImageSource == null ||
-                  originalImageSource.isEmpty) {
+              if (originalImageSource == null || originalImageSource.isEmpty) {
                 return;
               }
               Navigator.of(context).push(
@@ -2966,9 +3242,7 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
                   opaque: false,
                   barrierColor: Colors.transparent,
                   transitionDuration: const Duration(milliseconds: 150),
-                  reverseTransitionDuration: const Duration(
-                    milliseconds: 150,
-                  ),
+                  reverseTransitionDuration: const Duration(milliseconds: 150),
                   pageBuilder: (context, animation, secondaryAnimation) {
                     return ProfileImagePreview(
                       imageSource: originalImageSource,
@@ -2977,10 +3251,7 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
                   },
                   transitionsBuilder:
                       (context, animation, secondaryAnimation, child) {
-                        return FadeTransition(
-                          opacity: animation,
-                          child: child,
-                        );
+                        return FadeTransition(opacity: animation, child: child);
                       },
                 ),
               );
@@ -2994,7 +3265,8 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     border: Border.all(
-                      color: (profile?.username ?? widget.username ?? '')
+                      color:
+                          (profile?.username ?? widget.username ?? '')
                                   .trim()
                                   .toLowerCase() ==
                               'polzet_ai'
@@ -3020,7 +3292,8 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
                             ),
                             child: Image.asset(
                               Assets.images.icSplash.path,
-                              height: 70,width: 70,
+                              height: 70,
+                              width: 70,
                             ),
                           ),
                         );
@@ -3075,7 +3348,8 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
                   Positioned.fill(
                     child: Image.asset(
                       Assets.images.aiFrame.path,
-                      height: 120,width: 120,
+                      height: 120,
+                      width: 120,
                     ),
                   ),
               ],
@@ -3118,15 +3392,12 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
                 ),
               ),
               if (['polzet_ai', 'polzet'].contains(
-                  (userProvider.userProfile?.username ?? widget.username ?? '')
-                      .trim()
-                      .toLowerCase())) ...[
+                (userProvider.userProfile?.username ?? widget.username ?? '')
+                    .trim()
+                    .toLowerCase(),
+              )) ...[
                 const SizedBox(width: 4),
-                Image.asset(
-                  Assets.images.icVerify.path,
-                  height: 14,
-                  width: 14,
-                ),
+                Image.asset(Assets.images.icVerify.path, height: 14, width: 14),
               ],
             ],
           ),
@@ -3144,9 +3415,11 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 _StatCard(
-                  value: (profile?.followingCount ?? 0).toString(),
+                  value: isUserBlocked
+                      ? '0'
+                      : (profile?.followingCount ?? 0).toString(),
                   label: AppLocalizations.of(context)!.revibe,
-                  onTap: canViewPosts
+                  onTap: (canViewPosts && !isUserBlocked)
                       ? () {
                           final p = profile!;
                           navigationPush(
@@ -3164,9 +3437,11 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
                 ),
                 const SizedBox(width: 15),
                 _StatCard(
-                  value: (profile?.followersCount ?? 0).toString(),
+                  value: isUserBlocked
+                      ? '0'
+                      : (profile?.followersCount ?? 0).toString(),
                   label: AppLocalizations.of(context)!.vibe,
-                  onTap: canViewPosts
+                  onTap: (canViewPosts && !isUserBlocked)
                       ? () {
                           final p = profile!;
                           navigationPush(
@@ -3184,8 +3459,12 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
                 ),
                 const SizedBox(width: 15),
                 _StatCard(
-                  value: canViewPosts
-                      ? (cachedThingsPosts.length + cachedImagesPosts.length)
+                  value: isUserBlocked
+                      ? '0'
+                      : canViewPosts
+                      ? (totalPollsCount ??
+                                (cachedThingsPosts.length +
+                                    cachedImagesPosts.length))
                             .toString()
                       : (profile.imagePostCount + profile.textPostCount)
                             .toString(),
@@ -3201,119 +3480,225 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
           // Action buttons
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 22),
-            child: Row(
-              children: [
-                Expanded(
-                  child: SizedBox(
+            child: isUserBlocked
+                ? SizedBox(
                     height: 38,
+                    width: double.infinity,
                     child: ElevatedButton(
-                      onPressed: buttonState['canTap']
-                          ? () {
-                              _handleFollowAction(
-                                profile!.username,
-                                buttonState['isFollowing'],
-                                profile.isPrivate,
-                              );
-                            }
-                          : null,
+                      onPressed: () {
+                        _showBlockUserConfirmationDialog(isUserBlock: true);
+                      },
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: buttonState['isFollowing']
-                            ? (isDarkMode ? Colors.transparent : Colors.white)
-                            : Theme.of(context).colorScheme.primary.withOpacity(
-                                buttonState['canTap'] ? 1.0 : 0.5,
-                              ),
+                        backgroundColor: AppColors.primaryColor,
                         elevation: 0,
-                        side: buttonState['isFollowing']
-                            ? BorderSide(
-                                color: Theme.of(context).colorScheme.onPrimary,
-                                width: 0.8,
-                              )
-                            : null,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(AppRadius.button),
                         ),
                       ),
                       child: Text(
-                        buttonState['text'],
+                        AppLocalizations.of(context)!.unblock,
                         textAlign: TextAlign.center,
                         style: AppTextStyles.subText.copyWith(
                           fontSize: 14.5,
-                          color: buttonState['isFollowing']
-                              ? Theme.of(context).colorScheme.onPrimary
-                              : Colors.white,
+                          color: Colors.white,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
                     ),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: SizedBox(
-                    height: 38,
-                    child: OutlinedButton(
-                      onPressed: () {
-                        final p = profile!;
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => ChangeNotifierProvider(
-                              create: (_) => PrivateChatProvider()
-                                ..init(
-                                  memberName:
-                                      '${p.firstName} ${p.lastName}'
-                                          .trim()
-                                          .isNotEmpty
-                                      ? '${p.firstName} ${p.lastName}'.trim()
-                                      : p.username,
-                                  profileUrl: (p.username.toLowerCase() == 'polzet_ai')
-                                      ? Assets.images.icSplash.path
-                                      : p.profilePictureUrl,
-                                  chatId: p.chatId == 0 ? null : p.chatId,
-                                  currentUsername: p.username,
+                  )
+                : Row(
+                    children: [
+                      Expanded(
+                        child: SizedBox(
+                          height: 38,
+                          child: ElevatedButton(
+                            onPressed: buttonState['canTap']
+                                ? () {
+                                    _handleFollowAction(
+                                      profile!.username,
+                                      buttonState['isFollowing'],
+                                      profile.isPrivate,
+                                    );
+                                  }
+                                : null,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: buttonState['isFollowing']
+                                  ? (isDarkMode
+                                        ? Colors.transparent
+                                        : Colors.white)
+                                  : Theme.of(
+                                      context,
+                                    ).colorScheme.primary.withOpacity(
+                                      buttonState['canTap'] ? 1.0 : 0.5,
+                                    ),
+                              elevation: 0,
+                              side: buttonState['isFollowing']
+                                  ? BorderSide(
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.onPrimary,
+                                      width: 0.8,
+                                    )
+                                  : null,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(
+                                  AppRadius.button,
                                 ),
-                              child: PrivateChatScreen(
-                                userId: widget.userId,
-                                memberName:
-                                    '${p.firstName} ${p.lastName}'
-                                        .trim()
-                                        .isNotEmpty
-                                    ? '${p.firstName} ${p.lastName}'.trim()
-                                    : p.username,
-                                username: p.username,
-                                profileUrl: p.profilePictureUrl,
-                                chatId: p.chatId == 0 ? null : p.chatId,
+                              ),
+                            ),
+                            child: Text(
+                              buttonState['text'],
+                              textAlign: TextAlign.center,
+                              style: AppTextStyles.subText.copyWith(
+                                fontSize: 14.5,
+                                color: buttonState['isFollowing']
+                                    ? Theme.of(context).colorScheme.onPrimary
+                                    : Colors.white,
+                                fontWeight: FontWeight.w500,
                               ),
                             ),
                           ),
-                        );
-                      },
-                      style: OutlinedButton.styleFrom(
-                        side: BorderSide(
-                          color: Theme.of(context).colorScheme.outlineVariant,
-                          width: 1,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(AppRadius.button),
-                        ),
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                      ),
-                      child: Text(
-                        AppLocalizations.of(context)!.message,
-                        style: AppTextStyles.subText.copyWith(
-                          fontSize: 14.5,
-                          color: Theme.of(context).colorScheme.onBackground,
-                          fontWeight: FontWeight.w500,
                         ),
                       ),
-                    ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: SizedBox(
+                          height: 38,
+                          child: OutlinedButton(
+                            onPressed: () {
+                              final p = profile!;
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => ChangeNotifierProvider(
+                                    create: (_) => PrivateChatProvider()
+                                      ..init(
+                                        memberName:
+                                            '${p.firstName} ${p.lastName}'
+                                                .trim()
+                                                .isNotEmpty
+                                            ? '${p.firstName} ${p.lastName}'
+                                                  .trim()
+                                            : p.username,
+                                        profileUrl:
+                                            (p.username.toLowerCase() ==
+                                                'polzet_ai')
+                                            ? Assets.images.icSplash.path
+                                            : p.profilePictureUrl,
+                                        chatId: p.chatId == 0 ? null : p.chatId,
+                                        currentUsername: p.username,
+                                      ),
+                                    child: PrivateChatScreen(
+                                      userId: widget.userId,
+                                      memberName:
+                                          '${p.firstName} ${p.lastName}'
+                                              .trim()
+                                              .isNotEmpty
+                                          ? '${p.firstName} ${p.lastName}'
+                                                .trim()
+                                          : p.username,
+                                      username: p.username,
+                                      profileUrl: p.profilePictureUrl,
+                                      chatId: p.chatId == 0 ? null : p.chatId,
+                                    ),
+                                  ),
+                                ),
+                              );
+                            },
+                            style: OutlinedButton.styleFrom(
+                              side: BorderSide(
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.outlineVariant,
+                                width: 1,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(
+                                  AppRadius.button,
+                                ),
+                              ),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                              ),
+                            ),
+                            child: Text(
+                              AppLocalizations.of(context)!.message,
+                              style: AppTextStyles.subText.copyWith(
+                                fontSize: 14.5,
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onBackground,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                ),
-              ],
-            ),
           ),
           const SizedBox(height: 12),
         ],
+      ),
+    );
+  }
+
+  Widget _buildBlockedUserView(
+    BuildContext context,
+    AppTextColors txt,
+    bool isDarkMode,
+  ) {
+    return Center(
+      child: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        child: Padding(
+          padding: EdgeInsets.symmetric(horizontal: 32.w),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 62,
+                height: 62,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: isDarkMode
+                      ? Theme.of(context).primaryColor.withOpacity(0.18)
+                      : const Color(0xFFF7EBEF),
+                ),
+                child: Center(
+                  child: Icon(
+                    Icons.block_outlined,
+                    color: Theme.of(context).primaryColor,
+                    size: 28,
+                  ),
+                ),
+              ),
+              SizedBox(height: 18.h),
+              Text(
+                'You’ve blocked this user',
+                textAlign: TextAlign.center,
+                style: AppTextStyles.sectionHeading.copyWith(
+                  fontSize: 17.sp,
+                  color: Theme.of(context).colorScheme.onBackground,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: -0.3,
+                ),
+              ),
+              SizedBox(height: 12.h),
+              Text(
+                'Unblock user to view their polls or interact with them. They won’t be able to see your profile and content.',
+                textAlign: TextAlign.center,
+                style: AppTextStyles.bodyText.copyWith(
+                  fontSize: 11.7.sp,
+                  color: txt.muted,
+                  fontWeight: FontWeight.w400,
+                  height: 1.45,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

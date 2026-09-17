@@ -9,6 +9,7 @@ import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugins.GeneratedPluginRegistrant
 import io.flutter.plugin.common.MethodChannel
 import android.content.Intent
+import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import androidx.core.app.Person
 import androidx.core.content.pm.ShortcutInfoCompat
@@ -71,7 +72,7 @@ class MainActivity: FlutterFragmentActivity() {
             .setIntent(intent)
             
         if (iconPath != null && File(iconPath).exists()) {
-            val bitmap = BitmapFactory.decodeFile(iconPath)
+            val bitmap = decodeSampledBitmapFromFile(iconPath, 192, 192)
             if (bitmap != null) {
                 val icon = IconCompat.createWithBitmap(bitmap)
                 personBuilder.setIcon(icon)
@@ -82,5 +83,42 @@ class MainActivity: FlutterFragmentActivity() {
         shortcutBuilder.setPerson(personBuilder.build())
         
         ShortcutManagerCompat.pushDynamicShortcut(applicationContext, shortcutBuilder.build())
+    }
+
+    private fun decodeSampledBitmapFromFile(path: String, reqWidth: Int, reqHeight: Int): Bitmap? {
+        return try {
+            val options = BitmapFactory.Options().apply {
+                inJustDecodeBounds = true
+            }
+            BitmapFactory.decodeFile(path, options)
+
+            if (options.outWidth <= 0 || options.outHeight <= 0) {
+                return null
+            }
+
+            options.inSampleSize = calculateInSampleSize(options, reqWidth, reqHeight)
+            options.inJustDecodeBounds = false
+
+            BitmapFactory.decodeFile(path, options)
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    private fun calculateInSampleSize(options: BitmapFactory.Options, reqWidth: Int, reqHeight: Int): Int {
+        val height = options.outHeight
+        val width = options.outWidth
+        var inSampleSize = 1
+
+        if (height > reqHeight || width > reqWidth) {
+            val halfHeight = height / 2
+            val halfWidth = width / 2
+
+            while (halfHeight / inSampleSize >= reqHeight && halfWidth / inSampleSize >= reqWidth) {
+                inSampleSize *= 2
+            }
+        }
+
+        return inSampleSize
     }
 }

@@ -17,6 +17,7 @@ import '../../../provider/user_provider.dart';
 import '../../../screens/home/message/chat/private/private_chat_screen.dart';
 import '../../../widgets/base64/image_convert.dart';
 import '../../../widgets/loader.dart';
+import '../../../gen/assets.gen.dart';
 
 class NewChatBottomSheet extends StatefulWidget {
   const NewChatBottomSheet({super.key});
@@ -203,12 +204,21 @@ class _NewChatBottomSheetState extends State<NewChatBottomSheet>
     final txt = AppTextColors.of(context);
 
     final profilePic = user['avatar_url'] as String?;
-    final firstName = user['first_name'] ?? '';
-    final lastName = user['last_name'] ?? '';
-    final username = user['username'] as String? ?? '';
-    final firstLetter = username.isNotEmpty ? username[0].toUpperCase() : '?';
-    final userId = user['user_id']?.toString() ?? '';
+    final firstName = (user['first_name'] ?? '').toString().trim();
+    final lastName = (user['last_name'] ?? '').toString().trim();
+    final username = (user['username'] ?? '').toString().trim();
+    final cleanUsername = username.toLowerCase();
+    final bool isPolzetAi =
+        cleanUsername == 'polzet_ai' || cleanUsername == 'polet_ai';
     final fullName = '$firstName $lastName'.trim();
+    final displayName = fullName.isNotEmpty
+        ? fullName
+        : (username.isNotEmpty ? username : 'Polzet User');
+    final firstLetter = (username.isNotEmpty
+            ? username[0]
+            : (displayName.isNotEmpty ? displayName[0] : '?'))
+        .toUpperCase();
+    final userId = user['user_id']?.toString() ?? '';
 
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
@@ -218,8 +228,8 @@ class _NewChatBottomSheetState extends State<NewChatBottomSheet>
           context,
           PrivateChatScreen(
             userId: userId,
-            memberName: fullName.isNotEmpty ? fullName : username,
-            username: username,
+            memberName: displayName,
+            username: username.isNotEmpty ? username : displayName,
             profileUrl: profilePic,
           ),
         );
@@ -228,29 +238,85 @@ class _NewChatBottomSheetState extends State<NewChatBottomSheet>
         padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 10.h),
         child: Row(
           children: [
-            Container(
-              height: 40.h,
-              width: 40.w,
-              margin: EdgeInsets.only(right: 10.w),
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: Theme.of(context).colorScheme.outline,
-                  width: 0.7,
+            if (isPolzetAi)
+              Container(
+                height: 40.h,
+                width: 40.w,
+                margin: EdgeInsets.only(right: 10.w),
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    ClipOval(
+                      child: Center(
+                        child: Padding(
+                          padding: const EdgeInsets.only(
+                            top: 7,
+                            bottom: 0,
+                            left: 9,
+                            right: 8,
+                          ),
+                          child: Image.asset(
+                            Assets.images.icSplash.path,
+                          ),
+                        ),
+                      ),
+                    ),
+                    Positioned.fill(
+                      child: Image.asset(
+                        Assets.images.aiFrame.path,
+                        height: 50,
+                        width: 50,
+                      ),
+                    ),
+                  ],
                 ),
-                color: isDarkMode
-                    ? const Color(0xFF252525)
-                    : Theme.of(context).primaryColor.withOpacity(0.08),
-              ),
-              child: ClipOval(
-                child: (() {
-                  if (profilePic != null && profilePic.isNotEmpty) {
-                    final bytes = getProfileImage(profilePic);
-                    if (bytes != null) {
-                      return Image.memory(
-                        bytes,
+              )
+            else
+              Container(
+                height: 40.h,
+                width: 40.w,
+                margin: EdgeInsets.only(right: 10.w),
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: Theme.of(context).colorScheme.outline,
+                    width: 0.7,
+                  ),
+                  color: isDarkMode
+                      ? const Color(0xFF252525)
+                      : Theme.of(context).primaryColor.withOpacity(0.08),
+                ),
+                child: ClipOval(
+                  child: (() {
+                    if (profilePic != null && profilePic.isNotEmpty) {
+                      final bytes = getProfileImage(profilePic);
+                      if (bytes != null) {
+                        return Image.memory(
+                          bytes,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => Center(
+                            child: Text(
+                              firstLetter,
+                              style: TextStyle(
+                                fontSize: 17,
+                                fontWeight: FontWeight.w500,
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onPrimary.withOpacity(0.8),
+                              ),
+                            ),
+                          ),
+                        );
+                      }
+                      final imageUrl = profilePic.startsWith('http')
+                          ? profilePic
+                          : (profilePic.startsWith('/')
+                                ? '${ApiConfig.baseUrlImage}$profilePic'
+                                : '${ApiConfig.baseUrlImage}/$profilePic');
+                      return CachedNetworkImage(
+                        imageUrl: imageUrl,
                         fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => Center(
+                        errorWidget: (_, __, ___) => Center(
                           child: Text(
                             firstLetter,
                             style: TextStyle(
@@ -264,71 +330,61 @@ class _NewChatBottomSheetState extends State<NewChatBottomSheet>
                         ),
                       );
                     }
-                    final imageUrl = profilePic.startsWith('http')
-                        ? profilePic
-                        : (profilePic.startsWith('/')
-                              ? '${ApiConfig.baseUrlImage}$profilePic'
-                              : '${ApiConfig.baseUrlImage}/$profilePic');
-                    return CachedNetworkImage(
-                      imageUrl: imageUrl,
-                      fit: BoxFit.cover,
-                      errorWidget: (_, __, ___) => Center(
-                        child: Text(
-                          firstLetter,
-                          style: TextStyle(
-                            fontSize: 17,
-                            fontWeight: FontWeight.w500,
-                            color: Theme.of(
-                              context,
-                            ).colorScheme.onPrimary.withOpacity(0.8),
-                          ),
+                    return Center(
+                      child: Text(
+                        firstLetter,
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w500,
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onPrimary.withOpacity(0.8),
                         ),
                       ),
                     );
-                  }
-                  return Center(
-                    child: Text(
-                      firstLetter,
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w500,
-                        color: Theme.of(
-                          context,
-                        ).colorScheme.onPrimary.withOpacity(0.8),
-                      ),
-                    ),
-                  );
-                })(),
+                  })(),
+                ),
               ),
-            ),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Text(
-                    username,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                   style: AppTextStyles.bodyText.copyWith(
-                          color: txt.body,
-                          fontSize: 14.5,
-                          fontWeight: FontWeight.w500,
-                        ),
-                  ),
-                  if (fullName.isNotEmpty) ...[
-                    SizedBox(height: 2.h),
-                    Text(
-                      fullName,
-                       style: AppTextStyles.bodyText.copyWith(
-                            fontSize: 12.5,
-                            color: txt.muted,
+                  Row(
+                    children: [
+                      Flexible(
+                        child: Text(
+                          username,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: AppTextStyles.bodyText.copyWith(
+                            color: txt.body,
+                            fontSize: 14.5,
                             fontWeight: FontWeight.w500,
                           ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      if (isPolzetAi || cleanUsername == 'polzet') ...[
+                        SizedBox(width: 4.w),
+                        Image.asset(
+                          Assets.images.icVerify.path,
+                          height: 13,
+                          width: 13,
+                        ),
+                      ],
+                    ],
+                  ),
+                  SizedBox(height: 2.h),
+                  Text(
+                    fullName.isNotEmpty ? fullName : username,
+                    style: AppTextStyles.bodyText.copyWith(
+                      fontSize: 12.5,
+                      color: txt.muted,
+                      fontWeight: FontWeight.w500,
                     ),
-                  ],
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ],
               ),
             ),

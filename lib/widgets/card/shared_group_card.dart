@@ -18,12 +18,14 @@ class SharedGroupCard extends StatefulWidget {
   final Map<String, dynamic> groupData;
   final bool isSentByMe;
   final String? currentChatId;
+  final Color? cardColor;
 
   const SharedGroupCard({
     super.key,
     required this.groupData,
     required this.isSentByMe,
     this.currentChatId,
+    this.cardColor,
   });
 
   @override
@@ -228,7 +230,10 @@ class _SharedGroupCardState extends State<SharedGroupCard> with UtilityMixin {
       ),
       padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.primaryContainer,
+        color: widget.cardColor ??
+            (Theme.of(context).brightness == Brightness.dark
+                ? const Color(0xFF1E1F23)
+                : Theme.of(context).colorScheme.primaryContainer),
         borderRadius: BorderRadius.circular(AppRadius.card),
         border: Border.all(
           color: Theme.of(context).colorScheme.outline,
@@ -392,15 +397,10 @@ class _SharedGroupCardState extends State<SharedGroupCard> with UtilityMixin {
           final friendData = index < mutualFriends.length
               ? mutualFriends[index]
               : null;
-          final username =
-              friendData?['username']?.toString() ??
-              friendData?['name']?.toString() ??
-              '';
           final imgRaw =
               friendData?['profile_image']?.toString() ??
               friendData?['avatar']?.toString();
           final friendAvatarUrl = resolveProfileImageUrl(imgRaw);
-          final initial = username.isNotEmpty ? username[0].toUpperCase() : 'F';
 
           return Positioned(
             left: index * overlapOffset,

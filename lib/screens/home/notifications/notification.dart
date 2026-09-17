@@ -37,7 +37,7 @@ import '../../../widgets/loader.dart';
 import '../../../widgets/show_toast.dart';
 import '../../../widgets/tabbar/indicatore_animation.dart';
 import '../message/chat/group/group_chat_screen.dart';
-import '../message/chat/group/group_members.dart';
+import '../message/chat/group/info/group_members.dart';
 import '../message/chat/private/private_chat_screen.dart';
 import '../profile/public/public_profile_screen.dart';
 import '../profile/chase/user_chase.dart';
@@ -76,12 +76,14 @@ class NotificationState extends State<Notifications>
       ValueNotifier<String?>(null);
   static Timer? _globalPollingTimer;
   static List<NotificationItem> globalCachedNotifications = [];
+  static bool _isFetchingGlobally = false;
+  static DateTime? _cooldownUntil;
 
   static void startGlobalPolling() {
     if (_globalPollingTimer != null) return;
     _fetchUnreadCountGlobally();
     _globalPollingTimer = Timer.periodic(
-      const Duration(seconds: 15),
+      const Duration(seconds: 60),
       (_) => _fetchUnreadCountGlobally(),
     );
   }
@@ -96,11 +98,18 @@ class NotificationState extends State<Notifications>
   }
 
   static Future<void> _fetchUnreadCountGlobally() async {
+    if (_isFetchingGlobally) return;
+    if (_cooldownUntil != null && DateTime.now().isBefore(_cooldownUntil!)) {
+      return;
+    }
+    _isFetchingGlobally = true;
     try {
-      final dio = Dio();
       final accessToken = await SharedPrefService.getToken();
+      if (accessToken == null || accessToken.isEmpty) return;
+
+      final dio = Dio();
       final headers = {
-        'Authorization': 'Bearer ${accessToken ?? ''}',
+        'Authorization': 'Bearer $accessToken',
         'Content-Type': 'application/json',
         'Accept': 'application/json',
       };
@@ -130,13 +139,22 @@ class NotificationState extends State<Notifications>
         globalErrorMessage.value = null;
       }
     } on DioException catch (e) {
+      final statusCode = e.response?.statusCode ?? 0;
+      if (statusCode == 429) {
+        // Rate limited: back off for 120 seconds silently
+        _cooldownUntil = DateTime.now().add(const Duration(seconds: 120));
+        return;
+      }
+      if (statusCode >= 500) {
+        // Server error (502, 503, 504): back off for 60 seconds silently
+        _cooldownUntil = DateTime.now().add(const Duration(seconds: 60));
+        globalErrorMessage.value = 'server_error: status $statusCode';
+        return;
+      }
       if (kDebugMode) {
         debugPrint('Error fetching global notification count: $e');
       }
-      final statusCode = e.response?.statusCode ?? 0;
-      if (statusCode >= 500) {
-        globalErrorMessage.value = 'server_error: status $statusCode';
-      } else if (e.type == DioExceptionType.connectionError ||
+      if (e.type == DioExceptionType.connectionError ||
           e.type == DioExceptionType.connectionTimeout ||
           e.type == DioExceptionType.receiveTimeout) {
         globalErrorMessage.value = 'no_internet: timeout ${e.message}';
@@ -148,6 +166,8 @@ class NotificationState extends State<Notifications>
         debugPrint('Error fetching global notification count: $e');
       }
       globalErrorMessage.value = 'unknown: ${e.toString()}';
+    } finally {
+      _isFetchingGlobally = false;
     }
   }
 
@@ -2016,23 +2036,49 @@ class NotificationState extends State<Notifications>
     if (!notification.isRead) {
       _markAsRead(notification);
     }
-    final requestId = notification.meta?.requestId;
-    if (requestId == null) return;
+    final senderId = notification.meta?.senderId?.toString() ??
+        (notification.actor.userId.trim().isNotEmpty
+            ? notification.actor.userId.trim()
+            : null);
+    if (senderId == null || senderId.trim().isEmpty) return;
 
     try {
       final headers = await _getAuthHeaders();
-      await _dio.put(
-        '${ApiConstants.acceptRequest}/$requestId',
-        data: {'action': action},
+      headers.remove('Content-Type');
+      final formData = FormData.fromMap({'action': action});
+
+      if (kDebugMode) {
+        print(
+          '📬 Handling Friend Request: action=$action, senderId=$senderId, message=${notification.message ?? notification.meta?.body}',
+        );
+      }
+
+      final response = await _dio.put(
+        '${ApiConstants.acceptRequest}/$senderId',
+        data: formData,
         options: Options(headers: headers),
       );
+
+      if (kDebugMode) {
+        print(
+          '📬 Friend Request Response [${response.statusCode}]: ${response.data}',
+        );
+      }
 
       setState(() {
         _lastNotifications.removeWhere((n) => n.id == notification.id);
       });
       _notificationStreamController.add(_lastNotifications);
     } catch (e) {
-      if (kDebugMode) print('Error handling friend request: $e');
+      if (kDebugMode) {
+        if (e is DioException) {
+          print(
+            '❌ Error handling friend request [${e.response?.statusCode}]: ${e.response?.data ?? e.message}',
+          );
+        } else {
+          print('❌ Error handling friend request: $e');
+        }
+      }
       showToast(message: 'Failed. Please try again.');
     }
   }

@@ -49,6 +49,8 @@ class ProfileData {
   final bool isFriend;
   final String followStatus;
   final dynamic chatId;
+  final bool isBlocked;
+  final bool isReported;
 
   ProfileData({
     required this.id,
@@ -75,6 +77,8 @@ class ProfileData {
     required this.isFriend,
     required this.followStatus,
     required this.chatId,
+    this.isBlocked = false,
+    this.isReported = false,
   });
 
   factory ProfileData.fromJson(Map<String, dynamic> json) {
@@ -103,6 +107,18 @@ class ProfileData {
       isFriend: json['is_friend'] ?? false,
       followStatus: json['follow_status'] ?? '',
       chatId: json['chat_id'],
+      isBlocked: json['is_blocked'] == true ||
+          json['is_blocked'] == 1 ||
+          json['is_blocked'] == '1' ||
+          json['isBlocked'] == true ||
+          json['is_block'] == true ||
+          json['is_block'] == 1,
+      isReported: json['is_reported'] == true ||
+          json['is_reported'] == 1 ||
+          json['is_reported'] == '1' ||
+          json['isReported'] == true ||
+          json['is_report'] == true ||
+          json['is_report'] == 1,
     );
   }
 
@@ -132,6 +148,8 @@ class ProfileData {
       'is_friend': isFriend,
       'follow_status': followStatus,
       'chat_id': chatId,
+      'is_blocked': isBlocked,
+      'is_reported': isReported,
     };
   }
 
@@ -160,6 +178,8 @@ class ProfileData {
     bool? isFriend,
     String? followStatus,
     dynamic chatId,
+    bool? isBlocked,
+    bool? isReported,
   }) {
     return ProfileData(
       id: id ?? this.id,
@@ -186,6 +206,8 @@ class ProfileData {
       isFriend: isFriend ?? this.isFriend,
       followStatus: followStatus ?? this.followStatus,
       chatId: chatId ?? this.chatId,
+      isBlocked: isBlocked ?? this.isBlocked,
+      isReported: isReported ?? this.isReported,
     );
   }
 }

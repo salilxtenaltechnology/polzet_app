@@ -25,8 +25,7 @@ import '../../../../provider/user_provider.dart';
 import '../../../../widgets/dialog/custom_diolog.dart';
 import '../../../../widgets/show_toast.dart';
 import '../../home_imports.dart';
-import '../media/media_screen.dart';
-import 'group/group_members.dart';
+import 'group/info/group_members.dart';
 import '../../profile/widgets/profile_image_preview.dart';
 import '../../profile/public/public_profile_screen.dart';
 import '../message_list.dart';
@@ -594,6 +593,7 @@ class _ChatDetailsState extends State<ChatDetails> with UtilityMixin {
             children: [
               /*───── Avatar with optional camera button ─────*/
               Stack(
+                clipBehavior: Clip.none,
                 children: [
                   GestureDetector(
                     onTap: () {
@@ -713,7 +713,11 @@ class _ChatDetailsState extends State<ChatDetails> with UtilityMixin {
                   // Camera icon — only for group chat + admin
                   if (widget.isGroupChat && isAdmin)
                     Positioned(
-                      bottom: 12.h,
+                      bottom: (profileUrl == null ||
+                              profileUrl.trim().isEmpty ||
+                              profileUrl == 'null')
+                          ? 0
+                          : 12.h,
                       right: 0,
                       child: GestureDetector(
                         onTap: _isUploadingImage
@@ -864,10 +868,7 @@ class _ChatDetailsState extends State<ChatDetails> with UtilityMixin {
               Padding(
                 padding: EdgeInsets.only(top: 10.h),
                 child: GestureDetector(
-                  onTap: () => navigationPush(
-                    context,
-                    MediaScreen(memberName: chatName ?? ''),
-                  ),
+                  onTap: () {},
                   child: Row(
                     children: [
                       Icon(

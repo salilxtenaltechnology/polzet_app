@@ -26,6 +26,7 @@ import '../../../provider/user_provider.dart';
 import '../../../widgets/base64/image_convert.dart';
 import '../../../core/utils/bottomsheet_util.dart';
 import '../../../core/utils/like_util.dart';
+import '../../../widgets/dialog/custom_diolog.dart';
 import '../dashboard/dashboard_import.dart';
 import '../home_imports.dart';
 import '../profile/public/public_profile_screen.dart';
@@ -80,6 +81,8 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
   final Map<int, double> _cachedPercentages = {};
 
   final Map<int, bool> _animationDone = {};
+
+  bool isUserBlocked = false;
 
   @override
   void initState() {
@@ -258,7 +261,8 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
         final dynamic savedVal =
             res['is_saved'] ?? res['is_saved_by_current_user'] ?? res['saved'];
         if (savedVal != null) {
-          final bool serverSaved = savedVal == true ||
+          final bool serverSaved =
+              savedVal == true ||
               savedVal == 1 ||
               savedVal.toString().toLowerCase() == 'true';
           setState(() {
@@ -281,6 +285,53 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
         setState(() {
           isSaveLoading = false;
         });
+      }
+    }
+  }
+
+  void _showBlockUserConfirmationDialog() {
+    showBlockUserDiolog(context, () async {
+      Navigator.of(context).pop();
+      await _handleBlockToggle();
+    }, isUserBlocked);
+  }
+
+  Future<void> _handleBlockToggle() async {
+    final targetUserId = widget.post.user.userid;
+    if (targetUserId.isEmpty) {
+      showToast(message: 'User ID not found');
+      return;
+    }
+
+    try {
+      final result = isUserBlocked
+          ? await ApiService().unblockUser(targetUserId)
+          : await ApiService().blockUser(targetUserId);
+
+      if (!mounted) return;
+
+      if (result['success'] == true) {
+        setState(() {
+          isUserBlocked = !isUserBlocked;
+        });
+        showToast(
+          message: isUserBlocked
+              ? 'User blocked successfully'
+              : 'User unblocked successfully',
+        );
+      } else {
+        showToast(
+          message:
+              result['message']?.toString() ??
+              (isUserBlocked
+                  ? 'Failed to unblock user'
+                  : 'Failed to block user'),
+        );
+      }
+    } catch (e) {
+      debugPrint('Error in block/unblock user: $e');
+      if (mounted) {
+        showToast(message: 'Something went wrong');
       }
     }
   }
@@ -988,6 +1039,251 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
                         ),
                       ),
                     ],
+                    GestureDetector(
+                      onTapDown: (TapDownDetails details) async {
+                        final screenSize = MediaQuery.of(context).size;
+                        final double tapY = details.globalPosition.dy;
+                        final double tapX = details.globalPosition.dx;
+                        final bool showAbove = tapY > screenSize.height - 180;
+
+                        final result = await showGeneralDialog<String>(
+                          context: context,
+                          barrierDismissible: true,
+                          barrierLabel: 'Dismiss',
+                          barrierColor: Colors.black.withOpacity(0.35),
+                          transitionDuration: const Duration(milliseconds: 160),
+                          pageBuilder: (ctx, anim1, anim2) {
+                            return Stack(
+                              children: [
+                                Positioned(
+                                  top: showAbove ? null : tapY + 8,
+                                  bottom: showAbove
+                                      ? (screenSize.height - tapY + 8)
+                                      : null,
+                                  right: (screenSize.width - tapX - 20).clamp(
+                                    12.0,
+                                    screenSize.width - 160.0,
+                                  ),
+                                  child: Material(
+                                    color: Colors.transparent,
+                                    child: Container(
+                                      width: 155,
+                                      decoration: BoxDecoration(
+                                        color: Theme.of(
+                                          context,
+                                        ).colorScheme.tertiaryContainer,
+                                        borderRadius: BorderRadius.circular(10),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: Colors.black.withOpacity(
+                                              0.18,
+                                            ),
+                                            blurRadius: 12,
+                                            offset: const Offset(0, 4),
+                                          ),
+                                        ],
+                                      ),
+                                      padding: const EdgeInsets.symmetric(
+                                        vertical: 4,
+                                      ),
+                                      child: Column(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          if (widget
+                                                  .post
+                                                  .isPolledByCurrentUser ||
+                                              widget.post.user.userid ==
+                                                  userProvider.userId)
+                                            InkWell(
+                                              onTap: () => Navigator.pop(
+                                                ctx,
+                                                'view_result',
+                                              ),
+                                              child: Container(
+                                                width: double.infinity,
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                      horizontal: 14,
+                                                      vertical: 9,
+                                                    ),
+                                                child: Text(
+                                                  'View Result',
+                                                  style: AppTextStyles.bodyText
+                                                      .copyWith(
+                                                        color: txt.title,
+                                                        fontWeight:
+                                                            FontWeight.w500,
+                                                        fontSize: 13.5,
+                                                      ),
+                                                ),
+                                              ),
+                                            ),
+                                          InkWell(
+                                            onTap: () =>
+                                                Navigator.pop(ctx, 'save_poll'),
+                                            child: Container(
+                                              width: double.infinity,
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                    horizontal: 14,
+                                                    vertical: 9,
+                                                  ),
+                                              child: Text(
+                                                isSaved
+                                                    ? 'Unsave poll'
+                                                    : 'Save poll',
+                                                style: AppTextStyles.bodyText
+                                                    .copyWith(
+                                                      color: txt.title,
+                                                      fontWeight:
+                                                          FontWeight.w500,
+                                                      fontSize: 13.5,
+                                                    ),
+                                              ),
+                                            ),
+                                          ),
+                                          InkWell(
+                                            onTap: () => Navigator.pop(
+                                              ctx,
+                                              'go_to_profile',
+                                            ),
+                                            child: Container(
+                                              width: double.infinity,
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                    horizontal: 14,
+                                                    vertical: 9,
+                                                  ),
+                                              child: Text(
+                                                'Go to profile',
+                                                style: AppTextStyles.bodyText
+                                                    .copyWith(
+                                                      color: txt.title,
+                                                      fontWeight:
+                                                          FontWeight.w500,
+                                                      fontSize: 13.5,
+                                                    ),
+                                              ),
+                                            ),
+                                          ),
+                                          if (widget.post.user.userid !=
+                                              userProvider.userId)
+                                            InkWell(
+                                              onTap: () => Navigator.pop(
+                                                ctx,
+                                                'block_user',
+                                              ),
+                                              child: Container(
+                                                width: double.infinity,
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                      horizontal: 14,
+                                                      vertical: 9,
+                                                    ),
+                                                child: Text(
+                                                  isUserBlocked
+                                                      ? 'Unblock user'
+                                                      : 'Block user',
+                                                  style: AppTextStyles.bodyText
+                                                      .copyWith(
+                                                        color: isUserBlocked
+                                                            ? txt.title
+                                                            : Colors.red,
+                                                        fontWeight:
+                                                            FontWeight.w500,
+                                                        fontSize: 13.5,
+                                                      ),
+                                                ),
+                                              ),
+                                            ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            );
+                          },
+                          transitionBuilder: (ctx, anim1, anim2, child) {
+                            return FadeTransition(
+                              opacity: anim1,
+                              child: ScaleTransition(
+                                scale: CurvedAnimation(
+                                  parent: anim1,
+                                  curve: Curves.easeOutCubic,
+                                ),
+                                alignment: showAbove
+                                    ? Alignment.bottomRight
+                                    : Alignment.topRight,
+                                child: child,
+                              ),
+                            );
+                          },
+                        );
+
+                        if (result == 'view_result') {
+                          final hasImages = widget.post.polls.any(
+                            (p) => _hasImageOptions(p),
+                          );
+                          if (hasImages) {
+                            navigationPush(
+                              context,
+                              ImageResultScreen(
+                                username: widget.post.user.username,
+                                postId: widget.post.id.toString(),
+                              ),
+                            );
+                          } else {
+                            navigationPush(
+                              context,
+                              ThingsResultScreen(
+                                username: widget.post.user.username,
+                                postId: widget.post.id.toString(),
+                              ),
+                            );
+                          }
+                        } else if (result == 'save_poll') {
+                          _toggleSave();
+                        } else if (result == 'go_to_profile') {
+                          if (isAnonymous) return;
+                          final userProvider = Provider.of<UserProvider>(
+                            context,
+                            listen: false,
+                          );
+                          if (widget.post.user.userid == userProvider.userId) {
+                            final homeScreenState = context
+                                .findAncestorStateOfType<HomeScreenState>();
+                            if (homeScreenState != null) {
+                              homeScreenState.setState(
+                                () => homeScreenState.pageIndex = 4,
+                              );
+                              homeScreenState.bottomNavigationKey.currentState
+                                  ?.setPage(4);
+                            }
+                          } else {
+                            navigationPush(
+                              context,
+                              PublicProfileScreen(
+                                username: widget.post.user.username,
+                              ),
+                            );
+                          }
+                        } else if (result == 'block_user') {
+                          _showBlockUserConfirmationDialog();
+                        }
+                      },
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 4,
+                          vertical: 6,
+                        ),
+                        child: Icon(
+                          Icons.more_vert,
+                          size: 20,
+                          color: Theme.of(context).colorScheme.onBackground,
+                        ),
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -3514,7 +3810,7 @@ class _ExpandableDescriptionWithHashtagsState
         text: widget.description,
         style: AppTextStyles.bodyText.copyWith(
           color: widget.txt.body,
-          fontSize: 14.2,
+          fontSize: 15,
           fontWeight: FontWeight.w400,
         ),
       );
@@ -3522,10 +3818,14 @@ class _ExpandableDescriptionWithHashtagsState
 
     final RegExp exp = RegExp(r'(#[a-zA-Z0-9_]+)');
     final List<TextSpan> spans = [];
+    bool isFirstHashtag = true;
 
     widget.description.splitMapJoin(
       exp,
       onMatch: (Match match) {
+        if (isFirstHashtag) {
+          isFirstHashtag = false;
+        }
         spans.add(
           TextSpan(
             text: match.group(0),
@@ -3540,16 +3840,28 @@ class _ExpandableDescriptionWithHashtagsState
       },
       onNonMatch: (String text) {
         if (text.isNotEmpty) {
-          spans.add(
-            TextSpan(
-              text: text,
-              style: AppTextStyles.bodyText.copyWith(
-                color: widget.txt.body,
-                fontSize: 14,
-                fontWeight: FontWeight.w400,
+          String formattedText = text;
+          if (isFirstHashtag) {
+            if (formattedText.trim().isNotEmpty) {
+              if (!formattedText.endsWith('\n')) {
+                formattedText = '${formattedText.trimRight()}\n';
+              }
+            } else {
+              formattedText = '';
+            }
+          }
+          if (formattedText.isNotEmpty) {
+            spans.add(
+              TextSpan(
+                text: formattedText,
+                style: AppTextStyles.bodyText.copyWith(
+                  color: widget.txt.body,
+                  fontSize: 14.3,
+                  fontWeight: FontWeight.w400,
+                ),
               ),
-            ),
-          );
+            );
+          }
         }
         return '';
       },

@@ -24,6 +24,7 @@ import '../../../home feed/rank/result/image/image_result_screen.dart';
 import '../../../home feed/rank/result/things/things_result_screen.dart';
 import '../../../search/posts/rank/single_post_image_ranking.dart';
 import '../../../search/posts/rank/single_post_things_ranking.dart';
+import '../../../profile/profile_screen.dart';
 import '../../../profile/public/public_profile_screen.dart';
 import '../../../search/posts/single_post_details.dart';
 import '../../../../../provider/group_chat_provider.dart';
@@ -31,7 +32,7 @@ import '../../../../../provider/user_provider.dart';
 import '../../../../../widgets/base64/image_convert.dart';
 import '../../../../../widgets/button/back_button.dart';
 import '../../../../../widgets/show_toast.dart';
-import '../chat_details.dart';
+import 'info/group_info_screen.dart';
 import '../../../../../widgets/card/shared_group_card.dart';
 import '../../../../../widgets/dialog/custom_diolog.dart';
 import '../../message_list.dart';
@@ -42,11 +43,13 @@ class GroupChatScreen extends StatefulWidget {
     required this.groupName,
     this.chat,
     required this.chatId,
+    this.chatTheme,
   });
 
   final Map<String, dynamic>? chat;
   final dynamic chatId;
   final String? groupName;
+  final dynamic chatTheme;
 
   @override
   State<GroupChatScreen> createState() => GroupChatScreenState();
@@ -55,6 +58,7 @@ class GroupChatScreen extends StatefulWidget {
 class GroupChatScreenState extends State<GroupChatScreen>
     with UtilityMixin, WidgetsBindingObserver {
   String? _floatingDate;
+  String? _localGroupImageUrl;
   final Map<String, GlobalKey> _headerKeys = {};
   bool _isPolzetAiUsername(String? username) {
     if (username == null) return false;
@@ -206,6 +210,7 @@ class GroupChatScreenState extends State<GroupChatScreen>
         currentUsername: userProvider.username,
         currentUserId: userProvider.userId,
         chat: widget.chat,
+        chatTheme: widget.chatTheme ?? widget.chat?['chat_theme'] ?? widget.chat?['chatTheme'],
       );
 
       _scrollController.addListener(() {
@@ -224,6 +229,38 @@ class GroupChatScreenState extends State<GroupChatScreen>
   Future<void> _loadMoreHistory() async {
     if (!provider.hasMoreHistory || provider.isLoadingHistory) return;
     await provider.fetchMoreHistory();
+  }
+
+  Future<void> _openChatDetails(String title) async {
+    final gp = context.read<GroupChatProvider>();
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ChangeNotifierProvider.value(
+          value: gp,
+          child: GroupInfoScreen(
+            chatId: provider.chatId,
+            groupChatProvider: gp,
+            groupImage: _avatarUrl,
+            groupName: provider.groupName ?? widget.groupName,
+          ),
+        ),
+      ),
+    );
+    if (mounted) {
+      if (result is Map) {
+        final imgUrl = result['groupImageUrl']?.toString();
+        final name = result['groupName']?.toString();
+        if (imgUrl != null && imgUrl.isNotEmpty) {
+          _localGroupImageUrl = imgUrl;
+          gp.updateGroupPicture(imgUrl);
+        }
+        if (name != null && name.isNotEmpty) {
+          gp.updateGroupNameLocally(name);
+        }
+      }
+      setState(() {});
+    }
   }
 
   Future<void> _showClearChatConfirmationDialog() async {
@@ -265,6 +302,10 @@ class GroupChatScreenState extends State<GroupChatScreen>
       showToast(message: 'Cannot clear a new chat');
       return;
     }
+
+    // Instantly remove messages locally for immediate response
+    provider.clearLocalMessages();
+    MessageListState.clearChatLocally(chatId);
 
     try {
       showToast(message: 'Clearing chat...');
@@ -377,12 +418,35 @@ class GroupChatScreenState extends State<GroupChatScreen>
   }
 
   String? get _avatarUrl {
-    final chatData = widget.chat ?? provider.chat;
-    final profileUrl = chatData?['profile_url']?.toString();
+    if (_localGroupImageUrl != null && _localGroupImageUrl!.trim().isNotEmpty) {
+      return _localGroupImageUrl!.trim();
+    }
+    final providerImg = provider.groupImageUrl;
+    if (providerImg != null &&
+        providerImg.trim().isNotEmpty &&
+        providerImg != 'null') {
+      return providerImg.trim();
+    }
+    final chatData = provider.chat ?? widget.chat;
+    final profileUrl = (chatData?['profile_url'] ??
+            chatData?['group_picture_url'] ??
+            chatData?['picture_url'] ??
+            chatData?['avatar_url'])
+        ?.toString();
     if (profileUrl != null &&
         profileUrl.trim().isNotEmpty &&
         profileUrl != 'null') {
-      return profileUrl;
+      return profileUrl.trim();
+    }
+    final fallbackUrl = (widget.chat?['profile_url'] ??
+            widget.chat?['group_picture_url'] ??
+            widget.chat?['picture_url'] ??
+            widget.chat?['avatar_url'])
+        ?.toString();
+    if (fallbackUrl != null &&
+        fallbackUrl.trim().isNotEmpty &&
+        fallbackUrl != 'null') {
+      return fallbackUrl.trim();
     }
     return null;
   }
@@ -413,10 +477,10 @@ class GroupChatScreenState extends State<GroupChatScreen>
       return 'Today';
     } else if (difference == 1) {
       return 'Yesterday';
-    } else if (difference < 7) {
+    } else if (difference > 1 && difference < 7) {
       return DateFormat('EEEE').format(date);
     } else {
-      return DateFormat('dd/MM/yyyy').format(date);
+      return DateFormat('d MMMM yyyy').format(date);
     }
   }
 
@@ -445,7 +509,7 @@ class GroupChatScreenState extends State<GroupChatScreen>
   }
 
   void _navigateToPublicProfile(String? userId, String? username) {
-    if (userId == null) return;
+    if (userId == null && (username == null || username.isEmpty)) return;
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -455,9 +519,92 @@ class GroupChatScreenState extends State<GroupChatScreen>
   }
 
   static final RegExp _urlRegex = RegExp(
-    r'((?:https?:\/\/|www\.)[^\s<>()]+(?:\([^\s<>()]+\)|[^\s`!()\[\]{};:\x27"\x22.,<>?«»“”‘’]))|(polzet:\/\/[^\s]+)',
+    r'((?:https?:\/\/|www\.|(?:[a-zA-Z0-9-]+\.)?polzet\.(?:com|in)\/)[^\s<>()]+(?:\([^\s<>()]+\)|[^\s`!()\[\]{};:\x27"\x22.,<>?«»“”‘’]))|(polzet:\/\/[^\s]+)',
     caseSensitive: false,
   );
+
+  String? _extractProfileUsernameFromUri(Uri uri) {
+    try {
+      // 1. Custom scheme: polzet://profile/{username} or polzet://{username}
+      if (uri.scheme.toLowerCase() == 'polzet') {
+        final host = uri.host.toLowerCase();
+        if (host == 'post') {
+          return null;
+        }
+        if (host == 'profile') {
+          final segments = uri.pathSegments.where((s) => s.isNotEmpty).toList();
+          if (segments.isNotEmpty) {
+            final username = segments[0].replaceFirst(RegExp(r'^@'), '').trim();
+            if (username.isNotEmpty) return username;
+          }
+        } else if (host.isNotEmpty && host != 'g' && host != 'group') {
+          final username = uri.host.replaceFirst(RegExp(r'^@'), '').trim();
+          if (username.isNotEmpty) return username;
+        }
+      }
+
+      // 2. HTTPS / HTTP link with polzet domain or deepLinkHost
+      final host = uri.host.toLowerCase();
+      final isPolzetHost = host.contains('polzet.com') ||
+          host.contains('polzet.in') ||
+          host == ApiConfig.deepLinkHost.toLowerCase();
+
+      if (isPolzetHost) {
+        final segments = uri.pathSegments.where((s) => s.isNotEmpty).toList();
+        if (segments.isEmpty) return null;
+
+        // Skip post routes: /post/{username}/{postId} or /post/{postId}
+        if (segments[0].toLowerCase() == 'post') {
+          return null;
+        }
+
+        // Skip group routes: /g/{slug} or /group/{slug}
+        if (segments[0].toLowerCase() == 'g' ||
+            segments[0].toLowerCase() == 'group') {
+          return null;
+        }
+
+        // Format: /profile/{username}
+        if (segments[0].toLowerCase() == 'profile') {
+          if (segments.length >= 2) {
+            final username = segments[1].replaceFirst(RegExp(r'^@'), '').trim();
+            if (username.isNotEmpty) return username;
+          }
+          return null;
+        }
+
+        // Format: /{username} (e.g. /mileco_555 or /@mileco_555)
+        if (segments.length == 1) {
+          final first = segments[0].toLowerCase();
+          const reservedRoutes = {
+            'post',
+            'profile',
+            'g',
+            'group',
+            'static',
+            'assets',
+            'terms',
+            'privacy',
+            'about',
+            'help',
+            'faq',
+            'settings',
+            'login',
+            'signup',
+            'register',
+            'api',
+          };
+          if (!reservedRoutes.contains(first)) {
+            final username = segments[0].replaceFirst(RegExp(r'^@'), '').trim();
+            if (username.isNotEmpty) return username;
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('Error parsing profile URI: $e');
+    }
+    return null;
+  }
 
   Map<String, String>? _extractPostInfoFromUri(Uri uri) {
     try {
@@ -516,7 +663,33 @@ class GroupChatScreenState extends State<GroupChatScreen>
     try {
       final uri = Uri.parse(formattedUrl);
 
-      // Check if it is a current app post link
+      // 1. Check if it is a Polzet profile link
+      final profileUsername = _extractProfileUsernameFromUri(uri);
+      if (profileUsername != null && profileUsername.isNotEmpty) {
+        if (context.mounted) {
+          final userProvider =
+              Provider.of<UserProvider>(context, listen: false);
+          final currentUsername = userProvider.username;
+          final isCurrentUser = currentUsername != null &&
+              currentUsername.isNotEmpty &&
+              currentUsername.toLowerCase() == profileUsername.toLowerCase();
+
+          if (isCurrentUser) {
+            navigationPush(
+              context,
+              const ProfileScreen(),
+            );
+          } else {
+            _navigateToPublicProfile(
+              null,
+              profileUsername,
+            );
+          }
+        }
+        return;
+      }
+
+      // 2. Check if it is a current app post link
       final postInfo = _extractPostInfoFromUri(uri);
       if (postInfo != null) {
         if (context.mounted) {
@@ -563,9 +736,11 @@ class GroupChatScreenState extends State<GroupChatScreen>
     }
 
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final theme = provider.currentTheme;
     final linkColor = isSentByMe
-        ? const Color(0xFF90CAF9)
-        : (isDarkMode ? const Color(0xFF64B5F6) : const Color(0xFF1976D2));
+        ? (theme?.getOutgoingLinkTextColor(isDarkMode) ?? const Color(0xFF90CAF9))
+        : (theme?.getIncomingLinkTextColor(isDarkMode) ??
+            (isDarkMode ? const Color(0xFF64B5F6) : const Color(0xFF1976D2)));
 
     final List<InlineSpan> spans = [];
     int lastIndex = 0;
@@ -608,21 +783,36 @@ class GroupChatScreenState extends State<GroupChatScreen>
     );
   }
 
-  Widget _buildMessageStatus(ChatMessage message) {
+  Widget _buildMessageStatus(ChatMessage message, {Color? statusColor}) {
     if (!message.isSentByMe) return const SizedBox.shrink();
+
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final fallbackColor = isDarkMode
+        ? const Color(0xBDFFFFFF)
+        : AppTextColors.of(context).muted;
 
     if (message.isFailed) {
       return Icon(Icons.error_outline, size: 11.sp, color: Colors.redAccent);
     }
     if (message.isPending) {
-      return Icon(Icons.check, size: 11.sp, color: Colors.white54);
+      return Icon(
+        Icons.check,
+        size: 11.sp,
+        color: statusColor ?? fallbackColor,
+      );
     }
-    return Icon(Icons.done_all, size: 11.sp, color: Colors.white70);
+    return Icon(
+      Icons.done_all,
+      size: 11.sp,
+      color: statusColor ?? fallbackColor,
+    );
   }
 
   // ── Shared Post Card ───────────────────────────────────────────────────────
   Widget _buildSharedPostCard(BuildContext context, ChatMessage message) {
     final txt = AppTextColors.of(context);
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final currentTheme = provider.currentTheme;
     final post = message.sharedPost!;
     final user = post['user'] ?? {};
     final firstName = user['first_name']?.toString() ?? '';
@@ -664,32 +854,94 @@ class GroupChatScreenState extends State<GroupChatScreen>
     // Extract images & poll text
     List<String> imageUrls = [];
     String pollQuestion = '';
+    String pollType = '';
     List<String> pollTextOptions = [];
 
-    if (post['images'] != null && (post['images'] as List).isNotEmpty) {
-      for (var img in post['images']) {
-        final url = img['image'] ?? img['url'];
-        if (url != null) imageUrls.add(url.toString());
-      }
-    } else if (post['polls'] != null && (post['polls'] as List).isNotEmpty) {
-      final poll = post['polls'][0];
-      pollQuestion = poll['question']?.toString() ?? '';
-      final options = poll['options'] as List? ?? [];
-      for (var opt in options) {
-        if (opt['image'] != null) {
-          final url = opt['image']['url'] ?? opt['image']['thumbnail_url'];
-          if (url != null) imageUrls.add(url.toString());
-        } else if (opt['text'] != null && opt['text'].toString().isNotEmpty) {
-          pollTextOptions.add(opt['text'].toString());
+    if (post['polls'] != null && (post['polls'] as List).isNotEmpty) {
+      for (var p in (post['polls'] as List)) {
+        if (p is Map) {
+          if (pollType.isEmpty) {
+            pollType = p['poll_type']?.toString().toLowerCase() ??
+                p['type']?.toString().toLowerCase() ??
+                '';
+          }
+          if (pollQuestion.isEmpty &&
+              p['question'] != null &&
+              p['question'].toString().trim().isNotEmpty) {
+            pollQuestion = p['question'].toString().trim();
+          }
+          final options = p['options'] as List? ?? [];
+          for (var opt in options) {
+            if (opt is Map) {
+              if (opt['image'] != null && opt['image'] is Map) {
+                final url =
+                    opt['image']['url'] ?? opt['image']['thumbnail_url'];
+                if (url != null && url.toString().isNotEmpty) {
+                  imageUrls.add(url.toString());
+                }
+              } else if (opt['text'] != null &&
+                  opt['text'].toString().trim().isNotEmpty) {
+                pollTextOptions.add(opt['text'].toString().trim());
+              }
+            }
+          }
         }
       }
     }
-    imageUrls = imageUrls.where((e) => e.isNotEmpty).toList();
+
+    if (post['images'] != null && (post['images'] as List).isNotEmpty) {
+      for (var img in post['images']) {
+        if (img is Map) {
+          final url = img['image'] ?? img['url'] ?? img['thumbnail_url'];
+          if (url != null && url.toString().isNotEmpty) {
+            imageUrls.add(url.toString());
+          }
+        } else if (img is String && img.isNotEmpty) {
+          imageUrls.add(img);
+        }
+      }
+    }
+
+    if (pollQuestion.isEmpty && post['question'] != null) {
+      pollQuestion = post['question'].toString().trim();
+    }
+    if (pollType.isEmpty) {
+      pollType = post['poll_type']?.toString().toLowerCase() ??
+          post['type']?.toString().toLowerCase() ??
+          '';
+    }
+
+    final bool isHotTake = pollType == 'hot_take' ||
+        pollType == 'hot take' ||
+        pollType == 'hot-take';
+
+    final seenUrls = <String>{};
+    imageUrls =
+        imageUrls.where((e) => e.isNotEmpty && seenUrls.add(e)).toList();
+
+    if (isHotTake && imageUrls.isNotEmpty) {
+      imageUrls = [imageUrls.first];
+    }
 
     // Removed base64 decode logic for avatar
 
     return GestureDetector(
       onTap: () {
+        if (isHotTake) {
+          final postId = post['id']?.toString() ?? '';
+          if (postId.isNotEmpty) {
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => SinglePostDetails(
+                  username: username,
+                  postId: postId,
+                ),
+              ),
+            );
+          }
+          return;
+        }
+
         final isImagePoll = imageUrls.isNotEmpty;
         final isThingsPoll = pollTextOptions.isNotEmpty;
 
@@ -771,10 +1023,15 @@ class GroupChatScreenState extends State<GroupChatScreen>
           right: message.isSentByMe ? 0 : 50.w,
         ),
         decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.primaryContainer,
+          color: (message.isSentByMe
+                  ? currentTheme?.getOutgoingCardColor(isDarkMode)
+                  : currentTheme?.getIncomingCardColor(isDarkMode)) ??
+              Theme.of(context).colorScheme.primaryContainer,
           borderRadius: BorderRadius.circular(AppRadius.card),
           border: Border.all(
-            color: Theme.of(context).colorScheme.outline,
+            color: currentTheme?.id == 'midnight_navy'
+                ? const Color(0x339EAFC0)
+                : Theme.of(context).colorScheme.outline,
             width: 1,
           ),
           boxShadow: const [BoxShadow(color: Color(0x04000000), blurRadius: 2)],
@@ -861,7 +1118,9 @@ class GroupChatScreenState extends State<GroupChatScreen>
                                 child: Text(
                                   name.isNotEmpty ? name : username,
                                   style: AppTextStyles.sectionHeading.copyWith(
-                                    color: txt.title,
+                                    color: (currentTheme?.id == 'midnight_navy' || isDarkMode)
+                                        ? Colors.white
+                                        : txt.title,
                                     fontSize: 14,
                                   ),
                                   maxLines: 1,
@@ -886,7 +1145,11 @@ class GroupChatScreenState extends State<GroupChatScreen>
                                   style: AppTextStyles.bodyText.copyWith(
                                     fontSize: 12,
                                     fontWeight: FontWeight.w500,
-                                    color: txt.body,
+                                    color: currentTheme?.id == 'midnight_navy'
+                                        ? const Color(0xFF9EAFC0)
+                                        : (isDarkMode
+                                            ? const Color(0xFFB0B0B0)
+                                            : txt.body),
                                   ),
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
@@ -895,7 +1158,9 @@ class GroupChatScreenState extends State<GroupChatScreen>
                               Text(
                                 ' • $timeAgo',
                                 style: AppTextStyles.subText.copyWith(
-                                  color: txt.muted,
+                                  color: currentTheme?.id == 'midnight_navy'
+                                      ? const Color(0xFF9EAFC0)
+                                      : txt.muted,
                                   fontWeight: FontWeight.w400,
                                   fontSize: 11.5,
                                 ),
@@ -909,17 +1174,46 @@ class GroupChatScreenState extends State<GroupChatScreen>
                 ),
               ),
             ),
-            Divider(color: Theme.of(context).colorScheme.outlineVariant),
+            Divider(
+              color: currentTheme?.id == 'midnight_navy'
+                  ? const Color(0x229EAFC0)
+                  : Theme.of(context).colorScheme.outlineVariant,
+            ),
 
-            if (description.isNotEmpty && pollTextOptions.isEmpty) ...[
+            if (pollQuestion.isNotEmpty) ...[
               Padding(
                 padding: EdgeInsets.fromLTRB(10.w, 0, 10.w, 0),
                 child: Text(
+                  pollQuestion,
+                  style: AppTextStyles.bodyText.copyWith(
+                    color: (currentTheme?.id == 'midnight_navy' || isDarkMode)
+                        ? Colors.white
+                        : txt.heading,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+
+            if (description.isNotEmpty) ...[
+              Padding(
+                padding: EdgeInsets.fromLTRB(
+                  10.w,
+                  pollQuestion.isNotEmpty ? 4.h : 0,
+                  10.w,
+                  0,
+                ),
+                child: Text(
                   description,
                   style: AppTextStyles.bodyText.copyWith(
-                    color: txt.heading,
+                    color: (currentTheme?.id == 'midnight_navy' || isDarkMode)
+                        ? Colors.white.withOpacity(0.9)
+                        : txt.body,
                     fontWeight: FontWeight.w400,
-                    fontSize: 13.5,
+                    fontSize: 13,
                   ),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
@@ -931,7 +1225,14 @@ class GroupChatScreenState extends State<GroupChatScreen>
               SizedBox(height: 10.h),
               _buildStackedImages(imageUrls),
             ] else if (pollTextOptions.isNotEmpty) ...[
-              _buildTextPoll(context, pollQuestion, pollTextOptions),
+              SizedBox(height: 10.h),
+              _buildTextPoll(
+                context,
+                pollTextOptions,
+                isSentByMe: message.isSentByMe,
+              ),
+            ] else ...[
+              SizedBox(height: 10.h),
             ],
           ],
         ),
@@ -941,8 +1242,11 @@ class GroupChatScreenState extends State<GroupChatScreen>
 
   Widget _buildSharedProfileCard(BuildContext context, ChatMessage message) {
     final txt = AppTextColors.of(context);
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final currentTheme = provider.currentTheme;
     final profile = message.sharedProfile!;
-    final userId = profile['user_id']?.toString() ?? '';
+    final userId =
+        profile['user_id']?.toString() ?? profile['id']?.toString() ?? '';
     final firstName = profile['first_name']?.toString() ?? '';
     final lastName = profile['last_name']?.toString() ?? '';
     final name = '$firstName $lastName'.trim();
@@ -954,8 +1258,31 @@ class GroupChatScreenState extends State<GroupChatScreen>
 
     return GestureDetector(
       onTap: () {
-        if (userId.isNotEmpty) {
-          _navigateToPublicProfile(userId, username);
+        if (userId.isNotEmpty || username.isNotEmpty) {
+          final userProvider =
+              Provider.of<UserProvider>(context, listen: false);
+          final currentUserId = userProvider.userId?.toString();
+          final currentUsername = userProvider.username;
+          final isCurrentUser = (currentUserId != null &&
+                  currentUserId.isNotEmpty &&
+                  userId.isNotEmpty &&
+                  currentUserId == userId) ||
+              (currentUsername != null &&
+                  currentUsername.isNotEmpty &&
+                  username.isNotEmpty &&
+                  currentUsername.toLowerCase() == username.toLowerCase());
+
+          if (isCurrentUser) {
+            navigationPush(
+              context,
+              const ProfileScreen(),
+            );
+          } else {
+            _navigateToPublicProfile(
+              userId.isNotEmpty ? userId : null,
+              username.isNotEmpty ? username : null,
+            );
+          }
         }
       },
       child: Container(
@@ -967,10 +1294,15 @@ class GroupChatScreenState extends State<GroupChatScreen>
         ),
         padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
         decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.primaryContainer,
+          color: (message.isSentByMe
+                  ? currentTheme?.getOutgoingCardColor(isDarkMode)
+                  : currentTheme?.getIncomingCardColor(isDarkMode)) ??
+              Theme.of(context).colorScheme.primaryContainer,
           borderRadius: BorderRadius.circular(AppRadius.card),
           border: Border.all(
-            color: Theme.of(context).colorScheme.outline,
+            color: currentTheme?.id == 'midnight_navy'
+                ? const Color(0x339EAFC0)
+                : Theme.of(context).colorScheme.outline,
             width: 1,
           ),
           boxShadow: const [BoxShadow(color: Color(0x04000000), blurRadius: 2)],
@@ -1042,7 +1374,9 @@ class GroupChatScreenState extends State<GroupChatScreen>
                         child: Text(
                           displayName,
                           style: AppTextStyles.sectionHeading.copyWith(
-                            color: Theme.of(context).colorScheme.onBackground,
+                            color: (currentTheme?.id == 'midnight_navy' || isDarkMode)
+                                ? Colors.white
+                                : Theme.of(context).colorScheme.onBackground,
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
                           ),
@@ -1066,7 +1400,9 @@ class GroupChatScreenState extends State<GroupChatScreen>
                     style: AppTextStyles.bodyText.copyWith(
                       fontSize: 12,
                       fontWeight: FontWeight.w400,
-                      color: txt.muted,
+                      color: currentTheme?.id == 'midnight_navy'
+                          ? const Color(0xFF9EAFC0)
+                          : txt.muted,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -1080,101 +1416,106 @@ class GroupChatScreenState extends State<GroupChatScreen>
     );
   }
 
-
-
   Widget _buildSharedGroupCard(BuildContext context, ChatMessage message) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final currentTheme = provider.currentTheme;
     return SharedGroupCard(
       groupData: message.sharedGroup!,
       isSentByMe: message.isSentByMe,
       currentChatId: widget.chatId?.toString(),
+      cardColor: message.isSentByMe
+          ? currentTheme?.getOutgoingCardColor(isDarkMode)
+          : currentTheme?.getIncomingCardColor(isDarkMode),
     );
   }
 
   Widget _buildTextPoll(
     BuildContext context,
-    String question,
-    List<String> options,
-  ) {
+    List<String> options, {
+    bool isSentByMe = false,
+  }) {
     final txt = AppTextColors.of(context);
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final currentTheme = provider.currentTheme;
+    final isMidnightNavy = currentTheme?.id == 'midnight_navy';
+
+    final pollBgColor = isMidnightNavy
+        ? const Color(0xFF9EAFC0)
+        : (currentTheme?.getBgColor(isDarkMode) ??
+            Theme.of(context).colorScheme.surface);
+    final pollBorderColor = isMidnightNavy
+        ? const Color(0xFF9EAFC0)
+        : (currentTheme?.getUnselectedBorderColor(isDarkMode) ??
+            Theme.of(context).colorScheme.outline);
+    final textColor = isMidnightNavy
+        ? const Color(0xFF0A1523)
+        : (isDarkMode ? Colors.white : txt.heading);
+
     final displayOptions = options.take(2).toList();
     final remainingCount = options.length - displayOptions.length;
 
     return Padding(
       padding: EdgeInsets.fromLTRB(10.w, 0, 10.w, 10.h),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
         children: [
-          if (question.isNotEmpty) ...[
-            Text(
-              question,
-              style: AppTextStyles.bodyText.copyWith(
-                color: txt.heading,
-                fontWeight: FontWeight.w400,
-                fontSize: 13.5,
-              ),
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-            ),
-            SizedBox(height: 10.h),
-          ],
-          Row(
-            children: [
-              ...displayOptions.map((opt) {
-                return Expanded(
-                  child: Container(
-                    margin: EdgeInsets.only(right: 8.w),
-                    padding: EdgeInsets.symmetric(
-                      horizontal: 8.w,
-                      vertical: 8.h,
-                    ),
-                    decoration: BoxDecoration(
-                      border: Border.all(
-                        color: Theme.of(context).colorScheme.outline,
-                        width: 1,
-                      ),
-                      borderRadius: BorderRadius.circular(AppRadius.card),
-                    ),
-                    alignment: Alignment.center,
-                    child: Text(
-                      opt,
-                      style: AppTextStyles.bodyText.copyWith(
-                        fontSize: 13,
-                        color: txt.heading,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                );
-              }),
-              if (remainingCount > 0)
-                Expanded(
-                  child: Container(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: 8.w,
-                      vertical: 8.h,
-                    ),
-                    decoration: BoxDecoration(
-                      border: Border.all(
-                        color: Theme.of(context).colorScheme.outlineVariant,
-                      ),
-                      borderRadius: BorderRadius.circular(AppRadius.button),
-                    ),
-                    alignment: Alignment.center,
-                    child: Text(
-                      '+$remainingCount more',
-                      style: AppTextStyles.bodyText.copyWith(
-                        fontSize: 13,
-                        fontWeight: FontWeight.bold,
-                        color: txt.heading,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
+          ...displayOptions.map((opt) {
+            return Expanded(
+              child: Container(
+                margin: EdgeInsets.only(right: 8.w),
+                padding: EdgeInsets.symmetric(
+                  horizontal: 8.w,
+                  vertical: 8.h,
                 ),
-            ],
-          ),
+                decoration: BoxDecoration(
+                  color: pollBgColor,
+                  border: Border.all(
+                    color: pollBorderColor,
+                    width: 1,
+                  ),
+                  borderRadius: BorderRadius.circular(AppRadius.card),
+                ),
+                alignment: Alignment.center,
+                child: Text(
+                  opt,
+                  style: AppTextStyles.bodyText.copyWith(
+                    fontSize: 13,
+                    fontWeight: isMidnightNavy ? FontWeight.w600 : FontWeight.w500,
+                    color: textColor,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            );
+          }),
+          if (remainingCount > 0)
+            Expanded(
+              child: Container(
+                padding: EdgeInsets.symmetric(
+                  horizontal: 8.w,
+                  vertical: 8.h,
+                ),
+                decoration: BoxDecoration(
+                  color: pollBgColor,
+                  border: Border.all(
+                    color: pollBorderColor,
+                    width: 1,
+                  ),
+                  borderRadius: BorderRadius.circular(AppRadius.button),
+                ),
+                alignment: Alignment.center,
+                child: Text(
+                  '+$remainingCount more',
+                  style: AppTextStyles.bodyText.copyWith(
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                    color: textColor,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ),
         ],
       ),
     );
@@ -1271,9 +1612,194 @@ class GroupChatScreenState extends State<GroupChatScreen>
     );
   }
 
+  Widget _buildGroupAvatarStack({
+    required List<dynamic>? members,
+    required double size,
+    required bool isDarkMode,
+    required BuildContext context,
+  }) {
+    final List<String?> profileUrls = [];
+    final List<String> initials = [];
+    final List<String?> usernames = [];
+
+    if (members != null) {
+      for (final member in members) {
+        if (profileUrls.length >= 2) break;
+        final user = member is Map
+            ? (member['user'] is Map ? member['user'] as Map : member)
+            : null;
+        if (user != null) {
+          var profileUrl = (user['avatar_url'] ??
+                  user['profile_image'] ??
+                  user['profile_picture_url'] ??
+                  user['profile_url'] ??
+                  user['avatar'])
+              ?.toString();
+          if (profileUrl != null &&
+              profileUrl.isNotEmpty &&
+              profileUrl != 'null') {
+            if (!profileUrl.startsWith('http') &&
+                !profileUrl.startsWith('assets/') &&
+                !profileUrl.startsWith('data:image')) {
+              final separator = profileUrl.startsWith('/') ? '' : '/';
+              profileUrl = '${ApiConfig.baseUrlImage}$separator$profileUrl';
+            }
+          } else {
+            profileUrl = Assets.images.icAvatar.path;
+          }
+          final username = user['username']?.toString();
+          final name = (user['name'] ?? username ?? 'Unknown').toString();
+          profileUrls.add(profileUrl);
+          initials.add(name.isNotEmpty ? name[0].toUpperCase() : '?');
+          usernames.add(username);
+        }
+      }
+    }
+
+    while (profileUrls.length < 2) {
+      profileUrls.add(Assets.images.icAvatar.path);
+      initials.add('?');
+      usernames.add(null);
+    }
+
+    final double circleSize = size * 0.70;
+
+    return SizedBox(
+      width: size,
+      height: size,
+      child: Stack(
+        children: [
+          Positioned(
+            top: 0,
+            left: 0,
+            child: _buildSingleAvatarCircle(
+              profileUrl: profileUrls[0],
+              initial: initials[0],
+              size: circleSize,
+              isDarkMode: isDarkMode,
+              context: context,
+              username: usernames.isNotEmpty ? usernames[0] : null,
+            ),
+          ),
+          if (profileUrls.length > 1)
+            Positioned(
+              bottom: 2,
+              right: 3,
+              child: _buildSingleAvatarCircle(
+                profileUrl: profileUrls[1],
+                initial: initials[1],
+                size: circleSize,
+                isDarkMode: isDarkMode,
+                context: context,
+                hasBorder: true,
+                username: usernames.length > 1 ? usernames[1] : null,
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSingleAvatarCircle({
+    required String? profileUrl,
+    required String initial,
+    required double size,
+    required bool isDarkMode,
+    required BuildContext context,
+    bool hasBorder = false,
+    String? username,
+  }) {
+    if (_isPolzetAiUsername(username) || _isPolzetAiUsername(profileUrl)) {
+      return Container(
+        width: size,
+        height: size,
+        decoration: hasBorder
+            ? BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: Theme.of(context).colorScheme.background,
+                  width: 1.5,
+                ),
+              )
+            : null,
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            ClipOval(
+              child: Center(
+                child: Padding(
+                  padding: const EdgeInsets.only(
+                    top: 6,
+                    bottom: 0,
+                    left: 8,
+                    right: 7,
+                  ),
+                  child: Image.asset(
+                    Assets.images.icSplash.path,
+                    fit: BoxFit.contain,
+                  ),
+                ),
+              ),
+            ),
+            Positioned.fill(
+              child: Image.asset(
+                Assets.images.aiFrame.path,
+                fit: BoxFit.contain,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    final ImageProvider? avatarProvider = (profileUrl == null ||
+            profileUrl.trim().isEmpty ||
+            profileUrl == 'null' ||
+            profileUrl == Assets.images.icAvatar.path)
+        ? AssetImage(Assets.images.icAvatar.path)
+        : (getProfileImage(profileUrl) != null
+            ? MemoryImage(getProfileImage(profileUrl)!)
+            : (resolveProfileImageUrl(profileUrl) != null &&
+                    resolveProfileImageUrl(profileUrl)!.startsWith('http')
+                ? NetworkImage(resolveProfileImageUrl(profileUrl)!)
+                : (resolveProfileImageUrl(profileUrl) != null &&
+                        resolveProfileImageUrl(profileUrl)!.startsWith('assets/')
+                    ? AssetImage(resolveProfileImageUrl(profileUrl)!)
+                    : AssetImage(Assets.images.icAvatar.path))));
+
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: isDarkMode
+            ? const Color(0xFF252525)
+            : Theme.of(context).primaryColor.withOpacity(0.08),
+        border: hasBorder
+            ? Border.all(
+                color: Theme.of(context).colorScheme.background,
+                width: 1.5,
+              )
+            : Border.all(
+                color: Theme.of(
+                  context,
+                ).colorScheme.onSurface.withOpacity(0.05),
+                width: 1,
+              ),
+        image: avatarProvider != null
+            ? DecorationImage(image: avatarProvider, fit: BoxFit.cover)
+            : DecorationImage(
+                image: AssetImage(Assets.images.icAvatar.path),
+                fit: BoxFit.cover,
+              ),
+      ),
+    );
+  }
+
   Widget _buildMessageBubble(BuildContext context, ChatMessage message) {
     final txt = AppTextColors.of(context);
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final currentTheme = provider.currentTheme;
     final avatarUrl = resolveProfileImageUrl(message.senderProfileImage);
     final avatarProvider = avatarUrl != null ? NetworkImage(avatarUrl) : null;
 
@@ -1281,85 +1807,113 @@ class GroupChatScreenState extends State<GroupChatScreen>
         ? message.senderUsername![0].toUpperCase()
         : 'P';
 
-    final bubble = Container(
-      margin: EdgeInsets.symmetric(vertical: 4.h),
-      padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 5.h),
-      constraints: BoxConstraints(
-        maxWidth: MediaQuery.of(context).size.width * 0.65,
-      ),
-      decoration: BoxDecoration(
-        color: message.isSentByMe
-            ? Theme.of(context).colorScheme.primary
-            : (isDarkMode ? const Color(0xFF2A2A2E) : const Color(0xFFF3F4F6)),
-        borderRadius: BorderRadius.only(
-          topLeft: message.isSentByMe
-              ? const Radius.circular(AppRadius.card)
-              : const Radius.circular(0),
-          topRight: const Radius.circular(AppRadius.card),
-          bottomLeft: const Radius.circular(AppRadius.card),
-          bottomRight: message.isSentByMe
-              ? const Radius.circular(0)
-              : const Radius.circular(AppRadius.card),
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (!message.isSentByMe && message.senderUsername != null)
-            Padding(
-              padding: EdgeInsets.only(bottom: 3.h),
-              child: GestureDetector(
-                onTap: () => _navigateToPublicProfile(
-                  message.senderId?.toString(),
-                  message.senderUsername,
-                ),
-                child: Text(
-                  message.senderUsername!,
-                  style: TextStyle(
-                    fontSize: 10.sp,
-                    fontWeight: FontWeight.w600,
-                    color: _getUsernameColor(message.senderUsername!),
+    final bubble = Column(
+      crossAxisAlignment: message.isSentByMe
+          ? CrossAxisAlignment.end
+          : CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          margin: EdgeInsets.only(
+            top: 4.h,
+            bottom: 2.h,
+          ),
+          padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 5.h),
+          constraints: BoxConstraints(
+            maxWidth: MediaQuery.of(context).size.width * 0.65,
+          ),
+          decoration: BoxDecoration(
+            color: currentTheme != null
+                ? (message.isSentByMe
+                    ? currentTheme.getOutgoingColor(isDarkMode)
+                    : currentTheme.getIncomingColor(isDarkMode))
+                : (message.isSentByMe
+                    ? Theme.of(context).colorScheme.primary
+                    : (isDarkMode
+                        ? const Color(0xFF2A2A2E)
+                        : const Color(0xFFF3F4F6))),
+            borderRadius: BorderRadius.only(
+              topLeft: message.isSentByMe
+                  ? const Radius.circular(AppRadius.card)
+                  : const Radius.circular(0),
+              topRight: const Radius.circular(AppRadius.card),
+              bottomLeft: const Radius.circular(AppRadius.card),
+              bottomRight: message.isSentByMe
+                  ? const Radius.circular(0)
+                  : const Radius.circular(AppRadius.card),
+            ),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (!message.isSentByMe && message.senderUsername != null)
+                Padding(
+                  padding: EdgeInsets.only(bottom: 3.h),
+                  child: GestureDetector(
+                    onTap: () => _navigateToPublicProfile(
+                      message.senderId?.toString(),
+                      message.senderUsername,
+                    ),
+                    child: Text(
+                      message.senderUsername!,
+                      style: TextStyle(
+                        fontSize: 10.sp,
+                        fontWeight: FontWeight.w600,
+                        color: _getUsernameColor(message.senderUsername!),
+                      ),
+                    ),
                   ),
                 ),
-              ),
-            ),
-          Wrap(
-            alignment: WrapAlignment.end,
-            crossAxisAlignment: WrapCrossAlignment.end,
-            spacing: 4.w,
-            children: [
               _buildMessageText(
                 context,
                 text: message.text,
                 baseStyle: TextStyle(
                   color: message.isSentByMe
                       ? Colors.white
-                      : Theme.of(context).colorScheme.onBackground,
-                  fontSize: 10.8.sp,
+                      : (isDarkMode
+                          ? Colors.white
+                          : txt.body),
+                  fontSize: 13.6,
                   fontWeight: FontWeight.w400,
                 ),
                 isSentByMe: message.isSentByMe,
               ),
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    _formatTime(message.created_at),
-                    style: TextStyle(
-                      fontSize: 8.2.sp,
-                      color: message.isSentByMe
-                          ? const Color(0xBDFFFFFF)
-                          : txt.muted,
-                    ),
-                  ),
-                  SizedBox(width: 3.w),
-                  _buildMessageStatus(message),
-                ],
-              ),
             ],
           ),
-        ],
-      ),
+        ),
+        Padding(
+          padding: EdgeInsets.only(
+            left: 2.w,
+            right: 2.w,
+            bottom: 4.h,
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                _formatTime(message.created_at),
+                style: TextStyle(
+                  fontSize: 8.4.sp,
+                  color: currentTheme?.getMessageTimeColor(isDarkMode) ??
+                      (isDarkMode
+                          ? const Color(0xBDFFFFFF)
+                          : txt.muted),
+                ),
+              ),
+              if (message.isSentByMe) ...[
+                SizedBox(width: 3.w),
+                _buildMessageStatus(
+                  message,
+                  statusColor: currentTheme?.getMessageTimeColor(isDarkMode) ??
+                      (isDarkMode
+                          ? const Color(0xBDFFFFFF)
+                          : txt.muted),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ],
     );
 
     final isTextMessage = message.sharedPost == null &&
@@ -1570,6 +2124,10 @@ class GroupChatScreenState extends State<GroupChatScreen>
 
   Widget _buildScrollToBottomButton() {
     if (_isAtBottom) return const SizedBox.shrink();
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final buttonColor = provider.currentTheme?.getOutgoingColor(isDarkMode) ??
+        Theme.of(context).colorScheme.primary;
+
     return Positioned(
       bottom: 35.h,
       right: 14.w,
@@ -1582,7 +2140,7 @@ class GroupChatScreenState extends State<GroupChatScreen>
         child: Container(
           padding: EdgeInsets.all(6.w),
           decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.primary,
+            color: buttonColor,
             shape: BoxShape.circle,
             boxShadow: const [
               BoxShadow(
@@ -1629,17 +2187,22 @@ class GroupChatScreenState extends State<GroupChatScreen>
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
     final provider = context.watch<GroupChatProvider>();
-    final groupAvatarUrl = resolveProfileImageUrl(_avatarUrl);
-    final groupAvatarProvider = groupAvatarUrl != null
-        ? NetworkImage(groupAvatarUrl)
-        : null;
+    final rawAvatar = _avatarUrl;
+    final imageBytes = rawAvatar != null ? getProfileImage(rawAvatar) : null;
+    final groupAvatarUrl = resolveProfileImageUrl(rawAvatar);
+    final ImageProvider? groupAvatarProvider = imageBytes != null
+        ? MemoryImage(imageBytes)
+        : (groupAvatarUrl != null && groupAvatarUrl.startsWith('http')
+            ? NetworkImage(groupAvatarUrl)
+            : (groupAvatarUrl != null && groupAvatarUrl.startsWith('assets/')
+                ? AssetImage(groupAvatarUrl)
+                : null));
     final title = provider.groupName ?? widget.groupName ?? 'Chat';
 
     // We count members based on memberPresence since there's no static members list in the provider
     // Or we could read from widget.chat if available.
     final memberCount =
         widget.chat?['members']?.length ?? provider.memberPresence.length;
-    final initial = title.isNotEmpty ? title[0].toUpperCase() : '?';
 
     return SafeArea(
       top: false,
@@ -1654,14 +2217,19 @@ class GroupChatScreenState extends State<GroupChatScreen>
           }
         },
         child: Scaffold(
-          backgroundColor: Theme.of(context).colorScheme.background,
+          backgroundColor: provider.currentTheme?.getBgColor(isDarkMode) ??
+              Theme.of(context).colorScheme.background,
           appBar: _selectedMessage != null
               ? AppBar(
                   toolbarHeight: 40.h,
                   automaticallyImplyLeading: false,
                   leadingWidth: double.infinity,
-                  backgroundColor: Theme.of(context).colorScheme.background,
-                  surfaceTintColor: Theme.of(context).colorScheme.background,
+                  backgroundColor:
+                      provider.currentTheme?.getBgColor(isDarkMode) ??
+                      Theme.of(context).colorScheme.background,
+                  surfaceTintColor:
+                      provider.currentTheme?.getBgColor(isDarkMode) ??
+                      Theme.of(context).colorScheme.background,
                   leading: Row(
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
@@ -1749,43 +2317,27 @@ class GroupChatScreenState extends State<GroupChatScreen>
                         ],
                       ),
                     )
-                  : CircleAvatar(
-                      radius: 18.r,
-                      backgroundColor: Theme.of(
-                        context,
-                      ).colorScheme.onPrimary.withOpacity(0.1),
-                      backgroundImage: groupAvatarProvider,
-                      child: groupAvatarProvider == null
-                          ? Text(
-                              initial,
-                              style: AppTextStyles.cardTitle.copyWith(
-                                fontSize: 17,
-                                fontWeight: FontWeight.w600,
-                                color: Theme.of(
-                                  context,
-                                ).colorScheme.onPrimary.withOpacity(0.8),
-                              ),
-                            )
-                          : null,
-                    ),
+                  : (groupAvatarProvider != null
+                      ? CircleAvatar(
+                          key: ValueKey(groupAvatarUrl ?? rawAvatar ?? ''),
+                          radius: 18.r,
+                          backgroundColor: Theme.of(
+                            context,
+                          ).colorScheme.onPrimary.withOpacity(0.1),
+                          backgroundImage: groupAvatarProvider,
+                        )
+                      : _buildGroupAvatarStack(
+                          members: (provider.chat?['members'] ??
+                              widget.chat?['members'] ??
+                              provider.members) as List?,
+                          size: 38.w,
+                          isDarkMode: isDarkMode,
+                          context: context,
+                        )),
               SizedBox(width: 7.w),
               Expanded(
                 child: GestureDetector(
-                  onTap: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => ChangeNotifierProvider.value(
-                        value: context.read<GroupChatProvider>(),
-                        child: ChatDetails(
-                          chatName: title,
-                          profileUrl: _avatarUrl,
-                          isGroupChat: true,
-                          chatId: provider.chatId,
-                          chat: widget.chat,
-                        ),
-                      ),
-                    ),
-                  ),
+                  onTap: () => _openChatDetails(title),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -1795,7 +2347,10 @@ class GroupChatScreenState extends State<GroupChatScreen>
                           Text(
                             title,
                             style: AppTextStyles.bodyText.copyWith(
-                              color: txt.title,
+                              color: provider.currentTheme?.getTitleColor(isDarkMode) ??
+                                  (provider.currentTheme?.id == 'midnight_navy'
+                                      ? const Color(0xFFCCCCD0)
+                                      : txt.title),
                               fontSize: 14.5,
                               fontWeight: FontWeight.w500,
                             ),
@@ -1904,7 +2459,9 @@ class GroupChatScreenState extends State<GroupChatScreen>
                 elevation: 2,
                 padding: EdgeInsets.zero,
                 onSelected: (value) {
-                  if (value == 'share') {
+                  if (value == 'group_info') {
+                    _openChatDetails(title);
+                  } else if (value == 'share') {
                     _shareGroup();
                   } else if (value == 'clear_chat') {
                     _showClearChatConfirmationDialog();
@@ -1914,6 +2471,19 @@ class GroupChatScreenState extends State<GroupChatScreen>
                 },
                 itemBuilder: (BuildContext context) {
                   return [
+                    PopupMenuItem<String>(
+                      padding: const EdgeInsets.fromLTRB(10, 0, 10, 0),
+                      height: 38,
+                      value: 'group_info',
+                      child: Text(
+                        'Group info',
+                        style: AppTextStyles.bodyText.copyWith(
+                          color: txt.title,
+                          fontWeight: FontWeight.w500,
+                          fontSize: 13.5,
+                        ),
+                      ),
+                    ),
                     PopupMenuItem<String>(
                       padding: const EdgeInsets.fromLTRB(10, 0, 10, 0),
                       height: 38,
@@ -1958,8 +2528,12 @@ class GroupChatScreenState extends State<GroupChatScreen>
               ),
             ],
           ),
-          backgroundColor: Theme.of(context).colorScheme.background,
-          surfaceTintColor: Theme.of(context).colorScheme.background,
+          backgroundColor:
+              provider.currentTheme?.getBgColor(isDarkMode) ??
+              Theme.of(context).colorScheme.background,
+          surfaceTintColor:
+              provider.currentTheme?.getBgColor(isDarkMode) ??
+              Theme.of(context).colorScheme.background,
         ),
         body: GestureDetector(
           behavior: HitTestBehavior.translucent,
@@ -1972,12 +2546,16 @@ class GroupChatScreenState extends State<GroupChatScreen>
           },
           child: Container(
           decoration: BoxDecoration(
-            image: DecorationImage(
-              image: isDarkMode
-                  ? AssetImage(Assets.images.bgChatDark.path)
-                  : AssetImage(Assets.images.bgChatLight.path),
-              fit: BoxFit.cover,
-            ),
+            color: provider.currentTheme?.getBgColor(isDarkMode),
+            image: (provider.currentTheme == null ||
+                    provider.currentTheme?.id == 'classic_maroon')
+                ? DecorationImage(
+                    image: isDarkMode
+                        ? AssetImage(Assets.images.bgChatDark.path)
+                        : AssetImage(Assets.images.bgChatLight.path),
+                    fit: BoxFit.cover,
+                  )
+                : null,
           ),
           child: Column(
             children: [
@@ -2146,11 +2724,13 @@ class GroupChatScreenState extends State<GroupChatScreen>
                                       vertical: 3.h,
                                     ),
                                     decoration: BoxDecoration(
-                                      color: isDarkMode
-                                          ? Theme.of(
-                                              context,
-                                            ).colorScheme.secondaryContainer
-                                          : const Color(0xFFF2F2F2),
+                                      color: provider.currentTheme
+                                              ?.getDateColor(isDarkMode) ??
+                                          (isDarkMode
+                                              ? Theme.of(
+                                                  context,
+                                                ).colorScheme.secondaryContainer
+                                              : const Color(0xFFF2F2F2)),
                                       borderRadius: BorderRadius.circular(5.r),
                                     ),
                                     child: Text(
@@ -2186,11 +2766,13 @@ class GroupChatScreenState extends State<GroupChatScreen>
                               vertical: 3.h,
                             ),
                             decoration: BoxDecoration(
-                              color: isDarkMode
-                                  ? Theme.of(
-                                      context,
-                                    ).colorScheme.secondaryContainer
-                                  : const Color(0xFFF2F2F2),
+                              color: provider.currentTheme
+                                      ?.getDateColor(isDarkMode) ??
+                                  (isDarkMode
+                                      ? Theme.of(
+                                          context,
+                                        ).colorScheme.secondaryContainer
+                                      : const Color(0xFFF2F2F2)),
                               borderRadius: BorderRadius.circular(5.r),
                             ),
                             child: Text(
@@ -2209,7 +2791,7 @@ class GroupChatScreenState extends State<GroupChatScreen>
               ),
               Container(
                 width: double.infinity,
-                margin: const EdgeInsets.fromLTRB(5, 5, 12, 15).w,
+                margin: const EdgeInsets.fromLTRB(5, 5, 5, 15).w,
                 padding: const EdgeInsets.symmetric(horizontal: 10),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.end,
@@ -2229,9 +2811,12 @@ class GroupChatScreenState extends State<GroupChatScreen>
                         textInputAction: TextInputAction.newline,
                         decoration: InputDecoration(
                           filled: true,
-                          fillColor: Theme.of(context).colorScheme.background,
+                          fillColor: provider.currentTheme
+                                  ?.getMessageBarColor(isDarkMode) ??
+                              Theme.of(context).colorScheme.background,
                           border: InputBorder.none,
-                          hintText: AppLocalizations.of(context)?.message,
+                          hintText:
+                              '${AppLocalizations.of(context)?.message}...',
                           hintStyle: AppTextStyles.bodyText.copyWith(
                             color: const Color(0XFF898989),
                             fontWeight: FontWeight.w400,
@@ -2249,7 +2834,7 @@ class GroupChatScreenState extends State<GroupChatScreen>
                               width: 1,
                             ),
                             borderRadius: BorderRadius.circular(
-                              AppRadius.button,
+                              AppRadius.card,
                             ),
                           ),
                           focusedBorder: OutlineInputBorder(
@@ -2260,7 +2845,7 @@ class GroupChatScreenState extends State<GroupChatScreen>
                               width: 1,
                             ),
                             borderRadius: BorderRadius.circular(
-                              AppRadius.button,
+                              AppRadius.card,
                             ),
                           ),
                         ),
@@ -2274,17 +2859,22 @@ class GroupChatScreenState extends State<GroupChatScreen>
                     GestureDetector(
                       onTap: _sendMessage,
                       child: Container(
-                        margin: const EdgeInsets.only(left: 12),
-                        padding: EdgeInsets.all(8.w),
+                         height: 45,
+                                  width: 45,
+                        margin: const EdgeInsets.only(left: 8),
+                          padding: const EdgeInsets.fromLTRB(8, 6, 9, 4).w,
                         decoration: BoxDecoration(
-                          color: Theme.of(context).colorScheme.primary,
+                          color: provider.currentTheme
+                                  ?.getOutgoingColor(isDarkMode) ??
+                              Theme.of(context).colorScheme.primary,
                           shape: BoxShape.circle,
                         ),
-                        child: Icon(
-                          FeatherIcons.send,
-                          size: 17.spMax,
-                          color: Colors.white,
-                        ),
+                        child: Center(
+                                    child: Image.asset(
+                                      Assets.images.icSend.path,
+                                     
+                                    ),
+                                  ),
                       ),
                     ),
                   ],

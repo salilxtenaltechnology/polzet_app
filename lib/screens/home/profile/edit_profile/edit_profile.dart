@@ -24,8 +24,8 @@ import '../../../../widgets/base64/image_convert.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../../../api/api_config.dart';
 import '../../../../widgets/bottomsheets/verify/profile_email_verify_bottom_sheet.dart';
-import '../../../../widgets/bottomsheets/verify/profile_phone_verify_bottom_sheet.dart';
 import '../../../../widgets/show_toast.dart';
+import 'edit_profile_number_verify_otp_screen.dart';
 
 class EditProfile extends StatefulWidget {
   const EditProfile({super.key});
@@ -416,16 +416,16 @@ class _EditProfileState extends State<EditProfile> {
           if (!mounted) return;
           setState(() => _isVerifyingPhone = false);
 
-          // 3. Open bottom sheet to enter OTP
-          final verified = await showModalBottomSheet<bool>(
-            context: context,
-            isScrollControlled: true,
-            backgroundColor: Colors.transparent,
-            builder: (context) => ProfilePhoneVerifyBottomSheet(
-              countryCode: countryCode,
-              mobileNumber: cleanPhone,
-              verificationId: verificationId,
-              resendToken: resendToken,
+          // 3. Navigate to screen to enter OTP
+          final verified = await Navigator.push<bool>(
+            context,
+            MaterialPageRoute(
+              builder: (context) => EditProfilNumberVeifyOTP(
+                countryCode: countryCode,
+                mobileNumber: cleanPhone,
+                verificationId: verificationId,
+                resendToken: resendToken,
+              ),
             ),
           );
 
@@ -990,34 +990,26 @@ class _EditProfileState extends State<EditProfile> {
           Row(
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
-              _isVerifyingPhone
-                  ? const Padding(
-                      padding: EdgeInsets.only(right: 8),
-                      child: SizedBox(
-                        width: 14,
-                        height: 14,
-                        child: CircularProgressIndicator(strokeWidth: 1.5),
-                      ),
-                    )
-                  : GestureDetector(
-                      onTap:
-                          (_phoneController.text.trim() != _originalPhone &&
-                              _phoneController.text.trim().isNotEmpty)
-                          ? _verifyPhone
-                          : null,
-                      child: Text(
-                        'Verify',
-                        style: AppTextStyles.subText.copyWith(
-                          fontSize: 14,
-                          color:
-                              (_phoneController.text.trim() != _originalPhone &&
-                                  _phoneController.text.trim().isNotEmpty)
-                              ? Theme.of(context).colorScheme.primary
-                              : Colors.transparent,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ),
+              GestureDetector(
+                onTap: _isVerifyingPhone
+                    ? null
+                    : ((_phoneController.text.trim() != _originalPhone &&
+                            _phoneController.text.trim().isNotEmpty)
+                        ? _verifyPhone
+                        : null),
+                child: Text(
+                  _isVerifyingPhone ? 'Verifying...' : 'Verify',
+                  style: AppTextStyles.subText.copyWith(
+                    fontSize: 14,
+                    color: (_isVerifyingPhone ||
+                            (_phoneController.text.trim() != _originalPhone &&
+                                _phoneController.text.trim().isNotEmpty))
+                        ? Theme.of(context).colorScheme.primary
+                        : Colors.transparent,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 16),

@@ -14,15 +14,16 @@ class SinglePostModel {
   final List<SinglePostImage> images;
   final List<SinglePostLike> viewLikes;
   final bool isLiked;
-  final bool isPolledByCurrentUser;
+  bool isPolledByCurrentUser;
   final bool isSaved;
+  final bool isBlocked;
   final String? locationName;
   final int commentsCount;
   final int likesCount;
   final String followingStatus;
   final int sharesCount;
 
-  const SinglePostModel({
+  SinglePostModel({
     required this.id,
     required this.firstName,
     required this.lastName,
@@ -36,6 +37,7 @@ class SinglePostModel {
     required this.isLiked,
     required this.isPolledByCurrentUser,
     required this.isSaved,
+    this.isBlocked = false,
     this.locationName,
     required this.commentsCount,
     required this.likesCount,
@@ -73,9 +75,23 @@ class SinglePostModel {
               ?.map((e) => SinglePostLike.fromJson(Map<String, dynamic>.from(e as Map)))
               .toList() ??
           [],
-      isLiked: json['is_liked'] as bool? ?? false,
-      isPolledByCurrentUser: json['is_polled_by_current_user'] as bool? ?? false,
-      isSaved: json['is_saved'] as bool? ?? false,
+      isLiked: json['is_liked'] == true ||
+          json['is_liked'] == 1 ||
+          json['is_liked'].toString().toLowerCase() == 'true',
+      isPolledByCurrentUser: json['is_polled_by_current_user'] == true ||
+          json['is_polled_by_current_user'] == 1 ||
+          json['is_polled_by_current_user'].toString().toLowerCase() == 'true',
+      isSaved: json['is_saved'] == true ||
+          json['is_saved'] == 1 ||
+          json['is_saved_by_current_user'] == true ||
+          json['saved'] == true ||
+          json['is_saved'].toString().toLowerCase() == 'true' ||
+          json['is_saved_by_current_user'].toString().toLowerCase() == 'true' ||
+          json['saved'].toString().toLowerCase() == 'true',
+      isBlocked: json['is_blocked'] == true ||
+          json['is_blocked'] == 1 ||
+          json['is_blocked'].toString() == '1' ||
+          json['is_blocked'].toString().toLowerCase() == 'true',
       locationName: json['location_name'] as String?,
       commentsCount: json['comments_count'] as int? ?? 0,
       likesCount: json['likes_count'] as int? ?? 0,
@@ -98,6 +114,7 @@ class SinglePostModel {
     'is_liked': isLiked,
     'is_polled_by_current_user': isPolledByCurrentUser,
     'is_saved': isSaved,
+    'is_blocked': isBlocked,
     'location_name': locationName,
     'comments_count': commentsCount,
     'likes_count': likesCount,

@@ -5,6 +5,7 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:provider/provider.dart';
 
 import '../../../../api/api_config.dart';
 import '../../../../api/api_service.dart';
@@ -18,7 +19,9 @@ import '../../../../models/like/like_uers_model.dart';
 import '../../../../models/search/hashtag/hashtag_posts_list_model.dart';
 import '../../../../models/posts/single_post_model.dart';
 import '../../../../languages/l10n/generated/app_localizations.dart';
+import '../../../../provider/user_provider.dart';
 import '../../../../widgets/appbar/common_appbar.dart';
+import '../../../../widgets/dialog/custom_diolog.dart';
 import '../../../../widgets/loader.dart';
 import '../../../../widgets/show_toast.dart';
 import '../../../../widgets/image/app_cached_network_image.dart';
@@ -56,6 +59,7 @@ class _HashtagPostsListState extends State<HashtagPostsList> {
   final Map<String, bool> _likedMap = {};
   final Map<String, bool> _savedMap = {};
   final Map<String, bool> _saveLoadingMap = {};
+  final Map<String, bool> _blockedUsersMap = {};
   final Map<String, int> _likesCountMap = {};
   final Map<String, int> _commentsCountMap = {};
   final Map<String, int> _sharesCountMap = {};
@@ -92,6 +96,7 @@ class _HashtagPostsListState extends State<HashtagPostsList> {
             ),
           )
           .then((result) {
+            if (mounted) setState(() {});
             if (result == true) _fetchPosts();
           });
     } else {
@@ -104,7 +109,8 @@ class _HashtagPostsListState extends State<HashtagPostsList> {
             ),
           )
           .then((result) {
-            if (result == true) _fetchPosts();
+            if (mounted) setState(() {});
+            _fetchPosts();
           });
     }
   }
@@ -158,6 +164,7 @@ class _HashtagPostsListState extends State<HashtagPostsList> {
     for (final post in posts) {
       _likedMap[post.id] = post.isLikedByCurrentUser;
       _savedMap[post.id] = post.isSaved;
+      _blockedUsersMap[post.user.userid] = post.isBlocked;
       _likesCountMap[post.id] = post.likesCount;
       _commentsCountMap[post.id] = post.commentsCount;
       _sharesCountMap[post.id] = post.sharesCount;
@@ -591,9 +598,74 @@ class _HashtagPostsListState extends State<HashtagPostsList> {
     );
   }
 
+  void _showBlockUserConfirmationDialog(String targetUserId, bool currentBlocked) {
+    showBlockUserDiolog(context, () async {
+      Navigator.of(context).pop();
+      await _handleBlockToggle(targetUserId, currentBlocked);
+    }, currentBlocked);
+  }
+
+  Future<void> _handleBlockToggle(String targetUserId, bool currentBlocked) async {
+    if (targetUserId.isEmpty) {
+      showToast(message: 'User ID not found');
+      return;
+    }
+
+    try {
+      final result = currentBlocked
+          ? await ApiService().unblockUser(targetUserId)
+          : await ApiService().blockUser(targetUserId);
+
+      if (!mounted) return;
+
+      if (result['success'] == true) {
+        setState(() {
+          _blockedUsersMap[targetUserId] = !currentBlocked;
+          for (var post in _posts) {
+            if (post.user.userid == targetUserId) {
+              post.isBlocked = !currentBlocked;
+            }
+          }
+        });
+        showToast(
+          message: !currentBlocked
+              ? 'User blocked successfully'
+              : 'User unblocked successfully',
+        );
+      } else {
+        showToast(
+          message:
+              result['message']?.toString() ??
+              (currentBlocked
+                  ? 'Failed to unblock user'
+                  : 'Failed to block user'),
+        );
+      }
+    } catch (e) {
+      debugPrint('Error in block/unblock user: $e');
+      if (mounted) {
+        showToast(message: 'Something went wrong');
+      }
+    }
+  }
+
   // ── Header ─────────────────────────────────────────────────────────────────
   Widget _buildHeader(HashtagPostModel post) {
     final txt = AppTextColors.of(context);
+    final userProvider = Provider.of<UserProvider>(context, listen: false);
+    final currentUsername = userProvider.username ?? '';
+    final currentUserId = userProvider.userId?.toString() ?? '';
+    final username = post.user.username;
+    final initial = username.isNotEmpty ? username[0].toUpperCase() : '?';
+    final bool isPolzetAi = username.trim().toLowerCase() == 'polzet_ai' ||
+        username.trim().toLowerCase() == 'polet_ai';
+    final bool isOwnPost = username.isEmpty ||
+        username == currentUsername ||
+        (currentUserId.isNotEmpty && post.user.userid == currentUserId);
+    final bool isPolled = post.isPolledByCurrentUser;
+    final bool isSaved = _savedMap[post.id] ?? post.isSaved;
+    final bool isUserBlocked = _blockedUsersMap[post.user.userid] ?? post.isBlocked;
+
     final String? profileUrl = post.user.profileImage;
     final avatarBytes = _decodeBase64(profileUrl);
 
@@ -615,60 +687,120 @@ class _HashtagPostsListState extends State<HashtagPostsList> {
 
     return Padding(
       padding: EdgeInsets.fromLTRB(10.w, 10.h, 10.w, 0),
-      child: GestureDetector(
-        onTap: () {
-          Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (context) =>
-                  PublicProfileScreen(username: post.user.username),
-            ),
-          );
-        },
-        behavior: HitTestBehavior.opaque,
-        child: Row(
-          children: [
-            CircleAvatar(
-              radius: 20,
-              backgroundColor: Theme.of(
-                context,
-              ).colorScheme.onPrimary.withOpacity(0.1),
-              backgroundImage: avatarImage,
-              child: avatarImage == null
-                  ? Text(
-                      post.user.username.isNotEmpty
-                          ? post.user.username[0].toUpperCase()
-                          : 'P',
-                      style: AppTextStyles.subText.copyWith(
-                        color: Theme.of(context).colorScheme.onPrimary,
-                        fontWeight: FontWeight.w500,
-                        fontSize: 18,
-                      ),
-                    )
-                  : null,
-            ),
-            SizedBox(width: 8.w),
-            Column(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          GestureDetector(
+            onTap: () {
+              if (username.isNotEmpty && username != currentUsername) {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) => PublicProfileScreen(
+                      userId: post.user.userid,
+                      username: username,
+                    ),
+                  ),
+                );
+              }
+            },
+            child: isPolzetAi
+                ? SizedBox(
+                    width: 45.w,
+                    height: 45.h,
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        ClipOval(
+                          child: Center(
+                            child: Padding(
+                              padding: const EdgeInsets.only(
+                                top: 8,
+                                bottom: 0,
+                                left: 10,
+                                right: 9,
+                              ),
+                              child: Image.asset(
+                                Assets.images.icSplash.path,
+                              ),
+                            ),
+                          ),
+                        ),
+                        Positioned.fill(
+                          child: Image.asset(
+                            Assets.images.aiFrame.path,
+                            height: 55,
+                            width: 55,
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
+                : CircleAvatar(
+                    radius: 20,
+                    backgroundColor: Theme.of(
+                      context,
+                    ).colorScheme.onPrimary.withOpacity(0.1),
+                    backgroundImage: avatarImage,
+                    child: avatarImage == null
+                        ? Text(
+                            initial,
+                            style: AppTextStyles.subText.copyWith(
+                              color: Theme.of(context).colorScheme.onPrimary,
+                              fontWeight: FontWeight.w500,
+                              fontSize: 18,
+                            ),
+                          )
+                        : null,
+                  ),
+          ),
+          SizedBox(width: 8.w),
+          GestureDetector(
+            onTap: () {
+              if (username.isNotEmpty && username != currentUsername) {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) => PublicProfileScreen(
+                      userId: post.user.userid,
+                      username: username,
+                    ),
+                  ),
+                );
+              }
+            },
+            child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  '${post.user.firstName} ${post.user.lastName}'
-                          .trim()
-                          .isNotEmpty
-                      ? '${post.user.firstName} ${post.user.lastName}'.trim()
-                      : post.user.username,
-                  style: TextStyle(
-                    fontSize: 11.sp,
-                    fontWeight: FontWeight.w600,
-                    color: txt.title,
-                  ),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Text(
+                      '${post.user.firstName} ${post.user.lastName}'
+                              .trim()
+                              .isNotEmpty
+                          ? '${post.user.firstName} ${post.user.lastName}'.trim()
+                          : username,
+                      style: TextStyle(
+                        fontSize: 11.sp,
+                        fontWeight: FontWeight.w600,
+                        color: txt.title,
+                      ),
+                    ),
+                    if (isPolzetAi) ...[
+                      SizedBox(width: 4.w),
+                      Image.asset(
+                        Assets.images.icVerify.path,
+                        height: 13,
+                        width: 13,
+                      ),
+                    ],
+                  ],
                 ),
                 Row(
                   children: [
                     Text(
-                      post.user.username.isNotEmpty
-                          ? '@${post.user.username}'
-                          : '${post.user.firstName} ${post.user.lastName}'
-                                .trim(),
+                      username.isNotEmpty
+                          ? '@$username'
+                          : '${post.user.firstName} ${post.user.lastName}'.trim(),
                       style: AppTextStyles.bodyText.copyWith(
                         fontSize: 12,
                         fontWeight: FontWeight.w500,
@@ -676,7 +808,7 @@ class _HashtagPostsListState extends State<HashtagPostsList> {
                       ),
                     ),
                     Text(
-                      '  • ${_timeAgo(DateTime.parse(post.createdAt))}',
+                      '  • ${_timeAgo(DateTime.tryParse(post.createdAt) ?? DateTime.now())}',
                       style: TextStyle(
                         fontSize: 8.8.sp,
                         color: txt.muted,
@@ -687,8 +819,314 @@ class _HashtagPostsListState extends State<HashtagPostsList> {
                 ),
               ],
             ),
+          ),
+          const Spacer(),
+          if (isPolzetAi) ...[
+            Container(
+              padding: EdgeInsets.symmetric(
+                horizontal: 10.w,
+                vertical: 7.h,
+              ),
+              decoration: BoxDecoration(
+                color: Theme.of(
+                  context,
+                ).colorScheme.onPrimary.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(AppRadius.button),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Image.asset(
+                    "assets/images/ic_ai_pick.png",
+                    height: 15,
+                    width: 15,
+                    color: Theme.of(context).colorScheme.onPrimary,
+                  ),
+                  SizedBox(width: 4.w),
+                  Text(
+                    'AI Pick',
+                    style: AppTextStyles.subText.copyWith(
+                      fontSize: 11.sp,
+                      fontWeight: FontWeight.w500,
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.onBackground,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ],
-        ),
+          GestureDetector(
+            onTapDown: (TapDownDetails details) async {
+              final screenSize = MediaQuery.of(context).size;
+              final double tapY = details.globalPosition.dy;
+              final double tapX = details.globalPosition.dx;
+              final bool showAbove = tapY > screenSize.height - 180;
+
+              final result = await showGeneralDialog<String>(
+                context: context,
+                barrierDismissible: true,
+                barrierLabel: 'Dismiss',
+                barrierColor: Colors.black.withOpacity(0.35),
+                transitionDuration: const Duration(milliseconds: 160),
+                pageBuilder: (ctx, anim1, anim2) {
+                  return Stack(
+                    children: [
+                      Positioned(
+                        top: showAbove ? null : tapY + 8,
+                        bottom: showAbove
+                            ? (screenSize.height - tapY + 8)
+                            : null,
+                        right: (screenSize.width - tapX - 20)
+                            .clamp(12.0, screenSize.width - 160.0),
+                        child: Material(
+                          color: Colors.transparent,
+                          child: Container(
+                            width: 155,
+                            decoration: BoxDecoration(
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.tertiaryContainer,
+                              borderRadius: BorderRadius.circular(10),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.18),
+                                  blurRadius: 12,
+                                  offset: const Offset(0, 4),
+                                ),
+                              ],
+                            ),
+                            padding: const EdgeInsets.symmetric(
+                              vertical: 4,
+                            ),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                if (isOwnPost || isPolled)
+                                  InkWell(
+                                    onTap: () => Navigator.pop(
+                                      ctx,
+                                      'view_result',
+                                    ),
+                                    child: Container(
+                                      width: double.infinity,
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 14,
+                                        vertical: 9,
+                                      ),
+                                      child: Text(
+                                        'View Result',
+                                        style: AppTextStyles.bodyText.copyWith(
+                                          color: txt.title,
+                                          fontWeight: FontWeight.w500,
+                                          fontSize: 13.5,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                InkWell(
+                                  onTap: () => Navigator.pop(
+                                    ctx,
+                                    'save_poll',
+                                  ),
+                                  child: Container(
+                                    width: double.infinity,
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 14,
+                                      vertical: 9,
+                                    ),
+                                    child: Text(
+                                      isSaved ? 'Unsave poll' : 'Save poll',
+                                      style: AppTextStyles.bodyText.copyWith(
+                                        color: txt.title,
+                                        fontWeight: FontWeight.w500,
+                                        fontSize: 13.5,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                if (!isOwnPost && username.isNotEmpty) ...[
+                                  InkWell(
+                                    onTap: () => Navigator.pop(
+                                      ctx,
+                                      'go_to_profile',
+                                    ),
+                                    child: Container(
+                                      width: double.infinity,
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 14,
+                                        vertical: 9,
+                                      ),
+                                      child: Text(
+                                        'Go to profile',
+                                        style: AppTextStyles.bodyText.copyWith(
+                                          color: txt.title,
+                                          fontWeight: FontWeight.w500,
+                                          fontSize: 13.5,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  InkWell(
+                                    onTap: () => Navigator.pop(
+                                      ctx,
+                                      'block_user',
+                                    ),
+                                    child: Container(
+                                      width: double.infinity,
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 14,
+                                        vertical: 9,
+                                      ),
+                                      child: Text(
+                                        isUserBlocked
+                                            ? 'Unblock user'
+                                            : 'Block user',
+                                        style: AppTextStyles.bodyText.copyWith(
+                                          color: isUserBlocked
+                                              ? txt.title
+                                              : Colors.red,
+                                          fontWeight: FontWeight.w500,
+                                          fontSize: 13.5,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                                if (isOwnPost)
+                                  InkWell(
+                                    onTap: () => Navigator.pop(
+                                      ctx,
+                                      'delete_poll',
+                                    ),
+                                    child: Container(
+                                      width: double.infinity,
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 14,
+                                        vertical: 9,
+                                      ),
+                                      child: Text(
+                                        'Delete poll',
+                                        style: AppTextStyles.bodyText.copyWith(
+                                          color: Colors.red,
+                                          fontWeight: FontWeight.w500,
+                                          fontSize: 13.5,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  );
+                },
+                transitionBuilder: (ctx, anim1, anim2, child) {
+                  return FadeTransition(
+                    opacity: anim1,
+                    child: ScaleTransition(
+                      scale: CurvedAnimation(
+                        parent: anim1,
+                        curve: Curves.easeOutCubic,
+                      ),
+                      alignment: showAbove
+                          ? Alignment.bottomRight
+                          : Alignment.topRight,
+                      child: child,
+                    ),
+                  );
+                },
+              );
+
+              if (result == 'view_result') {
+                final hasImages = post.polls.any((p) => p.options.any((o) => o.image != null)) ||
+                    post.images.isNotEmpty;
+                if (hasImages) {
+                  Navigator.of(context)
+                      .push(
+                        MaterialPageRoute(
+                          builder: (context) => ImageResultScreen(
+                            postId: post.id.toString(),
+                            username: username,
+                          ),
+                        ),
+                      )
+                      .then((res) {
+                        if (mounted) setState(() {});
+                        if (res == true) _fetchPosts();
+                      });
+                } else {
+                  Navigator.of(context)
+                      .push(
+                        MaterialPageRoute(
+                          builder: (context) => ThingsResultScreen(
+                            username: username,
+                            postId: post.id.toString(),
+                          ),
+                        ),
+                      )
+                      .then((res) {
+                        if (mounted) setState(() {});
+                        if (res == true) _fetchPosts();
+                      });
+                }
+              } else if (result == 'save_poll') {
+                _toggleSavePost(post.id);
+              } else if (result == 'go_to_profile') {
+                if (username.isNotEmpty && username != currentUsername) {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) => PublicProfileScreen(
+                        userId: post.user.userid,
+                        username: username,
+                      ),
+                    ),
+                  );
+                }
+              } else if (result == 'block_user') {
+                _showBlockUserConfirmationDialog(post.user.userid, isUserBlocked);
+              } else if (result == 'delete_poll') {
+                showUserDeletePostDiolog(context, () async {
+                  Navigator.of(context).pop();
+                  try {
+                    final bool success =
+                        await ApiService().userDeletePost(post.id);
+                    if (success) {
+                      userProvider.notifyPostDeleted(post.id.toString());
+                      if (mounted) {
+                        setState(() {
+                          _posts.removeWhere((p) => p.id == post.id);
+                        });
+                        showToast(message: 'Post deleted');
+                      }
+                    } else {
+                      showToast(message: 'Failed to delete post');
+                    }
+                  } catch (e) {
+                    debugPrint('Error deleting post: $e');
+                    showToast(message: 'Failed to delete post');
+                  }
+                });
+              }
+            },
+            child: Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 4,
+                vertical: 6,
+              ),
+              child: Icon(
+                Icons.more_vert,
+                size: 20,
+                color: Theme.of(context).colorScheme.onBackground,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -713,6 +1151,15 @@ class _HashtagPostsListState extends State<HashtagPostsList> {
       );
 
       if (result['success'] == true) {
+        if (mounted) {
+          setState(() {
+            for (var p in _posts) {
+              if (p.id == postId) {
+                p.isPolledByCurrentUser = true;
+              }
+            }
+          });
+        }
         showToast(message: 'Vote submitted successfully!');
         _fetchPosts();
       } else {
@@ -842,6 +1289,7 @@ class _HashtagPostsListState extends State<HashtagPostsList> {
             ),
           )
           .then((result) {
+            if (mounted) setState(() {});
             if (result == true) _fetchPosts();
           });
     } else {
@@ -855,7 +1303,13 @@ class _HashtagPostsListState extends State<HashtagPostsList> {
             ),
           )
           .then((result) {
-            if (result == true) _fetchPosts();
+            if (mounted) {
+              if (mappedPost.isPolledByCurrentUser) {
+                post.isPolledByCurrentUser = true;
+              }
+              setState(() {});
+            }
+            _fetchPosts();
           });
     }
   }
@@ -2953,12 +3407,46 @@ class _HashtagPostsListState extends State<HashtagPostsList> {
     String description,
     AppTextColors txt,
   ) {
-    if (!description.contains('#')) {
-      return Text(
-        description,
+    return _ExpandableDescriptionWithHashtags(
+      description: description,
+      txt: txt,
+    );
+  }
+}
+
+class _ExpandableDescriptionWithHashtags extends StatefulWidget {
+  final String description;
+  final AppTextColors txt;
+
+  const _ExpandableDescriptionWithHashtags({
+    required this.description,
+    required this.txt,
+  });
+
+  @override
+  State<_ExpandableDescriptionWithHashtags> createState() =>
+      _ExpandableDescriptionWithHashtagsState();
+}
+
+class _ExpandableDescriptionWithHashtagsState
+    extends State<_ExpandableDescriptionWithHashtags> {
+  bool _isExpanded = false;
+
+  @override
+  void didUpdateWidget(covariant _ExpandableDescriptionWithHashtags oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.description != widget.description) {
+      _isExpanded = false;
+    }
+  }
+
+  InlineSpan _buildTextSpan(BuildContext context) {
+    if (!widget.description.contains('#')) {
+      return TextSpan(
+        text: widget.description,
         style: AppTextStyles.bodyText.copyWith(
-          color: txt.body,
-          fontSize: 14,
+          color: widget.txt.body,
+          fontSize: 14.2,
           fontWeight: FontWeight.w400,
         ),
       );
@@ -2967,7 +3455,7 @@ class _HashtagPostsListState extends State<HashtagPostsList> {
     final RegExp exp = RegExp(r'(#[a-zA-Z0-9_]+)');
     final List<TextSpan> spans = [];
 
-    description.splitMapJoin(
+    widget.description.splitMapJoin(
       exp,
       onMatch: (Match match) {
         spans.add(
@@ -2975,7 +3463,7 @@ class _HashtagPostsListState extends State<HashtagPostsList> {
             text: match.group(0),
             style: AppTextStyles.bodyText.copyWith(
               color: Theme.of(context).colorScheme.onPrimary,
-              fontSize: 16,
+              fontSize: 15,
               fontWeight: FontWeight.w500,
             ),
           ),
@@ -2988,8 +3476,8 @@ class _HashtagPostsListState extends State<HashtagPostsList> {
             TextSpan(
               text: text,
               style: AppTextStyles.bodyText.copyWith(
-                color: txt.body,
-                fontSize: 14,
+                color: widget.txt.body,
+                fontSize: 14.5,
                 fontWeight: FontWeight.w400,
               ),
             ),
@@ -2999,6 +3487,69 @@ class _HashtagPostsListState extends State<HashtagPostsList> {
       },
     );
 
-    return RichText(text: TextSpan(children: spans));
+    return TextSpan(children: spans);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final textSpan = _buildTextSpan(context);
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final textPainter = TextPainter(
+          text: textSpan,
+          maxLines: 2,
+          textDirection: Directionality.of(context),
+        );
+        textPainter.layout(maxWidth: constraints.maxWidth);
+
+        final bool exceedsMaxLines = textPainter.didExceedMaxLines;
+
+        if (!exceedsMaxLines) {
+          return RichText(text: textSpan);
+        }
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            GestureDetector(
+              onTap: () {
+                setState(() {
+                  _isExpanded = !_isExpanded;
+                });
+              },
+              child: RichText(
+                text: textSpan,
+                maxLines: _isExpanded ? null : 2,
+                overflow: _isExpanded
+                    ? TextOverflow.clip
+                    : TextOverflow.ellipsis,
+              ),
+            ),
+            const SizedBox(height: 4),
+            GestureDetector(
+              onTap: () {
+                setState(() {
+                  _isExpanded = !_isExpanded;
+                });
+              },
+              behavior: HitTestBehavior.opaque,
+              child: Padding(
+                padding: const EdgeInsets.only(bottom: 2),
+                child: Text(
+                  _isExpanded ? 'Read less' : 'Read more',
+                  style: AppTextStyles.bodyText.copyWith(
+                    color: Theme.of(context).colorScheme.onPrimary,
+                    fontSize: 12.7,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
   }
 }

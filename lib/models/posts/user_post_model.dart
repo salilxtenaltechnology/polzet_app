@@ -13,17 +13,24 @@ class UserPostResponse {
   });
 
   factory UserPostResponse.fromJson(Map<String, dynamic> json) {
+    final root = json.containsKey('data') && json['data'] is Map<String, dynamic>
+        ? json['data'] as Map<String, dynamic>
+        : json;
+    final resultsList = (root['results'] ?? root['posts'] ?? json['results'] ?? json['posts']) as List<dynamic>?;
+
     return UserPostResponse(
-      count: _toInt(json['count']),
-      next: json['next']?.toString(),
-      previous: json['previous']?.toString(),
-      results: (json['results'] as List<dynamic>?)
+      count: _toInt(root['count'] ?? json['count']),
+      next: (root['next'] ?? json['next'])?.toString(),
+      previous: (root['previous'] ?? json['previous'])?.toString(),
+      results: resultsList
               ?.whereType<Map>()
               .map((e) => UserPostModel.fromJson(Map<String, dynamic>.from(e)))
               .toList() ??
           [],
     );
   }
+
+  bool get hasNext => next != null && next!.isNotEmpty;
 
   // Filter only posts with images in polls
   List<UserPostModel> get postsWithImages {

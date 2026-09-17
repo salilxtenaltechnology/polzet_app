@@ -10,15 +10,28 @@ import '../../models/message/message_model.dart';
 import '../../data/token/shared_preferences.dart';
 import '../api/api_service.dart';
 import '../api/api_config.dart';
+import '../../models/chat/chat_theme_item.dart';
 
 class PrivateChatProvider extends ChangeNotifier {
   String? _memberName;
   String? _profileUrl;
   dynamic _chatId;
+  ChatThemeItem? _currentTheme;
 
   String? get memberName => _memberName;
   String? get profileUrl => _profileUrl;
   dynamic get chatId => _chatId;
+  ChatThemeItem? get currentTheme => _currentTheme;
+
+  void setTheme(ChatThemeItem? theme) {
+    _currentTheme = theme;
+    notifyListeners();
+  }
+
+  void setThemeByKey(dynamic themeKey) {
+    _currentTheme = ChatThemeItem.fromIdOrName(themeKey);
+    notifyListeners();
+  }
 
   bool isMemberTyping = false;
   dynamic _memberUserId;
@@ -165,6 +178,9 @@ class PrivateChatProvider extends ChangeNotifier {
     required String? profileUrl,
     dynamic chatId,
     String? currentUsername,
+    bool? isMuted,
+    dynamic chatTheme,
+    Map<String, dynamic>? chat,
   }) async {
     final dynamic normalizedChatId = (chatId == 0 || chatId == '0') ? null : chatId;
     final bool isNewChat = _chatId != normalizedChatId; // ← detect chat switch
@@ -172,6 +188,17 @@ class PrivateChatProvider extends ChangeNotifier {
     _memberName = memberName;
     _profileUrl = profileUrl;
     _chatId = normalizedChatId;
+
+    final themeVal = chatTheme ?? chat?['chat_theme'] ?? chat?['chatTheme'];
+    if (themeVal != null) {
+      _currentTheme = ChatThemeItem.fromIdOrName(themeVal);
+    } else if (isNewChat) {
+      _currentTheme = null;
+    }
+
+    if (isMuted != null) {
+      isMuteNotification = isMuted;
+    }
 
     if (_chatId != null) {
       ApiService().markChatReadUnread(chatId: _chatId.toString(), isUnread: false);

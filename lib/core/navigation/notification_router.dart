@@ -10,7 +10,7 @@ import '../../screens/home/profile/public/public_profile_screen.dart';
 import '../../screens/home/profile/chase/user_chase.dart';
 import '../../screens/home/message/chat/private/private_chat_screen.dart';
 import '../../screens/home/message/chat/group/group_chat_screen.dart';
-import '../../screens/home/message/chat/group/group_members.dart';
+import '../../screens/home/message/chat/group/info/group_members.dart';
 import '../../screens/home/new poll/type/new_text_poll.dart';
 import '../../provider/private_chat_provider.dart';
 import '../../provider/group_chat_provider.dart';
@@ -213,7 +213,8 @@ class NotificationRouter {
 
     try {
       if (_pendingActionId == 'create_poll_action' ||
-          (rawType.toUpperCase() == 'AI_NEW_POST' && pollType == 'text')) {
+          rawType.toUpperCase() == 'AI_NEW_POST' ||
+          type == 'ai_new_post') {
         final String title = data['title']?.toString() ?? '';
         final String body =
             data['body']?.toString() ??
@@ -472,7 +473,8 @@ class NotificationRouter {
 
     try {
       if (_pendingActionId == 'create_poll_action' ||
-          (rawType.toUpperCase() == 'AI_NEW_POST' && pollType == 'text')) {
+          rawType.toUpperCase() == 'AI_NEW_POST' ||
+          type == 'ai_new_post') {
         final String title = data['title']?.toString() ?? '';
         final String body =
             data['body']?.toString() ??

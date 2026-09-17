@@ -92,36 +92,31 @@ class UserProvider with ChangeNotifier {
     }
 
     try {
-      final things = await apiService.fetchOnlyPollPosts(currentUsername);
-      cachedThingsPostsMap[currentUsername] = things.where((post) {
+      final response = await apiService.fetchUserPostsResponse(currentUsername, page: 1);
+      final results = response.results;
+      cachedThingsPostsMap[currentUsername] = results.where((post) {
         if (post.polls.isEmpty) return false;
         return post.polls.every(
           (poll) =>
               poll.options.every(
-                (o) => o.text != null && o.text!.isNotEmpty,
+                (o) => o.text != null && o.text!.isNotEmpty && o.image == null,
               ),
         );
       }).toList();
-    } catch (e) {
-      debugPrint('Error prefetching things posts: $e');
-    }
 
-    try {
-      final images = await apiService.fetchPostsImages(currentUsername);
-      cachedImagesPostsMap[currentUsername] = images.where((post) {
-        return post.polls.any(
-          (poll) => poll.options.any((o) => o.image != null),
-        );
+      cachedImagesPostsMap[currentUsername] = results.where((post) {
+        final isPolzetAi = post.user.trim().toLowerCase() == 'polzet_ai';
+        return (isPolzetAi && post.images.isNotEmpty) ||
+            post.polls.any(
+              (poll) => poll.options.any((o) => o.image != null),
+            );
       }).toList();
+
+      cachedTotalPollsCountMap[currentUsername] = response.count;
+      notifyListeners();
     } catch (e) {
-      debugPrint('Error prefetching image posts: $e');
+      debugPrint('Error prefetching posts: $e');
     }
-
-    cachedTotalPollsCountMap[currentUsername] =
-        (cachedThingsPostsMap[currentUsername]?.length ?? 0) +
-        (cachedImagesPostsMap[currentUsername]?.length ?? 0);
-
-    notifyListeners();
   }
 
   // ─── Insights Cache ───────────────────────────────────────────
@@ -141,8 +136,24 @@ class UserProvider with ChangeNotifier {
 
   UserProvider();
 
+  Future<void>? _pendingUserDataFuture;
+  DateTime? _lastUserDataLoadTime;
+
   // ─── Load User Data ───────────────────────────────────────────
-  Future<void> loadUserData() async {
+  Future<void> loadUserData({bool force = false}) async {
+    if (_pendingUserDataFuture != null) {
+      return _pendingUserDataFuture;
+    }
+
+    _pendingUserDataFuture = _performLoadUserData(force: force);
+    try {
+      await _pendingUserDataFuture;
+    } finally {
+      _pendingUserDataFuture = null;
+    }
+  }
+
+  Future<void> _performLoadUserData({bool force = false}) async {
     isLoading = true;
     notifyListeners();
 
@@ -152,16 +163,20 @@ class UserProvider with ChangeNotifier {
         apiService.getFollowersList(),
       ]);
       var data = results[0] as Map<String, dynamic>?;
-      _mapDataToFields(data);
-      _isInitialLoadComplete = true;
+      if (data != null) {
+        _mapDataToFields(data);
+        _isInitialLoadComplete = true;
+        _lastUserDataLoadTime = DateTime.now();
+      }
       isLoading = false;
       notifyListeners();
       prefetchUserPosts();
       prefetchInsightsData();
     } catch (e) {
       debugPrint('❌ UserProvider: Error loading user data: $e');
-      _clearUserFields();
-      _isInitialLoadComplete = false;
+      if (!_isInitialLoadComplete) {
+        _clearUserFields();
+      }
       isLoading = false;
       notifyListeners();
       rethrow;
@@ -169,11 +184,34 @@ class UserProvider with ChangeNotifier {
   }
 
   // ─── Load Silently ────────────────────────────────────────────
-  Future<void> loadUserDataSilently() async {
+  Future<void> loadUserDataSilently({bool force = false}) async {
+    if (_pendingUserDataFuture != null) {
+      return _pendingUserDataFuture;
+    }
+    // Throttle silent loads to at most once every 5 seconds unless forced
+    if (!force &&
+        _lastUserDataLoadTime != null &&
+        DateTime.now().difference(_lastUserDataLoadTime!) <
+            const Duration(seconds: 5)) {
+      return;
+    }
+
+    _pendingUserDataFuture = _performLoadUserDataSilently();
+    try {
+      await _pendingUserDataFuture;
+    } finally {
+      _pendingUserDataFuture = null;
+    }
+  }
+
+  Future<void> _performLoadUserDataSilently() async {
     try {
       var data = await apiService.fetchUserData();
-      _mapDataToFields(data);
-      _isInitialLoadComplete = true;
+      if (data != null) {
+        _mapDataToFields(data);
+        _isInitialLoadComplete = true;
+        _lastUserDataLoadTime = DateTime.now();
+      }
       if (isLoading) isLoading = false;
       notifyListeners();
       prefetchUserPosts();

@@ -214,6 +214,8 @@ class MessageListState extends State<MessageList>
       _saveChatsToCache(_staticChats);
       _updateUnreadCount();
       _globalStreamController.add(_staticChats);
+    } else {
+      _fetchAndPushGlobally();
     }
   }
 
@@ -695,7 +697,8 @@ class MessageListState extends State<MessageList>
     _privateScrollController = ScrollController()
       ..addListener(_onPrivateScroll);
     _groupScrollController = ScrollController()..addListener(_onGroupScroll);
-    _favouriteScrollController = ScrollController();
+    _favouriteScrollController = ScrollController()
+      ..addListener(_onFavouriteScroll);
 
     if (_staticChats.isNotEmpty) {
       _globalStreamController.add(_staticChats);
@@ -705,17 +708,18 @@ class MessageListState extends State<MessageList>
   }
 
   void _revealArchivedHeader(String chatType) {
-    if (chatType == 'private') {
-      if (!_showPrivateArchived) {
+    final type = chatType.toLowerCase();
+    if (type == 'group' || type == 'groups') {
+      if (!_showGroupArchived) {
         setState(() {
-          _showPrivateArchived = true;
+          _showGroupArchived = true;
         });
         HapticFeedback.mediumImpact();
       }
     } else {
-      if (!_showGroupArchived) {
+      if (!_showPrivateArchived) {
         setState(() {
-          _showGroupArchived = true;
+          _showPrivateArchived = true;
         });
         HapticFeedback.mediumImpact();
       }
@@ -723,12 +727,14 @@ class MessageListState extends State<MessageList>
   }
 
   void _onPrivateScroll() {
-    if (_privateScrollController.offset < -40.0) {
+    if (_privateScrollController.hasClients &&
+        _privateScrollController.offset < -40.0) {
       _revealArchivedHeader('private');
     }
 
     if (_searchQuery.trim().isNotEmpty) return;
-    if (_privateScrollController.position.pixels >=
+    if (_privateScrollController.hasClients &&
+        _privateScrollController.position.pixels >=
             _privateScrollController.position.maxScrollExtent * 0.8 &&
         !_isLoadingMore &&
         _hasMore) {
@@ -737,16 +743,25 @@ class MessageListState extends State<MessageList>
   }
 
   void _onGroupScroll() {
-    if (_groupScrollController.offset < -40.0) {
+    if (_groupScrollController.hasClients &&
+        _groupScrollController.offset < -40.0) {
       _revealArchivedHeader('group');
     }
 
     if (_searchQuery.trim().isNotEmpty) return;
-    if (_groupScrollController.position.pixels >=
+    if (_groupScrollController.hasClients &&
+        _groupScrollController.position.pixels >=
             _groupScrollController.position.maxScrollExtent * 0.8 &&
         !_isLoadingMore &&
         _hasMore) {
       _loadMoreChats();
+    }
+  }
+
+  void _onFavouriteScroll() {
+    if (_favouriteScrollController.hasClients &&
+        _favouriteScrollController.offset < -40.0) {
+      _revealArchivedHeader('favorite');
     }
   }
 
@@ -972,6 +987,58 @@ class MessageListState extends State<MessageList>
     }
   }
 
+  static void updateGroupChatAvatarLocally(dynamic chatId, String newImageUrl) {
+    if (chatId == null) return;
+    final idStr = chatId.toString();
+    final index = _staticChats.indexWhere((c) => c['id']?.toString() == idStr);
+    if (index != -1) {
+      _staticChats[index] = {
+        ..._staticChats[index],
+        'profile_url': newImageUrl,
+        'group_picture_url': newImageUrl,
+      };
+      _saveChatsToCache(_staticChats);
+      _globalStreamController.add(_staticChats);
+    }
+    final favIndex = _favouriteChats.indexWhere(
+      (c) => c['id']?.toString() == idStr,
+    );
+    if (favIndex != -1) {
+      _favouriteChats[favIndex] = {
+        ..._favouriteChats[favIndex],
+        'profile_url': newImageUrl,
+        'group_picture_url': newImageUrl,
+      };
+      _saveFavsToCache(_favouriteChats);
+    }
+  }
+
+  static void updateGroupChatTitleLocally(dynamic chatId, String newTitle) {
+    if (chatId == null) return;
+    final idStr = chatId.toString();
+    final index = _staticChats.indexWhere((c) => c['id']?.toString() == idStr);
+    if (index != -1) {
+      _staticChats[index] = {
+        ..._staticChats[index],
+        'title': newTitle,
+        'display_name': newTitle,
+      };
+      _saveChatsToCache(_staticChats);
+      _globalStreamController.add(_staticChats);
+    }
+    final favIndex = _favouriteChats.indexWhere(
+      (c) => c['id']?.toString() == idStr,
+    );
+    if (favIndex != -1) {
+      _favouriteChats[favIndex] = {
+        ..._favouriteChats[favIndex],
+        'title': newTitle,
+        'display_name': newTitle,
+      };
+      _saveFavsToCache(_favouriteChats);
+    }
+  }
+
   static Future<void> _fetchAndPushGlobally({
     bool resetPagination = false,
   }) async {
@@ -996,10 +1063,37 @@ class MessageListState extends State<MessageList>
         debugPrint('Error fetching favorite chats: $e');
       }
 
+      List<Map<String, dynamic>> fetchedArchivedChats = [];
+      try {
+        final archivedResponse = await ApiService().getArchivedList();
+        final rawArchived =
+            archivedResponse['results'] ??
+            archivedResponse['data'] ??
+            archivedResponse;
+        if (rawArchived is List) {
+          fetchedArchivedChats = List<Map<String, dynamic>>.from(
+            rawArchived.map((item) {
+              final m = Map<String, dynamic>.from(item as Map);
+              m['is_archived'] = true;
+              m['isArchived'] = true;
+              return m;
+            }),
+          );
+        }
+      } catch (e) {
+        debugPrint('Error fetching archived chats: $e');
+      }
+
       final response = await ApiService().getChatListResponse(page: 1);
       final List<Map<String, dynamic>> chats =
           (response['results'] as List?)
-              ?.map((item) => Map<String, dynamic>.from(item as Map))
+              ?.map(
+                (item) => {
+                  ...Map<String, dynamic>.from(item as Map),
+                  'is_archived': false,
+                  'isArchived': false,
+                },
+              )
               .toList() ??
           <Map<String, dynamic>>[];
       final rawNext = response['next']?.toString();
@@ -1013,12 +1107,44 @@ class MessageListState extends State<MessageList>
       final List<Map<String, dynamic>> updatedChats;
       if (resetPagination) {
         final freshChatIds = chats.map((c) => c['id']).toSet();
-        final archivedChats = _staticChats
-            .where((c) => _isChatArchived(c) && !freshChatIds.contains(c['id']))
+        final archivedChatIds = fetchedArchivedChats
+            .map((c) => c['id'])
+            .toSet();
+        final remainingCachedArchived = _staticChats
+            .where(
+              (c) =>
+                  _isChatArchived(c) &&
+                  !freshChatIds.contains(c['id']) &&
+                  !archivedChatIds.contains(c['id']),
+            )
             .toList();
-        updatedChats = [...chats, ...archivedChats];
+        updatedChats = [
+          ...chats,
+          ...fetchedArchivedChats,
+          ...remainingCachedArchived,
+        ];
       } else {
-        updatedChats = _mergeChats(_staticChats, chats);
+        final mergedActive = _mergeChats(
+          _staticChats.where((c) => !_isChatArchived(c)).toList(),
+          chats,
+        );
+        final freshChatIds = mergedActive.map((c) => c['id']).toSet();
+        final archivedChatIds = fetchedArchivedChats
+            .map((c) => c['id'])
+            .toSet();
+        final remainingCachedArchived = _staticChats
+            .where(
+              (c) =>
+                  _isChatArchived(c) &&
+                  !freshChatIds.contains(c['id']) &&
+                  !archivedChatIds.contains(c['id']),
+            )
+            .toList();
+        updatedChats = [
+          ...mergedActive,
+          ...fetchedArchivedChats,
+          ...remainingCachedArchived,
+        ];
       }
 
       // Sync favorite flag
@@ -1118,7 +1244,8 @@ class MessageListState extends State<MessageList>
           a[i]['title'] != b[i]['title'] ||
           _isChatPinned(a[i]) != _isChatPinned(b[i]) ||
           _isChatMuted(a[i]) != _isChatMuted(b[i]) ||
-          _isChatFavourite(a[i]) != _isChatFavourite(b[i])) {
+          _isChatFavourite(a[i]) != _isChatFavourite(b[i]) ||
+          _isChatArchived(a[i]) != _isChatArchived(b[i])) {
         return true;
       }
     }
@@ -1134,27 +1261,47 @@ class MessageListState extends State<MessageList>
       return chat['display_name'].toString();
     }
     final userProvider = Provider.of<UserProvider>(context, listen: false);
-    final currentUserId = userProvider.userId;
-    final currentUsername = userProvider.username;
+    final currentUserId = userProvider.userId?.toString();
+    final currentUsername = userProvider.username?.toString().toLowerCase();
     final members = chat['members'] as List?;
     if (members != null && members.length > 1) {
       for (final m in members) {
+        if (m is! Map) continue;
         final user =
             (m as Map<String, dynamic>)['user'] as Map<String, dynamic>?;
-        final id = user?['uuid'] ?? user?['id'];
+        final id = (user?['uuid'] ?? user?['id'])?.toString();
         final username = user?['username']?.toString();
+        final name = user?['name']?.toString() ??
+            (user?['first_name'] != null
+                ? '${user!['first_name']} ${user['last_name'] ?? ''}'.trim()
+                : null) ??
+            user?['full_name']?.toString();
         if (id != null &&
-            id.toString() != currentUserId &&
-            (currentUsername == null || username != currentUsername)) {
+            id != currentUserId &&
+            (currentUsername == null ||
+                username?.toLowerCase() != currentUsername)) {
+          if (name != null && name.trim().isNotEmpty) {
+            return name.trim();
+          }
           return username ?? 'Unknown';
         }
       }
     }
     if (members != null && members.isNotEmpty) {
-      final user =
-          (members.first as Map<String, dynamic>)['user']
-              as Map<String, dynamic>?;
-      return user?['username']?.toString() ?? 'Unknown';
+      final first = members.first;
+      if (first is Map) {
+        final user =
+            (first as Map<String, dynamic>)['user'] as Map<String, dynamic>?;
+        final name = user?['name']?.toString() ??
+            (user?['first_name'] != null
+                ? '${user!['first_name']} ${user['last_name'] ?? ''}'.trim()
+                : null) ??
+            user?['full_name']?.toString();
+        if (name != null && name.trim().isNotEmpty) {
+          return name.trim();
+        }
+        return user?['username']?.toString() ?? 'Unknown';
+      }
     }
     return 'Unknown';
   }
@@ -1362,23 +1509,60 @@ class MessageListState extends State<MessageList>
     return false;
   }
 
-  String? _getOtherUsername(Map<String, dynamic> chat) {
+  String? _getOtherMemberName(Map<String, dynamic> chat) {
     final userProvider = Provider.of<UserProvider>(context, listen: false);
-    final currentUserId = userProvider.userId;
-    final currentUsername = userProvider.username;
+    final currentUserId = userProvider.userId?.toString();
+    final currentUsername = userProvider.username?.toString().toLowerCase();
     final members = chat['members'] as List?;
     if (members == null) return null;
     for (final m in members) {
-      final member = m as Map<String, dynamic>;
-      final user = member['user'] as Map<String, dynamic>?;
-      final username = user?['username']?.toString();
-      final id = user?['uuid'] ?? user?['id'];
-      if (id?.toString() != currentUserId &&
-          (currentUsername == null || username != currentUsername)) {
-        return username;
+      if (m is! Map) continue;
+      final user = m['user'] as Map<String, dynamic>? ??
+          (m is Map<String, dynamic> && m.containsKey('username')
+              ? m
+              : null);
+      if (user != null) {
+        final username = user['username']?.toString();
+        final id = (user['uuid'] ?? user['id'])?.toString();
+        final name = user['name']?.toString() ??
+            (user['first_name'] != null
+                ? '${user['first_name']} ${user['last_name'] ?? ''}'.trim()
+                : null) ??
+            user['full_name']?.toString();
+        if (id != currentUserId &&
+            (currentUsername == null ||
+                username?.toLowerCase() != currentUsername)) {
+          if (name != null && name.trim().isNotEmpty) return name.trim();
+          return username;
+        }
       }
     }
-    return chat['display_name']?.toString();
+    return null;
+  }
+
+  String? _getOtherUsername(Map<String, dynamic> chat) {
+    final userProvider = Provider.of<UserProvider>(context, listen: false);
+    final currentUserId = userProvider.userId?.toString();
+    final currentUsername = userProvider.username?.toString().toLowerCase();
+    final members = chat['members'] as List?;
+    if (members == null) return null;
+    for (final m in members) {
+      if (m is! Map) continue;
+      final user = m['user'] as Map<String, dynamic>? ??
+          (m is Map<String, dynamic> && m.containsKey('username')
+              ? m
+              : null);
+      if (user != null) {
+        final username = user['username']?.toString();
+        final id = (user['uuid'] ?? user['id'])?.toString();
+        if (id != currentUserId &&
+            (currentUsername == null ||
+                username?.toLowerCase() != currentUsername)) {
+          return username;
+        }
+      }
+    }
+    return chat['username']?.toString() ?? chat['display_name']?.toString();
   }
 
   Future<void> _openChat(
@@ -1414,6 +1598,7 @@ class MessageListState extends State<MessageList>
               groupName: title,
               chat: chat,
               chatId: chatId,
+              chatTheme: chat['chat_theme'],
             ),
           ),
         ),
@@ -1423,31 +1608,200 @@ class MessageListState extends State<MessageList>
         context,
         listen: false,
       ).username;
+      final memberName = _getOtherMemberName(chat) ?? title;
+      final otherUsername = _getOtherUsername(chat);
+      final dynamic chatTheme = chat['chat_theme'];
       await Navigator.push(
         context,
         MaterialPageRoute(
           builder: (_) => ChangeNotifierProvider(
             create: (_) => PrivateChatProvider()
               ..init(
-                memberName: title,
+                memberName: memberName,
                 profileUrl: avatarUrl,
                 chatId: chatId,
                 currentUsername: currentUsername,
+                isMuted: _isChatMuted(chat),
+                chat: chat,
+                chatTheme: chatTheme,
               ),
             child: PrivateChatScreen(
               userId: _getOtherUserId(chat),
-              memberName: title,
-              username: _getOtherUsername(chat),
+              memberName: memberName,
+              username: otherUsername,
               profileUrl: avatarUrl,
               chatId: chatId,
               isUserBlock: isBlocked,
               chat: chat,
+              chatTheme: chatTheme,
             ),
           ),
         ),
       );
     }
     _fetchAndPushGlobally();
+  }
+
+  Widget _buildArchivedHeaderWidget({
+    required String type,
+    required String chatType,
+    required bool showArchivedHeader,
+    required bool isDarkMode,
+  }) {
+    final txt = AppTextColors.of(context);
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeInOut,
+      height: showArchivedHeader ? 45.h : 0,
+      child: showArchivedHeader
+          ? ClipRect(
+              child: OverflowBox(
+                minHeight: 0,
+                maxHeight: 60.h,
+                alignment: Alignment.topCenter,
+                child: Dismissible(
+                  key: Key('archived_header_$type'),
+                  direction: DismissDirection.endToStart,
+                  background: Container(
+                    color: isDarkMode
+                        ? const Color(0xFF2E2E2E)
+                        : Theme.of(
+                            context,
+                          ).colorScheme.primary.withOpacity(0.09),
+                    alignment: Alignment.centerRight,
+                    padding: EdgeInsets.symmetric(horizontal: 20.w),
+                    child: Text(
+                      'Hide',
+                      style: AppTextStyles.bodyText.copyWith(
+                        color: isDarkMode
+                            ? Colors.white.withOpacity(0.7)
+                            : Theme.of(context).colorScheme.primary,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                  onDismissed: (direction) {
+                    setState(() {
+                      if (type == 'group' || type == 'groups') {
+                        _showGroupArchived = false;
+                      } else {
+                        _showPrivateArchived = false;
+                      }
+                    });
+                  },
+                  child: GestureDetector(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) =>
+                              ArchivedChatsScreen(chatType: chatType),
+                        ),
+                      );
+                    },
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 10.w),
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: EdgeInsets.all(11.w),
+                            width: 40.w,
+                            height: 40.h,
+                            decoration: BoxDecoration(
+                              color: isDarkMode
+                                  ? const Color(0xFF252525)
+                                  : Theme.of(
+                                      context,
+                                    ).primaryColor.withOpacity(0.08),
+                              shape: BoxShape.circle,
+                            ),
+                            child: Image.asset(
+                              'assets/images/ic_archive.png',
+                              color: Theme.of(context).colorScheme.onPrimary,
+                            ),
+                          ),
+                          SizedBox(width: 10.w),
+                          Text(
+                            AppLocalizations.of(context)!.archivedchats,
+                            style: AppTextStyles.cardTitle.copyWith(
+                              color: txt.title,
+                              fontSize: 14.5,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            )
+          : const SizedBox.shrink(),
+    );
+  }
+
+  Widget _buildEmptyStateWidget(String chatType, bool isDarkMode) {
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: 32.w),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          isDarkMode
+              ? const SizedBox()
+              : Padding(
+                  padding: const EdgeInsets.only(bottom: 15),
+                  child: Image.asset(
+                    Assets.images.noMessage.path,
+                    height: 0.22.sh,
+                    width: 0.22.sh,
+                    fit: BoxFit.contain,
+                  ),
+                ),
+          Text(
+            chatType == 'favorite'
+                ? AppLocalizations.of(context)!.nofavoritechatyet
+                : AppLocalizations.of(context)!.nomessagesyet,
+            textAlign: TextAlign.center,
+            style: AppTextStyles.sectionHeading.copyWith(
+              fontSize: 18.5,
+              color: Theme.of(context).colorScheme.onBackground,
+              fontWeight: FontWeight.w600,
+              height: 1.4,
+            ),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            chatType == 'favorite'
+                ? AppLocalizations.of(context)!.chatsyoufavoritewillappearhere
+                : AppLocalizations.of(
+                    context,
+                  )!.startchattingbysharingpollsorreactingtoconversations,
+            textAlign: TextAlign.center,
+            style: AppTextStyles.bodyText.copyWith(
+              fontSize: 13,
+              color: const Color(0xFF595959),
+              height: 1.4,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSearchEmptyState() {
+    final txt = AppTextColors.of(context);
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: 32.w),
+      child: Text(
+        '${AppLocalizations.of(context)!.searchusers} "$_searchQuery"',
+        style: AppTextStyles.bodyText.copyWith(
+          fontSize: 13,
+          color: txt.muted,
+          height: 1.4,
+        ),
+      ),
+    );
   }
 
   Widget _buildChatList(
@@ -1465,12 +1819,15 @@ class MessageListState extends State<MessageList>
               (type == 'all' ||
                   type == 'unread' ||
                   type == 'favorite' ||
+                  type == 'favorites' ||
                   type == 'favourites' ||
-                  c['chat_type']?.toString() == type),
+                  c['chat_type']?.toString() == type ||
+                  ((type == 'group' || type == 'groups') &&
+                      c['chat_type']?.toString() == 'group')),
         )
         .length;
     final hasArchived = archivedCount > 0;
-    final showArchivedHeader = type == 'group'
+    final showArchivedHeader = (type == 'group' || type == 'groups')
         ? _showGroupArchived
         : _showPrivateArchived;
 
@@ -1493,385 +1850,342 @@ class MessageListState extends State<MessageList>
         color: Colors.transparent,
         backgroundColor: Colors.transparent,
         elevation: 0.0,
-        child: ListView.builder(
-          controller: controller,
-          physics: const AlwaysScrollableScrollPhysics(
-            parent: BouncingScrollPhysics(),
-          ),
-          padding: const EdgeInsets.only(bottom: 100),
-          itemCount:
-              chats.length + (showLoader ? 1 : 0) + (hasArchived ? 1 : 0),
-          itemBuilder: (context, i) {
-            if (hasArchived && i == 0) {
-              final txt = AppTextColors.of(context);
-              return AnimatedContainer(
-                duration: const Duration(milliseconds: 300),
-                curve: Curves.easeInOut,
-                height: showArchivedHeader ? 45.h : 0,
-                child: showArchivedHeader
-                    ? ClipRect(
-                        child: OverflowBox(
-                          minHeight: 0,
-                          maxHeight: 60.h,
-                          alignment: Alignment.topCenter,
-                          child: Dismissible(
-                            key: const Key('archived_header_tile'),
-                            direction: DismissDirection.endToStart,
-                            background: Container(
-                              color: isDarkMode
-                                  ? const Color(0xFF2E2E2E)
-                                  : Theme.of(
-                                      context,
-                                    ).colorScheme.primary.withOpacity(0.09),
-                              alignment: Alignment.centerRight,
-                              padding: EdgeInsets.symmetric(horizontal: 20.w),
-                              child: Text(
-                                'Hide',
-                                style: AppTextStyles.bodyText.copyWith(
-                                  color: isDarkMode
-                                      ? Colors.white.withOpacity(0.7)
-                                      : Theme.of(context).colorScheme.primary,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ),
-                            onDismissed: (direction) {
-                              setState(() {
-                                if (chatType == 'private') {
-                                  _showPrivateArchived = false;
-                                } else {
-                                  _showGroupArchived = false;
-                                }
-                              });
-                              // showToast(message: 'Archived chats hidden');
-                            },
-                            child: GestureDetector(
-                              onTap: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) =>
-                                        ArchivedChatsScreen(chatType: chatType),
-                                  ),
-                                );
-                              },
-                              child: Padding(
-                                padding: EdgeInsets.symmetric(horizontal: 10.w),
-                                child: Row(
-                                  children: [
-                                    Container(
-                                      padding: EdgeInsets.all(11.w),
-                                      width: 40.w,
-                                      height: 40.h,
-                                      decoration: BoxDecoration(
-                                        color: isDarkMode
-                                            ? const Color(0xFF252525)
-                                            : Theme.of(
-                                                context,
-                                              ).primaryColor.withOpacity(0.08),
-                                        shape: BoxShape.circle,
-                                      ),
-                                      child: Image.asset(
-                                        'assets/images/ic_archive.png',
-                                        color: Theme.of(
-                                          context,
-                                        ).colorScheme.onPrimary,
-                                      ),
-                                    ),
-                                    SizedBox(width: 10.w),
-                                    Text(
-                                      AppLocalizations.of(
-                                        context,
-                                      )!.archivedchats,
-                                      style: AppTextStyles.cardTitle.copyWith(
-                                        color: txt.title,
-                                        fontSize: 14.5,
-                                        fontWeight: FontWeight.w500,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            if (chats.isEmpty) {
+              final double remainingHeight =
+                  (constraints.maxHeight -
+                          (hasArchived && showArchivedHeader ? 45.h : 0))
+                      .clamp(0.0, double.infinity);
+
+              return SingleChildScrollView(
+                controller: controller,
+                physics: const AlwaysScrollableScrollPhysics(
+                  parent: BouncingScrollPhysics(),
+                ),
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                  child: Column(
+                    children: [
+                      if (hasArchived)
+                        _buildArchivedHeaderWidget(
+                          type: type,
+                          chatType: chatType,
+                          showArchivedHeader: showArchivedHeader,
+                          isDarkMode: isDarkMode,
                         ),
-                      )
-                    : const SizedBox.shrink(),
-              );
-            }
-
-            final actualIndex = hasArchived ? i - 1 : i;
-
-            if (actualIndex == chats.length) {
-              return Padding(
-                padding: const EdgeInsets.symmetric(vertical: 16.0),
-                child: Center(
-                  child: SizedBox(
-                    width: 24,
-                    height: 24,
-                    child: Loader(
-                      color: Theme.of(context).colorScheme.onPrimary,
-                    ),
+                      ConstrainedBox(
+                        constraints: BoxConstraints(minHeight: remainingHeight),
+                        child: Center(
+                          child: _searchQuery.trim().isNotEmpty
+                              ? _buildSearchEmptyState()
+                              : _buildEmptyStateWidget(chatType, isDarkMode),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               );
             }
-            final txt = AppTextColors.of(context);
-            final chat = chats[actualIndex];
-            final avatarUrl = _avatarUrl(chat);
-            final avatarProvider = _avatarProvider(avatarUrl);
-            final title = _chatTitle(chat);
-            final unread = _unreadCount(chat);
-            final chatId = chat['id'];
 
-            return Dismissible(
-              key: Key('chat_${chatId.toString()}'),
-              direction: DismissDirection.endToStart,
-              background: Container(
-                color: isDarkMode
-                    ? const Color(0xFF2E2E2E)
-                    : Theme.of(context).colorScheme.primary.withOpacity(0.09),
-                alignment: Alignment.centerRight,
-                padding: EdgeInsets.symmetric(horizontal: 20.w),
-                child: Image.asset(
-                  'assets/images/ic_archive.png',
-                  height: 20.h,
-                  width: 20.w,
-                  color: Theme.of(context).colorScheme.onPrimary,
-                ),
+            return ListView.builder(
+              controller: controller,
+              physics: const AlwaysScrollableScrollPhysics(
+                parent: BouncingScrollPhysics(),
               ),
-              onDismissed: (direction) async {
-                HapticFeedback.lightImpact();
-                toggleArchiveChatLocally(chatId, true);
-                try {
-                  final response = await _apiServices.archiveUnarchiveChat(
-                    chatId: chatId.toString(),
-                    isArchived: true,
+              padding: const EdgeInsets.only(bottom: 100),
+              itemCount:
+                  chats.length + (showLoader ? 1 : 0) + (hasArchived ? 1 : 0),
+              itemBuilder: (context, i) {
+                if (hasArchived && i == 0) {
+                  return _buildArchivedHeaderWidget(
+                    type: type,
+                    chatType: chatType,
+                    showArchivedHeader: showArchivedHeader,
+                    isDarkMode: isDarkMode,
                   );
-                  final success = response['success'] ?? true;
-                  if (!success) {
-                    toggleArchiveChatLocally(chatId, false);
-                    showToast(message: 'Failed to archive chat');
-                  } else {
-                    showToast(message: 'Chat archived');
-                  }
-                } catch (e) {
-                  toggleArchiveChatLocally(chatId, false);
-                  showToast(message: 'Error archiving chat: $e');
                 }
-              },
-              child: ListTile(
-                onTap: () => _openChat(chat, title, avatarUrl),
-                onLongPress: () => _showChatOptionsDialog(chat, title),
-                contentPadding: EdgeInsets.symmetric(horizontal: 10.w),
-                leading: _isPolzetAiChat(chat)
-                    ? SizedBox(
-                        width: 45.w,
-                        height: 45.h,
-                        child: Stack(
-                          alignment: Alignment.center,
-                          children: [
-                            ClipOval(
-                              child: Center(
-                                child: Padding(
-                                  padding: const EdgeInsets.only(
-                                    top: 8,
-                                    bottom: 0,
-                                    left: 10,
-                                    right: 9,
-                                  ),
-                                  child: Image.asset(
-                                    Assets.images.icSplash.path,
-                                  ),
-                                ),
-                              ),
-                            ),
-                            Positioned.fill(
-                              child: Image.asset(
-                                Assets.images.aiFrame.path,
-                                height: 55,
-                                width: 55,
-                              ),
-                            ),
-                          ],
+
+                final actualIndex = hasArchived ? i - 1 : i;
+
+                if (actualIndex == chats.length) {
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 16.0),
+                    child: Center(
+                      child: SizedBox(
+                        width: 24,
+                        height: 24,
+                        child: Loader(
+                          color: Theme.of(context).colorScheme.onPrimary,
                         ),
-                      )
-                    : (chat['chat_type'] == 'group'
-                        ? (avatarUrl == null || avatarUrl.trim().isEmpty
-                              ? _buildGroupAvatarStack(
-                                  members: chat['members'] as List?,
-                                  size: 55,
-                                  isDarkMode: isDarkMode,
-                                  context: context,
-                                )
-                              : CircleAvatar(
-                                  radius: 19.r,
-                                  backgroundColor: isDarkMode
-                                      ? const Color(0xFF252525)
-                                      : Theme.of(
-                                          context,
-                                        ).primaryColor.withOpacity(0.08),
-                                  backgroundImage: avatarProvider,
-                                  child: avatarProvider == null
-                                      ? Text(
-                                          title.isNotEmpty
-                                              ? title[0].toUpperCase()
-                                              : 'P',
-                                          style: AppTextStyles.subText.copyWith(
-                                            color: Theme.of(context)
-                                                .colorScheme
-                                                .onPrimary
-                                                .withOpacity(0.8),
-                                            fontWeight: FontWeight.w500,
-                                            fontSize: 24,
-                                          ),
-                                        )
-                                      : null,
-                                ))
-                        : Stack(
-                            children: [
-                              CircleAvatar(
-                                radius: 19.r,
-                                backgroundColor: isDarkMode
-                                    ? const Color(0xFF252525)
-                                    : Theme.of(
-                                        context,
-                                      ).primaryColor.withOpacity(0.08),
-                                backgroundImage: avatarProvider,
-                                child: avatarProvider == null
-                                    ? Text(
-                                        title.isNotEmpty
-                                            ? title[0].toUpperCase()
-                                            : 'P',
-                                        style: AppTextStyles.subText.copyWith(
-                                          color: Theme.of(
-                                            context,
-                                          ).colorScheme.onPrimary.withOpacity(0.8),
-                                          fontWeight: FontWeight.w500,
-                                          fontSize: 20,
-                                        ),
-                                      )
-                                    : null,
-                              ),
-                              if (chat['chat_type'] == 'private' &&
-                                  _isOtherMemberOnline(chat))
-                                Positioned(
-                                  bottom: 0,
-                                  right: 0,
-                                  child: Container(
-                                    width: 10.w,
-                                    height: 10.h,
-                                    decoration: BoxDecoration(
-                                      color: const Color(0xFF4CAF50),
-                                      shape: BoxShape.circle,
-                                      border: Border.all(
-                                        color: Theme.of(
-                                          context,
-                                        ).colorScheme.background,
-                                        width: 1.8,
+                      ),
+                    ),
+                  );
+                }
+                final txt = AppTextColors.of(context);
+                final chat = chats[actualIndex];
+                final avatarUrl = _avatarUrl(chat);
+                final avatarProvider = _avatarProvider(avatarUrl);
+                final title = _chatTitle(chat);
+                final unread = _unreadCount(chat);
+                final chatId = chat['id'];
+
+                return Dismissible(
+                  key: Key('chat_${chatId.toString()}'),
+                  direction: DismissDirection.endToStart,
+                  background: Container(
+                    color: isDarkMode
+                        ? const Color(0xFF2E2E2E)
+                        : Theme.of(
+                            context,
+                          ).colorScheme.primary.withOpacity(0.09),
+                    alignment: Alignment.centerRight,
+                    padding: EdgeInsets.symmetric(horizontal: 20.w),
+                    child: Image.asset(
+                      'assets/images/ic_archive.png',
+                      height: 20.h,
+                      width: 20.w,
+                      color: Theme.of(context).colorScheme.onPrimary,
+                    ),
+                  ),
+                  onDismissed: (direction) async {
+                    HapticFeedback.lightImpact();
+                    toggleArchiveChatLocally(chatId, true);
+                    try {
+                      final response = await _apiServices.archiveUnarchiveChat(
+                        chatId: chatId.toString(),
+                        isArchived: true,
+                      );
+                      final success = response['success'] ?? true;
+                      if (!success) {
+                        toggleArchiveChatLocally(chatId, false);
+                        showToast(message: 'Failed to archive chat');
+                      } else {
+                        showToast(message: 'Chat archived');
+                      }
+                    } catch (e) {
+                      toggleArchiveChatLocally(chatId, false);
+                      showToast(message: 'Error archiving chat: $e');
+                    }
+                  },
+                  child: ListTile(
+                    onTap: () => _openChat(chat, title, avatarUrl),
+                    onLongPress: () => _showChatOptionsDialog(chat, title),
+                    contentPadding: EdgeInsets.symmetric(horizontal: 10.w),
+                    leading: _isPolzetAiChat(chat)
+                        ? SizedBox(
+                            width: 45.w,
+                            height: 45.h,
+                            child: Stack(
+                              alignment: Alignment.center,
+                              children: [
+                                ClipOval(
+                                  child: Center(
+                                    child: Padding(
+                                      padding: const EdgeInsets.only(
+                                        top: 8,
+                                        bottom: 0,
+                                        left: 10,
+                                        right: 9,
+                                      ),
+                                      child: Image.asset(
+                                        Assets.images.icSplash.path,
                                       ),
                                     ),
                                   ),
                                 ),
-                            ],
-                          )),
-                title: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Flexible(
-                      child: Text(
-                        title,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: AppTextStyles.cardTitle.copyWith(
-                          color: txt.title,
-                          fontSize: 14.5,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ),
-                    if (_isPolzetAiChat(chat)) ...[
-                      SizedBox(width: 4.w),
-                      Image.asset(
-                        Assets.images.icVerify.path,
-                        height: 13,
-                        width: 13,
-                      ),
-                    ],
-                    if (_isChatFavourite(chat)) ...[
-                      SizedBox(width: 4.w),
-                      Icon(
-                        Icons.star_rounded,
-                        color: const Color(0xFFFFB800),
-                        size: 16.w,
-                      ),
-                    ],
-                  ],
-                ),
-                subtitle: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.baseline,
-                  textBaseline: TextBaseline.alphabetic,
-                  children: [
-                    Flexible(
-                      child: Text(
-                        unread > 1
-                            ? _formatUnreadCountText(unread)
-                            : _lastMessage(chat),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: AppTextStyles.subText.copyWith(
-                          color: unread > 0
-                              ? txt.title
-                              : txt.body.withOpacity(0.6),
-                          fontWeight: unread > 0
-                              ? FontWeight.w500
-                              : FontWeight.w400,
-                          fontSize: 13,
-                        ),
-                      ),
-                    ),
-                    Text(
-                      '  · ${_formattedTime(chat)}',
-                      style: AppTextStyles.subText.copyWith(
-                        color: unread > 0 ? txt.body : txt.muted,
-                        fontSize: 11,
-                      ),
-                    ),
-                  ],
-                ),
-                trailing: (_isChatMuted(chat) || _isChatPinned(chat))
-                    ? Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          if (_isChatMuted(chat)) ...[
-                            const AssetGenImage(
-                              'assets/images/ic_muted.png',
-                            ).image(
-                              color: isDarkMode
-                                  ? const Color(0xFFDFDEDE)
-                                  : const Color(0xFF595959),
-                              width: 15.w,
-                              height: 15.h,
+                                Positioned.fill(
+                                  child: Image.asset(
+                                    Assets.images.aiFrame.path,
+                                    height: 55,
+                                    width: 55,
+                                  ),
+                                ),
+                              ],
                             ),
-                          ],
-                          if (_isChatMuted(chat) && _isChatPinned(chat))
-                            SizedBox(width: 4.w),
-                          if (_isChatPinned(chat)) ...[
-                            const AssetGenImage(
-                              'assets/images/ic_pin.png',
-                            ).image(
-                              color: isDarkMode
-                                  ? const Color(0xFFDFDEDE)
-                                  : const Color(0xFF595959),
-                              width: 15.w,
-                              height: 15.h,
+                          )
+                        : (chat['chat_type'] == 'group'
+                              ? (avatarUrl == null || avatarUrl.trim().isEmpty
+                                    ? _buildGroupAvatarStack(
+                                        members: chat['members'] as List?,
+                                        size: 55,
+                                        isDarkMode: isDarkMode,
+                                        context: context,
+                                      )
+                                    : CircleAvatar(
+                                        radius: 19.r,
+                                        backgroundColor: isDarkMode
+                                            ? const Color(0xFF252525)
+                                            : Theme.of(
+                                                context,
+                                              ).primaryColor.withOpacity(0.08),
+                                        backgroundImage: avatarProvider,
+                                        child: avatarProvider == null
+                                            ? Text(
+                                                title.isNotEmpty
+                                                    ? title[0].toUpperCase()
+                                                    : 'P',
+                                                style: AppTextStyles.subText
+                                                    .copyWith(
+                                                      color: Theme.of(context)
+                                                          .colorScheme
+                                                          .onPrimary
+                                                          .withOpacity(0.8),
+                                                      fontWeight:
+                                                          FontWeight.w500,
+                                                      fontSize: 24,
+                                                    ),
+                                              )
+                                            : null,
+                                      ))
+                              : Stack(
+                                  children: [
+                                    CircleAvatar(
+                                      radius: 19.r,
+                                      backgroundColor: isDarkMode
+                                          ? const Color(0xFF252525)
+                                          : Theme.of(
+                                              context,
+                                            ).primaryColor.withOpacity(0.08),
+                                      backgroundImage: avatarProvider,
+                                      child: avatarProvider == null
+                                          ? Text(
+                                              title.isNotEmpty
+                                                  ? title[0].toUpperCase()
+                                                  : 'P',
+                                              style: AppTextStyles.subText
+                                                  .copyWith(
+                                                    color: Theme.of(context)
+                                                        .colorScheme
+                                                        .onPrimary
+                                                        .withOpacity(0.8),
+                                                    fontWeight: FontWeight.w500,
+                                                    fontSize: 20,
+                                                  ),
+                                            )
+                                          : null,
+                                    ),
+                                    if (chat['chat_type'] == 'private' &&
+                                        _isOtherMemberOnline(chat))
+                                      Positioned(
+                                        bottom: 0,
+                                        right: 0,
+                                        child: Container(
+                                          width: 10.w,
+                                          height: 10.h,
+                                          decoration: BoxDecoration(
+                                            color: const Color(0xFF4CAF50),
+                                            shape: BoxShape.circle,
+                                            border: Border.all(
+                                              color: Theme.of(
+                                                context,
+                                              ).colorScheme.background,
+                                              width: 1.8,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                  ],
+                                )),
+                    title: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Flexible(
+                          child: Text(
+                            title,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: AppTextStyles.cardTitle.copyWith(
+                              color: txt.title,
+                              fontSize: 14.5,
+                              fontWeight: FontWeight.w500,
                             ),
-                          ],
+                          ),
+                        ),
+                        if (_isPolzetAiChat(chat)) ...[
+                          SizedBox(width: 4.w),
+                          Image.asset(
+                            Assets.images.icVerify.path,
+                            height: 13,
+                            width: 13,
+                          ),
                         ],
-                      )
-                    : null,
-              ),
+                        if (_isChatFavourite(chat)) ...[
+                          SizedBox(width: 4.w),
+                          Icon(
+                            Icons.star_rounded,
+                            color: const Color(0xFFFFB800),
+                            size: 16.w,
+                          ),
+                        ],
+                      ],
+                    ),
+                    subtitle: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.baseline,
+                      textBaseline: TextBaseline.alphabetic,
+                      children: [
+                        Flexible(
+                          child: Text(
+                            unread > 1
+                                ? _formatUnreadCountText(unread)
+                                : _lastMessage(chat),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: AppTextStyles.subText.copyWith(
+                              color: unread > 0
+                                  ? txt.title
+                                  : txt.body.withOpacity(0.6),
+                              fontWeight: unread > 0
+                                  ? FontWeight.w500
+                                  : FontWeight.w400,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ),
+                        Text(
+                          '  · ${_formattedTime(chat)}',
+                          style: AppTextStyles.subText.copyWith(
+                            color: unread > 0 ? txt.body : txt.muted,
+                            fontSize: 11,
+                          ),
+                        ),
+                      ],
+                    ),
+                    trailing: (_isChatMuted(chat) || _isChatPinned(chat))
+                        ? Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              if (_isChatMuted(chat)) ...[
+                                const AssetGenImage(
+                                  'assets/images/ic_muted.png',
+                                ).image(
+                                  color: isDarkMode
+                                      ? const Color(0xFFDFDEDE)
+                                      : const Color(0xFF595959),
+                                  width: 15.w,
+                                  height: 15.h,
+                                ),
+                              ],
+                              if (_isChatMuted(chat) && _isChatPinned(chat))
+                                SizedBox(width: 4.w),
+                              if (_isChatPinned(chat)) ...[
+                                const AssetGenImage(
+                                  'assets/images/ic_pin.png',
+                                ).image(
+                                  color: isDarkMode
+                                      ? const Color(0xFFDFDEDE)
+                                      : const Color(0xFF595959),
+                                  width: 15.w,
+                                  height: 15.h,
+                                ),
+                              ],
+                            ],
+                          )
+                        : null,
+                  ),
+                );
+              },
             );
           },
         ),
@@ -1880,139 +2194,7 @@ class MessageListState extends State<MessageList>
   }
 
   Widget _buildTabBody(List<Map<String, dynamic>> allChats, String chatType) {
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     final chats = _applyFilter(allChats, chatType);
-
-    if (allChats.isEmpty) {
-      return SizedBox(
-        width: double.infinity,
-        // height: 0.5.sh,
-        child: Center(
-          child: Padding(
-            padding: EdgeInsets.symmetric(horizontal: 32.w),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                isDarkMode
-                    ? const SizedBox()
-                    : Padding(
-                        padding: const EdgeInsets.only(bottom: 15),
-                        child: Image.asset(
-                          Assets.images.noMessage.path,
-                          height: 0.22.sh,
-                          width: 0.22.sh,
-                          fit: BoxFit.contain,
-                        ),
-                      ),
-                Text(
-                  chatType == 'favorite'
-                      ? AppLocalizations.of(context)!.nofavoritechatyet
-                      : AppLocalizations.of(context)!.nomessagesyet,
-                  textAlign: TextAlign.center,
-                  style: AppTextStyles.sectionHeading.copyWith(
-                    fontSize: 18.5,
-                    color: Theme.of(context).colorScheme.onBackground,
-                    fontWeight: FontWeight.w600,
-                    height: 1.4,
-                  ),
-                ),
-                const SizedBox(height: 10),
-                Text(
-                  chatType == 'favorite'
-                      ? AppLocalizations.of(
-                          context,
-                        )!.chatsyoufavoritewillappearhere
-                      : AppLocalizations.of(
-                          context,
-                        )!.startchattingbysharingpollsorreactingtoconversations,
-                  textAlign: TextAlign.center,
-                  style: AppTextStyles.bodyText.copyWith(
-                    fontSize: 13,
-                    color: const Color(0xFF595959),
-                    height: 1.4,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      );
-    }
-
-    if (chats.isEmpty && _searchQuery.trim().isNotEmpty) {
-      final txt = AppTextColors.of(context);
-      return Center(
-        child: Text(
-          '${AppLocalizations.of(context)!.searchusers} "$_searchQuery"',
-          style: AppTextStyles.bodyText.copyWith(
-            fontSize: 13,
-            color: txt.muted,
-            height: 1.4,
-          ),
-        ),
-      );
-    }
-
-    if (chats.isEmpty) {
-      return SizedBox(
-        width: double.infinity,
-        // height: 0.5.sh,
-        child: Center(
-          child: Padding(
-            padding: EdgeInsets.symmetric(horizontal: 32.w),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                isDarkMode
-                    ? const SizedBox()
-                    : Padding(
-                        padding: const EdgeInsets.only(bottom: 15),
-                        child: Image.asset(
-                          Assets.images.noMessage.path,
-                          height: 0.22.sh,
-                          width: 0.22.sh,
-                          fit: BoxFit.contain,
-                        ),
-                      ),
-
-                Text(
-                  chatType == 'favorite'
-                      ? AppLocalizations.of(context)!.nofavoritechatyet
-                      : AppLocalizations.of(context)!.nomessagesyet,
-                  textAlign: TextAlign.center,
-                  style: AppTextStyles.sectionHeading.copyWith(
-                    fontSize: 18.5,
-                    color: Theme.of(context).colorScheme.onBackground,
-                    fontWeight: FontWeight.w600,
-                    height: 1.4,
-                  ),
-                ),
-                const SizedBox(height: 10),
-                Text(
-                  chatType == 'favorite'
-                      ? AppLocalizations.of(
-                          context,
-                        )!.chatsyoufavoritewillappearhere
-                      : AppLocalizations.of(
-                          context,
-                        )!.startchattingbysharingpollsorreactingtoconversations,
-
-                  textAlign: TextAlign.center,
-                  style: AppTextStyles.bodyText.copyWith(
-                    fontSize: 13,
-                    color: const Color(0xFF595959),
-                    height: 1.4,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      );
-    }
-
     final ScrollController controller;
     final type = chatType.toLowerCase();
     if (type == 'group') {
@@ -2215,7 +2397,7 @@ class MessageListState extends State<MessageList>
             onTap: () async {
               final createdChatId = await Navigator.push(
                 context,
-                MaterialPageRoute(builder: (_) => const CreateGroup()),
+                 MaterialPageRoute(builder: (_) => const CreateGroup()),
               );
               if (createdChatId != null) {
                 MessageListState.refreshGlobally();
@@ -2335,8 +2517,7 @@ class MessageListState extends State<MessageList>
                       user['avatar'])
                   ?.toString();
           final username = user['username']?.toString();
-          final name = (user['name'] ?? username ?? 'Unknown')
-              .toString();
+          final name = (user['name'] ?? username ?? 'Unknown').toString();
           profileUrls.add(profileUrl);
           initials.add(name.isNotEmpty ? name[0].toUpperCase() : '?');
           usernames.add(username);
@@ -2411,8 +2592,7 @@ class MessageListState extends State<MessageList>
     bool hasBorder = false,
     String? username,
   }) {
-    if (_isPolzetAiUsername(username) ||
-        _isPolzetAiUsername(profileUrl)) {
+    if (_isPolzetAiUsername(username) || _isPolzetAiUsername(profileUrl)) {
       return Container(
         width: size,
         height: size,

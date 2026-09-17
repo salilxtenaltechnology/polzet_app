@@ -8,6 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 import 'package:web_socket_channel/status.dart' as status;
 import '../../models/message/message_model.dart';
+import '../../models/chat/chat_theme_item.dart';
 import '../../data/token/shared_preferences.dart';
 import '../api/api_service.dart';
 import '../api/api_config.dart';
@@ -32,6 +33,7 @@ class GroupChatProvider extends ChangeNotifier {
   String? _groupImageUrl;
   dynamic _chatId;
   Map<String, dynamic>? _chat;
+  ChatThemeItem? _currentTheme;
 
   final Set<dynamic> _adminIds = {};
 
@@ -40,6 +42,17 @@ class GroupChatProvider extends ChangeNotifier {
   String? get groupImageUrl => _groupImageUrl;
   dynamic get chatId => _chatId;
   Map<String, dynamic>? get chat => _chat;
+  ChatThemeItem? get currentTheme => _currentTheme;
+
+  void setTheme(ChatThemeItem? theme) {
+    _currentTheme = theme;
+    notifyListeners();
+  }
+
+  void setThemeByKey(dynamic themeKey) {
+    _currentTheme = ChatThemeItem.fromIdOrName(themeKey);
+    notifyListeners();
+  }
 
   List<Map<String, dynamic>> get members {
     if (_chat != null && _chat!['members'] != null) {
@@ -242,12 +255,22 @@ class GroupChatProvider extends ChangeNotifier {
     String? currentUsername,
     dynamic currentUserId,
     Map<String, dynamic>? chat,
+    dynamic chatTheme,
   }) async {
+    final bool isNewChat = _chatId != chatId;
     _groupName = groupName;
     _groupImageUrl = groupImageUrl;
     _chatId = chatId;
     _currentUserId = currentUserId;
     _chat = chat;
+
+    final themeVal = chatTheme ?? chat?['chat_theme'] ?? chat?['chatTheme'];
+    if (themeVal != null) {
+      _currentTheme = ChatThemeItem.fromIdOrName(themeVal);
+    } else if (isNewChat) {
+      _currentTheme = null;
+    }
+
     _syncAdminIds();
 
     if (_chat == null && _chatId != null) {
@@ -1067,6 +1090,26 @@ class GroupChatProvider extends ChangeNotifier {
     _groupImageUrl = url;
     if (_chat != null) {
       _chat!['profile_url'] = url;
+      _chat!['group_picture_url'] = url;
+      _chat!['picture_url'] = url;
+      _chat!['avatar_url'] = url;
+    } else {
+      _chat = {
+        'profile_url': url,
+        'group_picture_url': url,
+        'picture_url': url,
+        'avatar_url': url,
+      };
+    }
+    notifyListeners();
+  }
+
+  void updateGroupNameLocally(String newName) {
+    _groupName = newName;
+    if (_chat != null) {
+      _chat!['title'] = newName;
+      _chat!['name'] = newName;
+      _chat!['group_name'] = newName;
     }
     notifyListeners();
   }
@@ -1226,6 +1269,14 @@ class GroupChatProvider extends ChangeNotifier {
       }
 
       _chat = freshChat;
+
+      final themeVal = freshChat['chat_theme'] ?? freshChat['chatTheme'];
+      if (themeVal != null) {
+        final parsed = ChatThemeItem.fromIdOrName(themeVal);
+        if (parsed != null) {
+          _currentTheme = parsed;
+        }
+      }
 
       _syncAdminIds();
 

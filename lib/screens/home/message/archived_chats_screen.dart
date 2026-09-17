@@ -112,27 +112,47 @@ class _ArchivedChatsScreenState extends State<ArchivedChatsScreen>
       return chat['display_name'].toString();
     }
     final userProvider = Provider.of<UserProvider>(context, listen: false);
-    final currentUserId = userProvider.userId;
-    final currentUsername = userProvider.username;
+    final currentUserId = userProvider.userId?.toString();
+    final currentUsername = userProvider.username?.toString().toLowerCase();
     final members = chat['members'] as List?;
     if (members != null && members.length > 1) {
       for (final m in members) {
+        if (m is! Map) continue;
         final user =
             (m as Map<String, dynamic>)['user'] as Map<String, dynamic>?;
-        final id = user?['uuid'] ?? user?['id'];
+        final id = (user?['uuid'] ?? user?['id'])?.toString();
         final username = user?['username']?.toString();
+        final name = user?['name']?.toString() ??
+            (user?['first_name'] != null
+                ? '${user!['first_name']} ${user['last_name'] ?? ''}'.trim()
+                : null) ??
+            user?['full_name']?.toString();
         if (id != null &&
-            id.toString() != currentUserId &&
-            (currentUsername == null || username != currentUsername)) {
+            id != currentUserId &&
+            (currentUsername == null ||
+                username?.toLowerCase() != currentUsername)) {
+          if (name != null && name.trim().isNotEmpty) {
+            return name.trim();
+          }
           return username ?? 'Unknown';
         }
       }
     }
     if (members != null && members.isNotEmpty) {
-      final user =
-          (members.first as Map<String, dynamic>)['user']
-              as Map<String, dynamic>?;
-      return user?['username']?.toString() ?? 'Unknown';
+      final first = members.first;
+      if (first is Map) {
+        final user =
+            (first as Map<String, dynamic>)['user'] as Map<String, dynamic>?;
+        final name = user?['name']?.toString() ??
+            (user?['first_name'] != null
+                ? '${user!['first_name']} ${user['last_name'] ?? ''}'.trim()
+                : null) ??
+            user?['full_name']?.toString();
+        if (name != null && name.trim().isNotEmpty) {
+          return name.trim();
+        }
+        return user?['username']?.toString() ?? 'Unknown';
+      }
     }
     return 'Unknown';
   }
@@ -316,23 +336,60 @@ class _ArchivedChatsScreenState extends State<ArchivedChatsScreen>
     return null;
   }
 
-  String? _getOtherUsername(Map<String, dynamic> chat) {
+  String? _getOtherMemberName(Map<String, dynamic> chat) {
     final userProvider = Provider.of<UserProvider>(context, listen: false);
-    final currentUserId = userProvider.userId;
-    final currentUsername = userProvider.username;
+    final currentUserId = userProvider.userId?.toString();
+    final currentUsername = userProvider.username?.toString().toLowerCase();
     final members = chat['members'] as List?;
     if (members == null) return null;
     for (final m in members) {
-      final member = m as Map<String, dynamic>;
-      final user = member['user'] as Map<String, dynamic>?;
-      final username = user?['username']?.toString();
-      final id = user?['uuid'] ?? user?['id'];
-      if (id?.toString() != currentUserId &&
-          (currentUsername == null || username != currentUsername)) {
-        return username;
+      if (m is! Map) continue;
+      final user = m['user'] as Map<String, dynamic>? ??
+          (m is Map<String, dynamic> && m.containsKey('username')
+              ? m
+              : null);
+      if (user != null) {
+        final username = user['username']?.toString();
+        final id = (user['uuid'] ?? user['id'])?.toString();
+        final name = user['name']?.toString() ??
+            (user['first_name'] != null
+                ? '${user['first_name']} ${user['last_name'] ?? ''}'.trim()
+                : null) ??
+            user['full_name']?.toString();
+        if (id != currentUserId &&
+            (currentUsername == null ||
+                username?.toLowerCase() != currentUsername)) {
+          if (name != null && name.trim().isNotEmpty) return name.trim();
+          return username;
+        }
       }
     }
-    return chat['display_name']?.toString();
+    return null;
+  }
+
+  String? _getOtherUsername(Map<String, dynamic> chat) {
+    final userProvider = Provider.of<UserProvider>(context, listen: false);
+    final currentUserId = userProvider.userId?.toString();
+    final currentUsername = userProvider.username?.toString().toLowerCase();
+    final members = chat['members'] as List?;
+    if (members == null) return null;
+    for (final m in members) {
+      if (m is! Map) continue;
+      final user = m['user'] as Map<String, dynamic>? ??
+          (m is Map<String, dynamic> && m.containsKey('username')
+              ? m
+              : null);
+      if (user != null) {
+        final username = user['username']?.toString();
+        final id = (user['uuid'] ?? user['id'])?.toString();
+        if (id != currentUserId &&
+            (currentUsername == null ||
+                username?.toLowerCase() != currentUsername)) {
+          return username;
+        }
+      }
+    }
+    return chat['username']?.toString() ?? chat['display_name']?.toString();
   }
 
   Future<void> _openChat(
@@ -355,6 +412,7 @@ class _ArchivedChatsScreenState extends State<ArchivedChatsScreen>
               groupName: title,
               chat: chat,
               chatId: chatId,
+              chatTheme: chat['chat_theme'],
             ),
           ),
         ),
@@ -364,24 +422,32 @@ class _ArchivedChatsScreenState extends State<ArchivedChatsScreen>
         context,
         listen: false,
       ).username;
+      final memberName = _getOtherMemberName(chat) ?? title;
+      final otherUsername = _getOtherUsername(chat);
+      final dynamic chatTheme = chat['chat_theme'];
       await Navigator.push(
         context,
         MaterialPageRoute(
           builder: (_) => ChangeNotifierProvider(
             create: (_) => PrivateChatProvider()
               ..init(
-                memberName: title,
+                memberName: memberName,
                 profileUrl: avatarUrl,
                 chatId: chatId,
                 currentUsername: currentUsername,
+                isMuted: _isChatMuted(chat),
+                chat: chat,
+                chatTheme: chatTheme,
               ),
             child: PrivateChatScreen(
               userId: _getOtherUserId(chat),
-              memberName: title,
-              username: _getOtherUsername(chat),
+              memberName: memberName,
+              username: otherUsername,
               profileUrl: avatarUrl,
               chatId: chatId,
               isUserBlock: isBlocked,
+              chat: chat,
+              chatTheme: chatTheme,
             ),
           ),
         ),

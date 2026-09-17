@@ -45,9 +45,7 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  await SystemChrome.setPreferredOrientations([
-    DeviceOrientation.portraitUp,
-  ]);
+  await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
 
   await SharedPrefService.clearOnFirstLaunch();
 
@@ -390,7 +388,8 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     Widget? destination;
 
     if (actionId == 'create_poll_action' ||
-        (rawType.toUpperCase() == 'AI_NEW_POST' && pollType == 'text')) {
+        rawType.toUpperCase() == 'AI_NEW_POST' ||
+        type == 'ai_new_post') {
       final String title = data['title']?.toString() ?? '';
       final String body =
           data['body']?.toString() ??
@@ -596,15 +595,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
           GlobalWidgetsLocalizations.delegate,
           GlobalCupertinoLocalizations.delegate,
         ],
-        supportedLocales: const [
-          Locale('ar'),
-          Locale('en'),
-          Locale('de'),
-          Locale('hi'),
-          Locale('id'),
-          Locale('es'),
-          Locale('vi'),
-        ],
+        supportedLocales: AppLocalizations.supportedLocales,
         theme: AppThemes.lightMode,
         darkTheme: AppThemes.darkMode,
         themeMode: themeProvider.isDarkMode ? ThemeMode.dark : ThemeMode.light,

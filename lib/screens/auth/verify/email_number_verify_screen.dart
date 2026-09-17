@@ -28,6 +28,7 @@ class _EmailNumberVerifyScreenState extends State<EmailNumberVerifyScreen> {
   bool _isLoginMode = false;
   bool _obscurePassword = true;
   String _emailOrMobileError = '';
+  String _passwordError = '';
 
   final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
@@ -50,46 +51,50 @@ class _EmailNumberVerifyScreenState extends State<EmailNumberVerifyScreen> {
   }
 
   bool _validate() {
-    setState(() => _emailOrMobileError = '');
+    bool isValid = true;
+    setState(() {
+      _emailOrMobileError = '';
+      _passwordError = '';
+    });
 
     if (_isMobileSelected) {
       final phone = _phoneController.text.trim();
       if (phone.isEmpty) {
         setState(() => _emailOrMobileError = 'Please enter your mobile number');
-        return false;
-      }
-      if (phone.length < 7) {
+        isValid = false;
+      } else if (phone.length < 7) {
         setState(
           () => _emailOrMobileError = 'Please enter a valid mobile number',
         );
-        return false;
+        isValid = false;
       }
     } else {
       final email = _emailController.text.trim();
       if (email.isEmpty) {
         setState(() => _emailOrMobileError = 'Please enter your email address');
-        return false;
-      }
-      final emailRegex = RegExp(
-        r'^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.(com|net|org|edu|gov|io|in|co\.in|uk|us|info|biz)$',
-      );
-      if (!emailRegex.hasMatch(email)) {
-        setState(
-          () => _emailOrMobileError = 'Please enter a valid email address',
+        isValid = false;
+      } else {
+        final emailRegex = RegExp(
+          r'^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.(com|net|org|edu|gov|io|in|co\.in|uk|us|info|biz)$',
         );
-        return false;
+        if (!emailRegex.hasMatch(email)) {
+          setState(
+            () => _emailOrMobileError = 'Please enter a valid email address',
+          );
+          isValid = false;
+        }
       }
     }
 
     if (_isLoginMode) {
       final password = _passwordController.text.trim();
       if (password.isEmpty) {
-        setState(() => _emailOrMobileError = 'Please enter your password');
-        return false;
+        setState(() => _passwordError = 'Please enter your password');
+        isValid = false;
       }
     }
 
-    return true;
+    return isValid;
   }
 
   Future<void> _loginUser() async {
@@ -98,6 +103,7 @@ class _EmailNumberVerifyScreenState extends State<EmailNumberVerifyScreen> {
     setState(() {
       _isSendingOtp = true;
       _emailOrMobileError = '';
+      _passwordError = '';
     });
 
     try {
@@ -109,6 +115,18 @@ class _EmailNumberVerifyScreenState extends State<EmailNumberVerifyScreen> {
         email_username: loginValue,
         password: _passwordController.text.trim(),
         context: context,
+        onError: (passErr, emailOrMobileErr) {
+          if (mounted) {
+            setState(() {
+              if (passErr != null) {
+                _passwordError = passErr;
+              }
+              if (emailOrMobileErr != null) {
+                _emailOrMobileError = emailOrMobileErr;
+              }
+            });
+          }
+        },
       );
 
       final savedLang = await SharedPrefService.getLanguage();
@@ -119,9 +137,6 @@ class _EmailNumberVerifyScreenState extends State<EmailNumberVerifyScreen> {
       }
     } catch (e) {
       if (kDebugMode) print('Login error: $e');
-      if (mounted) {
-        setState(() => _emailOrMobileError = 'Login failed: $e');
-      }
     } finally {
       if (mounted) setState(() => _isSendingOtp = false);
     }
@@ -133,6 +148,7 @@ class _EmailNumberVerifyScreenState extends State<EmailNumberVerifyScreen> {
     setState(() {
       _isSendingOtp = true;
       _emailOrMobileError = '';
+      _passwordError = '';
     });
 
     try {
@@ -179,12 +195,13 @@ class _EmailNumberVerifyScreenState extends State<EmailNumberVerifyScreen> {
     }
   }
 
- Future<void> _mobileSendOtp() async {
+  Future<void> _mobileSendOtp() async {
   if (!_validate()) return;
 
   setState(() {
     _isSendingOtp = true;
     _emailOrMobileError = '';
+    _passwordError = '';
   });
 
   bool startedFirebase = false;
@@ -406,6 +423,7 @@ class _EmailNumberVerifyScreenState extends State<EmailNumberVerifyScreen> {
             setState(() {
               _isLoginMode = false;
               _passwordController.clear();
+              _passwordError = '';
             });
           }
         },
@@ -458,8 +476,8 @@ class _EmailNumberVerifyScreenState extends State<EmailNumberVerifyScreen> {
         controller: _passwordController,
         obscureText: _obscurePassword,
         onChanged: (_) {
-          if (_emailOrMobileError.isNotEmpty) {
-            setState(() => _emailOrMobileError = '');
+          if (_passwordError.isNotEmpty) {
+            setState(() => _passwordError = '');
           }
         },
         cursorColor: Theme.of(context).colorScheme.onPrimary.withOpacity(0.8),
@@ -513,19 +531,6 @@ class _EmailNumberVerifyScreenState extends State<EmailNumberVerifyScreen> {
     );
   }
 
-  Widget _buildErrorText() {
-    if (_emailOrMobileError.isEmpty) return const SizedBox.shrink();
-    return Padding(
-      padding: const EdgeInsets.only(top: 5),
-      child: Text(
-        _emailOrMobileError,
-        style: AppTextStyles.bodyText.copyWith(
-          fontSize: 12,
-          color: Theme.of(context).colorScheme.error,
-        ),
-      ),
-    );
-  }
 
   void _showCountryPicker() {
     showModalBottomSheet(
@@ -604,6 +609,7 @@ class _EmailNumberVerifyScreenState extends State<EmailNumberVerifyScreen> {
                 _isMobileSelected = false;
                 _isLoginMode = false;
                 _emailOrMobileError = '';
+                _passwordError = '';
               }),
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 200),
@@ -637,6 +643,7 @@ class _EmailNumberVerifyScreenState extends State<EmailNumberVerifyScreen> {
                 _isMobileSelected = true;
                 _isLoginMode = false;
                 _emailOrMobileError = '';
+                _passwordError = '';
               }),
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 200),
@@ -763,7 +770,17 @@ class _EmailNumberVerifyScreenState extends State<EmailNumberVerifyScreen> {
                     ),
                   ],
                 ),
-                if (!_isLoginMode) _buildErrorText(),
+                if (_emailOrMobileError.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 5),
+                    child: Text(
+                      _emailOrMobileError,
+                      style: AppTextStyles.bodyText.copyWith(
+                        fontSize: 12,
+                        color: Theme.of(context).colorScheme.error,
+                      ),
+                    ),
+                  ),
               ] else ...[
                 _buildFieldLabel('Email Address'),
 
@@ -773,7 +790,17 @@ class _EmailNumberVerifyScreenState extends State<EmailNumberVerifyScreen> {
                   hint: 'Enter your email address',
                   keyboardType: TextInputType.emailAddress,
                 ),
-                if (!_isLoginMode) _buildErrorText(),
+                if (_emailOrMobileError.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 5),
+                    child: Text(
+                      _emailOrMobileError,
+                      style: AppTextStyles.bodyText.copyWith(
+                        fontSize: 12,
+                        color: Theme.of(context).colorScheme.error,
+                      ),
+                    ),
+                  ),
               ],
 
               if (_isLoginMode) ...[
@@ -781,7 +808,17 @@ class _EmailNumberVerifyScreenState extends State<EmailNumberVerifyScreen> {
                 _buildFieldLabel('Password'),
                 const SizedBox(height: 10),
                 _buildPasswordField(),
-                _buildErrorText(),
+                if (_passwordError.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 5),
+                    child: Text(
+                      _passwordError,
+                      style: AppTextStyles.bodyText.copyWith(
+                        fontSize: 12,
+                        color: Theme.of(context).colorScheme.error,
+                      ),
+                    ),
+                  ),
               ],
               const SizedBox(height: 30),
               _buildContinueButton(),

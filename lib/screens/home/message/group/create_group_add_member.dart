@@ -1,32 +1,50 @@
 // ignore_for_file: deprecated_member_use
 
-import 'package:polzet_app/core/constants/feather_icons_compat.dart';
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:polzet_app/widgets/loader.dart';
 
 import '../../../../api/api_service.dart';
 import '../../../../api/api_config.dart';
-import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_radius.dart';
+import '../../../../core/constants/feather_icons_compat.dart';
 import '../../../../core/themes/app_text_colors.dart';
 import '../../../../core/themes/app_text_styles.dart';
 import '../../../../languages/l10n/generated/app_localizations.dart';
 import '../../../../mixin/utility_mixins.dart';
 import '../../../../widgets/appbar/common_appbar.dart';
 import '../../../../widgets/base64/image_convert.dart';
+import '../../../../widgets/button/primary_button.dart';
 import '../../../../widgets/custom_text_styles.dart';
+import '../../../../widgets/loader.dart';
+import '../../../../widgets/show_toast.dart';
+import 'group_created_success_screen.dart';
 
-class AddMember extends StatefulWidget {
+class CreateGroupAddMember extends StatefulWidget {
   final Set<String> alreadySelected;
+  final String? groupTitle;
+  final String? groupDescription;
+  final File? groupImage;
+  final String? groupCategory;
+  final String? groupPrivacy;
 
-  const AddMember({super.key, this.alreadySelected = const {}});
+  const CreateGroupAddMember({
+    super.key,
+    this.alreadySelected = const {},
+    this.groupTitle,
+    this.groupDescription,
+    this.groupImage,
+    this.groupCategory,
+    this.groupPrivacy,
+  });
 
   @override
-  State<AddMember> createState() => AddMemberState();
+  State<CreateGroupAddMember> createState() => _CreateGroupAddMemberState();
 }
 
-class AddMemberState extends State<AddMember> with UtilityMixin {
+class _CreateGroupAddMemberState extends State<CreateGroupAddMember>
+    with UtilityMixin {
   final _apiServices = ApiService();
   final _searchController = TextEditingController();
 
@@ -34,6 +52,7 @@ class AddMemberState extends State<AddMember> with UtilityMixin {
   List<Map<String, dynamic>> _filteredUsers = [];
   late Set<String> _selectedIds;
   bool _isLoadingUsers = false;
+  bool _isCreating = false;
 
   @override
   void initState() {
@@ -137,15 +156,62 @@ class AddMemberState extends State<AddMember> with UtilityMixin {
   }
 
   String? _userAvatar(Map<String, dynamic> user) {
-    final avatar = (user['avatar'] ?? user['profile_picture_url'] ?? user['image'])?.toString();
+    final avatar =
+        (user['avatar'] ?? user['profile_picture_url'] ?? user['image'])
+            ?.toString();
     return _resolveProfileUrl(avatar);
   }
 
-  void _onAdd() {
-    final selectedUsers = _allUsers
-        .where((u) => _selectedIds.contains(u['id']?.toString()))
-        .toList();
-    Navigator.pop(context, {'ids': _selectedIds, 'users': selectedUsers});
+  Future<void> _createGroup() async {
+    if (_selectedIds.isEmpty) {
+      showToast(message: 'Please select at least one member');
+      return;
+    }
+
+    setState(() => _isCreating = true);
+
+    try {
+      final result = await _apiServices.createGroup(
+        title: widget.groupTitle ?? '',
+        description: widget.groupDescription,
+        profileImage: widget.groupImage,
+        members: _selectedIds.toList(),
+        category: widget.groupCategory ?? 'general',
+        privacy: widget.groupPrivacy ?? 'public',
+      );
+
+      if (result['success'] == true) {
+        if (mounted) {
+          Navigator.pushAndRemoveUntil(
+            context,
+            PageTransition(
+              type: PageTransitionType.fade,
+              duration: const Duration(milliseconds: 300),
+              child: const GroupCreatedSuccessScreen(),
+            ),
+            (route) => false,
+          );
+        }
+      } else {
+        showToast(message: 'Failed to create group');
+      }
+    } catch (e) {
+      debugPrint('Error creating group: $e');
+      showToast(message: 'Failed to create group');
+    } finally {
+      if (mounted) setState(() => _isCreating = false);
+    }
+  }
+
+  void _onBottomButtonPressed() {
+    if (widget.groupTitle != null) {
+      _createGroup();
+    } else {
+      final selectedUsers = _allUsers
+          .where((u) => _selectedIds.contains(u['id']?.toString()))
+          .toList();
+      Navigator.pop(context, {'ids': _selectedIds, 'users': selectedUsers});
+    }
   }
 
   @override
@@ -219,33 +285,17 @@ class AddMemberState extends State<AddMember> with UtilityMixin {
         ),
       ),
       bottomNavigationBar: BottomAppBar(
+        padding: EdgeInsets.zero,
+        height: 50.h,
         color: Theme.of(context).colorScheme.background,
-        padding: const EdgeInsets.fromLTRB(16, 5, 16, 35),
-        child: GestureDetector(
-          onTap: _selectedIds.isEmpty ? null : _onAdd,
-          child: Container(
-            width: double.infinity,
-            height: 50,
-            decoration: BoxDecoration(
-              color: _selectedIds.isEmpty
-                  ? AppColors.primaryColor.withOpacity(0.4)
-                  : AppColors.primaryColor,
-              borderRadius: AppRadius.buttonRadius,
-            ),
-            child: Center(
-              child: Text(
-                _selectedIds.isEmpty
-                    ? AppLocalizations.of(context)!.add
-                    : '${AppLocalizations.of(context)!.addmemberstogroup} (${_selectedIds.length})',
-                style: AppTextStyles.bodyText.copyWith(
-                  color: _selectedIds.isEmpty
-                      ? const Color(0xFF898989).withOpacity(0.6)
-                      : Colors.white,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ),
-          ),
+        child: PrimaryButton(
+          title: widget.groupTitle != null
+              ? AppLocalizations.of(context)!.creategroup
+              : AppLocalizations.of(context)!.add,
+          onPressed: (_isCreating || _selectedIds.isEmpty)
+              ? null
+              : _onBottomButtonPressed,
+          isLoading: _isCreating,
         ),
       ),
     );
@@ -297,19 +347,8 @@ class AddMemberState extends State<AddMember> with UtilityMixin {
           onTap: () => _toggleMember(id),
           child: Container(
             width: double.infinity,
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-            margin: const EdgeInsets.only(bottom: 5),
-            decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.primaryContainer,
-              borderRadius: BorderRadius.circular(AppRadius.card),
-              border: Border.all(
-                color: Theme.of(context).colorScheme.outline,
-                width: 1,
-              ),
-              boxShadow: const [
-                BoxShadow(color: Color(0x06000000), blurRadius: 2),
-              ],
-            ),
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+
             child: Row(
               children: [
                 Builder(
@@ -317,7 +356,8 @@ class AddMemberState extends State<AddMember> with UtilityMixin {
                     final imageBytes = avatarUrl != null
                         ? getProfileImage(avatarUrl)
                         : null;
-                    final hasNetworkImage = imageBytes == null &&
+                    final hasNetworkImage =
+                        imageBytes == null &&
                         avatarUrl != null &&
                         avatarUrl.trim().isNotEmpty &&
                         avatarUrl.startsWith('http');

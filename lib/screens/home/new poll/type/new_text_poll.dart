@@ -61,7 +61,7 @@ class _NewThingsPollState extends State<NewTextPoll> with UtilityMixin {
 
   int _remainingGenerations = 8;
   int _dailyLimit = 8;
-
+ 
   Future<void> _loadSavedAiLimit() async {
     final limitData = await SharedPrefService.getAiLimitData();
     if (mounted) {

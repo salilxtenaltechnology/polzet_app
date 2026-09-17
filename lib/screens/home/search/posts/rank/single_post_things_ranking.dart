@@ -95,6 +95,7 @@ class _SinglePostThingsRankingState extends State<SinglePostThingsRanking> {
       if (!mounted) return;
 
       if (result['success'] == true) {
+        widget.post.isPolledByCurrentUser = true;
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(
             builder: (_) => RankSubmittedScreen(
@@ -161,7 +162,7 @@ class _SinglePostThingsRankingState extends State<SinglePostThingsRanking> {
     return AnimatedBuilder(
       animation: animation,
       builder: (_, __) => Material(
-        elevation: 1,
+        color: Colors.transparent,
         borderRadius: BorderRadius.circular(AppRadius.card),
         child: child,
       ),
@@ -182,6 +183,13 @@ class _SinglePostThingsRankingState extends State<SinglePostThingsRanking> {
     final username = post.user.username;
     final initial = username.isNotEmpty ? username[0].toUpperCase() : 'P';
     final txt = AppTextColors.of(context);
+
+    final fn = post.firstName.trim();
+    final ln = post.lastName.trim();
+    final fullName = '$fn $ln'.trim();
+    final displayName = fullName.isNotEmpty
+        ? fullName
+        : (username.isNotEmpty ? username : 'Polzet User');
 
     final String profileUrl = widget.post.profileImage;
     ImageProvider? avatarImage;
@@ -262,11 +270,15 @@ class _SinglePostThingsRankingState extends State<SinglePostThingsRanking> {
                   children: [
                     Row(
                       children: [
-                        Text(
-                          '${post.firstName} ${post.lastName}'.trim(),
-                          style: AppTextStyles.sectionHeading.copyWith(
-                            color: txt.title,
-                            fontSize: 14,
+                        Flexible(
+                          child: Text(
+                            displayName,
+                            style: AppTextStyles.sectionHeading.copyWith(
+                              color: txt.title,
+                              fontSize: 14,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ),
                         if (username.trim().toLowerCase() == 'polzet_ai' ||
@@ -321,7 +333,7 @@ class _SinglePostThingsRankingState extends State<SinglePostThingsRanking> {
           const SizedBox(height: 4),
 
           Text(
-            'Hold & drag to rank answer',
+            AppLocalizations.of(context)!.holdanddragtorankanswer,
             style: AppTextStyles.subText.copyWith(
               fontSize: 13,
               color: const Color(0xFF898989),
@@ -345,7 +357,7 @@ class _SinglePostThingsRankingState extends State<SinglePostThingsRanking> {
       key: key,
       child: Padding(
         padding: const EdgeInsets.only(bottom: 10),
-        child: ReorderableDragStartListener(
+        child: ReorderableDelayedDragStartListener(
           index: index,
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),

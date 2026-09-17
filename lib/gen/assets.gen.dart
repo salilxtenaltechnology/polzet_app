@@ -177,6 +177,18 @@ class $AssetsImagesGen {
   AssetGenImage get icCamera =>
       const AssetGenImage('assets/images/ic_camera.png');
 
+  /// File path: assets/images/ic_chat_profile.png
+  AssetGenImage get icChatProfile =>
+      const AssetGenImage('assets/images/ic_chat_profile.png');
+
+  /// File path: assets/images/ic_chatinfo_block.png
+  AssetGenImage get icChatinfoBlock =>
+      const AssetGenImage('assets/images/ic_chatinfo_block.png');
+
+  /// File path: assets/images/ic_clear_chat.png
+  AssetGenImage get icClearChat =>
+      const AssetGenImage('assets/images/ic_clear_chat.png');
+
   /// File path: assets/images/ic_country.png
   AssetGenImage get icCountry =>
       const AssetGenImage('assets/images/ic_country.png');
@@ -196,6 +208,10 @@ class $AssetsImagesGen {
   /// File path: assets/images/ic_disagree.png
   AssetGenImage get icDisagree =>
       const AssetGenImage('assets/images/ic_disagree.png');
+
+  /// File path: assets/images/ic_email.png
+  AssetGenImage get icEmail =>
+      const AssetGenImage('assets/images/ic_email.png');
 
   /// File path: assets/images/ic_fashion.png
   AssetGenImage get icFashion =>
@@ -246,12 +262,20 @@ class $AssetsImagesGen {
   AssetGenImage get icLanguage =>
       const AssetGenImage('assets/images/ic_language.png');
 
+  /// File path: assets/images/ic_leave.png
+  AssetGenImage get icLeave =>
+      const AssetGenImage('assets/images/ic_leave.png');
+
   /// File path: assets/images/ic_meme.png
   AssetGenImage get icMeme => const AssetGenImage('assets/images/ic_meme.png');
 
   /// File path: assets/images/ic_message.png
   AssetGenImage get icMessage =>
       const AssetGenImage('assets/images/ic_message.png');
+
+  /// File path: assets/images/ic_more_horizontal.png
+  AssetGenImage get icMoreHorizontal =>
+      const AssetGenImage('assets/images/ic_more_horizontal.png');
 
   /// File path: assets/images/ic_movie.png
   AssetGenImage get icMovie =>
@@ -260,6 +284,9 @@ class $AssetsImagesGen {
   /// File path: assets/images/ic_music.png
   AssetGenImage get icMusic =>
       const AssetGenImage('assets/images/ic_music.png');
+
+  /// File path: assets/images/ic_mute.png
+  AssetGenImage get icMute => const AssetGenImage('assets/images/ic_mute.png');
 
   /// File path: assets/images/ic_muted.png
   AssetGenImage get icMuted =>
@@ -279,16 +306,31 @@ class $AssetsImagesGen {
   AssetGenImage get icPreference =>
       const AssetGenImage('assets/images/ic_preference.png');
 
+  /// File path: assets/images/ic_public.png
+  AssetGenImage get icPublic =>
+      const AssetGenImage('assets/images/ic_public.png');
+
   /// File path: assets/images/ic_relationships.png
   AssetGenImage get icRelationships =>
       const AssetGenImage('assets/images/ic_relationships.png');
 
+  /// File path: assets/images/ic_report.png
+  AssetGenImage get icReport =>
+      const AssetGenImage('assets/images/ic_report.png');
+
   /// File path: assets/images/ic_save.png
   AssetGenImage get icSave => const AssetGenImage('assets/images/ic_save.png');
+
+  /// File path: assets/images/ic_search.png
+  AssetGenImage get icSearch =>
+      const AssetGenImage('assets/images/ic_search.png');
 
   /// File path: assets/images/ic_security.png
   AssetGenImage get icSecurity =>
       const AssetGenImage('assets/images/ic_security.png');
+
+  /// File path: assets/images/ic_send.png
+  AssetGenImage get icSend => const AssetGenImage('assets/images/ic_send.png');
 
   /// File path: assets/images/ic_splash.png
   AssetGenImage get icSplash =>
@@ -491,11 +533,15 @@ class $AssetsImagesGen {
     icBlockAccount,
     icBook,
     icCamera,
+    icChatProfile,
+    icChatinfoBlock,
+    icClearChat,
     icCountry,
     icCurrentAffairs,
     icDarkmode,
     icDelete,
     icDisagree,
+    icEmail,
     icFashion,
     icFeedback,
     icFinance,
@@ -509,18 +555,25 @@ class $AssetsImagesGen {
     icImagePoll,
     icInterest,
     icLanguage,
+    icLeave,
     icMeme,
     icMessage,
+    icMoreHorizontal,
     icMovie,
     icMusic,
+    icMute,
     icMuted,
     icNotifications,
     icPin,
     icPoll,
     icPreference,
+    icPublic,
     icRelationships,
+    icReport,
     icSave,
+    icSearch,
     icSecurity,
+    icSend,
     icSplash,
     icSports,
     icTech,

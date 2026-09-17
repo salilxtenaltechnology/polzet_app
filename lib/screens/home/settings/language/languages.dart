@@ -15,10 +15,17 @@ class _LanguagesState extends State<Languages> {
 
   final List<Map<String, String>> languageList = [
     {"code": "ar", "name": "Arabic (عربي)", "flag": "🇸🇦"},
+    {"code": "zh", "name": "Chinese (中文)", "flag": "🇨🇳"},
     {"code": "en", "name": "English (UK)", "flag": "🇬🇧"},
+    {"code": "fr", "name": "French (Français)", "flag": "🇫🇷"},
     {"code": "de", "name": "German (Deutsch)", "flag": "🇩🇪"},
     {"code": "hi", "name": "Hindi (हिंदी)", "flag": "🇮🇳"},
     {"code": "id", "name": "Indonesian (Indonesia)", "flag": "🇮🇩"},
+    {"code": "it", "name": "Italian (Italiano)", "flag": "🇮🇹"},
+    {"code": "ja", "name": "Japanese (日本語)", "flag": "🇯🇵"},
+    {"code": "ko", "name": "Korean (한국어)", "flag": "🇰🇷"},
+    {"code": "pt", "name": "Portuguese (Português)", "flag": "🇵🇹"},
+    {"code": "ru", "name": "Russian (Русский)", "flag": "🇷🇺"},
     {"code": "es", "name": "Spanish (Española)", "flag": "🇪🇸"},
     {"code": "vi", "name": "Vietnamese (Tiếng Việt)", "flag": "🇻🇳"},
   ];
@@ -149,7 +156,7 @@ class _LanguagesState extends State<Languages> {
           ),
         ),
         child: Text(
-          'Continue',
+          AppLocalizations.of(context)?.continueButton ?? 'Continue',
           style: AppTextStyles.bodyText.copyWith(
             fontSize: 15,
             fontWeight: FontWeight.w500,

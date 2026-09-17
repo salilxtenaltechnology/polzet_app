@@ -683,8 +683,6 @@ class ApiService with UtilityMixin {
     }
   }
 
-  // ==================== USER PROFILE ====================
-
   Future<Map<String, dynamic>?> fetchUserData() async {
     try {
       final accessToken = await SharedPrefService.getToken();
@@ -695,12 +693,26 @@ class ApiService with UtilityMixin {
         options: Options(headers: await _getAuthHeaders()),
       );
 
-      final String userId = response.data['id'].toString();
-      await _prefService.saveUserId(userId);
+      final String? userId = response.data?['id']?.toString();
+      if (userId != null && userId.isNotEmpty) {
+        await _prefService.saveUserId(userId);
+      }
 
       return response.statusCode == 200 ? response.data : null;
     } on DioException catch (e) {
-      debugPrint('Error fetching current user data: ${e.message}');
+      final statusCode = e.response?.statusCode;
+      if (statusCode != null && statusCode >= 500) {
+        debugPrint('⚠️ Server error ($statusCode) fetching user profile');
+      } else if (statusCode == 429) {
+        debugPrint('⚠️ Rate limit (429) fetching user profile');
+      } else {
+        debugPrint(
+          'Error fetching current user data: ${statusCode ?? e.message}',
+        );
+      }
+      return null;
+    } catch (e) {
+      debugPrint('Error fetching current user data: $e');
       return null;
     }
   }
@@ -753,9 +765,7 @@ class ApiService with UtilityMixin {
     try {
       final response = await _dio.patch(
         ApiConstants.updateProfile,
-        data: {
-          'interests': interests,
-        },
+        data: {'interests': interests},
         options: Options(headers: await _getAuthHeaders()),
       );
 
@@ -777,21 +787,18 @@ class ApiService with UtilityMixin {
   }
 
   // Note: Implemented PATCH Method User Update Country
-  Future<bool> updateCountry({
-    required String country,
-  }) async {
+  Future<bool> updateCountry({required String country}) async {
     try {
       var response = await _dio.patch(
         ApiConstants.updateProfile,
-        data: {
-          "country": country,
-        },
+        data: {"country": country},
         options: Options(headers: await _getAuthHeaders()),
       );
 
       debugPrint('updateCountry response: ${response.data}');
 
-      bool isSuccess = (response.statusCode == 200 || response.statusCode == 201) &&
+      bool isSuccess =
+          (response.statusCode == 200 || response.statusCode == 201) &&
           response.data is Map &&
           response.data['status'] != 'error' &&
           response.data['errors'] == null;
@@ -803,19 +810,20 @@ class ApiService with UtilityMixin {
           final altCountry = country == country.toLowerCase()
               ? country.toUpperCase()
               : country.toLowerCase();
-          debugPrint('Retrying updateCountry with alternative case: $altCountry');
+          debugPrint(
+            'Retrying updateCountry with alternative case: $altCountry',
+          );
 
           final retryResponse = await _dio.patch(
             ApiConstants.updateProfile,
-            data: {
-              "country": altCountry,
-            },
+            data: {"country": altCountry},
             options: Options(headers: await _getAuthHeaders()),
           );
 
           debugPrint('updateCountry retry response: ${retryResponse.data}');
 
-          if ((retryResponse.statusCode == 200 || retryResponse.statusCode == 201) &&
+          if ((retryResponse.statusCode == 200 ||
+                  retryResponse.statusCode == 201) &&
               retryResponse.data is Map &&
               retryResponse.data['status'] != 'error' &&
               retryResponse.data['errors'] == null) {
@@ -831,7 +839,10 @@ class ApiService with UtilityMixin {
         return true;
       }
 
-      final message = _extractApiErrorMessage(response.data, 'Failed to update country');
+      final message = _extractApiErrorMessage(
+        response.data,
+        'Failed to update country',
+      );
       showToast(message: message);
       return false;
     } on DioException catch (e) {
@@ -860,7 +871,8 @@ class ApiService with UtilityMixin {
             }
             return val.toString();
           }
-        } else if (data['errors'] is List && (data['errors'] as List).isNotEmpty) {
+        } else if (data['errors'] is List &&
+            (data['errors'] as List).isNotEmpty) {
           return (data['errors'] as List).first.toString();
         } else {
           return data['errors'].toString();
@@ -910,6 +922,7 @@ class ApiService with UtilityMixin {
       return _handleDioError(e, defaultMessage: 'Failed to update username');
     }
   }
+
   /// Fetches the list of available interests (id, name, icon).
   Future<Map<String, dynamic>> getInterestList() async {
     try {
@@ -990,35 +1003,35 @@ class ApiService with UtilityMixin {
   }
 
   Future<Map<String, dynamic>> numberOtpVerify({
-  required String countryCode,
-  required String mobileNumber,
-  String? otp,
-  String? firebaseToken,
-}) async {
-  assert(
-    otp != null || firebaseToken != null,
-    'Either otp or firebaseToken must be provided',
-  );
-
-  try {
-    final formData = FormData.fromMap({
-      'country_code': countryCode,
-      'mobile_number': mobileNumber,
-      if (otp != null) 'otp': otp,
-      if (firebaseToken != null) 'firebase_token': firebaseToken,
-    });
-
-    final response = await _dio.post(
-      '${ApiConstants.baseUrl}/profile/verify_phone_confirm',
-      data: formData,
-      options: Options(headers: await _getAuthHeaders()),
+    required String countryCode,
+    required String mobileNumber,
+    String? otp,
+    String? firebaseToken,
+  }) async {
+    assert(
+      otp != null || firebaseToken != null,
+      'Either otp or firebaseToken must be provided',
     );
 
-    return response.data as Map<String, dynamic>;
-  } on DioException catch (e) {
-    throw _handleDioError(e);
+    try {
+      final formData = FormData.fromMap({
+        'country_code': countryCode,
+        'mobile_number': mobileNumber,
+        if (otp != null) 'otp': otp,
+        if (firebaseToken != null) 'firebase_token': firebaseToken,
+      });
+
+      final response = await _dio.post(
+        '${ApiConstants.baseUrl}/profile/verify_phone_confirm',
+        data: formData,
+        options: Options(headers: await _getAuthHeaders()),
+      );
+
+      return response.data as Map<String, dynamic>;
+    } on DioException catch (e) {
+      throw _handleDioError(e);
+    }
   }
-}
 
   Future<String> changePassword({
     required String currentPassword,
@@ -1221,7 +1234,8 @@ class ApiService with UtilityMixin {
       }
 
       if (response.statusCode == 200) {
-        final isSuccess = data['status'] == 'success' ||
+        final isSuccess =
+            data['status'] == 'success' ||
             data['success'] == true ||
             data['status'] == null;
         return {
@@ -1238,11 +1252,15 @@ class ApiService with UtilityMixin {
       String message = 'Failed to delete account';
       final dynamic resData = e.response?.data;
       if (resData is Map) {
-        message = resData['message']?.toString() ??
+        message =
+            resData['message']?.toString() ??
             resData['detail']?.toString() ??
             _handleDioError(e, defaultMessage: 'Failed to delete account');
       } else {
-        message = _handleDioError(e, defaultMessage: 'Failed to delete account');
+        message = _handleDioError(
+          e,
+          defaultMessage: 'Failed to delete account',
+        );
       }
       return {'success': false, 'message': message};
     } catch (e) {
@@ -1732,8 +1750,11 @@ class ApiService with UtilityMixin {
     }
   }
 
-  /// Fetch user posts with polls things
-  Future<List<UserPostModel>> fetchPostsPolls(String username) async {
+  /// Fetch paginated user posts response
+  Future<UserPostResponse> fetchUserPostsResponse(
+    String username, {
+    int page = 1,
+  }) async {
     final cleanUsername = username.trim();
     if (cleanUsername.isEmpty) {
       throw Exception('Cannot fetch user posts: username is empty');
@@ -1741,6 +1762,32 @@ class ApiService with UtilityMixin {
     try {
       final response = await _dio.get(
         '${ApiConstants.userPosts}/$cleanUsername',
+        queryParameters: page > 1 ? {'page': page} : null,
+        options: Options(headers: await _getAuthHeaders()),
+      );
+      final postResponse = UserPostResponse.fromJson(
+        response.data as Map<String, dynamic>,
+      );
+      return postResponse;
+    } on DioException catch (e) {
+      debugPrint('Error fetching user posts response: $e');
+      rethrow;
+    }
+  }
+
+  /// Fetch user posts with polls things
+  Future<List<UserPostModel>> fetchPostsPolls(
+    String username, {
+    int page = 1,
+  }) async {
+    final cleanUsername = username.trim();
+    if (cleanUsername.isEmpty) {
+      throw Exception('Cannot fetch user posts: username is empty');
+    }
+    try {
+      final response = await _dio.get(
+        '${ApiConstants.userPosts}/$cleanUsername',
+        queryParameters: page > 1 ? {'page': page} : null,
         options: Options(headers: await _getAuthHeaders()),
       );
       final postResponse = UserPostResponse.fromJson(
@@ -1754,16 +1801,24 @@ class ApiService with UtilityMixin {
   }
 
   /// Fetch only poll things posts
-  Future<List<UserPostModel>> fetchOnlyPollPosts(String username) async {
-    final allPosts = await fetchPostsPolls(username);
+  Future<List<UserPostModel>> fetchOnlyPollPosts(
+    String username, {
+    int page = 1,
+  }) async {
+    final allPosts = await fetchPostsPolls(username, page: page);
     return allPosts.where((post) => post.polls.isNotEmpty).toList();
   }
 
   // Fetch user posts with images
-  Future<List<UserPostModel>> fetchPostsImages(String username) async {
+  Future<List<UserPostModel>> fetchPostsImages(
+    String username, {
+    int page = 1,
+  }) async {
     try {
+      final cleanUsername = username.trim();
       final response = await _dio.get(
-        '${ApiConstants.userPosts}/$username',
+        '${ApiConstants.userPosts}/$cleanUsername',
+        queryParameters: page > 1 ? {'page': page} : null,
         options: Options(headers: await _getAuthHeaders()),
       );
       final postResponse = UserPostResponse.fromJson(
@@ -1777,8 +1832,11 @@ class ApiService with UtilityMixin {
   }
 
   /// Fetch only posts that have images in polls
-  Future<List<UserPostModel>> fetchImagePosts(String username) async {
-    final allPosts = await fetchPostsImages(username);
+  Future<List<UserPostModel>> fetchImagePosts(
+    String username, {
+    int page = 1,
+  }) async {
+    final allPosts = await fetchPostsImages(username, page: page);
 
     final filteredPosts = allPosts.where((post) => post.hasPollImages).toList();
 
@@ -1932,7 +1990,8 @@ class ApiService with UtilityMixin {
           'Image payload too large (413). Payload exceeds server limit.',
         );
       } else if (response.data is Map) {
-        final errorMsg = response.data['message'] ??
+        final errorMsg =
+            response.data['message'] ??
             response.data['detail'] ??
             response.data['error'] ??
             'Failed to upload poll';
@@ -1947,7 +2006,8 @@ class ApiService with UtilityMixin {
           'Image payload too large (413). Please check server upload limits.',
         );
       } else if (e.response?.data is Map) {
-        final errorMsg = e.response?.data['message']?.toString() ??
+        final errorMsg =
+            e.response?.data['message']?.toString() ??
             e.response?.data['detail']?.toString() ??
             e.response?.data['error']?.toString() ??
             'Failed to create image poll';
@@ -2456,11 +2516,15 @@ class ApiService with UtilityMixin {
     required List<dynamic> members,
     String? category,
     String? privacy,
+    String? description,
   }) async {
     try {
       final Map<String, dynamic> map = {'title': title, 'members': members};
       if (category != null) map['category'] = category;
       if (privacy != null) map['privacy'] = privacy;
+      if (description != null && description.trim().isNotEmpty) {
+        map['description'] = description.trim();
+      }
 
       if (profileImage != null) {
         final String ext = path.extension(profileImage.path).toLowerCase();
@@ -2479,6 +2543,7 @@ class ApiService with UtilityMixin {
 
       debugPrint('=== CREATE GROUP REQUEST ===');
       debugPrint('title: $title');
+      if (description != null) debugPrint('description: $description');
       if (category != null) debugPrint('category: $category');
       if (privacy != null) debugPrint('privacy: $privacy');
       if (profileImage != null) {
@@ -2672,6 +2737,23 @@ class ApiService with UtilityMixin {
         'message': 'Failed to reject join request.',
         'data': {},
       };
+    } on DioException catch (e) {
+      throw _handleDioError(e);
+    }
+  }
+
+  Future<Map<String, dynamic>> updateChatTheme({
+    required String chatId,
+    required String chatTheme,
+  }) async {
+    try {
+      final response = await _dio.post(
+        '${ApiConfig.baseUrl}/chats/private/$chatId',
+        data: {'chat_theme': chatTheme},
+        options: Options(headers: await _getAuthHeaders()),
+      );
+
+      return response.data as Map<String, dynamic>;
     } on DioException catch (e) {
       throw _handleDioError(e);
     }
@@ -3128,6 +3210,75 @@ class ApiService with UtilityMixin {
     }
   }
 
+  Future<Map<String, dynamic>> updateGroupInfo({
+    required String groupChatId,
+    String? title,
+    String? description,
+    String? category,
+    String? privacy,
+    String? chatTheme,
+  }) async {
+    try {
+      final data = <String, dynamic>{
+        if (title != null) 'title': title,
+        if (description != null) 'description': description,
+        if (category != null) 'category': category,
+        if (privacy != null) 'privacy': privacy,
+        if (chatTheme != null) 'chat_theme': chatTheme,
+      };
+
+      final response = await _dio.post(
+        '${ApiConfig.baseUrl}/chats/group/$groupChatId/update_group_info',
+        data: data,
+        options: Options(headers: await _getAuthHeaders()),
+      );
+
+      debugPrint('Group updated successfully: ${response.data}');
+
+      return response.data as Map<String, dynamic>;
+    } on DioException catch (e) {
+      throw _handleDioError(e);
+    }
+  }
+
+  Future<Map<String, dynamic>> reportGroup({
+    required String groupChatId,
+    required String reason,
+    required String details,
+    required String severity,
+  }) async {
+    try {
+      final response = await _dio.post(
+        '${ApiConfig.baseUrl}/chats/group/$groupChatId/report',
+        data: {'reason': reason, 'details': details, 'severity': severity},
+        options: Options(headers: await _getAuthHeaders()),
+      );
+
+      return response.data as Map<String, dynamic>;
+    } on DioException catch (e) {
+      throw _handleDioError(e);
+    }
+  }
+
+  Future<Map<String, dynamic>> reportUserProfile({
+    required String userId,
+    required String reason,
+    required String details,
+    required String severity,
+  }) async {
+    try {
+      final response = await _dio.post(
+        '${ApiConfig.baseUrl}/users/$userId/report',
+        data: {'reason': reason, 'details': details, 'severity': severity},
+        options: Options(headers: await _getAuthHeaders()),
+      );
+
+      return response.data as Map<String, dynamic>;
+    } on DioException catch (e) {
+      throw _handleDioError(e);
+    }
+  }
+
   // get messages list of private chat
   Future<MessageListModel> getMessageList({
     required dynamic chatId,
@@ -3165,9 +3316,7 @@ class ApiService with UtilityMixin {
     try {
       final response = await _dio.delete(
         '${ApiConstants.baseUrl}/chats/$chatId/messages/$messageId',
-        data: {
-          'delete_type': deleteType,
-        },
+        data: {'delete_type': deleteType},
         options: Options(headers: await _getAuthHeaders()),
       );
 
