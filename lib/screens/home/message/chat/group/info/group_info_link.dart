@@ -95,8 +95,8 @@ class _GroupInfoLinkState extends State<GroupInfoLink> {
               child: Row(
                 children: [
                   Container(
-                    width: 44,
-                    height: 44,
+                    height: 47,
+                    width: 47,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       color: Theme.of(
@@ -113,7 +113,7 @@ class _GroupInfoLinkState extends State<GroupInfoLink> {
                       ),
                     ),
                   ),
-                  SizedBox(width: 14.w),
+                    const SizedBox(width: 12),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -122,17 +122,17 @@ class _GroupInfoLinkState extends State<GroupInfoLink> {
                         Text(
                           'Invite Link',
                           style: AppTextStyles.cardTitle.copyWith(
-                            fontSize: 13.5,
-                            fontWeight: FontWeight.w500,
                             color: txt.title,
+                            fontSize: 14.5,
+                            fontWeight: FontWeight.w500,
                           ),
                         ),
-                      
+
                         Text(
                           _groupLink,
-                          style: AppTextStyles.bodyText.copyWith(
-                            fontSize: 12.2,
+                          style: AppTextStyles.cardTitle.copyWith(
                             color: txt.muted,
+                            fontSize: 12.5,
                             fontWeight: FontWeight.w400,
                           ),
                           maxLines: 1,
@@ -176,8 +176,8 @@ class _GroupInfoLinkState extends State<GroupInfoLink> {
                 child: Row(
                   children: [
                     Container(
-                      width: 44,
-                      height: 44,
+                      height: 47,
+                      width: 47,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         color: Theme.of(
@@ -194,7 +194,7 @@ class _GroupInfoLinkState extends State<GroupInfoLink> {
                         ),
                       ),
                     ),
-                    SizedBox(width: 12.w),
+                    const SizedBox(width: 12),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -203,17 +203,16 @@ class _GroupInfoLinkState extends State<GroupInfoLink> {
                           Text(
                             'Share',
                             style: AppTextStyles.cardTitle.copyWith(
-                            fontSize: 13.5,
-                            fontWeight: FontWeight.w500,
-                            color: txt.title,
+                              color: txt.title,
+                              fontSize: 14.5,
+                              fontWeight: FontWeight.w500,
+                            ),
                           ),
-                          ),
-                         
                           Text(
                             'Invite people to join this group',
-                            style: AppTextStyles.bodyText.copyWith(
-                              fontSize: 12.2,
+                            style: AppTextStyles.cardTitle.copyWith(
                               color: txt.muted,
+                              fontSize: 12.5,
                               fontWeight: FontWeight.w400,
                             ),
                           ),

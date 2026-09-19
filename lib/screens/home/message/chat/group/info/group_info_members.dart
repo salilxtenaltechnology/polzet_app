@@ -15,12 +15,14 @@ import 'package:polzet_app/screens/home/profile/public/public_profile_screen.dar
 import 'package:polzet_app/widgets/appbar/common_appbar.dart';
 import 'package:polzet_app/widgets/base64/image_convert.dart';
 import 'package:polzet_app/widgets/button/primary_button.dart';
+import 'package:polzet_app/widgets/bottomsheets/report/report_submitted_bottom_sheet.dart';
 import 'package:polzet_app/widgets/custom_text_styles.dart';
 import 'package:polzet_app/widgets/dialog/custom_diolog.dart';
 import 'package:polzet_app/widgets/loader.dart';
 import 'package:polzet_app/widgets/show_toast.dart';
 import 'package:provider/provider.dart';
 
+import '../../private/info/private_user_report.dart';
 import 'group_add_members.dart';
 import '../join/group_join_request_list.dart';
 
@@ -65,13 +67,15 @@ class _GroupInfoMembersState extends State<GroupInfoMembers> with UtilityMixin {
     setState(() {});
   }
 
-  List<Map<String, dynamic>> _sortJoinRequests(List<Map<String, dynamic>> list) {
+  List<Map<String, dynamic>> _sortJoinRequests(
+    List<Map<String, dynamic>> list,
+  ) {
     final sorted = List<Map<String, dynamic>>.from(list);
     sorted.sort((a, b) {
-      final aDateStr =
-          (a['requested_at'] ?? a['created_at'] ?? a['timestamp'])?.toString();
-      final bDateStr =
-          (b['requested_at'] ?? b['created_at'] ?? b['timestamp'])?.toString();
+      final aDateStr = (a['requested_at'] ?? a['created_at'] ?? a['timestamp'])
+          ?.toString();
+      final bDateStr = (b['requested_at'] ?? b['created_at'] ?? b['timestamp'])
+          ?.toString();
       final aDate = aDateStr != null ? DateTime.tryParse(aDateStr) : null;
       final bDate = bDateStr != null ? DateTime.tryParse(bDateStr) : null;
       if (aDate == null && bDate == null) return 0;
@@ -90,9 +94,7 @@ class _GroupInfoMembersState extends State<GroupInfoMembers> with UtilityMixin {
     _isLoadingRequests = true;
 
     try {
-      final res = await _apiService.getGroupJoinRequestsList(
-        chatId: chatId,
-      );
+      final res = await _apiService.getGroupJoinRequestsList(chatId: chatId);
       List<Map<String, dynamic>> list = [];
       if (res['data'] is List) {
         list = List<Map<String, dynamic>>.from(res['data']);
@@ -245,6 +247,8 @@ class _GroupInfoMembersState extends State<GroupInfoMembers> with UtilityMixin {
         (uuid.isNotEmpty && _adminIdentifiers.contains(uuid)) ||
         (username.isNotEmpty &&
             _adminIdentifiers.contains(username.toLowerCase()));
+    final bool isReported =
+        (member['is_reported'] == true) || (userMap['is_reported'] == true);
 
     return {
       'uuid': uuid,
@@ -252,6 +256,7 @@ class _GroupInfoMembersState extends State<GroupInfoMembers> with UtilityMixin {
       'name': fullName,
       'profile_picture_url': profilePic,
       'is_admin': isAdminFlag,
+      'is_reported': isReported,
       'raw': member,
     };
   }
@@ -326,21 +331,16 @@ class _GroupInfoMembersState extends State<GroupInfoMembers> with UtilityMixin {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     final String username = (member['username'] ?? 'User').toString();
     final String name = (member['name'] ?? username).toString();
-    final String handle =
-        username.startsWith('@') ? username : '@$username';
+    final String handle = username.startsWith('@') ? username : '@$username';
     final String uuid = (member['uuid'] ?? '').toString();
     final String? profilePic = member['profile_picture_url'] as String?;
     final bool isAdmin = member['is_admin'] == true;
 
     showModalBottomSheet(
       context: context,
-      backgroundColor: isDarkMode
-          ? const Color(0xFF1E1E24)
-          : Colors.white,
+      backgroundColor: isDarkMode ? const Color(0xFF1E1E24) : Colors.white,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(
-          top: Radius.circular(20.r),
-        ),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20.r)),
       ),
       builder: (ctx) => SafeArea(
         top: false,
@@ -377,15 +377,29 @@ class _GroupInfoMembersState extends State<GroupInfoMembers> with UtilityMixin {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Text(
-                            name.isNotEmpty ? name : username,
-                            style: AppTextStyles.cardTitle.copyWith(
-                              color: txt.title,
-                              fontSize: 14.sp,
-                              fontWeight: FontWeight.w500,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
+                          Row(
+                            children: [
+                              Flexible(
+                                child: Text(
+                                  name.isNotEmpty ? name : username,
+                                  style: AppTextStyles.cardTitle.copyWith(
+                                    color: txt.title,
+                                    fontSize: 14.sp,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              if (_isPolzetAi(username)) ...[
+                                SizedBox(width: 4.w),
+                                Image.asset(
+                                  Assets.images.icVerify.path,
+                                  height: 13,
+                                  width: 13,
+                                ),
+                              ],
+                            ],
                           ),
                           Text(
                             handle,
@@ -440,44 +454,48 @@ class _GroupInfoMembersState extends State<GroupInfoMembers> with UtilityMixin {
               ),
               _buildOptionRow(
                 title: 'Report User',
-                textColor: const Color(0xFFE53935),
-                onTap: () {
+                textColor: const Color(0XFFE5484D),
+                onTap: () async {
                   Navigator.pop(ctx);
-                  showReportChatDiolog(context, () {
-                    Navigator.pop(context);
-                    showToast(message: 'Report submitted');
-                  });
+                  final bool isReported = member['is_reported'] == true;
+                  if (isReported) {
+                    showReportSubmittedBottomSheet(context);
+                  } else {
+                    final result = await navigationPush(
+                      context,
+                      PrivateUserReport(userId: uuid, isReported: false),
+                    );
+                    if (result == true && mounted) {
+                      _updateMemberReportedStatusLocally(uuid, true);
+                    }
+                  }
                 },
               ),
               _buildOptionRow(
                 title: 'Block User',
-                textColor: const Color(0xFFE53935),
+                textColor: const Color(0XFFE5484D),
                 onTap: () {
                   Navigator.pop(ctx);
-                  showBlockUserDiolog(
-                    context,
-                    () async {
-                      Navigator.pop(context);
-                      if (uuid.isEmpty) {
-                        showToast(message: 'User ID not found');
-                        return;
+                  showBlockUserDiolog(context, () async {
+                    Navigator.pop(context);
+                    if (uuid.isEmpty) {
+                      showToast(message: 'User ID not found');
+                      return;
+                    }
+                    try {
+                      final res = await _apiService.blockUser(uuid);
+                      if (res['success'] == false) {
+                        showToast(
+                          message: res['message'] ?? 'Failed to block user',
+                        );
+                      } else {
+                        showToast(message: 'User blocked successfully');
+                        _fetchGroupInfo();
                       }
-                      try {
-                        final res = await _apiService.blockUser(uuid);
-                        if (res['success'] == false) {
-                          showToast(
-                            message: res['message'] ?? 'Failed to block user',
-                          );
-                        } else {
-                          showToast(message: 'User blocked successfully');
-                          _fetchGroupInfo();
-                        }
-                      } catch (e) {
-                        showToast(message: 'Failed to block user');
-                      }
-                    },
-                    false,
-                  );
+                    } catch (e) {
+                      showToast(message: 'Failed to block user');
+                    }
+                  }, false);
                 },
               ),
               SizedBox(height: 8.h),
@@ -502,8 +520,8 @@ class _GroupInfoMembersState extends State<GroupInfoMembers> with UtilityMixin {
         child: Text(
           title,
           style: AppTextStyles.bodyText.copyWith(
-            color: textColor ?? txt.title,
-            fontSize: 12.sp,
+            color: textColor ?? txt.body,
+            fontSize: 13.5.sp,
             fontWeight: FontWeight.w400,
           ),
         ),
@@ -549,12 +567,92 @@ class _GroupInfoMembersState extends State<GroupInfoMembers> with UtilityMixin {
     }
   }
 
+  void _updateMemberReportedStatusLocally(String userId, bool isReported) {
+    if (userId.isEmpty || _groupData == null) return;
+    setState(() {
+      final membersList = _groupData?['members'];
+      if (membersList is List) {
+        for (var m in membersList) {
+          if (m is Map) {
+            final mId =
+                (m['uuid'] ?? m['id'] ?? m['user']?['uuid'] ?? m['user']?['id'])
+                    ?.toString();
+            if (mId == userId) {
+              m['is_reported'] = isReported;
+              if (m['user'] is Map) {
+                m['user']['is_reported'] = isReported;
+              }
+            }
+          }
+        }
+      }
+      final adminsList = _groupData?['admins'];
+      if (adminsList is List) {
+        for (var a in adminsList) {
+          if (a is Map) {
+            final aId =
+                (a['uuid'] ?? a['id'] ?? a['user']?['uuid'] ?? a['user']?['id'])
+                    ?.toString();
+            if (aId == userId) {
+              a['is_reported'] = isReported;
+              if (a['user'] is Map) {
+                a['user']['is_reported'] = isReported;
+              }
+            }
+          }
+        }
+      }
+    });
+  }
+
+  bool _isPolzetAi(String? username) {
+    if (username == null) return false;
+    final u = username.trim().toLowerCase();
+    return u == 'polzet_ai' || u == 'polet_ai';
+  }
+
   Widget _buildMemberAvatar(
     String? profileUrl,
     String username,
     bool isDarkMode, {
     double? size,
   }) {
+    final double effectiveSize = (size ?? 36).w;
+
+    if (_isPolzetAi(username) || _isPolzetAi(profileUrl)) {
+      return SizedBox(
+        width: effectiveSize,
+        height: effectiveSize,
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            ClipOval(
+              child: Center(
+                child: Padding(
+                  padding: const EdgeInsets.only(
+                    top: 6,
+                    bottom: 0,
+                    left: 8,
+                    right: 7,
+                  ),
+                  child: Image.asset(
+                    Assets.images.icSplash.path,
+                    fit: BoxFit.contain,
+                  ),
+                ),
+              ),
+            ),
+            Positioned.fill(
+              child: Image.asset(
+                Assets.images.aiFrame.path,
+                fit: BoxFit.contain,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
     final resolved = resolveProfileImageUrl(profileUrl);
     final bytes = profileUrl != null ? getProfileImage(profileUrl) : null;
     final ImageProvider? provider = bytes != null
@@ -564,8 +662,6 @@ class _GroupInfoMembersState extends State<GroupInfoMembers> with UtilityMixin {
               : (resolved != null && resolved.startsWith('assets/')
                     ? AssetImage(resolved)
                     : null));
-
-    final double effectiveSize = (size ?? 36).w;
 
     return Container(
       width: effectiveSize,
@@ -595,16 +691,17 @@ class _GroupInfoMembersState extends State<GroupInfoMembers> with UtilityMixin {
     for (final req in sortedList) {
       if (profileUrls.length >= 2) break;
       final user = (req['user'] is Map) ? req['user'] as Map : req;
-      final String? profileUrl = (user['profile_picture'] ??
-              user['profile_picture_url'] ??
-              user['avatar_url'] ??
-              user['profile_image'] ??
-              user['profile_url'] ??
-              user['avatar'] ??
-              user['image'] ??
-              req['profile_picture'] ??
-              req['profile_picture_url'])
-          ?.toString();
+      final String? profileUrl =
+          (user['profile_picture'] ??
+                  user['profile_picture_url'] ??
+                  user['avatar_url'] ??
+                  user['profile_image'] ??
+                  user['profile_url'] ??
+                  user['avatar'] ??
+                  user['image'] ??
+                  req['profile_picture'] ??
+                  req['profile_picture_url'])
+              ?.toString();
       profileUrls.add(profileUrl);
     }
 
@@ -691,10 +788,10 @@ class _GroupInfoMembersState extends State<GroupInfoMembers> with UtilityMixin {
     final ImageProvider? imageProvider = bytes != null
         ? MemoryImage(bytes)
         : (resolved != null && resolved.startsWith('http')
-            ? NetworkImage(resolved)
-            : (resolved != null && resolved.startsWith('assets/')
-                ? AssetImage(resolved)
-                : null));
+              ? NetworkImage(resolved)
+              : (resolved != null && resolved.startsWith('assets/')
+                    ? AssetImage(resolved)
+                    : null));
 
     return Container(
       width: size,
@@ -711,10 +808,7 @@ class _GroupInfoMembersState extends State<GroupInfoMembers> with UtilityMixin {
               )
             : null,
         image: imageProvider != null
-            ? DecorationImage(
-                image: imageProvider,
-                fit: BoxFit.cover,
-              )
+            ? DecorationImage(image: imageProvider, fit: BoxFit.cover)
             : DecorationImage(
                 image: AssetImage(Assets.images.icAvatar.path),
                 fit: BoxFit.cover,
@@ -780,11 +874,7 @@ class _GroupInfoMembersState extends State<GroupInfoMembers> with UtilityMixin {
               ],
             ),
           ),
-          Icon(
-            Icons.chevron_right_rounded,
-            color: txt.muted,
-            size: 24.sp,
-          ),
+          Icon(Icons.chevron_right_rounded, color: txt.muted, size: 24.sp),
         ],
       ),
     );
@@ -924,16 +1014,33 @@ class _GroupInfoMembersState extends State<GroupInfoMembers> with UtilityMixin {
                                               CrossAxisAlignment.start,
                                           mainAxisSize: MainAxisSize.min,
                                           children: [
-                                            Text(
-                                              username,
-                                              style: AppTextStyles.bodyText
-                                                  .copyWith(
-                                                    color: txt.body,
-                                                    fontSize: 14.5,
-                                                    fontWeight: FontWeight.w500,
+                                            Row(
+                                              children: [
+                                                Flexible(
+                                                  child: Text(
+                                                    username,
+                                                    style: AppTextStyles
+                                                        .bodyText
+                                                        .copyWith(
+                                                          color: txt.body,
+                                                          fontSize: 14.5,
+                                                          fontWeight:
+                                                              FontWeight.w500,
+                                                        ),
+                                                    maxLines: 1,
+                                                    overflow:
+                                                        TextOverflow.ellipsis,
                                                   ),
-                                              maxLines: 1,
-                                              overflow: TextOverflow.ellipsis,
+                                                ),
+                                                if (_isPolzetAi(username)) ...[
+                                                  SizedBox(width: 4.w),
+                                                  Image.asset(
+                                                    Assets.images.icVerify.path,
+                                                    height: 13,
+                                                    width: 13,
+                                                  ),
+                                                ],
+                                              ],
                                             ),
                                             SizedBox(height: 2.h),
                                             Text(
@@ -959,7 +1066,7 @@ class _GroupInfoMembersState extends State<GroupInfoMembers> with UtilityMixin {
                                             Container(
                                               padding: EdgeInsets.symmetric(
                                                 horizontal: 12.w,
-                                                vertical: 4.h,
+                                                vertical: 3.h,
                                               ),
                                               decoration: BoxDecoration(
                                                 color: Theme.of(context)
@@ -967,7 +1074,7 @@ class _GroupInfoMembersState extends State<GroupInfoMembers> with UtilityMixin {
                                                     .onPrimary
                                                     .withOpacity(0.1),
                                                 borderRadius:
-                                                    BorderRadius.circular(6),
+                                                    BorderRadius.circular(5),
                                               ),
                                               child: Text(
                                                 'Admin',
@@ -975,27 +1082,32 @@ class _GroupInfoMembersState extends State<GroupInfoMembers> with UtilityMixin {
                                                   color: Theme.of(
                                                     context,
                                                   ).colorScheme.onPrimary,
-                                                  fontSize: 11.sp,
+                                                  fontSize: 11,
                                                   fontWeight: FontWeight.w500,
                                                 ),
                                               ),
                                             ),
                                             if (!isMe) SizedBox(width: 4.w),
                                           ],
-                                          if (!isMe)
-                                            GestureDetector(
-                                              behavior: HitTestBehavior.opaque,
-                                              onTap: () =>
-                                                  _showMemberOptions(member),
-                                              child: Padding(
-                                                padding: EdgeInsets.all(6.w),
-                                                child: Icon(
-                                                  Icons.more_vert,
-                                                  color: txt.muted,
-                                                  size: 20.sp,
-                                                ),
+
+                                          GestureDetector(
+                                            behavior: HitTestBehavior.opaque,
+                                            onTap: () {
+                                              if (!isMe) {
+                                                _showMemberOptions(member);
+                                              }
+                                            },
+                                            child: Padding(
+                                              padding: EdgeInsets.all(6.w),
+                                              child: Icon(
+                                                Icons.more_vert,
+                                                color: isMe
+                                                    ? Colors.transparent
+                                                    : txt.muted,
+                                                size: 20.sp,
                                               ),
                                             ),
+                                          ),
                                         ],
                                       ),
                                     ],
@@ -1014,7 +1126,8 @@ class _GroupInfoMembersState extends State<GroupInfoMembers> with UtilityMixin {
               height: 90,
               color: Theme.of(context).colorScheme.background,
               child: PrimaryButton(
-                title: AppLocalizations.of(context)?.addmemberstogroup ??
+                title:
+                    AppLocalizations.of(context)?.addmemberstogroup ??
                     'Add Members',
                 onPressed: () async {
                   final alreadyInGroup = <String>{};

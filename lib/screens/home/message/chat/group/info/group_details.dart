@@ -695,12 +695,12 @@ class _GroupDetailsState extends State<GroupDetails> with UtilityMixin {
             SizedBox(height: 15.h),
 
             // ── Group Name Input ──────────────────────────────────────────────
-            Text(
-              'Group Name',
-              style: TextStyle(
+           Text(
+              AppLocalizations.of(context)!.namegroup,
+              style: AppTextStyles.cardTitle.copyWith(
                 color: Theme.of(context).colorScheme.onBackground,
-                fontSize: 11.sp,
-                fontWeight: FontWeight.w400,
+               fontSize: 14.5,
+                fontWeight: FontWeight.w500,
               ),
             ),
             SizedBox(height: 5.h),
@@ -727,12 +727,12 @@ class _GroupDetailsState extends State<GroupDetails> with UtilityMixin {
             SizedBox(height: 14.h),
 
             // ── Description Input ─────────────────────────────────────────────
-            Text(
-              'Description',
-              style: TextStyle(
+             Text(
+              AppLocalizations.of(context)!.description,
+               style: AppTextStyles.cardTitle.copyWith(
                 color: Theme.of(context).colorScheme.onBackground,
-                fontSize: 11.sp,
-                fontWeight: FontWeight.w400,
+               fontSize: 14.5,
+                fontWeight: FontWeight.w500,
               ),
             ),
             SizedBox(height: 5.h),
@@ -745,11 +745,11 @@ class _GroupDetailsState extends State<GroupDetails> with UtilityMixin {
 
             // ── Category Selector ─────────────────────────────────────────────
             Text(
-              'Category',
-              style: TextStyle(
+              AppLocalizations.of(context)!.category,
+               style: AppTextStyles.cardTitle.copyWith(
                 color: Theme.of(context).colorScheme.onBackground,
-                fontSize: 11.sp,
-                fontWeight: FontWeight.w400,
+               fontSize: 14.5,
+                fontWeight: FontWeight.w500,
               ),
             ),
             SizedBox(height: 8.h),
@@ -820,12 +820,12 @@ class _GroupDetailsState extends State<GroupDetails> with UtilityMixin {
               ),
             ),
              SizedBox(height: 18.h),
-            Text(
+             Text(
               AppLocalizations.of(context)!.privacygroup,
-              style: TextStyle(
+               style: AppTextStyles.cardTitle.copyWith(
                 color: Theme.of(context).colorScheme.onBackground,
-                fontSize: 11.sp,
-                fontWeight: FontWeight.w400,
+               fontSize: 14.5,
+                fontWeight: FontWeight.w500,
               ),
             ),
             SizedBox(height: 10.h),
@@ -858,7 +858,7 @@ class _GroupDetailsState extends State<GroupDetails> with UtilityMixin {
                             : (isDarkMode
                                   ? Colors.white.withOpacity(0.12)
                                   : Colors.black.withOpacity(0.08)),
-                        width: 0.8,
+                        width: 0.9,
                       ),
                     ),
                     child: Row(
@@ -891,18 +891,17 @@ class _GroupDetailsState extends State<GroupDetails> with UtilityMixin {
                             children: [
                               Text(
                                 opt['title'] as String,
-                                style: TextStyle(
+                                style: AppTextStyles.bodyText.copyWith(
                                   color: txt.title,
-                                  fontSize: 12.sp,
+                                  fontSize: 14,
                                   fontWeight: FontWeight.w500,
                                 ),
                               ),
-                              SizedBox(height: 2.h),
                               Text(
                                 opt['subtitle'] as String,
-                                style: TextStyle(
+                                 style:  AppTextStyles.bodyText.copyWith(
                                   color: txt.muted,
-                                  fontSize: 10.sp,
+                                  fontSize: 12,
                                   fontWeight: FontWeight.w400,
                                 ),
                               ),
@@ -920,8 +919,8 @@ class _GroupDetailsState extends State<GroupDetails> with UtilityMixin {
         ),
       ),
       bottomNavigationBar: BottomAppBar(
-        padding: EdgeInsets.zero,
-        height: 50.h,
+       padding: const EdgeInsets.only(bottom: 25),
+        height: 90,
         color: Theme.of(context).colorScheme.background,
         child: PrimaryButton(
           title: 'Save',

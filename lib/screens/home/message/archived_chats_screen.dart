@@ -317,6 +317,38 @@ class _ArchivedChatsScreenState extends State<ArchivedChatsScreen>
     return false;
   }
 
+  bool _isOtherMemberReported(Map<String, dynamic> chat) {
+    final userProvider = Provider.of<UserProvider>(context, listen: false);
+    final currentUserId = userProvider.userId?.toString();
+    final currentUsername = userProvider.username?.toString().toLowerCase();
+    final members = chat['members'] as List?;
+    if (members == null) {
+      final val =
+          chat['is_reported'] ?? chat['isReported'] ?? chat['is_report'];
+      return val == true || val == 1 || val?.toString() == 'true';
+    }
+    for (final m in members) {
+      if (m is! Map) continue;
+      final member = m as Map<String, dynamic>;
+      final user = member['user'] as Map<String, dynamic>? ??
+          (member.containsKey('username') ? member : null);
+      final username = user?['username']?.toString().toLowerCase();
+      final id = (user?['uuid'] ?? user?['id'])?.toString();
+      if (id != currentUserId &&
+          (currentUsername == null || username != currentUsername)) {
+        final val = member['is_reported'] ??
+            member['is_report'] ??
+            member['isReported'] ??
+            user?['is_reported'] ??
+            user?['is_report'];
+        return val == true || val == 1 || val?.toString() == 'true';
+      }
+    }
+    final directVal =
+        chat['is_reported'] ?? chat['isReported'] ?? chat['is_report'];
+    return directVal == true || directVal == 1 || directVal?.toString() == 'true';
+  }
+
   dynamic _getOtherUserId(Map<String, dynamic> chat) {
     final userProvider = Provider.of<UserProvider>(context, listen: false);
     final currentUserId = userProvider.userId;
@@ -399,6 +431,9 @@ class _ArchivedChatsScreenState extends State<ArchivedChatsScreen>
   ) async {
     final chatId = chat['id']?.toString();
     final isBlocked = _isOtherMemberBlocked(chat);
+    final isReported = _isOtherMemberReported(chat);
+    chat['is_reported'] = isReported;
+    chat['is_block'] = isBlocked;
 
     final chatType = chat['chat_type']?.toString();
 

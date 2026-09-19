@@ -62,11 +62,12 @@ class _GroupPrivacySafetyState extends State<GroupPrivacySafety>
       final admins = widget.groupData?['admins'] as List<dynamic>? ?? [];
       for (final admin in admins) {
         if (admin is Map) {
-          final uuid = (admin['uuid'] ??
-                  admin['id'] ??
-                  admin['user']?['id'] ??
-                  admin['user']?['uuid'])
-              ?.toString();
+          final uuid =
+              (admin['uuid'] ??
+                      admin['id'] ??
+                      admin['user']?['id'] ??
+                      admin['user']?['uuid'])
+                  ?.toString();
           final username = (admin['username'] ?? admin['user']?['username'])
               ?.toString()
               .toLowerCase();
@@ -100,13 +101,15 @@ class _GroupPrivacySafetyState extends State<GroupPrivacySafety>
           final bool isAdmin =
               (member['is_admin'] == true) || (member['role'] == 'admin');
           if (isAdmin) {
-            final userMap =
-                (member['user'] is Map) ? member['user'] as Map : member;
-            final uuid = (member['uuid'] ??
-                    member['id'] ??
-                    userMap['uuid'] ??
-                    userMap['id'])
-                ?.toString();
+            final userMap = (member['user'] is Map)
+                ? member['user'] as Map
+                : member;
+            final uuid =
+                (member['uuid'] ??
+                        member['id'] ??
+                        userMap['uuid'] ??
+                        userMap['id'])
+                    ?.toString();
             final username = (userMap['username'] ?? member['username'])
                 ?.toString()
                 .toLowerCase();
@@ -175,7 +178,8 @@ class _GroupPrivacySafetyState extends State<GroupPrivacySafety>
           Navigator.pushAndRemoveUntil(
             context,
             MaterialPageRoute(
-              builder: (_) => const HomeScreen(initialIndex: 1), // ← Messages tab
+              builder: (_) =>
+                  const HomeScreen(initialIndex: 1), // ← Messages tab
             ),
             (route) => false,
           );
@@ -190,9 +194,9 @@ class _GroupPrivacySafetyState extends State<GroupPrivacySafety>
     } catch (e) {
       if (mounted) {
         Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to delete group: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Failed to delete group: $e')));
       }
     }
   }
@@ -210,7 +214,7 @@ class _GroupPrivacySafetyState extends State<GroupPrivacySafety>
           children: [
             Text(
               'Group Privacy',
-              style:  AppTextStyles.bodyText.copyWith(
+              style: AppTextStyles.bodyText.copyWith(
                 color: Theme.of(context).colorScheme.onBackground,
                 fontSize: 13.5,
                 fontWeight: FontWeight.w400,
@@ -220,12 +224,12 @@ class _GroupPrivacySafetyState extends State<GroupPrivacySafety>
             _buildCard(
               children: [
                 GestureDetector(
-                  onTap: (){},
+                  onTap: () {},
                   child: Row(
                     children: [
                       Container(
-                        height: 44,
-                        width: 44,
+                        height: 47,
+                        width: 47,
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
                           color: Theme.of(
@@ -237,7 +241,7 @@ class _GroupPrivacySafetyState extends State<GroupPrivacySafety>
                           _privacyIcon,
                           color: Theme.of(
                             context,
-                          ).colorScheme.onPrimary.withOpacity(0.9),
+                          ).colorScheme.onPrimary.withOpacity(0.7),
                         ),
                       ),
                       SizedBox(width: 12.w),
@@ -247,19 +251,19 @@ class _GroupPrivacySafetyState extends State<GroupPrivacySafety>
                           children: [
                             Text(
                               _privacyTitle,
-                               style: AppTextStyles.cardTitle.copyWith(
-                            fontSize: 13.5,
-                            fontWeight: FontWeight.w500,
-                            color: txt.title,
-                          ),
+                              style: AppTextStyles.cardTitle.copyWith(
+                                color: txt.title,
+                                fontSize: 14.5,
+                                fontWeight: FontWeight.w500,
+                              ),
                             ),
                             Text(
                               _privacySubtitle,
-                              style: AppTextStyles.bodyText.copyWith(
-                              fontSize: 12.2,
-                              color: txt.muted,
-                              fontWeight: FontWeight.w400,
-                            ),
+                              style: AppTextStyles.cardTitle.copyWith(
+                                color: txt.muted,
+                                fontSize: 12.5,
+                                fontWeight: FontWeight.w400,
+                              ),
                             ),
                           ],
                         ),
@@ -283,6 +287,7 @@ class _GroupPrivacySafetyState extends State<GroupPrivacySafety>
               children: [
                 _buildNavTile(
                   icon: Assets.images.icReport.path,
+                  padding: 12,
                   title: 'Report Group',
                   subtitle: 'Report spam, harmful content, or other concerns',
                   onTap: () async {
@@ -310,6 +315,7 @@ class _GroupPrivacySafetyState extends State<GroupPrivacySafety>
                 const SizedBox(height: 8),
                 _buildNavTile(
                   icon: Assets.images.icBlockAccount.path,
+                  padding: 13,
                   title: 'Block Group',
                   subtitle: 'Report spam, harmful content, or other concerns',
                   showArrow: false,
@@ -362,24 +368,25 @@ class _GroupPrivacySafetyState extends State<GroupPrivacySafety>
     );
   }
 
-  Widget _buildIconBox(String image) {
+  Widget _buildIconBox(String image, double padding) {
     return Container(
-      height: 44,
-      width: 44,
-      padding: const EdgeInsets.all(12),
+      height: 47,
+      width: 47,
+      padding: EdgeInsets.all(padding),
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.onPrimary.withOpacity(0.1),
         shape: BoxShape.circle,
       ),
       child: Image.asset(
         image,
-        color: Theme.of(context).colorScheme.onPrimary.withOpacity(0.9),
+        color: Theme.of(context).colorScheme.onPrimary.withOpacity(0.7),
       ),
     );
   }
 
   Widget _buildNavTile({
     required String icon,
+     required double padding,
     required String title,
     required String subtitle,
     required VoidCallback onTap,
@@ -391,7 +398,7 @@ class _GroupPrivacySafetyState extends State<GroupPrivacySafety>
       borderRadius: BorderRadius.circular(AppRadius.card),
       child: Row(
         children: [
-          _buildIconBox(icon),
+          _buildIconBox(icon, padding),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
@@ -399,11 +406,11 @@ class _GroupPrivacySafetyState extends State<GroupPrivacySafety>
               children: [
                 Text(
                   title,
-                   style: AppTextStyles.cardTitle.copyWith(
-                            fontSize: 13.5,
-                            fontWeight: FontWeight.w500,
-                            color: txt.title,
-                          ),
+                  style: AppTextStyles.cardTitle.copyWith(
+                    color: txt.title,
+                    fontSize: 14.5,
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
                 Text(
                   subtitle,

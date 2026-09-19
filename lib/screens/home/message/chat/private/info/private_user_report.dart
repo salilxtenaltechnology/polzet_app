@@ -155,7 +155,11 @@ class _PrivateUserReportState extends State<PrivateUserReport> {
               return GestureDetector(
                 onTap: () {
                   setState(() {
-                    _selectedReason = reason;
+                    if (isSelected) {
+                      _selectedReason = null;
+                    } else {
+                      _selectedReason = reason;
+                    }
                   });
                 },
                 behavior: HitTestBehavior.opaque,

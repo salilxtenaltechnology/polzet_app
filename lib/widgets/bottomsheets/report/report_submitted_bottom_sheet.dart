@@ -78,7 +78,7 @@ class ReportSubmittedBottomSheet extends StatelessWidget {
             'Report submitted',
             textAlign: TextAlign.center,
             style: AppTextStyles.cardTitle.copyWith(
-              fontSize: 17.5.sp,
+              fontSize: 15.sp,
               fontWeight: FontWeight.w600,
               color: Theme.of(context).colorScheme.onBackground,
             ),
@@ -92,7 +92,7 @@ class ReportSubmittedBottomSheet extends StatelessWidget {
               "Thanks for reporting. Your report has been received and will be reviewed according to Polzet's guidelines",
               textAlign: TextAlign.center,
               style: AppTextStyles.bodyText.copyWith(
-                fontSize: 13.sp,
+                fontSize: 12.sp,
                 fontWeight: FontWeight.w400,
                 color: txt.muted,
                 height: 1.35,

@@ -538,10 +538,41 @@ class _GroupInfoScreenState extends State<GroupInfoScreen>
                                 label: 'Add',
                                 txt: txt,
                                 onTap: () async {
+                                  final alreadyInGroup = <String>{};
+                                  final members =
+                                      _groupData?['members']
+                                          as List<dynamic>? ??
+                                      [];
+                                  for (final m in members) {
+                                    if (m is Map) {
+                                      final userMap = (m['user'] is Map)
+                                          ? m['user'] as Map
+                                          : m;
+                                      final uuid =
+                                          (m['uuid'] ??
+                                                  m['id'] ??
+                                                  userMap['uuid'] ??
+                                                  userMap['id'])
+                                              ?.toString();
+                                      final username =
+                                          (userMap['username'] ?? m['username'])
+                                              ?.toString();
+                                      if (uuid != null && uuid.isNotEmpty) {
+                                        alreadyInGroup.add(uuid);
+                                      }
+                                      if (username != null &&
+                                          username.isNotEmpty) {
+                                        alreadyInGroup.add(
+                                          username.toLowerCase(),
+                                        );
+                                      }
+                                    }
+                                  }
                                   final result = await navigationPush(
                                     context,
                                     GroupAddMembers(
                                       groupId: widget.chatId?.toString(),
+                                      alreadySelected: alreadyInGroup,
                                     ),
                                   );
                                   if (result == true && mounted) {
@@ -555,30 +586,33 @@ class _GroupInfoScreenState extends State<GroupInfoScreen>
                               txt: txt,
                               onTap: () {},
                             ),
-                              _buildActionButton(
-                                icon: Assets.images.icMute.path,
-                                label: 'Mute',
-                                txt: txt,
-                                onTap: () async {
-                                  final result = await navigationPush(
-                                    context,
-                                    GroupMuteNotification(
-                                      chatId: widget.chatId,
-                                      isMute: _groupData?['is_muted'] ??
-                                          _groupData?['is_mute'] ??
-                                          false,
-                                      groupData: _groupData,
-                                    ),
-                                  );
-                                  if (result != null && mounted) {
-                                    _fetchGroupInfo();
-                                  }
-                                },
-                              ),
+                            _buildActionButton(
+                              icon: Assets.images.icMute.path,
+                              label: 'Mute',
+                              txt: txt,
+                              onTap: () async {
+                                final result = await navigationPush(
+                                  context,
+                                  GroupMuteNotification(
+                                    chatId: widget.chatId,
+                                    isMute:
+                                        _groupData?['is_muted'] ??
+                                        _groupData?['is_mute'] ??
+                                        false,
+                                    groupData: _groupData,
+                                  ),
+                                );
+                                if (result != null && mounted) {
+                                  _fetchGroupInfo();
+                                }
+                              },
+                            ),
                             Theme(
                               data: Theme.of(context).copyWith(
                                 splashColor: Colors.transparent,
                                 highlightColor: Colors.transparent,
+                                hoverColor: Colors.transparent,
+                                focusColor: Colors.transparent,
                               ),
                               child: PopupMenuButton<String>(
                                 color: Theme.of(
@@ -680,7 +714,9 @@ class _GroupInfoScreenState extends State<GroupInfoScreen>
                         _buildOptionTile(
                           iconWidget: Image.asset(
                             Assets.images.icGroup.path,
-                            color: Theme.of(context).colorScheme.onPrimary,
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onPrimary.withOpacity(0.7),
                             width: 20.w,
                             height: 20.w,
                           ),
@@ -689,23 +725,25 @@ class _GroupInfoScreenState extends State<GroupInfoScreen>
                           isDarkMode: isDarkMode,
                           txt: txt,
                           onTap: () async {
-                            final result = await navigationPush(
+                            await navigationPush(
                               context,
                               GroupInfoMembers(
                                 chatId: widget.chatId,
                                 groupData: _groupData,
                               ),
                             );
-                            if (result == true && mounted) {
-                              _fetchGroupInfo();
+                            if (mounted) {
+                              _fetchGroupInfo(showLoading: false);
                             }
                           },
                         ),
                         _buildOptionTile(
                           iconWidget: Icon(
                             FeatherIcons.link,
-                            color: Theme.of(context).colorScheme.onPrimary,
-                            size: 21,
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onPrimary.withOpacity(0.7),
+                            size: 22,
                           ),
                           title: 'Invite Link',
                           subtitle: _inviteLinkSubtitle,
@@ -725,7 +763,9 @@ class _GroupInfoScreenState extends State<GroupInfoScreen>
                         _buildOptionTile(
                           iconWidget: Image.asset(
                             Assets.images.icSecurity.path,
-                            color: Theme.of(context).colorScheme.onPrimary,
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onPrimary.withOpacity(0.7),
                             width: 17.w,
                             height: 17.w,
                           ),
@@ -749,14 +789,21 @@ class _GroupInfoScreenState extends State<GroupInfoScreen>
                         ),
                         Builder(
                           builder: (context) {
-                            GroupChatProvider? provider = widget.groupChatProvider;
+                            GroupChatProvider? provider =
+                                widget.groupChatProvider;
                             if (provider == null) {
                               try {
-                                provider = Provider.of<GroupChatProvider>(context, listen: false);
+                                provider = Provider.of<GroupChatProvider>(
+                                  context,
+                                  listen: false,
+                                );
                               } catch (_) {}
                             }
-                            final currentTheme = provider?.currentTheme ??
-                                ChatThemeItem.fromIdOrName(provider?.chat?['chat_theme']);
+                            final currentTheme =
+                                provider?.currentTheme ??
+                                ChatThemeItem.fromIdOrName(
+                                  provider?.chat?['chat_theme'],
+                                );
                             final themeColor = currentTheme != null
                                 ? currentTheme.getOutgoingColor(isDarkMode)
                                 : const Color(0xFF8B263E);
@@ -771,7 +818,8 @@ class _GroupInfoScreenState extends State<GroupInfoScreen>
                                 ),
                               ),
                               title: 'Customize Theme',
-                              subtitle: 'Your can change color and theme of chat',
+                              subtitle:
+                                  'Your can change color and theme of chat',
                               isDarkMode: isDarkMode,
                               txt: txt,
                               onTap: () async {
@@ -782,36 +830,62 @@ class _GroupInfoScreenState extends State<GroupInfoScreen>
                                         ? ChangeNotifierProvider.value(
                                             value: provider,
                                             child: GroupChatTheme(
-                                              chatId: widget.chatId ??
+                                              chatId:
+                                                  widget.chatId ??
                                                   provider.chatId ??
                                                   provider.chat?['id'] ??
                                                   _groupData?['id'],
                                               groupChatProvider: provider,
-                                              chatTheme: provider.chat?['chat_theme'] ??
+                                              chatTheme:
+                                                  provider
+                                                      .chat?['chat_theme'] ??
                                                   _groupData?['chat_theme'],
                                               chat: provider.chat ?? _groupData,
-                                              title: _groupData?['title']?.toString() ??
+                                              title:
+                                                  _groupData?['title']
+                                                      ?.toString() ??
                                                   widget.groupName ??
                                                   provider.groupName,
-                                              description: _groupData?['description']?.toString(),
-                                              category: _groupData?['category']?.toString() ??
-                                                  _groupData?['group_category']?.toString(),
-                                              privacy: _groupData?['privacy']?.toString() ??
-                                                  _groupData?['group_privacy']?.toString(),
+                                              description:
+                                                  _groupData?['description']
+                                                      ?.toString(),
+                                              category:
+                                                  _groupData?['category']
+                                                      ?.toString() ??
+                                                  _groupData?['group_category']
+                                                      ?.toString(),
+                                              privacy:
+                                                  _groupData?['privacy']
+                                                      ?.toString() ??
+                                                  _groupData?['group_privacy']
+                                                      ?.toString(),
                                             ),
                                           )
                                         : GroupChatTheme(
-                                            chatId: widget.chatId ?? _groupData?['id'],
-                                            chatTheme: provider?.chat?['chat_theme'] ??
+                                            chatId:
+                                                widget.chatId ??
+                                                _groupData?['id'],
+                                            chatTheme:
+                                                provider?.chat?['chat_theme'] ??
                                                 _groupData?['chat_theme'],
                                             chat: provider?.chat ?? _groupData,
-                                            title: _groupData?['title']?.toString() ??
+                                            title:
+                                                _groupData?['title']
+                                                    ?.toString() ??
                                                 widget.groupName,
-                                            description: _groupData?['description']?.toString(),
-                                            category: _groupData?['category']?.toString() ??
-                                                _groupData?['group_category']?.toString(),
-                                            privacy: _groupData?['privacy']?.toString() ??
-                                                _groupData?['group_privacy']?.toString(),
+                                            description:
+                                                _groupData?['description']
+                                                    ?.toString(),
+                                            category:
+                                                _groupData?['category']
+                                                    ?.toString() ??
+                                                _groupData?['group_category']
+                                                    ?.toString(),
+                                            privacy:
+                                                _groupData?['privacy']
+                                                    ?.toString() ??
+                                                _groupData?['group_privacy']
+                                                    ?.toString(),
                                           ),
                                   ),
                                 );
@@ -843,17 +917,14 @@ class _GroupInfoScreenState extends State<GroupInfoScreen>
                             },
                           ),
                         if (!_isCurrentUserAdmin)
-                          Padding(
-                            padding: EdgeInsets.only(left: 5.w),
-                            child: _buildDestructiveAction(
-                              icon: Assets.images.icLeave.path,
-                              title: 'Leave Group',
-                              onTap: () {
-                                showLeaveGroupDiolog(context, () {
-                                  _leaveGroup();
-                                });
-                              },
-                            ),
+                          _buildLeaveGroupAction(
+                            icon: Assets.images.icLeave.path,
+                            title: 'Leave Group',
+                            onTap: () {
+                              showLeaveGroupDiolog(context, () {
+                                _leaveGroup();
+                              });
+                            },
                           ),
                         SizedBox(height: 12.h),
                       ],
@@ -965,8 +1036,8 @@ class _GroupInfoScreenState extends State<GroupInfoScreen>
             final newName = data['groupName']?.toString();
             final newDesc = data['groupDescription']?.toString();
             final newCat = data['groupCategory']?.toString();
-            final newPrivacy =
-                (data['groupPrivacy'] ?? data['privacy'])?.toString();
+            final newPrivacy = (data['groupPrivacy'] ?? data['privacy'])
+                ?.toString();
             setState(() {
               if (newImageUrl != null && newImageUrl.isNotEmpty) {
                 _localGroupImageUrl = newImageUrl;
@@ -1032,8 +1103,8 @@ class _GroupInfoScreenState extends State<GroupInfoScreen>
       final newName = result['groupName']?.toString();
       final newDesc = result['groupDescription']?.toString();
       final newCat = result['groupCategory']?.toString();
-      final newPrivacy =
-          (result['groupPrivacy'] ?? result['privacy'])?.toString();
+      final newPrivacy = (result['groupPrivacy'] ?? result['privacy'])
+          ?.toString();
 
       setState(() {
         if (newImageUrl != null && newImageUrl.isNotEmpty) {
@@ -1084,10 +1155,7 @@ class _GroupInfoScreenState extends State<GroupInfoScreen>
           ).updateGroupNameLocally(newName);
         } catch (_) {}
         if (widget.chatId != null) {
-          MessageListState.updateGroupChatTitleLocally(
-            widget.chatId,
-            newName,
-          );
+          MessageListState.updateGroupChatTitleLocally(widget.chatId, newName);
         }
       }
       _fetchGroupInfo(showLoading: false);
@@ -1339,27 +1407,35 @@ class _GroupInfoScreenState extends State<GroupInfoScreen>
     VoidCallback? onTap,
   }) {
     final txt = AppTextColors.of(context);
-    final content = Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Image.asset(icon, color: txt.title, width: 22, height: 22),
-        SizedBox(height: 5.h),
-        Text(
-          label,
-          style: AppTextStyles.bodyText.copyWith(
-            fontSize: 13,
-            color: txt.muted,
-            fontWeight: FontWeight.w400,
+    final content = Container(
+      color: Colors.transparent,
+      padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 6.h),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Image.asset(icon, color: txt.title, width: 22, height: 22),
+          SizedBox(height: 5.h),
+          Text(
+            label,
+            style: AppTextStyles.bodyText.copyWith(
+              fontSize: 13,
+              color: txt.muted,
+              fontWeight: FontWeight.w400,
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
 
     if (onTap == null) {
       return content;
     }
 
-    return GestureDetector(onTap: onTap, child: content);
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: content,
+    );
   }
 
   Widget _buildOptionTile({
@@ -1378,15 +1454,16 @@ class _GroupInfoScreenState extends State<GroupInfoScreen>
         child: Row(
           children: [
             Container(
-              width: 44,
-              height: 44,
+              height: 47,
+              width: 47,
+              padding: const EdgeInsets.all(11),
               decoration: BoxDecoration(
-                shape: BoxShape.circle,
                 color: Theme.of(context).colorScheme.onPrimary.withOpacity(0.1),
+                shape: BoxShape.circle,
               ),
               child: Center(child: iconWidget),
             ),
-            SizedBox(width: 12.w),
+            const SizedBox(width: 12),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -1395,16 +1472,16 @@ class _GroupInfoScreenState extends State<GroupInfoScreen>
                   Text(
                     title,
                     style: AppTextStyles.cardTitle.copyWith(
-                      fontSize: 13.5,
-                      fontWeight: FontWeight.w500,
                       color: txt.title,
+                      fontSize: 14.5,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
                   Text(
                     subtitle,
-                    style: AppTextStyles.bodyText.copyWith(
-                      fontSize: 12.2,
+                     style: AppTextStyles.cardTitle.copyWith(
                       color: txt.muted,
+                      fontSize: 12.5,
                       fontWeight: FontWeight.w400,
                     ),
                   ),
@@ -1420,32 +1497,76 @@ class _GroupInfoScreenState extends State<GroupInfoScreen>
   Widget _buildDestructiveAction({
     required String icon,
     required String title,
-
     required VoidCallback onTap,
   }) {
     return GestureDetector(
       onTap: onTap,
-      child: Padding(
-        padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 8.h),
-        child: Row(
-          children: [
-            Image.asset(
+      child: Row(
+        children: [
+          Container(
+            height: 42,
+            width: 42,
+            padding: const EdgeInsets.all(10),
+            decoration: const BoxDecoration(
+              color: Colors.transparent,
+              shape: BoxShape.circle,
+            ),
+            child: Image.asset(
               icon,
               height: 23,
               width: 25,
               color: const Color(0XFFE5484D),
             ),
-            SizedBox(width: 20.w),
-            Text(
-              title,
-              style: AppTextStyles.cardTitle.copyWith(
-                color: const Color(0XFFE5484D),
-                fontSize: 13.5,
-                fontWeight: FontWeight.w500,
-              ),
+          ),
+          const SizedBox(width: 18.5),
+          Text(
+            title,
+            style: AppTextStyles.cardTitle.copyWith(
+              color: const Color(0XFFE5484D),
+              fontSize: 14.5,
+                      fontWeight: FontWeight.w500,
             ),
-          ],
-        ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLeaveGroupAction({
+    required String icon,
+    required String title,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Row(
+        children: [
+          Container(
+            height: 42,
+            width: 42,
+            margin: EdgeInsets.only(left: 2.w),
+            padding: const EdgeInsets.all(12),
+            decoration: const BoxDecoration(
+              color: Colors.transparent,
+              shape: BoxShape.circle,
+            ),
+            child: Image.asset(
+              icon,
+              height: 21.5,
+              width: 21.5,
+              color: const Color(0XFFE5484D),
+            ),
+          ),
+          SizedBox(width: 15.w),
+          Text(
+            title,
+            style:AppTextStyles.cardTitle.copyWith(
+              color: const Color(0XFFE5484D),
+              fontSize: 14.5,
+                      fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
       ),
     );
   }

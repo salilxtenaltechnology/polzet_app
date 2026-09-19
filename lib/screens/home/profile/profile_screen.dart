@@ -127,9 +127,7 @@ class _ProfileScreenState extends State<ProfileScreen>
     }
 
     try {
-      final response = await apiService.getSavedPostList(
-        page: 1,
-      );
+      final response = await apiService.getSavedPostList(page: 1);
       if (mounted) {
         final page = response['page'] as int? ?? 1;
         final hasMore = response['has_more'] as bool? ?? false;
@@ -215,7 +213,8 @@ class _ProfileScreenState extends State<ProfileScreen>
       final dynamic savedVal =
           res['is_saved'] ?? res['is_saved_by_current_user'] ?? res['saved'];
       if (savedVal != null && mounted) {
-        final bool serverSaved = savedVal == true ||
+        final bool serverSaved =
+            savedVal == true ||
             savedVal == 1 ||
             savedVal.toString().toLowerCase() == 'true';
         setState(() {
@@ -303,10 +302,7 @@ class _ProfileScreenState extends State<ProfileScreen>
     final userProvider = Provider.of<UserProvider>(context, listen: false);
     await userProvider.loadUserDataSilently();
     await _fetchCounts();
-    await Future.wait([
-      _fetchPosts(),
-      _fetchSavedPosts(isRefresh: true),
-    ]);
+    await Future.wait([_fetchPosts(), _fetchSavedPosts(isRefresh: true)]);
   }
 
   Future<void> _fetchPosts({bool isRefresh = false}) async {
@@ -482,20 +478,43 @@ class _ProfileScreenState extends State<ProfileScreen>
       if (hasImages) {
         Navigator.of(context).push(
           MaterialPageRoute(
-            builder: (_) =>
-                ImageResultScreen(username: post.user, postId: post.id),
+            builder: (_) => ImageResultScreen(
+              username: post.user.isNotEmpty
+                  ? post.user
+                  : (Provider.of<UserProvider>(
+                          context,
+                          listen: false,
+                        ).username ??
+                        ''),
+              postId: post.id,
+            ),
           ),
         );
       } else {
         Navigator.of(context).push(
           MaterialPageRoute(
-            builder: (_) =>
-                ThingsResultScreen(username: post.user, postId: post.id),
+            builder: (_) => ThingsResultScreen(
+              username: post.user.isNotEmpty
+                  ? post.user
+                  : (Provider.of<UserProvider>(
+                          context,
+                          listen: false,
+                        ).username ??
+                        ''),
+              postId: post.id,
+            ),
           ),
         );
       }
     } else {
       final userProvider = Provider.of<UserProvider>(context, listen: false);
+      final postProfilePic =
+          (post.userProfileImage != null && post.userProfileImage!.isNotEmpty)
+          ? post.userProfileImage
+          : (post.user == userProvider.username
+                ? userProvider.profile_picture
+                : null);
+
       if (hasImages) {
         Navigator.of(context)
             .push(
@@ -503,15 +522,24 @@ class _ProfileScreenState extends State<ProfileScreen>
                 builder: (_) => UserImageRanking(
                   post: post,
                   poll: poll,
-                  firstName: userProvider.firstName,
-                  lastName: userProvider.lastName,
-                  profileImage: userProvider.profile_picture,
+                  firstName:
+                      post.userFirstName ??
+                      (post.user == userProvider.username
+                          ? userProvider.firstName
+                          : ''),
+                  lastName:
+                      post.userLastName ??
+                      (post.user == userProvider.username
+                          ? userProvider.lastName
+                          : ''),
+                  profileImage: postProfilePic,
                 ),
               ),
             )
             .then((result) {
               if (result == true) {
                 setState(() {});
+                _fetchSavedPosts();
                 _fetchPosts();
               }
             });
@@ -520,9 +548,17 @@ class _ProfileScreenState extends State<ProfileScreen>
             .push(
               MaterialPageRoute(
                 builder: (_) => UserThingsRanking(
-                  firstName: userProvider.firstName,
-                  lastName: userProvider.lastName,
-                  profileImage: userProvider.profile_picture,
+                  firstName:
+                      post.userFirstName ??
+                      (post.user == userProvider.username
+                          ? userProvider.firstName
+                          : ''),
+                  lastName:
+                      post.userLastName ??
+                      (post.user == userProvider.username
+                          ? userProvider.lastName
+                          : ''),
+                  profileImage: postProfilePic,
                   post: post,
                   poll: poll,
                 ),
@@ -531,6 +567,7 @@ class _ProfileScreenState extends State<ProfileScreen>
             .then((result) {
               if (result == true) {
                 setState(() {});
+                _fetchSavedPosts();
                 _fetchPosts();
               }
             });
@@ -547,27 +584,47 @@ class _ProfileScreenState extends State<ProfileScreen>
     if (isPolledByCurrentUser) {
       Navigator.of(context).push(
         MaterialPageRoute(
-          builder: (_) =>
-              ImageResultScreen(username: post.user, postId: post.id),
+          builder: (_) => ImageResultScreen(
+            username: post.user.isNotEmpty
+                ? post.user
+                : (Provider.of<UserProvider>(context, listen: false).username ??
+                      ''),
+            postId: post.id,
+          ),
         ),
       );
     } else {
       final userProvider = Provider.of<UserProvider>(context, listen: false);
+      final postProfilePic =
+          (post.userProfileImage != null && post.userProfileImage!.isNotEmpty)
+          ? post.userProfileImage
+          : (post.user == userProvider.username
+                ? userProvider.profile_picture
+                : null);
       Navigator.of(context)
           .push(
             MaterialPageRoute(
               builder: (_) => UserImageRanking(
                 post: post,
                 poll: poll,
-                firstName: userProvider.firstName,
-                lastName: userProvider.lastName,
-                profileImage: userProvider.profile_picture,
+                firstName:
+                    post.userFirstName ??
+                    (post.user == userProvider.username
+                        ? userProvider.firstName
+                        : ''),
+                lastName:
+                    post.userLastName ??
+                    (post.user == userProvider.username
+                        ? userProvider.lastName
+                        : ''),
+                profileImage: postProfilePic,
               ),
             ),
           )
           .then((result) {
             if (result == true) {
               setState(() {});
+              _fetchSavedPosts();
               _fetchPosts();
             }
           });
@@ -853,7 +910,8 @@ class _ProfileScreenState extends State<ProfileScreen>
                         child: ListView.builder(
                           physics: const AlwaysScrollableScrollPhysics(),
                           padding: EdgeInsets.fromLTRB(10.w, 12.h, 10.w, 100),
-                          itemCount: _thingsPosts!.length +
+                          itemCount:
+                              _thingsPosts!.length +
                               (_isLoadingMorePosts ? 1 : 0),
                           itemBuilder: (context, index) {
                             if (index < _thingsPosts!.length) {
@@ -868,9 +926,9 @@ class _ProfileScreenState extends State<ProfileScreen>
                                 padding: EdgeInsets.symmetric(vertical: 16.h),
                                 child: Center(
                                   child: Loader(
-                                    color: Theme.of(context)
-                                        .colorScheme
-                                        .onPrimary,
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onPrimary,
                                   ),
                                 ),
                               );
@@ -941,7 +999,8 @@ class _ProfileScreenState extends State<ProfileScreen>
                         child: ListView.builder(
                           physics: const AlwaysScrollableScrollPhysics(),
                           padding: EdgeInsets.fromLTRB(10.w, 12.h, 10.w, 100),
-                          itemCount: _imagesPosts!.length +
+                          itemCount:
+                              _imagesPosts!.length +
                               (_isLoadingMorePosts ? 1 : 0),
                           itemBuilder: (context, index) {
                             if (index < _imagesPosts!.length) {
@@ -956,9 +1015,9 @@ class _ProfileScreenState extends State<ProfileScreen>
                                 padding: EdgeInsets.symmetric(vertical: 16.h),
                                 child: Center(
                                   child: Loader(
-                                    color: Theme.of(context)
-                                        .colorScheme
-                                        .onPrimary,
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onPrimary,
                                   ),
                                 ),
                               );
@@ -973,92 +1032,89 @@ class _ProfileScreenState extends State<ProfileScreen>
                         ),
                       )
                     : (_savedPosts == null || _savedPosts!.isEmpty)
-                        ? Center(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                isDarkMode
-                                    ? const SizedBox()
-                                    : Padding(
-                                        padding:
-                                            const EdgeInsets.only(bottom: 10),
-                                        child: Image.asset(
-                                          Assets.images.noSavedPost.path,
-                                          height: 0.20.sh,
-                                          width: 0.20.sh,
-                                          fit: BoxFit.contain,
-                                        ),
-                                      ),
-
-                                Text(
-                                  AppLocalizations.of(context)!.nothingsavedyet,
-
-                                  textAlign: TextAlign.center,
-                                  style: AppTextStyles.sectionHeading.copyWith(
-                                    fontSize: 18.5,
-                                    color: txt.title,
-                                    fontWeight: FontWeight.w600,
-                                    height: 1.4,
-                                  ),
-                                ),
-                                const SizedBox(height: 10),
-                                Text(
-                                  AppLocalizations.of(
-                                    context,
-                                  )!.savedpollsyouwanttorevisitlater,
-
-                                  textAlign: TextAlign.center,
-                                  style: AppTextStyles.bodyText.copyWith(
-                                    fontSize: 13,
-                                    color: txt.muted,
-                                    height: 1.4,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          )
-                        : NotificationListener<ScrollNotification>(
-                            onNotification: (scrollInfo) {
-                              if (!_isLoadingSavedMore &&
-                                  _hasMoreSaved &&
-                                  scrollInfo.metrics.pixels >=
-                                      scrollInfo.metrics.maxScrollExtent -
-                                          200) {
-                                _fetchMoreSavedPosts();
-                              }
-                              return false;
-                            },
-                            child: ListView.builder(
-                              physics: const AlwaysScrollableScrollPhysics(),
-                              padding:
-                                  EdgeInsets.fromLTRB(10.w, 12.h, 10.w, 100),
-                              itemCount: _savedPosts!.length +
-                                  (_isLoadingSavedMore ? 1 : 0),
-                              itemBuilder: (context, index) {
-                                if (index < _savedPosts!.length) {
-                                  final post = _savedPosts![index];
-                                  return _buildSimplePostCard(
-                                    post,
-                                    isImage: post.isImagePoll,
-                                    userProvider: userProvider,
-                                    index: index,
-                                  );
-                                } else {
-                                  return Padding(
-                                    padding:
-                                        EdgeInsets.symmetric(vertical: 16.h),
-                                    child: Center(
-                                      child: Loader(
-                                        color: Theme.of(context)
-                                            .colorScheme
-                                            .onPrimary,
-                                      ),
+                    ? Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            isDarkMode
+                                ? const SizedBox()
+                                : Padding(
+                                    padding: const EdgeInsets.only(bottom: 10),
+                                    child: Image.asset(
+                                      Assets.images.noSavedPost.path,
+                                      height: 0.20.sh,
+                                      width: 0.20.sh,
+                                      fit: BoxFit.contain,
                                     ),
-                                  );
-                                }
-                              },
+                                  ),
+
+                            Text(
+                              AppLocalizations.of(context)!.nothingsavedyet,
+
+                              textAlign: TextAlign.center,
+                              style: AppTextStyles.sectionHeading.copyWith(
+                                fontSize: 18.5,
+                                color: txt.title,
+                                fontWeight: FontWeight.w600,
+                                height: 1.4,
+                              ),
                             ),
-                          ),
+                            const SizedBox(height: 10),
+                            Text(
+                              AppLocalizations.of(
+                                context,
+                              )!.savedpollsyouwanttorevisitlater,
+
+                              textAlign: TextAlign.center,
+                              style: AppTextStyles.bodyText.copyWith(
+                                fontSize: 13,
+                                color: txt.muted,
+                                height: 1.4,
+                              ),
+                            ),
+                          ],
+                        ),
+                      )
+                    : NotificationListener<ScrollNotification>(
+                        onNotification: (scrollInfo) {
+                          if (!_isLoadingSavedMore &&
+                              _hasMoreSaved &&
+                              scrollInfo.metrics.pixels >=
+                                  scrollInfo.metrics.maxScrollExtent - 200) {
+                            _fetchMoreSavedPosts();
+                          }
+                          return false;
+                        },
+                        child: ListView.builder(
+                          physics: const AlwaysScrollableScrollPhysics(),
+                          padding: EdgeInsets.fromLTRB(10.w, 12.h, 10.w, 100),
+                          itemCount:
+                              _savedPosts!.length +
+                              (_isLoadingSavedMore ? 1 : 0),
+                          itemBuilder: (context, index) {
+                            if (index < _savedPosts!.length) {
+                              final post = _savedPosts![index];
+                              return _buildSimplePostCard(
+                                post,
+                                isImage: post.isImagePoll,
+                                userProvider: userProvider,
+                                index: index,
+                              );
+                            } else {
+                              return Padding(
+                                padding: EdgeInsets.symmetric(vertical: 16.h),
+                                child: Center(
+                                  child: Loader(
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onPrimary,
+                                  ),
+                                ),
+                              );
+                            }
+                          },
+                        ),
+                      ),
               ],
             ),
           ),
@@ -1372,24 +1428,29 @@ class _ProfileScreenState extends State<ProfileScreen>
         ? post.user
         : (userProvider.username ?? 'polzet_user');
 
-    final bool isPolzetAi = post.user.trim().toLowerCase() == 'polzet_ai' ||
+    final bool isPolzetAi =
+        post.user.trim().toLowerCase() == 'polzet_ai' ||
         postUsername.trim().toLowerCase() == 'polzet_ai';
 
-    final String postDisplayName = (post.userFirstName != null &&
-            post.userFirstName!.isNotEmpty)
+    final String postDisplayName =
+        (post.userFirstName != null && post.userFirstName!.isNotEmpty)
         ? '${post.userFirstName} ${post.userLastName ?? ''}'.trim()
         : (post.user == userProvider.username &&
-                userProvider.firstName != null &&
-                userProvider.firstName!.isNotEmpty
-            ? '${userProvider.firstName} ${userProvider.lastName ?? ''}'.trim()
-            : postUsername);
+                  userProvider.firstName != null &&
+                  userProvider.firstName!.isNotEmpty
+              ? '${userProvider.firstName} ${userProvider.lastName ?? ''}'
+                    .trim()
+              : postUsername);
 
-    final String? postProfilePic = (post.userProfileImage != null &&
-            post.userProfileImage!.isNotEmpty)
+    final String? postProfilePic =
+        (post.userProfileImage != null && post.userProfileImage!.isNotEmpty)
         ? post.userProfileImage
-        : (post.user == userProvider.username ? userProvider.profile_picture : null);
+        : (post.user == userProvider.username
+              ? userProvider.profile_picture
+              : null);
 
-    final bool isAuthor = post.user.isEmpty ||
+    final bool isAuthor =
+        post.user.isEmpty ||
         post.user == userProvider.username ||
         (userProvider.userId != null &&
             post.userId != null &&
@@ -1462,9 +1523,9 @@ class _ProfileScreenState extends State<ProfileScreen>
                                         userProvider.profile_picture) {
                                       final cachedImage =
                                           _getCachedProfileImage(
-                                        postProfilePic,
-                                        userProvider,
-                                      );
+                                            postProfilePic,
+                                            userProvider,
+                                          );
                                       if (cachedImage != null) {
                                         return Image.memory(
                                           cachedImage,
@@ -1473,18 +1534,18 @@ class _ProfileScreenState extends State<ProfileScreen>
                                           height: double.infinity,
                                           errorBuilder: (_, __, ___) =>
                                               _AvatarPlaceholder(
-                                            username: postUsername,
-                                            fontSize: 18,
-                                          ),
+                                                username: postUsername,
+                                                fontSize: 18,
+                                              ),
                                         );
                                       }
                                     }
                                     final imageUrl =
                                         postProfilePic.startsWith('http')
-                                            ? postProfilePic
-                                            : (postProfilePic.startsWith('/')
-                                                ? '${ApiConfig.baseUrlImage}$postProfilePic'
-                                                : '${ApiConfig.baseUrlImage}/$postProfilePic');
+                                        ? postProfilePic
+                                        : (postProfilePic.startsWith('/')
+                                              ? '${ApiConfig.baseUrlImage}$postProfilePic'
+                                              : '${ApiConfig.baseUrlImage}/$postProfilePic');
                                     return CachedNetworkImage(
                                       imageUrl: imageUrl,
                                       fit: BoxFit.cover,
@@ -1492,9 +1553,9 @@ class _ProfileScreenState extends State<ProfileScreen>
                                       height: double.infinity,
                                       errorWidget: (_, __, ___) =>
                                           _AvatarPlaceholder(
-                                        username: postUsername,
-                                        fontSize: 18,
-                                      ),
+                                            username: postUsername,
+                                            fontSize: 18,
+                                          ),
                                     );
                                   }
                                   return _AvatarPlaceholder(
@@ -1599,9 +1660,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                             style: AppTextStyles.subText.copyWith(
                               fontSize: 11.sp,
                               fontWeight: FontWeight.w500,
-                              color: Theme.of(
-                                context,
-                              ).colorScheme.onBackground,
+                              color: Theme.of(context).colorScheme.onBackground,
                               letterSpacing: 0.5,
                             ),
                           ),
@@ -1621,8 +1680,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                         barrierDismissible: true,
                         barrierLabel: 'Dismiss',
                         barrierColor: Colors.black.withOpacity(0.35),
-                        transitionDuration:
-                            const Duration(milliseconds: 160),
+                        transitionDuration: const Duration(milliseconds: 160),
                         pageBuilder: (ctx, anim1, anim2) {
                           return Stack(
                             children: [
@@ -1631,8 +1689,10 @@ class _ProfileScreenState extends State<ProfileScreen>
                                 bottom: showAbove
                                     ? (screenSize.height - tapY + 8)
                                     : null,
-                                right: (screenSize.width - tapX - 20)
-                                    .clamp(12.0, screenSize.width - 160.0),
+                                right: (screenSize.width - tapX - 20).clamp(
+                                  12.0,
+                                  screenSize.width - 160.0,
+                                ),
                                 child: Material(
                                   color: Colors.transparent,
                                   child: Container(
@@ -1641,12 +1701,10 @@ class _ProfileScreenState extends State<ProfileScreen>
                                       color: Theme.of(
                                         context,
                                       ).colorScheme.tertiaryContainer,
-                                      borderRadius:
-                                          BorderRadius.circular(10),
+                                      borderRadius: BorderRadius.circular(10),
                                       boxShadow: [
                                         BoxShadow(
-                                          color:
-                                              Colors.black.withOpacity(0.18),
+                                          color: Colors.black.withOpacity(0.18),
                                           blurRadius: 12,
                                           offset: const Offset(0, 4),
                                         ),
@@ -1669,29 +1727,27 @@ class _ProfileScreenState extends State<ProfileScreen>
                                               width: double.infinity,
                                               padding:
                                                   const EdgeInsets.symmetric(
-                                                horizontal: 14,
-                                                vertical: 9,
-                                              ),
+                                                    horizontal: 14,
+                                                    vertical: 9,
+                                                  ),
                                               child: Text(
                                                 'View Result',
                                                 style: AppTextStyles.bodyText
                                                     .copyWith(
-                                                  color: txt.title,
-                                                  fontWeight: FontWeight.w500,
-                                                  fontSize: 13.5,
-                                                ),
+                                                      color: txt.title,
+                                                      fontWeight:
+                                                          FontWeight.w500,
+                                                      fontSize: 13.5,
+                                                    ),
                                               ),
                                             ),
                                           ),
                                         InkWell(
-                                          onTap: () => Navigator.pop(
-                                            ctx,
-                                            'save_poll',
-                                          ),
+                                          onTap: () =>
+                                              Navigator.pop(ctx, 'save_poll'),
                                           child: Container(
                                             width: double.infinity,
-                                            padding:
-                                                const EdgeInsets.symmetric(
+                                            padding: const EdgeInsets.symmetric(
                                               horizontal: 14,
                                               vertical: 9,
                                             ),
@@ -1701,10 +1757,10 @@ class _ProfileScreenState extends State<ProfileScreen>
                                                   : 'Save poll',
                                               style: AppTextStyles.bodyText
                                                   .copyWith(
-                                                color: txt.title,
-                                                fontWeight: FontWeight.w500,
-                                                fontSize: 13.5,
-                                              ),
+                                                    color: txt.title,
+                                                    fontWeight: FontWeight.w500,
+                                                    fontSize: 13.5,
+                                                  ),
                                             ),
                                           ),
                                         ),
@@ -1718,17 +1774,18 @@ class _ProfileScreenState extends State<ProfileScreen>
                                               width: double.infinity,
                                               padding:
                                                   const EdgeInsets.symmetric(
-                                                horizontal: 14,
-                                                vertical: 9,
-                                              ),
+                                                    horizontal: 14,
+                                                    vertical: 9,
+                                                  ),
                                               child: Text(
                                                 'Go to profile',
                                                 style: AppTextStyles.bodyText
                                                     .copyWith(
-                                                  color: txt.title,
-                                                  fontWeight: FontWeight.w500,
-                                                  fontSize: 13.5,
-                                                ),
+                                                      color: txt.title,
+                                                      fontWeight:
+                                                          FontWeight.w500,
+                                                      fontSize: 13.5,
+                                                    ),
                                               ),
                                             ),
                                           ),
@@ -1742,17 +1799,18 @@ class _ProfileScreenState extends State<ProfileScreen>
                                               width: double.infinity,
                                               padding:
                                                   const EdgeInsets.symmetric(
-                                                horizontal: 14,
-                                                vertical: 9,
-                                              ),
+                                                    horizontal: 14,
+                                                    vertical: 9,
+                                                  ),
                                               child: Text(
                                                 'Delete poll',
                                                 style: AppTextStyles.bodyText
                                                     .copyWith(
-                                                  color: Colors.red,
-                                                  fontWeight: FontWeight.w500,
-                                                  fontSize: 13.5,
-                                                ),
+                                                      color: Colors.red,
+                                                      fontWeight:
+                                                          FontWeight.w500,
+                                                      fontSize: 13.5,
+                                                    ),
                                               ),
                                             ),
                                           ),
@@ -2180,180 +2238,23 @@ class _ProfileScreenState extends State<ProfileScreen>
                       _hasImageOptions(poll) &&
                       _hasTextOptions(poll)) ...[
                     _buildAnonymousImageTextPollSection(context, poll, post),
-                  ] else ...[
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(
-                          child: Text(
-                            poll.question,
-                            style: AppTextStyles.bodyText.copyWith(
-                              color: txt.heading,
-                              fontSize: 14.5,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ),
-
-                        Text(
-                          '${poll.totalVotes} ${AppLocalizations.of(context)!.votes}',
-                          style: AppTextStyles.subText.copyWith(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w500,
-                            color: Theme.of(context).colorScheme.onPrimary,
-                          ),
-                        ),
-                      ],
-                    ),
-                    if (post.description.isNotEmpty)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 5),
-                        child: _buildDescriptionWithHashtags(
-                          context,
-                          post.description,
-                          txt,
-                        ),
+                  ] else if (_hasImageOptions(poll)) ...[
+                    if (poll.vottingType == 'single_choice')
+                      _buildSingleChoiceImagePollSection(
+                        context,
+                        poll,
+                        post,
+                        userProvider,
+                      )
+                    else
+                      _buildRankingImagePollSection(
+                        context,
+                        poll,
+                        post,
+                        userProvider,
                       ),
-                    if (poll.question.isNotEmpty || post.description.isNotEmpty)
-                      SizedBox(height: 12.h),
-                    if (isImage) ...[
-                      if (isPolzetAi &&
-                          post.images.isNotEmpty &&
-                          !_hasImageOptions(poll)) ...[
-                        GestureDetector(
-                          onTap: () {
-                            if (post.is_polled_by_current_user) {
-                              Navigator.of(context).push(
-                                MaterialPageRoute(
-                                  builder: (_) => ThingsResultScreen(
-                                    username: post.user,
-                                    postId: post.id,
-                                  ),
-                                ),
-                              );
-                            } else {
-                              Navigator.of(context)
-                                  .push(
-                                    MaterialPageRoute(
-                                      builder: (_) => UserThingsRanking(
-                                        firstName: post.userFirstName ??
-                                            (post.user == userProvider.username
-                                                ? userProvider.firstName
-                                                : ''),
-                                        lastName: post.userLastName ??
-                                            (post.user == userProvider.username
-                                                ? userProvider.lastName
-                                                : ''),
-                                        profileImage: postProfilePic,
-                                        post: post,
-                                        poll: poll,
-                                      ),
-                                    ),
-                                  )
-                                  .then((result) {
-                                    if (result == true) {
-                                      setState(() {});
-                                      _fetchSavedPosts();
-                                      _fetchPosts();
-                                    }
-                                  });
-                            }
-                          },
-                          child: Container(
-                            margin: const EdgeInsets.only(bottom: 12),
-                            height: 165.h,
-                            width: double.infinity,
-                            child: ClipRRect(
-                              borderRadius:
-                                  BorderRadius.circular(AppRadius.button),
-                              child: AppCachedNetworkImage(
-                                imageUrl: post.images.first
-                                    .resolvedUrl(ApiConfig.baseUrlImage),
-                                fit: BoxFit.cover,
-                              ),
-                            ),
-                          ),
-                        ),
-                        _buildTextOptions(poll, () {
-                          if (post.is_polled_by_current_user) {
-                            Navigator.of(context).push(
-                              MaterialPageRoute(
-                                builder: (_) => ThingsResultScreen(
-                                  username: post.user,
-                                  postId: post.id,
-                                ),
-                              ),
-                            );
-                          } else {
-                            Navigator.of(context)
-                                .push(
-                                  MaterialPageRoute(
-                                    builder: (_) => UserThingsRanking(
-                                      firstName: post.userFirstName ??
-                                          (post.user == userProvider.username
-                                              ? userProvider.firstName
-                                              : ''),
-                                      lastName: post.userLastName ??
-                                          (post.user == userProvider.username
-                                              ? userProvider.lastName
-                                              : ''),
-                                      profileImage: postProfilePic,
-                                      post: post,
-                                      poll: poll,
-                                    ),
-                                  ),
-                                )
-                                .then((result) {
-                                  if (result == true) {
-                                    setState(() {});
-                                    _fetchSavedPosts();
-                                    _fetchPosts();
-                                  }
-                                });
-                          }
-                        }),
-                      ] else
-                        _buildImagesStack(post),
-                    ] else
-                      _buildTextOptions(poll, () {
-                        if (post.is_polled_by_current_user) {
-                          Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (_) => ThingsResultScreen(
-                                username: post.user,
-                                postId: post.id,
-                              ),
-                            ),
-                          );
-                        } else {
-                          Navigator.of(context)
-                              .push(
-                                MaterialPageRoute(
-                                  builder: (_) => UserThingsRanking(
-                                    firstName: post.userFirstName ??
-                                        (post.user == userProvider.username
-                                            ? userProvider.firstName
-                                            : ''),
-                                    lastName: post.userLastName ??
-                                        (post.user == userProvider.username
-                                            ? userProvider.lastName
-                                            : ''),
-                                    profileImage: postProfilePic,
-                                    post: post,
-                                    poll: poll,
-                                  ),
-                                ),
-                              )
-                              .then((result) {
-                                if (result == true) {
-                                  setState(() {});
-                                  _fetchSavedPosts();
-                                  _fetchPosts();
-                                }
-                              });
-                        }
-                      }),
+                  ] else if (_hasTextOptions(poll) || isPolzetAi) ...[
+                    _buildTextPollSection(context, poll, post, userProvider),
                   ],
                   SizedBox(height: 12.h),
                   Row(
@@ -2443,7 +2344,9 @@ class _ProfileScreenState extends State<ProfileScreen>
                           child: isSaved
                               ? AppIcons.filledSave(
                                   key: const ValueKey('saved_filled'),
-                                  color: Theme.of(context).colorScheme.onPrimary,
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onPrimary,
                                 )
                               : AppIcons.outlineSave(
                                   key: const ValueKey('saved_outline'),
@@ -2495,104 +2398,584 @@ class _ProfileScreenState extends State<ProfileScreen>
     );
   }
 
-  Widget _buildTextOptions(UserPollQuestion poll, VoidCallback onTap) {
-    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    return GestureDetector(
-      onTap: onTap,
-      child: Column(
-        children: poll.options!.map((option) {
-          return Padding(
-            padding: EdgeInsets.only(bottom: 12.h),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Expanded(
-                            child: Text(
-                              option.text ?? '',
-                              style: AppTextStyles.bodyText.copyWith(
-                                fontSize: 15,
-                                fontWeight: FontWeight.w400,
-                                color: Theme.of(
-                                  context,
-                                ).colorScheme.onBackground,
-                              ),
-                            ),
-                          ),
-                          SizedBox(width: 8.w),
-                          Row(
-                            children: [
-                              if (option.percentage.toInt() != 0)
-                                Text(
-                                  '${option.percentage.toInt()}%',
-                                  style: AppTextStyles.bodyText.copyWith(
-                                    fontSize: 15,
-                                    fontWeight: FontWeight.w600,
-                                    color: Theme.of(
-                                      context,
-                                    ).colorScheme.onBackground,
-                                  ),
-                                ),
-                            ],
-                          ),
-                        ],
-                      ),
-                      SizedBox(height: 6.h),
-                      Stack(
-                        children: [
-                          Container(
-                            width: double.infinity,
-                            height: 7.h,
-                            decoration: BoxDecoration(
-                              color: isDarkMode
-                                  ? const Color(0xFF2D2D2D)
-                                  : const Color(0xFFF6F3F2),
-                              borderRadius: BorderRadius.circular(
-                                AppRadius.card,
-                              ),
-                            ),
-                          ),
-                          FractionallySizedBox(
-                            widthFactor: (option.percentage / 100).clamp(
-                              0.0,
-                              1.0,
-                            ),
-                            child: Container(
-                              height: 8.h,
-                              decoration: BoxDecoration(
-                                color: const Color(0xFF9E2A46),
-                                borderRadius: BorderRadius.circular(4.r),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
+  String _getOptionPercentageText(UserPollOption option) {
+    final percentage = option.percentage;
+    if (percentage <= 0) {
+      return "";
+    }
+    final num val = percentage == percentage.toInt()
+        ? percentage.toInt()
+        : percentage;
+    return "$val%";
+  }
+
+  Widget _buildSingleChoiceImagePollSection(
+    BuildContext context,
+    UserPollQuestion poll,
+    UserPostModel post,
+    UserProvider userProvider,
+  ) {
+    final txt = AppTextColors.of(context);
+    final validOptions = poll.options.where((o) => o.image != null).toList();
+    if (validOptions.isEmpty) return const SizedBox.shrink();
+
+    final hasUserPolled = post.is_polled_by_current_user;
+
+    Widget optionsWidget;
+    if (validOptions.length == 4) {
+      optionsWidget = Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: _buildSingleChoiceImageOptionCard(
+                  context,
+                  validOptions[0],
+                  0,
+                  poll,
+                  post,
+                  userProvider,
+                  hasUserPolled,
                 ),
-              ],
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _buildSingleChoiceImageOptionCard(
+                  context,
+                  validOptions[1],
+                  1,
+                  poll,
+                  post,
+                  userProvider,
+                  hasUserPolled,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: _buildSingleChoiceImageOptionCard(
+                  context,
+                  validOptions[2],
+                  2,
+                  poll,
+                  post,
+                  userProvider,
+                  hasUserPolled,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _buildSingleChoiceImageOptionCard(
+                  context,
+                  validOptions[3],
+                  3,
+                  poll,
+                  post,
+                  userProvider,
+                  hasUserPolled,
+                ),
+              ),
+            ],
+          ),
+        ],
+      );
+    } else {
+      optionsWidget = Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: List.generate(validOptions.length, (index) {
+          return Expanded(
+            child: Padding(
+              padding: EdgeInsets.only(
+                right: index < validOptions.length - 1 ? 10 : 0,
+              ),
+              child: _buildSingleChoiceImageOptionCard(
+                context,
+                validOptions[index],
+                index,
+                poll,
+                post,
+                userProvider,
+                hasUserPolled,
+              ),
             ),
           );
-        }).toList(),
+        }),
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (poll.question.isNotEmpty) ...[
+          SizedBox(height: 5.h),
+          _buildQuestionRow(
+            context,
+            poll,
+            txt,
+            onVotesTap: () {
+              BottomSheetUtils.showPollVotersBottomSheet(
+                context: context,
+                postId: post.id,
+                question: poll.question,
+                pollType: poll.pollType,
+              );
+            },
+          ),
+        ],
+        if (post.description.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.only(top: 5),
+            child: _buildDescriptionWithHashtags(
+              context,
+              post.description,
+              txt,
+            ),
+          ),
+        if (poll.question.isNotEmpty || post.description.isNotEmpty)
+          SizedBox(height: 12.h),
+        optionsWidget,
+        SizedBox(height: 5.h),
+      ],
+    );
+  }
+
+  Widget _buildSingleChoiceImageOptionCard(
+    BuildContext context,
+    UserPollOption option,
+    int index,
+    UserPollQuestion poll,
+    UserPostModel post,
+    UserProvider userProvider,
+    bool hasUserPolled,
+  ) {
+    Widget imageWidget = const SizedBox.shrink();
+    if (option.image != null) {
+      imageWidget = AppCachedNetworkImage(
+        imageUrl: option.image!.resolvedUrl(ApiConfig.baseUrlImage),
+        fit: BoxFit.cover,
+        showSpinnerPlaceholder: true,
+      );
+    }
+
+    return GestureDetector(
+      onTap: hasUserPolled
+          ? () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => ImageResultScreen(
+                    username: post.user.isNotEmpty
+                        ? post.user
+                        : (userProvider.username ?? ''),
+                    postId: post.id,
+                  ),
+                ),
+              );
+            }
+          : () {
+              _submitSinglePollVote(poll, option.id, post);
+            },
+      child: SizedBox(
+        height: 155.h,
+        child: Container(
+          decoration: BoxDecoration(
+            border: Border.all(
+              color: Theme.of(context).colorScheme.outlineVariant,
+              width: 1,
+            ),
+            borderRadius: BorderRadius.circular(AppRadius.button),
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(AppRadius.button),
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                imageWidget,
+                Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        Colors.transparent,
+                        Colors.black.withOpacity(0.60),
+                      ],
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                    ),
+                  ),
+                ),
+                if (hasUserPolled)
+                  Positioned(
+                    bottom: 2,
+                    left: 8.w,
+                    right: 8.w,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (option.text != null && option.text!.isNotEmpty)
+                          Text(
+                            option.text!,
+                            textAlign: TextAlign.center,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: AppTextStyles.bodyText.copyWith(
+                              fontSize: 13.5,
+                              fontWeight: FontWeight.w500,
+                              color: Colors.white,
+                            ),
+                          ),
+                        if (_getOptionPercentageText(option).isNotEmpty)
+                          Text(
+                            _getOptionPercentageText(option),
+                            textAlign: TextAlign.center,
+                            style: AppTextStyles.bodyText.copyWith(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.white,
+                            ),
+                          ),
+                      ],
+                    ),
+                  )
+                else if (option.text != null && option.text!.isNotEmpty)
+                  Positioned(
+                    bottom: 5.h,
+                    left: 8.w,
+                    right: 8.w,
+                    child: Text(
+                      option.text!,
+                      textAlign: TextAlign.center,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppTextStyles.bodyText.copyWith(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
 
-  Widget _buildImagesStack(UserPostModel post) {
+  Widget _buildRankingImagePollSection(
+    BuildContext context,
+    UserPollQuestion poll,
+    UserPostModel post,
+    UserProvider userProvider,
+  ) {
+    final txt = AppTextColors.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (poll.question.isNotEmpty) ...[
+          SizedBox(height: 5.h),
+          _buildQuestionRow(
+            context,
+            poll,
+            txt,
+            onVotesTap: () {
+              BottomSheetUtils.showPollVotersBottomSheet(
+                context: context,
+                postId: post.id,
+                question: poll.question,
+                pollType: poll.pollType,
+              );
+            },
+          ),
+        ],
+        if (post.description.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.only(top: 5),
+            child: _buildDescriptionWithHashtags(
+              context,
+              post.description,
+              txt,
+            ),
+          ),
+        Container(
+          margin: const EdgeInsets.only(top: 12),
+          height: 165.h,
+          width: double.infinity,
+          child: _buildImagesStack(post, poll, userProvider),
+        ),
+        SizedBox(height: 5.h),
+      ],
+    );
+  }
+
+  Widget _buildTextPollSection(
+    BuildContext context,
+    UserPollQuestion poll,
+    UserPostModel post,
+    UserProvider userProvider,
+  ) {
+    final txt = AppTextColors.of(context);
+    final validOptions = poll.options
+        .where((o) => o.text != null && o.text!.isNotEmpty)
+        .toList();
+    if (validOptions.isEmpty) return const SizedBox.shrink();
+
+    final hasUserPolled = post.is_polled_by_current_user;
+    final isSingleChoice = poll.vottingType == 'single_choice';
+    final hasPostImage =
+        post.images.isNotEmpty && post.images.first.url.isNotEmpty;
+    final PostImage? postImage = hasPostImage ? post.images.first : null;
+    final postProfilePic =
+        (post.userProfileImage != null && post.userProfileImage!.isNotEmpty)
+        ? post.userProfileImage
+        : (post.user == userProvider.username
+              ? userProvider.profile_picture
+              : null);
+
+    return GestureDetector(
+      onTap: () {
+        if (hasUserPolled) {
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => ThingsResultScreen(
+                username: post.user.isNotEmpty
+                    ? post.user
+                    : (userProvider.username ?? ''),
+                postId: post.id,
+              ),
+            ),
+          );
+        } else if (!isSingleChoice) {
+          Navigator.of(context)
+              .push(
+                MaterialPageRoute(
+                  builder: (_) => UserThingsRanking(
+                    firstName:
+                        post.userFirstName ??
+                        (post.user == userProvider.username
+                            ? userProvider.firstName
+                            : ''),
+                    lastName:
+                        post.userLastName ??
+                        (post.user == userProvider.username
+                            ? userProvider.lastName
+                            : ''),
+                    profileImage: postProfilePic,
+                    post: post,
+                    poll: poll,
+                  ),
+                ),
+              )
+              .then((result) {
+                if (result == true) {
+                  setState(() {});
+                  _fetchSavedPosts();
+                  _fetchPosts();
+                }
+              });
+        }
+      },
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (poll.question.isNotEmpty) ...[
+            SizedBox(height: 5.h),
+            _buildQuestionRow(
+              context,
+              poll,
+              txt,
+              onVotesTap: () {
+                BottomSheetUtils.showPollVotersBottomSheet(
+                  context: context,
+                  postId: post.id,
+                  question: poll.question,
+                  pollType: poll.pollType,
+                );
+              },
+            ),
+          ],
+          if (post.description.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(top: 5),
+              child: _buildDescriptionWithHashtags(
+                context,
+                post.description,
+                txt,
+              ),
+            ),
+          if (poll.question.isNotEmpty || post.description.isNotEmpty)
+            const SizedBox(height: 12),
+          if (postImage != null) ...[
+            Container(
+              margin: const EdgeInsets.only(bottom: 12),
+              height: 165.h,
+              width: double.infinity,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(AppRadius.button),
+                child: AppCachedNetworkImage(
+                  imageUrl: postImage.resolvedUrl(ApiConfig.baseUrlImage),
+                  fit: BoxFit.cover,
+                ),
+              ),
+            ),
+          ],
+          ...validOptions.asMap().entries.map((entry) {
+            final optionIndex = entry.key;
+            final option = entry.value;
+            return _buildTextPollOption(
+              context,
+              option,
+              optionIndex,
+              poll,
+              post,
+              userProvider,
+              isSingleChoice: isSingleChoice,
+            );
+          }),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTextPollOption(
+    BuildContext context,
+    UserPollOption option,
+    int optionIndex,
+    UserPollQuestion poll,
+    UserPostModel post,
+    UserProvider userProvider, {
+    required bool isSingleChoice,
+  }) {
+    final txt = AppTextColors.of(context);
+    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final hasUserPolled = post.is_polled_by_current_user;
+
+    return GestureDetector(
+      onTap: hasUserPolled
+          ? () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => ThingsResultScreen(
+                    username: post.user.isNotEmpty
+                        ? post.user
+                        : (userProvider.username ?? ''),
+                    postId: post.id,
+                  ),
+                ),
+              );
+            }
+          : (isSingleChoice
+                ? () {
+                    _submitSinglePollVote(poll, option.id, post);
+                  }
+                : () {
+                    final postProfilePic =
+                        (post.userProfileImage != null &&
+                            post.userProfileImage!.isNotEmpty)
+                        ? post.userProfileImage
+                        : (post.user == userProvider.username
+                              ? userProvider.profile_picture
+                              : null);
+                    Navigator.of(context)
+                        .push(
+                          MaterialPageRoute(
+                            builder: (_) => UserThingsRanking(
+                              firstName:
+                                  post.userFirstName ??
+                                  (post.user == userProvider.username
+                                      ? userProvider.firstName
+                                      : ''),
+                              lastName:
+                                  post.userLastName ??
+                                  (post.user == userProvider.username
+                                      ? userProvider.lastName
+                                      : ''),
+                              profileImage: postProfilePic,
+                              post: post,
+                              poll: poll,
+                            ),
+                          ),
+                        )
+                        .then((result) {
+                          if (result == true) {
+                            setState(() {});
+                            _fetchSavedPosts();
+                            _fetchPosts();
+                          }
+                        });
+                  }),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 250),
+        curve: Curves.easeInOut,
+        margin: EdgeInsets.only(bottom: 10.h),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(AppRadius.card),
+          color: hasUserPolled
+              ? (isDarkMode
+                    ? const Color(0XFF2A2026).withOpacity(0.7)
+                    : const Color(0xFFFCF9F9))
+              : (isDarkMode
+                    ? const Color(0xFF242831).withOpacity(0.7)
+                    : Colors.white),
+          border: Border.all(
+            color: Theme.of(context).colorScheme.outline,
+            width: 1,
+          ),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6.5),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  option.text ?? '',
+                  style: AppTextStyles.subText.copyWith(
+                    color: txt.title,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w400,
+                  ),
+                ),
+              ),
+              if ((!isSingleChoice || hasUserPolled) &&
+                  _getOptionPercentageText(option).isNotEmpty)
+                Text(
+                  _getOptionPercentageText(option),
+                  style: AppTextStyles.bodyText.copyWith(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildImagesStack(
+    UserPostModel post, [
+    UserPollQuestion? pollParam,
+    UserProvider? userProviderParam,
+  ]) {
     if (post.polls.isEmpty) return const SizedBox.shrink();
 
     List<PollOptionImage> validImages = [];
-    UserPollQuestion? firstPollWithImages;
+    UserPollQuestion? firstPollWithImages = pollParam;
 
-    for (var p in post.polls) {
-      if (p.options != null) {
-        for (var option in p.options!) {
+    if (firstPollWithImages != null) {
+      for (var option in firstPollWithImages.options) {
+        if (option.image != null) {
+          validImages.add(option.image!);
+        }
+      }
+    } else {
+      for (var p in post.polls) {
+        for (var option in p.options) {
           if (option.image != null) {
             validImages.add(option.image!);
             firstPollWithImages ??= p;
@@ -3368,6 +3751,7 @@ class _ProfileScreenState extends State<ProfileScreen>
         }
 
         showToast(message: 'Vote submitted successfully!');
+        _fetchSavedPosts();
         _fetchPosts();
       } else {
         showToast(message: 'Failed to submit vote. Please try again.');

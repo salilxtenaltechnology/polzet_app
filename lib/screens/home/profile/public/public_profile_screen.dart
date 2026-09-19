@@ -2573,77 +2573,96 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
                     ),
                   if (poll.question.isNotEmpty || post.description.isNotEmpty)
                     SizedBox(height: 12.h),
-                  if (isImage) ...[
-                    if (isPolzetAi &&
-                        post.images.isNotEmpty &&
-                        !_hasImageOptions(poll)) ...[
-                      GestureDetector(
-                        onTap: () {
-                          if (post.is_polled_by_current_user) {
-                            Navigator.of(context).push(
-                              MaterialPageRoute(
-                                builder: (_) => ThingsResultScreen(
-                                  username: post.user,
-                                  postId: post.id.toString(),
-                                ),
+                  if (_hasImageOptions(poll)) ...[
+                    if (poll.vottingType == 'single_choice')
+                      _buildSingleChoiceImagePollSection(context, poll, post)
+                    else
+                      _buildImagesStack(post),
+                  ] else if (isPolzetAi &&
+                      post.images.isNotEmpty &&
+                      !_hasImageOptions(poll)) ...[
+                    GestureDetector(
+                      onTap: () {
+                        if (post.is_polled_by_current_user) {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => ThingsResultScreen(
+                                username: post.user,
+                                postId: post.id.toString(),
                               ),
-                            );
-                          } else {
-                            final userProvider =
-                                Provider.of<PublicProfileProvider>(
-                                  context,
-                                  listen: false,
-                                );
-                            Navigator.of(context)
-                                .push(
-                                  MaterialPageRoute(
-                                    builder: (_) => PublicUserThingsRanking(
-                                      firstName:
-                                          userProvider.userProfile?.firstName ??
-                                          '',
-                                      lastName:
-                                          userProvider.userProfile?.lastName ??
-                                          '',
-                                      profileImage:
-                                          (userProvider.userProfile?.username
-                                                  .toLowerCase() ==
-                                              'polzet_ai')
-                                          ? Assets.images.icSplash.path
-                                          : userProvider
-                                                .userProfile
-                                                ?.profilePictureUrl,
-                                      post: post,
-                                      poll: poll,
-                                    ),
+                            ),
+                          );
+                        } else if (poll.vottingType != 'single_choice') {
+                          final userProvider =
+                              Provider.of<PublicProfileProvider>(
+                                context,
+                                listen: false,
+                              );
+                          Navigator.of(context)
+                              .push(
+                                MaterialPageRoute(
+                                  builder: (_) => PublicUserThingsRanking(
+                                    firstName:
+                                        userProvider.userProfile?.firstName ??
+                                        '',
+                                    lastName:
+                                        userProvider.userProfile?.lastName ??
+                                        '',
+                                    profileImage:
+                                        (userProvider.userProfile?.username
+                                                .toLowerCase() ==
+                                            'polzet_ai')
+                                        ? Assets.images.icSplash.path
+                                        : userProvider
+                                              .userProfile
+                                              ?.profilePictureUrl,
+                                    post: post,
+                                    poll: poll,
                                   ),
-                                )
-                                .then((result) {
-                                  if (result == true) {
-                                    setState(() {});
-                                    _loadData();
-                                  }
-                                });
-                          }
-                        },
-                        child: Container(
-                          margin: const EdgeInsets.only(bottom: 12),
-                          height: 165.h,
-                          width: double.infinity,
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(
-                              AppRadius.button,
+                                ),
+                              )
+                              .then((result) {
+                                if (result == true) {
+                                  setState(() {});
+                                  _loadData();
+                                }
+                              });
+                        }
+                      },
+                      child: Container(
+                        margin: const EdgeInsets.only(bottom: 12),
+                        height: 165.h,
+                        width: double.infinity,
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(
+                            AppRadius.button,
+                          ),
+                          child: AppCachedNetworkImage(
+                            imageUrl: post.images.first.resolvedUrl(
+                              ApiConfig.baseUrlImage,
                             ),
-                            child: AppCachedNetworkImage(
-                              imageUrl: post.images.first.resolvedUrl(
-                                ApiConfig.baseUrlImage,
-                              ),
-                              fit: BoxFit.cover,
-                            ),
+                            fit: BoxFit.cover,
                           ),
                         ),
                       ),
+                    ),
+                    if (poll.vottingType == 'single_choice') ...[
                       if (post.is_polled_by_current_user)
                         _buildPolledTextOptions(poll, () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => ThingsResultScreen(
+                                username: post.user,
+                                postId: post.id.toString(),
+                              ),
+                            ),
+                          );
+                        })
+                      else
+                        _buildSingleChoiceTextOptions(poll, post),
+                    ] else ...[
+                      if (post.is_polled_by_current_user)
+                        _buildRankingPolledOptions(poll, () {
                           Navigator.of(context).push(
                             MaterialPageRoute(
                               builder: (_) => ThingsResultScreen(
@@ -2690,55 +2709,68 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
                                 }
                               });
                         }),
-                    ] else
-                      _buildImagesStack(post),
-                  ] else if (post.is_polled_by_current_user)
-                    // Already voted → show results
-                    _buildPolledTextOptions(poll, () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) => ThingsResultScreen(
-                            username: post.user,
-                            postId: post.id.toString(),
-                          ),
-                        ),
-                      );
-                    })
-                  else
-                    // Not yet voted → show option chips
-                    _buildTextOptions(poll, () {
-                      final userProvider = Provider.of<PublicProfileProvider>(
-                        context,
-                        listen: false,
-                      );
-                      Navigator.of(context)
-                          .push(
-                            MaterialPageRoute(
-                              builder: (_) => PublicUserThingsRanking(
-                                firstName:
-                                    userProvider.userProfile?.firstName ?? '',
-                                lastName:
-                                    userProvider.userProfile?.lastName ?? '',
-                                profileImage:
-                                    (userProvider.userProfile?.username
-                                            .toLowerCase() ==
-                                        'polzet_ai')
-                                    ? Assets.images.icSplash.path
-                                    : userProvider
-                                          .userProfile!
-                                          .profilePictureUrl,
-                                post: post,
-                                poll: poll,
-                              ),
+                    ],
+                  ] else if (poll.vottingType == 'single_choice') ...[
+                    if (post.is_polled_by_current_user)
+                      _buildPolledTextOptions(poll, () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => ThingsResultScreen(
+                              username: post.user,
+                              postId: post.id.toString(),
                             ),
-                          )
-                          .then((result) {
-                            if (result == true) {
-                              setState(() {});
-                              _loadData();
-                            }
-                          });
-                    }),
+                          ),
+                        );
+                      })
+                    else
+                      _buildSingleChoiceTextOptions(poll, post),
+                  ] else ...[
+                    if (post.is_polled_by_current_user)
+                      _buildRankingPolledOptions(poll, () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => ThingsResultScreen(
+                              username: post.user,
+                              postId: post.id.toString(),
+                            ),
+                          ),
+                        );
+                      })
+                    else
+                      _buildTextOptions(poll, () {
+                        final userProvider = Provider.of<PublicProfileProvider>(
+                          context,
+                          listen: false,
+                        );
+                        Navigator.of(context)
+                            .push(
+                              MaterialPageRoute(
+                                builder: (_) => PublicUserThingsRanking(
+                                  firstName:
+                                      userProvider.userProfile?.firstName ?? '',
+                                  lastName:
+                                      userProvider.userProfile?.lastName ?? '',
+                                  profileImage:
+                                      (userProvider.userProfile?.username
+                                              .toLowerCase() ==
+                                          'polzet_ai')
+                                      ? Assets.images.icSplash.path
+                                      : userProvider
+                                            .userProfile!
+                                            .profilePictureUrl,
+                                  post: post,
+                                  poll: poll,
+                                ),
+                              ),
+                            )
+                            .then((result) {
+                              if (result == true) {
+                                setState(() {});
+                                _loadData();
+                              }
+                            });
+                      }),
+                  ],
                 ],
 
                 const SizedBox(height: 10),
@@ -2943,95 +2975,394 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
     );
   }
 
-  Widget _buildPolledTextOptions(UserPollQuestion poll, VoidCallback onTap) {
+  String _getOptionPercentageText(UserPollOption option) {
+    final percentage = option.percentage;
+    if (percentage <= 0) {
+      return "";
+    }
+    final num val = percentage == percentage.toInt()
+        ? percentage.toInt()
+        : percentage;
+    return "$val%";
+  }
+
+  Widget _buildRankingPolledOptions(UserPollQuestion poll, VoidCallback onTap) {
+    final txt = AppTextColors.of(context);
     final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    if (poll.options.isEmpty) return const SizedBox.shrink();
+    final validOptions = poll.options
+        .where((o) => o.text != null && o.text!.isNotEmpty)
+        .toList();
+    if (validOptions.isEmpty) return const SizedBox.shrink();
 
     return GestureDetector(
       onTap: onTap,
       child: Column(
-        children: poll.options.map((option) {
-          return Padding(
-            padding: EdgeInsets.only(bottom: 12.h),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // ── Option text + percentage ──────────────────
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Expanded(
-                            child: Text(
-                              option.text ?? '',
-                              overflow: TextOverflow.ellipsis,
-                              maxLines: 1,
-                              style: AppTextStyles.bodyText.copyWith(
-                                fontSize: 15,
-                                fontWeight: FontWeight.w400,
-                                color: Theme.of(
-                                  context,
-                                ).colorScheme.onBackground,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 5),
-                          SizedBox(
-                            width: 44.w,
-                            child: Text(
-                              '${option.percentage.toInt()}%',
-                              textAlign: TextAlign.right,
-                              style: AppTextStyles.bodyText.copyWith(
-                                fontSize: 15,
-                                fontWeight: FontWeight.w600,
-                                color: Theme.of(
-                                  context,
-                                ).colorScheme.onBackground,
-                              ),
-                            ),
-                          ),
-                        ],
+        children: validOptions.asMap().entries.map((entry) {
+          final index = entry.key;
+          final option = entry.value;
+          return Container(
+            margin: EdgeInsets.only(bottom: 10.h),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(AppRadius.card),
+              color: isDarkMode
+                  ? const Color(0XFF2A2026).withOpacity(0.7)
+                  : const Color(0xFFFCF9F9),
+              border: Border.all(
+                color: Theme.of(context).colorScheme.outline,
+                width: 1,
+              ),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6.5),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      option.text ?? '',
+                      style: AppTextStyles.subText.copyWith(
+                        color: txt.title,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w400,
                       ),
-
-                      SizedBox(height: 6.h),
-
-                      // ── Progress bar ──────────────────────────────
-                      Stack(
-                        children: [
-                          Container(
-                            width: double.infinity,
-                            height: 8.h,
-                            decoration: BoxDecoration(
-                              color: isDarkMode
-                                  ? const Color(0xFF2D2D2D)
-                                  : const Color(0xFFF6F3F2),
-                              borderRadius: BorderRadius.circular(
-                                AppRadius.card,
-                              ),
-                            ),
-                          ),
-                          FractionallySizedBox(
-                            widthFactor: (option.percentage / 100).clamp(
-                              0.0,
-                              1.0,
-                            ),
-                            child: Container(
-                              height: 8.h,
-                              decoration: BoxDecoration(
-                                color: const Color(0xFF9E2A46),
-                                borderRadius: BorderRadius.circular(4.r),
-                              ),
-                            ),
-                          ),
-                        ],
+                    ),
+                  ),
+                  Container(
+                    height: 28,
+                    width: 28,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                    child: Center(
+                      child: Text(
+                        '${index + 1}',
+                        style: AppTextStyles.subText.copyWith(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
+                        ),
                       ),
-                    ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
+
+  Widget _buildSingleChoiceTextOptions(
+    UserPollQuestion poll,
+    UserPostModel post,
+  ) {
+    final txt = AppTextColors.of(context);
+    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final validOptions = poll.options
+        .where((o) => o.text != null && o.text!.isNotEmpty)
+        .toList();
+    if (validOptions.isEmpty) return const SizedBox.shrink();
+
+    return Column(
+      children: validOptions.map((option) {
+        return GestureDetector(
+          onTap: () => _submitSinglePollVote(poll, option.id, post),
+          child: Container(
+            margin: EdgeInsets.only(bottom: 10.h),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(AppRadius.card),
+              color: isDarkMode
+                  ? const Color(0xFF242831).withOpacity(0.7)
+                  : Colors.white,
+              border: Border.all(
+                color: Theme.of(context).colorScheme.outline,
+                width: 1,
+              ),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8.5),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      option.text ?? '',
+                      style: AppTextStyles.subText.copyWith(
+                        color: txt.title,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w400,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  Widget _buildSingleChoiceImagePollSection(
+    BuildContext context,
+    UserPollQuestion poll,
+    UserPostModel post,
+  ) {
+    final validOptions = poll.options.where((o) => o.image != null).toList();
+    if (validOptions.isEmpty) return const SizedBox.shrink();
+
+    final hasUserPolled = post.is_polled_by_current_user;
+
+    Widget optionsWidget;
+    if (validOptions.length == 4) {
+      optionsWidget = Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: _buildSingleChoiceImageOptionCard(
+                  context,
+                  validOptions[0],
+                  poll,
+                  post,
+                  hasUserPolled,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _buildSingleChoiceImageOptionCard(
+                  context,
+                  validOptions[1],
+                  poll,
+                  post,
+                  hasUserPolled,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: _buildSingleChoiceImageOptionCard(
+                  context,
+                  validOptions[2],
+                  poll,
+                  post,
+                  hasUserPolled,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _buildSingleChoiceImageOptionCard(
+                  context,
+                  validOptions[3],
+                  poll,
+                  post,
+                  hasUserPolled,
+                ),
+              ),
+            ],
+          ),
+        ],
+      );
+    } else {
+      optionsWidget = Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: List.generate(validOptions.length, (index) {
+          return Expanded(
+            child: Padding(
+              padding: EdgeInsets.only(
+                right: index < validOptions.length - 1 ? 10 : 0,
+              ),
+              child: _buildSingleChoiceImageOptionCard(
+                context,
+                validOptions[index],
+                poll,
+                post,
+                hasUserPolled,
+              ),
+            ),
+          );
+        }),
+      );
+    }
+
+    return optionsWidget;
+  }
+
+  Widget _buildSingleChoiceImageOptionCard(
+    BuildContext context,
+    UserPollOption option,
+    UserPollQuestion poll,
+    UserPostModel post,
+    bool hasUserPolled,
+  ) {
+    Widget imageWidget = const SizedBox.shrink();
+    if (option.image != null) {
+      imageWidget = AppCachedNetworkImage(
+        imageUrl: option.image!.resolvedUrl(ApiConfig.baseUrlImage),
+        fit: BoxFit.cover,
+        showSpinnerPlaceholder: true,
+      );
+    }
+
+    final percentageText = _getOptionPercentageText(option);
+
+    return GestureDetector(
+      onTap: hasUserPolled
+          ? () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => ImageResultScreen(
+                    username: post.user,
+                    postId: post.id.toString(),
                   ),
                 ),
+              );
+            }
+          : () {
+              _submitSinglePollVote(poll, option.id, post);
+            },
+      child: SizedBox(
+        height: 155.h,
+        child: Container(
+          decoration: BoxDecoration(
+            border: Border.all(
+              color: Theme.of(context).colorScheme.outlineVariant,
+              width: 1,
+            ),
+            borderRadius: BorderRadius.circular(AppRadius.button),
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(AppRadius.button),
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                imageWidget,
+                Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        Colors.transparent,
+                        Colors.black.withOpacity(0.60),
+                      ],
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                    ),
+                  ),
+                ),
+                if (hasUserPolled)
+                  Positioned(
+                    bottom: 2,
+                    left: 8.w,
+                    right: 8.w,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (option.text != null && option.text!.isNotEmpty)
+                          Text(
+                            option.text!,
+                            textAlign: TextAlign.center,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: AppTextStyles.bodyText.copyWith(
+                              fontSize: 13.5,
+                              fontWeight: FontWeight.w500,
+                              color: Colors.white,
+                            ),
+                          ),
+                        if (percentageText.isNotEmpty)
+                          Text(
+                            percentageText,
+                            textAlign: TextAlign.center,
+                            style: AppTextStyles.bodyText.copyWith(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.white,
+                            ),
+                          ),
+                      ],
+                    ),
+                  )
+                else if (option.text != null && option.text!.isNotEmpty)
+                  Positioned(
+                    bottom: 5.h,
+                    left: 8.w,
+                    right: 8.w,
+                    child: Text(
+                      option.text!,
+                      textAlign: TextAlign.center,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppTextStyles.bodyText.copyWith(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
               ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPolledTextOptions(UserPollQuestion poll, VoidCallback onTap) {
+    final txt = AppTextColors.of(context);
+    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final validOptions = poll.options
+        .where((o) => o.text != null && o.text!.isNotEmpty)
+        .toList();
+    if (validOptions.isEmpty) return const SizedBox.shrink();
+
+    return GestureDetector(
+      onTap: onTap,
+      child: Column(
+        children: validOptions.map((option) {
+          final pctText = _getOptionPercentageText(option);
+          return Container(
+            margin: EdgeInsets.only(bottom: 10.h),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(AppRadius.card),
+              color: isDarkMode
+                  ? const Color(0XFF2A2026).withOpacity(0.7)
+                  : const Color(0xFFFCF9F9),
+              border: Border.all(
+                color: Theme.of(context).colorScheme.outline,
+                width: 1,
+              ),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6.5),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      option.text ?? '',
+                      style: AppTextStyles.subText.copyWith(
+                        color: txt.title,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w400,
+                      ),
+                    ),
+                  ),
+                  if (pctText.isNotEmpty)
+                    Text(
+                      pctText,
+                      style: AppTextStyles.bodyText.copyWith(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                    ),
+                ],
+              ),
             ),
           );
         }).toList(),

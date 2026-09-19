@@ -335,7 +335,11 @@ class UserPollQuestion {
       question: (json['question'] ?? '').toString(),
       type: (json['type'] ?? '').toString(),
       pollType: (json['poll_type'] ?? '').toString(),
-      vottingType: (json['voting_type'] ?? '').toString(),
+      vottingType: (json['voting_type'] ??
+              json['votting_type'] ??
+              json['vote_type'] ??
+              '')
+          .toString(),
       maxOptions: _toInt(json['max_options']),
       options: optionsVal,
       totalVotes: totalVotesVal,

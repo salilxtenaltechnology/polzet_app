@@ -157,7 +157,11 @@ class _ReportGroupState extends State<ReportGroup> {
               return GestureDetector(
                 onTap: () {
                   setState(() {
-                    _selectedReason = reason;
+                    if (isSelected) {
+                      _selectedReason = null;
+                    } else {
+                      _selectedReason = reason;
+                    }
                   });
                 },
                 behavior: HitTestBehavior.opaque,

@@ -27,6 +27,7 @@ import 'private_chat_theme.dart';
 import 'private_user_mute_notification.dart';
 import 'private_user_privacy_safety.dart';
 import 'private_user_report.dart';
+import '../../../../../../widgets/bottomsheets/report/report_submitted_bottom_sheet.dart';
 
 class PrivateUserInfo extends StatefulWidget {
   final dynamic userId;
@@ -136,6 +137,84 @@ class _PrivateUserInfoState extends State<PrivateUserInfo>
       }
     } catch (_) {}
     return false;
+  }
+
+  bool _getIsReportedFromChat(Map<String, dynamic>? chat) {
+    if (chat == null) return false;
+    final members = chat['members'] as List?;
+    if (members == null) {
+      final val =
+          chat['is_reported'] ?? chat['isReported'] ?? chat['is_report'];
+      return val == true || val == 1 || val?.toString() == 'true';
+    }
+    try {
+      final userProvider = Provider.of<UserProvider>(context, listen: false);
+      final currentUserId = userProvider.userId?.toString();
+      final currentUsername = userProvider.username?.toString().toLowerCase();
+
+      for (final m in members) {
+        if (m is Map) {
+          final user = m['user'] as Map?;
+          final username = user?['username']?.toString().toLowerCase();
+          final id = (user?['uuid'] ?? user?['id'])?.toString();
+          if (id != currentUserId &&
+              (currentUsername == null || username != currentUsername)) {
+            final val =
+                m['is_reported'] ??
+                m['is_report'] ??
+                m['isReported'] ??
+                user?['is_reported'] ??
+                user?['is_report'];
+            return val == true || val == 1 || val?.toString() == 'true';
+          }
+        }
+      }
+      final directVal =
+          chat['is_reported'] ?? chat['isReported'] ?? chat['is_report'];
+      if (directVal == true ||
+          directVal == 1 ||
+          directVal?.toString() == 'true') {
+        return true;
+      }
+    } catch (_) {}
+    return false;
+  }
+
+  bool _isUserReported() {
+    if (_profileData != null && _profileData!.isReported) {
+      return true;
+    }
+    return _getIsReportedFromChat(widget.chat);
+  }
+
+  void _updateReportedStatusLocally(bool isReported) {
+    if (_profileData != null) {
+      _profileData = _profileData!.copyWith(isReported: isReported);
+    }
+    if (widget.chat != null) {
+      try {
+        final userProvider = Provider.of<UserProvider>(context, listen: false);
+        final currentUserId = userProvider.userId?.toString();
+        final currentUsername = userProvider.username?.toString().toLowerCase();
+        final members = widget.chat!['members'] as List?;
+        if (members != null) {
+          for (final m in members) {
+            if (m is Map<String, dynamic>) {
+              final user =
+                  m['user'] as Map<String, dynamic>? ??
+                  (m.containsKey('username') ? m : null);
+              final username = user?['username']?.toString().toLowerCase();
+              final id = (user?['uuid'] ?? user?['id'])?.toString();
+              if (id != currentUserId &&
+                  (currentUsername == null || username != currentUsername)) {
+                m['is_reported'] = isReported;
+              }
+            }
+          }
+        }
+        widget.chat!['is_reported'] = isReported;
+      } catch (_) {}
+    }
   }
 
   Map<String, dynamic>? _getOtherMemberUser() {
@@ -469,7 +548,7 @@ class _PrivateUserInfoState extends State<PrivateUserInfo>
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: AppTextStyles.cardTitle.copyWith(
-                                fontSize: 13.5.sp,
+                                fontSize: 13.2.sp,
                                 fontWeight: FontWeight.w600,
                                 color: Theme.of(
                                   context,
@@ -481,8 +560,8 @@ class _PrivateUserInfoState extends State<PrivateUserInfo>
                             SizedBox(width: 4.w),
                             Image.asset(
                               Assets.images.icVerify.path,
-                              height: 14.w,
-                              width: 14.w,
+                              height: 12.w,
+                              width: 12.w,
                             ),
                           ],
                         ],
@@ -579,7 +658,7 @@ class _PrivateUserInfoState extends State<PrivateUserInfo>
                               offset: const Offset(0, 45),
                               elevation: 2,
                               padding: EdgeInsets.zero,
-                              onSelected: (value) {
+                              onSelected: (value) async {
                                 if (value == 'share') {
                                   ShareService.shareProfile(
                                     username: _displayUsername,
@@ -588,10 +667,22 @@ class _PrivateUserInfoState extends State<PrivateUserInfo>
                                         _getTargetUserId()?.toString() ?? '',
                                   );
                                 } else if (value == 'report') {
-                                  navigationPush(
-                                    context,
-                                    const PrivateUserReport(),
-                                  );
+                                  if (_isUserReported()) {
+                                    showReportSubmittedBottomSheet(context);
+                                  } else {
+                                    final result = await navigationPush(
+                                      context,
+                                      PrivateUserReport(
+                                        userId: _getTargetUserId(),
+                                        isReported: false,
+                                      ),
+                                    );
+                                    if (result == true && mounted) {
+                                      setState(() {
+                                        _updateReportedStatusLocally(true);
+                                      });
+                                    }
+                                  }
                                 }
                               },
                               itemBuilder: (BuildContext context) {
@@ -653,9 +744,13 @@ class _PrivateUserInfoState extends State<PrivateUserInfo>
                       Builder(
                         builder: (context) {
                           final privateProvider =
-                              widget.privateChatProvider ?? _getPrivateProvider();
-                          final currentTheme = privateProvider?.currentTheme ??
-                              ChatThemeItem.fromIdOrName(widget.chat?['chat_theme']);
+                              widget.privateChatProvider ??
+                              _getPrivateProvider();
+                          final currentTheme =
+                              privateProvider?.currentTheme ??
+                              ChatThemeItem.fromIdOrName(
+                                widget.chat?['chat_theme'],
+                              );
                           final themeColor = currentTheme != null
                               ? currentTheme.getOutgoingColor(isDarkMode)
                               : const Color(0xFF8B263E);
@@ -675,7 +770,8 @@ class _PrivateUserInfoState extends State<PrivateUserInfo>
                             txt: txt,
                             onTap: () async {
                               final provider =
-                                  widget.privateChatProvider ?? _getPrivateProvider();
+                                  widget.privateChatProvider ??
+                                  _getPrivateProvider();
                               final result = await Navigator.push(
                                 context,
                                 MaterialPageRoute(
@@ -683,16 +779,19 @@ class _PrivateUserInfoState extends State<PrivateUserInfo>
                                       ? ChangeNotifierProvider.value(
                                           value: provider,
                                           child: PrivateChatTheme(
-                                            chatId: widget.chatId ??
+                                            chatId:
+                                                widget.chatId ??
                                                 widget.chat?['id'] ??
                                                 provider.chatId,
                                             privateChatProvider: provider,
-                                            chatTheme: widget.chat?['chat_theme'],
+                                            chatTheme:
+                                                widget.chat?['chat_theme'],
                                             chat: widget.chat,
                                           ),
                                         )
                                       : PrivateChatTheme(
-                                          chatId: widget.chatId ??
+                                          chatId:
+                                              widget.chatId ??
                                               widget.chat?['id'],
                                           chatTheme: widget.chat?['chat_theme'],
                                           chat: widget.chat,
@@ -713,7 +812,9 @@ class _PrivateUserInfoState extends State<PrivateUserInfo>
                       _buildOptionTile(
                         iconWidget: Image.asset(
                           Assets.images.icSecurity.path,
-                          color: Theme.of(context).colorScheme.onPrimary,
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onPrimary.withOpacity(0.7),
                           width: 17.w,
                           height: 17.w,
                         ),
@@ -721,11 +822,27 @@ class _PrivateUserInfoState extends State<PrivateUserInfo>
                         subtitle: 'Anyone can discover and view this group',
                         isDarkMode: isDarkMode,
                         txt: txt,
-                        onTap: () {
-                          navigationPush(
+                        onTap: () async {
+                          final result = await navigationPush(
                             context,
-                            PrivateUserPrivacySafety(chatId: widget.chatId),
+                            PrivateUserPrivacySafety(
+                              chatId: widget.chatId,
+                              userId: _getTargetUserId(),
+                              chat: widget.chat,
+                              isReported: _isUserReported(),
+                              isUserBlock: _isUserBlock,
+                            ),
                           );
+                          if (result is bool && mounted) {
+                            setState(() {
+                              _isUserBlock = result;
+                            });
+                          }
+                          if (mounted) {
+                            setState(() {
+                              _updateReportedStatusLocally(_isUserReported());
+                            });
+                          }
                         },
                       ),
                       _buildDestructiveAction(
@@ -848,9 +965,13 @@ class _PrivateUserInfoState extends State<PrivateUserInfo>
                     left: 8,
                     right: 7,
                   ),
-                  child: Image.asset(
-                    Assets.images.icSplash.path,
-                    fit: BoxFit.contain,
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(5, 10, 0, 0),
+                    child: Image.asset(
+                      Assets.images.icSplash.path,
+                      height: 60, 
+                      width: 60,
+                    ),
                   ),
                 ),
               ),
@@ -921,27 +1042,36 @@ class _PrivateUserInfoState extends State<PrivateUserInfo>
     required AppTextColors txt,
     VoidCallback? onTap,
   }) {
-    final content = Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Image.asset(icon, color: txt.title, width: 22.w, height: 22.w),
-        SizedBox(height: 6.h),
-        Text(
-          label,
-          style: AppTextStyles.bodyText.copyWith(
-            fontSize: 13,
-            color: txt.muted,
-            fontWeight: FontWeight.w400,
+    final txt = AppTextColors.of(context);
+    final content = Container(
+      color: Colors.transparent,
+      padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 6.h),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Image.asset(icon, color: txt.title, width: 22, height: 22),
+          SizedBox(height: 5.h),
+          Text(
+            label,
+            style: AppTextStyles.bodyText.copyWith(
+              fontSize: 13,
+              color: txt.muted,
+              fontWeight: FontWeight.w400,
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
 
     if (onTap == null) {
       return content;
     }
 
-    return GestureDetector(onTap: onTap, child: content);
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: content,
+    );
   }
 
   Widget _buildOptionTile({
@@ -952,6 +1082,7 @@ class _PrivateUserInfoState extends State<PrivateUserInfo>
     required AppTextColors txt,
     required VoidCallback onTap,
   }) {
+    final txt = AppTextColors.of(context);
     return GestureDetector(
       onTap: onTap,
       child: Padding(
@@ -959,15 +1090,16 @@ class _PrivateUserInfoState extends State<PrivateUserInfo>
         child: Row(
           children: [
             Container(
-              width: 44,
-              height: 44,
+              height: 47,
+              width: 47,
+              padding: const EdgeInsets.all(11),
               decoration: BoxDecoration(
-                shape: BoxShape.circle,
                 color: Theme.of(context).colorScheme.onPrimary.withOpacity(0.1),
+                shape: BoxShape.circle,
               ),
               child: Center(child: iconWidget),
             ),
-            SizedBox(width: 12.w),
+            const SizedBox(width: 12),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -976,16 +1108,16 @@ class _PrivateUserInfoState extends State<PrivateUserInfo>
                   Text(
                     title,
                     style: AppTextStyles.cardTitle.copyWith(
-                      fontSize: 13.5,
-                      fontWeight: FontWeight.w500,
                       color: txt.title,
+                      fontSize: 14.5,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
                   Text(
                     subtitle,
-                    style: AppTextStyles.bodyText.copyWith(
-                      fontSize: 12.2,
+                    style: AppTextStyles.cardTitle.copyWith(
                       color: txt.muted,
+                      fontSize: 12.5,
                       fontWeight: FontWeight.w400,
                     ),
                   ),
@@ -1001,32 +1133,37 @@ class _PrivateUserInfoState extends State<PrivateUserInfo>
   Widget _buildDestructiveAction({
     required String icon,
     required String title,
-
     required VoidCallback onTap,
   }) {
     return GestureDetector(
       onTap: onTap,
-      child: Padding(
-        padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 8.h),
-        child: Row(
-          children: [
-            Image.asset(
+      child: Row(
+        children: [
+          Container(
+            height: 42,
+            width: 42,
+            padding: const EdgeInsets.all(10),
+            decoration: const BoxDecoration(
+              color: Colors.transparent,
+              shape: BoxShape.circle,
+            ),
+            child: Image.asset(
               icon,
               height: 23,
               width: 25,
               color: const Color(0XFFE5484D),
             ),
-            SizedBox(width: 20.w),
-            Text(
-              title,
-              style: AppTextStyles.cardTitle.copyWith(
-                color: const Color(0XFFE5484D),
-                fontSize: 13.5,
-                fontWeight: FontWeight.w500,
-              ),
+          ),
+          const SizedBox(width: 18.5),
+          Text(
+            title,
+            style: AppTextStyles.cardTitle.copyWith(
+              color: const Color(0XFFE5484D),
+              fontSize: 14.5,
+              fontWeight: FontWeight.w500,
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

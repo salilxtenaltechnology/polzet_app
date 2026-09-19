@@ -40,9 +40,12 @@ class GroupChatTheme extends StatefulWidget {
 
 class _GroupChatThemeState extends State<GroupChatTheme> {
   int _selectedIndex = 0;
+  int _initialIndex = 0;
   bool _initializedTheme = false;
   bool _isLoading = false;
   List<ChatThemeItem> get _themes => defaultChatThemes;
+
+  bool get _hasChanged => _selectedIndex != _initialIndex;
 
   GroupChatProvider? get _provider {
     if (widget.groupChatProvider != null) return widget.groupChatProvider;
@@ -81,10 +84,12 @@ class _GroupChatThemeState extends State<GroupChatTheme> {
         final index = _themes.indexWhere((t) => t.id == item.id);
         if (index != -1) {
           _selectedIndex = index;
+          _initialIndex = index;
           return;
         }
       }
     }
+    _initialIndex = _selectedIndex;
   }
 
   Future<void> _applyTheme() async {
@@ -263,12 +268,12 @@ class _GroupChatThemeState extends State<GroupChatTheme> {
         ),
       ),
       bottomNavigationBar: BottomAppBar(
-        padding: EdgeInsets.zero,
-        height: 50.h,
+        padding: const EdgeInsets.only(bottom: 25),
+        height: 90,
         color: Theme.of(context).colorScheme.background,
         child: PrimaryButton(
           title: 'Apply Theme',
-          onPressed: _isLoading ? () {} : _applyTheme,
+          onPressed: (_isLoading || !_hasChanged) ? null : _applyTheme,
           isLoading: _isLoading,
         ),
       ),

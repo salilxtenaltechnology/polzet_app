@@ -94,12 +94,13 @@ class NotificationService {
           'pending_local_notification_action',
         );
         final stableId = _generateStableNotificationId(data);
+        final String tapKey = '${stableId}_${actionId ?? 'body'}';
 
-        // Double check duplication
-        final isProcessed = await _checkAndMarkNotificationProcessed(stableId);
+        // Double check duplication for tap handling
+        final isProcessed = await _checkAndMarkTapProcessed(tapKey);
         if (isProcessed) {
           debugPrint(
-            '📬 processPendingTaps: stableId $stableId already processed. Skipping.',
+            '📬 processPendingTaps: tapKey $tapKey already processed. Skipping.',
           );
           await SharedPrefService.removeKey('pending_local_notification_tap');
           await SharedPrefService.removeKey(
@@ -181,19 +182,29 @@ class NotificationService {
   static Map<String, dynamic> _getParsedNotificationData(
     Map<String, dynamic> data,
   ) {
+    final Map<String, dynamic> result = Map<String, dynamic>.from(data);
     try {
+      if (data['data'] is Map) {
+        result.addAll(Map<String, dynamic>.from(data['data'] as Map));
+      } else if (data['data'] != null && data['data'] is String) {
+        final decoded = jsonDecode(data['data'].toString());
+        if (decoded is Map) {
+          result.addAll(Map<String, dynamic>.from(decoded));
+        }
+      }
       if (data['notification'] is Map) {
-        return data['notification'] as Map<String, dynamic>;
-      } else if (data['notification'] != null) {
+        result.addAll(Map<String, dynamic>.from(data['notification'] as Map));
+      } else if (data['notification'] != null &&
+          data['notification'] is String) {
         final decoded = jsonDecode(data['notification'].toString());
         if (decoded is Map) {
-          return decoded as Map<String, dynamic>;
+          result.addAll(Map<String, dynamic>.from(decoded));
         }
       }
     } catch (e) {
       debugPrint('⚠️ Error decoding notification data: $e');
     }
-    return data;
+    return result;
   }
 
   static String _resolveNotificationType(
@@ -225,55 +236,166 @@ class NotificationService {
       }
     }
 
-    if (type == 'POLL' ||
+    if (type == 'AI_NEW_POST' ||
+        type == 'AI_POST' ||
+        type == 'AI_POLL' ||
+        type == 'POLZET_AI') {
+      type = 'AI_NEW_POST';
+    } else if (type == 'POLL' ||
         type == 'NEW_POLL' ||
         type == 'POST' ||
         type == 'CREATE_POST' ||
         type == 'POLL_CREATED' ||
-        type == 'ADD_POST') {
+        type == 'ADD_POST' ||
+        type == 'NEW_POST' ||
+        type == 'POLL_POST' ||
+        type == 'POST_CREATED') {
       type = 'NEW_POST';
-    } else if (type == 'MESSAGE' || type == 'CHAT' || type == 'NEW_CHAT') {
+    } else if (type == 'VOTE' ||
+        type == 'NEW_VOTE' ||
+        type == 'POLL_VOTE' ||
+        type == 'POLL_VOTED' ||
+        type == 'VOTED' ||
+        type == 'VOTE_POLL' ||
+        type == 'VOTE_CAST' ||
+        type == 'CAST_VOTE' ||
+        type == 'USER_VOTED' ||
+        type == 'NEW_POLL_VOTE') {
+      type = 'VOTE';
+    } else if (type == 'LIKE' ||
+        type == 'NEW_LIKE' ||
+        type == 'LIKED' ||
+        type == 'POST_LIKED' ||
+        type == 'LIKE_POST' ||
+        type == 'USER_LIKED') {
+      type = 'LIKE';
+    } else if (type == 'LIKE_GROUP') {
+      type = 'LIKE_GROUP';
+    } else if (type == 'COMMENT' ||
+        type == 'NEW_COMMENT' ||
+        type == 'COMMENTED' ||
+        type == 'COMMETNT' ||
+        type == 'COMMENT_POST' ||
+        type == 'POST_COMMENT' ||
+        type == 'USER_COMMENTED' ||
+        type == 'REPLY' ||
+        type == 'COMMENT_REPLY' ||
+        type == 'NEW_REPLY') {
+      type = 'COMMENT';
+    } else if (type == 'COMMENT_GROUP') {
+      type = 'COMMENT_GROUP';
+    } else if (type == 'MESSAGE' ||
+        type == 'CHAT' ||
+        type == 'NEW_CHAT' ||
+        type == 'NEW_MESSAGE' ||
+        type == 'PRIVATE_CHAT' ||
+        type == 'DIRECT_MESSAGE' ||
+        type == 'DM' ||
+        type == 'CHAT_MESSAGE' ||
+        type == 'SEND_MESSAGE') {
       type = 'NEW_MESSAGE';
     } else if (type == 'CHASE' ||
         type == 'NEW_FOLLOWER' ||
-        type == 'FOLLOW_USER') {
+        type == 'FOLLOW_USER' ||
+        type == 'NEW_CHASE' ||
+        type == 'CHASING' ||
+        type == 'USER_FOLLOWED' ||
+        type == 'FOLLOW') {
       type = 'FOLLOW';
-    } else if (type == 'CHASE_REQUEST' || type == 'FRIEND_REQ') {
+    } else if (type == 'FOLLOW_GROUP') {
+      type = 'FOLLOW_GROUP';
+    } else if (type == 'CHASE_REQUEST' ||
+        type == 'FRIEND_REQ' ||
+        type == 'FRIEND_REQUEST' ||
+        type == 'NEW_FRIEND_REQUEST' ||
+        type == 'NEW_CHASE_REQUEST' ||
+        type == 'REQUEST_FOLLOW') {
       type = 'FRIEND_REQUEST';
-    } else if (type == 'GROUP_ADD' || type == 'ADD_GROUP') {
+    } else if (type == 'GROUP_ADD' ||
+        type == 'ADD_GROUP' ||
+        type == 'NEW_GROUP_ADDED' ||
+        type == 'ADDED_TO_GROUP' ||
+        type == 'GROUP_ADDED') {
       type = 'NEW_GROUP_ADDED';
+    } else if (type == 'GROUP_ADMIN_PROMOTE' ||
+        type == 'ADMIN_PROMOTE' ||
+        type == 'PROMOTE_ADMIN' ||
+        type == 'GROUP_ADMIN') {
+      type = 'GROUP_ADMIN_PROMOTE';
+    } else if (type == 'GROUP_JOIN_REQUEST' ||
+        type == 'JOIN_REQUEST' ||
+        type == 'GROUP_REQUEST') {
+      type = 'GROUP_JOIN_REQUEST';
     }
 
-    if (type == 'GENERAL' || type.isEmpty) {
+    if (type == 'GENERAL' ||
+        type.isEmpty ||
+        (![
+          'NEW_POST',
+          'VOTE',
+          'LIKE',
+          'LIKE_GROUP',
+          'COMMENT',
+          'COMMENT_GROUP',
+          'NEW_MESSAGE',
+          'FOLLOW',
+          'FOLLOW_GROUP',
+          'FRIEND_REQUEST',
+          'NEW_GROUP_ADDED',
+          'GROUP_ADMIN_PROMOTE',
+          'GROUP_JOIN_REQUEST',
+          'AI_NEW_POST',
+        ].contains(type))) {
       final fullText = '${title ?? ''} ${body ?? ''}'.toLowerCase();
       final hasPostId =
-          (notificationData['post_id'] ?? data['post_id']) != null;
+          (notificationData['post_id'] ??
+              data['post_id'] ??
+              notificationData['postId'] ??
+              data['postId']) !=
+          null;
       final hasChatId =
-          (notificationData['chat_id'] ?? data['chat_id']) != null;
+          (notificationData['chat_id'] ??
+              data['chat_id'] ??
+              notificationData['chatId'] ??
+              data['chatId']) !=
+          null;
 
-      if (fullText.contains('added new poll') ||
-          fullText.contains('created a poll') ||
-          fullText.contains('new poll')) {
-        type = 'NEW_POST';
-      } else if (fullText.contains('voted on')) {
+      if (fullText.contains('ai') &&
+          (fullText.contains('create poll') || fullText.contains('suggest'))) {
+        type = 'AI_NEW_POST';
+      } else if (fullText.contains('vote') || fullText.contains('voted')) {
         type = 'VOTE';
-      } else if (fullText.contains('liked')) {
+      } else if (fullText.contains('liked') || fullText.contains('like')) {
         type = 'LIKE';
-      } else if (fullText.contains('commented')) {
+      } else if (fullText.contains('commented') ||
+          fullText.contains('comment') ||
+          fullText.contains('replied') ||
+          fullText.contains('reply')) {
         type = 'COMMENT';
-      } else if (fullText.contains('started chasing') ||
-          fullText.contains('started following')) {
-        type = 'FOLLOW';
       } else if (fullText.contains('chase request') ||
           fullText.contains('friend request')) {
         type = 'FRIEND_REQUEST';
+      } else if (fullText.contains('started chasing') ||
+          fullText.contains('started following') ||
+          fullText.contains('chasing') ||
+          fullText.contains('following') ||
+          fullText.contains('follower')) {
+        type = 'FOLLOW';
       } else if (fullText.contains('added you to the group') ||
-          fullText.contains('added you to group')) {
+          fullText.contains('added you to group') ||
+          fullText.contains('new group')) {
         type = 'NEW_GROUP_ADDED';
-      } else if (fullText.contains('promoted you')) {
+      } else if (fullText.contains('promoted you') ||
+          fullText.contains('admin')) {
         type = 'GROUP_ADMIN_PROMOTE';
-      } else if (fullText.contains('requested to join')) {
+      } else if (fullText.contains('requested to join') ||
+          fullText.contains('join request')) {
         type = 'GROUP_JOIN_REQUEST';
+      } else if (fullText.contains('added new poll') ||
+          fullText.contains('created a poll') ||
+          fullText.contains('new poll') ||
+          fullText.contains('poll')) {
+        type = 'NEW_POST';
       } else if (fullText.contains('message') || hasChatId) {
         type = 'NEW_MESSAGE';
       } else if (hasPostId) {
@@ -307,18 +429,39 @@ class NotificationService {
       ];
     } else if (resolvedType == 'NEW_POST' || resolvedType == 'VOTE') {
       final notificationData = _getParsedNotificationData(data);
-      final rawPollType = (notificationData['poll_type'] ?? data['poll_type'])
+      final rawPollType = (notificationData['poll_type'] ??
+              data['poll_type'] ??
+              notificationData['polltype'] ??
+              data['polltype'])
           ?.toString()
           .toLowerCase();
 
       String secondActionText = 'Vote Now';
       String secondActionId = 'vote_now_action';
-     
+      if (rawPollType != null) {
+        if (rawPollType.startsWith('battle')) {
+          secondActionText = 'Pick a Side';
+          secondActionId = 'pick_side_action';
+        } else if (rawPollType.startsWith('anonymous')) {
+          secondActionText = 'Vote Privately';
+          secondActionId = 'vote_privately_action';
+        }
+      }
 
       return <AndroidNotificationAction>[
         const AndroidNotificationAction(
           'view_post_action',
           'View Poll',
+          showsUserInterface: true,
+        ),
+        AndroidNotificationAction(
+          secondActionId,
+          secondActionText,
+          showsUserInterface: true,
+        ),
+        const AndroidNotificationAction(
+          'like_action',
+          'Like',
           showsUserInterface: true,
         ),
       ];
@@ -327,6 +470,11 @@ class NotificationService {
         const AndroidNotificationAction(
           'view_post_action',
           'View Poll',
+          showsUserInterface: true,
+        ),
+        const AndroidNotificationAction(
+          'like_action',
+          'Like',
           showsUserInterface: true,
         ),
       ];
@@ -426,18 +574,45 @@ class NotificationService {
     }
 
     final notificationData = _getParsedNotificationData(data);
-    final hasPostId = (notificationData['post_id'] ?? data['post_id']) != null;
-    final hasSenderId =
-        (notificationData['sender_id'] ??
+    final hasPostId = (notificationData['post_id'] ??
+            data['post_id'] ??
+            notificationData['postId'] ??
+            data['postId']) !=
+        null;
+    final hasSenderId = (notificationData['sender_id'] ??
             data['sender_id'] ??
             data['user_id']) !=
         null;
 
     if (hasPostId) {
+      final rawPollType = (notificationData['poll_type'] ??
+              data['poll_type'] ??
+              notificationData['polltype'] ??
+              data['polltype'])
+          ?.toString()
+          .toLowerCase();
+
+      String secondActionText = 'Vote Now';
+      String secondActionId = 'vote_now_action';
+      if (rawPollType != null) {
+        if (rawPollType.startsWith('battle')) {
+          secondActionText = 'Pick a Side';
+          secondActionId = 'pick_side_action';
+        } else if (rawPollType.startsWith('anonymous')) {
+          secondActionText = 'Vote Privately';
+          secondActionId = 'vote_privately_action';
+        }
+      }
+
       return <AndroidNotificationAction>[
         const AndroidNotificationAction(
           'view_post_action',
           'View Poll',
+          showsUserInterface: true,
+        ),
+        AndroidNotificationAction(
+          secondActionId,
+          secondActionText,
           showsUserInterface: true,
         ),
         const AndroidNotificationAction(
@@ -476,18 +651,25 @@ class NotificationService {
       return 'AI_NEW_POST_CATEGORY';
     } else if (resolvedType == 'NEW_MESSAGE') {
       return 'NEW_MESSAGE_CATEGORY';
-    } else if (resolvedType == 'NEW_GROUP_ADDED') {
+    } else if (resolvedType == 'NEW_GROUP_ADDED' ||
+        resolvedType == 'GROUP_ADMIN_PROMOTE') {
       return 'NEW_GROUP_ADDED_CATEGORY';
-    } else if (resolvedType == 'FOLLOW') {
+    } else if (resolvedType == 'FOLLOW' || resolvedType == 'FOLLOW_GROUP') {
       return 'FOLLOW_CATEGORY';
-    } else if (resolvedType == 'FRIEND_REQUEST') {
+    } else if (resolvedType == 'FRIEND_REQUEST' ||
+        resolvedType == 'GROUP_JOIN_REQUEST') {
       return 'FRIEND_REQUEST_CATEGORY';
     } else if (resolvedType == 'NEW_POST' ||
         resolvedType == 'VOTE' ||
         resolvedType == 'LIKE' ||
-        resolvedType == 'COMMENT') {
+        resolvedType == 'LIKE_GROUP' ||
+        resolvedType == 'COMMENT' ||
+        resolvedType == 'COMMENT_GROUP') {
       final notificationData = _getParsedNotificationData(data);
-      final rawPollType = (notificationData['poll_type'] ?? data['poll_type'])
+      final rawPollType = (notificationData['poll_type'] ??
+              data['poll_type'] ??
+              notificationData['polltype'] ??
+              data['polltype'])
           ?.toString()
           .toLowerCase();
       if (rawPollType != null) {
@@ -505,6 +687,23 @@ class NotificationService {
       }
       return 'TEXT_POLL_CATEGORY';
     }
+
+    final notificationData = _getParsedNotificationData(data);
+    final hasPostId = (notificationData['post_id'] ??
+            data['post_id'] ??
+            notificationData['postId'] ??
+            data['postId']) !=
+        null;
+    final hasSenderId = (notificationData['sender_id'] ??
+            data['sender_id'] ??
+            data['user_id']) !=
+        null;
+    if (hasPostId) {
+      return 'TEXT_POLL_CATEGORY';
+    } else if (hasSenderId) {
+      return 'FOLLOW_CATEGORY';
+    }
+
     return null;
   }
 
@@ -513,30 +712,35 @@ class NotificationService {
     Map<String, dynamic> data,
     RemoteMessage? message,
   ) {
-    final notificationData = data['notification'] is Map
-        ? data['notification'] as Map<String, dynamic>
-        : (data['notification'] != null
-              ? jsonDecode(data['notification'])
-              : data);
+    final notificationData = _getParsedNotificationData(data);
 
-    final String type =
+    final String rawType =
         notificationData['type']?.toString().trim().toUpperCase() ??
         data['type']?.toString().trim().toUpperCase() ??
         'GENERAL';
 
     String title =
         message?.notification?.title ??
-        data['title']?.toString() ??
         notificationData['title']?.toString() ??
+        data['title']?.toString() ??
         '';
 
     String body =
         message?.notification?.body ??
-        data['body']?.toString() ??
-        data['message_preview']?.toString() ??
         notificationData['body']?.toString() ??
         notificationData['message_preview']?.toString() ??
+        notificationData['message']?.toString() ??
+        data['body']?.toString() ??
+        data['message_preview']?.toString() ??
+        data['message']?.toString() ??
         '';
+
+    final String type = _resolveNotificationType(
+      data,
+      rawType,
+      body: body,
+      title: title,
+    );
 
     if (title.isEmpty) title = 'Polzet';
     final bool hasCustomBody =
@@ -683,11 +887,20 @@ class NotificationService {
     return NotificationContent(title, body, type);
   }
 
-  //*---- Static method to show notification from background isolate ----*//
   @pragma('vm:entry-point')
   static Future<void> showBackgroundNotification(RemoteMessage message) async {
+    WidgetsFlutterBinding.ensureInitialized();
+    final bool hasNotificationPayload = message.notification != null;
+    final bool hasDataPayload = message.data.isNotEmpty;
+    final String fcmPayloadType = hasNotificationPayload
+        ? (hasDataPayload ? 'MIXED (notification + data)' : 'NOTIFICATION ONLY')
+        : 'DATA ONLY';
+
     debugPrint('🌙 Background Notification Service Triggered');
-    debugPrint('   Data: ${message.data}');
+    debugPrint('   - FCM payload type: $fcmPayloadType');
+    debugPrint('   - HAS notification payload: $hasNotificationPayload');
+    debugPrint('   - HAS data payload: $hasDataPayload');
+    debugPrint('   - Data: ${message.data}');
     await _printFcmPayload(message);
 
     // 1. Initialize FlutterLocalNotificationsPlugin (fresh instance for background isolate)
@@ -910,7 +1123,11 @@ class NotificationService {
       iOS: iosSettings,
     );
 
-    await localNotif.initialize(initSettings);
+    await localNotif.initialize(
+      initSettings,
+      onDidReceiveNotificationResponse: _onNotificationTapped,
+      onDidReceiveBackgroundNotificationResponse: _onNotificationTapped,
+    );
 
     // 2. Extract content using shared helper
     try {
@@ -918,9 +1135,16 @@ class NotificationService {
 
       if (content.body.isEmpty) return;
 
-      final List<AndroidNotificationAction>? actions = _getAndroidActions(
+      final String resolvedBgType = _resolveNotificationType(
         message.data,
         content.type,
+        body: content.body,
+        title: content.title,
+      );
+
+      final List<AndroidNotificationAction>? actions = _getAndroidActions(
+        message.data,
+        resolvedBgType,
         body: content.body,
         title: content.title,
       );
@@ -932,6 +1156,7 @@ class NotificationService {
                 : message.data);
 
       final bool isAiNewPost =
+          resolvedBgType == 'AI_NEW_POST' ||
           content.type.trim().toUpperCase() == 'AI_NEW_POST';
 
       final rawSenderProfile =
@@ -959,24 +1184,20 @@ class NotificationService {
           ? null
           : rawThumbnailUrl;
       final String stableIdStr = _generateStableNotificationId(message.data);
-      final isProcessedOnDisk = await _checkAndMarkNotificationProcessed(
+      final isProcessed = await _checkAndMarkNotificationProcessed(
         stableIdStr,
       );
-      if (isProcessedOnDisk ||
-          _processedNotificationIds.contains(stableIdStr)) {
+      if (isProcessed) {
         debugPrint(
-          '⚠️ Duplicate background notification blocked via SharedPreferences: $stableIdStr',
+          '⚠️ [DEBUG_TRACE] Duplicate background notification blocked: $stableIdStr',
         );
         return;
       }
-      _processedNotificationIds.add(stableIdStr);
-      if (message.messageId != null) {
-        _processedNotificationIds.add(message.messageId!);
+      if (message.messageId != null && message.messageId != stableIdStr) {
         await _checkAndMarkNotificationProcessed(message.messageId!);
       }
 
-      final id =
-          (message.messageId?.hashCode ?? stableIdStr.hashCode) & 0x7FFFFFFF;
+      final id = stableIdStr.hashCode & 0x7FFFFFFF;
 
       StyleInformation? styleInformation;
       List<DarwinNotificationAttachment>? attachments;
@@ -1011,6 +1232,7 @@ class NotificationService {
 
       String? shortcutId;
       final bool isNewMessage =
+          resolvedBgType == 'NEW_MESSAGE' ||
           content.type.trim().toUpperCase() == 'NEW_MESSAGE';
 
       AndroidBitmap<Object>? notificationLargeIcon;
@@ -1124,13 +1346,6 @@ class NotificationService {
         }
       }
 
-      final String resolvedBgType = _resolveNotificationType(
-        message.data,
-        content.type,
-        body: content.body,
-        title: content.title,
-      );
-
       AndroidNotificationCategory? notifCategory;
       switch (resolvedBgType) {
         case 'NEW_MESSAGE':
@@ -1156,8 +1371,9 @@ class NotificationService {
       final androidDetails = AndroidNotificationDetails(
         'high_importance_channel',
         'High Importance Notifications',
+        channelDescription: 'This channel is used for important notifications.',
         importance: Importance.max,
-        priority: Priority.high,
+        priority: Priority.max,
         showWhen: true,
         icon: '@mipmap/ic_launcher',
         playSound: true,
@@ -1168,7 +1384,9 @@ class NotificationService {
         ledColor: const Color(0xFF9B3046),
         ledOnMs: 1000,
         ledOffMs: 500,
+        ticker: 'New Notification',
         autoCancel: true,
+        fullScreenIntent: true,
         actions: actions,
         largeIcon: notificationLargeIcon,
         styleInformation: styleInformation,
@@ -1192,11 +1410,62 @@ class NotificationService {
 
       final Map<String, dynamic> payloadData = {
         ...message.data,
+        'stable_notification_id': stableIdStr,
+        'stable_id': stableIdStr,
         'message_id':
             message.messageId ??
             message.data['message_id'] ??
-            'bg_${DateTime.now().millisecondsSinceEpoch}',
+            stableIdStr,
       };
+
+      final rawPostId = notificationData['post_id'] ?? message.data['post_id'];
+      debugPrint('🚨 [DEBUG_TRACE] SHOWING NOTIFICATION FROM SOURCE: FCM_BACKGROUND');
+      debugPrint('   - Source: FCM_BACKGROUND');
+      debugPrint('   - content.type: ${content.type}');
+      debugPrint('   - resolvedBgType: $resolvedBgType');
+      debugPrint('   - actions == null: ${actions == null}');
+      debugPrint('   - actions.length: ${actions?.length ?? 0}');
+      if (actions != null) {
+        for (final action in actions) {
+          debugPrint('     * action: id=${action.id}, label=${action.title}');
+        }
+      }
+      debugPrint('   - Android Notification ID: $id');
+      debugPrint('   - Stable Notification ID: $stableIdStr');
+      debugPrint('   - Title: ${content.title}');
+      debugPrint('   - Body: ${content.body}');
+      debugPrint('   - Post ID: $rawPostId');
+      debugPrint('   - Has top-level notification payload: ${message.notification != null}');
+      debugPrint('   - Payload data: $payloadData');
+
+      if (Platform.isAndroid) {
+        const channel = AndroidNotificationChannel(
+          'high_importance_channel',
+          'High Importance Notifications',
+          description: 'This channel is used for important notifications.',
+          importance: Importance.max,
+          playSound: true,
+          sound: RawResourceAndroidNotificationSound('notification_sound'),
+          enableVibration: true,
+          enableLights: true,
+          showBadge: true,
+        );
+
+        await localNotif
+            .resolvePlatformSpecificImplementation<
+              AndroidFlutterLocalNotificationsPlugin
+            >()
+            ?.createNotificationChannel(channel);
+      }
+
+      final List<String> actionIds = actions?.map((a) => a.id).toList() ?? [];
+      debugPrint('🚨 [POPUP DISPLAY] SHOWING NOTIFICATION:');
+      debugPrint('   - SOURCE: FCM_BACKGROUND');
+      debugPrint('   - TYPE: $resolvedBgType');
+      debugPrint('   - STABLE ID: $stableIdStr');
+      debugPrint('   - ANDROID NOTIFICATION ID: $id');
+      debugPrint('   - ACTIONS COUNT: ${actions?.length ?? 0}');
+      debugPrint('   - ACTION IDS: $actionIds');
 
       await localNotif.show(
         id,
@@ -1298,7 +1567,7 @@ class NotificationService {
           actions: [
             DarwinNotificationAction.plain(
               'view_post_action',
-              'View Poll',
+              'View Post',
               options: <DarwinNotificationActionOption>{
                 DarwinNotificationActionOption.foreground,
               },
@@ -1324,7 +1593,7 @@ class NotificationService {
           actions: [
             DarwinNotificationAction.plain(
               'view_post_action',
-              'View Poll',
+              'View Post',
               options: <DarwinNotificationActionOption>{
                 DarwinNotificationActionOption.foreground,
               },
@@ -1350,14 +1619,14 @@ class NotificationService {
           actions: [
             DarwinNotificationAction.plain(
               'view_post_action',
-              'View Poll',
+              'View Post',
               options: <DarwinNotificationActionOption>{
                 DarwinNotificationActionOption.foreground,
               },
             ),
             DarwinNotificationAction.plain(
               'pick_side_action',
-              'Vote Now',
+              'Pick a Side',
               options: <DarwinNotificationActionOption>{
                 DarwinNotificationActionOption.foreground,
               },
@@ -1376,7 +1645,7 @@ class NotificationService {
           actions: [
             DarwinNotificationAction.plain(
               'view_post_action',
-              'View Poll',
+              'View Post',
               options: <DarwinNotificationActionOption>{
                 DarwinNotificationActionOption.foreground,
               },
@@ -1485,9 +1754,9 @@ class NotificationService {
       }
 
       await _fcm.setForegroundNotificationPresentationOptions(
-        alert: true,
-        badge: true,
-        sound: true,
+        alert: false,
+        badge: false,
+        sound: false,
       );
 
       String? token = await _fcm.getToken();
@@ -1520,20 +1789,31 @@ class NotificationService {
   Future<void> _setupMessageHandlers() async {
     // FOREGROUND - Show local notification ONLY if app is active
     FirebaseMessaging.onMessage.listen((RemoteMessage message) async {
+      final bool hasNotificationPayload = message.notification != null;
+      final bool hasDataPayload = message.data.isNotEmpty;
+      final String fcmPayloadType = hasNotificationPayload
+          ? (hasDataPayload ? 'MIXED (notification + data)' : 'NOTIFICATION ONLY')
+          : 'DATA ONLY';
+
       debugPrint('🔔 ===== FOREGROUND FCM MESSAGE =====');
+      debugPrint('   - FCM payload type: $fcmPayloadType');
+      debugPrint('   - HAS notification payload: $hasNotificationPayload');
+      debugPrint('   - HAS data payload: $hasDataPayload');
       debugPrint('Message ID: ${message.messageId}');
       debugPrint('Sender ID/From: ${message.from}');
       debugPrint('Sent Time: ${message.sentTime}');
       debugPrint('Collapse Key: ${message.collapseKey}');
       debugPrint('Category: ${message.category}');
-      debugPrint('Notification Title: ${message.notification?.title}');
-      debugPrint('Notification Body: ${message.notification?.body}');
-      debugPrint(
-        'Notification Title Loc Key: ${message.notification?.titleLocKey}',
-      );
-      debugPrint(
-        'Notification Body Loc Key: ${message.notification?.bodyLocKey}',
-      );
+      if (hasNotificationPayload) {
+        debugPrint('Notification Title: ${message.notification?.title}');
+        debugPrint('Notification Body: ${message.notification?.body}');
+        debugPrint(
+          'Notification Title Loc Key: ${message.notification?.titleLocKey}',
+        );
+        debugPrint(
+          'Notification Body Loc Key: ${message.notification?.bodyLocKey}',
+        );
+      }
       debugPrint('Data payload: ${message.data}');
       debugPrint('App State: $_appLifecycleState');
       debugPrint('Is App In Foreground: $_isAppInForeground');
@@ -1546,6 +1826,30 @@ class NotificationService {
 
   static Future<void> _printFcmPayload(RemoteMessage message) async {
     try {
+      final bool hasNotificationPayload = message.notification != null;
+      final bool hasDataPayload = message.data.isNotEmpty;
+      final String fcmPayloadType = hasNotificationPayload
+          ? (hasDataPayload ? 'MIXED (notification + data)' : 'NOTIFICATION ONLY')
+          : 'DATA ONLY';
+
+      debugPrint('📋 FCM PAYLOAD INSPECTION:');
+      debugPrint('   - FCM payload type: $fcmPayloadType');
+      debugPrint('   - HAS notification payload: $hasNotificationPayload');
+      debugPrint('   - HAS data payload: $hasDataPayload');
+
+      if (hasNotificationPayload) {
+        debugPrint('   ⚠️ WARNING: message.notification is present in FCM message!');
+        debugPrint('      Title: "${message.notification?.title}"');
+        debugPrint('      Body: "${message.notification?.body}"');
+        debugPrint('   ⚠️ WHY DUPLICATE NOTIFICATION HAPPENS IN BACKGROUND:');
+        debugPrint('      When "HAS notification payload: true", Android OS (Google Play Services)');
+        debugPrint('      automatically displays an action-less plain system notification in the shade');
+        debugPrint('      whenever the app is backgrounded or killed.');
+        debugPrint('      Flutter then displays the 2nd rich notification with action buttons.');
+        debugPrint('      To prevent this 2nd plain notification from being created, the backend MUST');
+        debugPrint('      send a pure DATA-ONLY payload (no top-level "notification" key).');
+      }
+
       String? fcmToken = await SharedPrefService.getFcmToken();
       if (fcmToken == null || fcmToken.isEmpty) {
         try {
@@ -1594,7 +1898,7 @@ class NotificationService {
         }
       }
 
-      // 4. Construct fcmPayload in the flat structure requested by user
+      // 4. Construct fcmPayload in the data-only structure required by backend
       final Map<String, dynamic> fcmPayload = {
         'to': fcmToken,
         'priority': 'high',
@@ -1603,7 +1907,7 @@ class NotificationService {
 
       const JsonEncoder encoder = JsonEncoder.withIndent('  ');
       final String prettyJson = encoder.convert(fcmPayload);
-      debugPrint('📬 FCM Payload request format:\n$prettyJson');
+      debugPrint('📬 REQUIRED Backend Data-Only Payload format:\n$prettyJson');
     } catch (e) {
       debugPrint('⚠️ Error formatting FCM payload JSON: $e');
     }
@@ -1611,29 +1915,28 @@ class NotificationService {
 
   Future<void> _handleForegroundMessage(RemoteMessage message) async {
     final String stableId = _generateStableNotificationId(message.data);
-    final notificationId = message.messageId ?? stableId;
 
-    final isProcessedOnDisk = await _checkAndMarkNotificationProcessed(
+    final isProcessed = await _checkAndMarkNotificationProcessed(
       stableId,
     );
-    if (isProcessedOnDisk ||
-        _processedNotificationIds.contains(notificationId) ||
-        _processedNotificationIds.contains(stableId)) {
+    if (isProcessed) {
       debugPrint(
-        '⚠️ Duplicate FCM notification blocked: $notificationId / $stableId',
+        '⚠️ Duplicate FCM notification blocked: $stableId',
       );
       return;
     }
 
-    _processedNotificationIds.add(notificationId);
-    _processedNotificationIds.add(stableId);
-    if (message.messageId != null) {
+    if (message.messageId != null && message.messageId != stableId) {
       await _checkAndMarkNotificationProcessed(message.messageId!);
     }
 
-    // ✅ CRITICAL: Only show local notification popup if app is ACTIVE (foreground)
     if (_isAppInForeground) {
-      _showNativeNotification(message);
+      debugPrint('🔔 [DEBUG_TRACE] Showing FCM foreground notification popup: $stableId');
+      await _showNativeNotificationFromData(
+        message.data,
+        message: message,
+        source: 'FCM_FOREGROUND',
+      );
     } else {
       debugPrint(
         '⏭️ App is NOT active (state: $_appLifecycleState) - Skipping local notification',
@@ -1642,9 +1945,13 @@ class NotificationService {
   }
 
   // ✅ Extract and customize notification data based on type using helper
-  Future<void> _showNativeNotification(RemoteMessage message) async {
+  Future<void> _showNativeNotificationFromData(
+    Map<String, dynamic> rawData, {
+    RemoteMessage? message,
+    String source = 'WEBSOCKET_FOREGROUND',
+  }) async {
     try {
-      final content = _getNotificationContent(message.data, message);
+      final content = _getNotificationContent(rawData, message);
 
       // ✅ Skip if no meaningful content
       if (content.body.isEmpty) {
@@ -1652,42 +1959,53 @@ class NotificationService {
         return;
       }
 
-      debugPrint('📢 ===== SHOWING LOCAL NOTIFICATION POPUP =====');
-      debugPrint('Message ID: ${message.messageId}');
-      debugPrint('Notification Title: ${message.notification?.title}');
-      debugPrint('Notification Body: ${message.notification?.body}');
+      debugPrint('📢 ===== SHOWING LOCAL NOTIFICATION POPUP ($source) =====');
+      debugPrint('Message ID: ${message?.messageId}');
+      debugPrint('Notification Title: ${message?.notification?.title ?? content.title}');
+      debugPrint('Notification Body: ${message?.notification?.body ?? content.body}');
       debugPrint('Parsed Content Type: ${content.type}');
       debugPrint('Parsed Content Title: ${content.title}');
       debugPrint('Parsed Content Body: ${content.body}');
-      debugPrint('Full data payload: ${message.data}');
-      await _printFcmPayload(message);
+      debugPrint('Full data payload: $rawData');
+      if (message != null) {
+        await _printFcmPayload(message);
+      }
       debugPrint('==============================================');
 
-      final List<AndroidNotificationAction>? actions = _getAndroidActions(
-        message.data,
+      final String resolvedFgType = _resolveNotificationType(
+        rawData,
         content.type,
         body: content.body,
         title: content.title,
       );
 
-      final notificationData = message.data['notification'] is Map
-          ? message.data['notification'] as Map<String, dynamic>
-          : (message.data['notification'] != null
-                ? jsonDecode(message.data['notification'])
-                : message.data);
+      final List<AndroidNotificationAction>? actions = _getAndroidActions(
+        rawData,
+        resolvedFgType,
+        body: content.body,
+        title: content.title,
+      );
+
+      final notificationData = rawData['notification'] is Map
+          ? rawData['notification'] as Map<String, dynamic>
+          : (rawData['notification'] != null &&
+                  rawData['notification'] is String
+              ? jsonDecode(rawData['notification'])
+              : rawData);
 
       final bool isAiNewPost =
+          resolvedFgType == 'AI_NEW_POST' ||
           content.type.trim().toUpperCase() == 'AI_NEW_POST';
 
       final rawSenderProfile =
           notificationData['sender_profile']?.toString() ??
-          message.data['sender_profile']?.toString() ??
+          rawData['sender_profile']?.toString() ??
           notificationData['sender_profile_picture_url']?.toString() ??
-          message.data['sender_profile_picture_url']?.toString() ??
+          rawData['sender_profile_picture_url']?.toString() ??
           notificationData['sender_profile_image']?.toString() ??
-          message.data['sender_profile_image']?.toString() ??
+          rawData['sender_profile_image']?.toString() ??
           notificationData['profile_image']?.toString() ??
-          message.data['profile_image']?.toString();
+          rawData['profile_image']?.toString();
       final senderProfile =
           (isAiNewPost || rawSenderProfile == 'null' || rawSenderProfile == '')
           ? null
@@ -1695,18 +2013,17 @@ class NotificationService {
 
       final rawThumbnailUrl =
           notificationData['thumbnail_url']?.toString() ??
-          message.data['thumbnail_url']?.toString() ??
+          rawData['thumbnail_url']?.toString() ??
           notificationData['post_thumbnail']?.toString() ??
-          message.data['post_thumbnail']?.toString() ??
+          rawData['post_thumbnail']?.toString() ??
           notificationData['thumbnail']?.toString() ??
-          message.data['thumbnail']?.toString();
+          rawData['thumbnail']?.toString();
       final thumbnailUrl = (rawThumbnailUrl == 'null' || rawThumbnailUrl == '')
           ? null
           : rawThumbnailUrl;
 
-      final String stableId = _generateStableNotificationId(message.data);
-      final notificationId =
-          (message.messageId?.hashCode ?? stableId.hashCode) & 0x7FFFFFFF;
+      final String stableId = _generateStableNotificationId(rawData);
+      final notificationId = stableId.hashCode & 0x7FFFFFFF;
 
       StyleInformation? styleInformation;
       List<DarwinNotificationAttachment>? attachments;
@@ -1741,6 +2058,7 @@ class NotificationService {
 
       String? shortcutId;
       final bool isNewMessage =
+          resolvedFgType == 'NEW_MESSAGE' ||
           content.type.trim().toUpperCase() == 'NEW_MESSAGE';
 
       AndroidBitmap<Object>? notificationLargeIcon;
@@ -1748,11 +2066,11 @@ class NotificationService {
       if (isNewMessage) {
         final String sender =
             notificationData['sender']?.toString() ??
-            message.data['sender']?.toString() ??
+            rawData['sender']?.toString() ??
             'Someone';
 
         final rawChatId =
-            notificationData['chat_id'] ?? message.data['chat_id'];
+            notificationData['chat_id'] ?? rawData['chat_id'];
         shortcutId = rawChatId != null
             ? 'chat_${rawChatId.toString()}'
             : 'chat_${sender.hashCode}';
@@ -1854,13 +2172,6 @@ class NotificationService {
         }
       }
 
-      final String resolvedFgType = _resolveNotificationType(
-        message.data,
-        content.type,
-        body: content.body,
-        title: content.title,
-      );
-
       AndroidNotificationCategory? notifCategory;
       switch (resolvedFgType) {
         case 'NEW_MESSAGE':
@@ -1915,7 +2226,7 @@ class NotificationService {
         presentSound: true,
         sound: 'default',
         categoryIdentifier: _getIosCategoryIdentifier(
-          message.data,
+          rawData,
           content.type,
           body: content.body,
           title: content.title,
@@ -1928,17 +2239,41 @@ class NotificationService {
         iOS: iosDetails,
       );
 
-      debugPrint(
-        '🔄 Calling _localNotifications.show() with ID: $notificationId',
-      );
-
       final Map<String, dynamic> payloadData = {
-        ...message.data,
+        ...rawData,
+        'stable_notification_id': stableId,
+        'stable_id': stableId,
         'message_id':
-            message.messageId ??
-            message.data['message_id'] ??
-            'fg_${DateTime.now().millisecondsSinceEpoch}',
+            message?.messageId ??
+            rawData['message_id'] ??
+            stableId,
       };
+
+      final rawPostId = notificationData['post_id'] ?? rawData['post_id'];
+      debugPrint('🚨 [DEBUG_TRACE] SHOWING NOTIFICATION FROM SOURCE: $source');
+      debugPrint('   - Source: $source');
+      debugPrint('   - content.type: ${content.type}');
+      debugPrint('   - resolvedFgType: $resolvedFgType');
+      debugPrint('   - actions == null: ${actions == null}');
+      debugPrint('   - actions.length: ${actions?.length ?? 0}');
+      if (actions != null) {
+        for (final action in actions) {
+          debugPrint('     * action: id=${action.id}, label=${action.title}');
+        }
+      }
+      debugPrint('   - Android Notification ID: $notificationId');
+      debugPrint('   - Stable Notification ID: $stableId');
+      debugPrint('   - Title: ${content.title}');
+      debugPrint('   - Body: ${content.body}');
+      debugPrint('   - Post ID: $rawPostId');
+      final List<String> actionIds = actions?.map((a) => a.id).toList() ?? [];
+      debugPrint('🚨 [POPUP DISPLAY] SHOWING NOTIFICATION:');
+      debugPrint('   - SOURCE: $source');
+      debugPrint('   - TYPE: $resolvedFgType');
+      debugPrint('   - STABLE ID: $stableId');
+      debugPrint('   - ANDROID NOTIFICATION ID: $notificationId');
+      debugPrint('   - ACTIONS COUNT: ${actions?.length ?? 0}');
+      debugPrint('   - ACTION IDS: $actionIds');
 
       await _localNotifications.show(
         notificationId,
@@ -2200,6 +2535,15 @@ class NotificationService {
               iOS: iosDetails,
             );
 
+            final List<String> actionIds = actions.map((a) => a.id).toList();
+            debugPrint('🚨 [POPUP DISPLAY] SHOWING NOTIFICATION:');
+            debugPrint('   - SOURCE: INLINE_REPLY_UPDATE');
+            debugPrint('   - TYPE: NEW_MESSAGE');
+            debugPrint('   - STABLE ID: $notificationId');
+            debugPrint('   - ANDROID NOTIFICATION ID: $notificationId');
+            debugPrint('   - ACTIONS COUNT: ${actions.length}');
+            debugPrint('   - ACTION IDS: $actionIds');
+
             final FlutterLocalNotificationsPlugin localNotif =
                 FlutterLocalNotificationsPlugin();
             await localNotif.show(
@@ -2220,35 +2564,63 @@ class NotificationService {
     }
   }
 
+  static String generateStableNotificationId(Map<String, dynamic> data) =>
+      _generateStableNotificationId(data);
+
   static String _generateStableNotificationId(Map<String, dynamic> data) {
-    final notificationData = data['notification'] is Map
-        ? data['notification'] as Map<String, dynamic>
-        : (data['notification'] != null
-              ? jsonDecode(data['notification'].toString())
-              : data);
+    final explicitStableId =
+        data['stable_notification_id'] ?? data['stable_id'];
+    if (explicitStableId != null &&
+        explicitStableId.toString().trim().isNotEmpty) {
+      return explicitStableId.toString().trim();
+    }
+
+    Map<String, dynamic>? notificationData;
+    if (data['notification'] is Map) {
+      notificationData = Map<String, dynamic>.from(data['notification'] as Map);
+    } else if (data['notification'] is String) {
+      try {
+        final decoded = jsonDecode(data['notification'] as String);
+        if (decoded is Map) {
+          notificationData = Map<String, dynamic>.from(decoded);
+        }
+      } catch (_) {}
+    } else if (data['data'] is Map) {
+      notificationData = Map<String, dynamic>.from(data['data'] as Map);
+    }
 
     dynamic getValue(String key) {
       final val =
-          data[key] ?? (notificationData is Map ? notificationData[key] : null);
+          data[key] ?? (notificationData != null ? notificationData[key] : null);
       if (val == null) return null;
       final valStr = val.toString().trim();
       if (valStr == 'null' || valStr == '0' || valStr.isEmpty) {
         return null;
       }
-      return val;
+      return valStr;
     }
 
     final id =
         getValue('id') ??
         getValue('notification_id') ??
-        getValue('comment_id') ??
-        getValue('message_id');
+        getValue('event_id') ??
+        getValue('comment_id');
 
     if (id != null) {
       return id.toString();
     }
 
-    final type = getValue('type') ?? getValue('notification_type') ?? 'general';
+    final messageId = getValue('message_id');
+    if (messageId != null &&
+        !messageId.startsWith('bg_') &&
+        !messageId.startsWith('fg_')) {
+      return messageId.toString();
+    }
+
+    final type =
+        (getValue('type') ?? getValue('notification_type') ?? 'general')
+            .toString()
+            .toUpperCase();
     final title = getValue('title') ?? '';
     final body = getValue('body') ?? getValue('message_preview') ?? '';
     final postId = getValue('post_id') ?? '';
@@ -2300,9 +2672,65 @@ class NotificationService {
     }
   }
 
+  static final Set<String> _processedTapIds = <String>{};
+
+  static Future<bool> _checkAndMarkTapProcessed(String tapKey) async {
+    if (tapKey.isEmpty) return false;
+
+    if (_processedTapIds.contains(tapKey)) {
+      return true;
+    }
+    _processedTapIds.add(tapKey);
+    if (_processedTapIds.length > 200) {
+      _processedTapIds.remove(_processedTapIds.first);
+    }
+
+    try {
+      final String? jsonStr = await SharedPrefService.getString(
+        'processed_tap_ids',
+      );
+      List<String> processedIds = [];
+      if (jsonStr != null && jsonStr.isNotEmpty) {
+        try {
+          processedIds = List<String>.from(jsonDecode(jsonStr));
+        } catch (_) {}
+      }
+
+      if (processedIds.contains(tapKey)) {
+        return true;
+      }
+
+      processedIds.add(tapKey);
+      if (processedIds.length > 100) {
+        processedIds.removeAt(0);
+      }
+
+      await SharedPrefService.setString(
+        'processed_tap_ids',
+        jsonEncode(processedIds),
+      );
+      return false;
+    } catch (e) {
+      debugPrint('❌ Error checking/marking tap processed: $e');
+      return false;
+    }
+  }
+
   static Future<bool> _checkAndMarkNotificationProcessed(
     String stableId,
   ) async {
+    if (stableId.isEmpty) return false;
+
+    // 1. Synchronously check and mark in-memory to eliminate async race condition
+    if (_processedNotificationIds.contains(stableId)) {
+      return true;
+    }
+    _processedNotificationIds.add(stableId);
+    if (_processedNotificationIds.length > 200) {
+      _processedNotificationIds.remove(_processedNotificationIds.first);
+    }
+
+    // 2. Persisted check & sync with SharedPreferences (for background/cold-start deduplication)
     try {
       final String? jsonStr = await SharedPrefService.getString(
         'processed_notification_ids',
@@ -2390,12 +2818,13 @@ class NotificationService {
         }
 
         final stableId = _generateStableNotificationId(data);
+        final String tapKey = '${stableId}_${response.actionId ?? 'body'}';
 
-        // Prevent duplicate processing
-        final isProcessed = await _checkAndMarkNotificationProcessed(stableId);
+        // Prevent duplicate tap processing
+        final isProcessed = await _checkAndMarkTapProcessed(tapKey);
         if (isProcessed) {
           debugPrint(
-            '📬 _onNotificationTapped: stableId $stableId already processed. Skipping.',
+            '📬 _onNotificationTapped: tapKey $tapKey already processed. Skipping.',
           );
           return;
         }
@@ -2502,331 +2931,39 @@ class NotificationService {
   Future<void> _handleWebSocketNotification(dynamic body) async {
     try {
       final data = jsonDecode(body);
+      final rawMap = data is Map
+          ? Map<String, dynamic>.from(data)
+          : <String, dynamic>{};
+      final stableId = _generateStableNotificationId(rawMap);
+      debugPrint('📨 [DEBUG_TRACE] WEBSOCKET NOTIFICATION RECEIVED');
+      debugPrint('   - Source: WEBSOCKET');
+      debugPrint('   - Stable Notification ID: $stableId');
+      debugPrint('   - Title: ${rawMap['title'] ?? 'No title'}');
+      debugPrint('   - Type: ${rawMap['type']}');
+      debugPrint('   - Post ID: ${rawMap['post_id']}');
 
-      final stableId = _generateStableNotificationId(data);
-      final notificationId = _generateNotificationId(data);
-
-      final isProcessedOnDisk = await _checkAndMarkNotificationProcessed(
+      final isProcessed = await _checkAndMarkNotificationProcessed(
         stableId,
       );
-      if (isProcessedOnDisk ||
-          _processedNotificationIds.contains(stableId) ||
-          _processedNotificationIds.contains(notificationId)) {
-        debugPrint('⚠️ Duplicate WebSocket notification blocked: $stableId');
+      if (isProcessed) {
+        debugPrint(
+          '⚠️ Duplicate WebSocket notification blocked: $stableId',
+        );
         return;
       }
 
-      _processedNotificationIds.add(stableId);
-      _processedNotificationIds.add(notificationId);
-
-      debugPrint('📨 WebSocket notification: ${data['title'] ?? 'No title'}');
-      debugPrint('App State: $_appLifecycleState');
-
       if (_isAppInForeground) {
-        _showWebSocketNotification(data);
+        await _showNativeNotificationFromData(
+          rawMap,
+          source: 'WEBSOCKET_FOREGROUND',
+        );
       } else {
-        debugPrint('⏭️ App is NOT active - Skipping WebSocket notification');
+        debugPrint(
+          '⏭️ App is not in foreground, WebSocket skipping popup (handled by FCM background)',
+        );
       }
     } catch (e) {
       debugPrint('❌ Error parsing WebSocket notification: $e');
-    }
-  }
-
-  // ✅ FIXED: Extract and customize WebSocket notification data based on type
-  Future<void> _showWebSocketNotification(Map<String, dynamic> data) async {
-    try {
-      final content = _getNotificationContent(data, null);
-
-      // ✅ Skip if no meaningful content
-      if (content.body.isEmpty) {
-        debugPrint('⚠️ Skipping WebSocket notification - no body content');
-        return;
-      }
-
-      debugPrint('📢 Showing WebSocket notification:');
-      debugPrint('Type: ${content.type}');
-      debugPrint('Title: ${content.title}');
-      debugPrint('Body: ${content.body}');
-      debugPrint('Full data: $data');
-
-      final List<AndroidNotificationAction>? actions = _getAndroidActions(
-        data,
-        content.type,
-        body: content.body,
-        title: content.title,
-      );
-
-      final notificationData = data['notification'] is Map
-          ? data['notification'] as Map<String, dynamic>
-          : (data['notification'] != null
-                ? jsonDecode(data['notification'])
-                : data);
-
-      final bool isAiNewPost =
-          content.type.trim().toUpperCase() == 'AI_NEW_POST';
-
-      final rawSenderProfile =
-          notificationData['sender_profile']?.toString() ??
-          data['sender_profile']?.toString() ??
-          notificationData['sender_profile_picture_url']?.toString() ??
-          data['sender_profile_picture_url']?.toString() ??
-          notificationData['sender_profile_image']?.toString() ??
-          data['sender_profile_image']?.toString() ??
-          notificationData['profile_image']?.toString() ??
-          data['profile_image']?.toString();
-      final senderProfile =
-          (isAiNewPost || rawSenderProfile == 'null' || rawSenderProfile == '')
-          ? null
-          : rawSenderProfile;
-
-      final rawThumbnailUrl =
-          notificationData['thumbnail_url']?.toString() ??
-          data['thumbnail_url']?.toString() ??
-          notificationData['post_thumbnail']?.toString() ??
-          data['post_thumbnail']?.toString() ??
-          notificationData['thumbnail']?.toString() ??
-          data['thumbnail']?.toString();
-      final thumbnailUrl = (rawThumbnailUrl == 'null' || rawThumbnailUrl == '')
-          ? null
-          : rawThumbnailUrl;
-
-      final String stableId = _generateStableNotificationId(data);
-      final notificationId = stableId.hashCode & 0x7FFFFFFF;
-
-      StyleInformation? styleInformation;
-      List<DarwinNotificationAttachment>? attachments;
-
-      String? profilePath;
-      if (!isAiNewPost) {
-        if (senderProfile != null && senderProfile.isNotEmpty) {
-          profilePath = await _downloadAndSaveFile(
-            senderProfile,
-            'profile_$notificationId.png',
-            cropToCircle: true,
-          );
-        }
-
-        profilePath ??= await _getDefaultAvatarPath();
-      }
-
-      String? thumbPath;
-      if (thumbnailUrl != null && thumbnailUrl.isNotEmpty) {
-        thumbPath = await _downloadAndSaveFile(
-          thumbnailUrl,
-          'thumb_$notificationId.png',
-          cropToCircle: false,
-        );
-      }
-
-      if (thumbPath != null) {
-        attachments = [DarwinNotificationAttachment(thumbPath)];
-      } else if (profilePath != null) {
-        attachments = [DarwinNotificationAttachment(profilePath)];
-      }
-
-      String? shortcutId;
-      final bool isNewMessage =
-          content.type.trim().toUpperCase() == 'NEW_MESSAGE';
-
-      AndroidBitmap<Object>? notificationLargeIcon;
-
-      if (isNewMessage) {
-        final String sender =
-            notificationData['sender']?.toString() ??
-            data['sender']?.toString() ??
-            'Someone';
-
-        final rawChatId = notificationData['chat_id'] ?? data['chat_id'];
-        shortcutId = rawChatId != null
-            ? 'chat_${rawChatId.toString()}'
-            : 'chat_${sender.hashCode}';
-
-        final String? currentUserProfilePicUrl =
-            await SharedPrefService.getString('user_profile_pic');
-        String? currentUserProfilePath = await SharedPrefService.getString(
-          'current_user_profile_path',
-        );
-        if (currentUserProfilePath == null ||
-            !File(currentUserProfilePath).existsSync()) {
-          if (currentUserProfilePicUrl != null &&
-              currentUserProfilePicUrl.isNotEmpty) {
-            currentUserProfilePath = await _downloadAndSaveFile(
-              currentUserProfilePicUrl,
-              'current_user_profile_circle.png',
-              cropToCircle: true,
-            );
-            if (currentUserProfilePath != null) {
-              await SharedPrefService.setString(
-                'current_user_profile_path',
-                currentUserProfilePath,
-              );
-            }
-          }
-        }
-
-        final currentUser = Person(
-          name: 'You',
-          key: 'current_user',
-          icon: currentUserProfilePath != null
-              ? BitmapFilePathAndroidIcon(currentUserProfilePath)
-              : null,
-        );
-
-        final displayName = (profilePath == null && sender.isNotEmpty)
-            ? (sender[0].toUpperCase() + sender.substring(1))
-            : sender;
-
-        final senderPerson = Person(
-          name: displayName,
-          key: senderProfile,
-          icon: profilePath != null
-              ? BitmapFilePathAndroidIcon(profilePath)
-              : null,
-        );
-
-        if (Platform.isAndroid) {
-          try {
-            await _shortcutChannel.invokeMethod('createConversationShortcut', {
-              'shortcutId': shortcutId,
-              'displayName': displayName,
-              'iconPath': profilePath,
-            });
-          } catch (e) {
-            debugPrint('❌ Error creating shortcut via WebSocket: $e');
-          }
-        }
-
-        styleInformation = MessagingStyleInformation(
-          currentUser,
-          messages: [
-            Message(
-              content.body,
-              DateTime.now(),
-              senderPerson,
-              dataMimeType: thumbPath != null ? 'image/png' : null,
-              dataUri: thumbPath != null
-                  ? Uri.file(thumbPath).toString()
-                  : null,
-            ),
-          ],
-        );
-
-        if (profilePath != null) {
-          notificationLargeIcon = FilePathAndroidBitmap(profilePath);
-        }
-      } else {
-        if (profilePath != null) {
-          notificationLargeIcon = FilePathAndroidBitmap(profilePath);
-        } else if (thumbPath != null) {
-          notificationLargeIcon = FilePathAndroidBitmap(thumbPath);
-        }
-
-        if (thumbPath != null) {
-          styleInformation = BigPictureStyleInformation(
-            FilePathAndroidBitmap(thumbPath),
-            largeIcon: notificationLargeIcon,
-            contentTitle: content.title,
-            summaryText: content.body,
-            hideExpandedLargeIcon: profilePath == null,
-          );
-        } else {
-          styleInformation = BigTextStyleInformation(
-            content.body,
-            contentTitle: content.title,
-            summaryText: isAiNewPost ? 'Polzet AI' : null,
-          );
-        }
-      }
-
-      final String resolvedWsType = _resolveNotificationType(
-        data,
-        content.type,
-        body: content.body,
-        title: content.title,
-      );
-
-      AndroidNotificationCategory? notifCategory;
-      switch (resolvedWsType) {
-        case 'NEW_MESSAGE':
-          notifCategory = AndroidNotificationCategory.message;
-          break;
-        case 'FOLLOW':
-        case 'FRIEND_REQUEST':
-        case 'LIKE':
-        case 'COMMENT':
-        case 'VOTE':
-        case 'NEW_GROUP_ADDED':
-          notifCategory = AndroidNotificationCategory.social;
-          break;
-        case 'NEW_POST':
-        case 'AI_NEW_POST':
-          notifCategory = AndroidNotificationCategory.event;
-          break;
-        default:
-          notifCategory = AndroidNotificationCategory.status;
-          break;
-      }
-
-      final androidDetails = AndroidNotificationDetails(
-        'high_importance_channel',
-        'High Importance Notifications',
-        channelDescription: 'This channel is used for important notifications.',
-        importance: Importance.max,
-        priority: Priority.high,
-        showWhen: true,
-        icon: '@mipmap/ic_launcher',
-        playSound: true,
-        enableVibration: true,
-        enableLights: true,
-        color: const Color(0xFFD8EBFF),
-        ledColor: const Color(0xFFD8EBFF),
-        ledOnMs: 1000,
-        ledOffMs: 500,
-        autoCancel: true,
-        actions: actions,
-        largeIcon: notificationLargeIcon,
-        styleInformation: styleInformation,
-        category: notifCategory,
-        shortcutId: shortcutId,
-      );
-
-      final iosDetails = DarwinNotificationDetails(
-        presentAlert: true,
-        presentBadge: true,
-        presentSound: true,
-        categoryIdentifier: _getIosCategoryIdentifier(
-          data,
-          content.type,
-          body: content.body,
-          title: content.title,
-        ),
-        attachments: attachments,
-      );
-
-      final details = NotificationDetails(
-        android: androidDetails,
-        iOS: iosDetails,
-      );
-
-      final Map<String, dynamic> payloadData = {
-        ...data,
-        'message_id':
-            data['id'] ??
-            data['message_id'] ??
-            'ws_${DateTime.now().millisecondsSinceEpoch}',
-      };
-
-      await _localNotifications.show(
-        notificationId,
-        content.title,
-        content.body,
-        details,
-        payload: jsonEncode(payloadData),
-      );
-
-      debugPrint('✅ WebSocket notification shown');
-    } catch (e) {
-      debugPrint('❌ Error showing WebSocket notification: $e');
     }
   }
 
@@ -2875,19 +3012,6 @@ class NotificationService {
   }
 
   // ========== HELPERS ==========
-  String _generateNotificationId(Map<String, dynamic> data) {
-    final notification = data['notification'] is Map
-        ? data['notification'] as Map<String, dynamic>
-        : data;
-    final type = notification['type'] ?? data['type'] ?? 'general';
-    final id =
-        notification['id'] ??
-        notification['message_id'] ??
-        data['id'] ??
-        data['message_id'] ??
-        DateTime.now().microsecondsSinceEpoch.toString();
-    return '${type}_$id';
-  }
 
   void _startCleanupTimer() {
     _cleanupTimer?.cancel();
@@ -2932,7 +3056,12 @@ class NotificationService {
         absoluteUrl = '${ApiConfig.baseUrlImage}/$url';
       }
 
-      final response = await http.get(Uri.parse(absoluteUrl));
+      final response = await http
+          .get(Uri.parse(absoluteUrl))
+          .timeout(
+            const Duration(seconds: 3),
+            onTimeout: () => http.Response('', 408),
+          );
       if (response.statusCode == 200) {
         var bytes = response.bodyBytes;
         String extension = 'png';

@@ -15,6 +15,7 @@ import '../../screens/home/new poll/type/new_text_poll.dart';
 import '../../provider/private_chat_provider.dart';
 import '../../provider/group_chat_provider.dart';
 import '../../data/token/shared_preferences.dart';
+import '../../api/services/notification/notification_services.dart';
 
 // PROFESSIONAL: Centralized notification routing service
 class NotificationRouter {
@@ -56,29 +57,17 @@ class NotificationRouter {
   }
 
   String? _getNotificationUniqueId(RemoteMessage message) {
+    final stableId = NotificationService.generateStableNotificationId(
+      message.data,
+    );
+
+    if (stableId.isNotEmpty) {
+      return stableId;
+    }
+
     if (message.messageId != null && message.messageId!.isNotEmpty) {
       return message.messageId;
     }
-
-    final data = message.data;
-    Map<String, dynamic> payloadMap = Map<String, dynamic>.from(data);
-    if (payloadMap.containsKey('data') && payloadMap['data'] is Map) {
-      payloadMap.addAll(Map<String, dynamic>.from(payloadMap['data'] as Map));
-    }
-
-    String? getValue(String key) {
-      final val = payloadMap[key]?.toString().trim();
-      if (val == null || val == 'null' || val == '0' || val.isEmpty) {
-        return null;
-      }
-      return val;
-    }
-
-    final postId = getValue('post_id');
-    if (postId != null) return 'post_$postId';
-
-    final senderId = getValue('sender_id');
-    if (senderId != null) return 'sender_$senderId';
 
     return null;
   }
@@ -86,7 +75,7 @@ class NotificationRouter {
   Future<bool> _isNotificationAlreadyProcessed(String msgId) async {
     try {
       final String? jsonStr = await SharedPrefService.getString(
-        'processed_notification_ids',
+        'processed_navigation_ids',
       );
       if (jsonStr != null && jsonStr.isNotEmpty) {
         final List<dynamic> processedIds = jsonDecode(jsonStr);
@@ -96,13 +85,13 @@ class NotificationRouter {
       }
 
       final lastProcessedId = await SharedPrefService.getString(
-        'last_processed_notification_id',
+        'last_processed_navigation_id',
       );
       if (lastProcessedId == msgId) {
         return true;
       }
     } catch (e) {
-      debugPrint('❌ Error checking processed notification in Router: $e');
+      debugPrint('❌ Error checking processed navigation in Router: $e');
     }
     return false;
   }
@@ -110,7 +99,7 @@ class NotificationRouter {
   Future<void> _markNotificationAsProcessed(String msgId) async {
     try {
       final String? jsonStr = await SharedPrefService.getString(
-        'processed_notification_ids',
+        'processed_navigation_ids',
       );
       List<String> processedIds = [];
       if (jsonStr != null && jsonStr.isNotEmpty) {
@@ -124,14 +113,14 @@ class NotificationRouter {
           processedIds.removeAt(0);
         }
         await SharedPrefService.setString(
-          'processed_notification_ids',
+          'processed_navigation_ids',
           jsonEncode(processedIds),
         );
       }
     } catch (e) {
-      debugPrint('❌ Error marking notification as processed in Router: $e');
+      debugPrint('❌ Error marking navigation as processed in Router: $e');
     }
-    await SharedPrefService.setString('last_processed_notification_id', msgId);
+    await SharedPrefService.setString('last_processed_navigation_id', msgId);
   }
 
   /// ✅ ENHANCED: Resolve the destination widget DIRECTLY
@@ -223,10 +212,7 @@ class NotificationRouter {
         debugPrint(
           '   🤖 AI_NEW_POST text poll resolved - Title: $title, Body: $body',
         );
-        return NewTextPoll(
-          initialQuestion: title,
-          initialDescription: body,
-        );
+        return NewTextPoll(initialQuestion: title, initialDescription: body);
       }
 
       // ✅ Handle post-related notifications (like, comment, vote, new_post)
@@ -485,10 +471,8 @@ class NotificationRouter {
         );
         Navigator.of(context).push(
           MaterialPageRoute(
-            builder: (_) => NewTextPoll(
-              initialQuestion: title,
-              initialDescription: body,
-            ),
+            builder: (_) =>
+                NewTextPoll(initialQuestion: title, initialDescription: body),
           ),
         );
         return;

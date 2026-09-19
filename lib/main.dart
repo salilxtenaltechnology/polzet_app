@@ -37,8 +37,23 @@ import 'screens/splash/splash_screen.dart';
 // Background message handler
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-  debugPrint("🔔 Background message received: ${message.data}");
+  final bool hasNotificationPayload = message.notification != null;
+  final bool hasDataPayload = message.data.isNotEmpty;
+  final String fcmPayloadType = hasNotificationPayload
+      ? (hasDataPayload ? 'MIXED (notification + data)' : 'NOTIFICATION ONLY')
+      : 'DATA ONLY';
+  debugPrint("🔔 [DEBUG_TRACE] Background message received in background isolate");
+  debugPrint("   - Message ID: ${message.messageId}");
+  debugPrint("   - FCM payload type: $fcmPayloadType");
+  debugPrint("   - HAS notification payload: $hasNotificationPayload");
+  debugPrint("   - HAS data payload: $hasDataPayload");
+  if (hasNotificationPayload) {
+    debugPrint("   - Notification Title: ${message.notification?.title}");
+    debugPrint("   - Notification Body: ${message.notification?.body}");
+  }
+  debugPrint("   - Data: ${message.data}");
   await NotificationService.showBackgroundNotification(message);
 }
 

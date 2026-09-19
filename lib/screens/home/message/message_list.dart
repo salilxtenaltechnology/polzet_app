@@ -681,9 +681,19 @@ class MessageListState extends State<MessageList>
   }
 
   ImageProvider? _avatarProvider(String? avatarUrl) {
+    if (avatarUrl == null || avatarUrl.trim().isEmpty || avatarUrl == 'null') {
+      return null;
+    }
+    if (avatarUrl == Assets.images.icAvatar.path ||
+        avatarUrl.startsWith('assets/')) {
+      return AssetImage(avatarUrl);
+    }
     final url = _resolveProfileUrl(avatarUrl);
     if (url == null) {
       return null;
+    }
+    if (url.startsWith('assets/')) {
+      return AssetImage(url);
     }
     return NetworkImage(url);
   }
@@ -1403,6 +1413,9 @@ class MessageListState extends State<MessageList>
           avatar = null;
         }
       }
+      if (avatar == null || avatar.trim().isEmpty || avatar == 'null') {
+        avatar = Assets.images.icAvatar.path;
+      }
     }
     return _resolveProfileUrl(avatar);
   }
@@ -1458,6 +1471,38 @@ class MessageListState extends State<MessageList>
     return false;
   }
 
+  bool _isOtherMemberReported(Map<String, dynamic> chat) {
+    final userProvider = Provider.of<UserProvider>(context, listen: false);
+    final currentUserId = userProvider.userId?.toString();
+    final currentUsername = userProvider.username?.toString().toLowerCase();
+    final members = chat['members'] as List?;
+    if (members == null) {
+      final val =
+          chat['is_reported'] ?? chat['isReported'] ?? chat['is_report'];
+      return val == true || val == 1 || val?.toString() == 'true';
+    }
+    for (final m in members) {
+      if (m is! Map) continue;
+      final member = m as Map<String, dynamic>;
+      final user = member['user'] as Map<String, dynamic>? ??
+          (member.containsKey('username') ? member : null);
+      final username = user?['username']?.toString().toLowerCase();
+      final id = (user?['uuid'] ?? user?['id'])?.toString();
+      if (id != currentUserId &&
+          (currentUsername == null || username != currentUsername)) {
+        final val = member['is_reported'] ??
+            member['is_report'] ??
+            member['isReported'] ??
+            user?['is_reported'] ??
+            user?['is_report'];
+        return val == true || val == 1 || val?.toString() == 'true';
+      }
+    }
+    final directVal =
+        chat['is_reported'] ?? chat['isReported'] ?? chat['is_report'];
+    return directVal == true || directVal == 1 || directVal?.toString() == 'true';
+  }
+
   dynamic _getOtherUserId(Map<String, dynamic> chat) {
     final userProvider = Provider.of<UserProvider>(context, listen: false);
     final currentUserId = userProvider.userId;
@@ -1484,6 +1529,8 @@ class MessageListState extends State<MessageList>
   }
 
   bool _isPolzetAiChat(Map<String, dynamic> chat) {
+    if (chat['chat_type'] != 'private') return false;
+
     final otherUsername = _getOtherUsername(chat);
     if (_isPolzetAiUsername(otherUsername)) return true;
 
@@ -1572,6 +1619,9 @@ class MessageListState extends State<MessageList>
   ) async {
     final chatId = chat['id']?.toString();
     final isBlocked = _isOtherMemberBlocked(chat);
+    final isReported = _isOtherMemberReported(chat);
+    chat['is_reported'] = isReported;
+    chat['is_block'] = isBlocked;
 
     if (chatId != null && chatId.isNotEmpty && _unreadCount(chat) > 0) {
       final index = _staticChats.indexWhere(
@@ -2047,23 +2097,10 @@ class MessageListState extends State<MessageList>
                                           : Theme.of(
                                               context,
                                             ).primaryColor.withOpacity(0.08),
-                                      backgroundImage: avatarProvider,
-                                      child: avatarProvider == null
-                                          ? Text(
-                                              title.isNotEmpty
-                                                  ? title[0].toUpperCase()
-                                                  : 'P',
-                                              style: AppTextStyles.subText
-                                                  .copyWith(
-                                                    color: Theme.of(context)
-                                                        .colorScheme
-                                                        .onPrimary
-                                                        .withOpacity(0.8),
-                                                    fontWeight: FontWeight.w500,
-                                                    fontSize: 20,
-                                                  ),
-                                            )
-                                          : null,
+                                      backgroundImage: avatarProvider ??
+                                          AssetImage(
+                                            Assets.images.icAvatar.path,
+                                          ),
                                     ),
                                     if (chat['chat_type'] == 'private' &&
                                         _isOtherMemberOnline(chat))
@@ -2592,52 +2629,13 @@ class MessageListState extends State<MessageList>
     bool hasBorder = false,
     String? username,
   }) {
-    if (_isPolzetAiUsername(username) || _isPolzetAiUsername(profileUrl)) {
-      return Container(
-        width: size,
-        height: size,
-        decoration: hasBorder
-            ? BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: Theme.of(context).colorScheme.background,
-                  width: 1.5,
-                ),
-              )
-            : null,
-        child: Stack(
-          alignment: Alignment.center,
-          children: [
-            ClipOval(
-              child: Center(
-                child: Padding(
-                  padding: const EdgeInsets.only(
-                    top: 6,
-                    bottom: 0,
-                    left: 8,
-                    right: 7,
-                  ),
-                  child: Image.asset(
-                    Assets.images.icSplash.path,
-                    fit: BoxFit.contain,
-                  ),
-                ),
-              ),
-            ),
-            Positioned.fill(
-              child: Image.asset(
-                Assets.images.aiFrame.path,
-                fit: BoxFit.contain,
-              ),
-            ),
-          ],
-        ),
-      );
-    }
     final ImageProvider? avatarProvider =
-        (profileUrl == null || profileUrl.trim().isEmpty)
-        ? AssetImage(Assets.images.icAvatar.path)
-        : _avatarProvider(profileUrl);
+        (_isPolzetAiUsername(username) ||
+                _isPolzetAiUsername(profileUrl) ||
+                profileUrl == null ||
+                profileUrl.trim().isEmpty)
+            ? AssetImage(Assets.images.icAvatar.path)
+            : _avatarProvider(profileUrl);
     return Container(
       width: size,
       height: size,

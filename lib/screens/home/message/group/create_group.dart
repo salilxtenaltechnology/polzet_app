@@ -178,39 +178,65 @@ class _CreateGroupState extends State<CreateGroup> with UtilityMixin {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Container(
-                      width: 95.w,
-                      height: 95.w,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: isDarkMode
-                            ? Colors.white.withOpacity(0.08)
-                            : const Color(0xFFF5F5F7),
-                        image: _selectedImage != null
-                            ? DecorationImage(
-                                image: FileImage(_selectedImage!),
-                                fit: BoxFit.cover,
-                              )
-                            : null,
-                      ),
-                      child: _isUploadingImage
-                          ? Center(
-                              child: Loader(
-                                color: Theme.of(context).colorScheme.primary,
-                              ),
-                            )
-                          : (_selectedImage == null
-                                ? Center(
-                                    child: Image.asset(
-                                      Assets.images.icCamera.path,
-                                      width: 35.w,
-                                      height: 35.w,
-                                      color: isDarkMode
-                                          ? Colors.white.withOpacity(0.7)
-                                          : const Color(0xFF1E1E1E),
-                                    ),
+                    Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        Container(
+                          width: 95.w,
+                          height: 95.w,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: isDarkMode
+                                ? Colors.white.withOpacity(0.08)
+                                : const Color(0xFFF5F5F7),
+                            image: _selectedImage != null
+                                ? DecorationImage(
+                                    image: FileImage(_selectedImage!),
+                                    fit: BoxFit.cover,
                                   )
-                                : null),
+                                : null,
+                          ),
+                          child: _isUploadingImage
+                              ? Center(
+                                  child: Loader(
+                                    color: Theme.of(context).colorScheme.primary,
+                                  ),
+                                )
+                              : (_selectedImage == null
+                                    ? Center(
+                                        child: Image.asset(
+                                          Assets.images.icAvatar.path,
+                                         
+                                          
+                                        ),
+                                      )
+                                    : null),
+                        ),
+                          Positioned(
+                            bottom: 8,
+                            right: 0,
+                            child: Container(
+                              width: 28,
+                              height: 28,
+                              decoration: BoxDecoration(
+                                color: Theme.of(context).colorScheme.primary,
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: Theme.of(context).colorScheme.background,
+                                  width: 1.5,
+                                ),
+                              ),
+                              child: Center(
+                                child: Image.asset(
+                                  Assets.images.icCamera.path,
+                                  width: 13.w,
+                                  height: 13.w,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ),
+                          ),
+                      ],
                     ),
                     SizedBox(height: 10.h),
                     Text(
@@ -230,10 +256,10 @@ class _CreateGroupState extends State<CreateGroup> with UtilityMixin {
             SizedBox(height: 15.h),
             Text(
               AppLocalizations.of(context)!.namegroup,
-              style: TextStyle(
+              style: AppTextStyles.cardTitle.copyWith(
                 color: Theme.of(context).colorScheme.onBackground,
-                fontSize: 11.sp,
-                fontWeight: FontWeight.w400,
+               fontSize: 14.5,
+                fontWeight: FontWeight.w500,
               ),
             ),
             SizedBox(height: 5.h),
@@ -265,10 +291,10 @@ class _CreateGroupState extends State<CreateGroup> with UtilityMixin {
             SizedBox(height: 15.h),
             Text(
               AppLocalizations.of(context)!.description,
-              style: TextStyle(
+               style: AppTextStyles.cardTitle.copyWith(
                 color: Theme.of(context).colorScheme.onBackground,
-                fontSize: 11.sp,
-                fontWeight: FontWeight.w400,
+               fontSize: 14.5,
+                fontWeight: FontWeight.w500,
               ),
             ),
             SizedBox(height: 5.h),
@@ -281,10 +307,10 @@ class _CreateGroupState extends State<CreateGroup> with UtilityMixin {
             SizedBox(height: 15.h),
             Text(
               AppLocalizations.of(context)!.category,
-              style: TextStyle(
+               style: AppTextStyles.cardTitle.copyWith(
                 color: Theme.of(context).colorScheme.onBackground,
-                fontSize: 11.sp,
-                fontWeight: FontWeight.w400,
+               fontSize: 14.5,
+                fontWeight: FontWeight.w500,
               ),
             ),
             SizedBox(height: 8.h),
@@ -353,10 +379,10 @@ class _CreateGroupState extends State<CreateGroup> with UtilityMixin {
             SizedBox(height: 18.h),
             Text(
               AppLocalizations.of(context)!.privacygroup,
-              style: TextStyle(
+               style: AppTextStyles.cardTitle.copyWith(
                 color: Theme.of(context).colorScheme.onBackground,
-                fontSize: 11.sp,
-                fontWeight: FontWeight.w400,
+               fontSize: 14.5,
+                fontWeight: FontWeight.w500,
               ),
             ),
             SizedBox(height: 10.h),
@@ -389,7 +415,7 @@ class _CreateGroupState extends State<CreateGroup> with UtilityMixin {
                             : (isDarkMode
                                   ? Colors.white.withOpacity(0.12)
                                   : Colors.black.withOpacity(0.08)),
-                        width: 0.8,
+                        width: 0.9,
                       ),
                     ),
                     child: Row(
@@ -422,18 +448,17 @@ class _CreateGroupState extends State<CreateGroup> with UtilityMixin {
                             children: [
                               Text(
                                 opt['title'] as String,
-                                style: TextStyle(
+                                style: AppTextStyles.bodyText.copyWith(
                                   color: txt.title,
-                                  fontSize: 12.sp,
+                                  fontSize: 14,
                                   fontWeight: FontWeight.w500,
                                 ),
                               ),
-                              SizedBox(height: 2.h),
                               Text(
                                 opt['subtitle'] as String,
-                                style: TextStyle(
+                                style:  AppTextStyles.bodyText.copyWith(
                                   color: txt.muted,
-                                  fontSize: 10.sp,
+                                  fontSize: 12,
                                   fontWeight: FontWeight.w400,
                                 ),
                               ),
@@ -451,8 +476,8 @@ class _CreateGroupState extends State<CreateGroup> with UtilityMixin {
         ),
       ),
       bottomNavigationBar: BottomAppBar(
-        padding: EdgeInsets.zero,
-        height: 50.h,
+       padding: const EdgeInsets.only(bottom: 25),
+        height: 90,
         color: Theme.of(context).colorScheme.background,
         child: PrimaryButton(
           title: AppLocalizations.of(context)!.continueButton,

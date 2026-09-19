@@ -10,6 +10,7 @@ import '../../../../../../core/constants/app_radius.dart';
 import '../../../../../../core/constants/feather_icons_compat.dart';
 import '../../../../../../core/themes/app_text_colors.dart';
 import '../../../../../../core/themes/app_text_styles.dart';
+import '../../../../../../gen/assets.gen.dart';
 import '../../../../../../languages/l10n/generated/app_localizations.dart';
 import '../../../../../../mixin/utility_mixins.dart';
 import '../../../../../../provider/group_chat_provider.dart';
@@ -130,7 +131,9 @@ class _GroupAddMembersState extends State<GroupAddMembers> with UtilityMixin {
       }
 
       for (final user in [...results[0], ...results[1]]) {
-        final id = user['id']?.toString() ?? '';
+        final id = (user['id'] ?? user['uuid'] ?? user['_id'] ?? user['user_id'])
+                ?.toString() ??
+            '';
         if (id.isNotEmpty && seen.add(id)) {
           merged.add(user);
 
@@ -187,11 +190,14 @@ class _GroupAddMembersState extends State<GroupAddMembers> with UtilityMixin {
   }
 
   void _toggleMember(String id) {
+    if (id.isEmpty) return;
     if (widget.groupId != null && _alreadyInGroupIds.contains(id)) return;
     setState(() {
-      _selectedIds.contains(id)
-          ? _selectedIds.remove(id)
-          : _selectedIds.add(id);
+      if (_selectedIds.contains(id)) {
+        _selectedIds.remove(id);
+      } else {
+        _selectedIds.add(id);
+      }
     });
   }
 
@@ -202,9 +208,22 @@ class _GroupAddMembersState extends State<GroupAddMembers> with UtilityMixin {
     return _selectedIds.isNotEmpty;
   }
 
+  int get _newSelectedCount {
+    if (widget.groupId != null) {
+      return _selectedIds.where((id) => !_alreadyInGroupIds.contains(id)).length;
+    }
+    return _selectedIds.length;
+  }
+
   String _userName(Map<String, dynamic> user) =>
       (user['name'] ?? user['username'] ?? user['full_name'] ?? 'polzet_user')
           .toString();
+
+  bool _isPolzetAi(String? username) {
+    if (username == null) return false;
+    final u = username.trim().toLowerCase();
+    return u == 'polzet_ai' || u == 'polet_ai';
+  }
 
   String? _resolveProfileUrl(String? url) {
     if (url == null || url.trim().isEmpty) return null;
@@ -236,7 +255,10 @@ class _GroupAddMembersState extends State<GroupAddMembers> with UtilityMixin {
       setState(() => _isAdding = true);
 
       final newUsers = _allUsers
-          .where((u) => newSelectedIds.contains(u['id']?.toString()))
+          .where((u) {
+            final id = (u['id'] ?? u['uuid'] ?? u['_id'] ?? u['user_id'])?.toString();
+            return newSelectedIds.contains(id);
+          })
           .toList();
 
       GroupChatProvider? provider;
@@ -292,7 +314,10 @@ class _GroupAddMembersState extends State<GroupAddMembers> with UtilityMixin {
     } else {
       if (_selectedIds.isEmpty) return;
       final selectedUsers = _allUsers
-          .where((u) => _selectedIds.contains(u['id']?.toString()))
+          .where((u) {
+            final id = (u['id'] ?? u['uuid'] ?? u['_id'] ?? u['user_id'])?.toString();
+            return _selectedIds.contains(id);
+          })
           .toList();
       Navigator.pop(context, {'ids': _selectedIds, 'users': selectedUsers});
     }
@@ -302,6 +327,8 @@ class _GroupAddMembersState extends State<GroupAddMembers> with UtilityMixin {
   Widget build(BuildContext context) {
     final txt = AppTextColors.of(context);
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final selectedCount = _newSelectedCount;
+
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.background,
       appBar: CommonAppBar(
@@ -342,6 +369,18 @@ class _GroupAddMembersState extends State<GroupAddMembers> with UtilityMixin {
                     size: 17.spMax,
                     color: const Color(0XFF898989),
                   ),
+                  suffixIcon: _searchController.text.isNotEmpty
+                      ? IconButton(
+                          icon: Icon(
+                            Icons.close,
+                            size: 16.spMax,
+                            color: const Color(0XFF898989),
+                          ),
+                          onPressed: () {
+                            _searchController.clear();
+                          },
+                        )
+                      : null,
                   enabledBorder: OutlineInputBorder(
                     borderSide: BorderSide(
                       color: Theme.of(context).colorScheme.outline,
@@ -374,7 +413,9 @@ class _GroupAddMembersState extends State<GroupAddMembers> with UtilityMixin {
         height: 90,
         color: Theme.of(context).colorScheme.background,
         child: PrimaryButton(
-          title: AppLocalizations.of(context)?.add ?? 'Add',
+          title: selectedCount > 0
+              ? '${AppLocalizations.of(context)?.add ?? 'Add'} ($selectedCount)'
+              : (AppLocalizations.of(context)?.add ?? 'Add'),
           onPressed: (_isAdding || !_hasNewSelection)
               ? null
               : _onBottomButtonPressed,
@@ -386,6 +427,7 @@ class _GroupAddMembersState extends State<GroupAddMembers> with UtilityMixin {
 
   Widget _buildUserList() {
     final txt = AppTextColors.of(context);
+
     if (_isLoadingUsers) {
       return Center(
         child: Loader(color: Theme.of(context).colorScheme.onPrimary),
@@ -416,10 +458,13 @@ class _GroupAddMembersState extends State<GroupAddMembers> with UtilityMixin {
 
     return ListView.separated(
       itemCount: _filteredUsers.length,
-      separatorBuilder: (_, __) => SizedBox(height: 8.h),
+      physics: const BouncingScrollPhysics(),
+      separatorBuilder: (_, __) => SizedBox(height: 6.h),
       itemBuilder: (context, index) {
         final user = _filteredUsers[index];
-        final id = user['id']?.toString() ?? '';
+        final id = (user['id'] ?? user['uuid'] ?? user['_id'] ?? user['user_id'])
+                ?.toString() ??
+            '';
         final isSelected = _selectedIds.contains(id);
         final avatarUrl = _userAvatar(user);
         final firstName = user['first_name'] as String? ?? '';
@@ -427,114 +472,158 @@ class _GroupAddMembersState extends State<GroupAddMembers> with UtilityMixin {
         final username = user['username'] as String? ?? _userName(user);
         final fullName = '$firstName $lastName'.trim();
 
-        return GestureDetector(
-          onTap: () => _toggleMember(id),
-          child: Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-            child: Row(
-              children: [
-                Builder(
-                  builder: (_) {
-                    final imageBytes = avatarUrl != null
-                        ? getProfileImage(avatarUrl)
-                        : null;
-                    final hasNetworkImage =
-                        imageBytes == null &&
-                        avatarUrl != null &&
-                        avatarUrl.trim().isNotEmpty &&
-                        avatarUrl.startsWith('http');
-                    final initial = username.trim().isNotEmpty
-                        ? username.trim()[0].toUpperCase()
-                        : 'P';
-                    return CircleAvatar(
-                      radius: 19,
-                      backgroundImage: imageBytes != null
-                          ? MemoryImage(imageBytes)
-                          : (hasNetworkImage ? NetworkImage(avatarUrl) : null),
-                      backgroundColor: (imageBytes == null && !hasNetworkImage)
-                          ? Theme.of(
-                              context,
-                            ).colorScheme.onPrimary.withOpacity(0.1)
-                          : null,
-                      child: (imageBytes == null && !hasNetworkImage)
-                          ? Text(
-                              initial,
-                              style: AppTextStyles.subText.copyWith(
-                                color: Theme.of(context).colorScheme.onPrimary,
-                                fontWeight: FontWeight.w500,
-                                fontSize: 17,
+        return Material(
+          color: Colors.transparent,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(5),
+            onTap: () => _toggleMember(id),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 180),
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 6),
+             color: Colors.transparent,
+              child: Row(
+                children: [
+                  Builder(
+                    builder: (_) {
+                      final isPolzetAi =
+                          _isPolzetAi(username) || _isPolzetAi(avatarUrl);
+                      if (isPolzetAi) {
+                        return SizedBox(
+                          height: 38.r,
+                          width: 38.r,
+                          child: Stack(
+                            alignment: Alignment.center,
+                            children: [
+                              ClipOval(
+                                child: Center(
+                                  child: Padding(
+                                    padding: const EdgeInsets.only(
+                                      top: 6,
+                                      bottom: 0,
+                                      left: 8,
+                                      right: 7,
+                                    ),
+                                    child: Image.asset(
+                                      Assets.images.icSplash.path,
+                                      fit: BoxFit.contain,
+                                    ),
+                                  ),
+                                ),
                               ),
-                            )
-                          : null,
-                    );
-                  },
-                ),
-                SizedBox(width: 10.w),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        username,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: AppTextStyles.bodyText.copyWith(
-                          color: txt.body,
-                          fontSize: 14.5,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                      if (fullName.isNotEmpty) ...[
-                        Text(
-                          fullName,
-                          style: AppTextStyles.bodyText.copyWith(
-                            fontSize: 12.5,
-                            color: txt.muted,
-                            fontWeight: FontWeight.w500,
+                              Positioned.fill(
+                                child: Image.asset(
+                                  Assets.images.aiFrame.path,
+                                  fit: BoxFit.contain,
+                                ),
+                              ),
+                            ],
                           ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ] else ...[
-                        Text(
-                          username,
-                          style: AppTextStyles.bodyText.copyWith(
-                            fontSize: 12.5,
-                            color: txt.muted,
-                            fontWeight: FontWeight.w500,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ],
-                    ],
+                        );
+                      }
+                      final imageBytes = avatarUrl != null
+                          ? getProfileImage(avatarUrl)
+                          : null;
+                      final ImageProvider avatarProvider = imageBytes != null
+                          ? MemoryImage(imageBytes)
+                          : (avatarUrl != null &&
+                                  avatarUrl.trim().isNotEmpty &&
+                                  avatarUrl != 'null' &&
+                                  avatarUrl != Assets.images.icAvatar.path
+                              ? (avatarUrl.startsWith('assets/')
+                                  ? AssetImage(avatarUrl)
+                                  : NetworkImage(avatarUrl) as ImageProvider)
+                              : AssetImage(Assets.images.icAvatar.path));
+                      return CircleAvatar(
+                        radius: 19.r,
+                        backgroundImage: avatarProvider,
+                      );
+                    },
                   ),
-                ),
-                AnimatedContainer(
-                  duration: const Duration(milliseconds: 180),
-                  height: 20.sp,
-                  width: 20.sp,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: isSelected
-                        ? Theme.of(context).colorScheme.primary
-                        : Colors.transparent,
-                    border: Border.all(
-                      color: isSelected
-                          ? Theme.of(context).colorScheme.primary
-                          : Theme.of(
-                              context,
-                            ).colorScheme.onSurface.withOpacity(0.4),
-                      width: 1.5,
+                  SizedBox(width: 10.w),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Row(
+                          children: [
+                            Flexible(
+                              child: Text(
+                                username,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: AppTextStyles.bodyText.copyWith(
+                                  color: txt.body,
+                                  fontSize: 14.5,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ),
+                            if (_isPolzetAi(username)) ...[
+                              SizedBox(width: 4.w),
+                              Image.asset(
+                                Assets.images.icVerify.path,
+                                height: 13,
+                                width: 13,
+                              ),
+                            ],
+                          ],
+                        ),
+                        if (fullName.isNotEmpty) ...[
+                          Text(
+                            fullName,
+                            style: AppTextStyles.bodyText.copyWith(
+                              fontSize: 12.5,
+                              color: txt.muted,
+                              fontWeight: FontWeight.w500,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ] else ...[
+                          Text(
+                            username,
+                            style: AppTextStyles.bodyText.copyWith(
+                              fontSize: 12.5,
+                              color: txt.muted,
+                              fontWeight: FontWeight.w500,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ],
                     ),
                   ),
-                  child: isSelected
-                      ? Icon(Icons.check, size: 12.sp, color: Colors.white)
-                      : null,
-                ),
-              ],
+                  AnimatedContainer(
+                    duration: const Duration(milliseconds: 180),
+                    height: 20.sp,
+                    width: 20.sp,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: isSelected
+                          ? Theme.of(context).colorScheme.primary
+                          : Colors.transparent,
+                      border: Border.all(
+                        color: isSelected
+                            ? Theme.of(context).colorScheme.primary
+                            : Theme.of(
+                                context,
+                              ).colorScheme.onSurface.withOpacity(0.4),
+                        width: 1.5,
+                      ),
+                    ),
+                    child: isSelected
+                        ? Icon(
+                            Icons.check,
+                            size: 12.sp,
+                            color: Colors.white,
+                          )
+                        : null,
+                  ),
+                ],
+              ),
             ),
           ),
         );

@@ -294,7 +294,7 @@ const List<ChatThemeItem> defaultChatThemes = [
     unselectedBorderColor: Color(0xFF9EAFC0),
     titleColor: Color(0xFFCCCCD0),
     messageBarColor: Color(0x3324425D),
-    dateColor: Color(0XFF898989),
+    dateColor: Color.fromARGB(255, 84, 109, 132),
     messageTimeColor: Color(0xFFC4C4C4),
     darkBackgroundColor: Color(0xFF080F18),
     darkIncomingBubbleColor: Color(0xFF152333),

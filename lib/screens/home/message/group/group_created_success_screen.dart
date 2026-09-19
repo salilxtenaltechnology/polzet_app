@@ -161,7 +161,7 @@ class _GroupCreatedSuccessScreenState extends State<GroupCreatedSuccessScreen>
                   // ── Icon / Image area ─────────────────────────────
                   SizedBox(
                     width: 180,
-                    height: 180,
+                    height: 160,
                     child: Stack(
                       alignment: Alignment.center,
                       children: [
@@ -192,7 +192,7 @@ class _GroupCreatedSuccessScreenState extends State<GroupCreatedSuccessScreen>
                     ),
                   ),
 
-                  const SizedBox(height: 36),
+                  //const SizedBox(height: 28),
 
                   // ── Title ─────────────────────────────────────────
                   SlideTransition(
@@ -202,16 +202,17 @@ class _GroupCreatedSuccessScreenState extends State<GroupCreatedSuccessScreen>
                       child: Text(
                         'Group created\nsuccessfully!',
                         textAlign: TextAlign.center,
-                        style: AppTextStyles.subSectionHeading.copyWith(
-                          fontSize: 23,
-                          fontWeight: FontWeight.w600,
-                          color: Theme.of(context).colorScheme.onBackground,
-                        ),
+                         style: AppTextStyles.subSectionHeading.copyWith(
+                      fontSize: 25,
+                      fontWeight: FontWeight.w700,
+                      color: Theme.of(context).colorScheme.onBackground,
+                      height: 1.3,
+                    ),
                       ),
                     ),
                   ),
 
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 10),
 
                   // ── Subtitle ──────────────────────────────────────
                   SlideTransition(
@@ -221,11 +222,10 @@ class _GroupCreatedSuccessScreenState extends State<GroupCreatedSuccessScreen>
                       child: Text(
                         'Your group has been created successfully',
                         textAlign: TextAlign.center,
-                        style: AppTextStyles.bodyText.copyWith(
-                          fontSize: 13.5,
-                          color: txt.body,
-                          height: 1.4,
-                        ),
+                        style: AppTextStyles.subText.copyWith(
+                      fontSize: 14,
+                      color: txt.body,
+                    ),
                       ),
                     ),
                   ),
