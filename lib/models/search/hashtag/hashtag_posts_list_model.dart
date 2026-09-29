@@ -110,12 +110,21 @@ class HashtagPostUser {
   });
 
   factory HashtagPostUser.fromJson(Map<String, dynamic> json) {
+    String? profileImg = (json['profile_image'] ??
+            json['profile_picture'] ??
+            json['profile_picture_url'] ??
+            json['avatar'] ??
+            json['avatar_url'])
+        ?.toString();
+    if (profileImg == 'null' || (profileImg != null && profileImg.isEmpty)) {
+      profileImg = null;
+    }
     return HashtagPostUser(
       userid: (json['userid'] ?? json['id'] ?? json['user_id'] ?? '').toString(),
       firstName: json['first_name'] ?? '',
       lastName: json['last_name'] ?? '',
       username: json['username'] ?? '',
-      profileImage: json['profile_image'],
+      profileImage: profileImg,
       location: json['location'],
     );
   }

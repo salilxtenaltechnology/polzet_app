@@ -14,6 +14,7 @@ import '../../../../../core/themes/app_text_styles.dart';
 import '../../../../../languages/l10n/generated/app_localizations.dart';
 import '../../../../../models/posts/user_post_model.dart';
 import '../../../../../widgets/loader.dart';
+import '../../../../../../gen/assets.gen.dart';
 import '../../../home feed/rank/result/image/image_preview_screen.dart';
 import '../../../home feed/rank/result/image/image_result_screen.dart';
 import '../../../home feed/rank/submit/rank_submitted_screen.dart';
@@ -199,23 +200,29 @@ class _UserImageRankState extends State<UserImageRanking> {
   Widget _buildPostHeader() {
     final txt = AppTextColors.of(context);
     final username = widget.post.user;
-    final initial = username.isNotEmpty ? username[0].toUpperCase() : '?';
 
     final String? profileUrl = widget.profileImage;
-    ImageProvider? avatarImage;
-    if (_profileImageBytes != null) {
+    ImageProvider avatarImage;
+    if (profileUrl == null || profileUrl.isEmpty || profileUrl == 'null') {
+      avatarImage = AssetImage(Assets.images.icAvatar.path);
+    } else if (profileUrl == Assets.images.icAvatar.path ||
+        profileUrl.endsWith('ic_avatar.png')) {
+      avatarImage = AssetImage(Assets.images.icAvatar.path);
+    } else if (profileUrl.startsWith('assets/')) {
+      avatarImage = AssetImage(profileUrl);
+    } else if (_profileImageBytes != null) {
       avatarImage = MemoryImage(_profileImageBytes!);
-    } else if (profileUrl != null && profileUrl.isNotEmpty) {
-      if (profileUrl.startsWith('http') ||
-          profileUrl.startsWith('/') ||
-          profileUrl.contains('/')) {
-        final imageUrl = profileUrl.startsWith('http')
-            ? profileUrl
-            : (profileUrl.startsWith('/')
-                ? '${ApiConfig.baseUrlImage}$profileUrl'
-                : '${ApiConfig.baseUrlImage}/$profileUrl');
-        avatarImage = CachedNetworkImageProvider(imageUrl);
-      }
+    } else if (profileUrl.startsWith('http') ||
+        profileUrl.startsWith('/') ||
+        profileUrl.contains('/')) {
+      final imageUrl = profileUrl.startsWith('http')
+          ? profileUrl
+          : (profileUrl.startsWith('/')
+              ? '${ApiConfig.baseUrlImage}$profileUrl'
+              : '${ApiConfig.baseUrlImage}/$profileUrl');
+      avatarImage = CachedNetworkImageProvider(imageUrl);
+    } else {
+      avatarImage = AssetImage(Assets.images.icAvatar.path);
     }
 
     return Padding(
@@ -232,16 +239,7 @@ class _UserImageRankState extends State<UserImageRanking> {
                   context,
                 ).colorScheme.onPrimary.withOpacity(0.1),
                 backgroundImage: avatarImage,
-                child: avatarImage == null
-                    ? Text(
-                        initial,
-                        style: AppTextStyles.cardTitle.copyWith(
-                          color: Theme.of(context).colorScheme.onPrimary,
-                          fontWeight: FontWeight.w500,
-                          fontSize: 18,
-                        ),
-                      )
-                    : null,
+                onBackgroundImageError: (_, __) {},
               ),
               const SizedBox(width: 10),
               Expanded(

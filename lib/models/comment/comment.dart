@@ -57,11 +57,19 @@ class Comments {
       final userMap = Map<String, dynamic>.from(userVal);
       parsedUser = userMap['username']?.toString() ?? userMap['name']?.toString() ?? '';
       parsedUserId = userMap['uuid']?.toString() ?? userMap['id']?.toString() ?? '';
-      parsedProfileImage = userMap['avatar_url']?.toString() ?? userMap['profile_image']?.toString();
+      parsedProfileImage = userMap['avatar_url']?.toString() ??
+          userMap['profile_image']?.toString() ??
+          userMap['profile_picture']?.toString() ??
+          userMap['profile_picture_url']?.toString() ??
+          userMap['profile_pic']?.toString();
     } else {
       parsedUser = userVal?.toString() ?? '';
       parsedUserId = json['user_id']?.toString() ?? '';
-      parsedProfileImage = json['profile_image']?.toString();
+      parsedProfileImage = json['profile_image']?.toString() ??
+          json['avatar_url']?.toString() ??
+          json['profile_picture']?.toString() ??
+          json['profile_picture_url']?.toString() ??
+          json['profile_pic']?.toString();
     }
 
     return Comments(

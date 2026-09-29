@@ -130,6 +130,11 @@ class _EditProfilNumberVeifyOTPState extends State<EditProfilNumberVeifyOTP> {
       } else if (e.message != null && e.message!.isNotEmpty) {
         errorMsg = e.message!;
       }
+      if (errorMsg == 'OTP session has expired. Please resend code.' ||
+          e.code == 'session-expired') {
+        _resendTimer?.cancel();
+        _secondsRemaining = 0;
+      }
       setState(() {
         _isVerifying = false;
         _otpError = errorMsg;
@@ -161,6 +166,10 @@ class _EditProfilNumberVeifyOTPState extends State<EditProfilNumberVeifyOTP> {
         final msg = result['message']?.toString() ??
             result['data']?['message']?.toString() ??
             'OTP verification failed';
+        if (msg == 'OTP session has expired. Please resend code.') {
+          _resendTimer?.cancel();
+          _secondsRemaining = 0;
+        }
         setState(() => _otpError = msg);
       }
     } catch (e) {
@@ -168,6 +177,10 @@ class _EditProfilNumberVeifyOTPState extends State<EditProfilNumberVeifyOTP> {
         final msg = e.toString().contains('Exception:')
             ? e.toString().replaceAll('Exception:', '').trim()
             : e.toString();
+        if (msg == 'OTP session has expired. Please resend code.') {
+          _resendTimer?.cancel();
+          _secondsRemaining = 0;
+        }
         setState(() => _otpError = msg);
       }
     } finally {

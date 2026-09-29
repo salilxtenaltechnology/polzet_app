@@ -11,6 +11,7 @@ import '../../../../provider/user_provider.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../../../languages/l10n/generated/app_localizations.dart';
 import 'package:intl/intl.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:polzet_app/widgets/image/app_cached_network_image.dart';
 import 'package:polzet_app/widgets/show_toast.dart';
 
@@ -1926,7 +1927,7 @@ class _SinglePostDetailsState extends State<SinglePostDetails>
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.background,
-      appBar: const CommonAppBar(title: 'Post'),
+      appBar:  CommonAppBar(title: AppLocalizations.of(context)!.postdetails),
       body: _loading
           ? Center(
               child: Loader(color: Theme.of(context).colorScheme.onPrimary),
@@ -2096,7 +2097,6 @@ class _SinglePostDetailsState extends State<SinglePostDetails>
     final username = post.user.username.isNotEmpty
         ? post.user.username
         : _post!.user.username;
-    final initial = username.isNotEmpty ? username[0].toUpperCase() : '?';
     final bool isPolzetAi = username.trim().toLowerCase() == 'polzet_ai' ||
         username.trim().toLowerCase() == 'polet_ai';
     final bool isOwnPost = username.isEmpty ||
@@ -2159,25 +2159,41 @@ class _SinglePostDetailsState extends State<SinglePostDetails>
                     backgroundColor: Theme.of(
                       context,
                     ).colorScheme.onPrimary.withOpacity(0.1),
-                    backgroundImage: _profileImageBytes != null
-                        ? MemoryImage(_profileImageBytes!)
-                        : (post.user.profileImage.isNotEmpty
-                              ? NetworkImage(post.user.profileImage)
-                              : (post.profileImage.isNotEmpty
-                                  ? NetworkImage(post.profileImage)
-                                  : null)),
-                    child: _profileImageBytes == null &&
-                            post.user.profileImage.isEmpty &&
-                            post.profileImage.isEmpty
-                        ? Text(
-                            initial,
-                            style: AppTextStyles.subText.copyWith(
-                              color: Theme.of(context).colorScheme.onPrimary,
-                              fontWeight: FontWeight.w500,
-                              fontSize: 18,
-                            ),
-                          )
-                        : null,
+                    backgroundImage: (() {
+                      if (_profileImageBytes != null) {
+                        return MemoryImage(_profileImageBytes!)
+                            as ImageProvider;
+                      }
+                      final String raw = post.user.profileImage.isNotEmpty
+                          ? post.user.profileImage
+                          : post.profileImage;
+                      if (raw.isEmpty || raw == 'null') {
+                        return AssetImage(Assets.images.icAvatar.path)
+                            as ImageProvider;
+                      }
+                      if (raw == Assets.images.icAvatar.path ||
+                          raw.endsWith('ic_avatar.png')) {
+                        return AssetImage(Assets.images.icAvatar.path)
+                            as ImageProvider;
+                      }
+                      if (raw.startsWith('assets/')) {
+                        return AssetImage(raw) as ImageProvider;
+                      }
+                      if (raw.startsWith('http') ||
+                          raw.startsWith('/') ||
+                          raw.contains('/')) {
+                        final imageUrl = raw.startsWith('http')
+                            ? raw
+                            : (raw.startsWith('/')
+                                ? '${ApiConfig.baseUrlImage}$raw'
+                                : '${ApiConfig.baseUrlImage}/$raw');
+                        return CachedNetworkImageProvider(imageUrl)
+                            as ImageProvider;
+                      }
+                      return AssetImage(Assets.images.icAvatar.path)
+                          as ImageProvider;
+                    })(),
+                    onBackgroundImageError: (_, __) {},
                   ),
           ),
           SizedBox(width: 8.w),
@@ -2327,7 +2343,7 @@ class _SinglePostDetailsState extends State<SinglePostDetails>
                                         vertical: 9,
                                       ),
                                       child: Text(
-                                        'View Result',
+                                        AppLocalizations.of(context)!.viewresult,
                                         style: AppTextStyles.bodyText.copyWith(
                                           color: txt.title,
                                           fontWeight: FontWeight.w500,
@@ -2348,7 +2364,7 @@ class _SinglePostDetailsState extends State<SinglePostDetails>
                                       vertical: 9,
                                     ),
                                     child: Text(
-                                      isSaved ? 'Unsave poll' : 'Save poll',
+                                      isSaved ?  AppLocalizations.of(context)!.unsavepoll :  AppLocalizations.of(context)!.savepoll,
                                       style: AppTextStyles.bodyText.copyWith(
                                         color: txt.title,
                                         fontWeight: FontWeight.w500,
@@ -2370,7 +2386,7 @@ class _SinglePostDetailsState extends State<SinglePostDetails>
                                         vertical: 9,
                                       ),
                                       child: Text(
-                                        'Go to profile',
+                                        AppLocalizations.of(context)!.gotoprofile,
                                         style: AppTextStyles.bodyText.copyWith(
                                           color: txt.title,
                                           fontWeight: FontWeight.w500,
@@ -2392,8 +2408,8 @@ class _SinglePostDetailsState extends State<SinglePostDetails>
                                       ),
                                       child: Text(
                                         _isUserBlocked
-                                            ? 'Unblock user'
-                                            : 'Block user',
+                                            ?  AppLocalizations.of(context)!.unblockuser
+                                            :  AppLocalizations.of(context)!.blockuser,
                                         style: AppTextStyles.bodyText.copyWith(
                                           color: _isUserBlocked
                                               ? txt.title
@@ -2418,7 +2434,7 @@ class _SinglePostDetailsState extends State<SinglePostDetails>
                                         vertical: 9,
                                       ),
                                       child: Text(
-                                        'Delete poll',
+                                        AppLocalizations.of(context)!.deletepoll,
                                         style: AppTextStyles.bodyText.copyWith(
                                           color: Colors.red,
                                           fontWeight: FontWeight.w500,

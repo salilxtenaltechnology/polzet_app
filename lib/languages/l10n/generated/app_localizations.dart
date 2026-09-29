@@ -629,7 +629,7 @@ abstract class AppLocalizations {
   /// No description provided for @deletegroup.
   ///
   /// In en, this message translates to:
-  /// **'Delete group'**
+  /// **'Delete Group'**
   String get deletegroup;
 
   /// No description provided for @areyousureyouwanttodeletedeletethisgroup.
@@ -4544,6 +4544,426 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Join Waitlist'**
   String get joinwaitlist;
+
+  /// No description provided for @addgroupphoto.
+  ///
+  /// In en, this message translates to:
+  /// **'Add group photo'**
+  String get addgroupphoto;
+
+  /// No description provided for @changegroupphoto.
+  ///
+  /// In en, this message translates to:
+  /// **'Change group photo'**
+  String get changegroupphoto;
+
+  /// No description provided for @entergroupdescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter group description'**
+  String get entergroupdescription;
+
+  /// No description provided for @groupinfo.
+  ///
+  /// In en, this message translates to:
+  /// **'Group info'**
+  String get groupinfo;
+
+  /// No description provided for @search.
+  ///
+  /// In en, this message translates to:
+  /// **'Search'**
+  String get search;
+
+  /// No description provided for @invitelink.
+  ///
+  /// In en, this message translates to:
+  /// **'Invite Link'**
+  String get invitelink;
+
+  /// No description provided for @privacysafety.
+  ///
+  /// In en, this message translates to:
+  /// **'Privacy & Safety'**
+  String get privacysafety;
+
+  /// No description provided for @onlymemberscanseeandparticipateinthisgroup.
+  ///
+  /// In en, this message translates to:
+  /// **'Only members can see and participate in this group'**
+  String get onlymemberscanseeandparticipateinthisgroup;
+
+  /// No description provided for @onlypeopleyouinvitecanjoingroup.
+  ///
+  /// In en, this message translates to:
+  /// **'Only people you invite can join group'**
+  String get onlypeopleyouinvitecanjoingroup;
+
+  /// No description provided for @anyonecandiscoverandviewthisgroup.
+  ///
+  /// In en, this message translates to:
+  /// **'Anyone can discover and view this group'**
+  String get anyonecandiscoverandviewthisgroup;
+
+  /// No description provided for @customizetheme.
+  ///
+  /// In en, this message translates to:
+  /// **'Customize Theme'**
+  String get customizetheme;
+
+  /// No description provided for @yourcanchangecolorandthemeofchat.
+  ///
+  /// In en, this message translates to:
+  /// **'Your can change color and theme of chat'**
+  String get yourcanchangecolorandthemeofchat;
+
+  /// No description provided for @groupmembers.
+  ///
+  /// In en, this message translates to:
+  /// **'Group Members'**
+  String get groupmembers;
+
+  /// No description provided for @nomembersfound.
+  ///
+  /// In en, this message translates to:
+  /// **'No members found'**
+  String get nomembersfound;
+
+  /// No description provided for @onepersonwaitingforapproval.
+  ///
+  /// In en, this message translates to:
+  /// **'1 person waiting for approval'**
+  String get onepersonwaitingforapproval;
+
+  /// No description provided for @personwaitingforapproval.
+  ///
+  /// In en, this message translates to:
+  /// **'person waiting for approval'**
+  String get personwaitingforapproval;
+
+  /// No description provided for @viewprofile.
+  ///
+  /// In en, this message translates to:
+  /// **'View Profile'**
+  String get viewprofile;
+
+  /// No description provided for @reportuser.
+  ///
+  /// In en, this message translates to:
+  /// **'Report User'**
+  String get reportuser;
+
+  /// No description provided for @nojoinrequests.
+  ///
+  /// In en, this message translates to:
+  /// **'No join requests'**
+  String get nojoinrequests;
+
+  /// No description provided for @approve.
+  ///
+  /// In en, this message translates to:
+  /// **'Approve'**
+  String get approve;
+
+  /// No description provided for @invite.
+  ///
+  /// In en, this message translates to:
+  /// **'Invite'**
+  String get invite;
+
+  /// No description provided for @copied.
+  ///
+  /// In en, this message translates to:
+  /// **'Copied'**
+  String get copied;
+
+  /// No description provided for @copy.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy'**
+  String get copy;
+
+  /// No description provided for @invitepeopletojointhisgroup.
+  ///
+  /// In en, this message translates to:
+  /// **'Invite people to join this group'**
+  String get invitepeopletojointhisgroup;
+
+  /// No description provided for @groupporivacy.
+  ///
+  /// In en, this message translates to:
+  /// **'Group Privacy'**
+  String get groupporivacy;
+
+  /// No description provided for @reportgroup.
+  ///
+  /// In en, this message translates to:
+  /// **'Report Group'**
+  String get reportgroup;
+
+  /// No description provided for @reportspamharmfulcontentorotherconcerns.
+  ///
+  /// In en, this message translates to:
+  /// **'Report spam, harmful content, or other concerns'**
+  String get reportspamharmfulcontentorotherconcerns;
+
+  /// No description provided for @blockgroup.
+  ///
+  /// In en, this message translates to:
+  /// **'Block Group'**
+  String get blockgroup;
+
+  /// No description provided for @privacyinformation.
+  ///
+  /// In en, this message translates to:
+  /// **'Privacy Information'**
+  String get privacyinformation;
+
+  /// No description provided for @seesomethingyouareuncomfortablewith.
+  ///
+  /// In en, this message translates to:
+  /// **'See something you’re uncomfortable with? You can report a group if it violates our guidelines, or block it if you simply don’t want to see its content or recommendations.'**
+  String get seesomethingyouareuncomfortablewith;
+
+  /// No description provided for @permanentlydeletethisgroup.
+  ///
+  /// In en, this message translates to:
+  /// **'Permanently delete this group'**
+  String get permanentlydeletethisgroup;
+
+  /// No description provided for @whyareyoureportingthisgroup.
+  ///
+  /// In en, this message translates to:
+  /// **'Why are you reporting this group?'**
+  String get whyareyoureportingthisgroup;
+
+  /// No description provided for @spamormisleading.
+  ///
+  /// In en, this message translates to:
+  /// **'Spam Or Misleading'**
+  String get spamormisleading;
+
+  /// No description provided for @harassmentorbullying.
+  ///
+  /// In en, this message translates to:
+  /// **'Harassment Or Bullying'**
+  String get harassmentorbullying;
+
+  /// No description provided for @hateorhatefulcontent.
+  ///
+  /// In en, this message translates to:
+  /// **'Hate Or Hateful Content'**
+  String get hateorhatefulcontent;
+
+  /// No description provided for @sexualorinappropriatecontent.
+  ///
+  /// In en, this message translates to:
+  /// **'Sexual Or Inappropriate Content'**
+  String get sexualorinappropriatecontent;
+
+  /// No description provided for @violenceordngerouscontent.
+  ///
+  /// In en, this message translates to:
+  /// **'Violence Or Dangerous Content'**
+  String get violenceordngerouscontent;
+
+  /// No description provided for @scamorfraud.
+  ///
+  /// In en, this message translates to:
+  /// **'Scam Or Fraud'**
+  String get scamorfraud;
+
+  /// No description provided for @somethingelse.
+  ///
+  /// In en, this message translates to:
+  /// **'Something Else'**
+  String get somethingelse;
+
+  /// No description provided for @tellusmoreabout.
+  ///
+  /// In en, this message translates to:
+  /// **'Tell us more about'**
+  String get tellusmoreabout;
+
+  /// No description provided for @addmoreadditionaldetails.
+  ///
+  /// In en, this message translates to:
+  /// **'Add more additional details, this will help us to review your report'**
+  String get addmoreadditionaldetails;
+
+  /// No description provided for @submitreport.
+  ///
+  /// In en, this message translates to:
+  /// **'Submit Report'**
+  String get submitreport;
+
+  /// No description provided for @applytheme.
+  ///
+  /// In en, this message translates to:
+  /// **'Apply Theme'**
+  String get applytheme;
+
+  /// No description provided for @notificationsettings.
+  ///
+  /// In en, this message translates to:
+  /// **'Notification Settings'**
+  String get notificationsettings;
+
+  /// No description provided for @mutechat.
+  ///
+  /// In en, this message translates to:
+  /// **'Mute Chat'**
+  String get mutechat;
+
+  /// No description provided for @verify.
+  ///
+  /// In en, this message translates to:
+  /// **'Verify'**
+  String get verify;
+
+  /// No description provided for @verifying.
+  ///
+  /// In en, this message translates to:
+  /// **'Verifying...'**
+  String get verifying;
+
+  /// No description provided for @viewresult.
+  ///
+  /// In en, this message translates to:
+  /// **'View Result'**
+  String get viewresult;
+
+  /// No description provided for @savepoll.
+  ///
+  /// In en, this message translates to:
+  /// **'Save poll'**
+  String get savepoll;
+
+  /// No description provided for @unsavepoll.
+  ///
+  /// In en, this message translates to:
+  /// **'Unsave poll'**
+  String get unsavepoll;
+
+  /// No description provided for @deletepoll.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete poll'**
+  String get deletepoll;
+
+  /// No description provided for @gotoprofile.
+  ///
+  /// In en, this message translates to:
+  /// **'Go to profile'**
+  String get gotoprofile;
+
+  /// No description provided for @aipick.
+  ///
+  /// In en, this message translates to:
+  /// **'AI Pick'**
+  String get aipick;
+
+  /// No description provided for @aigenerationslefttoday.
+  ///
+  /// In en, this message translates to:
+  /// **'AI generations left today'**
+  String get aigenerationslefttoday;
+
+  /// No description provided for @noaigenerationslefttoday.
+  ///
+  /// In en, this message translates to:
+  /// **'No AI generations left today'**
+  String get noaigenerationslefttoday;
+
+  /// No description provided for @yourcreditswillresettomorrow.
+  ///
+  /// In en, this message translates to:
+  /// **'Your credits will reset tomorrow'**
+  String get yourcreditswillresettomorrow;
+
+  /// No description provided for @archivedgroup.
+  ///
+  /// In en, this message translates to:
+  /// **'Archived Group'**
+  String get archivedgroup;
+
+  /// No description provided for @failedtoloadarchivedchats.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to load archived chats'**
+  String get failedtoloadarchivedchats;
+
+  /// No description provided for @retry.
+  ///
+  /// In en, this message translates to:
+  /// **'Retry'**
+  String get retry;
+
+  /// No description provided for @unblockthisusertoallowmessagesandinteractions.
+  ///
+  /// In en, this message translates to:
+  /// **'Unblock this user to allow messages and interactions'**
+  String get unblockthisusertoallowmessagesandinteractions;
+
+  /// No description provided for @stopreceivingmessagesandseeingthisuserscontent.
+  ///
+  /// In en, this message translates to:
+  /// **'Stop receiving messages and seeing this users content'**
+  String get stopreceivingmessagesandseeingthisuserscontent;
+
+  /// No description provided for @yourprivacyandsafetymatterreportthisperson.
+  ///
+  /// In en, this message translates to:
+  /// **'Your privacy and safety matter. Report this person if something feels inappropriate or violates our guidelines, or block them if you no longer want to interact with them.'**
+  String get yourprivacyandsafetymatterreportthisperson;
+
+  /// No description provided for @safetysupport.
+  ///
+  /// In en, this message translates to:
+  /// **'Safety Support'**
+  String get safetysupport;
+
+  /// No description provided for @whyareyoureportingthisuser.
+  ///
+  /// In en, this message translates to:
+  /// **'Why are you reporting this user?'**
+  String get whyareyoureportingthisuser;
+
+  /// No description provided for @ai.
+  ///
+  /// In en, this message translates to:
+  /// **'AI'**
+  String get ai;
+
+  /// No description provided for @generation.
+  ///
+  /// In en, this message translates to:
+  /// **'generation'**
+  String get generation;
+
+  /// No description provided for @generations.
+  ///
+  /// In en, this message translates to:
+  /// **'generations'**
+  String get generations;
+
+  /// No description provided for @chatinfo.
+  ///
+  /// In en, this message translates to:
+  /// **'Chat info'**
+  String get chatinfo;
+
+  /// No description provided for @more.
+  ///
+  /// In en, this message translates to:
+  /// **'More'**
+  String get more;
+
+  /// No description provided for @postdetails.
+  ///
+  /// In en, this message translates to:
+  /// **'Post'**
+  String get postdetails;
 }
 
 class _AppLocalizationsDelegate

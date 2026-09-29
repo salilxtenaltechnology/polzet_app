@@ -4,6 +4,7 @@
 
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 import 'dart:ui';
 import 'package:polzet_app/core/constants/feather_icons_compat.dart';
 import 'package:flutter/material.dart';
@@ -24,6 +25,7 @@ import '../../../mixin/utility_mixins.dart';
 import '../../../models/global search/global_search_model.dart';
 import '../../../models/global search/recent_search.dart';
 import '../../../widgets/button/chase/toggle_chase_button.dart';
+import '../../../widgets/button/back_button.dart';
 import '../../../widgets/tabbar/indicatore_animation.dart';
 import '../profile/public/public_profile_screen.dart';
 import 'posts/hashtag_posts_list.dart';
@@ -459,10 +461,27 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen>
 
   // ── Helpers ───────────────────────────────────────────────────────────────
 
-  ImageProvider? _avatarProvider(String? raw) {
-    if (raw == null || raw.isEmpty) return null;
+  ImageProvider _avatarProvider(String? raw) {
+    if (raw == null || raw.isEmpty || raw == 'null') {
+      return AssetImage(Assets.images.icAvatar.path);
+    }
+    if (raw == Assets.images.icAvatar.path || raw.endsWith('ic_avatar.png')) {
+      return AssetImage(Assets.images.icAvatar.path);
+    }
+    if (raw.startsWith('assets/')) {
+      return AssetImage(raw);
+    }
     if (raw.startsWith('data:image')) {
-      return MemoryImage(base64Decode(raw.split(',').last));
+      try {
+        final base64Str = raw.contains(',') ? raw.split(',').last : raw;
+        return MemoryImage(base64Decode(base64Str));
+      } catch (_) {
+        return AssetImage(Assets.images.icAvatar.path);
+      }
+    }
+    final bytes = getProfileImage(raw);
+    if (bytes != null) {
+      return MemoryImage(bytes);
     }
     String resolved = raw;
     if (!resolved.startsWith('http')) {
@@ -538,7 +557,6 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen>
     }
 
     final avatar = _avatarProvider(profileImage);
-    final initial = username.isNotEmpty ? username[0].toUpperCase() : 'P';
 
     return CircleAvatar(
       radius: radius,
@@ -546,16 +564,7 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen>
         context,
       ).colorScheme.onPrimary.withOpacity(0.08),
       backgroundImage: avatar,
-      child: avatar == null
-          ? Text(
-              initial,
-              style: AppTextStyles.cardTitle.copyWith(
-                color: Theme.of(context).colorScheme.onPrimary,
-                fontWeight: FontWeight.w500,
-                fontSize: radius * 0.9,
-              ),
-            )
-          : null,
+      onBackgroundImageError: (_, __) {},
     );
   }
 
@@ -662,6 +671,11 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen>
       padding: const EdgeInsets.fromLTRB(10, 8, 10, 5).w,
       child: Row(
         children: [
+          if (Platform.isIOS) ...[
+            SizedBox(width: 5.w),
+            const PrimaryBackButton(),
+            SizedBox(width: 5.w),
+          ],
           Expanded(
             child: Container(
               height: 44,

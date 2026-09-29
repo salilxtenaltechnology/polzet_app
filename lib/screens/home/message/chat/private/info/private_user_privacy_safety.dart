@@ -284,7 +284,7 @@ class _PrivateUserPrivacySafetyState extends State<PrivateUserPrivacySafety>
       child: Scaffold(
         backgroundColor: Theme.of(context).colorScheme.background,
         appBar: CommonAppBar(
-          title: 'Privacy & Safety',
+          title: AppLocalizations.of(context)!.privacysafety,
           onBack: () => Navigator.pop(context, _isUserBlock),
         ),
         body: Padding(
@@ -293,7 +293,7 @@ class _PrivateUserPrivacySafetyState extends State<PrivateUserPrivacySafety>
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Safety Support',
+               AppLocalizations.of(context)!.safetysupport,
                 style: AppTextStyles.bodyText.copyWith(
                   color: Theme.of(context).colorScheme.onBackground,
                   fontSize: 13.5,
@@ -306,8 +306,8 @@ class _PrivateUserPrivacySafetyState extends State<PrivateUserPrivacySafety>
                   _buildNavTile(
                     icon: Assets.images.icReport.path,
                     padding: 12,
-                    title: 'Report',
-                    subtitle: 'Report spam, harmful content, or other concerns',
+                    title:  AppLocalizations.of(context)!.report,
+                    subtitle:  AppLocalizations.of(context)!.reportspamharmfulcontentorotherconcerns,
                     onTap: () async {
                       if (_isReported) {
                         await showReportSubmittedBottomSheet(context);
@@ -341,14 +341,13 @@ class _PrivateUserPrivacySafetyState extends State<PrivateUserPrivacySafety>
                     padding: 13,
                     title: _isUserBlock
                         ? (AppLocalizations.of(context)?.unblockuser ??
-                              AppLocalizations.of(context)?.unblock ??
-                              'Unblock User')
+                              AppLocalizations.of(context)!.unblock
+                            )
                         : (AppLocalizations.of(context)?.blockuser ??
-                              AppLocalizations.of(context)?.block ??
-                              'Block User'),
+                              AppLocalizations.of(context)!.block),
                     subtitle: _isUserBlock
-                        ? 'Unblock this user to allow messages and interactions'
-                        : 'Stop receiving messages and seeing this user\'s content',
+                        ? AppLocalizations.of(context)!.unblockthisusertoallowmessagesandinteractions
+                        :  AppLocalizations.of(context)!.stopreceivingmessagesandseeingthisuserscontent,
                     showArrow: false,
                     onTap: _toggleBlockUser,
                   ),
@@ -356,7 +355,7 @@ class _PrivateUserPrivacySafetyState extends State<PrivateUserPrivacySafety>
               ),
               SizedBox(height: 15.h),
               Text(
-                'Privacy Information',
+              AppLocalizations.of(context)!.privacyinformation,
                 style: AppTextStyles.bodyText.copyWith(
                   color: Theme.of(context).colorScheme.onBackground,
                   fontSize: 13.5,
@@ -365,7 +364,7 @@ class _PrivateUserPrivacySafetyState extends State<PrivateUserPrivacySafety>
               ),
               SizedBox(height: 5.h),
               Text(
-                'Your privacy and safety matter. Report this person if something feels inappropriate or violates our guidelines, or block them if you no longer want to interact with them.',
+              AppLocalizations.of(context)!.yourprivacyandsafetymatterreportthisperson,
                 style: AppTextStyles.bodyText.copyWith(
                   color: txt.body,
                   fontSize: 14,
@@ -399,7 +398,7 @@ class _PrivateUserPrivacySafetyState extends State<PrivateUserPrivacySafety>
     return Container(
       height: 47,
       width: 47,
-      padding:  EdgeInsets.all(padding),
+      padding: EdgeInsets.all(padding),
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.onPrimary.withOpacity(0.1),
         shape: BoxShape.circle,
@@ -434,18 +433,18 @@ class _PrivateUserPrivacySafetyState extends State<PrivateUserPrivacySafety>
                 Text(
                   title,
                   style: AppTextStyles.cardTitle.copyWith(
-                      color: txt.title,
-                      fontSize: 14.5,
-                      fontWeight: FontWeight.w500,
-                    ),
+                    color: txt.title,
+                    fontSize: 14.5,
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
                 Text(
                   subtitle,
                   style: AppTextStyles.cardTitle.copyWith(
-                      color: txt.muted,
-                      fontSize: 12.5,
-                      fontWeight: FontWeight.w400,
-                    ),
+                    color: txt.muted,
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w400,
+                  ),
                 ),
               ],
             ),

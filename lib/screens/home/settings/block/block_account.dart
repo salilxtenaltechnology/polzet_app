@@ -36,6 +36,43 @@ class _BlockUsersState extends State<BlockAccounts> {
     _blockedUsersFuture = _apiService.getBlockedUsers();
   }
 
+  ImageProvider _getAvatarImageProvider(dynamic profilePic) {
+    if (profilePic == null) {
+      return AssetImage(Assets.images.icAvatar.path);
+    }
+    final raw = profilePic.toString().trim();
+    if (raw.isEmpty ||
+        raw == 'null' ||
+        raw == Assets.images.icAvatar.path ||
+        raw.endsWith('ic_avatar.png')) {
+      return AssetImage(Assets.images.icAvatar.path);
+    }
+    if (raw.startsWith('assets/')) {
+      return AssetImage(raw);
+    }
+    final profileBytes = getProfileImage(raw);
+    if (profileBytes != null) {
+      return MemoryImage(profileBytes);
+    }
+    final resolved = resolveProfileImageUrl(raw);
+    if (resolved != null && resolved.isNotEmpty) {
+      if (resolved.startsWith('http://') || resolved.startsWith('https://')) {
+        return NetworkImage(resolved);
+      } else if (resolved.startsWith('assets/')) {
+        return AssetImage(resolved);
+      }
+    }
+    if (raw.startsWith('http://') || raw.startsWith('https://')) {
+      return NetworkImage(raw);
+    }
+    final separator = raw.startsWith('/') ? '' : '/';
+    final fullUrl = '${ApiConfig.baseUrlImage}$separator$raw';
+    if (fullUrl.startsWith('http')) {
+      return NetworkImage(fullUrl);
+    }
+    return AssetImage(Assets.images.icAvatar.path);
+  }
+
   Future<void> _toggleBlock(dynamic userId, bool currentlyBlocked) async {
     setState(() => _isBlockedMap[userId] = !currentlyBlocked);
 
@@ -118,13 +155,6 @@ class _BlockUsersState extends State<BlockAccounts> {
               final String username = (user['username'] ?? '').toString();
               final String currentUsername =
                   username.trim().toLowerCase();
-              final firstLetter = username.isNotEmpty
-                  ? username.substring(0, 1).toUpperCase()
-                  : 'P';
-              final profileBytes =
-                  profilePic != null && profilePic.toString().isNotEmpty
-                      ? getProfileImage(profilePic.toString())
-                      : null;
 
               return Padding(
                 padding: EdgeInsetsGeometry.symmetric(
@@ -184,34 +214,9 @@ class _BlockUsersState extends State<BlockAccounts> {
                                       : Theme.of(
                                           context,
                                         ).primaryColor.withOpacity(0.08),
-                                  backgroundImage: profileBytes != null
-                                      ? MemoryImage(profileBytes)
-                                      : (profilePic != null &&
-                                              profilePic
-                                                  .toString()
-                                                  .isNotEmpty
-                                          ? NetworkImage(
-                                              profilePic
-                                                      .toString()
-                                                      .startsWith('http')
-                                                  ? profilePic.toString()
-                                                  : '${ApiConfig.baseUrlImage}$profilePic',
-                                            )
-                                          : null),
-                                  child: profileBytes == null &&
-                                          (profilePic == null ||
-                                              profilePic.toString().isEmpty)
-                                      ? Text(
-                                          firstLetter,
-                                          style: TextStyle(
-                                            fontSize: 13.sp,
-                                            fontWeight: FontWeight.w500,
-                                            color: Theme.of(
-                                              context,
-                                            ).colorScheme.onPrimary.withOpacity(0.8),
-                                          ),
-                                        )
-                                      : null,
+                                  backgroundImage:
+                                      _getAvatarImageProvider(profilePic),
+                                  onBackgroundImageError: (_, __) {},
                                 );
                               })(),
                             ),

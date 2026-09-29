@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:polzet_app/languages/l10n/generated/app_localizations.dart';
 import 'package:provider/provider.dart';
 
 import '../../../../../../api/api_service.dart';
@@ -137,23 +138,25 @@ class _GroupPrivacySafetyState extends State<GroupPrivacySafety>
   String get _privacyTitle {
     final privacy =
         widget.groupData?['privacy']?.toString().toLowerCase() ?? 'public';
-    if (privacy == 'private') return 'Private';
+    if (privacy == 'private') return AppLocalizations.of(context)!.private;
     if (privacy == 'invite_only' || privacy == 'invite only') {
-      return 'Invite Only';
+      return AppLocalizations.of(context)!.inviteonly;
     }
-    return 'Public';
+    return AppLocalizations.of(context)!.public;
   }
 
   String get _privacySubtitle {
     final privacy =
         widget.groupData?['privacy']?.toString().toLowerCase() ?? 'public';
     if (privacy == 'private') {
-      return 'Only members can see and participate in this group';
+      return AppLocalizations.of(
+        context,
+      )!.onlymemberscanseeandparticipateinthisgroup;
     }
     if (privacy == 'invite_only' || privacy == 'invite only') {
-      return 'Only people you invite can join group';
+      return AppLocalizations.of(context)!.onlypeopleyouinvitecanjoingroup;
     }
-    return 'Anyone can discover and view this group';
+    return AppLocalizations.of(context)!.anyonecandiscoverandviewthisgroup;
   }
 
   String get _privacyIcon {
@@ -206,14 +209,14 @@ class _GroupPrivacySafetyState extends State<GroupPrivacySafety>
     final txt = AppTextColors.of(context);
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.background,
-      appBar: const CommonAppBar(title: 'Privacy & Safety'),
+      appBar: CommonAppBar(title: AppLocalizations.of(context)!.privacysafety),
       body: Padding(
         padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Group Privacy',
+              AppLocalizations.of(context)!.groupporivacy,
               style: AppTextStyles.bodyText.copyWith(
                 color: Theme.of(context).colorScheme.onBackground,
                 fontSize: 13.5,
@@ -275,7 +278,7 @@ class _GroupPrivacySafetyState extends State<GroupPrivacySafety>
             ),
             SizedBox(height: 12.h),
             Text(
-              'Safety Support',
+            AppLocalizations.of(context)!.safetysupport,
               style: AppTextStyles.bodyText.copyWith(
                 color: Theme.of(context).colorScheme.onBackground,
                 fontSize: 13.5,
@@ -288,8 +291,10 @@ class _GroupPrivacySafetyState extends State<GroupPrivacySafety>
                 _buildNavTile(
                   icon: Assets.images.icReport.path,
                   padding: 12,
-                  title: 'Report Group',
-                  subtitle: 'Report spam, harmful content, or other concerns',
+                  title: AppLocalizations.of(context)!.reportgroup,
+                  subtitle: AppLocalizations.of(
+                    context,
+                  )!.reportspamharmfulcontentorotherconcerns,
                   onTap: () async {
                     final bool isReported =
                         widget.groupData?['is_reported'] == true;
@@ -316,8 +321,10 @@ class _GroupPrivacySafetyState extends State<GroupPrivacySafety>
                 _buildNavTile(
                   icon: Assets.images.icBlockAccount.path,
                   padding: 13,
-                  title: 'Block Group',
-                  subtitle: 'Report spam, harmful content, or other concerns',
+                  title: AppLocalizations.of(context)!.blockgroup,
+                  subtitle: AppLocalizations.of(
+                    context,
+                  )!.reportspamharmfulcontentorotherconcerns,
                   showArrow: false,
                   onTap: () {},
                 ),
@@ -326,7 +333,7 @@ class _GroupPrivacySafetyState extends State<GroupPrivacySafety>
             ),
             SizedBox(height: 15.h),
             Text(
-              'Privacy Information',
+              AppLocalizations.of(context)!.privacyinformation,
               style: AppTextStyles.bodyText.copyWith(
                 color: Theme.of(context).colorScheme.onBackground,
                 fontSize: 13.5,
@@ -335,7 +342,7 @@ class _GroupPrivacySafetyState extends State<GroupPrivacySafety>
             ),
             SizedBox(height: 8.h),
             Text(
-              'See something you’re uncomfortable with? You can report a group if it violates our guidelines, or block it if you simply don’t want to see its content or recommendations.',
+              AppLocalizations.of(context)!.seesomethingyouareuncomfortablewith,
               style: AppTextStyles.bodyText.copyWith(
                 color: txt.body,
                 fontSize: 14,
@@ -386,7 +393,7 @@ class _GroupPrivacySafetyState extends State<GroupPrivacySafety>
 
   Widget _buildNavTile({
     required String icon,
-     required double padding,
+    required double padding,
     required String title,
     required String subtitle,
     required VoidCallback onTap,
@@ -485,7 +492,7 @@ class _GroupPrivacySafetyState extends State<GroupPrivacySafety>
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Delete Group',
+                      AppLocalizations.of(context)!.deletegroup,
                       style: AppTextStyles.bodyText.copyWith(
                         color: const Color(0XFFD63C5E).withOpacity(0.8),
                         fontSize: 14.5,
@@ -494,7 +501,7 @@ class _GroupPrivacySafetyState extends State<GroupPrivacySafety>
                     ),
                     SizedBox(height: 3.h),
                     Text(
-                      'Permanently delete this group',
+                      AppLocalizations.of(context)!.permanentlydeletethisgroup,
                       style: AppTextStyles.subText.copyWith(
                         color: txt.muted,
                         fontSize: 12,

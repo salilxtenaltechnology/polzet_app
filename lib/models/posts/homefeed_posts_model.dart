@@ -249,7 +249,11 @@ class HomeFeedUser {
   }
 
   factory HomeFeedUser.fromJson(Map<String, dynamic> json) {
-    String? profileImg = json['profile_image']?.toString();
+    String? profileImg = json['profile_image']?.toString() ??
+        json['avatar_url']?.toString() ??
+        json['profile_picture']?.toString() ??
+        json['profile_picture_url']?.toString() ??
+        json['profile_pic']?.toString();
     if (profileImg != null && profileImg.isNotEmpty) {
       if (!profileImg.startsWith('http') &&
           !profileImg.startsWith('data:image')) {

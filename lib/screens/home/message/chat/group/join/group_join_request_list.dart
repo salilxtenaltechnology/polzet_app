@@ -114,7 +114,8 @@ class _GroupJoinRequestListState extends State<GroupJoinRequestList>
     final requestId = _extractRequestId(req);
     if (requestId.isEmpty) return;
 
-    if (_approvingIds.contains(requestId) || _rejectingIds.contains(requestId)) {
+    if (_approvingIds.contains(requestId) ||
+        _rejectingIds.contains(requestId)) {
       return;
     }
     setState(() => _approvingIds.add(requestId));
@@ -168,7 +169,8 @@ class _GroupJoinRequestListState extends State<GroupJoinRequestList>
     final requestId = _extractRequestId(req);
     if (requestId.isEmpty) return;
 
-    if (_approvingIds.contains(requestId) || _rejectingIds.contains(requestId)) {
+    if (_approvingIds.contains(requestId) ||
+        _rejectingIds.contains(requestId)) {
       return;
     }
     setState(() => _rejectingIds.add(requestId));

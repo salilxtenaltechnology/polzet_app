@@ -161,7 +161,7 @@ class AppLocalizationsEs extends AppLocalizations {
       '¡Comienza a seguir personas para verlas aquí!';
 
   @override
-  String get add => 'Agregar';
+  String get add => 'Añadir';
 
   @override
   String get makeadmin => 'Hacer administrador';
@@ -2274,7 +2274,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get share => 'Compartir';
 
   @override
-  String get joinrequests => 'Solicitudes de unión';
+  String get joinrequests => 'Solicitudes para unirse';
 
   @override
   String get nopendingjoinrequests => 'No hay solicitudes de unión pendientes';
@@ -2456,4 +2456,228 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get joinwaitlist => 'Unirse a la lista de espera';
+
+  @override
+  String get addgroupphoto => 'Añadir foto del grupo';
+
+  @override
+  String get changegroupphoto => 'Cambiar foto del grupo';
+
+  @override
+  String get entergroupdescription => 'Introduce la descripción del grupo';
+
+  @override
+  String get groupinfo => 'Información del grupo';
+
+  @override
+  String get search => 'Buscar';
+
+  @override
+  String get invitelink => 'Enlace de invitación';
+
+  @override
+  String get privacysafety => 'Privacidad y seguridad';
+
+  @override
+  String get onlymemberscanseeandparticipateinthisgroup =>
+      'Solo los miembros pueden ver y participar en este grupo';
+
+  @override
+  String get onlypeopleyouinvitecanjoingroup =>
+      'Solo las personas que invites pueden unirse al grupo';
+
+  @override
+  String get anyonecandiscoverandviewthisgroup =>
+      'Cualquiera puede descubrir y ver este grupo';
+
+  @override
+  String get customizetheme => 'Personalizar tema';
+
+  @override
+  String get yourcanchangecolorandthemeofchat =>
+      'Puedes cambiar el color y el tema del chat';
+
+  @override
+  String get groupmembers => 'Miembros del grupo';
+
+  @override
+  String get nomembersfound => 'No se encontraron miembros';
+
+  @override
+  String get onepersonwaitingforapproval =>
+      '1 persona está esperando aprobación';
+
+  @override
+  String get personwaitingforapproval => 'persona esperando aprobación';
+
+  @override
+  String get viewprofile => 'Ver perfil';
+
+  @override
+  String get reportuser => 'Denunciar usuario';
+
+  @override
+  String get nojoinrequests => 'No hay solicitudes para unirse';
+
+  @override
+  String get approve => 'Aprobar';
+
+  @override
+  String get invite => 'Invitar';
+
+  @override
+  String get copied => 'Copiado';
+
+  @override
+  String get copy => 'Copiar';
+
+  @override
+  String get invitepeopletojointhisgroup =>
+      'Invitar a personas a unirse a este grupo';
+
+  @override
+  String get groupporivacy => 'Privacidad del grupo';
+
+  @override
+  String get reportgroup => 'Denunciar grupo';
+
+  @override
+  String get reportspamharmfulcontentorotherconcerns =>
+      'Denunciar spam, contenido dañino u otras preocupaciones';
+
+  @override
+  String get blockgroup => 'Bloquear grupo';
+
+  @override
+  String get privacyinformation => 'Información de privacidad';
+
+  @override
+  String get seesomethingyouareuncomfortablewith =>
+      '¿Ves algo que te incomoda? Puedes denunciar un grupo si infringe nuestras normas, o bloquearlo si simplemente no quieres ver su contenido o recomendaciones.';
+
+  @override
+  String get permanentlydeletethisgroup =>
+      'Eliminar este grupo permanentemente';
+
+  @override
+  String get whyareyoureportingthisgroup => '¿Por qué denuncias este grupo?';
+
+  @override
+  String get spamormisleading => 'Spam o contenido engañoso';
+
+  @override
+  String get harassmentorbullying => 'Acoso o intimidación';
+
+  @override
+  String get hateorhatefulcontent => 'Odio o contenido de odio';
+
+  @override
+  String get sexualorinappropriatecontent => 'Contenido sexual o inapropiado';
+
+  @override
+  String get violenceordngerouscontent => 'Violencia o contenido peligroso';
+
+  @override
+  String get scamorfraud => 'Estafa o fraude';
+
+  @override
+  String get somethingelse => 'Algo más';
+
+  @override
+  String get tellusmoreabout => 'Cuéntanos más';
+
+  @override
+  String get addmoreadditionaldetails =>
+      'Añade más detalles. Esto nos ayudará a revisar tu denuncia';
+
+  @override
+  String get submitreport => 'Enviar denuncia';
+
+  @override
+  String get applytheme => 'Apply Theme';
+
+  @override
+  String get notificationsettings => 'Notification Settings';
+
+  @override
+  String get mutechat => 'Mute Chat';
+
+  @override
+  String get verify => 'Verify';
+
+  @override
+  String get verifying => 'Verifying...';
+
+  @override
+  String get viewresult => 'View Result';
+
+  @override
+  String get savepoll => 'Save poll';
+
+  @override
+  String get unsavepoll => 'Unsave poll';
+
+  @override
+  String get deletepoll => 'Delete poll';
+
+  @override
+  String get gotoprofile => 'Go to profile';
+
+  @override
+  String get aipick => 'AI Pick';
+
+  @override
+  String get aigenerationslefttoday => 'AI generations left today';
+
+  @override
+  String get noaigenerationslefttoday => 'No AI generations left today';
+
+  @override
+  String get yourcreditswillresettomorrow => 'Your credits will reset tomorrow';
+
+  @override
+  String get archivedgroup => 'Archived Group';
+
+  @override
+  String get failedtoloadarchivedchats => 'Failed to load archived chats';
+
+  @override
+  String get retry => 'Retry';
+
+  @override
+  String get unblockthisusertoallowmessagesandinteractions =>
+      'Desbloquea a este usuario para permitir mensajes e interacciones';
+
+  @override
+  String get stopreceivingmessagesandseeingthisuserscontent =>
+      'Deja de recibir mensajes y ver el contenido de este usuario';
+
+  @override
+  String get yourprivacyandsafetymatterreportthisperson =>
+      'Tu privacidad y seguridad son importantes. Denuncia a esta persona si algo parece inapropiado o infringe nuestras normas, o bloquéala si ya no quieres interactuar con ella.';
+
+  @override
+  String get safetysupport => 'Soporte de seguridad';
+
+  @override
+  String get whyareyoureportingthisuser =>
+      ' ¿Por qué denuncias a este usuario?';
+
+  @override
+  String get ai => 'IA';
+
+  @override
+  String get generation => 'generación';
+
+  @override
+  String get generations => 'generaciones';
+
+  @override
+  String get chatinfo => 'Información del chat';
+
+  @override
+  String get more => 'Más';
+
+  @override
+  String get postdetails => 'Publicación';
 }

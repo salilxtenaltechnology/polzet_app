@@ -157,7 +157,7 @@ class AppLocalizationsJa extends AppLocalizations {
       'Fange an, Personen zu folgen, um sie hier zu sehen!';
 
   @override
-  String get add => 'Hinzufügen';
+  String get add => '追加';
 
   @override
   String get makeadmin => 'Zum Admin machen';
@@ -2243,7 +2243,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get share => '共有';
 
   @override
-  String get joinrequests => 'Beitrittsanfragen';
+  String get joinrequests => '参加リクエスト';
 
   @override
   String get nopendingjoinrequests => 'Keine ausstehenden Beitrittsanfragen';
@@ -2414,4 +2414,220 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get joinwaitlist => 'ウェイトリストに参加';
+
+  @override
+  String get addgroupphoto => 'グループ写真を追加';
+
+  @override
+  String get changegroupphoto => 'グループ写真を変更';
+
+  @override
+  String get entergroupdescription => 'グループの説明を入力';
+
+  @override
+  String get groupinfo => 'グループ情報';
+
+  @override
+  String get search => '検索';
+
+  @override
+  String get invitelink => '招待リンク';
+
+  @override
+  String get privacysafety => 'プライバシーと安全性';
+
+  @override
+  String get onlymemberscanseeandparticipateinthisgroup =>
+      'このグループを閲覧して参加できるのはメンバーのみです';
+
+  @override
+  String get onlypeopleyouinvitecanjoingroup => 'あなたが招待した人だけがグループに参加できます';
+
+  @override
+  String get anyonecandiscoverandviewthisgroup => '誰でもこのグループを見つけて閲覧できます';
+
+  @override
+  String get customizetheme => 'テーマをカスタマイズ';
+
+  @override
+  String get yourcanchangecolorandthemeofchat => 'チャットの色とテーマを変更できます';
+
+  @override
+  String get groupmembers => 'グループメンバー';
+
+  @override
+  String get nomembersfound => 'メンバーが見つかりません';
+
+  @override
+  String get onepersonwaitingforapproval => '1人が承認を待っています';
+
+  @override
+  String get personwaitingforapproval => '承認を待っている人';
+
+  @override
+  String get viewprofile => 'プロフィールを見る';
+
+  @override
+  String get reportuser => 'ユーザーを報告';
+
+  @override
+  String get nojoinrequests => '参加リクエストはありません';
+
+  @override
+  String get approve => '承認';
+
+  @override
+  String get invite => '招待';
+
+  @override
+  String get copied => 'コピーしました';
+
+  @override
+  String get copy => 'コピー';
+
+  @override
+  String get invitepeopletojointhisgroup => 'このグループに参加するよう人を招待';
+
+  @override
+  String get groupporivacy => 'グループのプライバシー';
+
+  @override
+  String get reportgroup => 'グループを報告';
+
+  @override
+  String get reportspamharmfulcontentorotherconcerns =>
+      'スパム、有害なコンテンツ、その他の問題を報告';
+
+  @override
+  String get blockgroup => 'グループをブロック';
+
+  @override
+  String get privacyinformation => 'プライバシー情報';
+
+  @override
+  String get seesomethingyouareuncomfortablewith =>
+      '不快に感じるものを見つけましたか？グループがガイドラインに違反している場合は報告できます。また、コンテンツやおすすめを表示したくない場合はブロックできます。';
+
+  @override
+  String get permanentlydeletethisgroup => 'このグループを完全に削除';
+
+  @override
+  String get whyareyoureportingthisgroup => 'このグループを報告する理由を教えてください';
+
+  @override
+  String get spamormisleading => 'スパムまたは誤解を招く内容';
+
+  @override
+  String get harassmentorbullying => '嫌がらせまたはいじめ';
+
+  @override
+  String get hateorhatefulcontent => 'ヘイトまたは憎悪を含むコンテンツ';
+
+  @override
+  String get sexualorinappropriatecontent => '性的または不適切なコンテンツ';
+
+  @override
+  String get violenceordngerouscontent => '暴力または危険なコンテンツ';
+
+  @override
+  String get scamorfraud => '詐欺または不正行為';
+
+  @override
+  String get somethingelse => 'その他';
+
+  @override
+  String get tellusmoreabout => '詳しく教えてください';
+
+  @override
+  String get addmoreadditionaldetails => '詳細を追加してください。報告内容の確認に役立ちます';
+
+  @override
+  String get submitreport => '報告を送信';
+
+  @override
+  String get applytheme => 'Apply Theme';
+
+  @override
+  String get notificationsettings => 'Notification Settings';
+
+  @override
+  String get mutechat => 'Mute Chat';
+
+  @override
+  String get verify => 'Verify';
+
+  @override
+  String get verifying => 'Verifying...';
+
+  @override
+  String get viewresult => 'View Result';
+
+  @override
+  String get savepoll => 'Save poll';
+
+  @override
+  String get unsavepoll => 'Unsave poll';
+
+  @override
+  String get deletepoll => 'Delete poll';
+
+  @override
+  String get gotoprofile => 'Go to profile';
+
+  @override
+  String get aipick => 'AI Pick';
+
+  @override
+  String get aigenerationslefttoday => 'AI generations left today';
+
+  @override
+  String get noaigenerationslefttoday => 'No AI generations left today';
+
+  @override
+  String get yourcreditswillresettomorrow => 'Your credits will reset tomorrow';
+
+  @override
+  String get archivedgroup => 'Archived Group';
+
+  @override
+  String get failedtoloadarchivedchats => 'Failed to load archived chats';
+
+  @override
+  String get retry => 'Retry';
+
+  @override
+  String get unblockthisusertoallowmessagesandinteractions =>
+      'メッセージや交流を許可するには、このユーザーのブロックを解除してください';
+
+  @override
+  String get stopreceivingmessagesandseeingthisuserscontent =>
+      'このユーザーからのメッセージの受信とコンテンツの表示を停止します';
+
+  @override
+  String get yourprivacyandsafetymatterreportthisperson =>
+      'あなたのプライバシーと安全は重要です。不適切な内容やガイドラインに違反する内容がある場合は、このユーザーを報告してください。また、今後交流したくない場合はブロックしてください。';
+
+  @override
+  String get safetysupport => '安全サポート';
+
+  @override
+  String get whyareyoureportingthisuser => ' なぜこのユーザーを報告しますか？';
+
+  @override
+  String get ai => 'AI';
+
+  @override
+  String get generation => '生成';
+
+  @override
+  String get generations => '生成';
+
+  @override
+  String get chatinfo => 'チャット情報';
+
+  @override
+  String get more => 'その他';
+
+  @override
+  String get postdetails => '投稿';
 }

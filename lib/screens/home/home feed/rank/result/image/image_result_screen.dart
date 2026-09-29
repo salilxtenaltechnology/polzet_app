@@ -184,7 +184,6 @@ class _ImageResultScreenState extends State<ImageResultScreen>
     final firstName = _post!.firstName;
     final lastName = _post!.lastName;
     final username = _post!.user.username;
-    final initial = username.isNotEmpty ? username[0].toUpperCase() : 'P';
     // final userProvider = Provider.of<UserProvider>(context, listen: false);
 
     final fullName = '$firstName $lastName'.trim();
@@ -226,28 +225,46 @@ class _ImageResultScreenState extends State<ImageResultScreen>
                         ),
                       );
                     }
+                    final String raw = _post!.user.profileImage;
                     return CircleAvatar(
                       radius: 22.5,
                       backgroundColor: Theme.of(
                         context,
                       ).colorScheme.onPrimary.withOpacity(0.15),
-                      backgroundImage: _profileImageBytes != null
-                          ? MemoryImage(_profileImageBytes!)
-                          : (_post!.user.profileImage.isNotEmpty
-                                ? NetworkImage(_post!.user.profileImage)
-                                : null),
-                      child:
-                          _profileImageBytes == null &&
-                          _post!.user.profileImage.isEmpty
-                          ? Text(
-                              initial,
-                              style: AppTextStyles.subText.copyWith(
-                                color: Theme.of(context).colorScheme.onPrimary,
-                                fontWeight: FontWeight.w600,
-                                fontSize: 18,
-                              ),
-                            )
-                          : null,
+                      backgroundImage: (() {
+                        if (raw.isEmpty || raw == 'null') {
+                          return AssetImage(
+                            Assets.images.icAvatar.path,
+                          ) as ImageProvider;
+                        }
+                        if (raw == Assets.images.icAvatar.path ||
+                            raw.endsWith('ic_avatar.png')) {
+                          return AssetImage(
+                            Assets.images.icAvatar.path,
+                          ) as ImageProvider;
+                        }
+                        if (raw.startsWith('assets/')) {
+                          return AssetImage(raw) as ImageProvider;
+                        }
+                        if (_profileImageBytes != null) {
+                          return MemoryImage(_profileImageBytes!)
+                              as ImageProvider;
+                        }
+                        if (raw.startsWith('http') ||
+                            raw.startsWith('/') ||
+                            raw.contains('/')) {
+                          final imageUrl = raw.startsWith('http')
+                              ? raw
+                              : (raw.startsWith('/')
+                                  ? '${ApiConfig.baseUrlImage}$raw'
+                                  : '${ApiConfig.baseUrlImage}/$raw');
+                          return NetworkImage(imageUrl) as ImageProvider;
+                        }
+                        return AssetImage(
+                          Assets.images.icAvatar.path,
+                        ) as ImageProvider;
+                      })(),
+                      onBackgroundImageError: (_, __) {},
                     );
                   })(),
                 ),

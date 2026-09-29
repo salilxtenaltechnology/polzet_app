@@ -361,11 +361,15 @@ class _UserChaseState extends State<UserChase>
     final txt = AppTextColors.of(context);
     final userProvider = Provider.of<UserProvider>(context, listen: false);
 
-    final profilePic = user['avatar_url'] as String?;
+    final profilePic = (user['avatar_url'] ??
+            user['profile_picture_url'] ??
+            user['profile_picture'] ??
+            user['profile_image'] ??
+            user['profile_url'])
+        as String?;
     final firstName = user['first_name'] ?? 'Polzet';
     final lastName = user['last_name'] ?? 'User';
     final username = user['username'] as String? ?? '';
-    final firstLetter = username.isNotEmpty ? username[0].toUpperCase() : '?';
     final userId = user['user_id']?.toString() ?? '';
     final followStatus = user['follow_status'] as String? ?? '';
     final isPrivate = user['is_private'] == true;
@@ -434,23 +438,34 @@ class _UserChaseState extends State<UserChase>
                 ),
                 child: ClipOval(
                   child: (() {
-                    if (profilePic != null && profilePic.isNotEmpty) {
+                    if (profilePic != null &&
+                        profilePic.isNotEmpty &&
+                        profilePic != 'null') {
+                      if (profilePic == Assets.images.icAvatar.path ||
+                          profilePic.endsWith('ic_avatar.png')) {
+                        return Image.asset(
+                          Assets.images.icAvatar.path,
+                          fit: BoxFit.cover,
+                        );
+                      }
+                      if (profilePic.startsWith('assets/')) {
+                        return Image.asset(
+                          profilePic,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => Image.asset(
+                            Assets.images.icAvatar.path,
+                            fit: BoxFit.cover,
+                          ),
+                        );
+                      }
                       final bytes = getProfileImage(profilePic);
                       if (bytes != null) {
                         return Image.memory(
                           bytes,
                           fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => Center(
-                            child: Text(
-                              firstLetter,
-                              style: TextStyle(
-                                fontSize: 17,
-                                fontWeight: FontWeight.w500,
-                                color: Theme.of(
-                                  context,
-                                ).colorScheme.onPrimary.withOpacity(0.8),
-                              ),
-                            ),
+                          errorBuilder: (_, __, ___) => Image.asset(
+                            Assets.images.icAvatar.path,
+                            fit: BoxFit.cover,
                           ),
                         );
                       }
@@ -462,31 +477,15 @@ class _UserChaseState extends State<UserChase>
                       return CachedNetworkImage(
                         imageUrl: imageUrl,
                         fit: BoxFit.cover,
-                        errorWidget: (_, __, ___) => Center(
-                          child: Text(
-                            firstLetter,
-                            style: TextStyle(
-                              fontSize: 17,
-                              fontWeight: FontWeight.w500,
-                              color: Theme.of(
-                                context,
-                              ).colorScheme.onPrimary.withOpacity(0.8),
-                            ),
-                          ),
+                        errorWidget: (_, __, ___) => Image.asset(
+                          Assets.images.icAvatar.path,
+                          fit: BoxFit.cover,
                         ),
                       );
                     }
-                    return Center(
-                      child: Text(
-                        firstLetter,
-                        style: TextStyle(
-                          fontSize: 17,
-                          fontWeight: FontWeight.w500,
-                          color: Theme.of(
-                            context,
-                          ).colorScheme.onPrimary.withOpacity(0.8),
-                        ),
-                      ),
+                    return Image.asset(
+                      Assets.images.icAvatar.path,
+                      fit: BoxFit.cover,
                     );
                   })(),
                 ),

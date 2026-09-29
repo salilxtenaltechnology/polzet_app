@@ -377,49 +377,51 @@ class _PollVotersBottomsheetState extends State<PollVotersBottomsheet>
                                   children: [
                                     CircleAvatar(
                                       radius: 20,
-                                      backgroundImage: avatarBytes != null
-                                          ? MemoryImage(avatarBytes)
-                                          : (voter.profilePictureUrl != null &&
-                                                    voter
-                                                        .profilePictureUrl!
-                                                        .isNotEmpty &&
-                                                    voter.profilePictureUrl!
-                                                        .startsWith('http')
-                                                ? NetworkImage(
-                                                    voter.profilePictureUrl!,
-                                                  )
-                                                : null),
+                                      backgroundImage: (() {
+                                        if (avatarBytes != null) {
+                                          return MemoryImage(avatarBytes)
+                                              as ImageProvider;
+                                        }
+                                        final raw = voter.profilePictureUrl;
+                                        if (raw == null ||
+                                            raw.isEmpty ||
+                                            raw == 'null') {
+                                          return AssetImage(
+                                            Assets.images.icAvatar.path,
+                                          ) as ImageProvider;
+                                        }
+                                        if (raw ==
+                                                Assets.images.icAvatar.path ||
+                                            raw.endsWith('ic_avatar.png')) {
+                                          return AssetImage(
+                                            Assets.images.icAvatar.path,
+                                          ) as ImageProvider;
+                                        }
+                                        if (raw.startsWith('assets/')) {
+                                          return AssetImage(raw)
+                                              as ImageProvider;
+                                        }
+                                        if (raw.startsWith('http') ||
+                                            raw.startsWith('/') ||
+                                            raw.contains('/')) {
+                                          final imageUrl = raw.startsWith(
+                                                  'http',
+                                                )
+                                              ? raw
+                                              : (raw.startsWith('/')
+                                                  ? '${ApiConfig.baseUrlImage}$raw'
+                                                  : '${ApiConfig.baseUrlImage}/$raw');
+                                          return NetworkImage(imageUrl)
+                                              as ImageProvider;
+                                        }
+                                        return AssetImage(
+                                          Assets.images.icAvatar.path,
+                                        ) as ImageProvider;
+                                      })(),
                                       backgroundColor: Theme.of(
                                         context,
                                       ).colorScheme.onPrimary.withOpacity(0.1),
-                                      child:
-                                          avatarBytes == null &&
-                                              (voter.profilePictureUrl ==
-                                                      null ||
-                                                  voter
-                                                      .profilePictureUrl!
-                                                      .isEmpty ||
-                                                  !voter.profilePictureUrl!
-                                                      .startsWith('http'))
-                                          ? Text(
-                                              voter.fullName.isNotEmpty
-                                                  ? voter.fullName[0]
-                                                        .toUpperCase()
-                                                  : voter.username.isNotEmpty
-                                                  ? voter.username[0]
-                                                        .toUpperCase()
-                                                  : 'P',
-                                              style: AppTextStyles.bodyText
-                                                  .copyWith(
-                                                    color: Theme.of(context)
-                                                        .colorScheme
-                                                        .onPrimary
-                                                        .withOpacity(0.7),
-                                                    fontSize: 18,
-                                                    fontWeight: FontWeight.w500,
-                                                  ),
-                                            )
-                                          : null,
+                                      onBackgroundImageError: (_, __) {},
                                     ),
                                     SizedBox(width: 12.w),
                                     Expanded(
@@ -617,48 +619,47 @@ class _PollVotersBottomsheetState extends State<PollVotersBottomsheet>
                                 children: [
                                   CircleAvatar(
                                     radius: 20,
-                                    backgroundImage: avatarBytes != null
-                                        ? MemoryImage(avatarBytes)
-                                        : (voter.profilePictureUrl != null &&
-                                                  voter
-                                                      .profilePictureUrl!
-                                                      .isNotEmpty &&
-                                                  voter.profilePictureUrl!
-                                                      .startsWith('http')
-                                              ? NetworkImage(
-                                                  voter.profilePictureUrl!,
-                                                )
-                                              : null),
+                                    backgroundImage: (() {
+                                      if (avatarBytes != null) {
+                                        return MemoryImage(avatarBytes)
+                                            as ImageProvider;
+                                      }
+                                      final raw = voter.profilePictureUrl;
+                                      if (raw == null ||
+                                          raw.isEmpty ||
+                                          raw == 'null') {
+                                        return AssetImage(
+                                          Assets.images.icAvatar.path,
+                                        ) as ImageProvider;
+                                      }
+                                      if (raw == Assets.images.icAvatar.path ||
+                                          raw.endsWith('ic_avatar.png')) {
+                                        return AssetImage(
+                                          Assets.images.icAvatar.path,
+                                        ) as ImageProvider;
+                                      }
+                                      if (raw.startsWith('assets/')) {
+                                        return AssetImage(raw) as ImageProvider;
+                                      }
+                                      if (raw.startsWith('http') ||
+                                          raw.startsWith('/') ||
+                                          raw.contains('/')) {
+                                        final imageUrl = raw.startsWith('http')
+                                            ? raw
+                                            : (raw.startsWith('/')
+                                                ? '${ApiConfig.baseUrlImage}$raw'
+                                                : '${ApiConfig.baseUrlImage}/$raw');
+                                        return NetworkImage(imageUrl)
+                                            as ImageProvider;
+                                      }
+                                      return AssetImage(
+                                        Assets.images.icAvatar.path,
+                                      ) as ImageProvider;
+                                    })(),
                                     backgroundColor: Theme.of(
                                       context,
                                     ).colorScheme.onPrimary.withOpacity(0.1),
-                                    child:
-                                        avatarBytes == null &&
-                                            (voter.profilePictureUrl == null ||
-                                                voter
-                                                    .profilePictureUrl!
-                                                    .isEmpty ||
-                                                !voter.profilePictureUrl!
-                                                    .startsWith('http'))
-                                        ? Text(
-                                            voter.fullName.isNotEmpty
-                                                ? voter.fullName[0]
-                                                      .toUpperCase()
-                                                : voter.username.isNotEmpty
-                                                ? voter.username[0]
-                                                      .toUpperCase()
-                                                : 'P',
-                                            style: AppTextStyles.bodyText
-                                                .copyWith(
-                                                  color: Theme.of(context)
-                                                      .colorScheme
-                                                      .onPrimary
-                                                      .withOpacity(0.7),
-                                                  fontSize: 18,
-                                                  fontWeight: FontWeight.w500,
-                                                ),
-                                          )
-                                        : null,
+                                    onBackgroundImageError: (_, __) {},
                                   ),
                                   const SizedBox(width: 10),
                                   Expanded(

@@ -799,12 +799,13 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
                   if (isUserReported) {
                     showReportSubmittedBottomSheet(context);
                   } else {
-                    final targetId = resolvedUserId ??
+                    final targetId =
+                        resolvedUserId ??
                         (profile.id.isNotEmpty
                             ? profile.id
                             : (profile.userId.isNotEmpty
-                                ? profile.userId
-                                : widget.userId?.toString()));
+                                  ? profile.userId
+                                  : widget.userId?.toString()));
                     final reportResult = await navigationPush(
                       context,
                       PrivateUserReport(userId: targetId),
@@ -1067,10 +1068,24 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
                 )
               : Center(
                   child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(FeatherIcons.lock, size: 40.sp, color: txt.muted),
-                      SizedBox(height: 10.h),
+                      Container(
+                        width: 62,
+                        height: 62,
+                        padding: const EdgeInsets.all(17),
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: isDarkMode
+                              ? Theme.of(context).primaryColor.withOpacity(0.18)
+                              : const Color(0xFFF7EBEF),
+                        ),
+                        child: Center(
+                          child: Image.asset(Assets.images.icSecurity.path),
+                        ),
+                      ),
+                      SizedBox(height: 18.h),
                       Text(
                         AppLocalizations.of(context)!.thisaccountisprivate,
                         style: AppTextStyles.sectionHeading.copyWith(
@@ -1080,15 +1095,15 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
                           height: 1.4,
                         ),
                       ),
-                      const SizedBox(height: 8),
+                      SizedBox(height: 12.h),
                       Text(
-                        AppLocalizations.of(
-                          context,
-                        )!.chasethisaccounttoseetheirposts,
+                        'Chase this user to view their polls and posts. Only approved chasers can see their content.',
+                        textAlign: TextAlign.center,
                         style: AppTextStyles.bodyText.copyWith(
-                          fontSize: 13,
-                          color: txt.muted,
-                          height: 1.4,
+                          fontSize: 11.5.sp,
+                          color: txt.body,
+                          fontWeight: FontWeight.w400,
+                          height: 1.45,
                         ),
                       ),
                     ],
@@ -1401,9 +1416,11 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
                               );
                             }
                             if (profile == null) {
-                              return const _AvatarPlaceholder(
-                                username: null,
-                                fontSize: 18,
+                              return Image.asset(
+                                Assets.images.icAvatar.path,
+                                fit: BoxFit.cover,
+                                width: double.infinity,
+                                height: double.infinity,
                               );
                             }
                             final String profilePic =
@@ -1414,7 +1431,30 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
                                           profile.profilePicture!.isNotEmpty)
                                       ? profile.profilePicture!
                                       : (profile.profileThumbnailUrl ?? ''));
-                            if (profilePic.isNotEmpty) {
+                            if (profilePic.isNotEmpty && profilePic != 'null') {
+                              if (profilePic == Assets.images.icAvatar.path ||
+                                  profilePic.endsWith('ic_avatar.png')) {
+                                return Image.asset(
+                                  Assets.images.icAvatar.path,
+                                  fit: BoxFit.cover,
+                                  width: double.infinity,
+                                  height: double.infinity,
+                                );
+                              }
+                              if (profilePic.startsWith('assets/')) {
+                                return Image.asset(
+                                  profilePic,
+                                  fit: BoxFit.cover,
+                                  width: double.infinity,
+                                  height: double.infinity,
+                                  errorBuilder: (_, __, ___) => Image.asset(
+                                    Assets.images.icAvatar.path,
+                                    fit: BoxFit.cover,
+                                    width: double.infinity,
+                                    height: double.infinity,
+                                  ),
+                                );
+                              }
                               final cachedImage = getConvertImage(profilePic);
                               if (cachedImage != null) {
                                 return Image.memory(
@@ -1422,11 +1462,12 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
                                   fit: BoxFit.cover,
                                   width: double.infinity,
                                   height: double.infinity,
-                                  errorBuilder: (_, __, ___) =>
-                                      _AvatarPlaceholder(
-                                        username: profile.username,
-                                        fontSize: 18,
-                                      ),
+                                  errorBuilder: (_, __, ___) => Image.asset(
+                                    Assets.images.icAvatar.path,
+                                    fit: BoxFit.cover,
+                                    width: double.infinity,
+                                    height: double.infinity,
+                                  ),
                                 );
                               } else if (profilePic.startsWith('http') ||
                                   profilePic.startsWith('/') ||
@@ -1441,17 +1482,20 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
                                   fit: BoxFit.cover,
                                   width: double.infinity,
                                   height: double.infinity,
-                                  errorWidget: (_, __, ___) =>
-                                      _AvatarPlaceholder(
-                                        username: profile.username,
-                                        fontSize: 18,
-                                      ),
+                                  errorWidget: (_, __, ___) => Image.asset(
+                                    Assets.images.icAvatar.path,
+                                    fit: BoxFit.cover,
+                                    width: double.infinity,
+                                    height: double.infinity,
+                                  ),
                                 );
                               }
                             }
-                            return _AvatarPlaceholder(
-                              username: profile.username,
-                              fontSize: 18,
+                            return Image.asset(
+                              Assets.images.icAvatar.path,
+                              fit: BoxFit.cover,
+                              width: double.infinity,
+                              height: double.infinity,
                             );
                           })(),
                         ),
@@ -2634,9 +2678,7 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
                         height: 165.h,
                         width: double.infinity,
                         child: ClipRRect(
-                          borderRadius: BorderRadius.circular(
-                            AppRadius.button,
-                          ),
+                          borderRadius: BorderRadius.circular(AppRadius.button),
                           child: AppCachedNetworkImage(
                             imageUrl: post.images.first.resolvedUrl(
                               ApiConfig.baseUrlImage,
@@ -3013,7 +3055,10 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
               ),
             ),
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6.5),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 12,
+                vertical: 6.5,
+              ),
               child: Row(
                 children: [
                   Expanded(
@@ -3081,7 +3126,10 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
               ),
             ),
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8.5),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 12,
+                vertical: 8.5,
+              ),
               child: Row(
                 children: [
                   Expanded(
@@ -3339,7 +3387,10 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
               ),
             ),
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6.5),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 12,
+                vertical: 6.5,
+              ),
               child: Row(
                 children: [
                   Expanded(
@@ -3564,8 +3615,14 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
                       .toLowerCase();
               if (currentUsername == 'polzet_ai') return;
               final String? originalImageSource =
-                  profile?.profilePicture ?? profile?.profilePictureUrl;
-              if (originalImageSource == null || originalImageSource.isEmpty) {
+                  (profile?.profilePicture != null &&
+                      profile!.profilePicture!.isNotEmpty)
+                  ? profile.profilePicture
+                  : profile?.profilePictureUrl;
+              if (originalImageSource == null ||
+                  originalImageSource.isEmpty ||
+                  originalImageSource == Assets.images.icAvatar.path ||
+                  originalImageSource.endsWith('ic_avatar.png')) {
                 return;
               }
               Navigator.of(context).push(
@@ -3630,21 +3687,45 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
                         );
                       }
                       if (profile == null) {
-                        return const _AvatarPlaceholder(
-                          username: null,
-                          fontSize: 35,
+                        return Image.asset(
+                          Assets.images.icAvatar.path,
+                          fit: BoxFit.cover,
                         );
                       }
-                      final String profilePic = profile.profilePictureUrl ?? '';
-                      if (profilePic.isNotEmpty) {
+                      final String profilePic =
+                          (profile.profilePictureUrl != null &&
+                              profile.profilePictureUrl!.isNotEmpty)
+                          ? profile.profilePictureUrl!
+                          : ((profile.profilePicture != null &&
+                                    profile.profilePicture!.isNotEmpty)
+                                ? profile.profilePicture!
+                                : (profile.profileThumbnailUrl ?? ''));
+                      if (profilePic.isNotEmpty && profilePic != 'null') {
+                        if (profilePic == Assets.images.icAvatar.path ||
+                            profilePic.endsWith('ic_avatar.png')) {
+                          return Image.asset(
+                            Assets.images.icAvatar.path,
+                            fit: BoxFit.cover,
+                          );
+                        }
+                        if (profilePic.startsWith('assets/')) {
+                          return Image.asset(
+                            profilePic,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => Image.asset(
+                              Assets.images.icAvatar.path,
+                              fit: BoxFit.cover,
+                            ),
+                          );
+                        }
                         final cachedImage = getConvertImage(profilePic);
                         if (cachedImage != null) {
                           return Image.memory(
                             cachedImage,
                             fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) => _AvatarPlaceholder(
-                              username: profile.username,
-                              fontSize: 35,
+                            errorBuilder: (_, __, ___) => Image.asset(
+                              Assets.images.icAvatar.path,
+                              fit: BoxFit.cover,
                             ),
                           );
                         } else if (profilePic.startsWith('http') ||
@@ -3655,19 +3736,19 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
                               : (profilePic.startsWith('/')
                                     ? '${ApiConfig.baseUrlImage}$profilePic'
                                     : '${ApiConfig.baseUrlImage}/$profilePic');
-                          return Image.network(
-                            imageUrl,
+                          return CachedNetworkImage(
+                            imageUrl: imageUrl,
                             fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) => _AvatarPlaceholder(
-                              username: profile.username,
-                              fontSize: 35,
+                            errorWidget: (_, __, ___) => Image.asset(
+                              Assets.images.icAvatar.path,
+                              fit: BoxFit.cover,
                             ),
                           );
                         }
                       }
-                      return _AvatarPlaceholder(
-                        username: profile.username,
-                        fontSize: 35,
+                      return Image.asset(
+                        Assets.images.icAvatar.path,
+                        fit: BoxFit.cover,
                       );
                     })(),
                   ),
@@ -4021,8 +4102,8 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
                 'Unblock user to view their polls or interact with them. They won’t be able to see your profile and content.',
                 textAlign: TextAlign.center,
                 style: AppTextStyles.bodyText.copyWith(
-                  fontSize: 11.7.sp,
-                  color: txt.muted,
+                  fontSize: 11.5.sp,
+                  color: txt.body,
                   fontWeight: FontWeight.w400,
                   height: 1.45,
                 ),
@@ -5083,35 +5164,6 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
     return ExpandableDescriptionWithHashtags(
       description: description,
       txt: txt,
-    );
-  }
-}
-
-class _AvatarPlaceholder extends StatelessWidget {
-  final String? username;
-  final double fontSize;
-
-  const _AvatarPlaceholder({this.username, this.fontSize = 35});
-
-  @override
-  Widget build(BuildContext context) {
-    String firstLetter = 'P';
-    if (username != null && username!.isNotEmpty) {
-      firstLetter = username![0].toUpperCase();
-    }
-
-    return Container(
-      color: Theme.of(context).colorScheme.onPrimary.withOpacity(0.09),
-      child: Center(
-        child: Text(
-          firstLetter,
-          style: AppTextStyles.bodyText.copyWith(
-            color: Theme.of(context).colorScheme.onPrimary.withOpacity(0.7),
-            fontSize: fontSize,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-      ),
     );
   }
 }

@@ -8,6 +8,7 @@ import 'package:polzet_app/core/themes/app_text_styles.dart';
 import 'package:polzet_app/widgets/button/primary_button.dart';
 
 import '../../../../../../api/api_service.dart';
+import '../../../../../../languages/l10n/generated/app_localizations.dart';
 import '../../../../../../widgets/appbar/common_appbar.dart';
 import '../../../../../../widgets/bottomsheets/report/report_submitted_bottom_sheet.dart';
 import '../../../../../../widgets/show_toast.dart';
@@ -32,7 +33,7 @@ class _PrivateUserReportState extends State<PrivateUserReport> {
   final TextEditingController _detailsController = TextEditingController();
   bool _isSubmitting = false;
 
-  final List<String> _reportReasons = const [
+  final List<String> _reportReasons =  [
     'Spam Or Misleading',
     'Harassment Or Bullying',
     'Hate Or Hateful Content',
@@ -131,7 +132,7 @@ class _PrivateUserReportState extends State<PrivateUserReport> {
 
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.background,
-      appBar: const CommonAppBar(title: 'Report User'),
+      appBar:  CommonAppBar(title:  AppLocalizations.of(context)!.reportuser),
       body: SingleChildScrollView(
         physics: const BouncingScrollPhysics(),
         padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
@@ -140,7 +141,7 @@ class _PrivateUserReportState extends State<PrivateUserReport> {
           children: [
             // ── Section Title ─────────────────────────────────────────────────
             Text(
-              'Why are you reporting this user?',
+            AppLocalizations.of(context)!.whyareyoureportingthisuser,
               style: AppTextStyles.cardTitle.copyWith(
                 fontSize: 14.5,
                 fontWeight: FontWeight.w500,
@@ -214,7 +215,7 @@ class _PrivateUserReportState extends State<PrivateUserReport> {
               SizedBox(height: 10.h),
               RichText(
                 text: TextSpan(
-                  text: 'Tell us more about ',
+                  text: AppLocalizations.of(context)!.tellusmoreabout,
                   style: AppTextStyles.bodyText.copyWith(
                     fontSize: 13.2.sp,
                     fontWeight: FontWeight.w500,
@@ -222,7 +223,7 @@ class _PrivateUserReportState extends State<PrivateUserReport> {
                   ),
                   children: [
                     TextSpan(
-                      text: '(optional)',
+                      text: ' (${AppLocalizations.of(context)!.optional})',
                       style: AppTextStyles.bodyText.copyWith(
                         fontSize: 14.sp,
                         color: txt.muted,
@@ -252,7 +253,7 @@ class _PrivateUserReportState extends State<PrivateUserReport> {
                   ),
                   decoration: InputDecoration(
                     hintText:
-                        'Add more additional details, this will help us to review your report',
+                        AppLocalizations.of(context)!.addmoreadditionaldetails,
                     hintStyle: AppTextStyles.bodyText.copyWith(
                       fontSize: 13.5,
                       color: const Color(0XFFB3B3B3),
@@ -272,7 +273,7 @@ class _PrivateUserReportState extends State<PrivateUserReport> {
         height: 90,
         color: Theme.of(context).colorScheme.background,
         child: PrimaryButton(
-          title: 'Submit Report',
+          title:  AppLocalizations.of(context)!.submitreport,
           onPressed:
               (_selectedReason != null && !_isSubmitting) ? _submitReport : null,
           isLoading: _isSubmitting,

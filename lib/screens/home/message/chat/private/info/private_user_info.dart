@@ -520,7 +520,7 @@ class _PrivateUserInfoState extends State<PrivateUserInfo>
       child: Scaffold(
         backgroundColor: Theme.of(context).colorScheme.background,
         appBar: CommonAppBar(
-          title: 'Chat Info',
+          title: AppLocalizations.of(context)!.chatinfo,
           onBack: () => Navigator.pop(context, _isUserBlock),
         ),
         body: NestedScrollView(
@@ -588,7 +588,7 @@ class _PrivateUserInfoState extends State<PrivateUserInfo>
                         children: [
                           _buildActionButton(
                             icon: Assets.images.icChatProfile.path,
-                            label: 'Profile',
+                            label: AppLocalizations.of(context)!.profile,
                             txt: txt,
                             onTap: () {
                               final targetUserId = _getTargetUserId();
@@ -606,13 +606,13 @@ class _PrivateUserInfoState extends State<PrivateUserInfo>
                           ),
                           _buildActionButton(
                             icon: Assets.images.icSearch.path,
-                            label: 'Search',
+                            label: AppLocalizations.of(context)!.search,
                             txt: txt,
                             onTap: () {},
                           ),
                           _buildActionButton(
                             icon: Assets.images.icMute.path,
-                            label: 'Mute',
+                            label: AppLocalizations.of(context)!.mute,
                             txt: txt,
                             onTap: () async {
                               final resolvedChatId =
@@ -698,9 +698,8 @@ class _PrivateUserInfoState extends State<PrivateUserInfo>
                                     value: 'share',
                                     child: Text(
                                       AppLocalizations.of(
-                                            context,
-                                          )?.shareprofile ??
-                                          'Share Profile',
+                                        context,
+                                      )!.shareprofile,
                                       style: AppTextStyles.bodyText.copyWith(
                                         color: txt.title,
                                         fontWeight: FontWeight.w500,
@@ -718,8 +717,7 @@ class _PrivateUserInfoState extends State<PrivateUserInfo>
                                     height: 38,
                                     value: 'report',
                                     child: Text(
-                                      AppLocalizations.of(context)?.report ??
-                                          'Report',
+                                      AppLocalizations.of(context)!.report,
                                       style: AppTextStyles.bodyText.copyWith(
                                         color: const Color(0XFFE5484D),
                                         fontWeight: FontWeight.w500,
@@ -731,7 +729,7 @@ class _PrivateUserInfoState extends State<PrivateUserInfo>
                               },
                               child: _buildActionButton(
                                 icon: Assets.images.icMoreHorizontal.path,
-                                label: 'More',
+                                label: AppLocalizations.of(context)!.more,
                                 txt: txt,
                               ),
                             ),
@@ -764,8 +762,10 @@ class _PrivateUserInfoState extends State<PrivateUserInfo>
                                 color: themeColor,
                               ),
                             ),
-                            title: 'Customize Theme',
-                            subtitle: 'Your can change color and theme of chat',
+                            title: AppLocalizations.of(context)!.customizetheme,
+                            subtitle: AppLocalizations.of(
+                              context,
+                            )!.yourcanchangecolorandthemeofchat,
                             isDarkMode: isDarkMode,
                             txt: txt,
                             onTap: () async {
@@ -818,8 +818,10 @@ class _PrivateUserInfoState extends State<PrivateUserInfo>
                           width: 17.w,
                           height: 17.w,
                         ),
-                        title: 'Privacy & Safety',
-                        subtitle: 'Anyone can discover and view this group',
+                        title: AppLocalizations.of(context)!.privacysafety,
+                        subtitle: AppLocalizations.of(
+                          context,
+                        )!.anyonecandiscoverandviewthisgroup,
                         isDarkMode: isDarkMode,
                         txt: txt,
                         onTap: () async {
@@ -848,22 +850,21 @@ class _PrivateUserInfoState extends State<PrivateUserInfo>
                       _buildDestructiveAction(
                         icon: Assets.images.icClearChat.path,
 
-                        title: 'Clear Chat',
+                        title: AppLocalizations.of(context)!.clearchat,
                         onTap: _showClearChatConfirmationDialog,
                       ),
                       _buildDestructiveAction(
                         icon: Assets.images.icDelete.path,
 
-                        title: 'Delete Chat',
+                        title: AppLocalizations.of(context)!.deletechat,
                         onTap: _showDeleteChatConfirmationDialog,
                       ),
                       _buildDestructiveAction(
                         icon: Assets.images.icChatinfoBlock.path,
 
                         title: _isUserBlock
-                            ? (AppLocalizations.of(context)?.unblock ??
-                                  'Unblock')
-                            : (AppLocalizations.of(context)?.block ?? 'Block'),
+                            ? (AppLocalizations.of(context)!.unblock)
+                            : (AppLocalizations.of(context)!.block),
                         onTap: _toggleBlockUser,
                       ),
                       SizedBox(height: 12.h),
@@ -893,10 +894,10 @@ class _PrivateUserInfoState extends State<PrivateUserInfo>
                     unselectedLabelColor: Theme.of(
                       context,
                     ).colorScheme.onBackground.withOpacity(0.5),
-                    tabs: const [
-                      Tab(text: 'Media'),
-                      Tab(text: 'Link'),
-                      Tab(text: 'Documents'),
+                    tabs: [
+                      Tab(text: AppLocalizations.of(context)!.media),
+                      Tab(text: AppLocalizations.of(context)!.link),
+                      Tab(text: AppLocalizations.of(context)!.document),
                     ],
                   ),
                   backgroundColor: Theme.of(context).colorScheme.background,
@@ -969,7 +970,7 @@ class _PrivateUserInfoState extends State<PrivateUserInfo>
                     padding: const EdgeInsets.fromLTRB(5, 10, 0, 0),
                     child: Image.asset(
                       Assets.images.icSplash.path,
-                      height: 60, 
+                      height: 60,
                       width: 60,
                     ),
                   ),

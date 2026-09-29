@@ -22,9 +22,13 @@ class LikeUser {
   factory LikeUser.fromJson(Map<String, dynamic> json) {
     return LikeUser(
       id: (json['uuid'] ?? json['user_id'] ?? json['id'] ?? '').toString(),
-      fullName: json['name'] ?? 'Unknown User',
+      fullName: json['name'] ?? json['full_name'] ?? 'Unknown User',
       username: json['username'] ?? 'Unknown User',
-      profileImage: json['avatar_url'],
+      profileImage: json['avatar_url'] ??
+          json['profile_image'] ??
+          json['profile_picture'] ??
+          json['profile_picture_url'] ??
+          json['profile_pic'],
       isOnline: json['is_online'] ?? false,
       followStatus: json['follow_status'] as String?,
     );

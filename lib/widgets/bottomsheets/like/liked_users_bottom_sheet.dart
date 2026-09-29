@@ -297,35 +297,49 @@ class _LikedUsersBottomSheetState extends State<LikedUsersBottomSheet> {
                                 children: [
                                   CircleAvatar(
                                     radius: 15.5.r,
-                                    backgroundImage:
-                                        user.profileImage != null &&
-                                            user.profileImage!.isNotEmpty
-                                        ? (getProfileImage(user.profileImage) != null
-                                            ? MemoryImage(getProfileImage(user.profileImage)!)
-                                            : NetworkImage(user.profileImage!.startsWith('http')
-                                                ? user.profileImage!
-                                                : '${ApiConfig.baseUrlImage}${user.profileImage!}') as ImageProvider)
-                                        : null,
+                                    backgroundImage: (() {
+                                      final raw = user.profileImage;
+                                      if (raw == null ||
+                                          raw.isEmpty ||
+                                          raw == 'null') {
+                                        return AssetImage(
+                                          Assets.images.icAvatar.path,
+                                        ) as ImageProvider;
+                                      }
+                                      if (raw == Assets.images.icAvatar.path ||
+                                          raw.endsWith('ic_avatar.png')) {
+                                        return AssetImage(
+                                          Assets.images.icAvatar.path,
+                                        ) as ImageProvider;
+                                      }
+                                      if (raw.startsWith('assets/')) {
+                                        return AssetImage(raw) as ImageProvider;
+                                      }
+                                      final bytes = getProfileImage(raw);
+                                      if (bytes != null) {
+                                        return MemoryImage(bytes)
+                                            as ImageProvider;
+                                      }
+                                      if (raw.startsWith('http') ||
+                                          raw.startsWith('/') ||
+                                          raw.contains('/')) {
+                                        final imageUrl = raw.startsWith('http')
+                                            ? raw
+                                            : (raw.startsWith('/')
+                                                ? '${ApiConfig.baseUrlImage}$raw'
+                                                : '${ApiConfig.baseUrlImage}/$raw');
+                                        return NetworkImage(imageUrl)
+                                            as ImageProvider;
+                                      }
+                                      return AssetImage(
+                                        Assets.images.icAvatar.path,
+                                      ) as ImageProvider;
+                                    })(),
                                     backgroundColor: isDarkMode
                                         ? const Color(0xFF303030)
                                         : Theme.of(context).colorScheme.primary
                                               .withOpacity(0.1),
-                                    child:
-                                        user.profileImage == null ||
-                                            user.profileImage!.isEmpty
-                                        ? Text(
-                                            user.firstLetter,
-                                            style: AppTextStyles.cardTitle
-                                                .copyWith(
-                                                  fontSize: 17,
-                                                  fontWeight: FontWeight.w600,
-                                                  color: Theme.of(context)
-                                                      .colorScheme
-                                                      .onPrimary
-                                                      .withOpacity(0.8),
-                                                ),
-                                          )
-                                        : null,
+                                    onBackgroundImageError: (_, __) {},
                                   ),
                                   if (user.isOnline)
                                     Positioned(
@@ -350,7 +364,7 @@ class _LikedUsersBottomSheetState extends State<LikedUsersBottomSheet> {
                               ),
                             ),
 
-                            SizedBox(width: 7.w),
+                            SizedBox(width: 12.w),
 
                             // Name + username
                             Column(

@@ -18,6 +18,7 @@ import '../../../../../widgets/show_toast.dart';
 import '../../../home feed/rank/result/image/image_preview_screen.dart';
 import '../../../home feed/rank/result/image/image_result_screen.dart';
 import '../../../home feed/rank/submit/rank_submitted_screen.dart';
+import 'package:polzet_app/gen/assets.gen.dart';
 
 class HashtagsImagePollRanking extends StatefulWidget {
   final HashtagPostModel post;
@@ -207,23 +208,29 @@ class _HashtagsImagePollRankingState extends State<HashtagsImagePollRanking> {
     final txt = AppTextColors.of(context);
     final user = widget.post.user;
     final username = user.username;
-    final initial = username.isNotEmpty ? username[0].toUpperCase() : '?';
 
     final String? profileUrl = widget.post.user.profileImage;
-    ImageProvider? avatarImage;
-    if (_profileImageBytes != null) {
+    ImageProvider avatarImage;
+    if (profileUrl == null || profileUrl.isEmpty || profileUrl == 'null') {
+      avatarImage = AssetImage(Assets.images.icAvatar.path);
+    } else if (profileUrl == Assets.images.icAvatar.path ||
+        profileUrl.endsWith('ic_avatar.png')) {
+      avatarImage = AssetImage(Assets.images.icAvatar.path);
+    } else if (profileUrl.startsWith('assets/')) {
+      avatarImage = AssetImage(profileUrl);
+    } else if (_profileImageBytes != null) {
       avatarImage = MemoryImage(_profileImageBytes!);
-    } else if (profileUrl != null && profileUrl.isNotEmpty) {
-      if (profileUrl.startsWith('http') ||
-          profileUrl.startsWith('/') ||
-          profileUrl.contains('/')) {
-        final imageUrl = profileUrl.startsWith('http')
-            ? profileUrl
-            : (profileUrl.startsWith('/')
+    } else if (profileUrl.startsWith('http') ||
+        profileUrl.startsWith('/') ||
+        profileUrl.contains('/')) {
+      final imageUrl = profileUrl.startsWith('http')
+          ? profileUrl
+          : (profileUrl.startsWith('/')
                 ? '${ApiConfig.baseUrlImage}$profileUrl'
                 : '${ApiConfig.baseUrlImage}/$profileUrl');
-        avatarImage = CachedNetworkImageProvider(imageUrl);
-      }
+      avatarImage = CachedNetworkImageProvider(imageUrl);
+    } else {
+      avatarImage = AssetImage(Assets.images.icAvatar.path);
     }
 
     return Padding(
@@ -240,16 +247,7 @@ class _HashtagsImagePollRankingState extends State<HashtagsImagePollRanking> {
                   context,
                 ).colorScheme.onPrimary.withOpacity(0.1),
                 backgroundImage: avatarImage,
-                child: avatarImage == null
-                    ? Text(
-                        initial,
-                        style: AppTextStyles.cardTitle.copyWith(
-                          color: Theme.of(context).colorScheme.onPrimary,
-                          fontWeight: FontWeight.w500,
-                          fontSize: 18,
-                        ),
-                      )
-                    : null,
+                onBackgroundImageError: (_, __) {},
               ),
               const SizedBox(width: 10),
               Expanded(
@@ -343,7 +341,7 @@ class _HashtagsImagePollRankingState extends State<HashtagsImagePollRanking> {
                 child: Loader(color: Colors.white),
               )
             : Text(
-                'Submit ranking',
+                AppLocalizations.of(context)!.submitranking,
                 style: AppTextStyles.bodyText.copyWith(
                   fontSize: 15,
                   fontWeight: FontWeight.w500,
@@ -391,10 +389,8 @@ class _HashtagRankImageCard extends StatelessWidget {
             Navigator.of(context).push(
               MaterialPageRoute(
                 fullscreenDialog: true,
-                builder: (_) => ImagePreviewScreen(
-                  imageUrls: urls,
-                  initialIndex: index,
-                ),
+                builder: (_) =>
+                    ImagePreviewScreen(imageUrls: urls, initialIndex: index),
               ),
             );
           },

@@ -140,7 +140,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get addmemberstothegroup => 'إضافة أعضاء إلى المجموعة';
 
   @override
-  String get members => 'أعضاء';
+  String get members => 'الأعضاء';
 
   @override
   String get admin => 'مشرف';
@@ -2210,7 +2210,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get unread => 'غير مقروء';
 
   @override
-  String get archivedchats => 'المحادثات المؤرشفة';
+  String get archivedchats => 'الدردشات المؤرشفة';
 
   @override
   String get archive => 'أرشفة';
@@ -2275,7 +2275,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get archivedgroups => 'المجموعات المؤرشفة';
 
   @override
-  String get noarchivedchatsyet => 'لا توجد محادثات مؤرشفة بعد';
+  String get noarchivedchatsyet => 'لا توجد دردشات مؤرشفة حتى الآن';
 
   @override
   String get public => 'عام';
@@ -2362,7 +2362,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get creditsresettomorrow => 'سيتم إعادة تعيين رصيدك غدًا';
 
   @override
-  String get lefttoday => 'متبقٍ اليوم';
+  String get lefttoday => 'متبقي اليوم';
 
   @override
   String get comingsoon => 'قريبًا';
@@ -2416,4 +2416,229 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get joinwaitlist => 'انضم إلى قائمة الانتظار';
+
+  @override
+  String get addgroupphoto => 'إضافة صورة المجموعة';
+
+  @override
+  String get changegroupphoto => 'تغيير صورة المجموعة';
+
+  @override
+  String get entergroupdescription => 'أدخل وصف المجموعة';
+
+  @override
+  String get groupinfo => 'معلومات المجموعة';
+
+  @override
+  String get search => 'بحث';
+
+  @override
+  String get invitelink => 'رابط الدعوة';
+
+  @override
+  String get privacysafety => 'الخصوصية والأمان';
+
+  @override
+  String get onlymemberscanseeandparticipateinthisgroup =>
+      'يمكن للأعضاء فقط رؤية هذه المجموعة والمشاركة فيها';
+
+  @override
+  String get onlypeopleyouinvitecanjoingroup =>
+      'يمكن للأشخاص الذين تدعوهم فقط الانضمام إلى المجموعة';
+
+  @override
+  String get anyonecandiscoverandviewthisgroup =>
+      'يمكن لأي شخص اكتشاف هذه المجموعة وعرضها';
+
+  @override
+  String get customizetheme => 'تخصيص المظهر';
+
+  @override
+  String get yourcanchangecolorandthemeofchat =>
+      'يمكنك تغيير لون ومظهر الدردشة';
+
+  @override
+  String get groupmembers => 'أعضاء المجموعة';
+
+  @override
+  String get nomembersfound => 'لم يتم العثور على أعضاء';
+
+  @override
+  String get onepersonwaitingforapproval => 'شخص واحد في انتظار الموافقة';
+
+  @override
+  String get personwaitingforapproval => 'شخص في انتظار الموافقة';
+
+  @override
+  String get viewprofile => 'عرض الملف الشخصي';
+
+  @override
+  String get reportuser => 'الإبلاغ عن المستخدم';
+
+  @override
+  String get nojoinrequests => 'لا توجد طلبات انضمام';
+
+  @override
+  String get approve => 'موافقة';
+
+  @override
+  String get invite => 'دعوة';
+
+  @override
+  String get copied => 'تم النسخ';
+
+  @override
+  String get copy => 'نسخ';
+
+  @override
+  String get invitepeopletojointhisgroup =>
+      'دعوة الأشخاص للانضمام إلى هذه المجموعة';
+
+  @override
+  String get groupporivacy => 'خصوصية المجموعة';
+
+  @override
+  String get reportgroup => 'الإبلاغ عن المجموعة';
+
+  @override
+  String get reportspamharmfulcontentorotherconcerns =>
+      'الإبلاغ عن البريد العشوائي أو المحتوى الضار أو المخاوف الأخرى';
+
+  @override
+  String get blockgroup => 'حظر المجموعة';
+
+  @override
+  String get privacyinformation => 'معلومات الخصوصية';
+
+  @override
+  String get seesomethingyouareuncomfortablewith =>
+      'هل رأيت شيئًا يجعلك غير مرتاح؟ يمكنك الإبلاغ عن المجموعة إذا كانت تنتهك إرشاداتنا، أو حظرها إذا كنت ببساطة لا تريد رؤية محتواها أو توصياتها.';
+
+  @override
+  String get permanentlydeletethisgroup => 'حذف هذه المجموعة نهائيًا';
+
+  @override
+  String get whyareyoureportingthisgroup =>
+      'لماذا تقوم بالإبلاغ عن هذه المجموعة؟';
+
+  @override
+  String get spamormisleading => 'رسائل مزعجة أو محتوى مضلل';
+
+  @override
+  String get harassmentorbullying => 'المضايقة أو التنمر';
+
+  @override
+  String get hateorhatefulcontent =>
+      'الكراهية أو المحتوى الذي يحض على الكراهية';
+
+  @override
+  String get sexualorinappropriatecontent => 'محتوى جنسي أو غير لائق';
+
+  @override
+  String get violenceordngerouscontent => 'عنف أو محتوى خطير';
+
+  @override
+  String get scamorfraud => 'احتيال أو خداع';
+
+  @override
+  String get somethingelse => 'شيء آخر';
+
+  @override
+  String get tellusmoreabout => 'أخبرنا المزيد عن ذلك';
+
+  @override
+  String get addmoreadditionaldetails =>
+      'أضف المزيد من التفاصيل، فهذا سيساعدنا في مراجعة بلاغك';
+
+  @override
+  String get submitreport => 'إرسال البلاغ';
+
+  @override
+  String get applytheme => 'تطبيق المظهر';
+
+  @override
+  String get notificationsettings => 'إعدادات الإشعارات';
+
+  @override
+  String get mutechat => 'كتم الدردشة';
+
+  @override
+  String get verify => 'تحقق';
+
+  @override
+  String get verifying => 'جارٍ التحقق...';
+
+  @override
+  String get viewresult => 'عرض النتيجة';
+
+  @override
+  String get savepoll => 'حفظ الاستطلاع';
+
+  @override
+  String get unsavepoll => 'إلغاء حفظ الاستطلاع';
+
+  @override
+  String get deletepoll => 'حذف الاستطلاع';
+
+  @override
+  String get gotoprofile => 'الانتقال إلى الملف الشخصي';
+
+  @override
+  String get aipick => 'اختيار الذكاء الاصطناعي';
+
+  @override
+  String get aigenerationslefttoday =>
+      'عمليات إنشاء الذكاء الاصطناعي المتبقية اليوم';
+
+  @override
+  String get noaigenerationslefttoday =>
+      'لا توجد عمليات إنشاء بالذكاء الاصطناعي متبقية اليوم';
+
+  @override
+  String get yourcreditswillresettomorrow => 'ستتم إعادة تعيين أرصدتك غدًا';
+
+  @override
+  String get archivedgroup => 'مجموعة مؤرشفة';
+
+  @override
+  String get failedtoloadarchivedchats => 'فشل تحميل الدردشات المؤرشفة';
+
+  @override
+  String get retry => 'إعادة المحاولة';
+
+  @override
+  String get unblockthisusertoallowmessagesandinteractions =>
+      'ألغِ حظر هذا المستخدم للسماح بالرسائل والتفاعلات';
+
+  @override
+  String get stopreceivingmessagesandseeingthisuserscontent =>
+      'توقف عن تلقي الرسائل ورؤية محتوى هذا المستخدم';
+
+  @override
+  String get yourprivacyandsafetymatterreportthisperson =>
+      'خصوصيتك وسلامتك مهمتان. أبلغ عن هذا الشخص إذا كان هناك شيء غير مناسب أو يخالف إرشاداتنا، أو قم بحظره إذا لم تعد ترغب في التفاعل معه.';
+
+  @override
+  String get safetysupport => 'دعم السلامة';
+
+  @override
+  String get whyareyoureportingthisuser => ' لماذا تبلغ عن هذا المستخدم؟';
+
+  @override
+  String get ai => 'الذكاء الاصطناعي';
+
+  @override
+  String get generation => 'توليد';
+
+  @override
+  String get generations => 'توليدات';
+
+  @override
+  String get chatinfo => 'معلومات الدردشة';
+
+  @override
+  String get more => 'المزيد';
+
+  @override
+  String get postdetails => 'المنشور';
 }

@@ -57,7 +57,29 @@ class SinglePostModel {
               username: (json['user'] ?? '').toString(),
               profileImage: '',
             ),
-      profileImage: json['profile_image'] as String? ?? '',
+      profileImage: (() {
+        String profileImg = (json['profile_image'] ??
+                json['profile_picture'] ??
+                json['profile_picture_url'] ??
+                json['avatar'] ??
+                json['avatar_url'])
+            ?.toString() ??
+            '';
+        if (profileImg.isNotEmpty && profileImg != 'null') {
+          if (!profileImg.startsWith('http') &&
+              !profileImg.startsWith('data:image') &&
+              !profileImg.startsWith('assets/')) {
+            if (profileImg.startsWith('/')) {
+              profileImg = '${ApiConfig.baseUrlImage}$profileImg';
+            } else {
+              profileImg = '${ApiConfig.baseUrlImage}/$profileImg';
+            }
+          }
+        } else {
+          profileImg = '';
+        }
+        return profileImg;
+      })(),
       description: json['description'] as String? ?? '',
       createdAt: json['created_at'] as String? ?? '',
       polls:
@@ -439,15 +461,25 @@ class SinglePostUser {
   });
 
   factory SinglePostUser.fromJson(Map<String, dynamic> json) {
-    String profileImg = json['profile_image']?.toString() ?? '';
-    if (profileImg.isNotEmpty) {
-      if (!profileImg.startsWith('http') && !profileImg.startsWith('data:image')) {
+    String profileImg = (json['profile_image'] ??
+            json['profile_picture'] ??
+            json['profile_picture_url'] ??
+            json['avatar'] ??
+            json['avatar_url'])
+        ?.toString() ??
+        '';
+    if (profileImg.isNotEmpty && profileImg != 'null') {
+      if (!profileImg.startsWith('http') &&
+          !profileImg.startsWith('data:image') &&
+          !profileImg.startsWith('assets/')) {
         if (profileImg.startsWith('/')) {
           profileImg = '${ApiConfig.baseUrlImage}$profileImg';
         } else {
           profileImg = '${ApiConfig.baseUrlImage}/$profileImg';
         }
       }
+    } else {
+      profileImg = '';
     }
     return SinglePostUser(
       uuid: (json['uuid'] ?? json['userid'] ?? json['user_id'] ?? json['id'] ?? '').toString(),

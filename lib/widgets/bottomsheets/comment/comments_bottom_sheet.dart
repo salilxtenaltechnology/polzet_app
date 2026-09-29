@@ -2,7 +2,6 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:polzet_app/core/constants/feather_icons_compat.dart';
 import 'package:polzet_app/languages/l10n/generated/app_localizations.dart';
 import 'package:polzet_app/widgets/base64/image_convert.dart';
 import 'package:polzet_app/api/api_config.dart';
@@ -279,46 +278,33 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
                   ? const Color(0xFF303030)
                   : Theme.of(context).colorScheme.primary.withOpacity(0.1),
               backgroundImage: (() {
-                if (comment.profileImage == null ||
-                    comment.profileImage!.isEmpty) {
-                  return null;
+                final raw = comment.profileImage;
+                if (raw == null || raw.isEmpty || raw == 'null') {
+                  return AssetImage(Assets.images.icAvatar.path) as ImageProvider;
+                }
+                if (raw == Assets.images.icAvatar.path ||
+                    raw.endsWith('ic_avatar.png')) {
+                  return AssetImage(Assets.images.icAvatar.path) as ImageProvider;
+                }
+                if (raw.startsWith('assets/')) {
+                  return AssetImage(raw) as ImageProvider;
                 }
                 if (profileBytes != null) {
                   return MemoryImage(profileBytes) as ImageProvider;
                 }
-                final imgUrl = comment.profileImage!;
-                if (imgUrl.startsWith('http') ||
-                    imgUrl.startsWith('/') ||
-                    imgUrl.contains('/')) {
-                  final imageUrl = imgUrl.startsWith('http')
-                      ? imgUrl
-                      : (imgUrl.startsWith('/')
-                            ? '${ApiConfig.baseUrlImage}$imgUrl'
-                            : '${ApiConfig.baseUrlImage}/$imgUrl');
+                if (raw.startsWith('http') ||
+                    raw.startsWith('/') ||
+                    raw.contains('/')) {
+                  final imageUrl = raw.startsWith('http')
+                      ? raw
+                      : (raw.startsWith('/')
+                            ? '${ApiConfig.baseUrlImage}$raw'
+                            : '${ApiConfig.baseUrlImage}/$raw');
                   return NetworkImage(imageUrl) as ImageProvider;
                 }
-                return null;
+                return AssetImage(Assets.images.icAvatar.path) as ImageProvider;
               })(),
-              onBackgroundImageError:
-                  comment.profileImage != null &&
-                      comment.profileImage!.isNotEmpty
-                  ? (_, __) {}
-                  : null,
-              child:
-                  comment.profileImage == null || comment.profileImage!.isEmpty
-                  ? Text(
-                      comment.user.isNotEmpty
-                          ? comment.user[0].toUpperCase()
-                          : 'P',
-                      style: AppTextStyles.cardTitle.copyWith(
-                        fontSize: 17,
-                        fontWeight: FontWeight.w600,
-                        color: Theme.of(
-                          context,
-                        ).colorScheme.onPrimary.withOpacity(0.8),
-                      ),
-                    )
-                  : null,
+              onBackgroundImageError: (_, __) {},
             ),
           ),
           SizedBox(width: 5.w),
@@ -549,7 +535,7 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
         children: [
           Expanded(
             child: Container(
-              height: 45,
+              height: 48,
 
               decoration: BoxDecoration(
                 color: isDarkMode ? const Color(0xFF1F1F23) : Colors.white,
@@ -601,20 +587,18 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
               ),
             ),
           ),
-          const SizedBox(width: 10),
+          const SizedBox(width: 8),
           GestureDetector(
             onTap: isSending ? null : _postComment,
             child: Container(
-              padding: EdgeInsets.all(8.w),
+              height: 40,
+              width: 40,
+              padding: const EdgeInsets.fromLTRB(6, 9, 7, 7),
               decoration: BoxDecoration(
                 color: Theme.of(context).colorScheme.primary,
                 shape: BoxShape.circle,
               ),
-              child: Icon(
-                FeatherIcons.send,
-                size: 18.spMax,
-                color: Colors.white,
-              ),
+              child: Image.asset(Assets.images.icSend.path, color: Colors.white),
             ),
           ),
         ],

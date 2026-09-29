@@ -9,6 +9,7 @@ import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:provider/provider.dart';
 
+import '../../../../../core/constants/app_colors.dart';
 import '../../../../../core/constants/app_radius.dart';
 import '../../../../../core/themes/app_text_colors.dart';
 import '../../../../../core/themes/app_text_styles.dart';
@@ -30,7 +31,6 @@ import '../../../search/posts/single_post_details.dart';
 import '../../../../../provider/group_chat_provider.dart';
 import '../../../../../provider/user_provider.dart';
 import '../../../../../widgets/base64/image_convert.dart';
-import '../../../../../widgets/button/back_button.dart';
 import '../../../../../widgets/show_toast.dart';
 import 'info/group_info_screen.dart';
 import '../../../../../widgets/card/shared_group_card.dart';
@@ -64,17 +64,6 @@ class GroupChatScreenState extends State<GroupChatScreen>
     if (username == null) return false;
     final u = username.trim().toLowerCase();
     return u == 'polzet_ai' || u == 'polet_ai';
-  }
-
-  bool _isPolzetAiGroup() {
-    if (_isPolzetAiUsername(widget.groupName)) return true;
-    if (widget.chat != null) {
-      final title = widget.chat!['title']?.toString();
-      if (_isPolzetAiUsername(title)) return true;
-      final displayName = widget.chat!['display_name']?.toString();
-      if (_isPolzetAiUsername(displayName)) return true;
-    }
-    return false;
   }
 
   bool _isAtBottom = true;
@@ -112,21 +101,33 @@ class GroupChatScreenState extends State<GroupChatScreen>
     if (_selectedMessage == null) return;
     final messageToDelete = _selectedMessage!;
 
-    showDeleteMessageDialog(
-      context,
-      () async {
-        Navigator.of(context).pop();
-        setState(() {
-          _selectedMessage = null;
-        });
+    showDeleteMessageDialog(context, () async {
+      Navigator.of(context).pop();
+      setState(() {
+        _selectedMessage = null;
+      });
 
-        dynamic messageId = messageToDelete.id;
-        dynamic chatId = messageToDelete.chatId ??
-            widget.chatId ??
-            provider.chatId;
+      dynamic messageId = messageToDelete.id;
+      dynamic chatId =
+          messageToDelete.chatId ?? widget.chatId ?? provider.chatId;
 
-        // Try to find matching message in provider's updated list if id is missing
-        if (messageId == null) {
+      // Try to find matching message in provider's updated list if id is missing
+      if (messageId == null) {
+        final matched = provider.messages.firstWhere(
+          (m) =>
+              m.id != null &&
+              m.text == messageToDelete.text &&
+              m.isSentByMe == messageToDelete.isSentByMe,
+          orElse: () => messageToDelete,
+        );
+        messageId = matched.id;
+        chatId ??= matched.chatId;
+      }
+
+      // If messageId is still missing, refresh history to get server IDs
+      if (messageId == null && chatId != null) {
+        try {
+          await provider.fetchMessageHistory();
           final matched = provider.messages.firstWhere(
             (m) =>
                 m.id != null &&
@@ -136,43 +137,24 @@ class GroupChatScreenState extends State<GroupChatScreen>
           );
           messageId = matched.id;
           chatId ??= matched.chatId;
-        }
-
-        // If messageId is still missing, refresh history to get server IDs
-        if (messageId == null && chatId != null) {
-          try {
-            await provider.fetchMessageHistory();
-            final matched = provider.messages.firstWhere(
-              (m) =>
-                  m.id != null &&
-                  m.text == messageToDelete.text &&
-                  m.isSentByMe == messageToDelete.isSentByMe,
-              orElse: () => messageToDelete,
-            );
-            messageId = matched.id;
-            chatId ??= matched.chatId;
-          } catch (e) {
-            debugPrint('Error refreshing group history for message ID: $e');
-          }
-        }
-
-        if (messageId == null || chatId == null) {
-          showToast(message: 'Unable to delete message: Missing ID');
-          return;
-        }
-
-        try {
-          await provider.deleteMessage(
-            messageId: messageId,
-            chatId: chatId,
-          );
-          showToast(message: 'Message deleted');
         } catch (e) {
-          debugPrint('❌ Failed to delete group message: $e');
-          showToast(message: e.toString().replaceAll('Exception: ', ''));
+          debugPrint('Error refreshing group history for message ID: $e');
         }
-      },
-    );
+      }
+
+      if (messageId == null || chatId == null) {
+        showToast(message: 'Unable to delete message: Missing ID');
+        return;
+      }
+
+      try {
+        await provider.deleteMessage(messageId: messageId, chatId: chatId);
+        showToast(message: 'Message deleted');
+      } catch (e) {
+        debugPrint('❌ Failed to delete group message: $e');
+        showToast(message: e.toString().replaceAll('Exception: ', ''));
+      }
+    });
   }
 
   @override
@@ -210,7 +192,10 @@ class GroupChatScreenState extends State<GroupChatScreen>
         currentUsername: userProvider.username,
         currentUserId: userProvider.userId,
         chat: widget.chat,
-        chatTheme: widget.chatTheme ?? widget.chat?['chat_theme'] ?? widget.chat?['chatTheme'],
+        chatTheme:
+            widget.chatTheme ??
+            widget.chat?['chat_theme'] ??
+            widget.chat?['chatTheme'],
       );
 
       _scrollController.addListener(() {
@@ -428,21 +413,23 @@ class GroupChatScreenState extends State<GroupChatScreen>
       return providerImg.trim();
     }
     final chatData = provider.chat ?? widget.chat;
-    final profileUrl = (chatData?['profile_url'] ??
-            chatData?['group_picture_url'] ??
-            chatData?['picture_url'] ??
-            chatData?['avatar_url'])
-        ?.toString();
+    final profileUrl =
+        (chatData?['profile_url'] ??
+                chatData?['group_picture_url'] ??
+                chatData?['picture_url'] ??
+                chatData?['avatar_url'])
+            ?.toString();
     if (profileUrl != null &&
         profileUrl.trim().isNotEmpty &&
         profileUrl != 'null') {
       return profileUrl.trim();
     }
-    final fallbackUrl = (widget.chat?['profile_url'] ??
-            widget.chat?['group_picture_url'] ??
-            widget.chat?['picture_url'] ??
-            widget.chat?['avatar_url'])
-        ?.toString();
+    final fallbackUrl =
+        (widget.chat?['profile_url'] ??
+                widget.chat?['group_picture_url'] ??
+                widget.chat?['picture_url'] ??
+                widget.chat?['avatar_url'])
+            ?.toString();
     if (fallbackUrl != null &&
         fallbackUrl.trim().isNotEmpty &&
         fallbackUrl != 'null') {
@@ -545,7 +532,8 @@ class GroupChatScreenState extends State<GroupChatScreen>
 
       // 2. HTTPS / HTTP link with polzet domain or deepLinkHost
       final host = uri.host.toLowerCase();
-      final isPolzetHost = host.contains('polzet.com') ||
+      final isPolzetHost =
+          host.contains('polzet.com') ||
           host.contains('polzet.in') ||
           host == ApiConfig.deepLinkHost.toLowerCase();
 
@@ -612,16 +600,14 @@ class GroupChatScreenState extends State<GroupChatScreen>
       if (uri.scheme == 'polzet' && uri.host == 'post') {
         final segments = uri.pathSegments.where((s) => s.isNotEmpty).toList();
         if (segments.length >= 2) {
-          return {
-            'username': segments[0],
-            'postId': segments[1],
-          };
+          return {'username': segments[0], 'postId': segments[1]};
         }
       }
 
       // 2. HTTPS / HTTP link with polzet domain or deepLinkHost
       final host = uri.host.toLowerCase();
-      final isPolzetHost = host.contains('polzet.com') ||
+      final isPolzetHost =
+          host.contains('polzet.com') ||
           host.contains('polzet.in') ||
           host == ApiConfig.deepLinkHost.toLowerCase();
 
@@ -629,17 +615,11 @@ class GroupChatScreenState extends State<GroupChatScreen>
         final segments = uri.pathSegments.where((s) => s.isNotEmpty).toList();
         // Format: /post/{username}/{postId}
         if (segments.length >= 3 && segments[0].toLowerCase() == 'post') {
-          return {
-            'username': segments[1],
-            'postId': segments[2],
-          };
+          return {'username': segments[1], 'postId': segments[2]};
         }
         // Format: /post/{postId}
         if (segments.length == 2 && segments[0].toLowerCase() == 'post') {
-          return {
-            'username': 'user',
-            'postId': segments[1],
-          };
+          return {'username': 'user', 'postId': segments[1]};
         }
       }
     } catch (e) {
@@ -667,23 +647,20 @@ class GroupChatScreenState extends State<GroupChatScreen>
       final profileUsername = _extractProfileUsernameFromUri(uri);
       if (profileUsername != null && profileUsername.isNotEmpty) {
         if (context.mounted) {
-          final userProvider =
-              Provider.of<UserProvider>(context, listen: false);
+          final userProvider = Provider.of<UserProvider>(
+            context,
+            listen: false,
+          );
           final currentUsername = userProvider.username;
-          final isCurrentUser = currentUsername != null &&
+          final isCurrentUser =
+              currentUsername != null &&
               currentUsername.isNotEmpty &&
               currentUsername.toLowerCase() == profileUsername.toLowerCase();
 
           if (isCurrentUser) {
-            navigationPush(
-              context,
-              const ProfileScreen(),
-            );
+            navigationPush(context, const ProfileScreen());
           } else {
-            _navigateToPublicProfile(
-              null,
-              profileUsername,
-            );
+            _navigateToPublicProfile(null, profileUsername);
           }
         }
         return;
@@ -738,19 +715,22 @@ class GroupChatScreenState extends State<GroupChatScreen>
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     final theme = provider.currentTheme;
     final linkColor = isSentByMe
-        ? (theme?.getOutgoingLinkTextColor(isDarkMode) ?? const Color(0xFF90CAF9))
+        ? (theme?.getOutgoingLinkTextColor(isDarkMode) ??
+              const Color(0xFF90CAF9))
         : (theme?.getIncomingLinkTextColor(isDarkMode) ??
-            (isDarkMode ? const Color(0xFF64B5F6) : const Color(0xFF1976D2)));
+              (isDarkMode ? const Color(0xFF64B5F6) : const Color(0xFF1976D2)));
 
     final List<InlineSpan> spans = [];
     int lastIndex = 0;
 
     for (final match in matches) {
       if (match.start > lastIndex) {
-        spans.add(TextSpan(
-          text: text.substring(lastIndex, match.start),
-          style: baseStyle,
-        ));
+        spans.add(
+          TextSpan(
+            text: text.substring(lastIndex, match.start),
+            style: baseStyle,
+          ),
+        );
       }
 
       final url = match.group(0)!;
@@ -772,15 +752,10 @@ class GroupChatScreenState extends State<GroupChatScreen>
     }
 
     if (lastIndex < text.length) {
-      spans.add(TextSpan(
-        text: text.substring(lastIndex),
-        style: baseStyle,
-      ));
+      spans.add(TextSpan(text: text.substring(lastIndex), style: baseStyle));
     }
 
-    return Text.rich(
-      TextSpan(children: spans),
-    );
+    return Text.rich(TextSpan(children: spans));
   }
 
   Widget _buildMessageStatus(ChatMessage message, {Color? statusColor}) {
@@ -797,13 +772,13 @@ class GroupChatScreenState extends State<GroupChatScreen>
     if (message.isPending) {
       return Icon(
         Icons.check,
-        size: 11.sp,
+        size: 11.5.sp,
         color: statusColor ?? fallbackColor,
       );
     }
     return Icon(
       Icons.done_all,
-      size: 11.sp,
+      size: 11.5.sp,
       color: statusColor ?? fallbackColor,
     );
   }
@@ -814,6 +789,134 @@ class GroupChatScreenState extends State<GroupChatScreen>
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     final currentTheme = provider.currentTheme;
     final post = message.sharedPost!;
+
+    final bool isLocked =
+        post['is_locked'] == true ||
+        post['is_locked']?.toString().toLowerCase() == 'true';
+    if (isLocked) {
+      final authorUsername =
+          post['author_username']?.toString() ??
+          (post['user'] is Map ? post['user']['username']?.toString() : null) ??
+          '';
+      final authorUserId =
+          post['user_id']?.toString() ??
+          post['userId']?.toString() ??
+          (post['user'] is Map
+              ? (post['user']['userid'] ?? post['user']['id'])?.toString()
+              : null);
+      final errorMsg = post['error']?.toString().trim();
+      final displayError = (errorMsg != null && errorMsg.isNotEmpty)
+          ? errorMsg
+          : 'This post is from a private account. Follow this user to view their polls.';
+
+      void handleViewProfile() {
+        if (authorUsername.isNotEmpty ||
+            (authorUserId != null && authorUserId.isNotEmpty)) {
+          final userProvider = Provider.of<UserProvider>(
+            context,
+            listen: false,
+          );
+          final currentUserId = userProvider.userId?.toString();
+          final currentUsername = userProvider.username;
+          final isCurrentUser =
+              (currentUserId != null &&
+                  currentUserId.isNotEmpty &&
+                  authorUserId != null &&
+                  authorUserId.isNotEmpty &&
+                  currentUserId == authorUserId) ||
+              (currentUsername != null &&
+                  currentUsername.isNotEmpty &&
+                  authorUsername.isNotEmpty &&
+                  currentUsername.toLowerCase() ==
+                      authorUsername.toLowerCase());
+
+          if (isCurrentUser) {
+            navigationPush(context, const ProfileScreen());
+          } else {
+            _navigateToPublicProfile(
+              (authorUserId != null && authorUserId.isNotEmpty)
+                  ? authorUserId
+                  : null,
+              authorUsername.isNotEmpty ? authorUsername : null,
+            );
+          }
+        }
+      }
+
+      return Container(
+        margin: EdgeInsets.only(
+          top: 12,
+          bottom: 12,
+          left: message.isSentByMe ? 50.w : 0,
+          right: message.isSentByMe ? 0 : 50.w,
+        ),
+        padding: EdgeInsets.fromLTRB(14.w, 14.h, 14.w, 14.h),
+        decoration: BoxDecoration(
+          color:
+              (message.isSentByMe
+                  ? currentTheme?.getOutgoingCardColor(isDarkMode)
+                  : currentTheme?.getIncomingCardColor(isDarkMode)) ??
+              Theme.of(context).colorScheme.primaryContainer,
+          borderRadius: BorderRadius.circular(AppRadius.card),
+          border: Border.all(
+            color: currentTheme?.id == 'midnight_navy'
+                ? const Color(0x339EAFC0)
+                : Theme.of(context).colorScheme.outline,
+            width: 1,
+          ),
+          boxShadow: const [BoxShadow(color: Color(0x04000000), blurRadius: 2)],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'Poll unavailable',
+              style: AppTextStyles.bodyText.copyWith(
+                color: Theme.of(context).colorScheme.onBackground,
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            SizedBox(height: 6.h),
+            Text(
+              displayError,
+              textAlign: TextAlign.center,
+              style: AppTextStyles.bodyText.copyWith(
+                fontSize: 15,
+                fontWeight: FontWeight.w400,
+                height: 1.2,
+                color: currentTheme?.id == 'midnight_navy'
+                    ? const Color(0xFF9EAFC0)
+                    : (isDarkMode ? const Color(0xFFB0B0B0) : txt.body),
+              ),
+            ),
+            SizedBox(height: 14.h),
+            GestureDetector(
+              onTap: handleViewProfile,
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 5),
+                decoration: BoxDecoration(
+                  color: AppColors.primaryColor,
+                  borderRadius: BorderRadius.circular(AppRadius.button),
+                ),
+                alignment: Alignment.center,
+                child: Text(
+                  'View Profile',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 12.sp,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
     final user = post['user'] ?? {};
     final firstName = user['first_name']?.toString() ?? '';
     final lastName = user['last_name']?.toString() ?? '';
@@ -861,7 +964,8 @@ class GroupChatScreenState extends State<GroupChatScreen>
       for (var p in (post['polls'] as List)) {
         if (p is Map) {
           if (pollType.isEmpty) {
-            pollType = p['poll_type']?.toString().toLowerCase() ??
+            pollType =
+                p['poll_type']?.toString().toLowerCase() ??
                 p['type']?.toString().toLowerCase() ??
                 '';
           }
@@ -906,18 +1010,21 @@ class GroupChatScreenState extends State<GroupChatScreen>
       pollQuestion = post['question'].toString().trim();
     }
     if (pollType.isEmpty) {
-      pollType = post['poll_type']?.toString().toLowerCase() ??
+      pollType =
+          post['poll_type']?.toString().toLowerCase() ??
           post['type']?.toString().toLowerCase() ??
           '';
     }
 
-    final bool isHotTake = pollType == 'hot_take' ||
+    final bool isHotTake =
+        pollType == 'hot_take' ||
         pollType == 'hot take' ||
         pollType == 'hot-take';
 
     final seenUrls = <String>{};
-    imageUrls =
-        imageUrls.where((e) => e.isNotEmpty && seenUrls.add(e)).toList();
+    imageUrls = imageUrls
+        .where((e) => e.isNotEmpty && seenUrls.add(e))
+        .toList();
 
     if (isHotTake && imageUrls.isNotEmpty) {
       imageUrls = [imageUrls.first];
@@ -932,10 +1039,8 @@ class GroupChatScreenState extends State<GroupChatScreen>
           if (postId.isNotEmpty) {
             Navigator.of(context).push(
               MaterialPageRoute(
-                builder: (_) => SinglePostDetails(
-                  username: username,
-                  postId: postId,
-                ),
+                builder: (_) =>
+                    SinglePostDetails(username: username, postId: postId),
               ),
             );
           }
@@ -1023,7 +1128,8 @@ class GroupChatScreenState extends State<GroupChatScreen>
           right: message.isSentByMe ? 0 : 50.w,
         ),
         decoration: BoxDecoration(
-          color: (message.isSentByMe
+          color:
+              (message.isSentByMe
                   ? currentTheme?.getOutgoingCardColor(isDarkMode)
                   : currentTheme?.getIncomingCardColor(isDarkMode)) ??
               Theme.of(context).colorScheme.primaryContainer,
@@ -1101,7 +1207,9 @@ class GroupChatScreenState extends State<GroupChatScreen>
                                               : 'P'),
                                     style: TextStyle(
                                       fontSize: 18,
-                                      color: Theme.of(context).colorScheme.onPrimary,
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.onPrimary,
                                       fontWeight: FontWeight.w500,
                                     ),
                                   )
@@ -1118,7 +1226,9 @@ class GroupChatScreenState extends State<GroupChatScreen>
                                 child: Text(
                                   name.isNotEmpty ? name : username,
                                   style: AppTextStyles.sectionHeading.copyWith(
-                                    color: (currentTheme?.id == 'midnight_navy' || isDarkMode)
+                                    color:
+                                        (currentTheme?.id == 'midnight_navy' ||
+                                            isDarkMode)
                                         ? Colors.white
                                         : txt.title,
                                     fontSize: 14,
@@ -1148,8 +1258,8 @@ class GroupChatScreenState extends State<GroupChatScreen>
                                     color: currentTheme?.id == 'midnight_navy'
                                         ? const Color(0xFF9EAFC0)
                                         : (isDarkMode
-                                            ? const Color(0xFFB0B0B0)
-                                            : txt.body),
+                                              ? const Color(0xFFB0B0B0)
+                                              : txt.body),
                                   ),
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
@@ -1259,11 +1369,14 @@ class GroupChatScreenState extends State<GroupChatScreen>
     return GestureDetector(
       onTap: () {
         if (userId.isNotEmpty || username.isNotEmpty) {
-          final userProvider =
-              Provider.of<UserProvider>(context, listen: false);
+          final userProvider = Provider.of<UserProvider>(
+            context,
+            listen: false,
+          );
           final currentUserId = userProvider.userId?.toString();
           final currentUsername = userProvider.username;
-          final isCurrentUser = (currentUserId != null &&
+          final isCurrentUser =
+              (currentUserId != null &&
                   currentUserId.isNotEmpty &&
                   userId.isNotEmpty &&
                   currentUserId == userId) ||
@@ -1273,10 +1386,7 @@ class GroupChatScreenState extends State<GroupChatScreen>
                   currentUsername.toLowerCase() == username.toLowerCase());
 
           if (isCurrentUser) {
-            navigationPush(
-              context,
-              const ProfileScreen(),
-            );
+            navigationPush(context, const ProfileScreen());
           } else {
             _navigateToPublicProfile(
               userId.isNotEmpty ? userId : null,
@@ -1294,7 +1404,8 @@ class GroupChatScreenState extends State<GroupChatScreen>
         ),
         padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
         decoration: BoxDecoration(
-          color: (message.isSentByMe
+          color:
+              (message.isSentByMe
                   ? currentTheme?.getOutgoingCardColor(isDarkMode)
                   : currentTheme?.getIncomingCardColor(isDarkMode)) ??
               Theme.of(context).colorScheme.primaryContainer,
@@ -1325,9 +1436,7 @@ class GroupChatScreenState extends State<GroupChatScreen>
                                 left: 10,
                                 right: 9,
                               ),
-                              child: Image.asset(
-                                Assets.images.icSplash.path,
-                              ),
+                              child: Image.asset(Assets.images.icSplash.path),
                             ),
                           ),
                         ),
@@ -1374,7 +1483,9 @@ class GroupChatScreenState extends State<GroupChatScreen>
                         child: Text(
                           displayName,
                           style: AppTextStyles.sectionHeading.copyWith(
-                            color: (currentTheme?.id == 'midnight_navy' || isDarkMode)
+                            color:
+                                (currentTheme?.id == 'midnight_navy' ||
+                                    isDarkMode)
                                 ? Colors.white
                                 : Theme.of(context).colorScheme.onBackground,
                             fontSize: 14,
@@ -1442,11 +1553,11 @@ class GroupChatScreenState extends State<GroupChatScreen>
     final pollBgColor = isMidnightNavy
         ? const Color(0xFF9EAFC0)
         : (currentTheme?.getBgColor(isDarkMode) ??
-            Theme.of(context).colorScheme.surface);
+              Theme.of(context).colorScheme.surface);
     final pollBorderColor = isMidnightNavy
         ? const Color(0xFF9EAFC0)
         : (currentTheme?.getUnselectedBorderColor(isDarkMode) ??
-            Theme.of(context).colorScheme.outline);
+              Theme.of(context).colorScheme.outline);
     final textColor = isMidnightNavy
         ? const Color(0xFF0A1523)
         : (isDarkMode ? Colors.white : txt.heading);
@@ -1462,16 +1573,10 @@ class GroupChatScreenState extends State<GroupChatScreen>
             return Expanded(
               child: Container(
                 margin: EdgeInsets.only(right: 8.w),
-                padding: EdgeInsets.symmetric(
-                  horizontal: 8.w,
-                  vertical: 8.h,
-                ),
+                padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 8.h),
                 decoration: BoxDecoration(
                   color: pollBgColor,
-                  border: Border.all(
-                    color: pollBorderColor,
-                    width: 1,
-                  ),
+                  border: Border.all(color: pollBorderColor, width: 1),
                   borderRadius: BorderRadius.circular(AppRadius.card),
                 ),
                 alignment: Alignment.center,
@@ -1479,7 +1584,9 @@ class GroupChatScreenState extends State<GroupChatScreen>
                   opt,
                   style: AppTextStyles.bodyText.copyWith(
                     fontSize: 13,
-                    fontWeight: isMidnightNavy ? FontWeight.w600 : FontWeight.w500,
+                    fontWeight: isMidnightNavy
+                        ? FontWeight.w600
+                        : FontWeight.w500,
                     color: textColor,
                   ),
                   maxLines: 1,
@@ -1491,16 +1598,10 @@ class GroupChatScreenState extends State<GroupChatScreen>
           if (remainingCount > 0)
             Expanded(
               child: Container(
-                padding: EdgeInsets.symmetric(
-                  horizontal: 8.w,
-                  vertical: 8.h,
-                ),
+                padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 8.h),
                 decoration: BoxDecoration(
                   color: pollBgColor,
-                  border: Border.all(
-                    color: pollBorderColor,
-                    width: 1,
-                  ),
+                  border: Border.all(color: pollBorderColor, width: 1),
                   borderRadius: BorderRadius.circular(AppRadius.button),
                 ),
                 alignment: Alignment.center,
@@ -1620,7 +1721,6 @@ class GroupChatScreenState extends State<GroupChatScreen>
   }) {
     final List<String?> profileUrls = [];
     final List<String> initials = [];
-    final List<String?> usernames = [];
 
     if (members != null) {
       for (final member in members) {
@@ -1629,12 +1729,13 @@ class GroupChatScreenState extends State<GroupChatScreen>
             ? (member['user'] is Map ? member['user'] as Map : member)
             : null;
         if (user != null) {
-          var profileUrl = (user['avatar_url'] ??
-                  user['profile_image'] ??
-                  user['profile_picture_url'] ??
-                  user['profile_url'] ??
-                  user['avatar'])
-              ?.toString();
+          var profileUrl =
+              (user['avatar_url'] ??
+                      user['profile_image'] ??
+                      user['profile_picture_url'] ??
+                      user['profile_url'] ??
+                      user['avatar'])
+                  ?.toString();
           if (profileUrl != null &&
               profileUrl.isNotEmpty &&
               profileUrl != 'null') {
@@ -1651,7 +1752,6 @@ class GroupChatScreenState extends State<GroupChatScreen>
           final name = (user['name'] ?? username ?? 'Unknown').toString();
           profileUrls.add(profileUrl);
           initials.add(name.isNotEmpty ? name[0].toUpperCase() : '?');
-          usernames.add(username);
         }
       }
     }
@@ -1659,7 +1759,6 @@ class GroupChatScreenState extends State<GroupChatScreen>
     while (profileUrls.length < 2) {
       profileUrls.add(Assets.images.icAvatar.path);
       initials.add('?');
-      usernames.add(null);
     }
 
     final double circleSize = size * 0.70;
@@ -1678,7 +1777,6 @@ class GroupChatScreenState extends State<GroupChatScreen>
               size: circleSize,
               isDarkMode: isDarkMode,
               context: context,
-              username: usernames.isNotEmpty ? usernames[0] : null,
             ),
           ),
           if (profileUrls.length > 1)
@@ -1692,7 +1790,6 @@ class GroupChatScreenState extends State<GroupChatScreen>
                 isDarkMode: isDarkMode,
                 context: context,
                 hasBorder: true,
-                username: usernames.length > 1 ? usernames[1] : null,
               ),
             ),
         ],
@@ -1707,65 +1804,24 @@ class GroupChatScreenState extends State<GroupChatScreen>
     required bool isDarkMode,
     required BuildContext context,
     bool hasBorder = false,
-    String? username,
   }) {
-    if (_isPolzetAiUsername(username) || _isPolzetAiUsername(profileUrl)) {
-      return Container(
-        width: size,
-        height: size,
-        decoration: hasBorder
-            ? BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: Theme.of(context).colorScheme.background,
-                  width: 1.5,
-                ),
-              )
-            : null,
-        child: Stack(
-          alignment: Alignment.center,
-          children: [
-            ClipOval(
-              child: Center(
-                child: Padding(
-                  padding: const EdgeInsets.only(
-                    top: 6,
-                    bottom: 0,
-                    left: 8,
-                    right: 7,
-                  ),
-                  child: Image.asset(
-                    Assets.images.icSplash.path,
-                    fit: BoxFit.contain,
-                  ),
-                ),
-              ),
-            ),
-            Positioned.fill(
-              child: Image.asset(
-                Assets.images.aiFrame.path,
-                fit: BoxFit.contain,
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-
-    final ImageProvider? avatarProvider = (profileUrl == null ||
+    final ImageProvider? avatarProvider =
+        (profileUrl == null ||
             profileUrl.trim().isEmpty ||
             profileUrl == 'null' ||
             profileUrl == Assets.images.icAvatar.path)
         ? AssetImage(Assets.images.icAvatar.path)
         : (getProfileImage(profileUrl) != null
-            ? MemoryImage(getProfileImage(profileUrl)!)
-            : (resolveProfileImageUrl(profileUrl) != null &&
-                    resolveProfileImageUrl(profileUrl)!.startsWith('http')
-                ? NetworkImage(resolveProfileImageUrl(profileUrl)!)
-                : (resolveProfileImageUrl(profileUrl) != null &&
-                        resolveProfileImageUrl(profileUrl)!.startsWith('assets/')
-                    ? AssetImage(resolveProfileImageUrl(profileUrl)!)
-                    : AssetImage(Assets.images.icAvatar.path))));
+              ? MemoryImage(getProfileImage(profileUrl)!)
+              : (resolveProfileImageUrl(profileUrl) != null &&
+                        resolveProfileImageUrl(profileUrl)!.startsWith('http')
+                    ? NetworkImage(resolveProfileImageUrl(profileUrl)!)
+                    : (resolveProfileImageUrl(profileUrl) != null &&
+                              resolveProfileImageUrl(
+                                profileUrl,
+                              )!.startsWith('assets/')
+                          ? AssetImage(resolveProfileImageUrl(profileUrl)!)
+                          : AssetImage(Assets.images.icAvatar.path))));
 
     return Container(
       width: size,
@@ -1777,7 +1833,9 @@ class GroupChatScreenState extends State<GroupChatScreen>
             : Theme.of(context).primaryColor.withOpacity(0.08),
         border: hasBorder
             ? Border.all(
-                color: Theme.of(context).colorScheme.background,
+                color:
+                    provider.currentTheme?.getBgColor(isDarkMode) ??
+                    Theme.of(context).colorScheme.background,
                 width: 1.5,
               )
             : Border.all(
@@ -1814,10 +1872,7 @@ class GroupChatScreenState extends State<GroupChatScreen>
       mainAxisSize: MainAxisSize.min,
       children: [
         Container(
-          margin: EdgeInsets.only(
-            top: 4.h,
-            bottom: 2.h,
-          ),
+          margin: EdgeInsets.only(top: 4.h, bottom: 2.h),
           padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 5.h),
           constraints: BoxConstraints(
             maxWidth: MediaQuery.of(context).size.width * 0.65,
@@ -1825,13 +1880,13 @@ class GroupChatScreenState extends State<GroupChatScreen>
           decoration: BoxDecoration(
             color: currentTheme != null
                 ? (message.isSentByMe
-                    ? currentTheme.getOutgoingColor(isDarkMode)
-                    : currentTheme.getIncomingColor(isDarkMode))
+                      ? currentTheme.getOutgoingColor(isDarkMode)
+                      : currentTheme.getIncomingColor(isDarkMode))
                 : (message.isSentByMe
-                    ? Theme.of(context).colorScheme.primary
-                    : (isDarkMode
-                        ? const Color(0xFF2A2A2E)
-                        : const Color(0xFFF3F4F6))),
+                      ? Theme.of(context).colorScheme.primary
+                      : (isDarkMode
+                            ? const Color(0xFF2A2A2E)
+                            : const Color(0xFFF3F4F6))),
             borderRadius: BorderRadius.only(
               topLeft: message.isSentByMe
                   ? const Radius.circular(AppRadius.card)
@@ -1869,10 +1924,14 @@ class GroupChatScreenState extends State<GroupChatScreen>
                 text: message.text,
                 baseStyle: TextStyle(
                   color: message.isSentByMe
-                      ? Colors.white
-                      : (isDarkMode
-                          ? Colors.white
-                          : txt.body),
+                      ? (currentTheme?.getOutgoingMessageTextColor(
+                              isDarkMode,
+                            ) ??
+                            Colors.white)
+                      : (currentTheme?.getIncomingMessageTextColor(
+                              isDarkMode,
+                            ) ??
+                            (isDarkMode ? Colors.white : txt.body)),
                   fontSize: 13.6,
                   fontWeight: FontWeight.w400,
                 ),
@@ -1882,32 +1941,26 @@ class GroupChatScreenState extends State<GroupChatScreen>
           ),
         ),
         Padding(
-          padding: EdgeInsets.only(
-            left: 2.w,
-            right: 2.w,
-            bottom: 4.h,
-          ),
+          padding: EdgeInsets.only(left: 2.w, right: 2.w, bottom: 4.h),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
                 _formatTime(message.created_at),
                 style: TextStyle(
-                  fontSize: 8.4.sp,
-                  color: currentTheme?.getMessageTimeColor(isDarkMode) ??
-                      (isDarkMode
-                          ? const Color(0xBDFFFFFF)
-                          : txt.muted),
+                  fontSize: 9.sp,
+                  color:
+                      currentTheme?.getMessageTimeColor(isDarkMode) ??
+                      (isDarkMode ? const Color(0xBDFFFFFF) : txt.muted),
                 ),
               ),
               if (message.isSentByMe) ...[
                 SizedBox(width: 3.w),
                 _buildMessageStatus(
                   message,
-                  statusColor: currentTheme?.getMessageTimeColor(isDarkMode) ??
-                      (isDarkMode
-                          ? const Color(0xBDFFFFFF)
-                          : txt.muted),
+                  statusColor:
+                      currentTheme?.getMessageTimeColor(isDarkMode) ??
+                      (isDarkMode ? const Color(0xBDFFFFFF) : txt.muted),
                 ),
               ],
             ],
@@ -1916,7 +1969,8 @@ class GroupChatScreenState extends State<GroupChatScreen>
       ],
     );
 
-    final isTextMessage = message.sharedPost == null &&
+    final isTextMessage =
+        message.sharedPost == null &&
         message.sharedProfile == null &&
         message.sharedGroup == null &&
         message.text.trim().isNotEmpty;
@@ -2125,7 +2179,8 @@ class GroupChatScreenState extends State<GroupChatScreen>
   Widget _buildScrollToBottomButton() {
     if (_isAtBottom) return const SizedBox.shrink();
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    final buttonColor = provider.currentTheme?.getOutgoingColor(isDarkMode) ??
+    final buttonColor =
+        provider.currentTheme?.getOutgoingColor(isDarkMode) ??
         Theme.of(context).colorScheme.primary;
 
     return Positioned(
@@ -2193,10 +2248,10 @@ class GroupChatScreenState extends State<GroupChatScreen>
     final ImageProvider? groupAvatarProvider = imageBytes != null
         ? MemoryImage(imageBytes)
         : (groupAvatarUrl != null && groupAvatarUrl.startsWith('http')
-            ? NetworkImage(groupAvatarUrl)
-            : (groupAvatarUrl != null && groupAvatarUrl.startsWith('assets/')
-                ? AssetImage(groupAvatarUrl)
-                : null));
+              ? NetworkImage(groupAvatarUrl)
+              : (groupAvatarUrl != null && groupAvatarUrl.startsWith('assets/')
+                    ? AssetImage(groupAvatarUrl)
+                    : null));
     final title = provider.groupName ?? widget.groupName ?? 'Chat';
 
     // We count members based on memberPresence since there's no static members list in the provider
@@ -2217,7 +2272,8 @@ class GroupChatScreenState extends State<GroupChatScreen>
           }
         },
         child: Scaffold(
-          backgroundColor: provider.currentTheme?.getBgColor(isDarkMode) ??
+          backgroundColor:
+              provider.currentTheme?.getBgColor(isDarkMode) ??
               Theme.of(context).colorScheme.background,
           appBar: _selectedMessage != null
               ? AppBar(
@@ -2238,7 +2294,9 @@ class GroupChatScreenState extends State<GroupChatScreen>
                         icon: Icon(
                           Icons.close,
                           size: 22,
-                          color: Theme.of(context).colorScheme.onBackground,
+                          color: provider.currentTheme?.id == 'midnight_navy'
+                              ? Colors.white
+                              : Theme.of(context).colorScheme.onBackground,
                         ),
                         onPressed: () {
                           setState(() {
@@ -2250,7 +2308,9 @@ class GroupChatScreenState extends State<GroupChatScreen>
                       Text(
                         '1',
                         style: AppTextStyles.bodyText.copyWith(
-                          color: txt.title,
+                          color: provider.currentTheme?.id == 'midnight_navy'
+                              ? Colors.white
+                              : txt.title,
                           fontSize: 16.sp,
                           fontWeight: FontWeight.w600,
                         ),
@@ -2260,7 +2320,9 @@ class GroupChatScreenState extends State<GroupChatScreen>
                         icon: Icon(
                           Icons.copy_rounded,
                           size: 20,
-                          color: Theme.of(context).colorScheme.onBackground,
+                          color: provider.currentTheme?.id == 'midnight_navy'
+                              ? Colors.white
+                              : Theme.of(context).colorScheme.onBackground,
                         ),
                         onPressed: _copySelectedMessage,
                       ),
@@ -2268,7 +2330,9 @@ class GroupChatScreenState extends State<GroupChatScreen>
                         icon: Icon(
                           Icons.delete_outline_rounded,
                           size: 22,
-                          color: Theme.of(context).colorScheme.onBackground,
+                          color: provider.currentTheme?.id == 'midnight_navy'
+                              ? Colors.white
+                              : Theme.of(context).colorScheme.onBackground,
                         ),
                         onPressed: _deleteSelectedMessage,
                       ),
@@ -2281,608 +2345,628 @@ class GroupChatScreenState extends State<GroupChatScreen>
                   automaticallyImplyLeading: false,
                   leadingWidth: double.infinity,
                   leading: Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              SizedBox(width: 12.w),
-              const PrimaryBackButton(),
-              _isPolzetAiGroup()
-                  ? SizedBox(
-                      width: 42.w,
-                      height: 42.h,
-                      child: Stack(
-                        alignment: Alignment.center,
-                        children: [
-                          ClipOval(
-                            child: Center(
-                              child: Padding(
-                                padding: const EdgeInsets.only(
-                                  top: 7,
-                                  bottom: 0,
-                                  left: 9,
-                                  right: 8,
-                                ),
-                                child: Image.asset(
-                                  Assets.images.icSplash.path,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      SizedBox(width: 12.w),
+                      GestureDetector(
+                        onTap: () => Navigator.pop(context),
+                        child: Icon(
+                          Icons.arrow_back_ios,
+                          color: provider.currentTheme?.id == 'midnight_navy'
+                              ? Colors.white
+                              : Theme.of(context).colorScheme.onBackground,
+                          size: 24,
+                        ),
+                      ),
+                      groupAvatarProvider != null
+                          ? CircleAvatar(
+                              key: ValueKey(groupAvatarUrl ?? rawAvatar ?? ''),
+                              radius: 18.r,
+                              backgroundColor: Theme.of(
+                                context,
+                              ).colorScheme.onPrimary.withOpacity(0.1),
+                              backgroundImage: groupAvatarProvider,
+                            )
+                          : _buildGroupAvatarStack(
+                              members:
+                                  (provider.chat?['members'] ??
+                                          widget.chat?['members'] ??
+                                          provider.members)
+                                      as List?,
+                              size: 38.w,
+                              isDarkMode: isDarkMode,
+                              context: context,
+                            ),
+                      SizedBox(width: 7.w),
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: () => _openChatDetails(title),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Row(
+                                children: [
+                                  Text(
+                                    title,
+                                    style: AppTextStyles.bodyText.copyWith(
+                                      color:
+                                          provider.currentTheme?.getTitleColor(
+                                            isDarkMode,
+                                          ) ??
+                                          (provider.currentTheme?.id ==
+                                                  'midnight_navy'
+                                              ? const Color(0xFFCCCCD0)
+                                              : txt.title),
+                                      fontSize: 14.5,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              Consumer<GroupChatProvider>(
+                                builder: (_, prov, __) {
+                                  return AnimatedSwitcher(
+                                    duration: const Duration(milliseconds: 250),
+                                    child: prov.isSomeoneTyping
+                                        ? Row(
+                                            key: const ValueKey('typing'),
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              Text(
+                                                prov.typingIndicatorText,
+                                                style: TextStyle(
+                                                  fontSize: 9.5.sp,
+                                                  color: Colors.green,
+                                                  fontStyle: FontStyle.italic,
+                                                ),
+                                              ),
+                                            ],
+                                          )
+                                        : Row(
+                                            key: const ValueKey('status'),
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              (() {
+                                                int otherOnlineCount = prov
+                                                    .memberPresence
+                                                    .values
+                                                    .where(
+                                                      (m) =>
+                                                          m.isOnline &&
+                                                          m.userId !=
+                                                              prov.currentUserId,
+                                                    )
+                                                    .length;
+
+                                                int totalOnline =
+                                                    otherOnlineCount;
+
+                                                String memberText =
+                                                    '$memberCount ${memberCount == 1 ? AppLocalizations.of(context)!.member : AppLocalizations.of(context)!.members}';
+
+                                                if (otherOnlineCount > 0) {
+                                                  return Text(
+                                                    '$totalOnline ${AppLocalizations.of(context)!.online}',
+                                                    style: TextStyle(
+                                                      color: Colors.green,
+                                                      fontSize: 9.5.sp,
+                                                      fontWeight:
+                                                          FontWeight.w300,
+                                                    ),
+                                                    maxLines: 1,
+                                                    overflow:
+                                                        TextOverflow.ellipsis,
+                                                  );
+                                                } else {
+                                                  return ConstrainedBox(
+                                                    constraints: BoxConstraints(
+                                                      maxWidth: 200.w,
+                                                    ),
+                                                    child: Text(
+                                                      memberText,
+                                                      style: AppTextStyles
+                                                          .subText
+                                                          .copyWith(
+                                                            color: txt.muted,
+                                                            fontSize: 9.5.sp,
+                                                            fontWeight:
+                                                                FontWeight.w300,
+                                                          ),
+                                                      overflow:
+                                                          TextOverflow.ellipsis,
+                                                      maxLines: 1,
+                                                      softWrap: false,
+                                                    ),
+                                                  );
+                                                }
+                                              })(),
+                                            ],
+                                          ),
+                                  );
+                                },
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      PopupMenuButton<String>(
+                        icon: Icon(
+                          FeatherIcons.moreVertical,
+                          size: 22,
+                          color: provider.currentTheme?.id == 'midnight_navy'
+                              ? Colors.white
+                              : Theme.of(context).colorScheme.onBackground,
+                        ),
+                        color: Theme.of(context).colorScheme.tertiaryContainer,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        offset: const Offset(0, 45),
+                        elevation: 2,
+                        padding: EdgeInsets.zero,
+                        onSelected: (value) {
+                          if (value == 'group_info') {
+                            _openChatDetails(title);
+                          } else if (value == 'share') {
+                            _shareGroup();
+                          } else if (value == 'clear_chat') {
+                            _showClearChatConfirmationDialog();
+                          } else if (value == 'delete_chat') {
+                            _showDeleteChatConfirmationDialog();
+                          }
+                        },
+                        itemBuilder: (BuildContext context) {
+                          return [
+                            PopupMenuItem<String>(
+                              padding: const EdgeInsets.fromLTRB(10, 0, 10, 0),
+                              height: 38,
+                              value: 'group_info',
+                              child: Text(
+                                AppLocalizations.of(context)!.groupinfo,
+                                style: AppTextStyles.bodyText.copyWith(
+                                  color: txt.title,
+                                  fontWeight: FontWeight.w500,
+                                  fontSize: 13.5,
                                 ),
                               ),
                             ),
-                          ),
-                          Positioned.fill(
-                            child: Image.asset(
-                              Assets.images.aiFrame.path,
-                              height: 50,
-                              width: 50,
+                            PopupMenuItem<String>(
+                              padding: const EdgeInsets.fromLTRB(10, 0, 10, 0),
+                              height: 38,
+                              value: 'share',
+                              child: Text(
+                                AppLocalizations.of(context)!.share,
+                                style: AppTextStyles.bodyText.copyWith(
+                                  color: txt.title,
+                                  fontWeight: FontWeight.w500,
+                                  fontSize: 13.5,
+                                ),
+                              ),
                             ),
-                          ),
-                        ],
-                      ),
-                    )
-                  : (groupAvatarProvider != null
-                      ? CircleAvatar(
-                          key: ValueKey(groupAvatarUrl ?? rawAvatar ?? ''),
-                          radius: 18.r,
-                          backgroundColor: Theme.of(
-                            context,
-                          ).colorScheme.onPrimary.withOpacity(0.1),
-                          backgroundImage: groupAvatarProvider,
-                        )
-                      : _buildGroupAvatarStack(
-                          members: (provider.chat?['members'] ??
-                              widget.chat?['members'] ??
-                              provider.members) as List?,
-                          size: 38.w,
-                          isDarkMode: isDarkMode,
-                          context: context,
-                        )),
-              SizedBox(width: 7.w),
-              Expanded(
-                child: GestureDetector(
-                  onTap: () => _openChatDetails(title),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Row(
-                        children: [
-                          Text(
-                            title,
-                            style: AppTextStyles.bodyText.copyWith(
-                              color: provider.currentTheme?.getTitleColor(isDarkMode) ??
-                                  (provider.currentTheme?.id == 'midnight_navy'
-                                      ? const Color(0xFFCCCCD0)
-                                      : txt.title),
-                              fontSize: 14.5,
-                              fontWeight: FontWeight.w500,
+                            PopupMenuItem<String>(
+                              padding: const EdgeInsets.fromLTRB(10, 0, 10, 0),
+                              height: 38,
+                              value: 'clear_chat',
+                              child: Text(
+                                AppLocalizations.of(context)!.clearchat,
+                                style: AppTextStyles.bodyText.copyWith(
+                                  color: txt.title,
+                                  fontWeight: FontWeight.w500,
+                                  fontSize: 13.5,
+                                ),
+                              ),
                             ),
-                          ),
-                          if (_isPolzetAiGroup()) ...[
-                            SizedBox(width: 4.w),
-                            Image.asset(
-                              Assets.images.icVerify.path,
-                              height: 13,
-                              width: 13,
+                            PopupMenuItem<String>(
+                              padding: const EdgeInsets.fromLTRB(10, 0, 10, 0),
+                              height: 38,
+                              value: 'delete_chat',
+                              child: Text(
+                                AppLocalizations.of(context)!.deletechat,
+                                style: AppTextStyles.bodyText.copyWith(
+                                  color: Theme.of(context).colorScheme.error,
+                                  fontWeight: FontWeight.w500,
+                                  fontSize: 13.5,
+                                ),
+                              ),
                             ),
-                          ],
-                        ],
-                      ),
-                      Consumer<GroupChatProvider>(
-                        builder: (_, prov, __) {
-                          return AnimatedSwitcher(
-                            duration: const Duration(milliseconds: 250),
-                            child: prov.isSomeoneTyping
-                                ? Row(
-                                    key: const ValueKey('typing'),
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Text(
-                                        prov.typingIndicatorText,
-                                        style: TextStyle(
-                                          fontSize: 9.5.sp,
-                                          color: Colors.green,
-                                          fontStyle: FontStyle.italic,
-                                        ),
-                                      ),
-                                    ],
-                                  )
-                                : Row(
-                                    key: const ValueKey('status'),
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      (() {
-                                        int otherOnlineCount = prov
-                                            .memberPresence
-                                            .values
-                                            .where(
-                                              (m) =>
-                                                  m.isOnline &&
-                                                  m.userId !=
-                                                      prov.currentUserId,
-                                            )
-                                            .length;
-
-                                        int totalOnline = otherOnlineCount;
-
-                                        String memberText =
-                                            '$memberCount ${memberCount == 1 ? AppLocalizations.of(context)!.member : AppLocalizations.of(context)!.members}';
-
-                                        if (otherOnlineCount > 0) {
-                                          return Text(
-                                            '$totalOnline ${AppLocalizations.of(context)!.online}',
-                                            style: TextStyle(
-                                              color: Colors.green,
-                                              fontSize: 9.5.sp,
-                                              fontWeight: FontWeight.w300,
-                                            ),
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis,
-                                          );
-                                        } else {
-                                          return ConstrainedBox(
-                                            constraints: BoxConstraints(
-                                              maxWidth: 200.w,
-                                            ),
-                                            child: Text(
-                                              memberText,
-                                              style: AppTextStyles.subText
-                                                  .copyWith(
-                                                    color: txt.muted,
-                                                    fontSize: 9.5.sp,
-                                                    fontWeight: FontWeight.w300,
-                                                  ),
-                                              overflow: TextOverflow.ellipsis,
-                                              maxLines: 1,
-                                              softWrap: false,
-                                            ),
-                                          );
-                                        }
-                                      })(),
-                                    ],
-                                  ),
-                          );
+                          ];
                         },
                       ),
                     ],
                   ),
+                  backgroundColor:
+                      provider.currentTheme?.getBgColor(isDarkMode) ??
+                      Theme.of(context).colorScheme.background,
+                  surfaceTintColor:
+                      provider.currentTheme?.getBgColor(isDarkMode) ??
+                      Theme.of(context).colorScheme.background,
                 ),
+          body: GestureDetector(
+            behavior: HitTestBehavior.translucent,
+            onTap: () {
+              if (_selectedMessage != null) {
+                setState(() {
+                  _selectedMessage = null;
+                });
+              }
+            },
+            child: Container(
+              decoration: BoxDecoration(
+                color: provider.currentTheme?.getBgColor(isDarkMode),
+                image:
+                    (provider.currentTheme == null ||
+                        provider.currentTheme?.id == 'classic_maroon')
+                    ? DecorationImage(
+                        image: isDarkMode
+                            ? AssetImage(Assets.images.bgChatDark.path)
+                            : AssetImage(Assets.images.bgChatLight.path),
+                        fit: BoxFit.cover,
+                      )
+                    : null,
               ),
-              PopupMenuButton<String>(
-                icon: Icon(
-                  FeatherIcons.moreVertical,
-                  size: 22,
-                  color: Theme.of(context).colorScheme.onBackground,
-                ),
-                color: Theme.of(context).colorScheme.tertiaryContainer,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                offset: const Offset(0, 45),
-                elevation: 2,
-                padding: EdgeInsets.zero,
-                onSelected: (value) {
-                  if (value == 'group_info') {
-                    _openChatDetails(title);
-                  } else if (value == 'share') {
-                    _shareGroup();
-                  } else if (value == 'clear_chat') {
-                    _showClearChatConfirmationDialog();
-                  } else if (value == 'delete_chat') {
-                    _showDeleteChatConfirmationDialog();
-                  }
-                },
-                itemBuilder: (BuildContext context) {
-                  return [
-                    PopupMenuItem<String>(
-                      padding: const EdgeInsets.fromLTRB(10, 0, 10, 0),
-                      height: 38,
-                      value: 'group_info',
-                      child: Text(
-                        'Group info',
-                        style: AppTextStyles.bodyText.copyWith(
-                          color: txt.title,
-                          fontWeight: FontWeight.w500,
-                          fontSize: 13.5,
-                        ),
-                      ),
-                    ),
-                    PopupMenuItem<String>(
-                      padding: const EdgeInsets.fromLTRB(10, 0, 10, 0),
-                      height: 38,
-                      value: 'share',
-                      child: Text(
-                       AppLocalizations.of(context)!.share,
-                        style: AppTextStyles.bodyText.copyWith(
-                          color: txt.title,
-                          fontWeight: FontWeight.w500,
-                          fontSize: 13.5,
-                        ),
-                      ),
-                    ),
-                    PopupMenuItem<String>(
-                      padding: const EdgeInsets.fromLTRB(10, 0, 10, 0),
-                      height: 38,
-                      value: 'clear_chat',
-                      child: Text(
-                        AppLocalizations.of(context)!.clearchat,
-                        style: AppTextStyles.bodyText.copyWith(
-                          color: txt.title,
-                          fontWeight: FontWeight.w500,
-                          fontSize: 13.5,
-                        ),
-                      ),
-                    ),
-                    PopupMenuItem<String>(
-                      padding: const EdgeInsets.fromLTRB(10, 0, 10, 0),
-                      height: 38,
-                      value: 'delete_chat',
-                      child: Text(
-                        AppLocalizations.of(context)!.deletechat,
-                        style: AppTextStyles.bodyText.copyWith(
-                          color: Theme.of(context).colorScheme.error,
-                          fontWeight: FontWeight.w500,
-                          fontSize: 13.5,
-                        ),
-                      ),
-                    ),
-                  ];
-                },
-              ),
-            ],
-          ),
-          backgroundColor:
-              provider.currentTheme?.getBgColor(isDarkMode) ??
-              Theme.of(context).colorScheme.background,
-          surfaceTintColor:
-              provider.currentTheme?.getBgColor(isDarkMode) ??
-              Theme.of(context).colorScheme.background,
-        ),
-        body: GestureDetector(
-          behavior: HitTestBehavior.translucent,
-          onTap: () {
-            if (_selectedMessage != null) {
-              setState(() {
-                _selectedMessage = null;
-              });
-            }
-          },
-          child: Container(
-          decoration: BoxDecoration(
-            color: provider.currentTheme?.getBgColor(isDarkMode),
-            image: (provider.currentTheme == null ||
-                    provider.currentTheme?.id == 'classic_maroon')
-                ? DecorationImage(
-                    image: isDarkMode
-                        ? AssetImage(Assets.images.bgChatDark.path)
-                        : AssetImage(Assets.images.bgChatLight.path),
-                    fit: BoxFit.cover,
-                  )
-                : null,
-          ),
-          child: Column(
-            children: [
-              if (provider.historyError != null) _buildHistoryError(provider),
-              Expanded(
-                child: Stack(
-                  children: [
-                    StreamBuilder<List<ChatMessage>>(
-                      stream: _messagesStream,
-                      initialData: context.read<GroupChatProvider>().messages,
-                      builder: (context, snapshot) {
-                        final messages = snapshot.data ?? [];
-                        final isLoading = context
-                            .read<GroupChatProvider>()
-                            .isLoadingHistory;
+              child: Column(
+                children: [
+                  if (provider.historyError != null)
+                    _buildHistoryError(provider),
+                  Expanded(
+                    child: Stack(
+                      children: [
+                        StreamBuilder<List<ChatMessage>>(
+                          stream: _messagesStream,
+                          initialData: context
+                              .read<GroupChatProvider>()
+                              .messages,
+                          builder: (context, snapshot) {
+                            final messages = snapshot.data ?? [];
+                            final isLoading = context
+                                .read<GroupChatProvider>()
+                                .isLoadingHistory;
 
-                        if (messages.length > _previousMessageCount) {
-                          if (_previousMessageCount == 0) {
+                            if (messages.length > _previousMessageCount) {
+                              if (_previousMessageCount == 0) {
+                                WidgetsBinding.instance.addPostFrameCallback((
+                                  _,
+                                ) {
+                                  if (_isAtBottom ||
+                                      (messages.isNotEmpty &&
+                                          messages.last.isSentByMe)) {
+                                    _scrollToBottom();
+                                    context
+                                        .read<GroupChatProvider>()
+                                        .markAsRead();
+                                  }
+                                });
+                              } else {
+                                int newAppendedCount = 0;
+                                for (int i = messages.length - 1; i >= 0; i--) {
+                                  final m = messages[i];
+                                  if (_previousLastMessage != null &&
+                                      m.text == _previousLastMessage!.text &&
+                                      m.created_at ==
+                                          _previousLastMessage!.created_at) {
+                                    break;
+                                  }
+                                  newAppendedCount++;
+                                }
+
+                                if (newAppendedCount > 0 &&
+                                    newAppendedCount < messages.length) {
+                                  final lastIsMe = messages.last.isSentByMe;
+                                  WidgetsBinding.instance.addPostFrameCallback((
+                                    _,
+                                  ) {
+                                    if (_isAtBottom || lastIsMe) {
+                                      _scrollToBottom();
+                                      context
+                                          .read<GroupChatProvider>()
+                                          .markAsRead();
+                                    } else {
+                                      setState(
+                                        () => _unreadCount += newAppendedCount,
+                                      );
+                                    }
+                                  });
+                                }
+                              }
+                            }
+
+                            _previousMessageCount = messages.length;
+                            _previousLastMessage = messages.isNotEmpty
+                                ? messages.last
+                                : null;
+
                             WidgetsBinding.instance.addPostFrameCallback((_) {
-                              if (_isAtBottom ||
-                                  (messages.isNotEmpty &&
-                                      messages.last.isSentByMe)) {
-                                _scrollToBottom();
-                                context.read<GroupChatProvider>().markAsRead();
+                              if (!mounted) return;
+                              _updateFloatingDate();
+
+                              if (_scrollController.hasClients) {
+                                final maxScroll =
+                                    _scrollController.position.maxScrollExtent;
+                                if (maxScroll <= 50 &&
+                                    !context
+                                        .read<GroupChatProvider>()
+                                        .isLoadingHistory) {
+                                  context
+                                      .read<GroupChatProvider>()
+                                      .fetchMoreHistory();
+                                }
                               }
                             });
-                          } else {
-                            int newAppendedCount = 0;
-                            for (int i = messages.length - 1; i >= 0; i--) {
-                              final m = messages[i];
-                              if (_previousLastMessage != null &&
-                                  m.text == _previousLastMessage!.text &&
-                                  m.created_at ==
-                                      _previousLastMessage!.created_at) {
-                                break;
-                              }
-                              newAppendedCount++;
+
+                            if (messages.isEmpty && !isLoading) {
+                              return Center(
+                                child: Text(
+                                  AppLocalizations.of(
+                                        context,
+                                      )?.nomessagesyetstarttheconversation ??
+                                      'No messages yet...',
+                                  textAlign: TextAlign.center,
+                                  style: AppTextStyles.bodyText.copyWith(
+                                    fontSize: 12.5,
+                                    color: txt.muted,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              );
                             }
 
-                            if (newAppendedCount > 0 &&
-                                newAppendedCount < messages.length) {
-                              final lastIsMe = messages.last.isSentByMe;
-                              WidgetsBinding.instance.addPostFrameCallback((_) {
-                                if (_isAtBottom || lastIsMe) {
-                                  _scrollToBottom();
-                                  context
-                                      .read<GroupChatProvider>()
-                                      .markAsRead();
+                            final reversedMessages = messages.reversed.toList();
+                            return ListView.builder(
+                              reverse: true,
+                              controller: _scrollController,
+                              padding: EdgeInsets.symmetric(vertical: 8.h),
+                              itemCount: reversedMessages.length + 1,
+                              itemBuilder: (ctx, index) {
+                                if (index == reversedMessages.length) {
+                                  return _buildHistoryLoader(isLoading);
+                                }
+
+                                final message = reversedMessages[index];
+                                bool showHeader = false;
+                                bool isAbsoluteOldestMessage = false;
+
+                                if (index == reversedMessages.length - 1) {
+                                  showHeader = true;
+                                  isAbsoluteOldestMessage = true;
                                 } else {
-                                  setState(
-                                    () => _unreadCount += newAppendedCount,
+                                  final previousMessage =
+                                      reversedMessages[index + 1];
+                                  showHeader = !_isSameDay(
+                                    message.created_at,
+                                    previousMessage.created_at,
                                   );
                                 }
-                              });
-                            }
-                          }
-                        }
 
-                        _previousMessageCount = messages.length;
-                        _previousLastMessage = messages.isNotEmpty
-                            ? messages.last
-                            : null;
+                                if (showHeader) {
+                                  final dateStr = _getDateSeparator(
+                                    message.created_at,
+                                  );
+                                  if (!_headerKeys.containsKey(dateStr)) {
+                                    _headerKeys[dateStr] = GlobalKey(
+                                      debugLabel: dateStr,
+                                    );
+                                  }
 
-                        WidgetsBinding.instance.addPostFrameCallback((_) {
-                          if (!mounted) return;
-                          _updateFloatingDate();
+                                  bool hideInlineDate =
+                                      isAbsoluteOldestMessage &&
+                                      context
+                                          .read<GroupChatProvider>()
+                                          .hasMoreHistory;
 
-                          if (_scrollController.hasClients) {
-                            final maxScroll =
-                                _scrollController.position.maxScrollExtent;
-                            if (maxScroll <= 50 &&
-                                !context
-                                    .read<GroupChatProvider>()
-                                    .isLoadingHistory) {
-                              context
-                                  .read<GroupChatProvider>()
-                                  .fetchMoreHistory();
-                            }
-                          }
-                        });
+                                  if (hideInlineDate) {
+                                    return Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        SizedBox(
+                                          key: _headerKeys[dateStr],
+                                          height: 0,
+                                          width: 0,
+                                        ),
+                                        _buildMessageBubble(ctx, message),
+                                      ],
+                                    );
+                                  }
 
-                        if (messages.isEmpty && !isLoading) {
-                          return Center(
-                            child: Text(
-                              AppLocalizations.of(
-                                    context,
-                                  )?.nomessagesyetstarttheconversation ??
-                                  'No messages yet...',
-                              textAlign: TextAlign.center,
-                              style: AppTextStyles.bodyText.copyWith(
-                                fontSize: 12.5,
-                                color: txt.muted,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          );
-                        }
-
-                        final reversedMessages = messages.reversed.toList();
-                        return ListView.builder(
-                          reverse: true,
-                          controller: _scrollController,
-                          padding: EdgeInsets.symmetric(vertical: 8.h),
-                          itemCount: reversedMessages.length + 1,
-                          itemBuilder: (ctx, index) {
-                            if (index == reversedMessages.length) {
-                              return _buildHistoryLoader(isLoading);
-                            }
-
-                            final message = reversedMessages[index];
-                            bool showHeader = false;
-                            bool isAbsoluteOldestMessage = false;
-
-                            if (index == reversedMessages.length - 1) {
-                              showHeader = true;
-                              isAbsoluteOldestMessage = true;
-                            } else {
-                              final previousMessage =
-                                  reversedMessages[index + 1];
-                              showHeader = !_isSameDay(
-                                message.created_at,
-                                previousMessage.created_at,
-                              );
-                            }
-
-                            if (showHeader) {
-                              final dateStr = _getDateSeparator(
-                                message.created_at,
-                              );
-                              if (!_headerKeys.containsKey(dateStr)) {
-                                _headerKeys[dateStr] = GlobalKey(
-                                  debugLabel: dateStr,
-                                );
-                              }
-
-                              bool hideInlineDate =
-                                  isAbsoluteOldestMessage &&
-                                  context
-                                      .read<GroupChatProvider>()
-                                      .hasMoreHistory;
-
-                              if (hideInlineDate) {
-                                return Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    SizedBox(
-                                      key: _headerKeys[dateStr],
-                                      height: 0,
-                                      width: 0,
-                                    ),
-                                    _buildMessageBubble(ctx, message),
-                                  ],
-                                );
-                              }
-
-                              return Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Container(
-                                    key: _headerKeys[dateStr],
-                                    margin: EdgeInsets.symmetric(
-                                      vertical: 10.h,
-                                    ),
-                                    padding: EdgeInsets.symmetric(
-                                      horizontal: 10.w,
-                                      vertical: 3.h,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: provider.currentTheme
-                                              ?.getDateColor(isDarkMode) ??
-                                          (isDarkMode
-                                              ? Theme.of(
-                                                  context,
-                                                ).colorScheme.secondaryContainer
-                                              : const Color(0xFFF2F2F2)),
-                                      borderRadius: BorderRadius.circular(5.r),
-                                    ),
-                                    child: Text(
-                                      dateStr,
-                                      style: TextStyle(
-                                        fontSize: 9.sp,
-                                        fontWeight: FontWeight.w500,
-                                        color: txt.body,
+                                  return Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Container(
+                                        key: _headerKeys[dateStr],
+                                        margin: EdgeInsets.symmetric(
+                                          vertical: 10.h,
+                                        ),
+                                        padding: EdgeInsets.symmetric(
+                                          horizontal: 10.w,
+                                          vertical: 3.h,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color:
+                                              provider.currentTheme
+                                                  ?.getDateColor(isDarkMode) ??
+                                              (isDarkMode
+                                                  ? Theme.of(context)
+                                                        .colorScheme
+                                                        .secondaryContainer
+                                                  : const Color(0xFFF2F2F2)),
+                                          borderRadius: BorderRadius.circular(
+                                            5.r,
+                                          ),
+                                        ),
+                                        child: Text(
+                                          dateStr,
+                                          style: TextStyle(
+                                            fontSize: 9.sp,
+                                            fontWeight: FontWeight.w500,
+                                            color:
+                                                provider.currentTheme?.id ==
+                                                    'midnight_navy'
+                                                ? Colors.white
+                                                : txt.body,
+                                          ),
+                                        ),
                                       ),
-                                    ),
-                                  ),
-                                  _buildMessageBubble(ctx, message),
-                                ],
-                              );
-                            }
+                                      _buildMessageBubble(ctx, message),
+                                    ],
+                                  );
+                                }
 
-                            return _buildMessageBubble(ctx, message);
+                                return _buildMessageBubble(ctx, message);
+                              },
+                            );
                           },
-                        );
-                      },
-                    ),
-                    _buildScrollToBottomButton(),
-                    if (_floatingDate != null)
-                      Positioned(
-                        top: -10.h,
-                        left: 0,
-                        right: 0,
-                        child: Center(
-                          child: Container(
-                            margin: EdgeInsets.symmetric(vertical: 10.h),
-                            padding: EdgeInsets.symmetric(
-                              horizontal: 10.w,
-                              vertical: 3.h,
-                            ),
-                            decoration: BoxDecoration(
-                              color: provider.currentTheme
-                                      ?.getDateColor(isDarkMode) ??
-                                  (isDarkMode
-                                      ? Theme.of(
-                                          context,
-                                        ).colorScheme.secondaryContainer
-                                      : const Color(0xFFF2F2F2)),
-                              borderRadius: BorderRadius.circular(5.r),
-                            ),
-                            child: Text(
-                              _floatingDate ?? '',
-                              style: TextStyle(
-                                color: txt.title,
-                                fontWeight: FontWeight.w500,
-                                fontSize: 9.sp,
+                        ),
+                        _buildScrollToBottomButton(),
+                        if (_floatingDate != null)
+                          Positioned(
+                            top: -10.h,
+                            left: 0,
+                            right: 0,
+                            child: Center(
+                              child: Container(
+                                margin: EdgeInsets.symmetric(vertical: 10.h),
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: 10.w,
+                                  vertical: 3.h,
+                                ),
+                                decoration: BoxDecoration(
+                                  color:
+                                      provider.currentTheme?.getDateColor(
+                                        isDarkMode,
+                                      ) ??
+                                      (isDarkMode
+                                          ? Theme.of(
+                                              context,
+                                            ).colorScheme.secondaryContainer
+                                          : const Color(0xFFF2F2F2)),
+                                  borderRadius: BorderRadius.circular(5.r),
+                                ),
+                                child: Text(
+                                  _floatingDate ?? '',
+                                  style: TextStyle(
+                                    color:
+                                        provider.currentTheme?.id ==
+                                            'midnight_navy'
+                                        ? Colors.white
+                                        : txt.title,
+                                    fontWeight: FontWeight.w500,
+                                    fontSize: 9.sp,
+                                  ),
+                                ),
                               ),
                             ),
                           ),
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-              Container(
-                width: double.infinity,
-                margin: const EdgeInsets.fromLTRB(5, 5, 5, 15).w,
-                padding: const EdgeInsets.symmetric(horizontal: 10),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Expanded(
-                      child: TextField(
-                        controller: _messageController,
-                        onChanged: (_) =>
-                            context.read<GroupChatProvider>().onUserTyping(),
-                        cursorColor: Theme.of(
-                          context,
-                        ).colorScheme.onPrimary.withOpacity(0.8),
-                        cursorWidth: 1.5,
-                        maxLines: 5,
-                        minLines: 1,
-                        keyboardType: TextInputType.multiline,
-                        textInputAction: TextInputAction.newline,
-                        decoration: InputDecoration(
-                          filled: true,
-                          fillColor: provider.currentTheme
-                                  ?.getMessageBarColor(isDarkMode) ??
-                              Theme.of(context).colorScheme.background,
-                          border: InputBorder.none,
-                          hintText:
-                              '${AppLocalizations.of(context)?.message}...',
-                          hintStyle: AppTextStyles.bodyText.copyWith(
-                            color: const Color(0XFF898989),
-                            fontWeight: FontWeight.w400,
-                            fontSize: 14,
-                          ),
-                          contentPadding: EdgeInsets.symmetric(
-                            horizontal: 16.w,
-                            vertical: 10.h,
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderSide: BorderSide(
-                              color: isDarkMode
-                                  ? Theme.of(context).colorScheme.outline
-                                  : const Color(0xFFDDDDDD),
-                              width: 1,
-                            ),
-                            borderRadius: BorderRadius.circular(
-                              AppRadius.card,
-                            ),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderSide: BorderSide(
-                              color: isDarkMode
-                                  ? Theme.of(context).colorScheme.outline
-                                  : const Color(0xFFDDDDDD),
-                              width: 1,
-                            ),
-                            borderRadius: BorderRadius.circular(
-                              AppRadius.card,
-                            ),
-                          ),
-                        ),
-                        style: AppTextStyles.bodyText.copyWith(
-                          color: txt.title,
-                          fontWeight: FontWeight.w500,
-                          fontSize: 15,
-                        ),
-                      ),
+                      ],
                     ),
-                    GestureDetector(
-                      onTap: _sendMessage,
-                      child: Container(
-                         height: 45,
-                                  width: 45,
-                        margin: const EdgeInsets.only(left: 8),
-                          padding: const EdgeInsets.fromLTRB(8, 6, 9, 4).w,
-                        decoration: BoxDecoration(
-                          color: provider.currentTheme
-                                  ?.getOutgoingColor(isDarkMode) ??
-                              Theme.of(context).colorScheme.primary,
-                          shape: BoxShape.circle,
+                  ),
+                  Container(
+                    width: double.infinity,
+                    margin: const EdgeInsets.fromLTRB(5, 5, 5, 15).w,
+                    padding: const EdgeInsets.symmetric(horizontal: 10),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            controller: _messageController,
+                            onChanged: (_) => context
+                                .read<GroupChatProvider>()
+                                .onUserTyping(),
+                            cursorColor: Theme.of(
+                              context,
+                            ).colorScheme.onPrimary.withOpacity(0.8),
+                            cursorWidth: 1.5,
+                            maxLines: 5,
+                            minLines: 1,
+                            keyboardType: TextInputType.multiline,
+                            textInputAction: TextInputAction.newline,
+                            decoration: InputDecoration(
+                              filled: true,
+                              fillColor:
+                                  provider.currentTheme?.getMessageBarColor(
+                                    isDarkMode,
+                                  ) ??
+                                  Theme.of(context).colorScheme.background,
+                              border: InputBorder.none,
+                              hintText:
+                                  '${AppLocalizations.of(context)?.message}...',
+                              hintStyle: AppTextStyles.bodyText.copyWith(
+                                color: const Color(0XFF898989),
+                                fontWeight: FontWeight.w400,
+                                fontSize: 14,
+                              ),
+                              contentPadding: EdgeInsets.symmetric(
+                                horizontal: 16.w,
+                                vertical: 10.h,
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderSide: BorderSide(
+                                  color:
+                                      provider.currentTheme?.id ==
+                                          'midnight_navy'
+                                      ? const Color(0x80636363)
+                                      : (isDarkMode
+                                            ? Theme.of(
+                                                context,
+                                              ).colorScheme.outline
+                                            : const Color(0xFFDDDDDD)),
+                                  width: 1,
+                                ),
+                                borderRadius: BorderRadius.circular(
+                                  AppRadius.card,
+                                ),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderSide: BorderSide(
+                                  color:
+                                      provider.currentTheme?.id ==
+                                          'midnight_navy'
+                                      ? const Color(0x80636363)
+                                      : (isDarkMode
+                                            ? Theme.of(
+                                                context,
+                                              ).colorScheme.outline
+                                            : const Color(0xFFDDDDDD)),
+                                  width: 1,
+                                ),
+                                borderRadius: BorderRadius.circular(
+                                  AppRadius.card,
+                                ),
+                              ),
+                            ),
+                            style: AppTextStyles.bodyText.copyWith(
+                              color: txt.title,
+                              fontWeight: FontWeight.w500,
+                              fontSize: 15,
+                            ),
+                          ),
                         ),
-                        child: Center(
-                                    child: Image.asset(
-                                      Assets.images.icSend.path,
-                                     
-                                    ),
-                                  ),
-                      ),
+                        GestureDetector(
+                          onTap: _sendMessage,
+                          child: Container(
+                            height: 45,
+                            width: 45,
+                            margin: const EdgeInsets.only(left: 8),
+                            padding: const EdgeInsets.fromLTRB(8, 6, 9, 4).w,
+                            decoration: BoxDecoration(
+                              color:
+                                  provider.currentTheme?.getOutgoingColor(
+                                    isDarkMode,
+                                  ) ??
+                                  Theme.of(context).colorScheme.primary,
+                              shape: BoxShape.circle,
+                            ),
+                            child: Center(
+                              child: Image.asset(Assets.images.icSend.path),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
-            ],
-          ),
-        ),
+            ),
           ),
         ),
       ),

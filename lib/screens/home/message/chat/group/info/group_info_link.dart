@@ -9,6 +9,7 @@ import 'package:polzet_app/core/constants/app_colors.dart';
 import 'package:polzet_app/core/constants/feather_icons_compat.dart';
 import 'package:polzet_app/core/themes/app_text_colors.dart';
 import 'package:polzet_app/core/themes/app_text_styles.dart';
+import 'package:polzet_app/languages/l10n/generated/app_localizations.dart';
 import 'package:polzet_app/widgets/show_toast.dart';
 
 import '../../../../../../widgets/appbar/common_appbar.dart';
@@ -83,7 +84,7 @@ class _GroupInfoLinkState extends State<GroupInfoLink> {
 
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.background,
-      appBar: const CommonAppBar(title: 'Invite'),
+      appBar:  CommonAppBar(title: AppLocalizations.of(context)!.invite),
       body: Padding(
         padding: EdgeInsets.symmetric(horizontal: 12.w),
         child: Column(
@@ -120,7 +121,7 @@ class _GroupInfoLinkState extends State<GroupInfoLink> {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Text(
-                          'Invite Link',
+                         AppLocalizations.of(context)!.invitelink,
                           style: AppTextStyles.cardTitle.copyWith(
                             color: txt.title,
                             fontSize: 14.5,
@@ -154,7 +155,7 @@ class _GroupInfoLinkState extends State<GroupInfoLink> {
                         borderRadius: BorderRadius.circular(7),
                       ),
                       child: Text(
-                        _isCopied ? 'Copied' : 'Copy',
+                        _isCopied ? AppLocalizations.of(context)!.copied : AppLocalizations.of(context)!.copy,
                         style: AppTextStyles.bodyText.copyWith(
                           color: Colors.white,
                           fontSize: 12.5,
@@ -201,7 +202,7 @@ class _GroupInfoLinkState extends State<GroupInfoLink> {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Text(
-                            'Share',
+                            AppLocalizations.of(context)!.share,
                             style: AppTextStyles.cardTitle.copyWith(
                               color: txt.title,
                               fontSize: 14.5,
@@ -209,7 +210,7 @@ class _GroupInfoLinkState extends State<GroupInfoLink> {
                             ),
                           ),
                           Text(
-                            'Invite people to join this group',
+                             AppLocalizations.of(context)!.invitepeopletojointhisgroup,
                             style: AppTextStyles.cardTitle.copyWith(
                               color: txt.muted,
                               fontSize: 12.5,

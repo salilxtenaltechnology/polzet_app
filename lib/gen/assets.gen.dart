@@ -243,6 +243,10 @@ class $AssetsImagesGen {
   AssetGenImage get icGroup =>
       const AssetGenImage('assets/images/ic_group.png');
 
+  /// File path: assets/images/ic_groupAvatar.png
+  AssetGenImage get icGroupAvatar =>
+      const AssetGenImage('assets/images/ic_groupAvatar.png');
+
   /// File path: assets/images/ic_help_support.png
   AssetGenImage get icHelpSupport =>
       const AssetGenImage('assets/images/ic_help_support.png');
@@ -550,6 +554,7 @@ class $AssetsImagesGen {
     icGame,
     icGoogle,
     icGroup,
+    icGroupAvatar,
     icHelpSupport,
     icHot,
     icImagePoll,

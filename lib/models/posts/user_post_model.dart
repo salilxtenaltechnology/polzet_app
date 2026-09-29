@@ -103,8 +103,18 @@ class UserPostModel {
           ? userMap['last_name']?.toString()
           : json['last_name']?.toString(),
       userProfileImage: userMap != null
-          ? (userMap['profile_image'] ?? userMap['avatar_url'])?.toString()
-          : json['profile_image']?.toString(),
+          ? (userMap['profile_image'] ??
+                  userMap['avatar_url'] ??
+                  userMap['profile_picture'] ??
+                  userMap['profile_picture_url'] ??
+                  userMap['profile_pic'])
+              ?.toString()
+          : (json['profile_image'] ??
+                  json['avatar_url'] ??
+                  json['profile_picture'] ??
+                  json['profile_picture_url'] ??
+                  json['profile_pic'])
+              ?.toString(),
       userId: userMap != null
           ? (userMap['uuid'] ?? userMap['userid'] ?? userMap['id'] ?? '').toString()
           : (json['user_id'] ?? json['userid'] ?? '').toString(),

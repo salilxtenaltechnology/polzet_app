@@ -2452,4 +2452,227 @@ class AppLocalizationsVi extends AppLocalizations {
 
   @override
   String get joinwaitlist => 'Tham gia danh sách chờ';
+
+  @override
+  String get addgroupphoto => 'Thêm ảnh nhóm';
+
+  @override
+  String get changegroupphoto => 'Thay đổi ảnh nhóm';
+
+  @override
+  String get entergroupdescription => 'Nhập mô tả nhóm';
+
+  @override
+  String get groupinfo => 'Thông tin nhóm';
+
+  @override
+  String get search => 'Tìm kiếm';
+
+  @override
+  String get invitelink => 'Liên kết mời';
+
+  @override
+  String get privacysafety => 'Quyền riêng tư và an toàn';
+
+  @override
+  String get onlymemberscanseeandparticipateinthisgroup =>
+      'Chỉ thành viên mới có thể xem và tham gia nhóm này';
+
+  @override
+  String get onlypeopleyouinvitecanjoingroup =>
+      'Chỉ những người bạn mời mới có thể tham gia nhóm';
+
+  @override
+  String get anyonecandiscoverandviewthisgroup =>
+      'Mọi người đều có thể tìm thấy và xem nhóm này';
+
+  @override
+  String get customizetheme => 'Tùy chỉnh chủ đề';
+
+  @override
+  String get yourcanchangecolorandthemeofchat =>
+      'Bạn có thể thay đổi màu sắc và chủ đề của cuộc trò chuyện';
+
+  @override
+  String get groupmembers => 'Thành viên nhóm';
+
+  @override
+  String get nomembersfound => 'Không tìm thấy thành viên nào';
+
+  @override
+  String get onepersonwaitingforapproval => '1 người đang chờ phê duyệt';
+
+  @override
+  String get personwaitingforapproval => 'người đang chờ phê duyệt';
+
+  @override
+  String get viewprofile => 'Xem hồ sơ';
+
+  @override
+  String get reportuser => 'Báo cáo người dùng';
+
+  @override
+  String get nojoinrequests => 'Không có yêu cầu tham gia';
+
+  @override
+  String get approve => 'Phê duyệt';
+
+  @override
+  String get invite => 'Mời';
+
+  @override
+  String get copied => 'Đã sao chép';
+
+  @override
+  String get copy => 'Sao chép';
+
+  @override
+  String get invitepeopletojointhisgroup => 'Mời mọi người tham gia nhóm này';
+
+  @override
+  String get groupporivacy => 'Quyền riêng tư của nhóm';
+
+  @override
+  String get reportgroup => 'Báo cáo nhóm';
+
+  @override
+  String get reportspamharmfulcontentorotherconcerns =>
+      'Báo cáo spam, nội dung có hại hoặc các vấn đề khác';
+
+  @override
+  String get blockgroup => 'Chặn nhóm';
+
+  @override
+  String get privacyinformation => 'Thông tin quyền riêng tư';
+
+  @override
+  String get seesomethingyouareuncomfortablewith =>
+      'Bạn thấy điều gì đó khiến mình không thoải mái? Bạn có thể báo cáo nhóm nếu nhóm vi phạm nguyên tắc của chúng tôi hoặc chặn nhóm nếu bạn không muốn xem nội dung hoặc đề xuất của nhóm.';
+
+  @override
+  String get permanentlydeletethisgroup => 'Xóa vĩnh viễn nhóm này';
+
+  @override
+  String get whyareyoureportingthisgroup => 'Tại sao bạn báo cáo nhóm này?';
+
+  @override
+  String get spamormisleading => 'Spam hoặc nội dung gây hiểu lầm';
+
+  @override
+  String get harassmentorbullying => 'Quấy rối hoặc bắt nạt';
+
+  @override
+  String get hateorhatefulcontent =>
+      'Nội dung thù ghét hoặc kích động thù ghét';
+
+  @override
+  String get sexualorinappropriatecontent =>
+      'Nội dung tình dục hoặc không phù hợp';
+
+  @override
+  String get violenceordngerouscontent => 'Bạo lực hoặc nội dung nguy hiểm';
+
+  @override
+  String get scamorfraud => 'Lừa đảo hoặc gian lận';
+
+  @override
+  String get somethingelse => 'Điều gì khác';
+
+  @override
+  String get tellusmoreabout => 'Hãy cho chúng tôi biết thêm';
+
+  @override
+  String get addmoreadditionaldetails =>
+      'Thêm chi tiết, điều này sẽ giúp chúng tôi xem xét báo cáo của bạn';
+
+  @override
+  String get submitreport => 'Gửi báo cáo';
+
+  @override
+  String get applytheme => 'Apply Theme';
+
+  @override
+  String get notificationsettings => 'Notification Settings';
+
+  @override
+  String get mutechat => 'Mute Chat';
+
+  @override
+  String get verify => 'Verify';
+
+  @override
+  String get verifying => 'Verifying...';
+
+  @override
+  String get viewresult => 'View Result';
+
+  @override
+  String get savepoll => 'Save poll';
+
+  @override
+  String get unsavepoll => 'Unsave poll';
+
+  @override
+  String get deletepoll => 'Delete poll';
+
+  @override
+  String get gotoprofile => 'Go to profile';
+
+  @override
+  String get aipick => 'AI Pick';
+
+  @override
+  String get aigenerationslefttoday => 'AI generations left today';
+
+  @override
+  String get noaigenerationslefttoday => 'No AI generations left today';
+
+  @override
+  String get yourcreditswillresettomorrow => 'Your credits will reset tomorrow';
+
+  @override
+  String get archivedgroup => 'Archived Group';
+
+  @override
+  String get failedtoloadarchivedchats => 'Failed to load archived chats';
+
+  @override
+  String get retry => 'Retry';
+
+  @override
+  String get unblockthisusertoallowmessagesandinteractions =>
+      'Bỏ chặn người dùng này để cho phép nhắn tin và tương tác';
+
+  @override
+  String get stopreceivingmessagesandseeingthisuserscontent =>
+      'Ngừng nhận tin nhắn và xem nội dung của người dùng này';
+
+  @override
+  String get yourprivacyandsafetymatterreportthisperson =>
+      'Quyền riêng tư và sự an toàn của bạn rất quan trọng. Hãy báo cáo người này nếu có điều gì đó không phù hợp hoặc vi phạm nguyên tắc của chúng tôi, hoặc chặn họ nếu bạn không muốn tiếp tục tương tác.';
+
+  @override
+  String get safetysupport => 'Hỗ trợ an toàn';
+
+  @override
+  String get whyareyoureportingthisuser =>
+      ' Tại sao bạn báo cáo người dùng này?';
+
+  @override
+  String get ai => 'AI';
+
+  @override
+  String get generation => 'lần tạo';
+
+  @override
+  String get generations => 'lần tạo';
+
+  @override
+  String get chatinfo => 'Thông tin trò chuyện';
+
+  @override
+  String get more => 'Thêm';
+
+  @override
+  String get postdetails => 'Bài đăng';
 }

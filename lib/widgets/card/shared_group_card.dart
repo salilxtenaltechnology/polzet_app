@@ -1,4 +1,4 @@
-// ignore_for_file: deprecated_member_use
+// ignore_for_file: unused_local_variable, deprecated_member_use
 
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -10,7 +10,9 @@ import '../../core/themes/app_text_colors.dart';
 import '../../core/themes/app_text_styles.dart';
 import '../../gen/assets.gen.dart';
 import '../../mixin/utility_mixins.dart';
+import '../../models/chat/chat_theme_item.dart';
 import '../../provider/group_chat_provider.dart';
+import '../../provider/private_chat_provider.dart';
 import '../../screens/home/message/chat/group/group_chat_screen.dart';
 import '../base64/image_convert.dart';
 
@@ -175,12 +177,24 @@ class _SharedGroupCardState extends State<SharedGroupCard> with UtilityMixin {
   Widget build(BuildContext context) {
     final txt = AppTextColors.of(context);
 
+    ChatThemeItem? currentTheme;
+    try {
+      currentTheme = Provider.of<GroupChatProvider>(context).currentTheme;
+    } catch (_) {
+      try {
+        currentTheme = Provider.of<PrivateChatProvider>(context).currentTheme;
+      } catch (_) {}
+    }
+    final isMidnightNavy = currentTheme?.id == 'midnight_navy';
+
     final title =
         _group['title']?.toString() ?? _group['name']?.toString() ?? 'Group';
     final pictureUrlRaw =
         _group['group_picture_url']?.toString() ??
         _group['profile_url']?.toString() ??
-        _group['picture_url']?.toString();
+        _group['picture_url']?.toString() ??
+        _group['avatar']?.toString() ??
+        _group['image']?.toString();
     final avatarUrl = resolveProfileImageUrl(pictureUrlRaw);
     final totalMembers =
         int.tryParse(
@@ -219,24 +233,25 @@ class _SharedGroupCardState extends State<SharedGroupCard> with UtilityMixin {
         ? const Color(0xFF1E1F23)
         : Theme.of(context).colorScheme.primaryContainer;
 
-    final titleInitial = title.isNotEmpty ? title[0].toUpperCase() : 'G';
-
     return Container(
       margin: EdgeInsets.only(
         top: 4.h,
         bottom: 12.h,
-        left: widget.isSentByMe ? 120.w : 12.w,
-        right: widget.isSentByMe ? 12.w : 120.w,
+        left: widget.isSentByMe ? 120.w : 0,
+        right: widget.isSentByMe ? 12 : 120.w,
       ),
-      padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
       decoration: BoxDecoration(
-        color: widget.cardColor ??
+        color:
+            widget.cardColor ??
             (Theme.of(context).brightness == Brightness.dark
                 ? const Color(0xFF1E1F23)
                 : Theme.of(context).colorScheme.primaryContainer),
         borderRadius: BorderRadius.circular(AppRadius.card),
         border: Border.all(
-          color: Theme.of(context).colorScheme.outline,
+          color: isMidnightNavy
+              ? const Color(0x593D6387)
+              : Theme.of(context).colorScheme.outline,
           width: 1,
         ),
         boxShadow: const [BoxShadow(color: Color(0x04000000), blurRadius: 2)],
@@ -252,27 +267,33 @@ class _SharedGroupCardState extends State<SharedGroupCard> with UtilityMixin {
               Container(
                 width: 45.w,
                 height: 45.w,
+                clipBehavior: Clip.antiAlias,
                 decoration: BoxDecoration(
                   color: Theme.of(
                     context,
                   ).colorScheme.onPrimary.withOpacity(0.1),
                   shape: BoxShape.circle,
-                  image: avatarUrl != null
+                  image:
+                      (avatarUrl != null &&
+                          avatarUrl != Assets.images.icGroupAvatar.path)
                       ? DecorationImage(
-                          image: NetworkImage(avatarUrl),
+                          image: avatarUrl.startsWith('assets/')
+                              ? AssetImage(avatarUrl) as ImageProvider
+                              : NetworkImage(avatarUrl),
                           fit: BoxFit.cover,
+                          onError: (_, __) {},
                         )
                       : null,
                 ),
                 alignment: Alignment.center,
-                child: avatarUrl == null
-                    ? Text(
-                        titleInitial,
-                        style: TextStyle(
-                          fontSize: 18,
-                          color: Theme.of(context).colorScheme.onPrimary,
-                          fontWeight: FontWeight.w500,
-                        ),
+                child:
+                    (avatarUrl == null ||
+                        avatarUrl == Assets.images.icGroupAvatar.path)
+                    ? Image.asset(
+                        Assets.images.icGroupAvatar.path,
+                        width: 45.w,
+                        height: 45.w,
+                        fit: BoxFit.cover,
                       )
                     : null,
               ),
@@ -285,23 +306,57 @@ class _SharedGroupCardState extends State<SharedGroupCard> with UtilityMixin {
                     Text(
                       title,
                       style: AppTextStyles.sectionHeading.copyWith(
-                        color: Theme.of(context).colorScheme.onBackground,
+                        color: isMidnightNavy
+                            ? const Color(0xFFF4F4F5)
+                            : Theme.of(context).colorScheme.onBackground,
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
-                    SizedBox(height: 4.h),
+                    SizedBox(height: 2.h),
                     Text(
                       _formatMemberCount(totalMembers),
                       style: AppTextStyles.bodyText.copyWith(
-                        fontSize: 13,
+                        fontSize: 12,
                         fontWeight: FontWeight.w400,
-                        color: txt.body,
+                        color: isMidnightNavy
+                            ? const Color(0xFFD1D1D6)
+                            : txt.body,
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 5),
+                    GestureDetector(
+                      onTap: _handleGroupAction,
+                      child: Container(
+                        width: double.infinity,
+                        padding: EdgeInsets.symmetric(vertical: 5.h),
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).colorScheme.primary,
+                          borderRadius: BorderRadius.circular(AppRadius.button),
+                        ),
+                        alignment: Alignment.center,
+                        child: _isJoining
+                            ? SizedBox(
+                                width: 20.w,
+                                height: 20.w,
+                                child: const CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
+                              )
+                            : Text(
+                                buttonText,
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 12.sp,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                      ),
                     ),
                   ],
                 ),
@@ -310,66 +365,33 @@ class _SharedGroupCardState extends State<SharedGroupCard> with UtilityMixin {
           ),
 
           // ── Middle Row (Mutual Friends) ──────────────────────────────────
-          if (mutualFriendsCount > 0 || mutualFriends.isNotEmpty) ...[
-            SizedBox(height: 8.h),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                _buildMutualFriendsAvatars(
-                  context,
-                  mutualFriends: mutualFriends,
-                  count: mutualFriendsCount,
-                  cardBgColor: cardBgColor,
-                ),
-                SizedBox(width: 8.w),
-                Expanded(
-                  child: Text(
-                    '$mutualFriendsCount mutual ${mutualFriendsCount == 1 ? 'friend' : 'friends'}',
-                    style: AppTextStyles.bodyText.copyWith(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w400,
-                      color: txt.muted,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-              ],
-            ),
-          ],
-
-          // ── Bottom Action Button ──────────────────────────────────────────
-          SizedBox(height: 10.h),
-          GestureDetector(
-            onTap: _handleGroupAction,
-            child: Container(
-              width: double.infinity,
-              margin: EdgeInsets.symmetric(horizontal: 15.w),
-              padding: EdgeInsets.symmetric(vertical: 5.h),
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.primary,
-                borderRadius: BorderRadius.circular(AppRadius.button),
-              ),
-              alignment: Alignment.center,
-              child: _isJoining
-                  ? SizedBox(
-                      width: 20.w,
-                      height: 20.w,
-                      child: const CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: Colors.white,
-                      ),
-                    )
-                  : Text(
-                      buttonText,
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 12.sp,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-            ),
-          ),
+          // if (mutualFriendsCount > 0 || mutualFriends.isNotEmpty) ...[
+          //   SizedBox(height: 8.h),
+          //   Row(
+          //     crossAxisAlignment: CrossAxisAlignment.center,
+          //     children: [
+          //       _buildMutualFriendsAvatars(
+          //         context,
+          //         mutualFriends: mutualFriends,
+          //         count: mutualFriendsCount,
+          //         cardBgColor: cardBgColor,
+          //       ),
+          //       SizedBox(width: 8.w),
+          //       Expanded(
+          //         child: Text(
+          //           '$mutualFriendsCount mutual ${mutualFriendsCount == 1 ? 'friend' : 'friends'}',
+          //           style: AppTextStyles.bodyText.copyWith(
+          //             fontSize: 14,
+          //             fontWeight: FontWeight.w400,
+          //             color: txt.muted,
+          //           ),
+          //           maxLines: 1,
+          //           overflow: TextOverflow.ellipsis,
+          //         ),
+          //       ),
+          //     ],
+          //   ),
+          // ],
         ],
       ),
     );
@@ -407,19 +429,27 @@ class _SharedGroupCardState extends State<SharedGroupCard> with UtilityMixin {
             child: Container(
               width: avatarRadius * 2,
               height: avatarRadius * 2,
+              clipBehavior: Clip.antiAlias,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 color: Theme.of(context).colorScheme.onPrimary.withOpacity(0.1),
                 border: Border.all(color: cardBgColor, width: 2),
-                image: friendAvatarUrl != null
+                image:
+                    (friendAvatarUrl != null &&
+                        friendAvatarUrl != Assets.images.icAvatar.path)
                     ? DecorationImage(
-                        image: NetworkImage(friendAvatarUrl),
+                        image: friendAvatarUrl.startsWith('assets/')
+                            ? AssetImage(friendAvatarUrl) as ImageProvider
+                            : NetworkImage(friendAvatarUrl),
                         fit: BoxFit.cover,
+                        onError: (_, __) {},
                       )
                     : null,
               ),
               alignment: Alignment.center,
-              child: friendAvatarUrl == null
+              child:
+                  (friendAvatarUrl == null ||
+                      friendAvatarUrl == Assets.images.icAvatar.path)
                   ? Image.asset(Assets.images.icAvatar.path)
                   : null,
             ),

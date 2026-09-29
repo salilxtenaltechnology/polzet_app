@@ -159,15 +159,24 @@ class PollUser {
   });
 
   factory PollUser.fromJson(Map<String, dynamic> json) {
-    String? profilePic = json['profile_picture_url'] as String?;
-    if (profilePic != null && profilePic.isNotEmpty) {
-      if (!profilePic.startsWith('http') && !profilePic.startsWith('data:image')) {
+    String? profilePic = (json['profile_picture_url'] ??
+            json['profile_image'] ??
+            json['profile_picture'] ??
+            json['avatar'] ??
+            json['avatar_url'])
+        ?.toString();
+    if (profilePic != null && profilePic.isNotEmpty && profilePic != 'null') {
+      if (!profilePic.startsWith('http') &&
+          !profilePic.startsWith('data:image') &&
+          !profilePic.startsWith('assets/')) {
         if (profilePic.startsWith('/')) {
           profilePic = '${ApiConfig.baseUrlImage}$profilePic';
         } else {
           profilePic = '${ApiConfig.baseUrlImage}/$profilePic';
         }
       }
+    } else {
+      profilePic = null;
     }
     return PollUser(
       id: (json['id'] ?? '').toString(),

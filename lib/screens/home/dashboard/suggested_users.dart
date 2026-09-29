@@ -6,6 +6,7 @@ import 'package:polzet_app/core/themes/app_text_styles.dart';
 import '../../../api/api_service.dart';
 import '../../../core/constants/app_radius.dart';
 import '../../../core/themes/app_text_colors.dart';
+import '../../../gen/assets.gen.dart';
 import '../../../mixin/utility_mixins.dart';
 import '../../../models/user/suggestionsb users/suggestions_users_model.dart';
 import '../../../widgets/shimmer/suggestion_users_shimmer.dart';
@@ -69,7 +70,7 @@ class _SuggestedUsersState extends State<SuggestedUsers> with UtilityMixin {
             (MediaQuery.of(context).size.width - 16 * 2 - 12) / 2;
 
         return SizedBox(
-          height: 258,
+          height: 240,
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
             physics: const ClampingScrollPhysics(),
@@ -85,10 +86,7 @@ class _SuggestedUsersState extends State<SuggestedUsers> with UtilityMixin {
                   return Container(
                     width: cardWidth,
                     margin: const EdgeInsets.only(right: 12, top: 7),
-                    padding: const EdgeInsets.symmetric(
-                      vertical: 20,
-                      horizontal: 12,
-                    ),
+                    padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
                       color: Theme.of(context).colorScheme.primaryContainer,
                       borderRadius: BorderRadius.circular(AppRadius.card),
@@ -111,7 +109,9 @@ class _SuggestedUsersState extends State<SuggestedUsers> with UtilityMixin {
                               username: user.username,
                             ),
                           ),
-                          child: user.avatar.isNotEmpty
+                          child: (user.avatar.isNotEmpty &&
+                                  user.avatar != 'null' &&
+                                  user.avatar != Assets.images.icAvatar.path)
                               ? CircleAvatar(
                                   radius: 50,
                                   backgroundImage: user.avatarImageProvider,
@@ -122,22 +122,13 @@ class _SuggestedUsersState extends State<SuggestedUsers> with UtilityMixin {
                                 )
                               : CircleAvatar(
                                   radius: 50,
+                                  backgroundImage: AssetImage(
+                                    Assets.images.icAvatar.path,
+                                  ),
                                   backgroundColor:  Theme.of(context)
                                               .colorScheme
                                               .onPrimary
                                               .withOpacity(0.1),
-                                  child: Text(
-                                    user.username.isNotEmpty
-                                        ? user.username[0].toUpperCase()
-                                        : '?',
-                                    style: TextStyle(
-                                      fontSize: 30.sp,
-                                      fontWeight: FontWeight.w600,
-                                      color: Theme.of(
-                                        context,
-                                      ).colorScheme.onPrimary.withOpacity(0.8),
-                                    ),
-                                  ),
                                 ),
                         ),
                         const SizedBox(height: 5),

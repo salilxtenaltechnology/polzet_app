@@ -10,6 +10,8 @@ import 'package:polzet_app/widgets/appbar/common_appbar.dart';
 import 'package:polzet_app/widgets/button/primary_button.dart';
 import 'package:polzet_app/widgets/show_toast.dart';
 
+import '../../../../../../languages/l10n/generated/app_localizations.dart';
+
 export 'package:polzet_app/models/chat/chat_theme_item.dart';
 
 class GroupChatTheme extends StatefulWidget {
@@ -164,7 +166,7 @@ class _GroupChatThemeState extends State<GroupChatTheme> {
           provider!.chat!['chat_theme'] = selectedTheme.id;
         }
         if (mounted) {
-          showToast(message: 'Theme updated successfully');
+          showToast(message: 'Theme changed!');
           Navigator.pop(context, selectedTheme);
         }
       } catch (e) {
@@ -191,7 +193,7 @@ class _GroupChatThemeState extends State<GroupChatTheme> {
 
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.background,
-      appBar: const CommonAppBar(title: 'Customize Theme'),
+      appBar:  CommonAppBar(title: AppLocalizations.of(context)!.customizetheme),
       body: SafeArea(
         child: GridView.builder(
           padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 16.h),
@@ -221,7 +223,7 @@ class _GroupChatThemeState extends State<GroupChatTheme> {
                   border: isSelected
                       ? Border.all(
                           color: Theme.of(context).colorScheme.onPrimary,
-                          width: 1.5,
+                          width: 1,
                         )
                       : Border.all(
                           color: theme.getUnselectedBorderColor(isDarkMode) ??
@@ -231,35 +233,67 @@ class _GroupChatThemeState extends State<GroupChatTheme> {
                           width: 1,
                         ),
                 ),
-                padding: EdgeInsets.symmetric(horizontal: 10.w),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
+                padding: EdgeInsets.zero,
+                child: Stack(
                   children: [
-                    // Incoming message bubble (aligned left)
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: ClipPath(
-                        clipper: const _IncomingBubbleClipper(),
-                        child: Container(
-                          width: 80.w,
-                          height: 22.h,
-                          color: theme.getIncomingColor(isDarkMode),
-                        ),
+                    Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 10.w),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          // Incoming message bubble (aligned left)
+                          Align(
+                            alignment: Alignment.centerLeft,
+                            child: ClipPath(
+                              clipper: const _IncomingBubbleClipper(),
+                              child: Container(
+                                width: 80.w,
+                                height: 22.h,
+                                color: theme.getIncomingColor(isDarkMode),
+                              ),
+                            ),
+                          ),
+                          SizedBox(height: 15.h),
+                          // Outgoing message bubble (aligned right)
+                          Align(
+                            alignment: Alignment.centerRight,
+                            child: ClipPath(
+                              clipper: const _OutgoingBubbleClipper(),
+                              child: Container(
+                                width: 68.w,
+                                height: 22.h,
+                                color: theme.getOutgoingColor(isDarkMode),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                    SizedBox(height: 15.h),
-                    // Outgoing message bubble (aligned right)
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: ClipPath(
-                        clipper: const _OutgoingBubbleClipper(),
+                    if (isSelected)
+                      Positioned(
+                        top: 8.h,
+                        right: 8.w,
                         child: Container(
-                          width: 68.w,
-                          height: 22.h,
-                          color: theme.getOutgoingColor(isDarkMode),
+                          width: 18.w,
+                          height: 18.w,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: Theme.of(context).colorScheme.onPrimary,
+                              width: 1.5,
+                            ),
+                          ),
+                          alignment: Alignment.center,
+                          child: Container(
+                            width: 8.5.w,
+                            height: 8.5.w,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: Theme.of(context).colorScheme.onPrimary,
+                            ),
+                          ),
                         ),
                       ),
-                    ),
                   ],
                 ),
               ),
@@ -272,7 +306,7 @@ class _GroupChatThemeState extends State<GroupChatTheme> {
         height: 90,
         color: Theme.of(context).colorScheme.background,
         child: PrimaryButton(
-          title: 'Apply Theme',
+          title: AppLocalizations.of(context)!.applytheme,
           onPressed: (_isLoading || !_hasChanged) ? null : _applyTheme,
           isLoading: _isLoading,
         ),

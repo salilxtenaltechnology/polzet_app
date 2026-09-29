@@ -121,8 +121,32 @@ class ApiService with UtilityMixin {
     // Only passthrough backend error string if it is a 4xx validation/client error.
     if (statusCode != null && statusCode >= 400 && statusCode < 500) {
       if (e.response?.data != null && e.response?.data is Map) {
-        return e.response?.data['message']?.toString() ??
-            e.response?.data['detail']?.toString() ??
+        final data = e.response!.data as Map;
+        final errors = data['errors'];
+        if (errors != null) {
+          if (errors is Map && errors.isNotEmpty) {
+            if (errors['non_field_errors'] is List &&
+                (errors['non_field_errors'] as List).isNotEmpty) {
+              return (errors['non_field_errors'] as List).first.toString();
+            }
+            final firstKey = errors.keys.firstOrNull;
+            if (firstKey != null) {
+              final val = errors[firstKey];
+              if (val is List && val.isNotEmpty) {
+                return val.first.toString();
+              } else if (val != null && val.toString().isNotEmpty) {
+                return val.toString();
+              }
+            }
+          } else if (errors is List && errors.isNotEmpty) {
+            return errors.first.toString();
+          } else if (errors is String && errors.isNotEmpty) {
+            return errors;
+          }
+        }
+
+        return data['message']?.toString() ??
+            data['detail']?.toString() ??
             defaultMessage;
       }
     }
@@ -3143,15 +3167,40 @@ class ApiService with UtilityMixin {
         final List<Map<String, dynamic>> normalizedAdmins = [];
         final Set<String> adminUuids = {};
 
+        bool parseBool(dynamic val) {
+          if (val == null) return false;
+          if (val is bool) return val;
+          if (val is num) return val == 1;
+          final s = val.toString().toLowerCase().trim();
+          return s == 'true' || s == '1';
+        }
+
         for (final admin in admins) {
           if (admin is Map) {
             final String uuid = (admin['uuid'] ?? admin['id'] ?? '').toString();
             adminUuids.add(uuid);
-            normalizedAdmins.add({
-              'id': uuid,
-              'username': admin['username']?.toString() ?? '',
-              'profile_picture_url': admin['profile_picture_url']?.toString(),
-            });
+            final adminMap = Map<String, dynamic>.from(admin);
+            final bool isBlock = parseBool(admin['is_block']) ||
+                parseBool(admin['is_blocked']) ||
+                parseBool(admin['isBlocked']) ||
+                parseBool(admin['is_blocked_by_current_user']) ||
+                parseBool(admin['user']?['is_block']) ||
+                parseBool(admin['user']?['is_blocked']) ||
+                parseBool(admin['user']?['isBlocked']) ||
+                parseBool(admin['user']?['is_blocked_by_current_user']);
+
+            adminMap['id'] = uuid;
+            adminMap['uuid'] = uuid;
+            adminMap['username'] = admin['username']?.toString() ??
+                (admin['user']?['username']?.toString() ?? '');
+            adminMap['profile_picture_url'] =
+                admin['profile_picture_url']?.toString() ??
+                admin['profile_image']?.toString() ??
+                admin['user']?['profile_picture_url']?.toString() ??
+                admin['user']?['profile_image']?.toString();
+            adminMap['is_block'] = isBlock;
+            adminMap['is_blocked'] = isBlock;
+            normalizedAdmins.add(adminMap);
           }
         }
         normalized['admins'] = normalizedAdmins;
@@ -3175,28 +3224,50 @@ class ApiService with UtilityMixin {
             final bool? isOnline =
                 member['is_online'] as bool? ??
                 member['user']?['is_online'] as bool?;
-            final bool? isBlock =
-                member['is_block'] as bool? ??
-                member['user']?['is_block'] as bool?;
+            final bool isBlock = parseBool(member['is_block']) ||
+                parseBool(member['is_blocked']) ||
+                parseBool(member['isBlocked']) ||
+                parseBool(member['is_blocked_by_current_user']) ||
+                parseBool(member['user']?['is_block']) ||
+                parseBool(member['user']?['is_blocked']) ||
+                parseBool(member['user']?['isBlocked']) ||
+                parseBool(member['user']?['is_blocked_by_current_user']);
+            final bool isReported = parseBool(member['is_reported']) ||
+                parseBool(member['isReported']) ||
+                parseBool(member['user']?['is_reported']) ||
+                parseBool(member['user']?['isReported']);
 
-            normalizedMembers.add({
-              'is_admin': isAdmin,
-              'joined_at': joinedAt,
-              'is_online': isOnline,
-              'is_block': isBlock,
-              'user': {
-                'id': uuid,
-                'username':
-                    member['username']?.toString() ??
-                    (member['user']?['username']?.toString() ?? ''),
-                'profile_image':
-                    member['profile_picture_url']?.toString() ??
-                    member['profile_image']?.toString() ??
-                    member['user']?['profile_image']?.toString(),
-                'joined_at': joinedAt,
-                'is_online': isOnline,
-              },
-            });
+            final memberMap = Map<String, dynamic>.from(member);
+            final userMap = member['user'] is Map
+                ? Map<String, dynamic>.from(member['user'] as Map)
+                : <String, dynamic>{};
+
+            memberMap['is_admin'] = isAdmin;
+            memberMap['joined_at'] = joinedAt;
+            memberMap['is_online'] = isOnline;
+            memberMap['is_block'] = isBlock;
+            memberMap['is_blocked'] = isBlock;
+            memberMap['is_reported'] = isReported;
+
+            userMap['id'] = uuid;
+            userMap['uuid'] = uuid;
+            userMap['username'] =
+                member['username']?.toString() ??
+                (userMap['username']?.toString() ?? '');
+            userMap['profile_image'] =
+                member['profile_picture_url']?.toString() ??
+                member['profile_image']?.toString() ??
+                userMap['profile_image']?.toString() ??
+                userMap['profile_picture_url']?.toString();
+            userMap['profile_picture_url'] = userMap['profile_image'];
+            userMap['joined_at'] = joinedAt;
+            userMap['is_online'] = isOnline;
+            userMap['is_block'] = isBlock;
+            userMap['is_blocked'] = isBlock;
+            userMap['is_reported'] = isReported;
+
+            memberMap['user'] = userMap;
+            normalizedMembers.add(memberMap);
           }
         }
         normalized['members'] = normalizedMembers;

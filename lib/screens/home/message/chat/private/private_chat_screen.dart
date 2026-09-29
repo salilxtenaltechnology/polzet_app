@@ -12,6 +12,7 @@ import 'package:polzet_app/gen/assets.gen.dart';
 import 'package:polzet_app/widgets/base64/image_convert.dart';
 import 'package:provider/provider.dart';
 
+import '../../../../../core/constants/app_colors.dart';
 import '../../../../../core/constants/app_radius.dart';
 import '../../../../../core/themes/app_text_colors.dart';
 import '../../../../../core/themes/app_text_styles.dart';
@@ -23,7 +24,6 @@ import '../../../../../models/message/message_model.dart';
 import '../../../../../models/posts/single_post_model.dart';
 import '../../../../../provider/private_chat_provider.dart';
 import '../../../../../provider/user_provider.dart';
-import '../../../../../widgets/button/back_button.dart';
 import '../../../../../widgets/show_toast.dart';
 import '../../../home feed/rank/result/image/image_result_screen.dart';
 import '../../../home feed/rank/result/things/things_result_screen.dart';
@@ -275,7 +275,7 @@ class _PrivateChatScreenState extends State<PrivateChatScreen>
 
     provider.init(
       memberName: widget.memberName,
-      profileUrl: widget.profileUrl,
+      profileUrl: _resolvedMemberProfileUrl ?? widget.profileUrl,
       chatId: _resolvedChatId,
       currentUsername: userProvider.username,
       isMuted: isMuted,
@@ -375,6 +375,103 @@ class _PrivateChatScreenState extends State<PrivateChatScreen>
     return null;
   }
 
+  String? get _resolvedMemberProfileUrl {
+    final otherUser = _getOtherMemberUserFromChat(widget.chat);
+    if (otherUser != null) {
+      final p =
+          otherUser['avatar_url']?.toString() ??
+          otherUser['profile_url']?.toString() ??
+          otherUser['profile_picture']?.toString() ??
+          otherUser['profile_picture_url']?.toString() ??
+          otherUser['profile_image']?.toString();
+      if (p != null && p.trim().isNotEmpty && p != 'null') return p.trim();
+    }
+    if (widget.profileUrl != null &&
+        widget.profileUrl!.trim().isNotEmpty &&
+        widget.profileUrl != 'null') {
+      return widget.profileUrl!.trim();
+    }
+    try {
+      final privateProvider = context.read<PrivateChatProvider>();
+      final p = privateProvider.profileUrl;
+      if (p != null && p.trim().isNotEmpty && p != 'null') return p.trim();
+    } catch (_) {}
+    final chatUrl =
+        widget.chat?['profile_url']?.toString() ??
+        widget.chat?['profile_picture']?.toString() ??
+        widget.chat?['profile_picture_url']?.toString() ??
+        widget.chat?['avatar_url']?.toString() ??
+        widget.chat?['picture_url']?.toString() ??
+        widget.chat?['profile_image']?.toString();
+    if (chatUrl != null && chatUrl.trim().isNotEmpty && chatUrl != 'null') {
+      return chatUrl.trim();
+    }
+    return null;
+  }
+
+  ImageProvider _getAvatarImageProvider(String? rawUrl) {
+    if (rawUrl == null ||
+        rawUrl.trim().isEmpty ||
+        rawUrl == 'null' ||
+        rawUrl == Assets.images.icAvatar.path ||
+        rawUrl.endsWith('ic_avatar.png')) {
+      return AssetImage(Assets.images.icAvatar.path);
+    }
+
+    final trimmed = rawUrl.trim();
+
+    final base64Image = getProfileImage(trimmed);
+    if (base64Image != null) {
+      return MemoryImage(base64Image);
+    }
+
+    if (trimmed.startsWith('assets/')) {
+      return AssetImage(trimmed);
+    }
+
+    final resolved = resolveProfileImageUrl(trimmed);
+    if (resolved != null && resolved.isNotEmpty) {
+      if (resolved.startsWith('http://') || resolved.startsWith('https://')) {
+        return NetworkImage(resolved);
+      } else if (resolved.startsWith('assets/')) {
+        return AssetImage(resolved);
+      }
+    }
+
+    if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+      return NetworkImage(trimmed);
+    }
+
+    final separator = trimmed.startsWith('/') ? '' : '/';
+    final fullUrl = '${ApiConfig.baseUrlImage}$separator$trimmed';
+    if (fullUrl.startsWith('http')) {
+      return NetworkImage(fullUrl);
+    }
+
+    return AssetImage(Assets.images.icAvatar.path);
+  }
+
+  Widget _buildAvatarCircle({
+    required String? profileUrl,
+    required double radius,
+    VoidCallback? onTap,
+  }) {
+    final avatarProvider = _getAvatarImageProvider(profileUrl);
+
+    final avatarWidget = CircleAvatar(
+      radius: radius,
+      backgroundColor: Theme.of(context).colorScheme.onPrimary.withOpacity(0.1),
+      backgroundImage: avatarProvider,
+      onBackgroundImageError: (exception, stackTrace) {},
+    );
+
+    if (onTap != null) {
+      return GestureDetector(onTap: onTap, child: avatarWidget);
+    }
+
+    return avatarWidget;
+  }
+
   dynamic get _resolvedUserId {
     if (widget.userId != null) return widget.userId;
     final otherUser = _getOtherMemberUserFromChat(widget.chat);
@@ -399,7 +496,7 @@ class _PrivateChatScreenState extends State<PrivateChatScreen>
             userId: _resolvedUserId,
             name: _resolvedMemberName,
             username: _resolvedUsername,
-            profileUrl: widget.profileUrl,
+            profileUrl: _resolvedMemberProfileUrl ?? widget.profileUrl,
             chatId: _resolvedChatId ?? widget.chatId,
             chat: widget.chat,
             isUserBlock: _isUserBlock,
@@ -889,21 +986,21 @@ class _PrivateChatScreenState extends State<PrivateChatScreen>
     if (message.isPending) {
       return Icon(
         Icons.check,
-        size: 11.sp,
+        size: 11.5.sp,
         color: statusColor ?? fallbackColor,
       );
     }
     if (message.isRead) {
       return Icon(
         Icons.done_all,
-        size: 11.sp,
+        size: 11.5.sp,
         color: statusColor ?? Colors.blue,
       );
     }
     // Sent (delivered)
     return Icon(
       Icons.done_all,
-      size: 11.sp,
+      size: 11.5.sp,
       color: statusColor ?? fallbackColor,
     );
   }
@@ -914,25 +1011,147 @@ class _PrivateChatScreenState extends State<PrivateChatScreen>
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     final currentTheme = provider.currentTheme;
     final post = message.sharedPost!;
+
+    final bool isLocked =
+        post['is_locked'] == true ||
+        post['is_locked']?.toString().toLowerCase() == 'true';
+    if (isLocked) {
+      final authorUsername =
+          post['author_username']?.toString() ??
+          (post['user'] is Map ? post['user']['username']?.toString() : null) ??
+          '';
+      final authorUserId =
+          post['user_id']?.toString() ??
+          post['userId']?.toString() ??
+          (post['user'] is Map
+              ? (post['user']['userid'] ?? post['user']['id'])?.toString()
+              : null);
+      final errorMsg = post['error']?.toString().trim();
+      final displayError = (errorMsg != null && errorMsg.isNotEmpty)
+          ? errorMsg
+          : 'This post is from a private account. Follow this user to view their polls.';
+
+      void handleViewProfile() {
+        if (authorUsername.isNotEmpty ||
+            (authorUserId != null && authorUserId.isNotEmpty)) {
+          final userProvider = Provider.of<UserProvider>(
+            context,
+            listen: false,
+          );
+          final currentUserId = userProvider.userId?.toString();
+          final currentUsername = userProvider.username;
+          final isCurrentUser =
+              (currentUserId != null &&
+                  currentUserId.isNotEmpty &&
+                  authorUserId != null &&
+                  authorUserId.isNotEmpty &&
+                  currentUserId == authorUserId) ||
+              (currentUsername != null &&
+                  currentUsername.isNotEmpty &&
+                  authorUsername.isNotEmpty &&
+                  currentUsername.toLowerCase() ==
+                      authorUsername.toLowerCase());
+
+          if (isCurrentUser) {
+            navigationPush(context, const ProfileScreen());
+          } else {
+            navigationPush(
+              context,
+              PublicProfileScreen(
+                userId: (authorUserId != null && authorUserId.isNotEmpty)
+                    ? authorUserId
+                    : null,
+                username: authorUsername.isNotEmpty ? authorUsername : null,
+              ),
+            );
+          }
+        }
+      }
+
+      return Container(
+        margin: EdgeInsets.only(
+          top: 4.h,
+          bottom: 12,
+          left: message.isSentByMe ? 40.w : 12.w,
+          right: message.isSentByMe ? 12.w : 40.w,
+        ),
+        padding: EdgeInsets.fromLTRB(14.w, 14.h, 14.w, 14.h),
+        decoration: BoxDecoration(
+          color:
+              (message.isSentByMe
+                  ? currentTheme?.getOutgoingCardColor(isDarkMode)
+                  : currentTheme?.getIncomingCardColor(isDarkMode)) ??
+              Theme.of(context).colorScheme.primaryContainer,
+          borderRadius: BorderRadius.circular(AppRadius.card),
+          border: Border.all(
+            color: currentTheme?.id == 'midnight_navy'
+                ? const Color(0x339EAFC0)
+                : Theme.of(context).colorScheme.outline,
+            width: 1,
+          ),
+          boxShadow: const [BoxShadow(color: Color(0x04000000), blurRadius: 2)],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'Poll unavailable',
+              style: AppTextStyles.bodyText.copyWith(
+                color: Theme.of(context).colorScheme.onBackground,
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            SizedBox(height: 6.h),
+            Text(
+              displayError,
+              textAlign: TextAlign.center,
+              style: AppTextStyles.bodyText.copyWith(
+                fontSize: 15,
+                fontWeight: FontWeight.w400,
+                height: 1.2,
+                color: currentTheme?.id == 'midnight_navy'
+                    ? const Color(0xFF9EAFC0)
+                    : (isDarkMode ? const Color(0xFFB0B0B0) : txt.body),
+              ),
+            ),
+            SizedBox(height: 14.h),
+            GestureDetector(
+              onTap: handleViewProfile,
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 5),
+                decoration: BoxDecoration(
+                  color: AppColors.primaryColor,
+                  borderRadius: BorderRadius.circular(AppRadius.button),
+                ),
+                alignment: Alignment.center,
+                child: Text(
+                  'View Profile',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 12.sp,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
     final user = post['user'] ?? {};
     final firstName = user['first_name']?.toString() ?? '';
     final lastName = user['last_name']?.toString() ?? '';
     final name = '$firstName $lastName'.trim();
     final username = user['username']?.toString() ?? '';
-    final String? avatarUrlRaw = user['profile_image']?.toString();
-    String? avatarUrl;
-    if (avatarUrlRaw != null && avatarUrlRaw.isNotEmpty) {
-      if (avatarUrlRaw.startsWith('http') ||
-          avatarUrlRaw.startsWith('data:image')) {
-        avatarUrl = avatarUrlRaw;
-      } else {
-        if (avatarUrlRaw.startsWith('/')) {
-          avatarUrl = '${ApiConfig.baseUrlImage}$avatarUrlRaw';
-        } else {
-          avatarUrl = '${ApiConfig.baseUrlImage}/$avatarUrlRaw';
-        }
-      }
-    }
+    final String? avatarUrlRaw =
+        user['profile_image']?.toString() ??
+        user['profile_picture']?.toString() ??
+        user['profile_picture_url']?.toString() ??
+        user['avatar_url']?.toString();
     final description = post['description']?.toString() ?? '';
     final isPolledByCurrentUser = post['is_polled_by_current_user'] == true;
 
@@ -1194,17 +1413,9 @@ class _PrivateChatScreenState extends State<PrivateChatScreen>
                               ],
                             ),
                           )
-                        : CircleAvatar(
+                        : _buildAvatarCircle(
+                            profileUrl: avatarUrlRaw,
                             radius: 19,
-                            backgroundColor: Theme.of(
-                              context,
-                            ).colorScheme.onPrimary.withOpacity(0.1),
-                            backgroundImage: avatarUrl != null
-                                ? NetworkImage(avatarUrl)
-                                : null,
-                            child: avatarUrl == null
-                                ? Image.asset(Assets.images.icAvatar.path)
-                                : null,
                           ),
                     SizedBox(width: 8.w),
                     Expanded(
@@ -1217,7 +1428,9 @@ class _PrivateChatScreenState extends State<PrivateChatScreen>
                                 child: Text(
                                   name.isNotEmpty ? name : username,
                                   style: AppTextStyles.sectionHeading.copyWith(
-                                    color: (currentTheme?.id == 'midnight_navy' || isDarkMode)
+                                    color:
+                                        (currentTheme?.id == 'midnight_navy' ||
+                                            isDarkMode)
                                         ? Colors.white
                                         : txt.title,
                                     fontSize: 14,
@@ -1247,8 +1460,8 @@ class _PrivateChatScreenState extends State<PrivateChatScreen>
                                     color: currentTheme?.id == 'midnight_navy'
                                         ? const Color(0xFF9EAFC0)
                                         : (isDarkMode
-                                            ? const Color(0xFFB0B0B0)
-                                            : txt.body),
+                                              ? const Color(0xFFB0B0B0)
+                                              : txt.body),
                                   ),
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
@@ -1350,8 +1563,11 @@ class _PrivateChatScreenState extends State<PrivateChatScreen>
     final lastName = profile['last_name']?.toString() ?? '';
     final name = '$firstName $lastName'.trim();
     final username = profile['username']?.toString() ?? '';
-    final profileUrlRaw = profile['profile_url']?.toString();
-    final avatarUrl = resolveProfileImageUrl(profileUrlRaw);
+    final profileUrlRaw =
+        profile['profile_url']?.toString() ??
+        profile['profile_picture']?.toString() ??
+        profile['profile_picture_url']?.toString() ??
+        profile['avatar_url']?.toString();
 
     final displayName = name.isNotEmpty ? name : username;
 
@@ -1442,18 +1658,7 @@ class _PrivateChatScreenState extends State<PrivateChatScreen>
                       ],
                     ),
                   )
-                : CircleAvatar(
-                    radius: 21,
-                    backgroundColor: Theme.of(
-                      context,
-                    ).colorScheme.onPrimary.withOpacity(0.1),
-                    backgroundImage: avatarUrl != null
-                        ? NetworkImage(avatarUrl)
-                        : null,
-                    child: avatarUrl == null
-                        ? Image.asset(Assets.images.icAvatar.path)
-                        : null,
-                  ),
+                : _buildAvatarCircle(profileUrl: profileUrlRaw, radius: 21),
             SizedBox(width: 10.w),
             Expanded(
               child: Column(
@@ -1466,7 +1671,9 @@ class _PrivateChatScreenState extends State<PrivateChatScreen>
                         child: Text(
                           displayName,
                           style: AppTextStyles.sectionHeading.copyWith(
-                            color: (currentTheme?.id == 'midnight_navy' || isDarkMode)
+                            color:
+                                (currentTheme?.id == 'midnight_navy' ||
+                                    isDarkMode)
                                 ? Colors.white
                                 : Theme.of(context).colorScheme.onBackground,
                             fontSize: 14,
@@ -1533,11 +1740,11 @@ class _PrivateChatScreenState extends State<PrivateChatScreen>
     final pollBgColor = isMidnightNavy
         ? const Color(0xFF9EAFC0)
         : (currentTheme?.getBgColor(isDarkMode) ??
-            Theme.of(context).colorScheme.surface);
+              Theme.of(context).colorScheme.surface);
     final pollBorderColor = isMidnightNavy
         ? const Color(0xFF9EAFC0)
         : (currentTheme?.getUnselectedBorderColor(isDarkMode) ??
-            Theme.of(context).colorScheme.outline);
+              Theme.of(context).colorScheme.outline);
     final textColor = isMidnightNavy
         ? const Color(0xFF0A1523)
         : (isDarkMode ? Colors.white : txt.heading);
@@ -1556,10 +1763,7 @@ class _PrivateChatScreenState extends State<PrivateChatScreen>
                 padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 8.h),
                 decoration: BoxDecoration(
                   color: pollBgColor,
-                  border: Border.all(
-                    color: pollBorderColor,
-                    width: 1,
-                  ),
+                  border: Border.all(color: pollBorderColor, width: 1),
                   borderRadius: BorderRadius.circular(AppRadius.card),
                 ),
                 alignment: Alignment.center,
@@ -1567,7 +1771,9 @@ class _PrivateChatScreenState extends State<PrivateChatScreen>
                   opt,
                   style: AppTextStyles.bodyText.copyWith(
                     fontSize: 13,
-                    fontWeight: isMidnightNavy ? FontWeight.w600 : FontWeight.w500,
+                    fontWeight: isMidnightNavy
+                        ? FontWeight.w600
+                        : FontWeight.w500,
                     color: textColor,
                   ),
                   maxLines: 1,
@@ -1582,10 +1788,7 @@ class _PrivateChatScreenState extends State<PrivateChatScreen>
                 padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 8.h),
                 decoration: BoxDecoration(
                   color: pollBgColor,
-                  border: Border.all(
-                    color: pollBorderColor,
-                    width: 1,
-                  ),
+                  border: Border.all(color: pollBorderColor, width: 1),
                   borderRadius: BorderRadius.circular(AppRadius.button),
                 ),
                 alignment: Alignment.center,
@@ -1776,7 +1979,11 @@ class _PrivateChatScreenState extends State<PrivateChatScreen>
               context,
               text: message.text,
               baseStyle: AppTextStyles.bodyText.copyWith(
-                color: message.isSentByMe ? Colors.white : txt.body,
+                color: message.isSentByMe
+                    ? (currentTheme?.getOutgoingMessageTextColor(isDarkMode) ??
+                          Colors.white)
+                    : (currentTheme?.getIncomingMessageTextColor(isDarkMode) ??
+                          txt.body),
                 fontSize: 13.6,
                 fontWeight: FontWeight.w400,
               ),
@@ -1791,7 +1998,7 @@ class _PrivateChatScreenState extends State<PrivateChatScreen>
                 Text(
                   _formatTime(message.created_at),
                   style: TextStyle(
-                    fontSize: 8.4.sp,
+                    fontSize: 9.sp,
                     color:
                         currentTheme?.getMessageTimeColor(isDarkMode) ??
                         (isDarkMode ? const Color(0xBDFFFFFF) : txt.muted),
@@ -1910,7 +2117,8 @@ class _PrivateChatScreenState extends State<PrivateChatScreen>
   Widget _buildScrollToBottomButton() {
     if (_isAtBottom) return const SizedBox.shrink();
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    final buttonColor = provider.currentTheme?.getOutgoingColor(isDarkMode) ??
+    final buttonColor =
+        provider.currentTheme?.getOutgoingColor(isDarkMode) ??
         Theme.of(context).colorScheme.primary;
 
     return Positioned(
@@ -1982,9 +2190,6 @@ class _PrivateChatScreenState extends State<PrivateChatScreen>
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     final provider = context.watch<PrivateChatProvider>();
 
-    final avatarUrl = resolveProfileImageUrl(widget.profileUrl);
-    final avatarProvider = avatarUrl != null ? NetworkImage(avatarUrl) : null;
-
     return SafeArea(
       top: false,
       child: PopScope(
@@ -2020,7 +2225,9 @@ class _PrivateChatScreenState extends State<PrivateChatScreen>
                         icon: Icon(
                           Icons.close,
                           size: 22,
-                          color: Theme.of(context).colorScheme.onBackground,
+                          color: provider.currentTheme?.id == 'midnight_navy'
+                              ? Colors.white
+                              : Theme.of(context).colorScheme.onBackground,
                         ),
                         onPressed: () {
                           setState(() {
@@ -2032,7 +2239,9 @@ class _PrivateChatScreenState extends State<PrivateChatScreen>
                       Text(
                         '1',
                         style: AppTextStyles.bodyText.copyWith(
-                          color: txt.title,
+                          color: provider.currentTheme?.id == 'midnight_navy'
+                              ? Colors.white
+                              : txt.title,
                           fontSize: 16.sp,
                           fontWeight: FontWeight.w600,
                         ),
@@ -2042,7 +2251,9 @@ class _PrivateChatScreenState extends State<PrivateChatScreen>
                         icon: Icon(
                           Icons.copy_rounded,
                           size: 20,
-                          color: Theme.of(context).colorScheme.onBackground,
+                          color: provider.currentTheme?.id == 'midnight_navy'
+                              ? Colors.white
+                              : Theme.of(context).colorScheme.onBackground,
                         ),
                         onPressed: _copySelectedMessage,
                       ),
@@ -2050,7 +2261,9 @@ class _PrivateChatScreenState extends State<PrivateChatScreen>
                         icon: Icon(
                           Icons.delete_outline_rounded,
                           size: 22,
-                          color: Theme.of(context).colorScheme.onBackground,
+                          color: provider.currentTheme?.id == 'midnight_navy'
+                              ? Colors.white
+                              : Theme.of(context).colorScheme.onBackground,
                         ),
                         onPressed: _deleteSelectedMessage,
                       ),
@@ -2072,7 +2285,16 @@ class _PrivateChatScreenState extends State<PrivateChatScreen>
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
                       SizedBox(width: 12.w),
-                      const PrimaryBackButton(),
+                      GestureDetector(
+                        onTap: () => Navigator.pop(context),
+                        child: Icon(
+                          Icons.arrow_back_ios,
+                          color: provider.currentTheme?.id == 'midnight_navy'
+                              ? Colors.white
+                              : Theme.of(context).colorScheme.onBackground,
+                          size: 24,
+                        ),
+                      ),
                       _isPolzetAiChat()
                           ? SizedBox(
                               width: 45.w,
@@ -2107,15 +2329,10 @@ class _PrivateChatScreenState extends State<PrivateChatScreen>
                             )
                           : Stack(
                               children: [
-                                CircleAvatar(
+                                _buildAvatarCircle(
+                                  profileUrl: _resolvedMemberProfileUrl,
                                   radius: 19,
-                                  backgroundColor: Theme.of(
-                                    context,
-                                  ).colorScheme.onPrimary.withOpacity(0.1),
-                                  backgroundImage: avatarProvider,
-                                  child: avatarProvider == null
-                                      ? Image.asset(Assets.images.icAvatar.path)
-                                      : null,
+                                  onTap: _openChatDetails,
                                 ),
                                 // Green dot when member is online
                                 Consumer<PrivateChatProvider>(
@@ -2158,8 +2375,12 @@ class _PrivateChatScreenState extends State<PrivateChatScreen>
                                 Text(
                                   _resolvedMemberName,
                                   style: AppTextStyles.bodyText.copyWith(
-                                    color: provider.currentTheme?.getTitleColor(isDarkMode) ??
-                                        (provider.currentTheme?.id == 'midnight_navy'
+                                    color:
+                                        provider.currentTheme?.getTitleColor(
+                                          isDarkMode,
+                                        ) ??
+                                        (provider.currentTheme?.id ==
+                                                'midnight_navy'
                                             ? const Color(0xFFCCCCD0)
                                             : txt.title),
                                     fontSize: 14.5,
@@ -2231,7 +2452,9 @@ class _PrivateChatScreenState extends State<PrivateChatScreen>
                         icon: Icon(
                           FeatherIcons.moreVertical,
                           size: 22,
-                          color: Theme.of(context).colorScheme.onBackground,
+                          color: provider.currentTheme?.id == 'midnight_navy'
+                              ? Colors.white
+                              : Theme.of(context).colorScheme.onBackground,
                         ),
                         color: Theme.of(context).colorScheme.tertiaryContainer,
                         shape: RoundedRectangleBorder(
@@ -2256,7 +2479,7 @@ class _PrivateChatScreenState extends State<PrivateChatScreen>
                               height: 38,
                               value: 'user_info',
                               child: Text(
-                                'User info',
+                                AppLocalizations.of(context)!.chatinfo,
                                 style: AppTextStyles.bodyText.copyWith(
                                   color: txt.title,
                                   fontWeight: FontWeight.w500,
@@ -2583,7 +2806,13 @@ class _PrivateChatScreenState extends State<PrivateChatScreen>
                                                 style: TextStyle(
                                                   fontSize: 9.sp,
                                                   fontWeight: FontWeight.w500,
-                                                  color: txt.body,
+                                                  color:
+                                                      provider
+                                                              .currentTheme
+                                                              ?.id ==
+                                                          'midnight_navy'
+                                                      ? Colors.white
+                                                      : txt.body,
                                                 ),
                                               ),
                                             ),
@@ -2635,7 +2864,11 @@ class _PrivateChatScreenState extends State<PrivateChatScreen>
                                         style: TextStyle(
                                           fontSize: 9.sp,
                                           fontWeight: FontWeight.w500,
-                                          color: txt.body,
+                                          color:
+                                              provider.currentTheme?.id ==
+                                                  'midnight_navy'
+                                              ? Colors.white
+                                              : txt.body,
                                         ),
                                       ),
                                     ),
@@ -2689,11 +2922,15 @@ class _PrivateChatScreenState extends State<PrivateChatScreen>
                                     ),
                                     enabledBorder: OutlineInputBorder(
                                       borderSide: BorderSide(
-                                        color: isDarkMode
-                                            ? Theme.of(
-                                                context,
-                                              ).colorScheme.outline
-                                            : const Color(0xFFDDDDDD),
+                                        color:
+                                            provider.currentTheme?.id ==
+                                                'midnight_navy'
+                                            ? const Color(0x80636363)
+                                            : (isDarkMode
+                                                  ? Theme.of(
+                                                      context,
+                                                    ).colorScheme.outline
+                                                  : const Color(0xFFDDDDDD)),
                                         width: 1,
                                       ),
                                       borderRadius: BorderRadius.circular(
@@ -2702,11 +2939,15 @@ class _PrivateChatScreenState extends State<PrivateChatScreen>
                                     ),
                                     focusedBorder: OutlineInputBorder(
                                       borderSide: BorderSide(
-                                        color: isDarkMode
-                                            ? Theme.of(
-                                                context,
-                                              ).colorScheme.outline
-                                            : const Color(0xFFDDDDDD),
+                                        color:
+                                            provider.currentTheme?.id ==
+                                                'midnight_navy'
+                                            ? const Color(0x80636363)
+                                            : (isDarkMode
+                                                  ? Theme.of(
+                                                      context,
+                                                    ).colorScheme.outline
+                                                  : const Color(0xFFDDDDDD)),
                                         width: 1,
                                       ),
                                       borderRadius: BorderRadius.circular(

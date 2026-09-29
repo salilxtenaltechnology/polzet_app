@@ -1133,7 +1133,10 @@ class _ProfileScreenState extends State<ProfileScreen>
               final originalImageSource =
                   userProvider.profile_picture_path ??
                   userProvider.profile_picture;
-              if (originalImageSource == null || originalImageSource.isEmpty) {
+              if (originalImageSource == null ||
+                  originalImageSource.isEmpty ||
+                  originalImageSource == Assets.images.icAvatar.path ||
+                  originalImageSource.endsWith('ic_avatar.png')) {
                 return;
               }
               Navigator.of(context).push(
@@ -1164,7 +1167,26 @@ class _ProfileScreenState extends State<ProfileScreen>
                   child: ClipOval(
                     child: (() {
                       final profilePic = userProvider.profile_picture;
-                      if (profilePic != null && profilePic.isNotEmpty) {
+                      if (profilePic != null &&
+                          profilePic.isNotEmpty &&
+                          profilePic != 'null') {
+                        if (profilePic == Assets.images.icAvatar.path ||
+                            profilePic.endsWith('ic_avatar.png')) {
+                          return Image.asset(
+                            Assets.images.icAvatar.path,
+                            fit: BoxFit.cover,
+                          );
+                        }
+                        if (profilePic.startsWith('assets/')) {
+                          return Image.asset(
+                            profilePic,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => Image.asset(
+                              Assets.images.icAvatar.path,
+                              fit: BoxFit.cover,
+                            ),
+                          );
+                        }
                         final cachedImage = _getCachedProfileImage(
                           profilePic,
                           userProvider,
@@ -1173,9 +1195,9 @@ class _ProfileScreenState extends State<ProfileScreen>
                           return Image.memory(
                             cachedImage,
                             fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) => _AvatarPlaceholder(
-                              username: userProvider.username,
-                              fontSize: 35,
+                            errorBuilder: (_, __, ___) => Image.asset(
+                              Assets.images.icAvatar.path,
+                              fit: BoxFit.cover,
                             ),
                           );
                         } else if (profilePic.startsWith('http') ||
@@ -1189,16 +1211,16 @@ class _ProfileScreenState extends State<ProfileScreen>
                           return CachedNetworkImage(
                             imageUrl: imageUrl,
                             fit: BoxFit.cover,
-                            errorWidget: (_, __, ___) => _AvatarPlaceholder(
-                              username: userProvider.username,
-                              fontSize: 35,
+                            errorWidget: (_, __, ___) => Image.asset(
+                              Assets.images.icAvatar.path,
+                              fit: BoxFit.cover,
                             ),
                           );
                         }
                       }
-                      return _AvatarPlaceholder(
-                        username: userProvider.username,
-                        fontSize: 35,
+                      return Image.asset(
+                        Assets.images.icAvatar.path,
+                        fit: BoxFit.cover,
                       );
                     })(),
                   ),
@@ -1518,7 +1540,34 @@ class _ProfileScreenState extends State<ProfileScreen>
                                     );
                                   }
                                   if (postProfilePic != null &&
-                                      postProfilePic.isNotEmpty) {
+                                      postProfilePic.isNotEmpty &&
+                                      postProfilePic != 'null') {
+                                    if (postProfilePic ==
+                                            Assets.images.icAvatar.path ||
+                                        postProfilePic
+                                            .endsWith('ic_avatar.png')) {
+                                      return Image.asset(
+                                        Assets.images.icAvatar.path,
+                                        fit: BoxFit.cover,
+                                        width: double.infinity,
+                                        height: double.infinity,
+                                      );
+                                    }
+                                    if (postProfilePic.startsWith('assets/')) {
+                                      return Image.asset(
+                                        postProfilePic,
+                                        fit: BoxFit.cover,
+                                        width: double.infinity,
+                                        height: double.infinity,
+                                        errorBuilder: (_, __, ___) =>
+                                            Image.asset(
+                                              Assets.images.icAvatar.path,
+                                              fit: BoxFit.cover,
+                                              width: double.infinity,
+                                              height: double.infinity,
+                                            ),
+                                      );
+                                    }
                                     if (postProfilePic ==
                                         userProvider.profile_picture) {
                                       final cachedImage =
@@ -1533,9 +1582,11 @@ class _ProfileScreenState extends State<ProfileScreen>
                                           width: double.infinity,
                                           height: double.infinity,
                                           errorBuilder: (_, __, ___) =>
-                                              _AvatarPlaceholder(
-                                                username: postUsername,
-                                                fontSize: 18,
+                                              Image.asset(
+                                                Assets.images.icAvatar.path,
+                                                fit: BoxFit.cover,
+                                                width: double.infinity,
+                                                height: double.infinity,
                                               ),
                                         );
                                       }
@@ -1552,15 +1603,19 @@ class _ProfileScreenState extends State<ProfileScreen>
                                       width: double.infinity,
                                       height: double.infinity,
                                       errorWidget: (_, __, ___) =>
-                                          _AvatarPlaceholder(
-                                            username: postUsername,
-                                            fontSize: 18,
+                                          Image.asset(
+                                            Assets.images.icAvatar.path,
+                                            fit: BoxFit.cover,
+                                            width: double.infinity,
+                                            height: double.infinity,
                                           ),
                                     );
                                   }
-                                  return _AvatarPlaceholder(
-                                    username: postUsername,
-                                    fontSize: 18,
+                                  return Image.asset(
+                                    Assets.images.icAvatar.path,
+                                    fit: BoxFit.cover,
+                                    width: double.infinity,
+                                    height: double.infinity,
                                   );
                                 })(),
                               ),
@@ -1731,7 +1786,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                                                     vertical: 9,
                                                   ),
                                               child: Text(
-                                                'View Result',
+                                               AppLocalizations.of(context)!.viewresult,
                                                 style: AppTextStyles.bodyText
                                                     .copyWith(
                                                       color: txt.title,
@@ -1753,8 +1808,8 @@ class _ProfileScreenState extends State<ProfileScreen>
                                             ),
                                             child: Text(
                                               isSaved
-                                                  ? 'Unsave poll'
-                                                  : 'Save poll',
+                                                  ? AppLocalizations.of(context)!.unsavepoll
+                                                  : AppLocalizations.of(context)!.savepoll,
                                               style: AppTextStyles.bodyText
                                                   .copyWith(
                                                     color: txt.title,
@@ -1778,7 +1833,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                                                     vertical: 9,
                                                   ),
                                               child: Text(
-                                                'Go to profile',
+                                               AppLocalizations.of(context)!.gotoprofile,
                                                 style: AppTextStyles.bodyText
                                                     .copyWith(
                                                       color: txt.title,
@@ -1803,7 +1858,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                                                     vertical: 9,
                                                   ),
                                               child: Text(
-                                                'Delete poll',
+                                                AppLocalizations.of(context)!.deletepoll,
                                                 style: AppTextStyles.bodyText
                                                     .copyWith(
                                                       color: Colors.red,
@@ -4581,34 +4636,6 @@ class _ProfileScreenState extends State<ProfileScreen>
   }
 }
 
-class _AvatarPlaceholder extends StatelessWidget {
-  final String? username;
-  final double fontSize;
-
-  const _AvatarPlaceholder({this.username, this.fontSize = 35});
-
-  @override
-  Widget build(BuildContext context) {
-    String firstLetter = 'P';
-    if (username != null && username!.isNotEmpty) {
-      firstLetter = username![0].toUpperCase();
-    }
-
-    return Container(
-      color: Theme.of(context).colorScheme.onPrimary.withOpacity(0.09),
-      child: Center(
-        child: Text(
-          firstLetter,
-          style: AppTextStyles.bodyText.copyWith(
-            color: Theme.of(context).colorScheme.onPrimary.withOpacity(0.7),
-            fontSize: fontSize,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-      ),
-    );
-  }
-}
 
 // ─── Stat Card ────────────────────────────────────────────────────────────────
 

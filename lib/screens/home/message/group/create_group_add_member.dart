@@ -19,6 +19,7 @@ import '../../../../widgets/button/primary_button.dart';
 import '../../../../widgets/custom_text_styles.dart';
 import '../../../../widgets/loader.dart';
 import '../../../../widgets/show_toast.dart';
+import '../../../../gen/assets.gen.dart';
 import 'group_created_success_screen.dart';
 
 class CreateGroupAddMember extends StatefulWidget {
@@ -388,32 +389,19 @@ class _CreateGroupAddMemberState extends State<CreateGroupAddMember>
                           final imageBytes = avatarUrl != null
                               ? getProfileImage(avatarUrl)
                               : null;
-                          final hasNetworkImage =
-                              imageBytes == null &&
-                              avatarUrl != null &&
-                              avatarUrl.trim().isNotEmpty &&
-                              avatarUrl.startsWith('http');
-                          final initial = username.trim().isNotEmpty
-                              ? username.trim()[0].toUpperCase()
-                              : 'P';
+                          final ImageProvider avatarProvider = imageBytes != null
+                              ? MemoryImage(imageBytes)
+                              : (avatarUrl != null &&
+                                      avatarUrl.trim().isNotEmpty &&
+                                      avatarUrl != 'null' &&
+                                      avatarUrl != Assets.images.icAvatar.path
+                                  ? (avatarUrl.startsWith('assets/')
+                                      ? AssetImage(avatarUrl)
+                                      : NetworkImage(avatarUrl) as ImageProvider)
+                                  : AssetImage(Assets.images.icAvatar.path));
                           return CircleAvatar(
                             radius: 21.r,
-                            backgroundImage: imageBytes != null
-                                ? MemoryImage(imageBytes)
-                                : (hasNetworkImage ? NetworkImage(avatarUrl) : null),
-                            backgroundColor: (imageBytes == null && !hasNetworkImage)
-                                ? Theme.of(context).colorScheme.onPrimary.withOpacity(0.1)
-                                : null,
-                            child: (imageBytes == null && !hasNetworkImage)
-                                ? Text(
-                                    initial,
-                                    style: AppTextStyles.subText.copyWith(
-                                      color: Theme.of(context).colorScheme.onPrimary,
-                                      fontWeight: FontWeight.w600,
-                                      fontSize: 15.sp,
-                                    ),
-                                  )
-                                : null,
+                            backgroundImage: avatarProvider,
                           );
                         },
                       ),
@@ -529,34 +517,19 @@ class _CreateGroupAddMemberState extends State<CreateGroupAddMember>
                       final imageBytes = avatarUrl != null
                           ? getProfileImage(avatarUrl)
                           : null;
-                      final hasNetworkImage =
-                          imageBytes == null &&
-                          avatarUrl != null &&
-                          avatarUrl.trim().isNotEmpty &&
-                          avatarUrl.startsWith('http');
-                      final initial = username.trim().isNotEmpty
-                          ? username.trim()[0].toUpperCase()
-                          : 'P';
+                      final ImageProvider avatarProvider = imageBytes != null
+                          ? MemoryImage(imageBytes)
+                          : (avatarUrl != null &&
+                                  avatarUrl.trim().isNotEmpty &&
+                                  avatarUrl != 'null' &&
+                                  avatarUrl != Assets.images.icAvatar.path
+                              ? (avatarUrl.startsWith('assets/')
+                                  ? AssetImage(avatarUrl)
+                                  : NetworkImage(avatarUrl) as ImageProvider)
+                              : AssetImage(Assets.images.icAvatar.path));
                       return CircleAvatar(
                         radius: 19.r,
-                        backgroundImage: imageBytes != null
-                            ? MemoryImage(imageBytes)
-                            : (hasNetworkImage ? NetworkImage(avatarUrl) : null),
-                        backgroundColor: (imageBytes == null && !hasNetworkImage)
-                            ? Theme.of(
-                                context,
-                              ).colorScheme.onPrimary.withOpacity(0.1)
-                            : null,
-                        child: (imageBytes == null && !hasNetworkImage)
-                            ? Text(
-                                initial,
-                                style: AppTextStyles.subText.copyWith(
-                                  color: Theme.of(context).colorScheme.onPrimary,
-                                  fontWeight: FontWeight.w500,
-                                  fontSize: 16.sp,
-                                ),
-                              )
-                            : null,
+                        backgroundImage: avatarProvider,
                       );
                     },
                   ),

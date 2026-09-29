@@ -106,15 +106,25 @@ class SearchAccount {
     final String lastName = json['last_name'] ?? '';
     final String calculatedFullName = json['fullName'] ?? 
         (firstName.isNotEmpty ? '$firstName $lastName'.trim() : '');
-    String? profileImg = json['profileImage'] ?? json['avatar_url'] ?? json['profile_image'];
-    if (profileImg != null && profileImg.isNotEmpty) {
-      if (!profileImg.startsWith('http') && !profileImg.startsWith('data:image')) {
+    String? profileImg = (json['profileImage'] ??
+            json['profile_image'] ??
+            json['avatar_url'] ??
+            json['avatar'] ??
+            json['profile_picture_url'] ??
+            json['profile_picture'])
+        ?.toString();
+    if (profileImg != null && profileImg.isNotEmpty && profileImg != 'null') {
+      if (!profileImg.startsWith('http') &&
+          !profileImg.startsWith('data:image') &&
+          !profileImg.startsWith('assets/')) {
         if (profileImg.startsWith('/')) {
           profileImg = '${ApiConfig.baseUrlImage}$profileImg';
         } else {
           profileImg = '${ApiConfig.baseUrlImage}/$profileImg';
         }
       }
+    } else {
+      profileImg = null;
     }
     final String status = json['follow_status'] ?? 'none';
     final bool following = json['isFollowing'] ?? 
@@ -218,15 +228,25 @@ class SearchPostAuthor {
   });
 
   factory SearchPostAuthor.fromJson(Map<String, dynamic> json) {
-    String? profileImg = json['profileImage'] ?? json['profile_image'] ?? json['avatar_url'];
-    if (profileImg != null && profileImg.isNotEmpty) {
-      if (!profileImg.startsWith('http') && !profileImg.startsWith('data:image')) {
+    String? profileImg = (json['profileImage'] ??
+            json['profile_image'] ??
+            json['avatar_url'] ??
+            json['avatar'] ??
+            json['profile_picture_url'] ??
+            json['profile_picture'])
+        ?.toString();
+    if (profileImg != null && profileImg.isNotEmpty && profileImg != 'null') {
+      if (!profileImg.startsWith('http') &&
+          !profileImg.startsWith('data:image') &&
+          !profileImg.startsWith('assets/')) {
         if (profileImg.startsWith('/')) {
           profileImg = '${ApiConfig.baseUrlImage}$profileImg';
         } else {
           profileImg = '${ApiConfig.baseUrlImage}/$profileImg';
         }
       }
+    } else {
+      profileImg = null;
     }
     return SearchPostAuthor(
       id: (json['id'] ?? json['userid'] ?? '').toString(),

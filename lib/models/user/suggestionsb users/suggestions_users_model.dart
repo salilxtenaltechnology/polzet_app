@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import '../../../api/api_config.dart';
+import '../../../gen/assets.gen.dart';
 
 
 class UserSuggestionsModel {
@@ -38,7 +39,7 @@ class SuggestionsData {
   factory SuggestionsData.fromJson(Map<String, dynamic> json) {
     return SuggestionsData(
       peopleYouMayKnow:
-          (json['suggestions'] as List<dynamic>?)
+          ((json['people_you_may_know'] ?? json['suggestions']) as List<dynamic>?)
               ?.map((e) => SuggestedUser.fromJson(e as Map<String, dynamic>))
               .toList() ??
           [],
@@ -79,7 +80,11 @@ class SuggestedUser {
   ImageProvider? _avatarImageProvider;
   ImageProvider get avatarImageProvider {
     if (_avatarImageProvider == null) {
-      if (avatar.startsWith('data:image')) {
+      if (avatar.isEmpty || avatar == 'null' || avatar.endsWith('ic_avatar.png')) {
+        _avatarImageProvider = AssetImage(Assets.images.icAvatar.path);
+      } else if (avatar.startsWith('assets/')) {
+        _avatarImageProvider = AssetImage(avatar);
+      } else if (avatar.startsWith('data:image')) {
         try {
           _avatarImageProvider = MemoryImage(base64Decode(avatar.split(',').last));
         } catch (_) {
@@ -97,7 +102,11 @@ class SuggestedUser {
     if (_mutualImageProviders == null) {
       _mutualImageProviders = [];
       for (final url in mutualFriendsAvatars) {
-        if (url.startsWith('data:image')) {
+        if (url.isEmpty || url == 'null' || url.endsWith('ic_avatar.png')) {
+          _mutualImageProviders!.add(AssetImage(Assets.images.icAvatar.path));
+        } else if (url.startsWith('assets/')) {
+          _mutualImageProviders!.add(AssetImage(url));
+        } else if (url.startsWith('data:image')) {
           try {
             _mutualImageProviders!.add(MemoryImage(base64Decode(url.split(',').last)));
           } catch (_) {

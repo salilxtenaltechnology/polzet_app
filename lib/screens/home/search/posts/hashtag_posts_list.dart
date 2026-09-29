@@ -656,7 +656,6 @@ class _HashtagPostsListState extends State<HashtagPostsList> {
     final currentUsername = userProvider.username ?? '';
     final currentUserId = userProvider.userId?.toString() ?? '';
     final username = post.user.username;
-    final initial = username.isNotEmpty ? username[0].toUpperCase() : '?';
     final bool isPolzetAi = username.trim().toLowerCase() == 'polzet_ai' ||
         username.trim().toLowerCase() == 'polet_ai';
     final bool isOwnPost = username.isEmpty ||
@@ -669,20 +668,27 @@ class _HashtagPostsListState extends State<HashtagPostsList> {
     final String? profileUrl = post.user.profileImage;
     final avatarBytes = _decodeBase64(profileUrl);
 
-    ImageProvider? avatarImage;
+    ImageProvider avatarImage;
     if (avatarBytes != null) {
       avatarImage = MemoryImage(avatarBytes);
-    } else if (profileUrl != null && profileUrl.isNotEmpty) {
-      if (profileUrl.startsWith('http') ||
-          profileUrl.startsWith('/') ||
-          profileUrl.contains('/')) {
-        final imageUrl = profileUrl.startsWith('http')
-            ? profileUrl
-            : (profileUrl.startsWith('/')
-                  ? '${ApiConfig.baseUrlImage}$profileUrl'
-                  : '${ApiConfig.baseUrlImage}/$profileUrl');
-        avatarImage = CachedNetworkImageProvider(imageUrl);
-      }
+    } else if (profileUrl == null || profileUrl.isEmpty || profileUrl == 'null') {
+      avatarImage = AssetImage(Assets.images.icAvatar.path);
+    } else if (profileUrl == Assets.images.icAvatar.path ||
+        profileUrl.endsWith('ic_avatar.png')) {
+      avatarImage = AssetImage(Assets.images.icAvatar.path);
+    } else if (profileUrl.startsWith('assets/')) {
+      avatarImage = AssetImage(profileUrl);
+    } else if (profileUrl.startsWith('http') ||
+        profileUrl.startsWith('/') ||
+        profileUrl.contains('/')) {
+      final imageUrl = profileUrl.startsWith('http')
+          ? profileUrl
+          : (profileUrl.startsWith('/')
+                ? '${ApiConfig.baseUrlImage}$profileUrl'
+                : '${ApiConfig.baseUrlImage}/$profileUrl');
+      avatarImage = CachedNetworkImageProvider(imageUrl);
+    } else {
+      avatarImage = AssetImage(Assets.images.icAvatar.path);
     }
 
     return Padding(
@@ -741,16 +747,7 @@ class _HashtagPostsListState extends State<HashtagPostsList> {
                       context,
                     ).colorScheme.onPrimary.withOpacity(0.1),
                     backgroundImage: avatarImage,
-                    child: avatarImage == null
-                        ? Text(
-                            initial,
-                            style: AppTextStyles.subText.copyWith(
-                              color: Theme.of(context).colorScheme.onPrimary,
-                              fontWeight: FontWeight.w500,
-                              fontSize: 18,
-                            ),
-                          )
-                        : null,
+                    onBackgroundImageError: (_, __) {},
                   ),
           ),
           SizedBox(width: 8.w),
@@ -939,7 +936,7 @@ class _HashtagPostsListState extends State<HashtagPostsList> {
                                       vertical: 9,
                                     ),
                                     child: Text(
-                                      isSaved ? 'Unsave poll' : 'Save poll',
+                                      isSaved ?  AppLocalizations.of(context)!.unsavepoll : AppLocalizations.of(context)!.savepoll,
                                       style: AppTextStyles.bodyText.copyWith(
                                         color: txt.title,
                                         fontWeight: FontWeight.w500,
@@ -961,7 +958,7 @@ class _HashtagPostsListState extends State<HashtagPostsList> {
                                         vertical: 9,
                                       ),
                                       child: Text(
-                                        'Go to profile',
+                                        AppLocalizations.of(context)!.gotoprofile,
                                         style: AppTextStyles.bodyText.copyWith(
                                           color: txt.title,
                                           fontWeight: FontWeight.w500,
@@ -983,8 +980,8 @@ class _HashtagPostsListState extends State<HashtagPostsList> {
                                       ),
                                       child: Text(
                                         isUserBlocked
-                                            ? 'Unblock user'
-                                            : 'Block user',
+                                            ? AppLocalizations.of(context)!.unblockuser
+                                            : AppLocalizations.of(context)!.blockuser,
                                         style: AppTextStyles.bodyText.copyWith(
                                           color: isUserBlocked
                                               ? txt.title

@@ -11,6 +11,7 @@ import 'package:polzet_app/widgets/show_toast.dart';
 import 'package:showcaseview/showcaseview.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../../../../api/api_config.dart';
 import '../../../../../api/api_service.dart';
 import '../../../../../../core/themes/app_text_styles.dart';
 import '../../../../../../models/posts/homefeed_posts_model.dart';
@@ -202,7 +203,6 @@ class _HomefeedThingsRankingState extends State<HomefeedThingsRanking>
   Widget _buildHeader() {
     final txt = AppTextColors.of(context);
     final username = widget.user.username;
-    final initial = username.isNotEmpty ? username[0].toUpperCase() : 'P';
 
     final firstName = widget.user.firstName?.trim() ?? '';
     final lastName = widget.user.lastName?.trim() ?? '';
@@ -246,29 +246,46 @@ class _HomefeedThingsRankingState extends State<HomefeedThingsRanking>
                         ),
                       );
                     }
+                    final String raw = widget.user.profileImage ?? '';
                     return CircleAvatar(
                       radius: 22.5,
                       backgroundColor: Theme.of(
                         context,
                       ).colorScheme.onPrimary.withOpacity(0.1),
-                      backgroundImage: _profileImageBytes != null
-                          ? MemoryImage(_profileImageBytes!)
-                          : (widget.user.profileImage != null &&
-                                  widget.user.profileImage!.isNotEmpty
-                              ? NetworkImage(widget.user.profileImage!)
-                              : null),
-                      child: _profileImageBytes == null &&
-                              (widget.user.profileImage == null ||
-                                  widget.user.profileImage!.isEmpty)
-                          ? Text(
-                              initial,
-                              style: AppTextStyles.subText.copyWith(
-                                color: Theme.of(context).colorScheme.onPrimary,
-                                fontWeight: FontWeight.w500,
-                                fontSize: 18,
-                              ),
-                            )
-                          : null,
+                      backgroundImage: (() {
+                        if (raw.isEmpty || raw == 'null') {
+                          return AssetImage(
+                            Assets.images.icAvatar.path,
+                          ) as ImageProvider;
+                        }
+                        if (raw == Assets.images.icAvatar.path ||
+                            raw.endsWith('ic_avatar.png')) {
+                          return AssetImage(
+                            Assets.images.icAvatar.path,
+                          ) as ImageProvider;
+                        }
+                        if (raw.startsWith('assets/')) {
+                          return AssetImage(raw) as ImageProvider;
+                        }
+                        if (_profileImageBytes != null) {
+                          return MemoryImage(_profileImageBytes!)
+                              as ImageProvider;
+                        }
+                        if (raw.startsWith('http') ||
+                            raw.startsWith('/') ||
+                            raw.contains('/')) {
+                          final imageUrl = raw.startsWith('http')
+                              ? raw
+                              : (raw.startsWith('/')
+                                  ? '${ApiConfig.baseUrlImage}$raw'
+                                  : '${ApiConfig.baseUrlImage}/$raw');
+                          return NetworkImage(imageUrl) as ImageProvider;
+                        }
+                        return AssetImage(
+                          Assets.images.icAvatar.path,
+                        ) as ImageProvider;
+                      })(),
+                      onBackgroundImageError: (_, __) {},
                     );
                   })(),
                 ),

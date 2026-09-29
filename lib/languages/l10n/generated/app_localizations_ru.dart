@@ -160,7 +160,7 @@ class AppLocalizationsRu extends AppLocalizations {
       'Fange an, Personen zu folgen, um sie hier zu sehen!';
 
   @override
-  String get add => 'Hinzufügen';
+  String get add => 'Добавить';
 
   @override
   String get makeadmin => 'Zum Admin machen';
@@ -272,7 +272,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String get custombackgroundchat => 'Пользовательdefinierter Chat-Hintergrund';
 
   @override
-  String get deletegroup => 'Группа löschen';
+  String get deletegroup => 'Удалить группу';
 
   @override
   String get areyousureyouwanttodeletedeletethisgroup =>
@@ -2268,7 +2268,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String get share => 'Поделиться';
 
   @override
-  String get joinrequests => 'Beitrittsanfragen';
+  String get joinrequests => 'Запросы на вступление';
 
   @override
   String get nopendingjoinrequests => 'Нет ausstehenden Beitrittsanfragen';
@@ -2397,7 +2397,7 @@ class AppLocalizationsRu extends AppLocalizations {
       'Deine Credits werden morgen zurückgesetzt';
 
   @override
-  String get lefttoday => 'heute übrig';
+  String get lefttoday => 'осталось сегодня';
 
   @override
   String get comingsoon => 'DEMNÄCHST';
@@ -2451,4 +2451,228 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get joinwaitlist => 'Присоединиться к списку ожидания';
+
+  @override
+  String get addgroupphoto => 'Добавить фото группы';
+
+  @override
+  String get changegroupphoto => 'Изменить фото группы';
+
+  @override
+  String get entergroupdescription => 'Введите описание группы';
+
+  @override
+  String get groupinfo => 'Информация о группе';
+
+  @override
+  String get search => 'Поиск';
+
+  @override
+  String get invitelink => 'Ссылка-приглашение';
+
+  @override
+  String get privacysafety => 'Конфиденциальность и безопасность';
+
+  @override
+  String get onlymemberscanseeandparticipateinthisgroup =>
+      'Только участники могут видеть эту группу и участвовать в ней';
+
+  @override
+  String get onlypeopleyouinvitecanjoingroup =>
+      'Только приглашённые вами люди могут присоединиться к группе';
+
+  @override
+  String get anyonecandiscoverandviewthisgroup =>
+      'Любой может найти и просмотреть эту группу';
+
+  @override
+  String get customizetheme => 'Настроить тему';
+
+  @override
+  String get yourcanchangecolorandthemeofchat =>
+      'Вы можете изменить цвет и тему чата';
+
+  @override
+  String get groupmembers => 'Участники группы';
+
+  @override
+  String get nomembersfound => 'Участники не найдены';
+
+  @override
+  String get onepersonwaitingforapproval => '1 человек ожидает одобрения';
+
+  @override
+  String get personwaitingforapproval => 'человек ожидает одобрения';
+
+  @override
+  String get viewprofile => 'Посмотреть профиль';
+
+  @override
+  String get reportuser => 'Пожаловаться на пользователя';
+
+  @override
+  String get nojoinrequests => 'Нет запросов на вступление';
+
+  @override
+  String get approve => 'Одобрить';
+
+  @override
+  String get invite => 'Пригласить';
+
+  @override
+  String get copied => 'Скопировано';
+
+  @override
+  String get copy => 'Копировать';
+
+  @override
+  String get invitepeopletojointhisgroup =>
+      'Пригласить людей присоединиться к этой группе';
+
+  @override
+  String get groupporivacy => 'Конфиденциальность группы';
+
+  @override
+  String get reportgroup => 'Пожаловаться на группу';
+
+  @override
+  String get reportspamharmfulcontentorotherconcerns =>
+      'Пожаловаться на спам, вредоносный контент или другие проблемы';
+
+  @override
+  String get blockgroup => 'Заблокировать группу';
+
+  @override
+  String get privacyinformation => 'Информация о конфиденциальности';
+
+  @override
+  String get seesomethingyouareuncomfortablewith =>
+      'Видите что-то, что вызывает у вас дискомфорт? Вы можете пожаловаться на группу, если она нарушает наши правила, или заблокировать её, если просто не хотите видеть её контент или рекомендации.';
+
+  @override
+  String get permanentlydeletethisgroup => 'Удалить эту группу навсегда';
+
+  @override
+  String get whyareyoureportingthisgroup =>
+      'Почему вы жалуетесь на эту группу?';
+
+  @override
+  String get spamormisleading => 'Спам или вводящий в заблуждение контент';
+
+  @override
+  String get harassmentorbullying => 'Преследование или травля';
+
+  @override
+  String get hateorhatefulcontent => 'Ненависть или разжигание ненависти';
+
+  @override
+  String get sexualorinappropriatecontent =>
+      'Сексуальный или неприемлемый контент';
+
+  @override
+  String get violenceordngerouscontent => 'Насилие или опасный контент';
+
+  @override
+  String get scamorfraud => 'Мошенничество или обман';
+
+  @override
+  String get somethingelse => 'Другое';
+
+  @override
+  String get tellusmoreabout => 'Расскажите нам подробнее';
+
+  @override
+  String get addmoreadditionaldetails =>
+      'Добавьте подробности, это поможет нам рассмотреть вашу жалобу';
+
+  @override
+  String get submitreport => 'Отправить жалобу';
+
+  @override
+  String get applytheme => 'Apply Theme';
+
+  @override
+  String get notificationsettings => 'Notification Settings';
+
+  @override
+  String get mutechat => 'Mute Chat';
+
+  @override
+  String get verify => 'Verify';
+
+  @override
+  String get verifying => 'Verifying...';
+
+  @override
+  String get viewresult => 'View Result';
+
+  @override
+  String get savepoll => 'Save poll';
+
+  @override
+  String get unsavepoll => 'Unsave poll';
+
+  @override
+  String get deletepoll => 'Delete poll';
+
+  @override
+  String get gotoprofile => 'Go to profile';
+
+  @override
+  String get aipick => 'AI Pick';
+
+  @override
+  String get aigenerationslefttoday => 'AI generations left today';
+
+  @override
+  String get noaigenerationslefttoday => 'No AI generations left today';
+
+  @override
+  String get yourcreditswillresettomorrow => 'Your credits will reset tomorrow';
+
+  @override
+  String get archivedgroup => 'Archived Group';
+
+  @override
+  String get failedtoloadarchivedchats => 'Failed to load archived chats';
+
+  @override
+  String get retry => 'Retry';
+
+  @override
+  String get unblockthisusertoallowmessagesandinteractions =>
+      'Разблокируйте этого пользователя, чтобы разрешить сообщения и взаимодействия';
+
+  @override
+  String get stopreceivingmessagesandseeingthisuserscontent =>
+      'Перестать получать сообщения и просматривать содержимое этого пользователя';
+
+  @override
+  String get yourprivacyandsafetymatterreportthisperson =>
+      'Ваша конфиденциальность и безопасность важны. Пожалуйтесь на этого пользователя, если что-то кажется неприемлемым или нарушает наши правила, или заблокируйте его, если больше не хотите с ним взаимодействовать.';
+
+  @override
+  String get safetysupport => 'Поддержка безопасности';
+
+  @override
+  String get whyareyoureportingthisuser =>
+      ' Почему вы жалуетесь на этого пользователя?';
+
+  @override
+  String get ai => 'ИИ';
+
+  @override
+  String get generation => 'генерация';
+
+  @override
+  String get generations => 'генерации';
+
+  @override
+  String get chatinfo => 'Информация о чате';
+
+  @override
+  String get more => 'Ещё';
+
+  @override
+  String get postdetails => 'Публикация';
 }

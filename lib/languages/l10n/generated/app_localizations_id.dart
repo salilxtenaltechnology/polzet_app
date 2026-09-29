@@ -2265,7 +2265,7 @@ class AppLocalizationsId extends AppLocalizations {
   String get share => 'Bagikan';
 
   @override
-  String get joinrequests => 'Permintaan Bergabung';
+  String get joinrequests => 'Permintaan bergabung';
 
   @override
   String get nopendingjoinrequests =>
@@ -2448,4 +2448,227 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String get joinwaitlist => 'Gabung Daftar Tunggu';
+
+  @override
+  String get addgroupphoto => 'Tambah foto grup';
+
+  @override
+  String get changegroupphoto => 'Ubah foto grup';
+
+  @override
+  String get entergroupdescription => 'Masukkan deskripsi grup';
+
+  @override
+  String get groupinfo => 'Info grup';
+
+  @override
+  String get search => 'Cari';
+
+  @override
+  String get invitelink => 'Tautan undangan';
+
+  @override
+  String get privacysafety => 'Privasi dan keamanan';
+
+  @override
+  String get onlymemberscanseeandparticipateinthisgroup =>
+      'Hanya anggota yang dapat melihat dan berpartisipasi dalam grup ini';
+
+  @override
+  String get onlypeopleyouinvitecanjoingroup =>
+      'Hanya orang yang Anda undang yang dapat bergabung dengan grup';
+
+  @override
+  String get anyonecandiscoverandviewthisgroup =>
+      'Siapa saja dapat menemukan dan melihat grup ini';
+
+  @override
+  String get customizetheme => 'Sesuaikan tema';
+
+  @override
+  String get yourcanchangecolorandthemeofchat =>
+      'Anda dapat mengubah warna dan tema chat';
+
+  @override
+  String get groupmembers => 'Anggota grup';
+
+  @override
+  String get nomembersfound => 'Tidak ada anggota yang ditemukan';
+
+  @override
+  String get onepersonwaitingforapproval => '1 orang menunggu persetujuan';
+
+  @override
+  String get personwaitingforapproval => 'orang menunggu persetujuan';
+
+  @override
+  String get viewprofile => 'Lihat profil';
+
+  @override
+  String get reportuser => 'Laporkan pengguna';
+
+  @override
+  String get nojoinrequests => 'Tidak ada permintaan bergabung';
+
+  @override
+  String get approve => 'Setujui';
+
+  @override
+  String get invite => 'Undang';
+
+  @override
+  String get copied => 'Disalin';
+
+  @override
+  String get copy => 'Salin';
+
+  @override
+  String get invitepeopletojointhisgroup =>
+      'Undang orang untuk bergabung dengan grup ini';
+
+  @override
+  String get groupporivacy => 'Privasi grup';
+
+  @override
+  String get reportgroup => 'Laporkan grup';
+
+  @override
+  String get reportspamharmfulcontentorotherconcerns =>
+      'Laporkan spam, konten berbahaya, atau masalah lainnya';
+
+  @override
+  String get blockgroup => 'Blokir grup';
+
+  @override
+  String get privacyinformation => 'Informasi privasi';
+
+  @override
+  String get seesomethingyouareuncomfortablewith =>
+      'Melihat sesuatu yang membuat Anda tidak nyaman? Anda dapat melaporkan grup jika melanggar pedoman kami, atau memblokirnya jika Anda tidak ingin melihat konten atau rekomendasinya.';
+
+  @override
+  String get permanentlydeletethisgroup => 'Hapus grup ini secara permanen';
+
+  @override
+  String get whyareyoureportingthisgroup => 'Mengapa Anda melaporkan grup ini?';
+
+  @override
+  String get spamormisleading => 'Spam atau menyesatkan';
+
+  @override
+  String get harassmentorbullying => 'Pelecehan atau perundungan';
+
+  @override
+  String get hateorhatefulcontent =>
+      'Kebencian atau konten yang mengandung kebencian';
+
+  @override
+  String get sexualorinappropriatecontent => 'Konten seksual atau tidak pantas';
+
+  @override
+  String get violenceordngerouscontent => 'Kekerasan atau konten berbahaya';
+
+  @override
+  String get scamorfraud => 'Penipuan atau kecurangan';
+
+  @override
+  String get somethingelse => 'Lainnya';
+
+  @override
+  String get tellusmoreabout => 'Beri tahu kami lebih lanjut';
+
+  @override
+  String get addmoreadditionaldetails =>
+      'Tambahkan detail lebih lanjut, ini akan membantu kami meninjau laporan Anda';
+
+  @override
+  String get submitreport => 'Kirim laporan';
+
+  @override
+  String get applytheme => 'Apply Theme';
+
+  @override
+  String get notificationsettings => 'Notification Settings';
+
+  @override
+  String get mutechat => 'Mute Chat';
+
+  @override
+  String get verify => 'Verify';
+
+  @override
+  String get verifying => 'Verifying...';
+
+  @override
+  String get viewresult => 'View Result';
+
+  @override
+  String get savepoll => 'Save poll';
+
+  @override
+  String get unsavepoll => 'Unsave poll';
+
+  @override
+  String get deletepoll => 'Delete poll';
+
+  @override
+  String get gotoprofile => 'Go to profile';
+
+  @override
+  String get aipick => 'AI Pick';
+
+  @override
+  String get aigenerationslefttoday => 'AI generations left today';
+
+  @override
+  String get noaigenerationslefttoday => 'No AI generations left today';
+
+  @override
+  String get yourcreditswillresettomorrow => 'Your credits will reset tomorrow';
+
+  @override
+  String get archivedgroup => 'Archived Group';
+
+  @override
+  String get failedtoloadarchivedchats => 'Failed to load archived chats';
+
+  @override
+  String get retry => 'Retry';
+
+  @override
+  String get unblockthisusertoallowmessagesandinteractions =>
+      'Buka blokir pengguna ini untuk mengizinkan pesan dan interaksi';
+
+  @override
+  String get stopreceivingmessagesandseeingthisuserscontent =>
+      'Berhenti menerima pesan dan melihat konten pengguna ini';
+
+  @override
+  String get yourprivacyandsafetymatterreportthisperson =>
+      'Privasi dan keamanan Anda penting. Laporkan orang ini jika ada sesuatu yang tidak pantas atau melanggar pedoman kami, atau blokir jika Anda tidak ingin lagi berinteraksi dengannya.';
+
+  @override
+  String get safetysupport => 'Dukungan Keamanan';
+
+  @override
+  String get whyareyoureportingthisuser =>
+      ' Mengapa Anda melaporkan pengguna ini?';
+
+  @override
+  String get ai => 'AI';
+
+  @override
+  String get generation => 'generasi';
+
+  @override
+  String get generations => 'generasi';
+
+  @override
+  String get chatinfo => 'Info Chat';
+
+  @override
+  String get more => 'Lainnya';
+
+  @override
+  String get postdetails => 'Postingan';
 }

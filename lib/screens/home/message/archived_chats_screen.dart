@@ -746,7 +746,7 @@ class _ArchivedChatsScreenState extends State<ArchivedChatsScreen>
       final response = await _apiServices.deleteChat(chatId: chatId.toString());
       if (response['status'] == 'success' || response['success'] == true) {
         _removeChatLocally(chatId);
-        showToast(message: 'Chat deleted');
+        showToast(message: 'Chat deleted!');
       } else {
         showToast(
           message: response['message']?.toString() ?? 'Failed to delete chat',
@@ -1188,8 +1188,8 @@ class _ArchivedChatsScreenState extends State<ArchivedChatsScreen>
     final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
     final txt = AppTextColors.of(context);
     final title = widget.chatType == 'group'
-        ? 'Archived Groups'
-        : 'Archived Chats';
+        ? AppLocalizations.of(context)!.archivedgroup
+        : AppLocalizations.of(context)!.archivedchats;
 
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.background,
@@ -1225,13 +1225,13 @@ class _ArchivedChatsScreenState extends State<ArchivedChatsScreen>
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(
-                    'Failed to load archived chats',
+                    AppLocalizations.of(context)!.failedtoloadarchivedchats,
                     style: AppTextStyles.bodyText.copyWith(color: txt.muted),
                   ),
                   const SizedBox(height: 12),
                   ElevatedButton(
                     onPressed: _fetchArchivedChats,
-                    child: const Text('Retry'),
+                    child:  Text(AppLocalizations.of(context)!.retry),
                   ),
                 ],
               ),
@@ -1239,7 +1239,7 @@ class _ArchivedChatsScreenState extends State<ArchivedChatsScreen>
           : _archivedChats.isEmpty
           ? Center(
               child: Text(
-                'No archived chats yet',
+               AppLocalizations.of(context)!.noarchivedchatsyet,
                 style: AppTextStyles.bodyText.copyWith(
                   color: txt.muted,
                   fontSize: 14,
@@ -1296,7 +1296,7 @@ class _ArchivedChatsScreenState extends State<ArchivedChatsScreen>
                         _fetchArchivedChats();
                         showToast(message: 'Failed to unarchive chat');
                       } else {
-                        showToast(message: 'Chat unarchived');
+                        showToast(message: 'Chat unarchived!');
                       }
                     } catch (e) {
                       // Revert

@@ -181,7 +181,6 @@ class _SinglePostThingsRankingState extends State<SinglePostThingsRanking> {
   Widget _buildPostHeader() {
     final post = widget.post;
     final username = post.user.username;
-    final initial = username.isNotEmpty ? username[0].toUpperCase() : 'P';
     final txt = AppTextColors.of(context);
 
     final fn = post.firstName.trim();
@@ -192,20 +191,27 @@ class _SinglePostThingsRankingState extends State<SinglePostThingsRanking> {
         : (username.isNotEmpty ? username : 'Polzet User');
 
     final String profileUrl = widget.post.profileImage;
-    ImageProvider? avatarImage;
-    if (_profileImageBytes != null) {
+    ImageProvider avatarImage;
+    if (profileUrl.isEmpty || profileUrl == 'null') {
+      avatarImage = AssetImage(Assets.images.icAvatar.path);
+    } else if (profileUrl == Assets.images.icAvatar.path ||
+        profileUrl.endsWith('ic_avatar.png')) {
+      avatarImage = AssetImage(Assets.images.icAvatar.path);
+    } else if (profileUrl.startsWith('assets/')) {
+      avatarImage = AssetImage(profileUrl);
+    } else if (_profileImageBytes != null) {
       avatarImage = MemoryImage(_profileImageBytes!);
-    } else if (profileUrl.isNotEmpty) {
-      if (profileUrl.startsWith('http') ||
-          profileUrl.startsWith('/') ||
-          profileUrl.contains('/')) {
-        final imageUrl = profileUrl.startsWith('http')
-            ? profileUrl
-            : (profileUrl.startsWith('/')
-                ? '${ApiConfig.baseUrlImage}$profileUrl'
-                : '${ApiConfig.baseUrlImage}/$profileUrl');
-        avatarImage = CachedNetworkImageProvider(imageUrl);
-      }
+    } else if (profileUrl.startsWith('http') ||
+        profileUrl.startsWith('/') ||
+        profileUrl.contains('/')) {
+      final imageUrl = profileUrl.startsWith('http')
+          ? profileUrl
+          : (profileUrl.startsWith('/')
+              ? '${ApiConfig.baseUrlImage}$profileUrl'
+              : '${ApiConfig.baseUrlImage}/$profileUrl');
+      avatarImage = CachedNetworkImageProvider(imageUrl);
+    } else {
+      avatarImage = AssetImage(Assets.images.icAvatar.path);
     }
 
     return Padding(
@@ -254,14 +260,7 @@ class _SinglePostThingsRankingState extends State<SinglePostThingsRanking> {
                         context,
                       ).colorScheme.onPrimary.withOpacity(0.15),
                       backgroundImage: avatarImage,
-                      child: avatarImage == null
-                          ? Text(
-                              initial,
-                              style: AppTextStyles.cardTitle.copyWith(
-                                color: Theme.of(context).colorScheme.onPrimary,
-                              ),
-                            )
-                          : null,
+                      onBackgroundImageError: (_, __) {},
                     ),
               const SizedBox(width: 10),
               Expanded(

@@ -199,50 +199,50 @@ class _CreateGroupState extends State<CreateGroup> with UtilityMixin {
                           child: _isUploadingImage
                               ? Center(
                                   child: Loader(
-                                    color: Theme.of(context).colorScheme.primary,
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.primary,
                                   ),
                                 )
                               : (_selectedImage == null
                                     ? Center(
                                         child: Image.asset(
-                                          Assets.images.icAvatar.path,
-                                         
-                                          
+                                          Assets.images.icGroupAvatar.path,
                                         ),
                                       )
                                     : null),
                         ),
-                          Positioned(
-                            bottom: 8,
-                            right: 0,
-                            child: Container(
-                              width: 28,
-                              height: 28,
-                              decoration: BoxDecoration(
-                                color: Theme.of(context).colorScheme.primary,
-                                shape: BoxShape.circle,
-                                border: Border.all(
-                                  color: Theme.of(context).colorScheme.background,
-                                  width: 1.5,
-                                ),
+                        Positioned(
+                          bottom: 8,
+                          right: 0,
+                          child: Container(
+                            width: 28,
+                            height: 28,
+                            decoration: BoxDecoration(
+                              color: Theme.of(context).colorScheme.primary,
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: Theme.of(context).colorScheme.background,
+                                width: 1.5,
                               ),
-                              child: Center(
-                                child: Image.asset(
-                                  Assets.images.icCamera.path,
-                                  width: 13.w,
-                                  height: 13.w,
-                                  color: Colors.white,
-                                ),
+                            ),
+                            child: Center(
+                              child: Image.asset(
+                                Assets.images.icCamera.path,
+                                width: 13.w,
+                                height: 13.w,
+                                color: Colors.white,
                               ),
                             ),
                           ),
+                        ),
                       ],
                     ),
                     SizedBox(height: 10.h),
                     Text(
                       _selectedImage == null
-                          ? 'Add group photo'
-                          : 'Change group photo',
+                          ? AppLocalizations.of(context)!.addgroupphoto
+                          : AppLocalizations.of(context)!.changegroupphoto,
                       style: TextStyle(
                         color: txt.muted,
                         fontSize: 12.sp,
@@ -258,7 +258,7 @@ class _CreateGroupState extends State<CreateGroup> with UtilityMixin {
               AppLocalizations.of(context)!.namegroup,
               style: AppTextStyles.cardTitle.copyWith(
                 color: Theme.of(context).colorScheme.onBackground,
-               fontSize: 14.5,
+                fontSize: 14.5,
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -291,25 +291,25 @@ class _CreateGroupState extends State<CreateGroup> with UtilityMixin {
             SizedBox(height: 15.h),
             Text(
               AppLocalizations.of(context)!.description,
-               style: AppTextStyles.cardTitle.copyWith(
+              style: AppTextStyles.cardTitle.copyWith(
                 color: Theme.of(context).colorScheme.onBackground,
-               fontSize: 14.5,
+                fontSize: 14.5,
                 fontWeight: FontWeight.w500,
               ),
             ),
             SizedBox(height: 5.h),
             SecondryTextfield(
               controller: _descriptionController,
-              hintText: 'Enter group description',
+              hintText:  AppLocalizations.of(context)!.entergroupdescription,
               minLines: 3,
               maxLines: 5,
             ),
             SizedBox(height: 15.h),
             Text(
               AppLocalizations.of(context)!.category,
-               style: AppTextStyles.cardTitle.copyWith(
+              style: AppTextStyles.cardTitle.copyWith(
                 color: Theme.of(context).colorScheme.onBackground,
-               fontSize: 14.5,
+                fontSize: 14.5,
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -359,7 +359,7 @@ class _CreateGroupState extends State<CreateGroup> with UtilityMixin {
                           SizedBox(width: 5.w),
                           Text(
                             cat['name'] as String,
-                           style: AppTextStyles.bodyText.copyWith(
+                            style: AppTextStyles.bodyText.copyWith(
                               color: isSelected
                                   ? AppColors.primaryColor
                                   : txt.title,
@@ -379,9 +379,9 @@ class _CreateGroupState extends State<CreateGroup> with UtilityMixin {
             SizedBox(height: 18.h),
             Text(
               AppLocalizations.of(context)!.privacygroup,
-               style: AppTextStyles.cardTitle.copyWith(
+              style: AppTextStyles.cardTitle.copyWith(
                 color: Theme.of(context).colorScheme.onBackground,
-               fontSize: 14.5,
+                fontSize: 14.5,
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -456,7 +456,7 @@ class _CreateGroupState extends State<CreateGroup> with UtilityMixin {
                               ),
                               Text(
                                 opt['subtitle'] as String,
-                                style:  AppTextStyles.bodyText.copyWith(
+                                style: AppTextStyles.bodyText.copyWith(
                                   color: txt.muted,
                                   fontSize: 12,
                                   fontWeight: FontWeight.w400,
@@ -476,7 +476,7 @@ class _CreateGroupState extends State<CreateGroup> with UtilityMixin {
         ),
       ),
       bottomNavigationBar: BottomAppBar(
-       padding: const EdgeInsets.only(bottom: 25),
+        padding: const EdgeInsets.only(bottom: 25),
         height: 90,
         color: Theme.of(context).colorScheme.background,
         child: PrimaryButton(

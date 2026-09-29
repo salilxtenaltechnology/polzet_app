@@ -8,6 +8,7 @@ import '../../../api/api_service.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_radius.dart';
 import '../../../core/themes/app_text_styles.dart';
+import '../../../gen/assets.gen.dart';
 import '../../../languages/l10n/generated/app_localizations.dart';
 import '../../../mixin/utility_mixins.dart';
 import '../../../models/user/suggestionsb users/suggestions_users_model.dart';
@@ -401,7 +402,9 @@ class _SuggestedUsersListState extends State<SuggestedUsersList>
                           username: user.username,
                         ),
                       ),
-                      child: user.avatar.isNotEmpty
+                      child: (user.avatar.isNotEmpty &&
+                              user.avatar != 'null' &&
+                              user.avatar != Assets.images.icAvatar.path)
                           ? CircleAvatar(
                               radius: avatarRadius,
                               backgroundImage: user.avatarImageProvider,
@@ -411,20 +414,12 @@ class _SuggestedUsersListState extends State<SuggestedUsersList>
                             )
                           : CircleAvatar(
                               radius: avatarRadius,
+                              backgroundImage: AssetImage(
+                                Assets.images.icAvatar.path,
+                              ),
                               backgroundColor: Theme.of(
                                 context,
                               ).colorScheme.onPrimary.withOpacity(0.1),
-                              child: Text(
-                                user.username.isNotEmpty
-                                    ? user.username[0].toUpperCase()
-                                    : 'P',
-                                style: TextStyle(
-                                  fontSize: (avatarRadius * 0.6).sp,
-                                  fontWeight: FontWeight.w600,
-                                  color: Theme.of(context).colorScheme.onPrimary
-                                      .withValues(alpha: 0.85),
-                                ),
-                              ),
                             ),
                     ),
 
@@ -560,7 +555,7 @@ class _SuggestedUsersListState extends State<SuggestedUsersList>
                         children: [
                           if (!isChased) ...[
                             Icon(
-                              Icons.person_add_alt_1_outlined,
+                              Icons.add,
                               color: Colors.white,
                               size: 15.sp,
                             ),

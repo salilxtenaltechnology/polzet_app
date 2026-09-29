@@ -2248,7 +2248,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get creditsresettomorrow => '您的额度将在明天重置';
 
   @override
-  String get lefttoday => '今天剩余';
+  String get lefttoday => '今日剩余';
 
   @override
   String get comingsoon => '即将推出';
@@ -2298,4 +2298,218 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get joinwaitlist => '加入候补名单';
+
+  @override
+  String get addgroupphoto => '添加群组照片';
+
+  @override
+  String get changegroupphoto => '更换群组照片';
+
+  @override
+  String get entergroupdescription => '输入群组描述';
+
+  @override
+  String get groupinfo => '群组信息';
+
+  @override
+  String get search => '搜索';
+
+  @override
+  String get invitelink => '邀请链接';
+
+  @override
+  String get privacysafety => '隐私与安全';
+
+  @override
+  String get onlymemberscanseeandparticipateinthisgroup => '只有成员可以查看并参与此群组';
+
+  @override
+  String get onlypeopleyouinvitecanjoingroup => '只有您邀请的人可以加入群组';
+
+  @override
+  String get anyonecandiscoverandviewthisgroup => '任何人都可以发现并查看此群组';
+
+  @override
+  String get customizetheme => '自定义主题';
+
+  @override
+  String get yourcanchangecolorandthemeofchat => '您可以更改聊天的颜色和主题';
+
+  @override
+  String get groupmembers => '群组成员';
+
+  @override
+  String get nomembersfound => '未找到成员';
+
+  @override
+  String get onepersonwaitingforapproval => '1 人等待批准';
+
+  @override
+  String get personwaitingforapproval => '有人等待批准';
+
+  @override
+  String get viewprofile => '查看个人资料';
+
+  @override
+  String get reportuser => '举报用户';
+
+  @override
+  String get nojoinrequests => '没有加入请求';
+
+  @override
+  String get approve => '批准';
+
+  @override
+  String get invite => '邀请';
+
+  @override
+  String get copied => '已复制';
+
+  @override
+  String get copy => '复制';
+
+  @override
+  String get invitepeopletojointhisgroup => '邀请他人加入此群组';
+
+  @override
+  String get groupporivacy => '群组隐私';
+
+  @override
+  String get reportgroup => '举报群组';
+
+  @override
+  String get reportspamharmfulcontentorotherconcerns => '举报垃圾信息、有害内容或其他问题';
+
+  @override
+  String get blockgroup => '屏蔽群组';
+
+  @override
+  String get privacyinformation => '隐私信息';
+
+  @override
+  String get seesomethingyouareuncomfortablewith =>
+      '看到让您感到不适的内容了吗？如果群组违反我们的指南，您可以举报该群组；如果您不想看到其内容或推荐，也可以将其屏蔽。';
+
+  @override
+  String get permanentlydeletethisgroup => '永久删除此群组';
+
+  @override
+  String get whyareyoureportingthisgroup => '您为什么要举报此群组？';
+
+  @override
+  String get spamormisleading => '垃圾信息或误导性内容';
+
+  @override
+  String get harassmentorbullying => '骚扰或欺凌';
+
+  @override
+  String get hateorhatefulcontent => '仇恨或仇恨内容';
+
+  @override
+  String get sexualorinappropriatecontent => '色情或不当内容';
+
+  @override
+  String get violenceordngerouscontent => '暴力或危险内容';
+
+  @override
+  String get scamorfraud => '诈骗或欺诈';
+
+  @override
+  String get somethingelse => '其他';
+
+  @override
+  String get tellusmoreabout => '告诉我们更多信息';
+
+  @override
+  String get addmoreadditionaldetails => '添加更多详细信息，这将帮助我们审核您的举报';
+
+  @override
+  String get submitreport => '提交举报';
+
+  @override
+  String get applytheme => '应用主题';
+
+  @override
+  String get notificationsettings => '通知设置';
+
+  @override
+  String get mutechat => '静音聊天';
+
+  @override
+  String get verify => '验证';
+
+  @override
+  String get verifying => '正在验证...';
+
+  @override
+  String get viewresult => '查看结果';
+
+  @override
+  String get savepoll => '保存投票';
+
+  @override
+  String get unsavepoll => '取消保存投票';
+
+  @override
+  String get deletepoll => '删除投票';
+
+  @override
+  String get gotoprofile => '前往个人资料';
+
+  @override
+  String get aipick => 'AI 选择';
+
+  @override
+  String get aigenerationslefttoday => '今日剩余 AI 生成次数';
+
+  @override
+  String get noaigenerationslefttoday => '今日没有剩余 AI 生成次数';
+
+  @override
+  String get yourcreditswillresettomorrow => '您的积分将在明天重置';
+
+  @override
+  String get archivedgroup => '已归档群组';
+
+  @override
+  String get failedtoloadarchivedchats => '加载已归档聊天失败';
+
+  @override
+  String get retry => '重试';
+
+  @override
+  String get unblockthisusertoallowmessagesandinteractions =>
+      '解除对该用户的屏蔽以允许消息和互动';
+
+  @override
+  String get stopreceivingmessagesandseeingthisuserscontent =>
+      '停止接收该用户的消息并查看其内容';
+
+  @override
+  String get yourprivacyandsafetymatterreportthisperson =>
+      '您的隐私和安全非常重要。如果您发现此人有不当行为或违反我们的社区准则，请举报此人；如果您不想再与其互动，也可以将其屏蔽。';
+
+  @override
+  String get safetysupport => '安全支持';
+
+  @override
+  String get whyareyoureportingthisuser => ' 您为什么要举报此用户？';
+
+  @override
+  String get ai => 'AI';
+
+  @override
+  String get generation => '生成次数';
+
+  @override
+  String get generations => '生成次数';
+
+  @override
+  String get chatinfo => '聊天信息';
+
+  @override
+  String get more => '更多';
+
+  @override
+  String get postdetails => '帖子';
 }

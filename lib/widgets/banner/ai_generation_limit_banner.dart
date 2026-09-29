@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../gen/assets.gen.dart';
+import '../../languages/l10n/generated/app_localizations.dart';
 
 class AiGenerationLimitBanner extends StatelessWidget {
   final int remainingGenerations;
@@ -40,8 +41,9 @@ class AiGenerationLimitBanner extends StatelessWidget {
         borderRadius: BorderRadius.circular(12.r),
       ),
       child: Row(
-        crossAxisAlignment:
-            isLimitReached ? CrossAxisAlignment.start : CrossAxisAlignment.center,
+        crossAxisAlignment: isLimitReached
+            ? CrossAxisAlignment.start
+            : CrossAxisAlignment.center,
         children: [
           Assets.images.icAssistant.image(
             width: 18.w,
@@ -55,7 +57,7 @@ class AiGenerationLimitBanner extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'No AI generations left today',
+                        AppLocalizations.of(context)!.noaigenerationslefttoday,
                         style: TextStyle(
                           fontSize: 12.sp,
                           fontWeight: FontWeight.w500,
@@ -64,7 +66,9 @@ class AiGenerationLimitBanner extends StatelessWidget {
                       ),
                       SizedBox(height: 3.h),
                       Text(
-                        'Your credits will reset tomorrow',
+                        AppLocalizations.of(
+                          context,
+                        )!.yourcreditswillresettomorrow,
                         style: TextStyle(
                           fontSize: 12.sp,
                           fontWeight: FontWeight.w400,
@@ -76,7 +80,7 @@ class AiGenerationLimitBanner extends StatelessWidget {
                     ],
                   )
                 : Text(
-                    '$remainingGenerations AI ${remainingGenerations == 1 ? 'generation' : 'generations'} left today',
+                    '$remainingGenerations ${AppLocalizations.of(context)!.ai} ${remainingGenerations == 1 ? AppLocalizations.of(context)!.generation : AppLocalizations.of(context)!.generations} ${AppLocalizations.of(context)!.lefttoday}',
                     style: TextStyle(
                       fontSize: 12.sp,
                       fontWeight: FontWeight.w500,

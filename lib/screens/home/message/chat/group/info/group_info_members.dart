@@ -43,6 +43,42 @@ class _GroupInfoMembersState extends State<GroupInfoMembers> with UtilityMixin {
   bool _isLoading = false;
   bool _isLoadingRequests = false;
   List<Map<String, dynamic>> _joinRequests = [];
+  Set<String> _blockedUserIds = {};
+  Set<String> _blockedUsernames = {};
+
+  bool _isTruthy(dynamic value) {
+    if (value == null) return false;
+    if (value is bool) return value;
+    if (value is num) return value == 1;
+    final s = value.toString().toLowerCase().trim();
+    return s == 'true' || s == '1';
+  }
+
+  bool _isUserBlocked({String? uuid, String? username, dynamic member}) {
+    if (uuid != null && uuid.isNotEmpty && _blockedUserIds.contains(uuid)) {
+      return true;
+    }
+    if (username != null &&
+        username.isNotEmpty &&
+        _blockedUsernames.contains(username.toLowerCase().trim())) {
+      return true;
+    }
+    if (member is Map) {
+      final userMap = member['user'] is Map ? member['user'] as Map : null;
+      if (_isTruthy(member['is_blocked']) ||
+          _isTruthy(member['is_block']) ||
+          _isTruthy(member['isBlocked']) ||
+          _isTruthy(member['is_blocked_by_current_user']) ||
+          (userMap != null &&
+              (_isTruthy(userMap['is_blocked']) ||
+                  _isTruthy(userMap['is_block']) ||
+                  _isTruthy(userMap['isBlocked']) ||
+                  _isTruthy(userMap['is_blocked_by_current_user'])))) {
+        return true;
+      }
+    }
+    return false;
+  }
 
   @override
   void initState() {
@@ -50,6 +86,23 @@ class _GroupInfoMembersState extends State<GroupInfoMembers> with UtilityMixin {
     _groupData = widget.groupData;
     if (_groupData == null) {
       _isLoading = true;
+    }
+    if (_groupData != null && _groupData!['members'] is List) {
+      for (final m in (_groupData!['members'] as List)) {
+        if (m is Map) {
+          final mId = (m['uuid'] ?? m['id'] ?? m['user']?['uuid'] ?? m['user']?['id'])?.toString();
+          final mUser = (m['username'] ?? m['user']?['username'])?.toString().toLowerCase().trim();
+          final isBlockedInInitial = _isTruthy(m['is_blocked']) ||
+              _isTruthy(m['is_block']) ||
+              _isTruthy(m['isBlocked']) ||
+              (m['user'] is Map &&
+                  (_isTruthy(m['user']['is_blocked']) || _isTruthy(m['user']['is_block'])));
+          if (isBlockedInInitial) {
+            if (mId != null && mId.isNotEmpty) _blockedUserIds.add(mId);
+            if (mUser != null && mUser.isNotEmpty) _blockedUsernames.add(mUser);
+          }
+        }
+      }
     }
     _fetchGroupInfo();
     _fetchJoinRequests();
@@ -124,9 +177,98 @@ class _GroupInfoMembersState extends State<GroupInfoMembers> with UtilityMixin {
       return;
     }
     try {
-      final data = await _apiService.getGroupChatInfo(chatId: widget.chatId);
+      final results = await Future.wait([
+        _apiService.getGroupChatInfo(chatId: widget.chatId),
+        _apiService.getBlockedUsers().catchError((_) => <String, dynamic>{}),
+      ]);
+
+      final data = results[0];
+      final blockedRes = results[1];
+
+      final Set<String> blockedIds = {};
+      final Set<String> blockedUsernames = {};
+
+      if (blockedRes['success'] == true && blockedRes['data'] is List) {
+        for (final u in (blockedRes['data'] as List)) {
+          if (u is Map) {
+            final id = (u['id'] ?? u['uuid'] ?? u['user_id'])?.toString();
+            final uname = (u['username'] ?? u['user']?['username'])
+                ?.toString()
+                .toLowerCase()
+                .trim();
+            if (id != null && id.isNotEmpty) blockedIds.add(id);
+            if (uname != null && uname.isNotEmpty) blockedUsernames.add(uname);
+          } else if (u != null) {
+            blockedIds.add(u.toString());
+          }
+        }
+      }
+
+      // Also check if backend returned blocked status in members or admins
+      final membersList = data['members'];
+      if (membersList is List) {
+        for (final m in membersList) {
+          if (m is Map) {
+            final mId = (m['uuid'] ?? m['id'] ?? m['user']?['uuid'] ?? m['user']?['id'])?.toString();
+            final mUser = (m['username'] ?? m['user']?['username'])?.toString().toLowerCase().trim();
+            final bool isBlockedInApi = _isTruthy(m['is_blocked']) ||
+                _isTruthy(m['is_block']) ||
+                _isTruthy(m['isBlocked']) ||
+                _isTruthy(m['is_blocked_by_current_user']) ||
+                (m['user'] is Map &&
+                    (_isTruthy(m['user']['is_blocked']) ||
+                        _isTruthy(m['user']['is_block']) ||
+                        _isTruthy(m['user']['isBlocked']) ||
+                        _isTruthy(m['user']['is_blocked_by_current_user'])));
+
+            if (isBlockedInApi) {
+              if (mId != null && mId.isNotEmpty) blockedIds.add(mId);
+              if (mUser != null && mUser.isNotEmpty) blockedUsernames.add(mUser);
+            }
+          }
+        }
+      }
+
+      // Dynamically apply is_blocked & is_block on all members in data
+      if (membersList is List) {
+        for (final m in membersList) {
+          if (m is Map) {
+            final mId = (m['uuid'] ?? m['id'] ?? m['user']?['uuid'] ?? m['user']?['id'])?.toString();
+            final mUser = (m['username'] ?? m['user']?['username'])?.toString().toLowerCase().trim();
+            final isBlocked = (mId != null && blockedIds.contains(mId)) ||
+                (mUser != null && blockedUsernames.contains(mUser));
+            m['is_blocked'] = isBlocked;
+            m['is_block'] = isBlocked;
+            if (m['user'] is Map) {
+              m['user']['is_blocked'] = isBlocked;
+              m['user']['is_block'] = isBlocked;
+            }
+          }
+        }
+      }
+
+      final adminsList = data['admins'];
+      if (adminsList is List) {
+        for (final a in adminsList) {
+          if (a is Map) {
+            final aId = (a['uuid'] ?? a['id'] ?? a['user']?['uuid'] ?? a['user']?['id'])?.toString();
+            final aUser = (a['username'] ?? a['user']?['username'])?.toString().toLowerCase().trim();
+            final isBlocked = (aId != null && blockedIds.contains(aId)) ||
+                (aUser != null && blockedUsernames.contains(aUser));
+            a['is_blocked'] = isBlocked;
+            a['is_block'] = isBlocked;
+            if (a['user'] is Map) {
+              a['user']['is_blocked'] = isBlocked;
+              a['user']['is_block'] = isBlocked;
+            }
+          }
+        }
+      }
+
       if (mounted) {
         setState(() {
+          _blockedUserIds = blockedIds;
+          _blockedUsernames = blockedUsernames;
           _groupData = data;
           _isLoading = false;
         });
@@ -248,7 +390,12 @@ class _GroupInfoMembersState extends State<GroupInfoMembers> with UtilityMixin {
         (username.isNotEmpty &&
             _adminIdentifiers.contains(username.toLowerCase()));
     final bool isReported =
-        (member['is_reported'] == true) || (userMap['is_reported'] == true);
+        _isTruthy(member['is_reported']) || _isTruthy(userMap['is_reported']);
+    final bool isBlocked = _isUserBlocked(
+      uuid: uuid,
+      username: username,
+      member: member,
+    );
 
     return {
       'uuid': uuid,
@@ -257,6 +404,7 @@ class _GroupInfoMembersState extends State<GroupInfoMembers> with UtilityMixin {
       'profile_picture_url': profilePic,
       'is_admin': isAdminFlag,
       'is_reported': isReported,
+      'is_blocked': isBlocked,
       'raw': member,
     };
   }
@@ -335,6 +483,11 @@ class _GroupInfoMembersState extends State<GroupInfoMembers> with UtilityMixin {
     final String uuid = (member['uuid'] ?? '').toString();
     final String? profilePic = member['profile_picture_url'] as String?;
     final bool isAdmin = member['is_admin'] == true;
+    final bool isBlocked = _isUserBlocked(
+      uuid: uuid,
+      username: username,
+      member: member,
+    );
 
     showModalBottomSheet(
       context: context,
@@ -427,7 +580,7 @@ class _GroupInfoMembersState extends State<GroupInfoMembers> with UtilityMixin {
               ),
               SizedBox(height: 6.h),
               _buildOptionRow(
-                title: 'View Profile',
+                title:AppLocalizations.of(context)!.viewprofile,
                 onTap: () {
                   Navigator.pop(ctx);
                   navigationPush(
@@ -438,7 +591,7 @@ class _GroupInfoMembersState extends State<GroupInfoMembers> with UtilityMixin {
               ),
               if (!isAdmin) ...[
                 _buildOptionRow(
-                  title: 'Make Admin',
+                  title: AppLocalizations.of(context)!.makeadmin,
                   onTap: () {
                     Navigator.pop(ctx);
                     _makeAdmin(uuid, username);
@@ -446,14 +599,14 @@ class _GroupInfoMembersState extends State<GroupInfoMembers> with UtilityMixin {
                 ),
               ],
               _buildOptionRow(
-                title: 'Remove from Group',
+                title: AppLocalizations.of(context)!.removefromgroup,
                 onTap: () {
                   Navigator.pop(ctx);
                   _removeMember(uuid, username);
                 },
               ),
               _buildOptionRow(
-                title: 'Report User',
+                title: AppLocalizations.of(context)!.reportuser,
                 textColor: const Color(0XFFE5484D),
                 onTap: () async {
                   Navigator.pop(ctx);
@@ -472,7 +625,9 @@ class _GroupInfoMembersState extends State<GroupInfoMembers> with UtilityMixin {
                 },
               ),
               _buildOptionRow(
-                title: 'Block User',
+                title: isBlocked
+                    ? AppLocalizations.of(context)!.unblockuser
+                    : AppLocalizations.of(context)!.blockuser,
                 textColor: const Color(0XFFE5484D),
                 onTap: () {
                   Navigator.pop(ctx);
@@ -483,19 +638,37 @@ class _GroupInfoMembersState extends State<GroupInfoMembers> with UtilityMixin {
                       return;
                     }
                     try {
-                      final res = await _apiService.blockUser(uuid);
+                      final res = isBlocked
+                          ? await _apiService.unblockUser(uuid)
+                          : await _apiService.blockUser(uuid);
                       if (res['success'] == false) {
                         showToast(
-                          message: res['message'] ?? 'Failed to block user',
+                          message: res['message'] ??
+                              (isBlocked
+                                  ? 'Failed to unblock user'
+                                  : 'Failed to block user'),
                         );
                       } else {
-                        showToast(message: 'User blocked successfully');
+                        showToast(
+                          message: isBlocked
+                              ? 'User unblocked!'
+                              : 'User blocked!',
+                        );
+                        _updateMemberBlockedStatusLocally(
+                          uuid,
+                          !isBlocked,
+                          username: username,
+                        );
                         _fetchGroupInfo();
                       }
                     } catch (e) {
-                      showToast(message: 'Failed to block user');
+                      showToast(
+                        message: isBlocked
+                            ? 'Failed to unblock user'
+                            : 'Failed to block user',
+                      );
                     }
-                  }, false);
+                  }, isBlocked);
                 },
               ),
               SizedBox(height: 8.h),
@@ -597,6 +770,81 @@ class _GroupInfoMembersState extends State<GroupInfoMembers> with UtilityMixin {
               a['is_reported'] = isReported;
               if (a['user'] is Map) {
                 a['user']['is_reported'] = isReported;
+              }
+            }
+          }
+        }
+      }
+    });
+  }
+
+  void _updateMemberBlockedStatusLocally(
+    String userId,
+    bool isBlocked, {
+    String? username,
+  }) {
+    if (userId.isEmpty && (username == null || username.isEmpty)) return;
+    setState(() {
+      if (userId.isNotEmpty) {
+        if (isBlocked) {
+          _blockedUserIds.add(userId);
+        } else {
+          _blockedUserIds.remove(userId);
+        }
+      }
+      if (username != null && username.isNotEmpty) {
+        final u = username.toLowerCase().trim();
+        if (isBlocked) {
+          _blockedUsernames.add(u);
+        } else {
+          _blockedUsernames.remove(u);
+        }
+      }
+      final membersList = _groupData?['members'];
+      if (membersList is List) {
+        for (var m in membersList) {
+          if (m is Map) {
+            final mId =
+                (m['uuid'] ?? m['id'] ?? m['user']?['uuid'] ?? m['user']?['id'])
+                    ?.toString();
+            final mUser = (m['username'] ?? m['user']?['username'])
+                ?.toString()
+                .toLowerCase()
+                .trim();
+            if ((mId != null && mId.isNotEmpty && mId == userId) ||
+                (username != null &&
+                    username.isNotEmpty &&
+                    mUser == username.toLowerCase().trim())) {
+              m['is_blocked'] = isBlocked;
+              m['is_block'] = isBlocked;
+              if (m['user'] is Map) {
+                m['user']['is_blocked'] = isBlocked;
+                m['user']['is_block'] = isBlocked;
+              }
+            }
+          }
+        }
+      }
+      final adminsList = _groupData?['admins'];
+      if (adminsList is List) {
+        for (var a in adminsList) {
+          if (a is Map) {
+            final aId =
+                (a['uuid'] ?? a['id'] ?? a['user']?['uuid'] ?? a['user']?['id'])
+                    ?.toString();
+            final aUser = (a['username'] ?? a['user']?['username'])
+                ?.toString()
+                .toLowerCase()
+                .trim();
+            if ((aId != null && aId.isNotEmpty && aId == userId) ||
+                (username != null &&
+                    username.isNotEmpty &&
+                    aUser == username.toLowerCase().trim())) {
+              a['is_blocked'] = isBlocked;
+              a['is_block'] = isBlocked;
+              if (a['user'] is Map) {
+                a['user']['is_blocked'] = isBlocked;
+                a['user']['is_block'] = isBlocked;
               }
             }
           }
@@ -888,7 +1136,7 @@ class _GroupInfoMembersState extends State<GroupInfoMembers> with UtilityMixin {
 
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.background,
-      appBar: const CommonAppBar(title: 'Group Members'),
+      appBar:  CommonAppBar(title: AppLocalizations.of(context)!.groupmembers),
       body: _isLoading && _groupData == null
           ? Center(child: Loader(color: Theme.of(context).colorScheme.primary))
           : Padding(
@@ -917,9 +1165,7 @@ class _GroupInfoMembersState extends State<GroupInfoMembers> with UtilityMixin {
                           left: 12.w,
                           top: 10.h,
                         ),
-                        hintText:
-                            AppLocalizations.of(context)?.searchusers ??
-                            'Search users',
+                        hintText: AppLocalizations.of(context)!.searchusers,
                         hintStyle: CustomTextStyles.lblPrimaryHintText(context),
                         border: InputBorder.none,
                         prefixIcon: Icon(
@@ -1077,7 +1323,7 @@ class _GroupInfoMembersState extends State<GroupInfoMembers> with UtilityMixin {
                                                     BorderRadius.circular(5),
                                               ),
                                               child: Text(
-                                                'Admin',
+                                                AppLocalizations.of(context)!.admin,
                                                 style: TextStyle(
                                                   color: Theme.of(
                                                     context,
@@ -1127,8 +1373,7 @@ class _GroupInfoMembersState extends State<GroupInfoMembers> with UtilityMixin {
               color: Theme.of(context).colorScheme.background,
               child: PrimaryButton(
                 title:
-                    AppLocalizations.of(context)?.addmemberstogroup ??
-                    'Add Members',
+                    AppLocalizations.of(context)!.addmemberstogroup,
                 onPressed: () async {
                   final alreadyInGroup = <String>{};
                   for (final m in _rawMembers) {

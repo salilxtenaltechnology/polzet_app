@@ -137,7 +137,8 @@ class _EditProfileState extends State<EditProfile> {
     _phoneController.text = userProvider.mobile_number ?? '';
     _originalPhone = _phoneController.text.trim();
 
-    if (userProvider.country_code != null && userProvider.country_code!.isNotEmpty) {
+    if (userProvider.country_code != null &&
+        userProvider.country_code!.isNotEmpty) {
       final code = userProvider.country_code!.replaceAll('+', '');
       final country = getCountryByDialCode(code);
       if (country != null) {
@@ -367,9 +368,10 @@ class _EditProfileState extends State<EditProfile> {
   }
 
   Future<void> _verifyPhone() async {
-    final cleanPhone = _phoneController.text
-        .trim()
-        .replaceAll(RegExp(r'[\s\-().+]'), '');
+    final cleanPhone = _phoneController.text.trim().replaceAll(
+      RegExp(r'[\s\-().+]'),
+      '',
+    );
 
     if (cleanPhone.isEmpty) {
       showToast(message: 'Please enter mobile number');
@@ -394,14 +396,43 @@ class _EditProfileState extends State<EditProfile> {
 
       if (!mounted) return;
 
-      final bool isSuccess = result['status'] == 'success' ||
-          result['success'] == true ||
-          result['data'] != null;
+      final bool isSuccess =
+          (result['status'] == 'success' || result['success'] == true) ||
+          (result['data'] != null &&
+              result['status'] != 'error' &&
+              result['success'] != false);
 
       if (!isSuccess) {
-        final errorMsg = result['message']?.toString() ??
-            result['data']?['message']?.toString() ??
-            'Failed to send OTP';
+        String errorMsg = 'Failed to send OTP';
+        if (result['errors'] != null) {
+          final errors = result['errors'];
+          if (errors is Map && errors.isNotEmpty) {
+            if (errors['non_field_errors'] is List &&
+                (errors['non_field_errors'] as List).isNotEmpty) {
+              errorMsg = (errors['non_field_errors'] as List).first.toString();
+            } else {
+              final firstKey = errors.keys.firstOrNull;
+              if (firstKey != null) {
+                final val = errors[firstKey];
+                if (val is List && val.isNotEmpty) {
+                  errorMsg = val.first.toString();
+                } else if (val != null && val.toString().isNotEmpty) {
+                  errorMsg = val.toString();
+                }
+              }
+            }
+          } else if (errors is List && errors.isNotEmpty) {
+            errorMsg = errors.first.toString();
+          } else if (errors is String && errors.isNotEmpty) {
+            errorMsg = errors;
+          }
+        } else if (result['message'] != null &&
+            result['message'].toString().isNotEmpty) {
+          errorMsg = result['message'].toString();
+        } else if (result['data']?['message'] != null) {
+          errorMsg = result['data']['message'].toString();
+        }
+
         showToast(message: errorMsg);
         setState(() => _isVerifyingPhone = false);
         return;
@@ -433,8 +464,10 @@ class _EditProfileState extends State<EditProfile> {
             setState(() {
               _originalPhone = cleanPhone;
             });
-            final userProvider =
-                Provider.of<UserProvider>(context, listen: false);
+            final userProvider = Provider.of<UserProvider>(
+              context,
+              listen: false,
+            );
             await userProvider.loadUserData();
             showToast(message: 'Mobile number verified successfully');
           }
@@ -994,14 +1027,15 @@ class _EditProfileState extends State<EditProfile> {
                 onTap: _isVerifyingPhone
                     ? null
                     : ((_phoneController.text.trim() != _originalPhone &&
-                            _phoneController.text.trim().isNotEmpty)
-                        ? _verifyPhone
-                        : null),
+                              _phoneController.text.trim().isNotEmpty)
+                          ? _verifyPhone
+                          : null),
                 child: Text(
-                  _isVerifyingPhone ? 'Verifying...' : 'Verify',
+                  _isVerifyingPhone ? AppLocalizations.of(context)!.verifying : AppLocalizations.of(context)!.verify,
                   style: AppTextStyles.subText.copyWith(
                     fontSize: 14,
-                    color: (_isVerifyingPhone ||
+                    color:
+                        (_isVerifyingPhone ||
                             (_phoneController.text.trim() != _originalPhone &&
                                 _phoneController.text.trim().isNotEmpty))
                         ? Theme.of(context).colorScheme.primary

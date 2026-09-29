@@ -157,7 +157,7 @@ class AppLocalizationsKo extends AppLocalizations {
       'Fange an, Personen zu folgen, um sie hier zu sehen!';
 
   @override
-  String get add => 'Hinzufügen';
+  String get add => '추가';
 
   @override
   String get makeadmin => 'Zum Admin machen';
@@ -2243,7 +2243,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get share => '공유';
 
   @override
-  String get joinrequests => 'Beitrittsanfragen';
+  String get joinrequests => '가입 요청';
 
   @override
   String get nopendingjoinrequests => 'Keine ausstehenden Beitrittsanfragen';
@@ -2416,4 +2416,221 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get joinwaitlist => '대기 목록 참여';
+
+  @override
+  String get addgroupphoto => '그룹 사진 추가';
+
+  @override
+  String get changegroupphoto => '그룹 사진 변경';
+
+  @override
+  String get entergroupdescription => '그룹 설명 입력';
+
+  @override
+  String get groupinfo => '그룹 정보';
+
+  @override
+  String get search => '검색';
+
+  @override
+  String get invitelink => '초대 링크';
+
+  @override
+  String get privacysafety => '개인정보 보호 및 안전';
+
+  @override
+  String get onlymemberscanseeandparticipateinthisgroup =>
+      '멤버만 이 그룹을 보고 참여할 수 있습니다';
+
+  @override
+  String get onlypeopleyouinvitecanjoingroup => '초대한 사람만 그룹에 참여할 수 있습니다';
+
+  @override
+  String get anyonecandiscoverandviewthisgroup => '누구나 이 그룹을 찾아보고 볼 수 있습니다';
+
+  @override
+  String get customizetheme => '테마 사용자 지정';
+
+  @override
+  String get yourcanchangecolorandthemeofchat => '채팅의 색상과 테마를 변경할 수 있습니다';
+
+  @override
+  String get groupmembers => '그룹 멤버';
+
+  @override
+  String get nomembersfound => '멤버를 찾을 수 없습니다';
+
+  @override
+  String get onepersonwaitingforapproval => '1명이 승인을 기다리고 있습니다';
+
+  @override
+  String get personwaitingforapproval => '승인을 기다리는 사람';
+
+  @override
+  String get viewprofile => '프로필 보기';
+
+  @override
+  String get reportuser => '사용자 신고';
+
+  @override
+  String get nojoinrequests => '가입 요청이 없습니다';
+
+  @override
+  String get approve => '승인';
+
+  @override
+  String get invite => '초대';
+
+  @override
+  String get copied => '복사됨';
+
+  @override
+  String get copy => '복사';
+
+  @override
+  String get invitepeopletojointhisgroup => '이 그룹에 참여하도록 사람 초대';
+
+  @override
+  String get groupporivacy => '그룹 개인정보 보호';
+
+  @override
+  String get reportgroup => '그룹 신고';
+
+  @override
+  String get reportspamharmfulcontentorotherconcerns =>
+      '스팸, 유해한 콘텐츠 또는 기타 문제 신고';
+
+  @override
+  String get blockgroup => '그룹 차단';
+
+  @override
+  String get privacyinformation => '개인정보 보호 정보';
+
+  @override
+  String get seesomethingyouareuncomfortablewith =>
+      '불편한 내용을 발견하셨나요? 그룹이 가이드라인을 위반하는 경우 신고할 수 있으며, 해당 콘텐츠나 추천을 보고 싶지 않은 경우 그룹을 차단할 수 있습니다.';
+
+  @override
+  String get permanentlydeletethisgroup => '이 그룹을 영구적으로 삭제';
+
+  @override
+  String get whyareyoureportingthisgroup => '이 그룹을 신고하는 이유는 무엇인가요?';
+
+  @override
+  String get spamormisleading => '스팸 또는 오해의 소지가 있는 콘텐츠';
+
+  @override
+  String get harassmentorbullying => '괴롭힘 또는 따돌림';
+
+  @override
+  String get hateorhatefulcontent => '혐오 또는 혐오성 콘텐츠';
+
+  @override
+  String get sexualorinappropriatecontent => '성적 또는 부적절한 콘텐츠';
+
+  @override
+  String get violenceordngerouscontent => '폭력 또는 위험한 콘텐츠';
+
+  @override
+  String get scamorfraud => '사기 또는 부정행위';
+
+  @override
+  String get somethingelse => '기타';
+
+  @override
+  String get tellusmoreabout => '자세히 알려주세요';
+
+  @override
+  String get addmoreadditionaldetails =>
+      '추가 세부정보를 입력해 주세요. 신고 내용을 검토하는 데 도움이 됩니다';
+
+  @override
+  String get submitreport => '신고 제출';
+
+  @override
+  String get applytheme => 'Apply Theme';
+
+  @override
+  String get notificationsettings => 'Notification Settings';
+
+  @override
+  String get mutechat => 'Mute Chat';
+
+  @override
+  String get verify => 'Verify';
+
+  @override
+  String get verifying => 'Verifying...';
+
+  @override
+  String get viewresult => 'View Result';
+
+  @override
+  String get savepoll => 'Save poll';
+
+  @override
+  String get unsavepoll => 'Unsave poll';
+
+  @override
+  String get deletepoll => 'Delete poll';
+
+  @override
+  String get gotoprofile => 'Go to profile';
+
+  @override
+  String get aipick => 'AI Pick';
+
+  @override
+  String get aigenerationslefttoday => 'AI generations left today';
+
+  @override
+  String get noaigenerationslefttoday => 'No AI generations left today';
+
+  @override
+  String get yourcreditswillresettomorrow => 'Your credits will reset tomorrow';
+
+  @override
+  String get archivedgroup => 'Archived Group';
+
+  @override
+  String get failedtoloadarchivedchats => 'Failed to load archived chats';
+
+  @override
+  String get retry => 'Retry';
+
+  @override
+  String get unblockthisusertoallowmessagesandinteractions =>
+      '메시지 및 상호작용을 허용하려면 이 사용자의 차단을 해제하세요';
+
+  @override
+  String get stopreceivingmessagesandseeingthisuserscontent =>
+      '이 사용자의 메시지 수신 및 콘텐츠 보기를 중지하세요';
+
+  @override
+  String get yourprivacyandsafetymatterreportthisperson =>
+      '귀하의 개인정보와 안전은 중요합니다. 부적절하거나 가이드라인을 위반하는 내용이 있다면 이 사용자를 신고하거나, 더 이상 상호작용하고 싶지 않다면 차단하세요.';
+
+  @override
+  String get safetysupport => '안전 지원';
+
+  @override
+  String get whyareyoureportingthisuser => ' 왜 이 사용자를 신고하시나요?';
+
+  @override
+  String get ai => 'AI';
+
+  @override
+  String get generation => '생성';
+
+  @override
+  String get generations => '생성';
+
+  @override
+  String get chatinfo => '채팅 정보';
+
+  @override
+  String get more => '더보기';
+
+  @override
+  String get postdetails => '게시물';
 }

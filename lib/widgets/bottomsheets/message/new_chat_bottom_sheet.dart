@@ -214,10 +214,6 @@ class _NewChatBottomSheetState extends State<NewChatBottomSheet>
     final displayName = fullName.isNotEmpty
         ? fullName
         : (username.isNotEmpty ? username : 'Polzet User');
-    final firstLetter = (username.isNotEmpty
-            ? username[0]
-            : (displayName.isNotEmpty ? displayName[0] : '?'))
-        .toUpperCase();
     final userId = user['user_id']?.toString() ?? '';
 
     return GestureDetector(
@@ -288,23 +284,34 @@ class _NewChatBottomSheetState extends State<NewChatBottomSheet>
                 ),
                 child: ClipOval(
                   child: (() {
-                    if (profilePic != null && profilePic.isNotEmpty) {
+                    if (profilePic != null &&
+                        profilePic.isNotEmpty &&
+                        profilePic != 'null') {
+                      if (profilePic == Assets.images.icAvatar.path ||
+                          profilePic.endsWith('ic_avatar.png')) {
+                        return Image.asset(
+                          Assets.images.icAvatar.path,
+                          fit: BoxFit.cover,
+                        );
+                      }
+                      if (profilePic.startsWith('assets/')) {
+                        return Image.asset(
+                          profilePic,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => Image.asset(
+                            Assets.images.icAvatar.path,
+                            fit: BoxFit.cover,
+                          ),
+                        );
+                      }
                       final bytes = getProfileImage(profilePic);
                       if (bytes != null) {
                         return Image.memory(
                           bytes,
                           fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => Center(
-                            child: Text(
-                              firstLetter,
-                              style: TextStyle(
-                                fontSize: 17,
-                                fontWeight: FontWeight.w500,
-                                color: Theme.of(
-                                  context,
-                                ).colorScheme.onPrimary.withOpacity(0.8),
-                              ),
-                            ),
+                          errorBuilder: (_, __, ___) => Image.asset(
+                            Assets.images.icAvatar.path,
+                            fit: BoxFit.cover,
                           ),
                         );
                       }
@@ -316,31 +323,15 @@ class _NewChatBottomSheetState extends State<NewChatBottomSheet>
                       return CachedNetworkImage(
                         imageUrl: imageUrl,
                         fit: BoxFit.cover,
-                        errorWidget: (_, __, ___) => Center(
-                          child: Text(
-                            firstLetter,
-                            style: TextStyle(
-                              fontSize: 17,
-                              fontWeight: FontWeight.w500,
-                              color: Theme.of(
-                                context,
-                              ).colorScheme.onPrimary.withOpacity(0.8),
-                            ),
-                          ),
+                        errorWidget: (_, __, ___) => Image.asset(
+                          Assets.images.icAvatar.path,
+                          fit: BoxFit.cover,
                         ),
                       );
                     }
-                    return Center(
-                      child: Text(
-                        firstLetter,
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w500,
-                          color: Theme.of(
-                            context,
-                          ).colorScheme.onPrimary.withOpacity(0.8),
-                        ),
-                      ),
+                    return Image.asset(
+                      Assets.images.icAvatar.path,
+                      fit: BoxFit.cover,
                     );
                   })(),
                 ),

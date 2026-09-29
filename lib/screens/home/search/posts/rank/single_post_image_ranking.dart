@@ -209,23 +209,29 @@ class _SinglePostImageRankingState extends State<SinglePostImageRanking> with Ut
     final txt = AppTextColors.of(context);
     final post = widget.post;
     final username = post.user.username;
-    final initial = username.isNotEmpty ? username[0].toUpperCase() : '?';
 
     final String profileUrl = widget.post.profileImage;
-    ImageProvider? avatarImage;
-    if (_profileImageBytes != null) {
+    ImageProvider avatarImage;
+    if (profileUrl.isEmpty || profileUrl == 'null') {
+      avatarImage = AssetImage(Assets.images.icAvatar.path);
+    } else if (profileUrl == Assets.images.icAvatar.path ||
+        profileUrl.endsWith('ic_avatar.png')) {
+      avatarImage = AssetImage(Assets.images.icAvatar.path);
+    } else if (profileUrl.startsWith('assets/')) {
+      avatarImage = AssetImage(profileUrl);
+    } else if (_profileImageBytes != null) {
       avatarImage = MemoryImage(_profileImageBytes!);
-    } else if (profileUrl.isNotEmpty) {
-      if (profileUrl.startsWith('http') ||
-          profileUrl.startsWith('/') ||
-          profileUrl.contains('/')) {
-        final imageUrl = profileUrl.startsWith('http')
-            ? profileUrl
-            : (profileUrl.startsWith('/')
-                ? '${ApiConfig.baseUrlImage}$profileUrl'
-                : '${ApiConfig.baseUrlImage}/$profileUrl');
-        avatarImage = CachedNetworkImageProvider(imageUrl);
-      }
+    } else if (profileUrl.startsWith('http') ||
+        profileUrl.startsWith('/') ||
+        profileUrl.contains('/')) {
+      final imageUrl = profileUrl.startsWith('http')
+          ? profileUrl
+          : (profileUrl.startsWith('/')
+              ? '${ApiConfig.baseUrlImage}$profileUrl'
+              : '${ApiConfig.baseUrlImage}/$profileUrl');
+      avatarImage = CachedNetworkImageProvider(imageUrl);
+    } else {
+      avatarImage = AssetImage(Assets.images.icAvatar.path);
     }
 
     return Padding(
@@ -285,16 +291,7 @@ class _SinglePostImageRankingState extends State<SinglePostImageRanking> with Ut
                           context,
                         ).colorScheme.onPrimary.withOpacity(0.1),
                         backgroundImage: avatarImage,
-                        child: avatarImage == null
-                            ? Text(
-                                initial,
-                                style: AppTextStyles.cardTitle.copyWith(
-                                  color: Theme.of(context).colorScheme.onPrimary,
-                                  fontWeight: FontWeight.w500,
-                                  fontSize: 18,
-                                ),
-                              )
-                            : null,
+                        onBackgroundImageError: (_, __) {},
                       ),
                     ),
               const SizedBox(width: 10),

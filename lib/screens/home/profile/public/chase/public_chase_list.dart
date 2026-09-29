@@ -433,7 +433,12 @@ class _PublicChaseListState extends State<PublicChaseList>
     final firstName = user['first_name'] ?? 'Polzet';
     final lastName = user['last_name'] ?? 'User';
     final userName = user['username'] ?? 'polzet_user';
-    final avatarUrl = user['avatar_url'];
+    final avatarUrl = (user['avatar_url'] ??
+            user['profile_picture_url'] ??
+            user['profile_picture'] ??
+            user['profile_image'] ??
+            user['profile_url'])
+        as String?;
     final isOnline = user['is_online'] as bool? ?? false;
     final followStatus = user['follow_status'] ?? 'none';
     final isPrivate = user['is_private'] == true;
@@ -615,26 +620,54 @@ class _PublicChaseListState extends State<PublicChaseList>
           ),
           child: ClipOval(
             child: (() {
-              if (avatarUrl != null && avatarUrl.isNotEmpty) {
+              if (avatarUrl != null &&
+                  avatarUrl.isNotEmpty &&
+                  avatarUrl != 'null') {
+                if (avatarUrl == Assets.images.icAvatar.path ||
+                    avatarUrl.endsWith('ic_avatar.png')) {
+                  return Image.asset(
+                    Assets.images.icAvatar.path,
+                    fit: BoxFit.cover,
+                  );
+                }
+                if (avatarUrl.startsWith('assets/')) {
+                  return Image.asset(
+                    avatarUrl,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => Image.asset(
+                      Assets.images.icAvatar.path,
+                      fit: BoxFit.cover,
+                    ),
+                  );
+                }
                 if (imageBytes != null) {
                   return Image.memory(
                     imageBytes,
                     fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => _buildInitialsAvatar(userName),
+                    errorBuilder: (_, __, ___) => Image.asset(
+                      Assets.images.icAvatar.path,
+                      fit: BoxFit.cover,
+                    ),
                   );
                 }
                 final imageUrl = avatarUrl.startsWith('http')
                     ? avatarUrl
                     : (avatarUrl.startsWith('/')
-                        ? '${ApiConfig.baseUrlImage}$avatarUrl'
-                        : '${ApiConfig.baseUrlImage}/$avatarUrl');
+                          ? '${ApiConfig.baseUrlImage}$avatarUrl'
+                          : '${ApiConfig.baseUrlImage}/$avatarUrl');
                 return CachedNetworkImage(
                   imageUrl: imageUrl,
                   fit: BoxFit.cover,
-                  errorWidget: (_, __, ___) => _buildInitialsAvatar(userName),
+                  errorWidget: (_, __, ___) => Image.asset(
+                    Assets.images.icAvatar.path,
+                    fit: BoxFit.cover,
+                  ),
                 );
               }
-              return _buildInitialsAvatar(userName);
+              return Image.asset(
+                Assets.images.icAvatar.path,
+                fit: BoxFit.cover,
+              );
             })(),
           ),
         ),
@@ -657,21 +690,6 @@ class _PublicChaseListState extends State<PublicChaseList>
             ),
           ),
       ],
-    );
-  }
- 
-  Widget _buildInitialsAvatar(String userName) {
-    final initial = userName.isNotEmpty ? userName[0].toUpperCase() : '?';
- 
-    return Center(
-      child: Text(
-        initial,
-        style: TextStyle(
-          fontSize: 17,
-          fontWeight: FontWeight.w500,
-          color: Theme.of(context).colorScheme.onPrimary.withOpacity(0.8),
-        ),
-      ),
     );
   }
 }

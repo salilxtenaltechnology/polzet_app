@@ -8,6 +8,7 @@ import '../../../../../../api/api_service.dart';
 import '../../../../../../core/constants/app_colors.dart';
 import '../../../../../../core/themes/app_text_colors.dart';
 import '../../../../../../core/themes/app_text_styles.dart';
+import '../../../../../../languages/l10n/generated/app_localizations.dart';
 import '../../../../../../widgets/appbar/common_appbar.dart';
 import '../../../../../../widgets/show_toast.dart';
 import '../../../message_list.dart';
@@ -75,9 +76,7 @@ class _GroupMuteNotificationState extends State<GroupMuteNotification> {
           chatId: chatId,
           isMuted: value,
           muteUntil: value
-              ? DateTime.now().add(
-                  const Duration(days: 365 * 10),
-                )
+              ? DateTime.now().add(const Duration(days: 365 * 10))
               : null,
         );
         debugPrint('muteUnmuteChat result: $res');
@@ -107,8 +106,7 @@ class _GroupMuteNotificationState extends State<GroupMuteNotification> {
           }
           MessageListState.toggleMuteChatLocally(chatId, apiMuted);
           showToast(
-            message:
-                apiMuted ? 'Notifications muted' : 'Notifications unmuted',
+            message: apiMuted ? 'Notifications muted' : 'Notifications unmuted',
           );
         }
       } catch (e) {
@@ -138,7 +136,7 @@ class _GroupMuteNotificationState extends State<GroupMuteNotification> {
       child: Scaffold(
         backgroundColor: Theme.of(context).colorScheme.background,
         appBar: CommonAppBar(
-          title: 'Notification Settings',
+          title: AppLocalizations.of(context)!.notificationsettings,
           onBack: () => Navigator.pop(context, _isMuteChat),
         ),
         body: Padding(
@@ -149,7 +147,7 @@ class _GroupMuteNotificationState extends State<GroupMuteNotification> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    'Mute Chat',
+                    AppLocalizations.of(context)!.mutechat,
                     style: AppTextStyles.bodyText.copyWith(
                       color: txt.title,
                       fontSize: 13.8,

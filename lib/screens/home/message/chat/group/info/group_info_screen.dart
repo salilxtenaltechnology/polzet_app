@@ -418,11 +418,13 @@ class _GroupInfoScreenState extends State<GroupInfoScreen>
     final privacy =
         _groupData?['privacy']?.toString().toLowerCase() ?? 'public';
     if (privacy == 'private') {
-      return 'Only members can see and participate in this group';
+      return AppLocalizations.of(
+        context,
+      )!.onlymemberscanseeandparticipateinthisgroup;
     } else if (privacy == 'invite_only') {
-      return 'Only people you invite can join group';
+      return AppLocalizations.of(context)!.onlypeopleyouinvitecanjoingroup;
     }
-    return 'Anyone can discover and view this group';
+    return AppLocalizations.of(context)!.anyonecandiscoverandviewthisgroup;
   }
 
   Map<String, dynamic> _buildReturnData() {
@@ -437,7 +439,7 @@ class _GroupInfoScreenState extends State<GroupInfoScreen>
     if (_isLoading) {
       return Scaffold(
         backgroundColor: Theme.of(context).colorScheme.background,
-        appBar: const CommonAppBar(title: 'Group Info'),
+        appBar: CommonAppBar(title: AppLocalizations.of(context)!.groupinfo),
         body: Center(
           child: Loader(color: Theme.of(context).colorScheme.primary),
         ),
@@ -447,7 +449,7 @@ class _GroupInfoScreenState extends State<GroupInfoScreen>
     if (_errorMessage != null && _groupData == null) {
       return Scaffold(
         backgroundColor: Theme.of(context).colorScheme.background,
-        appBar: const CommonAppBar(title: 'Group Info'),
+        appBar: CommonAppBar(title: AppLocalizations.of(context)!.groupinfo),
         body: Center(
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -463,7 +465,7 @@ class _GroupInfoScreenState extends State<GroupInfoScreen>
               GestureDetector(
                 onTap: _fetchGroupInfo,
                 child: Text(
-                  'Retry',
+                  AppLocalizations.of(context)!.retry,
                   style: AppTextStyles.bodyText.copyWith(
                     color: AppColors.primaryColor,
                     fontSize: 14.sp,
@@ -485,7 +487,7 @@ class _GroupInfoScreenState extends State<GroupInfoScreen>
       child: Scaffold(
         backgroundColor: Theme.of(context).colorScheme.background,
         appBar: CommonAppBar(
-          title: 'Group Info',
+          title: AppLocalizations.of(context)!.groupinfo,
           onBack: () => Navigator.pop(context, _buildReturnData()),
         ),
         body: RefreshIndicator(
@@ -535,7 +537,7 @@ class _GroupInfoScreenState extends State<GroupInfoScreen>
                             if (_isCurrentUserAdmin)
                               _buildActionButton(
                                 icon: Assets.images.icAddUser.path,
-                                label: 'Add',
+                                label: AppLocalizations.of(context)!.add,
                                 txt: txt,
                                 onTap: () async {
                                   final alreadyInGroup = <String>{};
@@ -582,13 +584,13 @@ class _GroupInfoScreenState extends State<GroupInfoScreen>
                               ),
                             _buildActionButton(
                               icon: Assets.images.icSearch.path,
-                              label: 'Search',
+                              label: AppLocalizations.of(context)!.search,
                               txt: txt,
                               onTap: () {},
                             ),
                             _buildActionButton(
                               icon: Assets.images.icMute.path,
-                              label: 'Mute',
+                              label: AppLocalizations.of(context)!.mute,
                               txt: txt,
                               onTap: () async {
                                 final result = await navigationPush(
@@ -668,8 +670,7 @@ class _GroupInfoScreenState extends State<GroupInfoScreen>
                                       height: 38,
                                       value: 'share',
                                       child: Text(
-                                        AppLocalizations.of(context)?.share ??
-                                            'Share',
+                                        AppLocalizations.of(context)!.share,
                                         style: AppTextStyles.bodyText.copyWith(
                                           color: txt.title,
                                           fontWeight: FontWeight.w500,
@@ -688,8 +689,7 @@ class _GroupInfoScreenState extends State<GroupInfoScreen>
                                       height: 38,
                                       value: 'report',
                                       child: Text(
-                                        AppLocalizations.of(context)?.report ??
-                                            'Report',
+                                        AppLocalizations.of(context)!.report,
                                         style: AppTextStyles.bodyText.copyWith(
                                           color: const Color(0XFFE5484D),
                                           fontWeight: FontWeight.w500,
@@ -701,7 +701,7 @@ class _GroupInfoScreenState extends State<GroupInfoScreen>
                                 },
                                 child: _buildActionButton(
                                   icon: Assets.images.icMoreHorizontal.path,
-                                  label: 'More',
+                                  label: AppLocalizations.of(context)!.more,
                                   txt: txt,
                                 ),
                               ),
@@ -720,7 +720,7 @@ class _GroupInfoScreenState extends State<GroupInfoScreen>
                             width: 20.w,
                             height: 20.w,
                           ),
-                          title: 'Members',
+                          title: AppLocalizations.of(context)!.members,
                           subtitle: _membersSubtitle,
                           isDarkMode: isDarkMode,
                           txt: txt,
@@ -745,7 +745,7 @@ class _GroupInfoScreenState extends State<GroupInfoScreen>
                             ).colorScheme.onPrimary.withOpacity(0.7),
                             size: 22,
                           ),
-                          title: 'Invite Link',
+                          title: AppLocalizations.of(context)!.invitelink,
                           subtitle: _inviteLinkSubtitle,
                           isDarkMode: isDarkMode,
                           txt: txt,
@@ -769,7 +769,7 @@ class _GroupInfoScreenState extends State<GroupInfoScreen>
                             width: 17.w,
                             height: 17.w,
                           ),
-                          title: 'Privacy & Safety',
+                          title: AppLocalizations.of(context)!.privacysafety,
                           subtitle: _privacySubtitle,
                           isDarkMode: isDarkMode,
                           txt: txt,
@@ -817,9 +817,12 @@ class _GroupInfoScreenState extends State<GroupInfoScreen>
                                   color: themeColor,
                                 ),
                               ),
-                              title: 'Customize Theme',
-                              subtitle:
-                                  'Your can change color and theme of chat',
+                              title: AppLocalizations.of(
+                                context,
+                              )!.customizetheme,
+                              subtitle: AppLocalizations.of(
+                                context,
+                              )!.yourcanchangecolorandthemeofchat,
                               isDarkMode: isDarkMode,
                               txt: txt,
                               onTap: () async {
@@ -903,13 +906,13 @@ class _GroupInfoScreenState extends State<GroupInfoScreen>
                         _buildDestructiveAction(
                           icon: Assets.images.icClearChat.path,
 
-                          title: 'Clear Chat',
+                          title: AppLocalizations.of(context)!.clearchat,
                           onTap: _showClearChatConfirmationDialog,
                         ),
                         if (_isCurrentUserAdmin)
                           _buildDestructiveAction(
                             icon: Assets.images.icDelete.path,
-                            title: 'Delete Group',
+                            title: AppLocalizations.of(context)!.deletegroup,
                             onTap: () {
                               showDeleteGroupDiolog(context, () {
                                 _deleteGroup();
@@ -919,7 +922,7 @@ class _GroupInfoScreenState extends State<GroupInfoScreen>
                         if (!_isCurrentUserAdmin)
                           _buildLeaveGroupAction(
                             icon: Assets.images.icLeave.path,
-                            title: 'Leave Group',
+                            title: AppLocalizations.of(context)!.leavegroup,
                             onTap: () {
                               showLeaveGroupDiolog(context, () {
                                 _leaveGroup();
@@ -953,10 +956,10 @@ class _GroupInfoScreenState extends State<GroupInfoScreen>
                       unselectedLabelColor: Theme.of(
                         context,
                       ).colorScheme.onBackground.withOpacity(0.5),
-                      tabs: const [
-                        Tab(text: 'Media'),
-                        Tab(text: 'Links'),
-                        Tab(text: 'Files'),
+                      tabs: [
+                        Tab(text: AppLocalizations.of(context)!.media),
+                        Tab(text: AppLocalizations.of(context)!.link),
+                        Tab(text: AppLocalizations.of(context)!.document),
                       ],
                     ),
                     backgroundColor: Theme.of(context).colorScheme.background,
@@ -1209,17 +1212,6 @@ class _GroupInfoScreenState extends State<GroupInfoScreen>
     );
   }
 
-  bool _isPolzetAiUsername(String? username) {
-    if (username == null) return false;
-    final lower = username.toLowerCase();
-    return lower == 'polzet ai' ||
-        lower == 'polzetai' ||
-        lower == 'polzet_ai' ||
-        lower == 'polzet-ai' ||
-        lower.contains('polzet ai') ||
-        lower.contains('polzetai');
-  }
-
   Widget _buildGroupAvatarStack({
     required List<dynamic>? members,
     required double size,
@@ -1228,7 +1220,6 @@ class _GroupInfoScreenState extends State<GroupInfoScreen>
   }) {
     final List<String?> profileUrls = [];
     final List<String> initials = [];
-    final List<String?> usernames = [];
 
     if (members != null) {
       for (final member in members) {
@@ -1258,7 +1249,6 @@ class _GroupInfoScreenState extends State<GroupInfoScreen>
           final name = (user['name'] ?? username ?? 'Unknown').toString();
           profileUrls.add(profileUrl);
           initials.add(name.isNotEmpty ? name[0].toUpperCase() : '?');
-          usernames.add(username);
         }
       }
     }
@@ -1266,7 +1256,6 @@ class _GroupInfoScreenState extends State<GroupInfoScreen>
     while (profileUrls.length < 2) {
       profileUrls.add(Assets.images.icAvatar.path);
       initials.add('?');
-      usernames.add(null);
     }
 
     final double circleSize = size * 0.70;
@@ -1285,7 +1274,6 @@ class _GroupInfoScreenState extends State<GroupInfoScreen>
               size: circleSize,
               isDarkMode: isDarkMode,
               context: context,
-              username: usernames.isNotEmpty ? usernames[0] : null,
             ),
           ),
           if (profileUrls.length > 1)
@@ -1299,7 +1287,6 @@ class _GroupInfoScreenState extends State<GroupInfoScreen>
                 isDarkMode: isDarkMode,
                 context: context,
                 hasBorder: true,
-                username: usernames.length > 1 ? usernames[1] : null,
               ),
             ),
         ],
@@ -1314,51 +1301,7 @@ class _GroupInfoScreenState extends State<GroupInfoScreen>
     required bool isDarkMode,
     required BuildContext context,
     bool hasBorder = false,
-    String? username,
   }) {
-    if (_isPolzetAiUsername(username) || _isPolzetAiUsername(profileUrl)) {
-      return Container(
-        width: size,
-        height: size,
-        decoration: hasBorder
-            ? BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: Theme.of(context).colorScheme.background,
-                  width: 2,
-                ),
-              )
-            : null,
-        child: Stack(
-          alignment: Alignment.center,
-          children: [
-            ClipOval(
-              child: Center(
-                child: Padding(
-                  padding: const EdgeInsets.only(
-                    top: 6,
-                    bottom: 0,
-                    left: 8,
-                    right: 7,
-                  ),
-                  child: Image.asset(
-                    Assets.images.icSplash.path,
-                    fit: BoxFit.contain,
-                  ),
-                ),
-              ),
-            ),
-            Positioned.fill(
-              child: Image.asset(
-                Assets.images.aiFrame.path,
-                fit: BoxFit.contain,
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-
     final ImageProvider? avatarProvider =
         (profileUrl == null ||
             profileUrl.trim().isEmpty ||
@@ -1479,7 +1422,7 @@ class _GroupInfoScreenState extends State<GroupInfoScreen>
                   ),
                   Text(
                     subtitle,
-                     style: AppTextStyles.cardTitle.copyWith(
+                    style: AppTextStyles.cardTitle.copyWith(
                       color: txt.muted,
                       fontSize: 12.5,
                       fontWeight: FontWeight.w400,
@@ -1524,7 +1467,7 @@ class _GroupInfoScreenState extends State<GroupInfoScreen>
             style: AppTextStyles.cardTitle.copyWith(
               color: const Color(0XFFE5484D),
               fontSize: 14.5,
-                      fontWeight: FontWeight.w500,
+              fontWeight: FontWeight.w500,
             ),
           ),
         ],
@@ -1560,10 +1503,10 @@ class _GroupInfoScreenState extends State<GroupInfoScreen>
           SizedBox(width: 15.w),
           Text(
             title,
-            style:AppTextStyles.cardTitle.copyWith(
+            style: AppTextStyles.cardTitle.copyWith(
               color: const Color(0XFFE5484D),
               fontSize: 14.5,
-                      fontWeight: FontWeight.w500,
+              fontWeight: FontWeight.w500,
             ),
           ),
         ],
