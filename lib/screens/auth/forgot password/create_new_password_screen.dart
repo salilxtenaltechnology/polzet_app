@@ -140,24 +140,26 @@ class _CreateNewPasswordScreenState extends State<CreateNewPasswordScreen>
 
     if (text.isEmpty) {
       strengthColor = isDark ? Colors.white38 : Colors.black38;
-      strengthLabel = 'Weak password';
+      strengthLabel = AppLocalizations.of(context)!.weakpassword;
       segmentsFilled = 0;
     } else if (score <= 2) {
       strengthColor = const Color(0xFFE53935); // Red
-      strengthLabel = 'Weak password';
+      strengthLabel = AppLocalizations.of(context)!.weakpassword;
       segmentsFilled = score == 0 ? 1 : score;
     } else if (score <= 3) {
       strengthColor = const Color(0xFFE0A900); // Yellow/Orange
-      strengthLabel = 'Good password';
+      strengthLabel = AppLocalizations.of(context)!.goodpassword;
       segmentsFilled = 3;
     } else {
       strengthColor = const Color(0xFF2E7D32); // Green
-      strengthLabel = 'Strong password';
+      strengthLabel = AppLocalizations.of(context)!.strongpassword;
       segmentsFilled = score;
     }
 
     final cardBgColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
-    final neutralColor = isDark ? const Color(0xFF333333) : const Color(0xFFE5E5E5);
+    final neutralColor = isDark
+        ? const Color(0xFF333333)
+        : const Color(0xFFE5E5E5);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -219,15 +221,35 @@ class _CreateNewPasswordScreenState extends State<CreateNewPasswordScreen>
                 }),
               ),
               SizedBox(height: 18.h),
-              _buildRequirementRow('8 - 10 characters', _hasLength(text), isDark),
+              _buildRequirementRow(
+                AppLocalizations.of(context)!.eighttencharacters,
+                _hasLength(text),
+                isDark,
+              ),
               SizedBox(height: 10.h),
-              _buildRequirementRow('At least 1 uppercase letter', _hasUppercase(text), isDark),
+              _buildRequirementRow(
+                AppLocalizations.of(context)!.atleastoneuppercaseletter,
+                _hasUppercase(text),
+                isDark,
+              ),
               SizedBox(height: 10.h),
-              _buildRequirementRow('At least 1 lowercase letter', _hasLowercase(text), isDark),
+              _buildRequirementRow(
+                AppLocalizations.of(context)!.atleastonelowercaseletter,
+                _hasLowercase(text),
+                isDark,
+              ),
               SizedBox(height: 10.h),
-              _buildRequirementRow('At least 1 number', _hasNumber(text), isDark),
+              _buildRequirementRow(
+                AppLocalizations.of(context)!.atleastonenumber,
+                _hasNumber(text),
+                isDark,
+              ),
               SizedBox(height: 10.h),
-              _buildRequirementRow('At least 1 special character', _hasSpecialChar(text), isDark),
+              _buildRequirementRow(
+                AppLocalizations.of(context)!.atleastonespecialcharacter,
+                _hasSpecialChar(text),
+                isDark,
+              ),
             ],
           ),
         ),
@@ -285,13 +307,16 @@ class _CreateNewPasswordScreenState extends State<CreateNewPasswordScreen>
           !_hasLowercase(pw) ||
           !_hasNumber(pw) ||
           !_hasSpecialChar(pw)) {
-        _passwordError = AppLocalizations.of(context)!
-            .mustbeeightpluscharacterswithaletternumberandspecialcharacter;
+        _passwordError = AppLocalizations.of(
+          context,
+        )!.mustbeeightpluscharacterswithaletternumberandspecialcharacter;
         ok = false;
       }
 
       if (_confirmPwCtrl.text.isEmpty) {
-        _confirmPwError = AppLocalizations.of(context)!.pleaseconfirmyournewpassword;
+        _confirmPwError = AppLocalizations.of(
+          context,
+        )!.pleaseconfirmyournewpassword;
         ok = false;
       } else if (_confirmPwCtrl.text != pw) {
         _confirmPwError = AppLocalizations.of(context)!.passworddonotmatch;
@@ -410,9 +435,9 @@ class _CreateNewPasswordScreenState extends State<CreateNewPasswordScreen>
         ),
         child: _isLoading
             ? Loader(color: Colors.white)
-            : const Text(
-                'Reset password',
-                style: TextStyle(
+            : Text(
+                AppLocalizations.of(context)!.resetpassword,
+                style: const TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
                   letterSpacing: 0.2,
@@ -434,7 +459,7 @@ class _CreateNewPasswordScreenState extends State<CreateNewPasswordScreen>
             children: [
               const SizedBox(height: 50),
               Text(
-                'Create new password',
+                AppLocalizations.of(context)!.createnewpassword,
                 style: AppTextStyles.subSectionHeading.copyWith(
                   fontSize: 23,
                   color: Theme.of(context).colorScheme.onBackground,
@@ -443,7 +468,7 @@ class _CreateNewPasswordScreenState extends State<CreateNewPasswordScreen>
               const SizedBox(height: 30),
 
               // ── New Password ──────────────────────────────────────────────────
-              _buildFieldLabel('New Password'),
+              _buildFieldLabel(AppLocalizations.of(context)!.newpassword),
               const SizedBox(height: 10),
               CompositedTransformTarget(
                 link: _layerLink,
@@ -464,7 +489,7 @@ class _CreateNewPasswordScreenState extends State<CreateNewPasswordScreen>
                     ),
                     decoration:
                         _fieldDecoration(
-                          'Enter new password',
+                          AppLocalizations.of(context)!.enternewpassword,
                           hasError: _passwordError.isNotEmpty,
                         ).copyWith(
                           suffixIcon: IconButton(
@@ -488,7 +513,7 @@ class _CreateNewPasswordScreenState extends State<CreateNewPasswordScreen>
               const SizedBox(height: 20),
 
               // ── Confirm Password ──────────────────────────────────────────────
-              _buildFieldLabel('Confirm Password'),
+              _buildFieldLabel(AppLocalizations.of(context)!.confirmpassword),
               const SizedBox(height: 10),
               SizedBox(
                 height: 48,
@@ -503,7 +528,7 @@ class _CreateNewPasswordScreenState extends State<CreateNewPasswordScreen>
                   ),
                   decoration:
                       _fieldDecoration(
-                        'Confirm your password',
+                        AppLocalizations.of(context)!.confirmyourpassword,
                         hasError: _confirmPwError.isNotEmpty,
                       ).copyWith(
                         suffixIcon: IconButton(

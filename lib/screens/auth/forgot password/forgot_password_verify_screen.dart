@@ -11,6 +11,7 @@ import '../../../api/api_service.dart';
 import '../../../core/constants/app_radius.dart';
 import '../../../core/themes/app_text_colors.dart';
 import '../../../core/themes/app_text_styles.dart';
+import '../../../languages/l10n/generated/app_localizations.dart';
 import '../../../widgets/loader.dart';
 import 'create_new_password_screen.dart';
 
@@ -107,7 +108,7 @@ class _ForgotPasswordVerifyScreenState
     final otp = _otpValue;
 
     if (otp.length < 6) {
-      setState(() => _otpError = 'Please enter the complete 6-digit code');
+      setState(() => _otpError = AppLocalizations.of(context)!.pleaseenterthecompletesixdigitcode);
       return;
     }
 
@@ -166,19 +167,19 @@ class _ForgotPasswordVerifyScreenState
           ),
         );
       } else {
-        setState(() => _otpError = result['message'] ?? 'Invalid OTP');
+        setState(() => _otpError = result['message'] ?? AppLocalizations.of(context)!.invalidotp);
       }
     } on FirebaseAuthException catch (e) {
       String errorMessage;
       switch (e.code) {
         case 'invalid-verification-code':
-          errorMessage = 'Invalid verification code. Please check and try again.';
+          errorMessage = AppLocalizations.of(context)!.invalidotp;
           break;
         case 'session-expired':
-          errorMessage = 'Verification code has expired. Please request a new one.';
+          errorMessage = AppLocalizations.of(context)!.verificationcodehasexpiredpleaserequestanewone;
           break;
         case 'invalid-phone-number':
-          errorMessage = 'Invalid phone number. Please check and try again.';
+          errorMessage = AppLocalizations.of(context)!.invalidphonenumber;
           break;
         default:
           errorMessage = e.message ?? 'Firebase verification failed';
@@ -191,7 +192,7 @@ class _ForgotPasswordVerifyScreenState
       final errors = data is Map ? data['errors'] : null;
       final msg = (errors is String && errors.isNotEmpty)
           ? errors
-          : (data is Map ? data['message'] : e.message) ?? 'Invalid OTP';
+          : (data is Map ? data['message'] : e.message) ?? AppLocalizations.of(context)!.invalidotp;
       setState(() => _otpError = msg);
     } catch (e) {
       if (mounted) {
@@ -341,7 +342,7 @@ class _ForgotPasswordVerifyScreenState
               switch (e.code) {
                 case 'invalid-phone-number':
                   errorMessage =
-                      'Invalid phone number. Please check and try again.';
+                      'Invalid phone number';
                   break;
                 case 'too-many-requests':
                   errorMessage =
@@ -432,7 +433,7 @@ class _ForgotPasswordVerifyScreenState
           color: const Color(0xFF8A8A8A),
         ),
         children: [
-          const TextSpan(text: "Didn't receive code? "),
+          TextSpan(text: "${AppLocalizations.of(context)!.didnotreceivecode} "),
           WidgetSpan(
             alignment: PlaceholderAlignment.middle,
             child: GestureDetector(
@@ -449,7 +450,7 @@ class _ForgotPasswordVerifyScreenState
                       ),
                     )
                   : Text(
-                      'Resend OTP',
+                     AppLocalizations.of(context)!.resendotp,
                       style: AppTextStyles.subText.copyWith(
                         fontSize: 13.2,
                         color: _isResending
@@ -536,7 +537,7 @@ class _ForgotPasswordVerifyScreenState
             children: [
               const SizedBox(height: 50),
               Text(
-                widget.isMobile ? 'Verify your number' : 'Verify your email',
+                widget.isMobile ?  AppLocalizations.of(context)!.verifyyournumber : AppLocalizations.of(context)!.verifyyouremail,
                 style: AppTextStyles.subSectionHeading.copyWith(
                   fontSize: 23,
                   color: Theme.of(context).colorScheme.onBackground,
@@ -553,7 +554,7 @@ class _ForgotPasswordVerifyScreenState
                     height: 1.4,
                   ),
                   children: [
-                    const TextSpan(text: 'Enter the 6-digit code sent to '),
+                     TextSpan(text: '${AppLocalizations.of(context)!.enterthesixdigitcodesentto} '),
                     TextSpan(
                       text: widget.maskedContact,
                       style: AppTextStyles.bodyText.copyWith(
@@ -603,9 +604,9 @@ class _ForgotPasswordVerifyScreenState
                   ),
                   child: _isVerifying
                       ? Loader(color: Colors.white)
-                      : const Text(
-                          'Verify Code',
-                          style: TextStyle(
+                      :  Text(
+                        AppLocalizations.of(context)!.verifycode,
+                          style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
                             letterSpacing: 0.2,

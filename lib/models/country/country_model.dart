@@ -72,17 +72,24 @@ final List<Country> allCountries = [
 
 /// Returns a [Country] by its dial code (without the leading '+').
 Country? getCountryByDialCode(String dialCode) {
+  final cleanCode = dialCode.replaceAll('+', '').trim();
+  if (cleanCode.isEmpty) {
+    return allCountries.firstWhere(
+      (country) => country.code == 'IN' || country.dialCode == '+91',
+      orElse: () => allCountries.first,
+    );
+  }
   try {
     return allCountries.firstWhere(
-      (country) => country.dialCode == '+$dialCode',
+      (country) => country.dialCode == '+$cleanCode',
       orElse: () => allCountries.firstWhere(
-        (country) => country.dialCode == '+1', // Default to US
+        (country) => country.code == 'IN' || country.dialCode == '+91',
         orElse: () => allCountries.first,
       ),
     );
   } catch (e) {
     return allCountries.firstWhere(
-      (country) => country.dialCode == '+1',
+      (country) => country.code == 'IN' || country.dialCode == '+91',
       orElse: () => allCountries.first,
     );
   }

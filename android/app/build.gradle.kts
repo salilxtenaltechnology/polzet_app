@@ -34,7 +34,7 @@ android {
         applicationId = "com.polzet_app"
         minSdk = flutter.minSdkVersion
         targetSdk = 36
-        versionCode = 20
+        versionCode = 21
         versionName = "1.2.0"
         multiDexEnabled = true
     }
@@ -74,7 +74,7 @@ android {
 
 afterEvaluate {
     tasks.named("extractDeepLinksRelease") {
-        mustRunAfter(tasks.named("processReleaseGoogleServices"))
+        dependsOn(tasks.named("processReleaseGoogleServices"))
     }
 }
 

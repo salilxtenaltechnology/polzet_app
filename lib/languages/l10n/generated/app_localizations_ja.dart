@@ -404,7 +404,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get editprofile => 'プロフィールを編集';
 
   @override
-  String get cropimage => '画像 zuschneiden?';
+  String get cropimage => '画像を切り抜く';
 
   @override
   String get wouldyouliketocroptheimage => 'Möchten Sie das 画像 zuschneiden?';
@@ -569,7 +569,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get newpassword => '新しいパスワード';
 
   @override
-  String get enternewpassword => '新しいパスワード eingeben';
+  String get enternewpassword => '新しいパスワードを入力';
 
   @override
   String get confirmpassword => 'パスワードを確認';
@@ -1846,7 +1846,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get tryanotherkeywordorexploretrendingpolls =>
-      'Versuche ein anderes Schlüsselwort oder entdecke Trend-アンケート.';
+      '別のキーワードを試すか、人気の投票をチェックしてください';
 
   @override
   String get searching => '検索中...';
@@ -2630,4 +2630,205 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get postdetails => '投稿';
+
+  @override
+  String get curiouswhatpeoplethink => 'みんながどう思っているか気になりませんか？ 👀';
+
+  @override
+  String get askitgetrealopinionsfromthecrowd => '質問して、みんなのリアルな意見を聞こう';
+
+  @override
+  String get whatsonyourmind => '今何を考えていますか';
+
+  @override
+  String get createpoll => '投票を作成';
+
+  @override
+  String get thispinwillbeusedtosecureyouraccount =>
+      'このPINはアカウントのセキュリティ保護に使用されます';
+
+  @override
+  String get nochaseusers => 'Chaseユーザーはいません';
+
+  @override
+  String get norechaseusers => 'Re-Chaseユーザーはいません';
+
+  @override
+  String get youveblockedthisuser => 'このユーザーをブロックしました';
+
+  @override
+  String get unblockusertoviewtheirpollsorinteractwiththem =>
+      'ユーザーのブロックを解除すると、投票を見たり交流したりできます。相手はあなたのプロフィールやコンテンツを見ることができません。';
+
+  @override
+  String get letssetupyourprofile => 'プロフィールを設定しましょう';
+
+  @override
+  String get addaphotoandyournamesopeoplecanrecognizeyou =>
+      '写真と名前を追加して、みんなにあなたを知ってもらいましょう';
+
+  @override
+  String get uploading => 'アップロード中...';
+
+  @override
+  String get skipfornow => '今はスキップ';
+
+  @override
+  String get step => 'ステップ';
+
+  @override
+  String get followpeopleyoulike => '気になる人をフォロー';
+
+  @override
+  String get chooseafewtopersonalizeyourfeed => 'いくつか選んでフィードをパーソナライズしましょう';
+
+  @override
+  String get suggested => 'おすすめ';
+
+  @override
+  String get popular => '人気';
+
+  @override
+  String get whatcatchesyourattention => '何に興味を引かれますか？';
+
+  @override
+  String get selectatleastthreetopicsyouareinterestedin =>
+      '興味のあるトピックを3つ以上選択してください';
+
+  @override
+  String get forgotpassword => 'パスワードを忘れた場合';
+
+  @override
+  String get enteryouremailormobilenumbertoreceiveaverificationcode =>
+      '確認コードを受け取るために、メールアドレスまたは携帯電話番号を入力してください';
+
+  @override
+  String get mobile => '携帯電話';
+
+  @override
+  String get pleaseenteryouremail => 'メールアドレスを入力してください';
+
+  @override
+  String get pleaseenteryourphonenumber => '電話番号を入力してください';
+
+  @override
+  String get pleaseenterthecompletesixdigitcode => '6桁のコードをすべて入力してください';
+
+  @override
+  String get enterthesixdigitcodesentto => '送信された6桁のコードを入力してください';
+
+  @override
+  String get invalidotp => '無効なOTP';
+
+  @override
+  String get verificationcodehasexpiredpleaserequestanewone =>
+      '確認コードの有効期限が切れています。新しいコードをリクエストしてください。';
+
+  @override
+  String get invalidphonenumber => '無効な電話番号';
+
+  @override
+  String get toomanyattemptspleasetryagainlater => '試行回数が多すぎます。後でもう一度お試しください';
+
+  @override
+  String get verifyyournumber => '電話番号を確認';
+
+  @override
+  String get verifyyouremail => 'メールアドレスを確認';
+
+  @override
+  String get verifycode => 'コードを確認';
+
+  @override
+  String get otpwillexpirein => 'OTPの有効期限まで';
+
+  @override
+  String get resendcodein => 'コードを再送信できるまで';
+
+  @override
+  String get didnotreceivecode => 'コードが届きませんでしたか？';
+
+  @override
+  String get resendotp => 'OTPを再送信';
+
+  @override
+  String get createnewpassword => '新しいパスワードを作成';
+
+  @override
+  String get confirmyourpassword => 'パスワードを確認してください';
+
+  @override
+  String get resetpassword => 'パスワードをリセット';
+
+  @override
+  String get weakpassword => '弱いパスワード';
+
+  @override
+  String get goodpassword => '良いパスワード';
+
+  @override
+  String get strongpassword => '強力なパスワード';
+
+  @override
+  String get eighttencharacters => '8～10文字';
+
+  @override
+  String get atleastoneuppercaseletter => '大文字を1文字以上';
+
+  @override
+  String get atleastonelowercaseletter => '小文字を1文字以上';
+
+  @override
+  String get atleastonenumber => '数字を1つ以上';
+
+  @override
+  String get atleastonespecialcharacter => '特殊文字を1つ以上';
+
+  @override
+  String get editimage => '画像を編集';
+
+  @override
+  String get replaceimage => '画像を置き換える';
+
+  @override
+  String get remove => '削除';
+
+  @override
+  String get ideasroryou => 'あなたへのアイデア';
+
+  @override
+  String get pollideas => '投票のアイデア';
+
+  @override
+  String get foryou => 'あなた向け';
+
+  @override
+  String get dailylife => '日常生活';
+
+  @override
+  String get food => '食べ物';
+
+  @override
+  String get travel => '旅行';
+
+  @override
+  String get tech => 'テクノロジー';
+
+  @override
+  String get entertainment => 'エンターテインメント';
+
+  @override
+  String get searchpolltopics => '投票トピックを検索';
+
+  @override
+  String get recents => '最近';
+
+  @override
+  String get rorecentsearches => '最近の検索はありません';
+
+  @override
+  String get notopicsfoundfor => '該当するトピックが見つかりません：';
+
+  @override
+  String get withselectedfilters => '選択したフィルターで';
 }

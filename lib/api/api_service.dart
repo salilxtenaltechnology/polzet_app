@@ -193,7 +193,7 @@ class ApiService with UtilityMixin {
 
       if (response.statusCode == 200) {
         debugPrint('response.data type: ${response.data.runtimeType}');
-        debugPrint('response.data: ${response.data}');
+        debugPrint('LOGIN_RESPONSE: ${response.data}');
         Map<String, dynamic> data;
         if (response.data is String) {
           data = jsonDecode(response.data as String) as Map<String, dynamic>;
@@ -947,6 +947,63 @@ class ApiService with UtilityMixin {
     }
   }
 
+  Future<Map<String, dynamic>> phoneVerifyRequest({
+    required String countryCode,
+    required String mobileNumber,
+  }) async {
+    try {
+      final formData = FormData.fromMap({
+        'country_code': countryCode,
+        'mobile_number': mobileNumber,
+      });
+
+      final response = await _dio.post(
+        ApiConstants.updateMobileNumberRequest,
+        data: formData,
+        options: Options(headers: await _getAuthHeaders()),
+      );
+
+      if (response.data is Map) {
+        return Map<String, dynamic>.from(response.data as Map);
+      }
+      return {'status': 'success', 'data': response.data};
+    } on DioException catch (e) {
+      throw _handleDioError(e);
+    }
+  }
+
+  Future<Map<String, dynamic>> phoneVerifyConfirm({
+    required String countryCode,
+    required String mobileNumber,
+    String? phoneNumber,
+    required String firebaseToken,
+    String? otp,
+  }) async {
+    try {
+      final fullPhone = phoneNumber ?? '$countryCode$mobileNumber';
+      final formData = FormData.fromMap({
+        'country_code': countryCode,
+        'mobile_number': mobileNumber,
+        'phone_number': fullPhone,
+        'firebase_token': firebaseToken,
+        if (otp != null) 'otp': otp,
+      });
+
+      final response = await _dio.post(
+        ApiConstants.verifyMobileNumberConfirm,
+        data: formData,
+        options: Options(headers: await _getAuthHeaders()),
+      );
+
+      if (response.data is Map) {
+        return Map<String, dynamic>.from(response.data as Map);
+      }
+      return {'status': 'success', 'data': response.data};
+    } on DioException catch (e) {
+      throw _handleDioError(e);
+    }
+  }
+
   /// Fetches the list of available interests (id, name, icon).
   Future<Map<String, dynamic>> getInterestList() async {
     try {
@@ -969,17 +1026,56 @@ class ApiService with UtilityMixin {
   }) async {
     try {
       final response = await _dio.post(
-        '${ApiConstants.baseUrl}/profile/verify-email-request',
+        '${ApiConstants.baseUrl}/profile/verify_email_request',
         data: FormData.fromMap({'email': email}),
         options: Options(headers: await _getAuthHeaders()),
       );
 
-      return response.data as Map<String, dynamic>;
+      final data = response.data as Map<String, dynamic>;
+      if (data['status'] == 'error' || data['success'] == false) {
+        String message = data['message']?.toString() ?? 'Failed to send OTP';
+        if (data['errors'] != null && data['errors'] is Map) {
+          final errors = data['errors'] as Map;
+          if (errors['email'] is List && (errors['email'] as List).isNotEmpty) {
+            message = (errors['email'] as List).first.toString();
+          } else if (errors['email'] is String) {
+            message = errors['email'];
+          } else if (errors.values.isNotEmpty) {
+            final firstVal = errors.values.first;
+            if (firstVal is List && firstVal.isNotEmpty) {
+              message = firstVal.first.toString();
+            } else if (firstVal is String) {
+              message = firstVal;
+            }
+          }
+        }
+        throw Exception(message);
+      }
+
+      return data;
     } on DioException catch (e) {
-      // Handle known API error shape, fallback to generic message
-      final message = e.response?.data is Map
-          ? (e.response?.data['message'] ?? 'Something went wrong')
-          : 'Something went wrong';
+      String message = _handleDioError(e, defaultMessage: 'Failed to send OTP');
+      if (e.response?.data != null && e.response?.data is Map) {
+        final data = e.response!.data as Map;
+        if (data['message'] != null && data['message'].toString().trim().isNotEmpty) {
+          message = data['message'].toString().trim();
+        }
+        if (data['errors'] != null && data['errors'] is Map && (data['errors'] as Map).isNotEmpty) {
+          final errors = data['errors'] as Map;
+          if (errors['email'] is List && (errors['email'] as List).isNotEmpty) {
+            message = (errors['email'] as List).first.toString();
+          } else if (errors['email'] is String && (errors['email'] as String).isNotEmpty) {
+            message = errors['email'];
+          } else if (errors.values.isNotEmpty) {
+            final firstVal = errors.values.first;
+            if (firstVal is List && firstVal.isNotEmpty) {
+              message = firstVal.first.toString();
+            } else if (firstVal is String && firstVal.isNotEmpty) {
+              message = firstVal;
+            }
+          }
+        }
+      }
       throw Exception(message);
     }
   }
@@ -990,16 +1086,64 @@ class ApiService with UtilityMixin {
   }) async {
     try {
       final response = await _dio.post(
-        '${ApiConstants.baseUrl}/profile/verify-email-confirm',
+        '${ApiConstants.baseUrl}/profile/verify_email_confirm',
         data: FormData.fromMap({'email': email, 'otp': otp}),
         options: Options(headers: await _getAuthHeaders()),
       );
 
-      return response.data as Map<String, dynamic>;
+      final data = response.data as Map<String, dynamic>;
+      if (data['status'] == 'error' || data['success'] == false) {
+        String message = data['message']?.toString() ?? 'Invalid OTP';
+        if (data['errors'] != null && data['errors'] is Map && (data['errors'] as Map).isNotEmpty) {
+          final errors = data['errors'] as Map;
+          if (errors['otp'] is List && (errors['otp'] as List).isNotEmpty) {
+            message = (errors['otp'] as List).first.toString();
+          } else if (errors['otp'] is String && (errors['otp'] as String).isNotEmpty) {
+            message = errors['otp'];
+          } else if (errors['email'] is List && (errors['email'] as List).isNotEmpty) {
+            message = (errors['email'] as List).first.toString();
+          } else if (errors['email'] is String && (errors['email'] as String).isNotEmpty) {
+            message = errors['email'];
+          } else if (errors.values.isNotEmpty) {
+            final firstVal = errors.values.first;
+            if (firstVal is List && firstVal.isNotEmpty) {
+              message = firstVal.first.toString();
+            } else if (firstVal is String && firstVal.isNotEmpty) {
+              message = firstVal;
+            }
+          }
+        }
+        throw Exception(message);
+      }
+
+      return data;
     } on DioException catch (e) {
-      final message = e.response?.data is Map
-          ? (e.response?.data['message'] ?? 'Something went wrong')
-          : 'Something went wrong';
+      String message = _handleDioError(e, defaultMessage: 'Failed to verify OTP');
+      if (e.response?.data != null && e.response?.data is Map) {
+        final data = e.response!.data as Map;
+        if (data['message'] != null && data['message'].toString().trim().isNotEmpty) {
+          message = data['message'].toString().trim();
+        }
+        if (data['errors'] != null && data['errors'] is Map && (data['errors'] as Map).isNotEmpty) {
+          final errors = data['errors'] as Map;
+          if (errors['otp'] is List && (errors['otp'] as List).isNotEmpty) {
+            message = (errors['otp'] as List).first.toString();
+          } else if (errors['otp'] is String && (errors['otp'] as String).isNotEmpty) {
+            message = errors['otp'];
+          } else if (errors['email'] is List && (errors['email'] as List).isNotEmpty) {
+            message = (errors['email'] as List).first.toString();
+          } else if (errors['email'] is String && (errors['email'] as String).isNotEmpty) {
+            message = errors['email'];
+          } else if (errors.values.isNotEmpty) {
+            final firstVal = errors.values.first;
+            if (firstVal is List && firstVal.isNotEmpty) {
+              message = firstVal.first.toString();
+            } else if (firstVal is String && firstVal.isNotEmpty) {
+              message = firstVal;
+            }
+          }
+        }
+      }
       throw Exception(message);
     }
   }
@@ -1693,6 +1837,89 @@ class ApiService with UtilityMixin {
     }
   }
 
+  // Text poll
+  Future<Map<String, dynamic>> createTextPoll({
+    required String question,
+    required List<String> pollOptions,
+    String description = '',
+    String votingType = 'ranking',
+    int? maxOptions,
+  }) async {
+    try {
+      final formData = FormData();
+
+      formData.fields
+        ..add(MapEntry('question', question))
+        ..add(MapEntry('description', description))
+        ..add(const MapEntry('poll_type', 'text'))
+        ..add(MapEntry('voting_type', votingType));
+
+      if (maxOptions != null) {
+        formData.fields.add(MapEntry('max_options', maxOptions.toString()));
+      }
+
+      for (final option in pollOptions) {
+        formData.fields.add(MapEntry('poll_options', option));
+      }
+
+      final response = await _dio.post(
+        ApiConstants.userPosts,
+        data: formData,
+        options: Options(headers: await _getAuthHeaders()),
+      );
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        if (response.data is Map<String, dynamic>) {
+          return response.data as Map<String, dynamic>;
+        }
+        return {'status': 'success', 'data': response.data};
+      } else {
+        String errorMsg = 'Failed to create text poll';
+        final data = response.data;
+        if (data is Map) {
+          errorMsg =
+              data['message']?.toString() ??
+              data['detail']?.toString() ??
+              data['error']?.toString() ??
+              errorMsg;
+        } else if (data is String && data.isNotEmpty) {
+          errorMsg = data;
+        }
+        throw Exception(errorMsg);
+      }
+    } on DioException catch (e) {
+      String errorMsg = 'Failed to create text poll';
+      final data = e.response?.data;
+      if (data is Map) {
+        errorMsg =
+            data['message']?.toString() ??
+            data['detail']?.toString() ??
+            data['error']?.toString() ??
+            errorMsg;
+      } else if (data is String && data.isNotEmpty && !data.contains('<html')) {
+        errorMsg = data;
+      } else if (e.message != null && e.message!.isNotEmpty) {
+        errorMsg = e.message!;
+      }
+      throw Exception(errorMsg);
+    }
+  }
+
+  // Text poll alias
+  Future<Map<String, dynamic>> textPoll({
+    required String question,
+    required List<String> pollOptions,
+    String description = '',
+    String votingType = 'ranking',
+    int? maxOptions,
+  }) => createTextPoll(
+    question: question,
+    pollOptions: pollOptions,
+    description: description,
+    votingType: votingType,
+    maxOptions: maxOptions,
+  );
+
   // Suggestion users
   Future<UserSuggestionsModel> fetchUserSuggestions({int? page}) async {
     try {
@@ -1714,6 +1941,20 @@ class ApiService with UtilityMixin {
     } on DioException catch (e) {
       debugPrint('Error fetching user suggestions: $e');
       throw Exception('Error fetching user suggestions: $e');
+    }
+  }
+
+  /// Fetches poll topic categories for the feed, each with its suggested prompts.
+  Future<Map<String, dynamic>> getPollTopicsFeed() async {
+    try {
+      final response = await _dio.get(
+        '${ApiConfig.baseUrl}/poll-prompts/feed/',
+        options: Options(headers: await _getAuthHeaders()),
+      );
+
+      return response.data as Map<String, dynamic>;
+    } on DioException catch (e) {
+      throw _handleDioError(e);
     }
   }
 
@@ -3180,7 +3421,8 @@ class ApiService with UtilityMixin {
             final String uuid = (admin['uuid'] ?? admin['id'] ?? '').toString();
             adminUuids.add(uuid);
             final adminMap = Map<String, dynamic>.from(admin);
-            final bool isBlock = parseBool(admin['is_block']) ||
+            final bool isBlock =
+                parseBool(admin['is_block']) ||
                 parseBool(admin['is_blocked']) ||
                 parseBool(admin['isBlocked']) ||
                 parseBool(admin['is_blocked_by_current_user']) ||
@@ -3191,7 +3433,8 @@ class ApiService with UtilityMixin {
 
             adminMap['id'] = uuid;
             adminMap['uuid'] = uuid;
-            adminMap['username'] = admin['username']?.toString() ??
+            adminMap['username'] =
+                admin['username']?.toString() ??
                 (admin['user']?['username']?.toString() ?? '');
             adminMap['profile_picture_url'] =
                 admin['profile_picture_url']?.toString() ??
@@ -3224,7 +3467,8 @@ class ApiService with UtilityMixin {
             final bool? isOnline =
                 member['is_online'] as bool? ??
                 member['user']?['is_online'] as bool?;
-            final bool isBlock = parseBool(member['is_block']) ||
+            final bool isBlock =
+                parseBool(member['is_block']) ||
                 parseBool(member['is_blocked']) ||
                 parseBool(member['isBlocked']) ||
                 parseBool(member['is_blocked_by_current_user']) ||
@@ -3232,7 +3476,8 @@ class ApiService with UtilityMixin {
                 parseBool(member['user']?['is_blocked']) ||
                 parseBool(member['user']?['isBlocked']) ||
                 parseBool(member['user']?['is_blocked_by_current_user']);
-            final bool isReported = parseBool(member['is_reported']) ||
+            final bool isReported =
+                parseBool(member['is_reported']) ||
                 parseBool(member['isReported']) ||
                 parseBool(member['user']?['is_reported']) ||
                 parseBool(member['user']?['isReported']);

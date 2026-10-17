@@ -368,7 +368,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen>
       backgroundColor: Theme.of(context).colorScheme.background,
       appBar: CommonAppBar(title: AppLocalizations.of(context)!.changepassword),
       body: SingleChildScrollView(
-        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 20.h),
+        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -448,7 +448,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen>
                 child: _isLoading
                     ? Loader(color: Colors.white)
                     : Text(
-                        'Continue',
+                        AppLocalizations.of(context)!.continueButton,
                         style: AppTextStyles.bodyText.copyWith(
                           fontSize: 15.5,
                           fontWeight: FontWeight.w600,

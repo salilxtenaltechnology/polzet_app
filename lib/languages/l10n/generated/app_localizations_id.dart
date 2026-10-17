@@ -408,7 +408,7 @@ class AppLocalizationsId extends AppLocalizations {
   String get editprofile => 'Edit Profil';
 
   @override
-  String get cropimage => 'Potong Gambar?';
+  String get cropimage => 'Pangkas gambar';
 
   @override
   String get wouldyouliketocroptheimage => 'Apakah Anda ingin memotong gambar?';
@@ -1859,7 +1859,7 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String get tryanotherkeywordorexploretrendingpolls =>
-      'Coba kata kunci lain atau jelajahi polling tren.';
+      'Coba kata kunci lain atau jelajahi jajak pendapat yang sedang tren';
 
   @override
   String get searching => 'Mencari...';
@@ -2671,4 +2671,212 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String get postdetails => 'Postingan';
+
+  @override
+  String get curiouswhatpeoplethink =>
+      'Penasaran apa yang dipikirkan orang? 👀';
+
+  @override
+  String get askitgetrealopinionsfromthecrowd =>
+      'Tanyakan. Dapatkan opini nyata dari orang-orang';
+
+  @override
+  String get whatsonyourmind => 'apa yang ada di pikiranmu';
+
+  @override
+  String get createpoll => 'Buat Polling';
+
+  @override
+  String get thispinwillbeusedtosecureyouraccount =>
+      'PIN ini akan digunakan untuk mengamankan akun Anda';
+
+  @override
+  String get nochaseusers => 'Tidak ada pengguna Chase';
+
+  @override
+  String get norechaseusers => 'Tidak ada pengguna re-Chase';
+
+  @override
+  String get youveblockedthisuser => 'Anda telah memblokir pengguna ini';
+
+  @override
+  String get unblockusertoviewtheirpollsorinteractwiththem =>
+      'Buka blokir pengguna untuk melihat polling mereka atau berinteraksi dengan mereka. Mereka tidak akan dapat melihat profil dan konten Anda.';
+
+  @override
+  String get letssetupyourprofile => 'Mari siapkan profil Anda';
+
+  @override
+  String get addaphotoandyournamesopeoplecanrecognizeyou =>
+      'Tambahkan foto dan nama Anda agar orang dapat mengenali Anda';
+
+  @override
+  String get uploading => 'Mengunggah...';
+
+  @override
+  String get skipfornow => 'Lewati untuk sekarang';
+
+  @override
+  String get step => 'Langkah';
+
+  @override
+  String get followpeopleyoulike => 'Ikuti orang yang Anda sukai';
+
+  @override
+  String get chooseafewtopersonalizeyourfeed =>
+      'Pilih beberapa untuk mempersonalisasi feed Anda';
+
+  @override
+  String get suggested => 'Disarankan';
+
+  @override
+  String get popular => 'Populer';
+
+  @override
+  String get whatcatchesyourattention => 'Apa yang menarik perhatian Anda?';
+
+  @override
+  String get selectatleastthreetopicsyouareinterestedin =>
+      'Pilih setidaknya 3 topik yang Anda minati';
+
+  @override
+  String get forgotpassword => 'Lupa kata sandi';
+
+  @override
+  String get enteryouremailormobilenumbertoreceiveaverificationcode =>
+      'Masukkan email atau nomor ponsel Anda untuk menerima kode verifikasi';
+
+  @override
+  String get mobile => 'Ponsel';
+
+  @override
+  String get pleaseenteryouremail => 'Silakan masukkan email Anda';
+
+  @override
+  String get pleaseenteryourphonenumber =>
+      'Silakan masukkan nomor telepon Anda';
+
+  @override
+  String get pleaseenterthecompletesixdigitcode =>
+      'Silakan masukkan kode 6 digit lengkap';
+
+  @override
+  String get enterthesixdigitcodesentto =>
+      'Masukkan kode 6 digit yang dikirim ke';
+
+  @override
+  String get invalidotp => 'OTP tidak valid';
+
+  @override
+  String get verificationcodehasexpiredpleaserequestanewone =>
+      'Kode verifikasi telah kedaluwarsa. Silakan minta yang baru.';
+
+  @override
+  String get invalidphonenumber => 'Nomor telepon tidak valid';
+
+  @override
+  String get toomanyattemptspleasetryagainlater =>
+      'Terlalu banyak percobaan. Silakan coba lagi nanti';
+
+  @override
+  String get verifyyournumber => 'Verifikasi nomor Anda';
+
+  @override
+  String get verifyyouremail => 'Verifikasi email Anda';
+
+  @override
+  String get verifycode => 'Verifikasi Kode';
+
+  @override
+  String get otpwillexpirein => 'OTP akan kedaluwarsa dalam';
+
+  @override
+  String get resendcodein => 'Kirim ulang kode dalam';
+
+  @override
+  String get didnotreceivecode => 'Tidak menerima kode?';
+
+  @override
+  String get resendotp => 'Kirim ulang OTP';
+
+  @override
+  String get createnewpassword => 'Buat kata sandi baru';
+
+  @override
+  String get confirmyourpassword => 'Konfirmasi kata sandi Anda';
+
+  @override
+  String get resetpassword => 'Atur ulang kata sandi';
+
+  @override
+  String get weakpassword => 'Kata sandi lemah';
+
+  @override
+  String get goodpassword => 'Kata sandi bagus';
+
+  @override
+  String get strongpassword => 'Kata sandi kuat';
+
+  @override
+  String get eighttencharacters => '8 - 10 karakter';
+
+  @override
+  String get atleastoneuppercaseletter => 'Setidaknya 1 huruf besar';
+
+  @override
+  String get atleastonelowercaseletter => 'Setidaknya 1 huruf kecil';
+
+  @override
+  String get atleastonenumber => 'Setidaknya 1 angka';
+
+  @override
+  String get atleastonespecialcharacter => 'Setidaknya 1 karakter khusus';
+
+  @override
+  String get editimage => 'Edit gambar';
+
+  @override
+  String get replaceimage => 'Ganti gambar';
+
+  @override
+  String get remove => 'Hapus';
+
+  @override
+  String get ideasroryou => 'Ide untuk Anda';
+
+  @override
+  String get pollideas => 'Ide jajak pendapat';
+
+  @override
+  String get foryou => 'Untuk Anda';
+
+  @override
+  String get dailylife => 'Kehidupan sehari-hari';
+
+  @override
+  String get food => 'Makanan';
+
+  @override
+  String get travel => 'Perjalanan';
+
+  @override
+  String get tech => 'Teknologi';
+
+  @override
+  String get entertainment => 'Hiburan';
+
+  @override
+  String get searchpolltopics => 'Cari topik jajak pendapat';
+
+  @override
+  String get recents => 'Terbaru';
+
+  @override
+  String get rorecentsearches => 'Tidak ada pencarian terbaru';
+
+  @override
+  String get notopicsfoundfor => 'Tidak ada topik yang ditemukan untuk';
+
+  @override
+  String get withselectedfilters => 'dengan filter yang dipilih';
 }

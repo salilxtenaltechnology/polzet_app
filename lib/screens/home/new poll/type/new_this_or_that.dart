@@ -30,10 +30,20 @@ import '../../../../widgets/custom_text_styles.dart';
 import '../../../../widgets/dotted_border/dotted_border.dart';
 import '../../../../widgets/show_toast.dart';
 import '../../../../widgets/text_field/secondry_textfield.dart';
-import 'image_preview_crop_screen.dart';
 
 class NewThisOrThat extends StatefulWidget {
-  const NewThisOrThat({super.key});
+  final String? initialQuestion;
+  final String? initialDescription;
+  final List<String>? initialOptions;
+  final String? initialVotingType;
+
+  const NewThisOrThat({
+    super.key,
+    this.initialQuestion,
+    this.initialDescription,
+    this.initialOptions,
+    this.initialVotingType,
+  });
 
   @override
   State<NewThisOrThat> createState() => _NewThisOrThatState();
@@ -119,11 +129,38 @@ class _NewThisOrThatState extends State<NewThisOrThat> {
   @override
   void initState() {
     super.initState();
+    if (widget.initialQuestion != null &&
+        widget.initialQuestion!.trim().isNotEmpty) {
+      questionController.text = widget.initialQuestion!;
+    }
+    if (widget.initialDescription != null &&
+        widget.initialDescription!.trim().isNotEmpty) {
+      descriptionController.text = widget.initialDescription!;
+    }
+    if (widget.initialOptions != null && widget.initialOptions!.isNotEmpty) {
+      if (widget.initialOptions!.isNotEmpty) {
+        label1Controller.text = widget.initialOptions![0];
+      }
+      if (widget.initialOptions!.length > 1) {
+        label2Controller.text = widget.initialOptions![1];
+      }
+    }
     _loadSavedAiLimit();
     questionController.addListener(_onQuestionChanged);
     label1Controller.addListener(_onLabelChanged);
     label2Controller.addListener(_onLabelChanged);
     _startHintAnimation();
+
+    final hasAutoFilled = (widget.initialQuestion != null &&
+            widget.initialQuestion!.trim().isNotEmpty) ||
+        (widget.initialOptions != null && widget.initialOptions!.isNotEmpty) ||
+        (widget.initialVotingType != null &&
+            widget.initialVotingType!.trim().isNotEmpty);
+    if (hasAutoFilled) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        showToast(message: 'Poll auto-filled! Review & publish');
+      });
+    }
   }
 
   void _startHintAnimation() {
@@ -236,24 +273,15 @@ class _NewThisOrThatState extends State<NewThisOrThat> {
       );
 
       if (pickedFiles != null && pickedFiles.isNotEmpty && mounted) {
-        final List<File>? finalFiles = await Navigator.push<List<File>>(
-          context,
-          MaterialPageRoute(
-            builder: (_) => ImagePreviewCropScreen(initialImages: pickedFiles),
-          ),
-        );
-
-        if (finalFiles != null && finalFiles.isNotEmpty && mounted) {
-          setState(() {
-            _selectedImages.addAll(finalFiles);
-            if (_selectedImages.length > maxImages) {
-              _selectedImages = _selectedImages.sublist(0, maxImages);
-            }
-            if (imageErrorText.isNotEmpty) {
-              imageErrorText = '';
-            }
-          });
-        }
+        setState(() {
+          _selectedImages.addAll(pickedFiles);
+          if (_selectedImages.length > maxImages) {
+            _selectedImages = _selectedImages.sublist(0, maxImages);
+          }
+          if (imageErrorText.isNotEmpty) {
+            imageErrorText = '';
+          }
+        });
       }
     } catch (e) {
       showToast(message: 'Error picking images: ${e.toString()}');
@@ -282,7 +310,7 @@ class _NewThisOrThatState extends State<NewThisOrThat> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(
-                    'Edit Image',
+                   AppLocalizations.of(context)!.editimage,
                     style: AppTextStyles.sectionHeading.copyWith(
                       color: txt.title,
                       fontSize: 14.sp,
@@ -302,7 +330,7 @@ class _NewThisOrThatState extends State<NewThisOrThat> {
                 child: Padding(
                   padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10),
                   child: Text(
-                    'Crop image',
+                    AppLocalizations.of(context)!.cropimage,
                     style: AppTextStyles.bodyText.copyWith(
                       color: txt.body,
                       fontSize: 13.5.sp,
@@ -319,7 +347,7 @@ class _NewThisOrThatState extends State<NewThisOrThat> {
                 padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10),
                 child: GestureDetector(
                   child: Text(
-                    'Replace image',
+                   AppLocalizations.of(context)!.replaceimage,
                     style: AppTextStyles.bodyText.copyWith(
                       color: txt.body,
                       fontSize: 13.5.sp,
@@ -336,7 +364,7 @@ class _NewThisOrThatState extends State<NewThisOrThat> {
                 padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10),
                 child: GestureDetector(
                   child: Text(
-                    'Remove',
+                   AppLocalizations.of(context)!.remove,
                     style: AppTextStyles.bodyText.copyWith(
                       color: Theme.of(context).colorScheme.error,
                       fontSize: 13.5.sp,
@@ -379,18 +407,9 @@ class _NewThisOrThatState extends State<NewThisOrThat> {
       );
 
       if (pickedFiles != null && pickedFiles.isNotEmpty && mounted) {
-        final List<File>? finalFiles = await Navigator.push<List<File>>(
-          context,
-          MaterialPageRoute(
-            builder: (_) => ImagePreviewCropScreen(initialImages: pickedFiles),
-          ),
-        );
-
-        if (finalFiles != null && finalFiles.isNotEmpty && mounted) {
-          setState(() {
-            _selectedImages[index] = finalFiles[0];
-          });
-        }
+        setState(() {
+          _selectedImages[index] = pickedFiles[0];
+        });
       }
     } catch (e) {
       showToast(message: 'Error replacing image: ${e.toString()}');

@@ -410,7 +410,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get editprofile => 'Modifier le profil';
 
   @override
-  String get cropimage => 'Image zuschneiden?';
+  String get cropimage => 'Recadrer l’image';
 
   @override
   String get wouldyouliketocroptheimage => 'Möchten Sie das Image zuschneiden?';
@@ -1864,7 +1864,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get tryanotherkeywordorexploretrendingpolls =>
-      'Versuche ein anderes Schlüsselwort oder entdecke Trend-Sondages.';
+      'Essayez un autre mot-clé ou explorez les sondages tendance';
 
   @override
   String get searching => 'Suche läuft...';
@@ -2676,4 +2676,213 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get postdetails => 'Publication';
+
+  @override
+  String get curiouswhatpeoplethink =>
+      'Curieux de savoir ce que les gens pensent ? 👀';
+
+  @override
+  String get askitgetrealopinionsfromthecrowd =>
+      'Posez la question. Obtenez de vraies opinions de la communauté';
+
+  @override
+  String get whatsonyourmind => 'qu’avez-vous en tête';
+
+  @override
+  String get createpoll => 'Créer un sondage';
+
+  @override
+  String get thispinwillbeusedtosecureyouraccount =>
+      'Ce code PIN sera utilisé pour sécuriser votre compte';
+
+  @override
+  String get nochaseusers => 'Aucun utilisateur Chase';
+
+  @override
+  String get norechaseusers => 'Aucun utilisateur re-Chase';
+
+  @override
+  String get youveblockedthisuser => 'Vous avez bloqué cet utilisateur';
+
+  @override
+  String get unblockusertoviewtheirpollsorinteractwiththem =>
+      'Débloquez l’utilisateur pour voir ses sondages ou interagir avec lui. Il ne pourra pas voir votre profil ni votre contenu.';
+
+  @override
+  String get letssetupyourprofile => 'Configurons votre profil';
+
+  @override
+  String get addaphotoandyournamesopeoplecanrecognizeyou =>
+      'Ajoutez une photo et votre nom pour que les gens puissent vous reconnaître';
+
+  @override
+  String get uploading => 'Téléchargement...';
+
+  @override
+  String get skipfornow => 'Ignorer pour l’instant';
+
+  @override
+  String get step => 'Étape';
+
+  @override
+  String get followpeopleyoulike => 'Suivez les personnes que vous aimez';
+
+  @override
+  String get chooseafewtopersonalizeyourfeed =>
+      'Choisissez-en quelques-unes pour personnaliser votre fil';
+
+  @override
+  String get suggested => 'Suggéré';
+
+  @override
+  String get popular => 'Populaire';
+
+  @override
+  String get whatcatchesyourattention =>
+      'Qu’est-ce qui attire votre attention ?';
+
+  @override
+  String get selectatleastthreetopicsyouareinterestedin =>
+      'Sélectionnez au moins 3 sujets qui vous intéressent';
+
+  @override
+  String get forgotpassword => 'Mot de passe oublié';
+
+  @override
+  String get enteryouremailormobilenumbertoreceiveaverificationcode =>
+      'Saisissez votre adresse e-mail ou votre numéro de mobile pour recevoir un code de vérification';
+
+  @override
+  String get mobile => 'Mobile';
+
+  @override
+  String get pleaseenteryouremail => 'Veuillez saisir votre adresse e-mail';
+
+  @override
+  String get pleaseenteryourphonenumber =>
+      'Veuillez saisir votre numéro de téléphone';
+
+  @override
+  String get pleaseenterthecompletesixdigitcode =>
+      'Veuillez saisir le code complet à 6 chiffres';
+
+  @override
+  String get enterthesixdigitcodesentto =>
+      'Saisissez le code à 6 chiffres envoyé à';
+
+  @override
+  String get invalidotp => 'OTP invalide';
+
+  @override
+  String get verificationcodehasexpiredpleaserequestanewone =>
+      'Le code de vérification a expiré. Veuillez en demander un nouveau.';
+
+  @override
+  String get invalidphonenumber => 'Numéro de téléphone invalide';
+
+  @override
+  String get toomanyattemptspleasetryagainlater =>
+      'Trop de tentatives. Veuillez réessayer plus tard';
+
+  @override
+  String get verifyyournumber => 'Vérifiez votre numéro';
+
+  @override
+  String get verifyyouremail => 'Vérifiez votre adresse e-mail';
+
+  @override
+  String get verifycode => 'Vérifier le code';
+
+  @override
+  String get otpwillexpirein => 'L’OTP expirera dans';
+
+  @override
+  String get resendcodein => 'Renvoyer le code dans';
+
+  @override
+  String get didnotreceivecode => 'Vous n’avez pas reçu le code ?';
+
+  @override
+  String get resendotp => 'Renvoyer l’OTP';
+
+  @override
+  String get createnewpassword => 'Créer un nouveau mot de passe';
+
+  @override
+  String get confirmyourpassword => 'Confirmez votre mot de passe';
+
+  @override
+  String get resetpassword => 'Réinitialiser le mot de passe';
+
+  @override
+  String get weakpassword => 'Mot de passe faible';
+
+  @override
+  String get goodpassword => 'Bon mot de passe';
+
+  @override
+  String get strongpassword => 'Mot de passe fort';
+
+  @override
+  String get eighttencharacters => '8 à 10 caractères';
+
+  @override
+  String get atleastoneuppercaseletter => 'Au moins 1 lettre majuscule';
+
+  @override
+  String get atleastonelowercaseletter => 'Au moins 1 lettre minuscule';
+
+  @override
+  String get atleastonenumber => 'Au moins 1 chiffre';
+
+  @override
+  String get atleastonespecialcharacter => 'Au moins 1 caractère spécial';
+
+  @override
+  String get editimage => 'Modifier l’image';
+
+  @override
+  String get replaceimage => 'Remplacer l’image';
+
+  @override
+  String get remove => 'Supprimer';
+
+  @override
+  String get ideasroryou => 'Des idées pour vous';
+
+  @override
+  String get pollideas => 'Idées de sondages';
+
+  @override
+  String get foryou => 'Pour vous';
+
+  @override
+  String get dailylife => 'Vie quotidienne';
+
+  @override
+  String get food => 'Cuisine';
+
+  @override
+  String get travel => 'Voyage';
+
+  @override
+  String get tech => 'Technologie';
+
+  @override
+  String get entertainment => 'Divertissement';
+
+  @override
+  String get searchpolltopics => 'Rechercher des sujets de sondage';
+
+  @override
+  String get recents => 'Récents';
+
+  @override
+  String get rorecentsearches => 'Aucune recherche récente';
+
+  @override
+  String get notopicsfoundfor => 'Aucun sujet trouvé pour';
+
+  @override
+  String get withselectedfilters => 'avec les filtres sélectionnés';
 }

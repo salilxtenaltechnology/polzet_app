@@ -496,6 +496,9 @@ class $AssetsImagesGen {
   AssetGenImage get thirdOnBoard =>
       const AssetGenImage('assets/images/thirdOnBoard.png');
 
+  /// Directory path: assets/images/topics
+  $AssetsImagesTopicsGen get topics => const $AssetsImagesTopicsGen();
+
   /// File path: assets/images/type_like.png
   AssetGenImage get typeLike =>
       const AssetGenImage('assets/images/type_like.png');
@@ -623,6 +626,58 @@ class $AssetsImagesGen {
     thingsIcon,
     thirdOnBoard,
     typeLike,
+  ];
+}
+
+class $AssetsImagesTopicsGen {
+  const $AssetsImagesTopicsGen();
+
+  /// File path: assets/images/topics/1ai.png
+  AssetGenImage get a1ai => const AssetGenImage('assets/images/topics/1ai.png');
+
+  /// File path: assets/images/topics/1dailylife.png
+  AssetGenImage get a1dailylife =>
+      const AssetGenImage('assets/images/topics/1dailylife.png');
+
+  /// File path: assets/images/topics/1entertainment.png
+  AssetGenImage get a1entertainment =>
+      const AssetGenImage('assets/images/topics/1entertainment.png');
+
+  /// File path: assets/images/topics/1food.png
+  AssetGenImage get a1food =>
+      const AssetGenImage('assets/images/topics/1food.png');
+
+  /// File path: assets/images/topics/2dailylife.png
+  AssetGenImage get a2dailylife =>
+      const AssetGenImage('assets/images/topics/2dailylife.png');
+
+  /// File path: assets/images/topics/3dailylife.png
+  AssetGenImage get a3dailylife =>
+      const AssetGenImage('assets/images/topics/3dailylife.png');
+
+  /// File path: assets/images/topics/4dailylife.png
+  AssetGenImage get a4dailylife =>
+      const AssetGenImage('assets/images/topics/4dailylife.png');
+
+  /// File path: assets/images/topics/5dailylife.png
+  AssetGenImage get a5dailylife =>
+      const AssetGenImage('assets/images/topics/5dailylife.png');
+
+  /// File path: assets/images/topics/6dailylife.png
+  AssetGenImage get a6dailylife =>
+      const AssetGenImage('assets/images/topics/6dailylife.png');
+
+  /// List of all assets
+  List<AssetGenImage> get values => [
+    a1ai,
+    a1dailylife,
+    a1entertainment,
+    a1food,
+    a2dailylife,
+    a3dailylife,
+    a4dailylife,
+    a5dailylife,
+    a6dailylife,
   ];
 }
 

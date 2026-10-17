@@ -70,7 +70,7 @@ class GoogleAuthService {
       debugPrint('✅ Google idToken saved');
       if (kDebugMode) {
         // ignore: avoid_print
-        print('🔑 FULL GOOGLE TOKEN:');
+        print('🔑 FULL GOOGLE ID TOKEN:');
         final pattern = RegExp('.{1,800}');
         // ignore: avoid_print
         pattern.allMatches(idToken).forEach((match) => print(match.group(0)));
@@ -111,6 +111,16 @@ class GoogleAuthService {
       final data = Map<String, dynamic>.from(response['data'] as Map);
       final String accessToken = data['access_token'];
       final String refreshToken = data['refresh_token'];
+
+      // ignore: avoid_print
+      print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      // ignore: avoid_print
+      print('🔑 ACCESS TOKEN (Google Auth Login):');
+      final pattern = RegExp('.{1,800}');
+      // ignore: avoid_print
+      pattern.allMatches(accessToken).forEach((match) => print(match.group(0)));
+      // ignore: avoid_print
+      print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
       final Map<String, dynamic> user = data['user'] != null
           ? Map<String, dynamic>.from(data['user'] as Map)
           : {};

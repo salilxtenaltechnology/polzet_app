@@ -135,6 +135,7 @@ class _RegistrationScreenState extends State<RegistrationScreen>
   bool?
   _isUsernameAvailable; // null = not checked, true = available, false = taken
   String _usernameStatusMessage = '';
+  bool _isDisposed = false;
 
   // ── Init & Dispose ──────────────────────────────────────────────────────────
   @override
@@ -186,7 +187,9 @@ class _RegistrationScreenState extends State<RegistrationScreen>
 
   @override
   void dispose() {
-    _closeCountryDropdown();
+    _isDisposed = true;
+    _countryOverlayEntry?.remove();
+    _countryOverlayEntry = null;
     _countrySearchController.dispose();
     _hideOverlay();
     _passwordFocusNode.removeListener(_onFocusChange);
@@ -445,7 +448,7 @@ class _RegistrationScreenState extends State<RegistrationScreen>
   void _closeCountryDropdown() {
     _countryOverlayEntry?.remove();
     _countryOverlayEntry = null;
-    if (mounted) {
+    if (mounted && !_isDisposed) {
       setState(() {
         _isCountryDropdownOpen = false;
       });
@@ -871,7 +874,7 @@ class _RegistrationScreenState extends State<RegistrationScreen>
         navigationPushReplacement(
           context,
           AccountSuccessScreen(
-            email: widget.verifiedEmail ?? '',
+            username: _usernameCtrl.text.trim(),
             password: _passwordCtrl.text,
           ),
         );
@@ -882,14 +885,20 @@ class _RegistrationScreenState extends State<RegistrationScreen>
         );
       }
     } on DioException catch (e) {
-      setState(
-        () => _generalError =
-            e.response?.data['message'] ?? 'Something went wrong',
-      );
+      if (mounted) {
+        setState(
+          () => _generalError =
+              e.response?.data['message'] ?? 'Something went wrong',
+        );
+      }
     } catch (e) {
-      setState(() => _generalError = 'Connection error: ${e.toString()}');
+      if (mounted) {
+        setState(() => _generalError = 'Connection error: ${e.toString()}');
+      }
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 

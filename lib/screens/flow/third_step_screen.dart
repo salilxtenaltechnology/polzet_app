@@ -9,6 +9,7 @@ import '../../../widgets/error/api_error_widget.dart';
 import '../../core/themes/app_text_colors.dart';
 import '../../core/themes/app_text_styles.dart';
 import '../../gen/assets.gen.dart';
+import '../../languages/l10n/generated/app_localizations.dart';
 import 'flow_scaffold.dart';
 
 // Dummy popular users — replace with real API call when available
@@ -85,9 +86,9 @@ class _ThirdStepScreenState extends State<ThirdStepScreen> {
       currentStep: 3,
       totalSteps: 4,
       onBack: widget.onBack,
-      title: 'Follow people you like',
-      subtitle: 'Choose a few to personalize your feed',
-      primaryLabel: 'Continue',
+      title:  AppLocalizations.of(context)!.followpeopleyoulike,
+      subtitle:  AppLocalizations.of(context)!.chooseafewtopersonalizeyourfeed,
+      primaryLabel:  AppLocalizations.of(context)!.continueButton,
       onPrimary: _canContinue
           ? widget.onContinue
           : null, // ← disabled until one chased
@@ -99,13 +100,13 @@ class _ThirdStepScreenState extends State<ThirdStepScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
               _TabItem(
-                label: 'Suggested',
+                label: AppLocalizations.of(context)!.suggested,
                 isSelected: _selectedTab == 0,
                 onTap: () => setState(() => _selectedTab = 0),
               ),
               const SizedBox(width: 24),
               _TabItem(
-                label: 'Popular',
+                label: AppLocalizations.of(context)!.popular,
                 isSelected: _selectedTab == 1,
                 onTap: () => setState(() => _selectedTab = 1),
               ),
@@ -225,6 +226,8 @@ class _UserTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final txt = AppTextColors.of(context);
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final cleanUsername = username.trim().toLowerCase();
+    final isPolzetAi = cleanUsername == 'polzet_ai' || cleanUsername == 'polet_ai';
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
@@ -238,27 +241,45 @@ class _UserTile extends StatelessWidget {
       child: Row(
         children: [
           // Avatar
-          CircleAvatar(
-            radius: 22,
-            backgroundColor: isDarkMode
-                ? const Color(0xFF2E2E2E)
-                : Theme.of(context).colorScheme.primary.withOpacity(0.1),
-            backgroundImage: avatarProvider,
-            child: avatarProvider == null
-                ? Center(
-                    child: Text(
-                      username.isNotEmpty ? username[0].toUpperCase() : '?',
-                      style: AppTextStyles.bodyText.copyWith(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w600,
-                        color: Theme.of(
-                          context,
-                        ).colorScheme.onPrimary.withOpacity(0.85),
+          isPolzetAi
+              ? SizedBox(
+                  width: 44,
+                  height: 44,
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      ClipOval(
+                        child: Center(
+                          child: Padding(
+                            padding: const EdgeInsets.only(
+                              top: 7,
+                              bottom: 0,
+                              left: 9,
+                              right: 8,
+                            ),
+                            child: Image.asset(Assets.images.icSplash.path),
+                          ),
+                        ),
                       ),
-                    ),
-                  )
-                : null,
-          ),
+                      Positioned.fill(
+                        child: Image.asset(
+                          Assets.images.aiFrame.path,
+                          height: 50,
+                          width: 50,
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              : CircleAvatar(
+                  radius: 22,
+                  backgroundColor: isDarkMode
+                      ? const Color(0xFF2E2E2E)
+                      : Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                  backgroundImage: avatarProvider ??
+                      AssetImage(Assets.images.icAvatar.path),
+                  onBackgroundImageError: (exception, stackTrace) {},
+                ),
           const SizedBox(width: 12),
 
           // Name + sub

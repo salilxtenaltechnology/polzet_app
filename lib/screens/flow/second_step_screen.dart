@@ -8,6 +8,7 @@ import '../../core/themes/app_text_colors.dart';
 import '../../core/themes/app_text_styles.dart';
 import '../../data/token/shared_preferences.dart';
 import '../../gen/assets.gen.dart';
+import '../../languages/l10n/generated/app_localizations.dart';
 import '../../main.dart';
 import '../../provider/user_provider.dart';
 import '../../widgets/loader.dart';
@@ -47,6 +48,7 @@ class _SecondStepScreenState extends State<SecondStepScreen> {
   bool _isCountryDropdownOpen = false;
   double _countryFieldWidth = 0;
   final _countrySearchController = TextEditingController();
+  bool _isDisposed = false;
 
   static const Map<String, String> _languageCodeMap = {
     'Arabic': 'ar',
@@ -208,13 +210,16 @@ class _SecondStepScreenState extends State<SecondStepScreen> {
         .toList();
 
     try {
-      final success =
-          await ApiService().updateUserInterests(interests: selectedIds);
+      final success = await ApiService().updateUserInterests(
+        interests: selectedIds,
+      );
       if (success) {
         if (mounted) {
           try {
-            final userProvider =
-                Provider.of<UserProvider>(context, listen: false);
+            final userProvider = Provider.of<UserProvider>(
+              context,
+              listen: false,
+            );
             userProvider.updateUserField('interests', selectedIds);
           } catch (_) {}
         }
@@ -237,7 +242,9 @@ class _SecondStepScreenState extends State<SecondStepScreen> {
 
   @override
   void dispose() {
-    _closeCountryDropdown();
+    _isDisposed = true;
+    _countryOverlayEntry?.remove();
+    _countryOverlayEntry = null;
     _countrySearchController.dispose();
     super.dispose();
   }
@@ -297,10 +304,9 @@ class _SecondStepScreenState extends State<SecondStepScreen> {
                               : Colors.white,
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
-                            color: Theme.of(context)
-                                .colorScheme
-                                .outline
-                                .withOpacity(0.5),
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.outline.withOpacity(0.5),
                             width: 1,
                           ),
                         ),
@@ -329,16 +335,20 @@ class _SecondStepScreenState extends State<SecondStepScreen> {
                                   onChanged: (q) {
                                     setOverlayState(() {
                                       if (q.trim().isEmpty) {
-                                        currentFiltered = List.from(allCountries);
+                                        currentFiltered = List.from(
+                                          allCountries,
+                                        );
                                       } else {
                                         final query = q.toLowerCase().trim();
-                                        currentFiltered = allCountries.where((c) {
-                                          return c.name
-                                                  .toLowerCase()
-                                                  .contains(query) ||
-                                              c.code
-                                                  .toLowerCase()
-                                                  .contains(query);
+                                        currentFiltered = allCountries.where((
+                                          c,
+                                        ) {
+                                          return c.name.toLowerCase().contains(
+                                                query,
+                                              ) ||
+                                              c.code.toLowerCase().contains(
+                                                query,
+                                              );
                                         }).toList();
                                       }
                                     });
@@ -359,7 +369,8 @@ class _SecondStepScreenState extends State<SecondStepScreen> {
                                       minWidth: 38,
                                       minHeight: 40,
                                     ),
-                                    suffixIcon: _countrySearchController.text.isNotEmpty
+                                    suffixIcon:
+                                        _countrySearchController.text.isNotEmpty
                                         ? IconButton(
                                             padding: EdgeInsets.zero,
                                             constraints: const BoxConstraints(
@@ -374,7 +385,9 @@ class _SecondStepScreenState extends State<SecondStepScreen> {
                                             onPressed: () {
                                               _countrySearchController.clear();
                                               setOverlayState(() {
-                                                currentFiltered = List.from(allCountries);
+                                                currentFiltered = List.from(
+                                                  allCountries,
+                                                );
                                               });
                                             },
                                           )
@@ -385,7 +398,9 @@ class _SecondStepScreenState extends State<SecondStepScreen> {
                                     ),
                                     border: InputBorder.none,
                                     isDense: true,
-                                    contentPadding: const EdgeInsets.only(right: 10),
+                                    contentPadding: const EdgeInsets.only(
+                                      right: 10,
+                                    ),
                                   ),
                                 ),
                               ),
@@ -413,7 +428,7 @@ class _SecondStepScreenState extends State<SecondStepScreen> {
                                         final country = currentFiltered[index];
                                         final isSelected =
                                             country.name.toLowerCase() ==
-                                                _selectedCountry.toLowerCase();
+                                            _selectedCountry.toLowerCase();
 
                                         return InkWell(
                                           onTap: () {
@@ -429,33 +444,39 @@ class _SecondStepScreenState extends State<SecondStepScreen> {
                                             ),
                                             color: isSelected
                                                 ? (isDarkMode
-                                                    ? const Color(0xFF2A2A2E)
-                                                    : const Color(0xFFF0F0F0))
+                                                      ? const Color(0xFF2A2A2E)
+                                                      : const Color(0xFFF0F0F0))
                                                 : Colors.transparent,
                                             child: Row(
                                               children: [
                                                 Text(
                                                   country.flag,
-                                                  style: const TextStyle(fontSize: 18),
+                                                  style: const TextStyle(
+                                                    fontSize: 18,
+                                                  ),
                                                 ),
                                                 const SizedBox(width: 10),
                                                 Expanded(
                                                   child: Text(
                                                     country.name,
-                                                    style: AppTextStyles.bodyText.copyWith(
-                                                      fontSize: 13.5,
-                                                      fontWeight: isSelected
-                                                          ? FontWeight.w600
-                                                          : FontWeight.w400,
-                                                      color: txt.title,
-                                                    ),
+                                                    style: AppTextStyles
+                                                        .bodyText
+                                                        .copyWith(
+                                                          fontSize: 13.5,
+                                                          fontWeight: isSelected
+                                                              ? FontWeight.w600
+                                                              : FontWeight.w400,
+                                                          color: txt.title,
+                                                        ),
                                                   ),
                                                 ),
                                                 if (isSelected)
                                                   Icon(
                                                     Icons.check_rounded,
                                                     size: 18,
-                                                    color: Theme.of(context).colorScheme.onPrimary,
+                                                    color: Theme.of(
+                                                      context,
+                                                    ).colorScheme.onPrimary,
                                                   ),
                                               ],
                                             ),
@@ -486,7 +507,7 @@ class _SecondStepScreenState extends State<SecondStepScreen> {
   void _closeCountryDropdown() {
     _countryOverlayEntry?.remove();
     _countryOverlayEntry = null;
-    if (mounted) {
+    if (mounted && !_isDisposed) {
       setState(() {
         _isCountryDropdownOpen = false;
       });
@@ -578,7 +599,10 @@ class _SecondStepScreenState extends State<SecondStepScreen> {
                     ),
                     child: Row(
                       children: [
-                        Text(selectedCountryObj.flag, style: const TextStyle(fontSize: 18)),
+                        Text(
+                          selectedCountryObj.flag,
+                          style: const TextStyle(fontSize: 18),
+                        ),
                         const SizedBox(width: 10),
                         Expanded(
                           child: Text(
@@ -684,119 +708,118 @@ class _SecondStepScreenState extends State<SecondStepScreen> {
           widget.onBack();
         }
       },
-      title: 'What catches your attention?',
-      subtitle: 'Select at least 3 topics you are interested in.',
-      primaryLabel: 'Continue',
+      title: AppLocalizations.of(context)!.whatcatchesyourattention,
+      subtitle: AppLocalizations.of(
+        context,
+      )!.selectatleastthreetopicsyouareinterestedin,
+      primaryLabel: AppLocalizations.of(context)!.continueButton,
       onPrimary: _canContinueStep1 ? _updateUserInterests : null,
       onSkip: null,
       body: _isLoadingInterests && _interests.isEmpty
           ? Center(
               child: Padding(
                 padding: const EdgeInsets.symmetric(vertical: 40),
-                child: Loader(
-                  color: Theme.of(context).colorScheme.onPrimary,
-                ),
+                child: Loader(color: Theme.of(context).colorScheme.onPrimary),
               ),
             )
           : GridView.builder(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
               itemCount: _interests.length,
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 3,
-          crossAxisSpacing: 12,
-          mainAxisSpacing: 12,
-          childAspectRatio: 1,
-        ),
-        itemBuilder: (context, index) {
-          final item = _interests[index];
-          final isSelected = _selectedInterests.contains(item.name);
-
-          return GestureDetector(
-            onTap: () {
-              if (isSelected) {
-                setState(() {
-                  _selectedInterests.remove(item.name);
-                });
-              } else {
-                setState(() {
-                  _selectedInterests.add(item.name);
-                });
-              }
-            },
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 180),
-              decoration: BoxDecoration(
-                color: isDarkMode
-                    ? (isSelected
-                          ? const Color.fromARGB(46, 51, 32, 36)
-                          : Theme.of(
-                              context,
-                            ).colorScheme.outline.withOpacity(0.1))
-                    : (isSelected
-                          ? const Color(0xFFFAF7F8).withOpacity(0.8)
-                          : Colors.white),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(
-                  color: isSelected
-                      ? Theme.of(context).colorScheme.primary
-                      : Theme.of(context).colorScheme.outline,
-                  width: 0.8,
-                ),
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 3,
+                crossAxisSpacing: 12,
+                mainAxisSpacing: 12,
+                childAspectRatio: 1,
               ),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  // ── Tinted Circle for Icon
-                  Container(
-                    width: 57,
-                    height: 57,
+              itemBuilder: (context, index) {
+                final item = _interests[index];
+                final isSelected = _selectedInterests.contains(item.name);
+
+                return GestureDetector(
+                  onTap: () {
+                    if (isSelected) {
+                      setState(() {
+                        _selectedInterests.remove(item.name);
+                      });
+                    } else {
+                      setState(() {
+                        _selectedInterests.add(item.name);
+                      });
+                    }
+                  },
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 180),
                     decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: isSelected
-                          ? Theme.of(context).colorScheme.primary
-                          : (isDarkMode
-                                ? Theme.of(
-                                    context,
-                                  ).colorScheme.onSurface.withOpacity(0.05)
+                      color: isDarkMode
+                          ? (isSelected
+                                ? const Color.fromARGB(46, 51, 32, 36)
                                 : Theme.of(
                                     context,
-                                  ).colorScheme.primary.withOpacity(0.1)),
-                    ),
-                    child: Center(
-                      child: Image.asset(
-                        item.icon,
-                        width: 28,
-                        height: 28,
+                                  ).colorScheme.outline.withOpacity(0.1))
+                          : (isSelected
+                                ? const Color(0xFFFAF7F8).withOpacity(0.8)
+                                : Colors.white),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
                         color: isSelected
-                            ? Colors.white
-                            : Theme.of(context).colorScheme.primary,
+                            ? Theme.of(context).colorScheme.primary
+                            : Theme.of(context).colorScheme.outline,
+                        width: 0.8,
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 8),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 4),
-                    child: Text(
-                      item.name,
-                      textAlign: TextAlign.center,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: AppTextStyles.bodyText.copyWith(
-                        fontSize: 13.3,
-                        fontWeight: isSelected
-                            ? FontWeight.w600
-                            : FontWeight.w400,
-                        color: txt.title,
-                      ),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        // ── Tinted Circle for Icon
+                        Container(
+                          width: 57,
+                          height: 57,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: isSelected
+                                ? Theme.of(context).colorScheme.primary
+                                : (isDarkMode
+                                      ? Theme.of(context).colorScheme.onSurface
+                                            .withOpacity(0.05)
+                                      : Theme.of(
+                                          context,
+                                        ).colorScheme.primary.withOpacity(0.1)),
+                          ),
+                          child: Center(
+                            child: Image.asset(
+                              item.icon,
+                              width: 28,
+                              height: 28,
+                              color: isSelected
+                                  ? Colors.white
+                                  : Theme.of(context).colorScheme.primary,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 4),
+                          child: Text(
+                            item.name,
+                            textAlign: TextAlign.center,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: AppTextStyles.bodyText.copyWith(
+                              fontSize: 13.3,
+                              fontWeight: isSelected
+                                  ? FontWeight.w600
+                                  : FontWeight.w400,
+                              color: txt.title,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                ],
-              ),
+                );
+              },
             ),
-          );
-        },
-      ),
     );
   }
 }

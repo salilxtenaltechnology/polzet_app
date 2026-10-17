@@ -9,6 +9,7 @@ import 'package:flutter/material.dart';
 import '../../api/api_service.dart';
 import '../../api/services/image/image_picker_service.dart';
 import '../../gen/assets.gen.dart';
+import '../../languages/l10n/generated/app_localizations.dart';
 import '../../widgets/loader.dart';
 import 'flow_scaffold.dart';
 
@@ -102,9 +103,9 @@ class _FirstStepScreenState extends State<FirstStepScreen> {
       currentStep: 1,
       totalSteps: 4,
       onBack: widget.onBack,
-      title: "Let's set up your profile",
-      subtitle: 'Add a photo and your name so people can recognize you',
-      primaryLabel: _isLoading ? 'Uploading...' : 'Continue',
+      title: AppLocalizations.of(context)!.letssetupyourprofile,
+      subtitle: AppLocalizations.of(context)!.addaphotoandyournamesopeoplecanrecognizeyou,
+      primaryLabel: _isLoading ? AppLocalizations.of(context)!.uploading : AppLocalizations.of(context)!.continueButton,
       onPrimary: (_canContinue && !_isLoading) ? _handleContinue : null,
       onSkip: widget.onSkip,
       body: Column(

@@ -44,7 +44,9 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   final String fcmPayloadType = hasNotificationPayload
       ? (hasDataPayload ? 'MIXED (notification + data)' : 'NOTIFICATION ONLY')
       : 'DATA ONLY';
-  debugPrint("🔔 [DEBUG_TRACE] Background message received in background isolate");
+  debugPrint(
+    "🔔 [DEBUG_TRACE] Background message received in background isolate",
+  );
   debugPrint("   - Message ID: ${message.messageId}");
   debugPrint("   - FCM payload type: $fcmPayloadType");
   debugPrint("   - HAS notification payload: $hasNotificationPayload");

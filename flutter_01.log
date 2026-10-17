@@ -1,0 +1,198 @@
+Flutter crash report.
+Please report a bug at https://github.com/flutter/flutter/issues.
+
+## command
+
+flutter gen-l10n
+
+## exception
+
+ProcessException: ProcessException: `dart format` failed with exit code 65
+
+stdout:
+Formatted no files in 0.04 seconds.
+
+
+stderr:
+Could not format because the source could not be parsed:
+
+line 2469, column 14 of lib/languages/l10n/generated/app_localizations_ar.dart: 'continue' can't be used as an identifier because it's a keyword.
+     ╷
+2469 │   String get continue => 'متابعة';
+     │              ^^^^^^^^
+     ╵
+Could not format because the source could not be parsed:
+
+line 2469, column 14 of lib/languages/l10n/generated/app_localizations_de.dart: 'continue' can't be used as an identifier because it's a keyword.
+     ╷
+2469 │   String get continue => 'Weiter';
+     │              ^^^^^^^^
+     ╵
+Could not format because the source could not be parsed:
+
+line 2469, column 14 of lib/languages/l10n/generated/app_localizations_en.dart: 'continue' can't be used as an identifier because it's a keyword.
+     ╷
+2469 │   String get continue => 'Continue';
+     │              ^^^^^^^^
+     ╵
+Could not format because the source could not be parsed:
+
+line 2469, column 14 of lib/languages/l10n/generated/app_localizations_es.dart: 'continue' can't be used as an identifier because it's a keyword.
+     ╷
+2469 │   String get continue => 'Continuar';
+     │              ^^^^^^^^
+     ╵
+Could not format because the source could not be parsed:
+
+line 2469, column 14 of lib/languages/l10n/generated/app_localizations_fr.dart: 'continue' can't be used as an identifier because it's a keyword.
+     ╷
+2469 │   String get continue => 'Continuer';
+     │              ^^^^^^^^
+     ╵
+Could not format because the source could not be parsed:
+
+line 2469, column 14 of lib/languages/l10n/generated/app_localizations_hi.dart: 'continue' can't be used as an identifier because it's a keyword.
+     ╷
+2469 │   String get continue => 'जारी रखें';
+     │              ^^^^^^^^
+     ╵
+Could not format because the source could not be parsed:
+
+line 2469, column 14 of lib/languages/l10n/generated/app_localizations_id.dart: 'continue' can't be used as an identifier because it's a keyword.
+     ╷
+2469 │   String get continue => 'Lanjutkan';
+     │              ^^^^^^^^
+     ╵
+Could not format because the source could not be parsed:
+
+line 2469, column 14 of lib/languages/l10n/generated/app_localizations_it.dart: 'continue' can't be used as an identifier because it's a keyword.
+     ╷
+2469 │   String get continue => 'Continua';
+     │              ^^^^^^^^
+     ╵
+Could not format because the source could not be parsed:
+
+line 2469, column 14 of lib/languages/l10n/generated/app_localizations_ja.dart: 'continue' can't be used as an identifier because it's a keyword.
+     ╷
+2469 │   String get continue => '続ける';
+     │              ^^^^^^^^
+     ╵
+Could not format because the source could not be parsed:
+
+line 2469, column 14 of lib/languages/l10n/generated/app_localizations_ko.dart: 'continue' can't be used as an identifier because it's a keyword.
+     ╷
+2469 │   String get continue => '계속';
+     │              ^^^^^^^^
+     ╵
+Could not format because the source could not be parsed:
+
+line 2469, column 14 of lib/languages/l10n/generated/app_localizations_pt.dart: 'continue' can't be used as an identifier because it's a keyword.
+     ╷
+2469 │   String get continue => 'Continuar';
+     │              ^^^^^^^^
+     ╵
+Could not format because the source could not be parsed:
+
+line 2469, column 14 of lib/languages/l10n/generated/app_localizations_ru.dart: 'continue' can't be used as an identifier because it's a keyword.
+     ╷
+2469 │   String get continue => 'Продолжить';
+     │              ^^^^^^^^
+     ╵
+Could not format because the source could not be parsed:
+
+line 2469, column 14 of lib/languages/l10n/generated/app_localizations_vi.dart: 'continue' can't be used as an identifier because it's a keyword.
+     ╷
+2469 │   String get continue => 'Tiếp tục';
+     │              ^^^^^^^^
+     ╵
+Could not format because the source could not be parsed:
+
+line 2469, column 14 of lib/languages/l10n/generated/app_localizations_zh.dart: 'continue' can't be used as an identifier because it's a keyword.
+     ╷
+2469 │   String get continue => '继续';
+     │              ^^^^^^^^
+     ╵
+Could not format because the source could not be parsed:
+
+line 5040, column 14 of lib/languages/l10n/generated/app_localizations.dart: 'continue' can't be used as an identifier because it's a keyword.
+     ╷
+5040 │   String get continue;
+     │              ^^^^^^^^
+     ╵
+
+  Command: /Users/jaydipsinh321gmal.com/flutter/bin/cache/dart-sdk/bin/dart /Users/jaydipsinh321gmal.com/flutter/bin/cache/dart-sdk/bin/dart format /Users/jaydipsinh321gmal.com/Documents/polzet_app/lib/languages/l10n/generated/app_localizations_ar.dart /Users/jaydipsinh321gmal.com/Documents/polzet_app/lib/languages/l10n/generated/app_localizations_de.dart /Users/jaydipsinh321gmal.com/Documents/polzet_app/lib/languages/l10n/generated/app_localizations_en.dart /Users/jaydipsinh321gmal.com/Documents/polzet_app/lib/languages/l10n/generated/app_localizations_es.dart /Users/jaydipsinh321gmal.com/Documents/polzet_app/lib/languages/l10n/generated/app_localizations_fr.dart /Users/jaydipsinh321gmal.com/Documents/polzet_app/lib/languages/l10n/generated/app_localizations_hi.dart /Users/jaydipsinh321gmal.com/Documents/polzet_app/lib/languages/l10n/generated/app_localizations_id.dart /Users/jaydipsinh321gmal.com/Documents/polzet_app/lib/languages/l10n/generated/app_localizations_it.dart /Users/jaydipsinh321gmal.com/Documents/polzet_app/lib/languages/l10n/generated/app_localizations_ja.dart /Users/jaydipsinh321gmal.com/Documents/polzet_app/lib/languages/l10n/generated/app_localizations_ko.dart /Users/jaydipsinh321gmal.com/Documents/polzet_app/lib/languages/l10n/generated/app_localizations_pt.dart /Users/jaydipsinh321gmal.com/Documents/polzet_app/lib/languages/l10n/generated/app_localizations_ru.dart /Users/jaydipsinh321gmal.com/Documents/polzet_app/lib/languages/l10n/generated/app_localizations_vi.dart /Users/jaydipsinh321gmal.com/Documents/polzet_app/lib/languages/l10n/generated/app_localizations_zh.dart /Users/jaydipsinh321gmal.com/Documents/polzet_app/lib/languages/l10n/generated/app_localizations.dart
+
+```
+#0      generateLocalizations (package:flutter_tools/src/localizations/gen_l10n.dart:96:7)
+<asynchronous suspension>
+#1      GenerateLocalizationsCommand.runCommand (package:flutter_tools/src/commands/generate_localizations.dart:263:5)
+<asynchronous suspension>
+#2      FlutterCommand.run.<anonymous closure> (package:flutter_tools/src/runner/flutter_command.dart:1630:27)
+<asynchronous suspension>
+#3      AppContext.run.<anonymous closure> (package:flutter_tools/src/base/context.dart:154:19)
+<asynchronous suspension>
+#4      CommandRunner.runCommand (package:args/command_runner.dart:212:13)
+<asynchronous suspension>
+#5      FlutterCommandRunner.runCommand.<anonymous closure> (package:flutter_tools/src/runner/flutter_command_runner.dart:496:9)
+<asynchronous suspension>
+#6      AppContext.run.<anonymous closure> (package:flutter_tools/src/base/context.dart:154:19)
+<asynchronous suspension>
+#7      FlutterCommandRunner.runCommand (package:flutter_tools/src/runner/flutter_command_runner.dart:431:5)
+<asynchronous suspension>
+#8      FlutterCommandRunner.run.<anonymous closure> (package:flutter_tools/src/runner/flutter_command_runner.dart:307:33)
+<asynchronous suspension>
+#9      run.<anonymous closure>.<anonymous closure> (package:flutter_tools/runner.dart:104:11)
+<asynchronous suspension>
+#10     AppContext.run.<anonymous closure> (package:flutter_tools/src/base/context.dart:154:19)
+<asynchronous suspension>
+#11     main (package:flutter_tools/executable.dart:103:3)
+<asynchronous suspension>
+```
+
+## flutter doctor
+
+```
+[32m[✓][39m Flutter (Channel stable, 3.44.9, on macOS 26.6.2 25G83 darwin-arm64, locale en-US) [774ms]
+    [32m•[39m Flutter version 3.44.9 on channel stable at /Users/jaydipsinh321gmal.com/flutter
+    [32m•[39m Upstream repository https://github.com/flutter/flutter.git
+    [32m•[39m Framework revision 6b182d2c75 (9 weeks ago), 2026-08-05 10:04:07 -0700
+    [32m•[39m Engine revision 5a2a6a42cc
+    [32m•[39m Dart version 3.12.2
+    [32m•[39m DevTools version 2.57.0
+    [32m•[39m Feature flags: enable-web, enable-linux-desktop, enable-macos-desktop, enable-windows-desktop,
+      enable-android, enable-ios, cli-animations, enable-native-assets, enable-swift-package-manager,
+      omit-legacy-version-file, enable-lldb-debugging, enable-uiscene-migration
+
+[32m[✓][39m Android toolchain - develop for Android devices (Android SDK version 36.0.0) [6.7s]
+    [32m•[39m Android SDK at /Users/jaydipsinh321gmal.com/Library/Android/sdk
+    [32m•[39m Emulator version 37.1.11.0 (build_id 15917651) (CL:N/A)
+    [32m•[39m Platform android-37.0, build-tools 36.0.0
+    [32m•[39m Java binary at: /Library/Java/JavaVirtualMachines/jdk-21.jdk/Contents/Home/bin/java
+      This JDK is specified in your Flutter configuration.
+      To change the current JDK, run: `flutter config --jdk-dir="path/to/jdk"`.
+    [32m•[39m Java version Java(TM) SE Runtime Environment (build 21.0.11+9-LTS-211)
+    [32m•[39m All Android licenses accepted.
+
+[32m[✓][39m Xcode - develop for iOS and macOS (Xcode 27.0) [1,706ms]
+    [32m•[39m Xcode at /Applications/Xcode.app/Contents/Developer
+    [32m•[39m Build 27A266a
+    [32m•[39m CocoaPods version 1.17.0
+
+[32m[✓][39m Chrome - develop for the web [4ms]
+    [32m•[39m Chrome at /Applications/Google Chrome.app/Contents/MacOS/Google Chrome
+
+[32m[✓][39m Connected device (4 available) [8.2s]
+    [32m•[39m motorola edge 40 (mobile)            • 192.168.1.48:32825                          • android-arm64  • Android
+      15 (API 35)
+    [32m•[39m motorola edge 40 (wireless) (mobile) • adb-ZD222DNB9F-j8sXzq._adb-tls-connect._tcp • android-arm64  • Android
+      15 (API 35)
+    [32m•[39m macOS (desktop)                      • macos                                       • darwin-arm64   • macOS
+      26.6.2 25G83 darwin-arm64
+    [32m•[39m Chrome (web)                         • chrome                                      • web-javascript • Google
+      Chrome 154.0.8037.98
+
+[32m[✓][39m Network resources [1,163ms]
+    [32m•[39m All expected network resources are available.
+
+[32m•[39m No issues found!
+```

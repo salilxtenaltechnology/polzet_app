@@ -558,7 +558,7 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
           });
         }
 
-        showToast(message: 'Vote submitted successfully!');
+        showToast(message: 'Vote submitted!');
         _notifyDashboardOfUpdate();
         Future.delayed(
           const Duration(milliseconds: 500),

@@ -1868,14 +1868,15 @@ class NotificationService {
           decodedNotif = Map<String, dynamic>.from(notifVal);
         } else if (notifVal is String) {
           try {
-            decodedNotif = jsonDecode(notifVal) as Map<String, dynamic>;
+            final decoded = jsonDecode(notifVal);
+            if (decoded is Map) {
+              decodedNotif = Map<String, dynamic>.from(decoded);
+            }
           } catch (_) {}
         }
-        if (decodedNotif != null) {
-          decodedNotif.forEach((key, val) {
-            printedData[key] = val;
-          });
-        }
+        decodedNotif?.forEach((key, val) {
+          printedData[key] = val;
+        });
       }
 
       // 2. Add all other key-value pairs from message.data

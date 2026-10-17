@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../../core/constants/app_radius.dart';
 import '../../core/themes/app_text_colors.dart';
 import '../../core/themes/app_text_styles.dart';
+import '../../languages/l10n/generated/app_localizations.dart';
 
 class FlowScaffold extends StatelessWidget {
   final int currentStep;
@@ -32,7 +33,7 @@ class FlowScaffold extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-     final txt = AppTextColors.of(context);
+    final txt = AppTextColors.of(context);
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.background,
       body: SafeArea(
@@ -49,7 +50,7 @@ class FlowScaffold extends StatelessWidget {
                       alignment: Alignment.centerLeft,
                       child: GestureDetector(
                         onTap: onBack,
-                        child:  Icon(
+                        child: Icon(
                           Icons.arrow_back,
                           size: 22,
                           color: Theme.of(context).colorScheme.onBackground,
@@ -57,7 +58,7 @@ class FlowScaffold extends StatelessWidget {
                       ),
                     ),
                   Text(
-                    'Step $currentStep of $totalSteps',
+                    '${AppLocalizations.of(context)!.step} $currentStep of $totalSteps',
                     style: AppTextStyles.bodyText.copyWith(
                       fontSize: 14,
                       fontWeight: FontWeight.w500,
@@ -142,7 +143,7 @@ class FlowScaffold extends StatelessWidget {
                     GestureDetector(
                       onTap: onSkip,
                       child: Text(
-                        'Skip for now',
+                        AppLocalizations.of(context)!.skipfornow,
                         style: AppTextStyles.bodyText.copyWith(
                           fontSize: 14.5,
                           fontWeight: FontWeight.w500,

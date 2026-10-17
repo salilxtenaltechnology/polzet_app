@@ -20,6 +20,8 @@ class ApiConstants {
   static String updateProfile = "$baseUrl/profile";
   static String updatePassword = "$baseUrl/profile/change_password";
   static String updateUsername = "$baseUrl/profile/change_username";
+  static String updateMobileNumberRequest = "$baseUrl/profile/verify_phone_request";
+  static String verifyMobileNumberConfirm = "$baseUrl/profile/verify_phone_confirm";
   static String profileImage = "$baseUrl/profile/picture";
   static String coverImage = "$baseUrl/profile/cover";
   static String sendRequest = "$baseUrl/friend_requests";

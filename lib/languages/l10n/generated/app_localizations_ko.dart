@@ -404,7 +404,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get editprofile => '프로필 편집';
 
   @override
-  String get cropimage => '이미지 zuschneiden?';
+  String get cropimage => '이미지 자르기';
 
   @override
   String get wouldyouliketocroptheimage => 'Möchten Sie das 이미지 zuschneiden?';
@@ -569,7 +569,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get newpassword => '새 비밀번호';
 
   @override
-  String get enternewpassword => '새 비밀번호 eingeben';
+  String get enternewpassword => '새 비밀번호 입력';
 
   @override
   String get confirmpassword => '비밀번호 확인';
@@ -1846,7 +1846,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get tryanotherkeywordorexploretrendingpolls =>
-      'Versuche ein anderes Schlüsselwort oder entdecke Trend-설문.';
+      '다른 키워드를 입력하거나 인기 투표를 둘러보세요';
 
   @override
   String get searching => '검색 중...';
@@ -2633,4 +2633,205 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get postdetails => '게시물';
+
+  @override
+  String get curiouswhatpeoplethink => '사람들이 어떻게 생각하는지 궁금하신가요? 👀';
+
+  @override
+  String get askitgetrealopinionsfromthecrowd => '질문하고 사람들의 솔직한 의견을 받아보세요';
+
+  @override
+  String get whatsonyourmind => '무슨 생각을 하고 있나요';
+
+  @override
+  String get createpoll => '투표 만들기';
+
+  @override
+  String get thispinwillbeusedtosecureyouraccount => '이 PIN은 계정을 보호하는 데 사용됩니다';
+
+  @override
+  String get nochaseusers => 'Chase 사용자가 없습니다';
+
+  @override
+  String get norechaseusers => 'Re-Chase 사용자가 없습니다';
+
+  @override
+  String get youveblockedthisuser => '이 사용자를 차단했습니다';
+
+  @override
+  String get unblockusertoviewtheirpollsorinteractwiththem =>
+      '사용자의 차단을 해제하면 투표를 보거나 상호작용할 수 있습니다. 상대방은 회원님의 프로필과 콘텐츠를 볼 수 없습니다.';
+
+  @override
+  String get letssetupyourprofile => '프로필을 설정해 보세요';
+
+  @override
+  String get addaphotoandyournamesopeoplecanrecognizeyou =>
+      '사진과 이름을 추가하여 사람들이 회원님을 알아볼 수 있도록 하세요';
+
+  @override
+  String get uploading => '업로드 중...';
+
+  @override
+  String get skipfornow => '지금은 건너뛰기';
+
+  @override
+  String get step => '단계';
+
+  @override
+  String get followpeopleyoulike => '좋아하는 사람을 팔로우하세요';
+
+  @override
+  String get chooseafewtopersonalizeyourfeed => '몇 명을 선택하여 피드를 맞춤 설정하세요';
+
+  @override
+  String get suggested => '추천';
+
+  @override
+  String get popular => '인기';
+
+  @override
+  String get whatcatchesyourattention => '무엇이 당신의 관심을 끄나요?';
+
+  @override
+  String get selectatleastthreetopicsyouareinterestedin =>
+      '관심 있는 주제를 최소 3개 선택하세요';
+
+  @override
+  String get forgotpassword => '비밀번호를 잊으셨나요?';
+
+  @override
+  String get enteryouremailormobilenumbertoreceiveaverificationcode =>
+      '인증 코드를 받으려면 이메일 또는 휴대폰 번호를 입력하세요';
+
+  @override
+  String get mobile => '휴대폰';
+
+  @override
+  String get pleaseenteryouremail => '이메일을 입력하세요';
+
+  @override
+  String get pleaseenteryourphonenumber => '전화번호를 입력하세요';
+
+  @override
+  String get pleaseenterthecompletesixdigitcode => '6자리 코드를 모두 입력하세요';
+
+  @override
+  String get enterthesixdigitcodesentto => '전송된 6자리 코드를 입력하세요';
+
+  @override
+  String get invalidotp => '유효하지 않은 OTP';
+
+  @override
+  String get verificationcodehasexpiredpleaserequestanewone =>
+      '인증 코드가 만료되었습니다. 새 코드를 요청하세요.';
+
+  @override
+  String get invalidphonenumber => '유효하지 않은 전화번호';
+
+  @override
+  String get toomanyattemptspleasetryagainlater =>
+      '시도 횟수가 너무 많습니다. 나중에 다시 시도하세요';
+
+  @override
+  String get verifyyournumber => '전화번호 인증';
+
+  @override
+  String get verifyyouremail => '이메일 인증';
+
+  @override
+  String get verifycode => '코드 인증';
+
+  @override
+  String get otpwillexpirein => 'OTP 만료까지';
+
+  @override
+  String get resendcodein => '코드 재전송까지';
+
+  @override
+  String get didnotreceivecode => '코드를 받지 못하셨나요?';
+
+  @override
+  String get resendotp => 'OTP 재전송';
+
+  @override
+  String get createnewpassword => '새 비밀번호 만들기';
+
+  @override
+  String get confirmyourpassword => '비밀번호를 확인하세요';
+
+  @override
+  String get resetpassword => '비밀번호 재설정';
+
+  @override
+  String get weakpassword => '취약한 비밀번호';
+
+  @override
+  String get goodpassword => '좋은 비밀번호';
+
+  @override
+  String get strongpassword => '강력한 비밀번호';
+
+  @override
+  String get eighttencharacters => '8 - 10자';
+
+  @override
+  String get atleastoneuppercaseletter => '대문자 1개 이상';
+
+  @override
+  String get atleastonelowercaseletter => '소문자 1개 이상';
+
+  @override
+  String get atleastonenumber => '숫자 1개 이상';
+
+  @override
+  String get atleastonespecialcharacter => '특수문자 1개 이상';
+
+  @override
+  String get editimage => '이미지 편집';
+
+  @override
+  String get replaceimage => '이미지 교체';
+
+  @override
+  String get remove => '삭제';
+
+  @override
+  String get ideasroryou => '추천 아이디어';
+
+  @override
+  String get pollideas => '투표 아이디어';
+
+  @override
+  String get foryou => '추천';
+
+  @override
+  String get dailylife => '일상생활';
+
+  @override
+  String get food => '음식';
+
+  @override
+  String get travel => '여행';
+
+  @override
+  String get tech => '기술';
+
+  @override
+  String get entertainment => '엔터테인먼트';
+
+  @override
+  String get searchpolltopics => '투표 주제 검색';
+
+  @override
+  String get recents => '최근 항목';
+
+  @override
+  String get rorecentsearches => '최근 검색 내역이 없습니다';
+
+  @override
+  String get notopicsfoundfor => '다음에 대한 주제를 찾을 수 없습니다:';
+
+  @override
+  String get withselectedfilters => '선택한 필터 사용';
 }

@@ -5,7 +5,7 @@ class ApiConfig {
   // testbackend.polzet.in : For Test
   // www.polzet.com : Official Domain
 
-  static String domainUrl = 'testbackend.polzet.in';
+  static String domainUrl = 'prodbackend.polzet.in';
 
   static String get baseUrl {
     const protocol = useHttps ? 'https' : 'http';
@@ -68,3 +68,5 @@ class ApiConfig {
 // Add language new texts : flutter gen-l10n
 
 // flutter run 2>&1 | grep -v "BLASTBufferQueue"
+
+// flutter run --no-enable-impeller

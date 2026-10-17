@@ -11,8 +11,12 @@
         android:maxSdkVersion="32"
         tools:replace="android:maxSdkVersion" />
         
-    <!-- For Android 13+ (API 33+) -->
-    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES"/>
+    <!-- Remove broad media permissions to comply with Google Play Photo Picker policy -->
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" tools:node="remove" />
+    <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" tools:node="remove" />
+    <uses-permission android:name="android.permission.READ_MEDIA_VISUAL_USER_SELECTED" tools:node="remove" />
+    <!-- Remove unused audio recording permission merged from camera plugins -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" tools:node="remove" />
     
     <!-- Notification Permission for Android 13+ (API 33+) -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
@@ -21,9 +25,6 @@
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
-    
-    <!-- Optional: For scheduling exact alarms (Android 12+) -->
-    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
     
     <!-- Camera features (optional - set required="false" so app works on devices without camera) -->
     <uses-feature android:name="android.hardware.camera" android:required="false"/>

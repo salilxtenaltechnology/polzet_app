@@ -19,7 +19,6 @@ import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_radius.dart';
 import '../../../../core/themes/app_text_colors.dart';
 import '../../../../core/themes/app_text_styles.dart';
-import 'image_preview_crop_screen.dart';
 import '../../../../data/token/shared_preferences.dart';
 import '../../../../gen/assets.gen.dart';
 import '../../../../languages/l10n/generated/app_localizations.dart';
@@ -34,7 +33,18 @@ import '../../../../widgets/show_toast.dart';
 import '../../../../widgets/text_field/secondry_textfield.dart';
 
 class NewBattelPoll extends StatefulWidget {
-  const NewBattelPoll({super.key});
+  final String? initialQuestion;
+  final String? initialDescription;
+  final List<String>? initialOptions;
+  final String? initialVotingType;
+
+  const NewBattelPoll({
+    super.key,
+    this.initialQuestion,
+    this.initialDescription,
+    this.initialOptions,
+    this.initialVotingType,
+  });
 
   @override
   State<NewBattelPoll> createState() => _NewBattelPollState();
@@ -75,8 +85,10 @@ class _NewBattelPollState extends State<NewBattelPoll> {
 
   void _updateAiLimitFromResponse(Map<String, dynamic>? response) {
     if (response == null) return;
-    final rawRemaining = response['remaining'] ?? response['data']?['remaining'];
-    final rawLimit = response['daily_limit'] ?? response['data']?['daily_limit'];
+    final rawRemaining =
+        response['remaining'] ?? response['data']?['remaining'];
+    final rawLimit =
+        response['daily_limit'] ?? response['data']?['daily_limit'];
 
     if (rawRemaining != null) {
       final parsedRemaining = int.tryParse(rawRemaining.toString());
@@ -119,11 +131,39 @@ class _NewBattelPollState extends State<NewBattelPoll> {
   @override
   void initState() {
     super.initState();
+    if (widget.initialQuestion != null &&
+        widget.initialQuestion!.trim().isNotEmpty) {
+      questionController.text = widget.initialQuestion!;
+    }
+    if (widget.initialDescription != null &&
+        widget.initialDescription!.trim().isNotEmpty) {
+      descriptionController.text = widget.initialDescription!;
+    }
+    if (widget.initialOptions != null && widget.initialOptions!.isNotEmpty) {
+      if (widget.initialOptions!.isNotEmpty) {
+        label1Controller.text = widget.initialOptions![0];
+      }
+      if (widget.initialOptions!.length > 1) {
+        label2Controller.text = widget.initialOptions![1];
+      }
+    }
     _loadSavedAiLimit();
     questionController.addListener(_onQuestionChanged);
     label1Controller.addListener(_onLabelChanged);
     label2Controller.addListener(_onLabelChanged);
     _startHintAnimation();
+
+    final hasAutoFilled =
+        (widget.initialQuestion != null &&
+            widget.initialQuestion!.trim().isNotEmpty) ||
+        (widget.initialOptions != null && widget.initialOptions!.isNotEmpty) ||
+        (widget.initialVotingType != null &&
+            widget.initialVotingType!.trim().isNotEmpty);
+    if (hasAutoFilled) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        showToast(message: 'Poll auto-filled! Review & publish');
+      });
+    }
   }
 
   void _startHintAnimation() {
@@ -241,24 +281,15 @@ class _NewBattelPollState extends State<NewBattelPoll> {
       );
 
       if (pickedFiles != null && pickedFiles.isNotEmpty && mounted) {
-        final List<File>? finalFiles = await Navigator.push<List<File>>(
-          context,
-          MaterialPageRoute(
-            builder: (_) => ImagePreviewCropScreen(initialImages: pickedFiles),
-          ),
-        );
-
-        if (finalFiles != null && finalFiles.isNotEmpty && mounted) {
-          setState(() {
-            if (finalFiles.length >= 2) {
-              _images[0] = finalFiles[0];
-              _images[1] = finalFiles[1];
-            } else {
-              _images[index] = finalFiles[0];
-            }
-            imageErrorText = '';
-          });
-        }
+        setState(() {
+          if (pickedFiles.length >= 2) {
+            _images[0] = pickedFiles[0];
+            _images[1] = pickedFiles[1];
+          } else {
+            _images[index] = pickedFiles[0];
+          }
+          imageErrorText = '';
+        });
       }
     } catch (e) {
       showToast(message: 'Error picking images: ${e.toString()}');
@@ -299,7 +330,7 @@ class _NewBattelPollState extends State<NewBattelPoll> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(
-                    'Edit Image',
+                    AppLocalizations.of(context)!.editimage,
                     style: AppTextStyles.sectionHeading.copyWith(
                       color: txt.title,
                       fontSize: 14.sp,
@@ -319,7 +350,7 @@ class _NewBattelPollState extends State<NewBattelPoll> {
                 child: Padding(
                   padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10),
                   child: Text(
-                    'Crop image',
+                    AppLocalizations.of(context)!.cropimage,
                     style: AppTextStyles.bodyText.copyWith(
                       color: txt.body,
                       fontSize: 13.5.sp,
@@ -336,7 +367,7 @@ class _NewBattelPollState extends State<NewBattelPoll> {
                 padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10),
                 child: GestureDetector(
                   child: Text(
-                    'Replace image',
+                    AppLocalizations.of(context)!.replaceimage,
                     style: AppTextStyles.bodyText.copyWith(
                       color: txt.body,
                       fontSize: 13.5.sp,
@@ -353,7 +384,7 @@ class _NewBattelPollState extends State<NewBattelPoll> {
                 padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10),
                 child: GestureDetector(
                   child: Text(
-                    'Remove',
+                    AppLocalizations.of(context)!.remove,
                     style: AppTextStyles.bodyText.copyWith(
                       color: Theme.of(context).colorScheme.error,
                       fontSize: 13.5.sp,
@@ -556,7 +587,7 @@ class _NewBattelPollState extends State<NewBattelPoll> {
     final txt = AppTextColors.of(context);
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.background,
-      appBar:  CommonAppBar(title:  AppLocalizations.of(context)!.startabattle),
+      appBar: CommonAppBar(title: AppLocalizations.of(context)!.startabattle),
       body: SingleChildScrollView(
         physics: const BouncingScrollPhysics(),
         child: Padding(
@@ -595,8 +626,8 @@ class _NewBattelPollState extends State<NewBattelPoll> {
                       isEnabled: _remainingGenerations > 0,
                       onTap:
                           (_isGeneratingQuestion || _remainingGenerations <= 0)
-                              ? null
-                              : generateQuestion,
+                          ? null
+                          : generateQuestion,
                     ),
                   ),
                 ],
@@ -606,10 +637,9 @@ class _NewBattelPollState extends State<NewBattelPoll> {
                 controller: questionController,
                 focusNode: questionFocusNode,
                 hintText: _hintTexts[_currentHintIndex],
-                focusedBorderColor:
-                    questionController.text.trim().isNotEmpty
-                        ? Theme.of(context).colorScheme.onPrimary
-                        : null,
+                focusedBorderColor: questionController.text.trim().isNotEmpty
+                    ? Theme.of(context).colorScheme.onPrimary
+                    : null,
               ),
               if (questionErrorText.isNotEmpty)
                 Padding(
@@ -638,7 +668,9 @@ class _NewBattelPollState extends State<NewBattelPoll> {
               _buildCompetitorsSection(context),
               SizedBox(height: 12.h),
               Text(
-                AppLocalizations.of(context)!.addtwosimilarimagesegoutfitsplacesfood,
+                AppLocalizations.of(
+                  context,
+                )!.addtwosimilarimagesegoutfitsplacesfood,
                 style: AppTextStyles.bodyText.copyWith(
                   color: txt.muted,
                   fontSize: 10.5.sp,

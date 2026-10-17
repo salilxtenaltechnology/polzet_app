@@ -408,7 +408,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String get editprofile => 'Профиль bearbeiten';
 
   @override
-  String get cropimage => 'Изображение zuschneiden?';
+  String get cropimage => 'Обрезать изображение';
 
   @override
   String get wouldyouliketocroptheimage =>
@@ -573,13 +573,13 @@ class AppLocalizationsRu extends AppLocalizations {
   String get forgotyourpassword => 'Пароль vergessen?';
 
   @override
-  String get newpassword => 'Новыйes Пароль';
+  String get newpassword => 'Новый пароль';
 
   @override
-  String get enternewpassword => 'Новыйes Пароль eingeben';
+  String get enternewpassword => 'Введите новый пароль';
 
   @override
-  String get confirmpassword => 'Пароль bestätigen';
+  String get confirmpassword => 'Подтвердите пароль';
 
   @override
   String get enterconfirmpassword => 'Bestätigungspasswort eingeben';
@@ -1863,7 +1863,7 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get tryanotherkeywordorexploretrendingpolls =>
-      'Versuche ein anderes Schlüsselwort oder entdecke Trend-Опросы.';
+      'Попробуйте другое ключевое слово или изучите популярные опросы';
 
   @override
   String get searching => 'Поиск läuft...';
@@ -2675,4 +2675,210 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get postdetails => 'Публикация';
+
+  @override
+  String get curiouswhatpeoplethink => 'Интересно, что думают люди? 👀';
+
+  @override
+  String get askitgetrealopinionsfromthecrowd =>
+      'Спросите. Получите реальные мнения людей';
+
+  @override
+  String get whatsonyourmind => 'о чём вы думаете';
+
+  @override
+  String get createpoll => 'Создать опрос';
+
+  @override
+  String get thispinwillbeusedtosecureyouraccount =>
+      'Этот PIN-код будет использоваться для защиты вашего аккаунта';
+
+  @override
+  String get nochaseusers => 'Нет пользователей Chase';
+
+  @override
+  String get norechaseusers => 'Нет пользователей Re-Chase';
+
+  @override
+  String get youveblockedthisuser => 'Вы заблокировали этого пользователя';
+
+  @override
+  String get unblockusertoviewtheirpollsorinteractwiththem =>
+      'Разблокируйте пользователя, чтобы просматривать его опросы или взаимодействовать с ним. Он не сможет видеть ваш профиль и контент.';
+
+  @override
+  String get letssetupyourprofile => 'Давайте настроим ваш профиль';
+
+  @override
+  String get addaphotoandyournamesopeoplecanrecognizeyou =>
+      'Добавьте фото и имя, чтобы люди могли вас узнать';
+
+  @override
+  String get uploading => 'Загрузка...';
+
+  @override
+  String get skipfornow => 'Пропустить сейчас';
+
+  @override
+  String get step => 'Шаг';
+
+  @override
+  String get followpeopleyoulike => 'Подписывайтесь на понравившихся людей';
+
+  @override
+  String get chooseafewtopersonalizeyourfeed =>
+      'Выберите несколько, чтобы персонализировать ленту';
+
+  @override
+  String get suggested => 'Рекомендуемые';
+
+  @override
+  String get popular => 'Популярные';
+
+  @override
+  String get whatcatchesyourattention => 'Что привлекает ваше внимание?';
+
+  @override
+  String get selectatleastthreetopicsyouareinterestedin =>
+      'Выберите не менее 3 интересующих вас тем';
+
+  @override
+  String get forgotpassword => 'Забыли пароль';
+
+  @override
+  String get enteryouremailormobilenumbertoreceiveaverificationcode =>
+      'Введите адрес электронной почты или номер мобильного телефона, чтобы получить код подтверждения';
+
+  @override
+  String get mobile => 'Мобильный';
+
+  @override
+  String get pleaseenteryouremail => 'Введите адрес электронной почты';
+
+  @override
+  String get pleaseenteryourphonenumber => 'Введите номер телефона';
+
+  @override
+  String get pleaseenterthecompletesixdigitcode =>
+      'Введите полный 6-значный код';
+
+  @override
+  String get enterthesixdigitcodesentto =>
+      'Введите 6-значный код, отправленный на';
+
+  @override
+  String get invalidotp => 'Недействительный OTP';
+
+  @override
+  String get verificationcodehasexpiredpleaserequestanewone =>
+      'Срок действия кода подтверждения истёк. Запросите новый код.';
+
+  @override
+  String get invalidphonenumber => 'Недействительный номер телефона';
+
+  @override
+  String get toomanyattemptspleasetryagainlater =>
+      'Слишком много попыток. Повторите позже';
+
+  @override
+  String get verifyyournumber => 'Подтвердите свой номер';
+
+  @override
+  String get verifyyouremail => 'Подтвердите свою электронную почту';
+
+  @override
+  String get verifycode => 'Подтвердить код';
+
+  @override
+  String get otpwillexpirein => 'Срок действия OTP истечёт через';
+
+  @override
+  String get resendcodein => 'Повторно отправить код через';
+
+  @override
+  String get didnotreceivecode => 'Не получили код?';
+
+  @override
+  String get resendotp => 'Отправить OTP повторно';
+
+  @override
+  String get createnewpassword => 'Создать новый пароль';
+
+  @override
+  String get confirmyourpassword => 'Подтвердите свой пароль';
+
+  @override
+  String get resetpassword => 'Сбросить пароль';
+
+  @override
+  String get weakpassword => 'Слабый пароль';
+
+  @override
+  String get goodpassword => 'Хороший пароль';
+
+  @override
+  String get strongpassword => 'Надёжный пароль';
+
+  @override
+  String get eighttencharacters => '8–10 символов';
+
+  @override
+  String get atleastoneuppercaseletter => 'Не менее 1 заглавной буквы';
+
+  @override
+  String get atleastonelowercaseletter => 'Не менее 1 строчной буквы';
+
+  @override
+  String get atleastonenumber => 'Не менее 1 цифры';
+
+  @override
+  String get atleastonespecialcharacter => 'Не менее 1 специального символа';
+
+  @override
+  String get editimage => 'Редактировать изображение';
+
+  @override
+  String get replaceimage => 'Заменить изображение';
+
+  @override
+  String get remove => 'Удалить';
+
+  @override
+  String get ideasroryou => 'Идеи для вас';
+
+  @override
+  String get pollideas => 'Идеи для опросов';
+
+  @override
+  String get foryou => 'Для вас';
+
+  @override
+  String get dailylife => 'Повседневная жизнь';
+
+  @override
+  String get food => 'Еда';
+
+  @override
+  String get travel => 'Путешествия';
+
+  @override
+  String get tech => 'Технологии';
+
+  @override
+  String get entertainment => 'Развлечения';
+
+  @override
+  String get searchpolltopics => 'Поиск тем опросов';
+
+  @override
+  String get recents => 'Недавние';
+
+  @override
+  String get rorecentsearches => 'Нет недавних поисковых запросов';
+
+  @override
+  String get notopicsfoundfor => 'Темы не найдены для';
+
+  @override
+  String get withselectedfilters => 'с выбранными фильтрами';
 }

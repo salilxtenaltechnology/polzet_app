@@ -438,6 +438,68 @@ class GroupChatScreenState extends State<GroupChatScreen>
     return null;
   }
 
+  ImageProvider _getAvatarImageProvider(String? rawUrl) {
+    if (rawUrl == null ||
+        rawUrl.trim().isEmpty ||
+        rawUrl == 'null' ||
+        rawUrl == Assets.images.icAvatar.path ||
+        rawUrl.endsWith('ic_avatar.png')) {
+      return AssetImage(Assets.images.icAvatar.path);
+    }
+
+    final trimmed = rawUrl.trim();
+
+    final base64Image = getProfileImage(trimmed);
+    if (base64Image != null) {
+      return MemoryImage(base64Image);
+    }
+
+    if (trimmed.startsWith('assets/')) {
+      return AssetImage(trimmed);
+    }
+
+    final resolved = resolveProfileImageUrl(trimmed);
+    if (resolved != null && resolved.isNotEmpty) {
+      if (resolved.startsWith('http://') || resolved.startsWith('https://')) {
+        return NetworkImage(resolved);
+      } else if (resolved.startsWith('assets/')) {
+        return AssetImage(resolved);
+      }
+    }
+
+    if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+      return NetworkImage(trimmed);
+    }
+
+    final separator = trimmed.startsWith('/') ? '' : '/';
+    final fullUrl = '${ApiConfig.baseUrlImage}$separator$trimmed';
+    if (fullUrl.startsWith('http')) {
+      return NetworkImage(fullUrl);
+    }
+
+    return AssetImage(Assets.images.icAvatar.path);
+  }
+
+  Widget _buildAvatarCircle({
+    required String? profileUrl,
+    required double radius,
+    VoidCallback? onTap,
+  }) {
+    final avatarProvider = _getAvatarImageProvider(profileUrl);
+
+    final avatarWidget = CircleAvatar(
+      radius: radius,
+      backgroundColor: Theme.of(context).colorScheme.onPrimary.withOpacity(0.1),
+      backgroundImage: avatarProvider,
+      onBackgroundImageError: (exception, stackTrace) {},
+    );
+
+    if (onTap != null) {
+      return GestureDetector(onTap: onTap, child: avatarWidget);
+    }
+    return avatarWidget;
+  }
+
   void _sendMessage() {
     final text = _messageController.text;
     if (text.trim().isEmpty) return;
@@ -922,20 +984,11 @@ class GroupChatScreenState extends State<GroupChatScreen>
     final lastName = user['last_name']?.toString() ?? '';
     final name = '$firstName $lastName'.trim();
     final username = user['username']?.toString() ?? '';
-    final String? avatarUrlRaw = user['profile_image']?.toString();
-    String? avatarUrl;
-    if (avatarUrlRaw != null && avatarUrlRaw.isNotEmpty) {
-      if (avatarUrlRaw.startsWith('http') ||
-          avatarUrlRaw.startsWith('data:image')) {
-        avatarUrl = avatarUrlRaw;
-      } else {
-        if (avatarUrlRaw.startsWith('/')) {
-          avatarUrl = '${ApiConfig.baseUrlImage}$avatarUrlRaw';
-        } else {
-          avatarUrl = '${ApiConfig.baseUrlImage}/$avatarUrlRaw';
-        }
-      }
-    }
+    final String? avatarUrlRaw =
+        user['profile_image']?.toString() ??
+        user['profile_picture']?.toString() ??
+        user['profile_picture_url']?.toString() ??
+        user['avatar_url']?.toString();
     final description = post['description']?.toString() ?? '';
     final isPolledByCurrentUser = post['is_polled_by_current_user'] == true;
 
@@ -1190,30 +1243,9 @@ class GroupChatScreenState extends State<GroupChatScreen>
                               ],
                             ),
                           )
-                        : CircleAvatar(
+                        : _buildAvatarCircle(
+                            profileUrl: avatarUrlRaw,
                             radius: 19,
-                            backgroundColor: Theme.of(
-                              context,
-                            ).colorScheme.onPrimary.withOpacity(0.1),
-                            backgroundImage: avatarUrl != null
-                                ? NetworkImage(avatarUrl)
-                                : null,
-                            child: avatarUrl == null
-                                ? Text(
-                                    name.isNotEmpty
-                                        ? name[0].toUpperCase()
-                                        : (username.isNotEmpty
-                                              ? username[0].toUpperCase()
-                                              : 'P'),
-                                    style: TextStyle(
-                                      fontSize: 18,
-                                      color: Theme.of(
-                                        context,
-                                      ).colorScheme.onPrimary,
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                  )
-                                : null,
                           ),
                     SizedBox(width: 8.w),
                     Expanded(
@@ -1361,8 +1393,11 @@ class GroupChatScreenState extends State<GroupChatScreen>
     final lastName = profile['last_name']?.toString() ?? '';
     final name = '$firstName $lastName'.trim();
     final username = profile['username']?.toString() ?? '';
-    final profileUrlRaw = profile['profile_url']?.toString();
-    final avatarUrl = resolveProfileImageUrl(profileUrlRaw);
+    final profileUrlRaw =
+        profile['profile_url']?.toString() ??
+        profile['profile_image']?.toString() ??
+        profile['profile_picture']?.toString() ??
+        profile['avatar_url']?.toString();
 
     final displayName = name.isNotEmpty ? name : username;
 
@@ -1450,27 +1485,7 @@ class GroupChatScreenState extends State<GroupChatScreen>
                       ],
                     ),
                   )
-                : CircleAvatar(
-                    radius: 21,
-                    backgroundColor: Theme.of(
-                      context,
-                    ).colorScheme.onPrimary.withOpacity(0.1),
-                    backgroundImage: avatarUrl != null
-                        ? NetworkImage(avatarUrl)
-                        : null,
-                    child: avatarUrl == null
-                        ? Text(
-                            displayName.isNotEmpty
-                                ? displayName[0].toUpperCase()
-                                : 'P',
-                            style: TextStyle(
-                              fontSize: 18,
-                              color: Theme.of(context).colorScheme.onPrimary,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          )
-                        : null,
-                  ),
+                : _buildAvatarCircle(profileUrl: profileUrlRaw, radius: 21),
             SizedBox(width: 14.w),
             Expanded(
               child: Column(

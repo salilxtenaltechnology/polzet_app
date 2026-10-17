@@ -406,7 +406,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get editprofile => 'Edit Profile';
 
   @override
-  String get cropimage => 'Crop Image?';
+  String get cropimage => 'Crop image';
 
   @override
   String get wouldyouliketocroptheimage => 'Would you like to crop the image?';
@@ -1848,7 +1848,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get tryanotherkeywordorexploretrendingpolls =>
-      'Try another keyword or explore trending polls.';
+      'Try another keyword or explore trending polls';
 
   @override
   String get searching => 'Searching...';
@@ -2652,4 +2652,209 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get postdetails => 'Post';
+
+  @override
+  String get curiouswhatpeoplethink => 'Curious what people think? 👀';
+
+  @override
+  String get askitgetrealopinionsfromthecrowd =>
+      'Ask it. Get real opinions from the crowd';
+
+  @override
+  String get whatsonyourmind => 'what’s on your mind';
+
+  @override
+  String get createpoll => 'Create Poll';
+
+  @override
+  String get thispinwillbeusedtosecureyouraccount =>
+      'This PIN will be used to secure your account';
+
+  @override
+  String get nochaseusers => 'No chase users';
+
+  @override
+  String get norechaseusers => 'No re-chase users';
+
+  @override
+  String get youveblockedthisuser => 'You’ve blocked this user';
+
+  @override
+  String get unblockusertoviewtheirpollsorinteractwiththem =>
+      'Unblock user to view their polls or interact with them. They won’t be able to see your profile and content.';
+
+  @override
+  String get letssetupyourprofile => 'Let\'s set up your profile';
+
+  @override
+  String get addaphotoandyournamesopeoplecanrecognizeyou =>
+      'Add a photo and your name so people can recognize you';
+
+  @override
+  String get uploading => 'Uploading...';
+
+  @override
+  String get skipfornow => 'Skip for now';
+
+  @override
+  String get step => 'Step';
+
+  @override
+  String get followpeopleyoulike => 'Follow people you like';
+
+  @override
+  String get chooseafewtopersonalizeyourfeed =>
+      'Choose a few to personalize your feed';
+
+  @override
+  String get suggested => 'Suggested';
+
+  @override
+  String get popular => 'Popular';
+
+  @override
+  String get whatcatchesyourattention => 'What catches your attention?';
+
+  @override
+  String get selectatleastthreetopicsyouareinterestedin =>
+      'Select at least 3 topics you are interested in';
+
+  @override
+  String get forgotpassword => 'Forgot password';
+
+  @override
+  String get enteryouremailormobilenumbertoreceiveaverificationcode =>
+      'Enter your email or mobile number to receive a verification code';
+
+  @override
+  String get mobile => 'Mobile';
+
+  @override
+  String get pleaseenteryouremail => 'Please enter your email';
+
+  @override
+  String get pleaseenteryourphonenumber => 'Please enter your phone number';
+
+  @override
+  String get pleaseenterthecompletesixdigitcode =>
+      'Please enter the complete 6-digit code';
+
+  @override
+  String get enterthesixdigitcodesentto => 'Enter the 6-digit code sent to';
+
+  @override
+  String get invalidotp => 'Invalid OTP';
+
+  @override
+  String get verificationcodehasexpiredpleaserequestanewone =>
+      'Verification code has expired. Please request a new one.';
+
+  @override
+  String get invalidphonenumber => 'Invalid phone number';
+
+  @override
+  String get toomanyattemptspleasetryagainlater =>
+      'Too many attempts. Please try again later';
+
+  @override
+  String get verifyyournumber => 'Verify your number';
+
+  @override
+  String get verifyyouremail => 'Verify your email';
+
+  @override
+  String get verifycode => 'Verify Code';
+
+  @override
+  String get otpwillexpirein => 'OTP will expire in';
+
+  @override
+  String get resendcodein => 'Resend code in';
+
+  @override
+  String get didnotreceivecode => 'Didn\'t receive code?';
+
+  @override
+  String get resendotp => 'Resend OTP';
+
+  @override
+  String get createnewpassword => 'Create new password';
+
+  @override
+  String get confirmyourpassword => 'Confirm your password';
+
+  @override
+  String get resetpassword => 'Reset password';
+
+  @override
+  String get weakpassword => 'Weak password';
+
+  @override
+  String get goodpassword => 'Good password';
+
+  @override
+  String get strongpassword => 'Strong password';
+
+  @override
+  String get eighttencharacters => '8 - 10 characters';
+
+  @override
+  String get atleastoneuppercaseletter => 'At least 1 uppercase letter';
+
+  @override
+  String get atleastonelowercaseletter => 'At least 1 lowercase letter';
+
+  @override
+  String get atleastonenumber => 'At least 1 number';
+
+  @override
+  String get atleastonespecialcharacter => 'At least 1 special character';
+
+  @override
+  String get editimage => 'Edit Image';
+
+  @override
+  String get replaceimage => 'Replace image';
+
+  @override
+  String get remove => 'Remove';
+
+  @override
+  String get ideasroryou => 'Ideas For You';
+
+  @override
+  String get pollideas => 'Poll ideas';
+
+  @override
+  String get foryou => 'For you';
+
+  @override
+  String get dailylife => 'Daily Life';
+
+  @override
+  String get food => 'Food';
+
+  @override
+  String get travel => 'Travel';
+
+  @override
+  String get tech => 'Tech';
+
+  @override
+  String get entertainment => 'Entertainment';
+
+  @override
+  String get searchpolltopics => 'Search poll topics';
+
+  @override
+  String get recents => 'Recents';
+
+  @override
+  String get rorecentsearches => 'No recent searches';
+
+  @override
+  String get notopicsfoundfor => 'No topics found for';
+
+  @override
+  String get withselectedfilters => 'with selected filters';
 }

@@ -408,7 +408,7 @@ class AppLocalizationsDe extends AppLocalizations {
   String get editprofile => 'Profil bearbeiten';
 
   @override
-  String get cropimage => 'Bild zuschneiden?';
+  String get cropimage => 'Bild zuschneiden';
 
   @override
   String get wouldyouliketocroptheimage => 'Möchten Sie das Bild zuschneiden?';
@@ -1860,7 +1860,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get tryanotherkeywordorexploretrendingpolls =>
-      'Versuche ein anderes Schlüsselwort oder entdecke Trend-Umfragen.';
+      'Versuche ein anderes Stichwort oder entdecke aktuelle Umfragen';
 
   @override
   String get searching => 'Suche läuft...';
@@ -2671,4 +2671,210 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get postdetails => 'Beitrag';
+
+  @override
+  String get curiouswhatpeoplethink => 'Neugierig, was die Leute denken? 👀';
+
+  @override
+  String get askitgetrealopinionsfromthecrowd =>
+      'Frag einfach. Erhalte echte Meinungen von der Community';
+
+  @override
+  String get whatsonyourmind => 'was beschäftigt dich';
+
+  @override
+  String get createpoll => 'Umfrage erstellen';
+
+  @override
+  String get thispinwillbeusedtosecureyouraccount =>
+      'Diese PIN wird verwendet, um dein Konto zu schützen';
+
+  @override
+  String get nochaseusers => 'Keine Chase-Nutzer';
+
+  @override
+  String get norechaseusers => 'Keine Re-Chase-Nutzer';
+
+  @override
+  String get youveblockedthisuser => 'Du hast diesen Nutzer blockiert';
+
+  @override
+  String get unblockusertoviewtheirpollsorinteractwiththem =>
+      'Entsperre den Nutzer, um seine Umfragen zu sehen oder mit ihm zu interagieren. Er kann dein Profil und deine Inhalte nicht sehen.';
+
+  @override
+  String get letssetupyourprofile => 'Lass uns dein Profil einrichten';
+
+  @override
+  String get addaphotoandyournamesopeoplecanrecognizeyou =>
+      'Füge ein Foto und deinen Namen hinzu, damit andere dich erkennen können';
+
+  @override
+  String get uploading => 'Wird hochgeladen...';
+
+  @override
+  String get skipfornow => 'Jetzt überspringen';
+
+  @override
+  String get step => 'Schritt';
+
+  @override
+  String get followpeopleyoulike => 'Folge Personen, die du magst';
+
+  @override
+  String get chooseafewtopersonalizeyourfeed =>
+      'Wähle einige aus, um deinen Feed zu personalisieren';
+
+  @override
+  String get suggested => 'Vorgeschlagen';
+
+  @override
+  String get popular => 'Beliebt';
+
+  @override
+  String get whatcatchesyourattention => 'Was erregt deine Aufmerksamkeit?';
+
+  @override
+  String get selectatleastthreetopicsyouareinterestedin =>
+      'Wähle mindestens 3 Themen aus, die dich interessieren';
+
+  @override
+  String get forgotpassword => 'Passwort vergessen';
+
+  @override
+  String get enteryouremailormobilenumbertoreceiveaverificationcode =>
+      'Gib deine E-Mail-Adresse oder Mobilnummer ein, um einen Bestätigungscode zu erhalten';
+
+  @override
+  String get mobile => 'Mobil';
+
+  @override
+  String get pleaseenteryouremail => 'Bitte gib deine E-Mail-Adresse ein';
+
+  @override
+  String get pleaseenteryourphonenumber => 'Bitte gib deine Telefonnummer ein';
+
+  @override
+  String get pleaseenterthecompletesixdigitcode =>
+      'Bitte gib den vollständigen 6-stelligen Code ein';
+
+  @override
+  String get enterthesixdigitcodesentto =>
+      'Gib den an folgende Nummer gesendeten 6-stelligen Code ein';
+
+  @override
+  String get invalidotp => 'Ungültiger OTP-Code';
+
+  @override
+  String get verificationcodehasexpiredpleaserequestanewone =>
+      'Der Bestätigungscode ist abgelaufen. Bitte fordere einen neuen an.';
+
+  @override
+  String get invalidphonenumber => 'Ungültige Telefonnummer';
+
+  @override
+  String get toomanyattemptspleasetryagainlater =>
+      'Zu viele Versuche. Bitte versuche es später erneut';
+
+  @override
+  String get verifyyournumber => 'Bestätige deine Nummer';
+
+  @override
+  String get verifyyouremail => 'Bestätige deine E-Mail-Adresse';
+
+  @override
+  String get verifycode => 'Code bestätigen';
+
+  @override
+  String get otpwillexpirein => 'OTP läuft ab in';
+
+  @override
+  String get resendcodein => 'Code erneut senden in';
+
+  @override
+  String get didnotreceivecode => 'Code nicht erhalten?';
+
+  @override
+  String get resendotp => 'OTP erneut senden';
+
+  @override
+  String get createnewpassword => 'Neues Passwort erstellen';
+
+  @override
+  String get confirmyourpassword => 'Bestätige dein Passwort';
+
+  @override
+  String get resetpassword => 'Passwort zurücksetzen';
+
+  @override
+  String get weakpassword => 'Schwaches Passwort';
+
+  @override
+  String get goodpassword => 'Gutes Passwort';
+
+  @override
+  String get strongpassword => 'Starkes Passwort';
+
+  @override
+  String get eighttencharacters => '8 - 10 Zeichen';
+
+  @override
+  String get atleastoneuppercaseletter => 'Mindestens 1 Großbuchstabe';
+
+  @override
+  String get atleastonelowercaseletter => 'Mindestens 1 Kleinbuchstabe';
+
+  @override
+  String get atleastonenumber => 'Mindestens 1 Zahl';
+
+  @override
+  String get atleastonespecialcharacter => 'Mindestens 1 Sonderzeichen';
+
+  @override
+  String get editimage => 'Bild bearbeiten';
+
+  @override
+  String get replaceimage => 'Bild ersetzen';
+
+  @override
+  String get remove => 'Entfernen';
+
+  @override
+  String get ideasroryou => 'Ideen für dich';
+
+  @override
+  String get pollideas => 'Umfrageideen';
+
+  @override
+  String get foryou => 'Für dich';
+
+  @override
+  String get dailylife => 'Alltag';
+
+  @override
+  String get food => 'Essen';
+
+  @override
+  String get travel => 'Reisen';
+
+  @override
+  String get tech => 'Technik';
+
+  @override
+  String get entertainment => 'Unterhaltung';
+
+  @override
+  String get searchpolltopics => 'Umfragethemen suchen';
+
+  @override
+  String get recents => 'Zuletzt verwendet';
+
+  @override
+  String get rorecentsearches => 'Keine aktuellen Suchanfragen';
+
+  @override
+  String get notopicsfoundfor => 'Keine Themen gefunden für';
+
+  @override
+  String get withselectedfilters => 'mit den ausgewählten Filtern';
 }

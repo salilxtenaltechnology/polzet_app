@@ -755,10 +755,12 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen>
   Widget _buildTabBar() {
     return TabBar(
       overlayColor: const WidgetStatePropertyAll(Colors.transparent),
-      tabAlignment: TabAlignment.fill,
+        tabAlignment: TabAlignment.start,
+      isScrollable: true,
+       padding: EdgeInsets.symmetric(horizontal: 10.w),
       indicator: FadeUnderlineTabIndicator(),
       controller: _tabController,
-      labelPadding: EdgeInsets.symmetric(horizontal: 5.w),
+       labelPadding: EdgeInsets.symmetric(horizontal: 10.w),
       indicatorSize: TabBarIndicatorSize.tab,
       labelColor: Theme.of(context).colorScheme.primary,
       labelStyle: TextStyle(

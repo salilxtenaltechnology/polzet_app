@@ -5,6 +5,8 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:polzet_app/core/constants/feather_icons_compat.dart';
 import 'package:local_auth/local_auth.dart';
+import 'package:provider/provider.dart';
+import 'package:polzet_app/screens/home/settings/security/password/set_password.dart';
 
 import '../../../../api/api_service.dart';
 import '../../../../core/constants/app_colors.dart';
@@ -14,6 +16,7 @@ import '../../../../core/themes/app_text_styles.dart';
 import '../../../../gen/assets.gen.dart';
 import '../../../../languages/l10n/generated/app_localizations.dart';
 import '../../../../mixin/utility_mixins.dart';
+import '../../../../provider/user_provider.dart';
 import '../../../../widgets/appbar/common_appbar.dart';
 import '../../../../widgets/dialog/custom_diolog.dart';
 import '../../../../widgets/loader.dart';
@@ -61,6 +64,12 @@ class SecurityState extends State<Security> with UtilityMixin {
     super.initState();
     _loadSecuritySettings();
     _checkBiometricSupport();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        context.read<UserProvider>().loadUserDataSilently();
+      }
+    });
 
     _currentPasswordController.addListener(() {
       checkIfChangedPassword(
@@ -271,6 +280,9 @@ class SecurityState extends State<Security> with UtilityMixin {
 
   @override
   Widget build(BuildContext context) {
+    final userProvider = Provider.of<UserProvider>(context);
+    final bool hasLocalPassword = userProvider.has_local_password == true;
+
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.background,
       appBar: CommonAppBar(
@@ -286,7 +298,25 @@ class SecurityState extends State<Security> with UtilityMixin {
               children: [
                 _buildSecurityCard(),
                 SizedBox(height: 20.h),
-                _buildChangePasswordCard(),
+                if (hasLocalPassword)
+                  _buildPasswordCard(
+                    title: AppLocalizations.of(context)!.changepassword,
+                    subtitle: AppLocalizations.of(
+                      context,
+                    )!.updateyourpasswordandsecureyouraccount,
+                    onTap: () {
+                      navigationPush(context, const ChangePasswordScreen());
+                    },
+                  )
+                else
+                  _buildPasswordCard(
+                    title: 'Set password',
+                    subtitle:
+                        'Create a password to sign in with your email or username.',
+                    onTap: () {
+                      navigationPush(context, const SetPassword());
+                    },
+                  ),
                 _buildDeleteAccountCard(),
                 if (!_isBiometricAvailable) ...[
                   SizedBox(height: 20.h),
@@ -459,11 +489,15 @@ class SecurityState extends State<Security> with UtilityMixin {
     );
   }
 
-  Widget _buildChangePasswordCard() {
+  Widget _buildPasswordCard({
+    required String title,
+    required String subtitle,
+    required VoidCallback onTap,
+  }) {
     final txt = AppTextColors.of(context);
 
     return GestureDetector(
-      onTap: () => navigationPush(context, const ChangePasswordScreen()),
+      onTap: onTap,
       child: Container(
         decoration: BoxDecoration(
           color: Theme.of(context).colorScheme.primaryContainer,
@@ -501,7 +535,7 @@ class SecurityState extends State<Security> with UtilityMixin {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      AppLocalizations.of(context)!.changepassword,
+                      title,
                       style: AppTextStyles.bodyText.copyWith(
                         color: txt.title,
                         fontSize: 14.5,
@@ -510,9 +544,7 @@ class SecurityState extends State<Security> with UtilityMixin {
                     ),
                     SizedBox(height: 3.h),
                     Text(
-                      AppLocalizations.of(
-                        context,
-                      )!.updateyourpasswordandsecureyouraccount,
+                      subtitle,
                       style: AppTextStyles.subText.copyWith(
                         color: txt.muted,
                         fontSize: 12,

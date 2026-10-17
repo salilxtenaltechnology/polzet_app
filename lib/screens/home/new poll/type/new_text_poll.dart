@@ -29,8 +29,16 @@ import '../../../../core/themes/app_text_styles.dart';
 class NewTextPoll extends StatefulWidget {
   final String? initialQuestion;
   final String? initialDescription;
+  final List<String>? initialOptions;
+  final String? initialVotingType;
 
-  const NewTextPoll({super.key, this.initialQuestion, this.initialDescription});
+  const NewTextPoll({
+    super.key,
+    this.initialQuestion,
+    this.initialDescription,
+    this.initialOptions,
+    this.initialVotingType,
+  });
 
   @override
   State<NewTextPoll> createState() => _NewThingsPollState();
@@ -129,9 +137,25 @@ class _NewThingsPollState extends State<NewTextPoll> with UtilityMixin {
         widget.initialDescription!.trim().isNotEmpty) {
       descriptionController.text = widget.initialDescription!;
     }
+    if (widget.initialVotingType != null &&
+        widget.initialVotingType!.trim().isNotEmpty) {
+      final vt = widget.initialVotingType!.trim().toLowerCase();
+      _isMultiChoice = vt.contains('rank') || vt.contains('multi');
+    }
     _initializeOptionFields();
     questionController.addListener(_onQuestionChanged);
     _startHintAnimation();
+
+    final hasAutoFilled = (widget.initialQuestion != null &&
+            widget.initialQuestion!.trim().isNotEmpty) ||
+        (widget.initialOptions != null && widget.initialOptions!.isNotEmpty) ||
+        (widget.initialVotingType != null &&
+            widget.initialVotingType!.trim().isNotEmpty);
+    if (hasAutoFilled) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        showToast(message: 'Poll auto-filled! Review & publish');
+      });
+    }
   }
 
   void _startHintAnimation() {
@@ -146,8 +170,16 @@ class _NewThingsPollState extends State<NewTextPoll> with UtilityMixin {
 
   /// Initialize with minimum required option fields
   void _initializeOptionFields() {
-    for (int i = 0; i < minOptions; i++) {
-      final controller = TextEditingController();
+    final options = widget.initialOptions
+            ?.where((o) => o.trim().isNotEmpty)
+            .toList() ??
+        [];
+    final count = options.isNotEmpty
+        ? options.length.clamp(minOptions, maxOptions)
+        : minOptions;
+    for (int i = 0; i < count; i++) {
+      final text = i < options.length ? options[i] : '';
+      final controller = TextEditingController(text: text);
       controller.addListener(_onOptionChanged);
       optionControllers.add(controller);
     }

@@ -771,40 +771,71 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
               elevation: 2,
               padding: EdgeInsets.zero,
               onSelected: (String result) async {
-                if (profile == null) return;
-                if (result == 'Share Profile') {
-                  ShareService.shareProfile(
-                    username: profile.username,
-                    profileId: profile.id.toString(),
-                    context: context,
-                  );
-                } else if (result == 'Copy Profile Link') {
-                  final link = DeepLinkService.generateProfileLink(
-                    profile.username,
-                  );
-                  Clipboard.setData(ClipboardData(text: link)).then((_) {
-                    showToast(message: 'Link copied');
-                  });
-                } else if (result == 'Block User' ||
+                final localizations = AppLocalizations.of(context);
+                final shareProfileText = localizations?.shareprofile;
+                final copyProfileLinkText = localizations?.copyprofilelink;
+                final blockUserText = localizations?.blockuser;
+                final unblockUserText = localizations?.unblockuser;
+                final reportText = localizations?.report;
+
+                final targetUsername = (profile?.username.isNotEmpty == true)
+                    ? profile!.username
+                    : (widget.username ?? '');
+                final targetProfileId = (profile?.id.isNotEmpty == true)
+                    ? profile!.id
+                    : (resolvedUserId ?? widget.userId?.toString() ?? '');
+
+                final isShareAction = result == 'share_profile' ||
+                    result == 'Share Profile' ||
+                    result == 'Share profile' ||
+                    (shareProfileText != null && result == shareProfileText);
+
+                final isCopyLinkAction = result == 'copy_profile_link' ||
+                    result == 'Copy Profile Link' ||
+                    result == 'Copy profile link' ||
+                    (copyProfileLinkText != null && result == copyProfileLinkText);
+
+                final isBlockAction = result == 'block_user' ||
+                    result == 'unblock_user' ||
+                    result == 'Block User' ||
                     result == 'Unblock User' ||
-                    result ==
-                        (AppLocalizations.of(context)?.blockuser ??
-                            'Block User') ||
-                    result ==
-                        (AppLocalizations.of(context)?.unblockuser ??
-                            'Unblock User')) {
+                    (blockUserText != null && result == blockUserText) ||
+                    (unblockUserText != null && result == unblockUserText);
+
+                final isReportAction = result == 'report' ||
+                    result == 'Report' ||
+                    (reportText != null && result == reportText);
+
+                if (isShareAction) {
+                  if (targetUsername.isNotEmpty) {
+                    ShareService.shareProfile(
+                      username: targetUsername,
+                      profileId: targetProfileId,
+                      context: context,
+                    );
+                  }
+                } else if (isCopyLinkAction) {
+                  if (targetUsername.isNotEmpty) {
+                    final link = DeepLinkService.generateProfileLink(
+                      targetUsername,
+                    );
+                    Clipboard.setData(ClipboardData(text: link)).then((_) {
+                      showToast(message: 'Link copied');
+                    });
+                  }
+                } else if (isBlockAction) {
                   _showBlockUserConfirmationDialog(isUserBlock: isUserBlocked);
-                } else if (result == 'Report') {
+                } else if (isReportAction) {
                   final bool isUserReported = _getIsReported(profile);
                   if (isUserReported) {
                     showReportSubmittedBottomSheet(context);
                   } else {
                     final targetId =
                         resolvedUserId ??
-                        (profile.id.isNotEmpty
-                            ? profile.id
-                            : (profile.userId.isNotEmpty
-                                  ? profile.userId
+                        (profile?.id.isNotEmpty == true
+                            ? profile!.id
+                            : (profile?.userId.isNotEmpty == true
+                                  ? profile!.userId
                                   : widget.userId?.toString()));
                     final reportResult = await navigationPush(
                       context,
@@ -819,11 +850,14 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
                 }
               },
               itemBuilder: (BuildContext context) {
-                PopupMenuItem<String> buildItem(String text) {
+                PopupMenuItem<String> buildItem({
+                  required String value,
+                  required String text,
+                }) {
                   final txt = AppTextColors.of(context);
                   return PopupMenuItem<String>(
                     padding: const EdgeInsets.fromLTRB(10, 0, 10, 0),
-                    value: text,
+                    value: value,
                     height: 38,
                     child: Text(
                       text,
@@ -837,16 +871,24 @@ class _PublicProfileScreenBodyState extends State<_PublicProfileScreenBody>
                 }
 
                 return <PopupMenuEntry<String>>[
-                  buildItem('Share Profile'),
-                  buildItem('Copy Profile Link'),
                   buildItem(
-                    isUserBlocked
-                        ? (AppLocalizations.of(context)?.unblockuser ??
-                              'Unblock User')
-                        : (AppLocalizations.of(context)?.blockuser ??
-                              'Block User'),
+                    value: 'share_profile',
+                    text: AppLocalizations.of(context)!.shareprofile,
                   ),
-                  buildItem('Report'),
+                  buildItem(
+                    value: 'copy_profile_link',
+                    text: AppLocalizations.of(context)!.copyprofilelink,
+                  ),
+                  buildItem(
+                    value: isUserBlocked ? 'unblock_user' : 'block_user',
+                    text: isUserBlocked
+                        ? (AppLocalizations.of(context)!.unblockuser)
+                        : (AppLocalizations.of(context)!.blockuser),
+                  ),
+                  buildItem(
+                    value: 'report',
+                    text: AppLocalizations.of(context)!.report,
+                  ),
                 ];
               },
             ),

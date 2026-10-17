@@ -234,6 +234,90 @@ class _ProfileScreenState extends State<ProfileScreen>
     }
   }
 
+  // ─── 6-Hour Poll Timer Verification ─────────────────────────────
+  bool _isVerifiedPollType(UserPostModel post) {
+    if (post.polls.isEmpty) return false;
+    return post.polls.any((poll) {
+      final pType = (poll.pollType.isNotEmpty ? poll.pollType : poll.type)
+          .trim()
+          .toLowerCase();
+
+      // Check all poll types: Text, image, battle, this_ot_that, hot_take and anynoouse
+      final bool isText = pType == 'text' ||
+          (pType.isEmpty &&
+              poll.options.isNotEmpty &&
+              poll.options.every((o) => o.image == null));
+      final bool isImage = pType == 'image' ||
+          post.images.isNotEmpty ||
+          poll.options.any((o) => o.image != null);
+      final bool isBattle = pType == 'battle';
+      final bool isThisOrThat =
+          pType == 'this_or_that' || pType == 'this_ot_that';
+      final bool isHotTake = pType == 'hot_take';
+      final bool isAnonymous = pType == 'anonymous' ||
+          pType == 'anynoouse' ||
+          pType == 'anonymous_poll';
+
+      return isText ||
+          isImage ||
+          isBattle ||
+          isThisOrThat ||
+          isHotTake ||
+          isAnonymous;
+    });
+  }
+
+  void _verifyCreatedPollsAndManageTimer() {
+    final userProvider = Provider.of<UserProvider>(context, listen: false);
+    final username = userProvider.username;
+    if (username == null || username.isEmpty) return;
+
+    final things = _thingsPosts;
+    final images = _imagesPosts;
+
+    if (things == null && images == null) return;
+
+    final Set<String> seenIds = <String>{};
+    final List<UserPostModel> allPosts = [];
+
+    if (things != null) {
+      for (final p in things) {
+        if (seenIds.add(p.id)) {
+          allPosts.add(p);
+        }
+      }
+    }
+    if (images != null) {
+      for (final p in images) {
+        if (seenIds.add(p.id)) {
+          allPosts.add(p);
+        }
+      }
+    }
+
+    // Verify proper created polls across all required types:
+    // Text, image, battle, this_ot_that, hot_take, and anynoouse
+    DateTime? newestVerifiedPollTime;
+
+    for (final post in allPosts) {
+      if (_isVerifiedPollType(post)) {
+        if (newestVerifiedPollTime == null ||
+            post.createdAt.isAfter(newestVerifiedPollTime)) {
+          newestVerifiedPollTime = post.createdAt;
+        }
+      }
+    }
+
+    if (newestVerifiedPollTime != null) {
+      userProvider.updatePollHideTimerFromCreatedPoll(
+        pollCreatedAt: newestVerifiedPollTime,
+        userKey: username,
+      );
+    } else {
+      userProvider.checkOrClearExpiredTimer();
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -260,6 +344,7 @@ class _ProfileScreenState extends State<ProfileScreen>
       if (userProvider.cachedTotalPollsCountMap.containsKey(username)) {
         _totalPollsCount = userProvider.cachedTotalPollsCountMap[username];
       }
+      _verifyCreatedPollsAndManageTimer();
     }
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -357,6 +442,7 @@ class _ProfileScreenState extends State<ProfileScreen>
         userProvider.cachedThingsPostsMap[username] = _thingsPosts!;
         userProvider.cachedImagesPostsMap[username] = _imagesPosts!;
         userProvider.cachedTotalPollsCountMap[username] = response.count;
+        _verifyCreatedPollsAndManageTimer();
       }
     } catch (e) {
       debugPrint('Error fetching profile posts: $e');
@@ -434,6 +520,7 @@ class _ProfileScreenState extends State<ProfileScreen>
         userProvider.cachedThingsPostsMap[username] = _thingsPosts!;
         userProvider.cachedImagesPostsMap[username] = _imagesPosts!;
         userProvider.cachedTotalPollsCountMap[username] = response.count;
+        _verifyCreatedPollsAndManageTimer();
       }
     } catch (e) {
       debugPrint('Error fetching more profile posts: $e');
@@ -664,6 +751,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                 userProvider.cachedTotalPollsCountMap[username] =
                     _totalPollsCount!;
               }
+              _verifyCreatedPollsAndManageTimer();
             }
           });
         }

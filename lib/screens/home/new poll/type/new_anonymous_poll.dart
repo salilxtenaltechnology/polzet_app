@@ -32,10 +32,20 @@ import '../../../../widgets/dotted_border/dotted_border.dart';
 import '../../../../widgets/loader.dart';
 import '../../../../widgets/show_toast.dart';
 import '../../../../widgets/text_field/secondry_textfield.dart';
-import 'image_preview_crop_screen.dart';
 
 class NewAnonymousPoll extends StatefulWidget {
-  const NewAnonymousPoll({super.key});
+  final String? initialQuestion;
+  final String? initialDescription;
+  final List<String>? initialOptions;
+  final String? initialVotingType;
+
+  const NewAnonymousPoll({
+    super.key,
+    this.initialQuestion,
+    this.initialDescription,
+    this.initialOptions,
+    this.initialVotingType,
+  });
 
   @override
   State<NewAnonymousPoll> createState() => _NewAnonymousPollState();
@@ -125,10 +135,34 @@ class _NewAnonymousPollState extends State<NewAnonymousPoll> {
   @override
   void initState() {
     super.initState();
+    if (widget.initialQuestion != null &&
+        widget.initialQuestion!.trim().isNotEmpty) {
+      questionController.text = widget.initialQuestion!;
+    }
+    if (widget.initialDescription != null &&
+        widget.initialDescription!.trim().isNotEmpty) {
+      descriptionController.text = widget.initialDescription!;
+    }
+    if (widget.initialVotingType != null &&
+        widget.initialVotingType!.trim().isNotEmpty) {
+      final v = widget.initialVotingType!.trim().toLowerCase();
+      _isMultiChoice = v.contains('rank') || v.contains('multi');
+    }
     _loadSavedAiLimit();
     questionController.addListener(_onQuestionChanged);
     _initializeOptionFields();
     _startHintAnimation();
+
+    final hasAutoFilled = (widget.initialQuestion != null &&
+            widget.initialQuestion!.trim().isNotEmpty) ||
+        (widget.initialOptions != null && widget.initialOptions!.isNotEmpty) ||
+        (widget.initialVotingType != null &&
+            widget.initialVotingType!.trim().isNotEmpty);
+    if (hasAutoFilled) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        showToast(message: 'Poll auto-filled! Review & publish');
+      });
+    }
   }
 
   void _startHintAnimation() {
@@ -277,9 +311,17 @@ class _NewAnonymousPollState extends State<NewAnonymousPoll> {
   }
 
   void _initializeOptionFields() {
-    for (int i = 0; i < minOptions; i++) {
+    final options = widget.initialOptions
+            ?.where((o) => o.trim().isNotEmpty)
+            .toList() ??
+        [];
+    final count = options.isNotEmpty
+        ? options.length.clamp(minOptions, maxOptions)
+        : minOptions;
+    for (int i = 0; i < count; i++) {
       _images.add(null);
-      final controller = TextEditingController();
+      final text = i < options.length ? options[i] : '';
+      final controller = TextEditingController(text: text);
       controller.addListener(_onOptionChanged);
       optionControllers.add(controller);
       optionErrorTexts.add('');
@@ -331,33 +373,24 @@ class _NewAnonymousPollState extends State<NewAnonymousPoll> {
       );
 
       if (pickedFiles != null && pickedFiles.isNotEmpty && mounted) {
-        final List<File>? finalFiles = await Navigator.push<List<File>>(
-          context,
-          MaterialPageRoute(
-            builder: (_) => ImagePreviewCropScreen(initialImages: pickedFiles),
-          ),
-        );
-
-        if (finalFiles != null && finalFiles.isNotEmpty && mounted) {
-          setState(() {
-            int currentAssignIndex = index;
-            for (int k = 0; k < finalFiles.length; k++) {
-              while (currentAssignIndex >= optionControllers.length &&
-                  optionControllers.length < maxOptions) {
-                _images.add(null);
-                final newController = TextEditingController();
-                newController.addListener(_onOptionChanged);
-                optionControllers.add(newController);
-                optionErrorTexts.add('');
-              }
-              if (currentAssignIndex < optionControllers.length) {
-                _images[currentAssignIndex] = finalFiles[k];
-                currentAssignIndex++;
-              }
+        setState(() {
+          int currentAssignIndex = index;
+          for (int k = 0; k < pickedFiles.length; k++) {
+            while (currentAssignIndex >= optionControllers.length &&
+                optionControllers.length < maxOptions) {
+              _images.add(null);
+              final newController = TextEditingController();
+              newController.addListener(_onOptionChanged);
+              optionControllers.add(newController);
+              optionErrorTexts.add('');
             }
-            _clearOptionsError();
-          });
-        }
+            if (currentAssignIndex < optionControllers.length) {
+              _images[currentAssignIndex] = pickedFiles[k];
+              currentAssignIndex++;
+            }
+          }
+          _clearOptionsError();
+        });
       }
     } catch (e) {
       showToast(message: 'Error picking image: ${e.toString()}');
@@ -482,19 +515,10 @@ class _NewAnonymousPollState extends State<NewAnonymousPoll> {
       );
 
       if (pickedFiles != null && pickedFiles.isNotEmpty && mounted) {
-        final List<File>? finalFiles = await Navigator.push<List<File>>(
-          context,
-          MaterialPageRoute(
-            builder: (_) => ImagePreviewCropScreen(initialImages: pickedFiles),
-          ),
-        );
-
-        if (finalFiles != null && finalFiles.isNotEmpty && mounted) {
-          setState(() {
-            _images[index] = finalFiles[0];
-            _clearOptionsError();
-          });
-        }
+        setState(() {
+          _images[index] = pickedFiles[0];
+          _clearOptionsError();
+        });
       }
     } catch (e) {
       showToast(message: 'Error replacing image: ${e.toString()}');

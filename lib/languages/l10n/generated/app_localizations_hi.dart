@@ -407,7 +407,7 @@ class AppLocalizationsHi extends AppLocalizations {
   String get editprofile => 'प्रोफ़ाइल संपादित करें';
 
   @override
-  String get cropimage => 'छवि क्रॉप करें?';
+  String get cropimage => 'इमेज क्रॉप करें';
 
   @override
   String get wouldyouliketocroptheimage =>
@@ -577,7 +577,7 @@ class AppLocalizationsHi extends AppLocalizations {
   String get enternewpassword => 'नया पासवर्ड दर्ज करें';
 
   @override
-  String get confirmpassword => 'पासवर्ड की पुष्टि कीजिये';
+  String get confirmpassword => 'पासवर्ड की पुष्टि करें';
 
   @override
   String get enterconfirmpassword => 'पुष्टिकरण पासवर्ड दर्ज करें';
@@ -1854,7 +1854,7 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get tryanotherkeywordorexploretrendingpolls =>
-      'दूसरा कीवर्ड आज़माएं या ट्रेंडिंग पोल देखें।';
+      'कोई अन्य कीवर्ड आज़माएँ या लोकप्रिय पोल देखें';
 
   @override
   String get searching => 'खोजा जा रहा है...';
@@ -2661,4 +2661,211 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get postdetails => 'पोस्ट';
+
+  @override
+  String get curiouswhatpeoplethink =>
+      'जानना चाहते हैं कि लोग क्या सोचते हैं? 👀';
+
+  @override
+  String get askitgetrealopinionsfromthecrowd =>
+      'पूछें। लोगों से वास्तविक राय प्राप्त करें';
+
+  @override
+  String get whatsonyourmind => 'आपके मन में क्या है';
+
+  @override
+  String get createpoll => 'पोल बनाएं';
+
+  @override
+  String get thispinwillbeusedtosecureyouraccount =>
+      'इस PIN का उपयोग आपके अकाउंट को सुरक्षित रखने के लिए किया जाएगा';
+
+  @override
+  String get nochaseusers => 'कोई Chase उपयोगकर्ता नहीं';
+
+  @override
+  String get norechaseusers => 'कोई Re-Chase उपयोगकर्ता नहीं';
+
+  @override
+  String get youveblockedthisuser => 'आपने इस उपयोगकर्ता को ब्लॉक कर दिया है';
+
+  @override
+  String get unblockusertoviewtheirpollsorinteractwiththem =>
+      'उनके पोल देखने या उनके साथ इंटरैक्ट करने के लिए उपयोगकर्ता को अनब्लॉक करें। वे आपकी प्रोफ़ाइल और सामग्री नहीं देख पाएंगे।';
+
+  @override
+  String get letssetupyourprofile => 'आइए आपकी प्रोफ़ाइल सेट करें';
+
+  @override
+  String get addaphotoandyournamesopeoplecanrecognizeyou =>
+      'एक फ़ोटो और अपना नाम जोड़ें ताकि लोग आपको पहचान सकें';
+
+  @override
+  String get uploading => 'अपलोड हो रहा है...';
+
+  @override
+  String get skipfornow => 'अभी छोड़ें';
+
+  @override
+  String get step => 'चरण';
+
+  @override
+  String get followpeopleyoulike => 'अपनी पसंद के लोगों को फ़ॉलो करें';
+
+  @override
+  String get chooseafewtopersonalizeyourfeed =>
+      'अपनी फ़ीड को पर्सनलाइज़ करने के लिए कुछ चुनें';
+
+  @override
+  String get suggested => 'सुझाया गया';
+
+  @override
+  String get popular => 'लोकप्रिय';
+
+  @override
+  String get whatcatchesyourattention => 'आपका ध्यान किस चीज़ पर जाता है?';
+
+  @override
+  String get selectatleastthreetopicsyouareinterestedin =>
+      'कम से कम 3 ऐसे विषय चुनें जिनमें आपकी रुचि है';
+
+  @override
+  String get forgotpassword => 'पासवर्ड भूल गए?';
+
+  @override
+  String get enteryouremailormobilenumbertoreceiveaverificationcode =>
+      'वेरिफिकेशन कोड प्राप्त करने के लिए अपना ईमेल या मोबाइल नंबर दर्ज करें';
+
+  @override
+  String get mobile => 'मोबाइल';
+
+  @override
+  String get pleaseenteryouremail => 'कृपया अपना ईमेल दर्ज करें';
+
+  @override
+  String get pleaseenteryourphonenumber => 'कृपया अपना फ़ोन नंबर दर्ज करें';
+
+  @override
+  String get pleaseenterthecompletesixdigitcode =>
+      'कृपया पूरा 6 अंकों का कोड दर्ज करें';
+
+  @override
+  String get enterthesixdigitcodesentto =>
+      'इस नंबर पर भेजा गया 6 अंकों का कोड दर्ज करें';
+
+  @override
+  String get invalidotp => 'अमान्य OTP';
+
+  @override
+  String get verificationcodehasexpiredpleaserequestanewone =>
+      'वेरिफिकेशन कोड की समय सीमा समाप्त हो गई है। कृपया नया कोड अनुरोध करें।';
+
+  @override
+  String get invalidphonenumber => 'अमान्य फ़ोन नंबर';
+
+  @override
+  String get toomanyattemptspleasetryagainlater =>
+      'बहुत अधिक प्रयास किए गए। कृपया बाद में फिर कोशिश करें';
+
+  @override
+  String get verifyyournumber => 'अपना नंबर सत्यापित करें';
+
+  @override
+  String get verifyyouremail => 'अपना ईमेल सत्यापित करें';
+
+  @override
+  String get verifycode => 'कोड सत्यापित करें';
+
+  @override
+  String get otpwillexpirein => 'OTP समाप्त होने में';
+
+  @override
+  String get resendcodein => 'कोड दोबारा भेजें';
+
+  @override
+  String get didnotreceivecode => 'कोड प्राप्त नहीं हुआ?';
+
+  @override
+  String get resendotp => 'OTP दोबारा भेजें';
+
+  @override
+  String get createnewpassword => 'नया पासवर्ड बनाएं';
+
+  @override
+  String get confirmyourpassword => 'अपने पासवर्ड की पुष्टि करें';
+
+  @override
+  String get resetpassword => 'पासवर्ड रीसेट करें';
+
+  @override
+  String get weakpassword => 'कमज़ोर पासवर्ड';
+
+  @override
+  String get goodpassword => 'अच्छा पासवर्ड';
+
+  @override
+  String get strongpassword => 'मज़बूत पासवर्ड';
+
+  @override
+  String get eighttencharacters => '8 - 10 अक्षर';
+
+  @override
+  String get atleastoneuppercaseletter => 'कम से कम 1 बड़ा अक्षर';
+
+  @override
+  String get atleastonelowercaseletter => 'कम से कम 1 छोटा अक्षर';
+
+  @override
+  String get atleastonenumber => 'कम से कम 1 संख्या';
+
+  @override
+  String get atleastonespecialcharacter => 'कम से कम 1 विशेष वर्ण';
+
+  @override
+  String get editimage => 'इमेज संपादित करें';
+
+  @override
+  String get replaceimage => 'इमेज बदलें';
+
+  @override
+  String get remove => 'हटाएँ';
+
+  @override
+  String get ideasroryou => 'आपके लिए सुझाव';
+
+  @override
+  String get pollideas => 'पोल के सुझाव';
+
+  @override
+  String get foryou => 'आपके लिए';
+
+  @override
+  String get dailylife => 'दैनिक जीवन';
+
+  @override
+  String get food => 'खाना';
+
+  @override
+  String get travel => 'यात्रा';
+
+  @override
+  String get tech => 'तकनीक';
+
+  @override
+  String get entertainment => 'मनोरंजन';
+
+  @override
+  String get searchpolltopics => 'पोल के विषय खोजें';
+
+  @override
+  String get recents => 'हाल के';
+
+  @override
+  String get rorecentsearches => 'हाल की कोई खोज नहीं';
+
+  @override
+  String get notopicsfoundfor => 'इसके लिए कोई विषय नहीं मिला';
+
+  @override
+  String get withselectedfilters => 'चयनित फ़िल्टर के साथ';
 }

@@ -68,6 +68,7 @@ class SharedPrefService {
     await prefs.remove(_accessKey);
     await prefs.remove(_refreshKey);
     await prefs.remove(_languageCode);
+    await clearAllPollHideTimers();
   }
 
   static Future<void> saveFcmToken(String token) async {
@@ -290,5 +291,61 @@ class SharedPrefService {
   static Future<void> setVipWaitlistJoined([bool joined = true]) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_vipWaitlistJoinedKey, joined);
+  }
+
+  //*----- Poll Hide Timer (6 hours) -----*/
+  static const String _pollHideUntilPrefix = 'poll_hide_until_';
+  static const String _pollHideSessionPrefix = 'poll_hide_session_timestamp_';
+
+  static Future<void> savePollHideUntil(String userKey, DateTime hideUntil) async {
+    final cleanKey = userKey.trim();
+    if (cleanKey.isEmpty) return;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('$_pollHideUntilPrefix$cleanKey', hideUntil.toIso8601String());
+  }
+
+  static Future<DateTime?> getPollHideUntil(String? userKey) async {
+    final cleanKey = userKey?.trim();
+    if (cleanKey == null || cleanKey.isEmpty) return null;
+    final prefs = await SharedPreferences.getInstance();
+    final val = prefs.getString('$_pollHideUntilPrefix$cleanKey');
+    if (val == null || val.isEmpty) return null;
+    return DateTime.tryParse(val)?.toLocal();
+  }
+
+  static Future<void> saveSessionLoginTime(String userKey, DateTime sessionTime) async {
+    final cleanKey = userKey.trim();
+    if (cleanKey.isEmpty) return;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('$_pollHideSessionPrefix$cleanKey', sessionTime.toIso8601String());
+  }
+
+  static Future<DateTime?> getSessionLoginTime(String? userKey) async {
+    final cleanKey = userKey?.trim();
+    if (cleanKey == null || cleanKey.isEmpty) return null;
+    final prefs = await SharedPreferences.getInstance();
+    final val = prefs.getString('$_pollHideSessionPrefix$cleanKey');
+    if (val == null || val.isEmpty) return null;
+    return DateTime.tryParse(val)?.toLocal();
+  }
+
+  static Future<void> clearPollHideTimer([String? userKey]) async {
+    final prefs = await SharedPreferences.getInstance();
+    final cleanKey = userKey?.trim();
+    if (cleanKey != null && cleanKey.isNotEmpty) {
+      await prefs.remove('$_pollHideUntilPrefix$cleanKey');
+      await prefs.remove('$_pollHideSessionPrefix$cleanKey');
+    }
+  }
+
+  static Future<void> clearAllPollHideTimers() async {
+    final prefs = await SharedPreferences.getInstance();
+    final keys = prefs.getKeys().where((k) =>
+        k.startsWith(_pollHideUntilPrefix) ||
+        k.startsWith(_pollHideSessionPrefix) ||
+        k.startsWith('poll_hide_session_timestamp')).toList();
+    for (final k in keys) {
+      await prefs.remove(k);
+    }
   }
 }

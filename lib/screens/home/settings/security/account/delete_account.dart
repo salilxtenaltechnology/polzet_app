@@ -80,7 +80,6 @@ class _DeleteAccountScreenState extends State<DeleteAccountScreen>
     });
 
     try {
-      final userProvider = context.read<UserProvider>();
       final apiService = ApiService();
       final result = await apiService.deleteAccount(password);
 
@@ -100,7 +99,7 @@ class _DeleteAccountScreenState extends State<DeleteAccountScreen>
         }
 
         showToast(
-          message: 'Account ${userProvider.username} deleted permanently',
+          message: 'Account deleted permanently',
         );
         if (mounted) {
           clearStackAndAddScreen(context, const SocialLoginScreen());

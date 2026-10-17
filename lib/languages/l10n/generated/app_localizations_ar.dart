@@ -405,7 +405,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get editprofile => 'تعديل الملف الشخصي';
 
   @override
-  String get cropimage => 'قص الصورة؟';
+  String get cropimage => 'اقتصاص الصورة';
 
   @override
   String get wouldyouliketocroptheimage => 'هل تريد قص الصورة؟';
@@ -1838,7 +1838,7 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get tryanotherkeywordorexploretrendingpolls =>
-      'جرّب كلمة مفتاحية أخرى أو استكشف الاستطلاعات الرائجة.';
+      'جرّب كلمة مفتاحية أخرى أو استكشف استطلاعات الرأي الرائجة';
 
   @override
   String get searching => 'جارٍ البحث...';
@@ -2641,4 +2641,211 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get postdetails => 'المنشور';
+
+  @override
+  String get curiouswhatpeoplethink =>
+      'هل تشعر بالفضول لمعرفة ما يعتقده الناس؟ 👀';
+
+  @override
+  String get askitgetrealopinionsfromthecrowd =>
+      'اسأل. واحصل على آراء حقيقية من الناس';
+
+  @override
+  String get whatsonyourmind => 'ما الذي يدور في ذهنك';
+
+  @override
+  String get createpoll => 'إنشاء استطلاع';
+
+  @override
+  String get thispinwillbeusedtosecureyouraccount =>
+      'سيتم استخدام رمز PIN هذا لتأمين حسابك';
+
+  @override
+  String get nochaseusers => 'لا يوجد مستخدمون للمطاردة';
+
+  @override
+  String get norechaseusers => 'لا يوجد مستخدمون لإعادة المطاردة';
+
+  @override
+  String get youveblockedthisuser => 'لقد حظرت هذا المستخدم';
+
+  @override
+  String get unblockusertoviewtheirpollsorinteractwiththem =>
+      'ألغِ حظر المستخدم لعرض استطلاعاته أو التفاعل معه. لن يتمكن من رؤية ملفك الشخصي ومحتواك.';
+
+  @override
+  String get letssetupyourprofile => 'لنقم بإعداد ملفك الشخصي';
+
+  @override
+  String get addaphotoandyournamesopeoplecanrecognizeyou =>
+      'أضف صورة واسمك حتى يتمكن الناس من التعرف عليك';
+
+  @override
+  String get uploading => 'جارٍ الرفع...';
+
+  @override
+  String get skipfornow => 'تخطي الآن';
+
+  @override
+  String get step => 'الخطوة';
+
+  @override
+  String get followpeopleyoulike => 'تابع الأشخاص الذين تحبهم';
+
+  @override
+  String get chooseafewtopersonalizeyourfeed =>
+      'اختر بعض الأشخاص لتخصيص خلاصتك';
+
+  @override
+  String get suggested => 'مقترح';
+
+  @override
+  String get popular => 'شائع';
+
+  @override
+  String get whatcatchesyourattention => 'ما الذي يلفت انتباهك؟';
+
+  @override
+  String get selectatleastthreetopicsyouareinterestedin =>
+      'اختر 3 مواضيع على الأقل تهمك';
+
+  @override
+  String get forgotpassword => 'نسيت كلمة المرور';
+
+  @override
+  String get enteryouremailormobilenumbertoreceiveaverificationcode =>
+      'أدخل بريدك الإلكتروني أو رقم هاتفك المحمول لتلقي رمز التحقق';
+
+  @override
+  String get mobile => 'الهاتف المحمول';
+
+  @override
+  String get pleaseenteryouremail => 'يرجى إدخال بريدك الإلكتروني';
+
+  @override
+  String get pleaseenteryourphonenumber => 'يرجى إدخال رقم هاتفك';
+
+  @override
+  String get pleaseenterthecompletesixdigitcode =>
+      'يرجى إدخال الرمز المكون من 6 أرقام بالكامل';
+
+  @override
+  String get enterthesixdigitcodesentto =>
+      'أدخل رمز التحقق المكون من 6 أرقام المرسل إلى';
+
+  @override
+  String get invalidotp => 'رمز التحقق غير صالح';
+
+  @override
+  String get verificationcodehasexpiredpleaserequestanewone =>
+      'انتهت صلاحية رمز التحقق. يرجى طلب رمز جديد.';
+
+  @override
+  String get invalidphonenumber => 'رقم الهاتف غير صالح';
+
+  @override
+  String get toomanyattemptspleasetryagainlater =>
+      'محاولات كثيرة جدًا. يرجى المحاولة مرة أخرى لاحقًا';
+
+  @override
+  String get verifyyournumber => 'تحقق من رقمك';
+
+  @override
+  String get verifyyouremail => 'تحقق من بريدك الإلكتروني';
+
+  @override
+  String get verifycode => 'تحقق من الرمز';
+
+  @override
+  String get otpwillexpirein => 'ستنتهي صلاحية رمز التحقق خلال';
+
+  @override
+  String get resendcodein => 'إعادة إرسال الرمز خلال';
+
+  @override
+  String get didnotreceivecode => 'لم تستلم الرمز؟';
+
+  @override
+  String get resendotp => 'إعادة إرسال رمز التحقق';
+
+  @override
+  String get createnewpassword => 'إنشاء كلمة مرور جديدة';
+
+  @override
+  String get confirmyourpassword => 'أكد كلمة المرور الخاصة بك';
+
+  @override
+  String get resetpassword => 'إعادة تعيين كلمة المرور';
+
+  @override
+  String get weakpassword => 'كلمة مرور ضعيفة';
+
+  @override
+  String get goodpassword => 'كلمة مرور جيدة';
+
+  @override
+  String get strongpassword => 'كلمة مرور قوية';
+
+  @override
+  String get eighttencharacters => 'من 8 إلى 10 أحرف';
+
+  @override
+  String get atleastoneuppercaseletter => 'حرف كبير واحد على الأقل';
+
+  @override
+  String get atleastonelowercaseletter => 'حرف صغير واحد على الأقل';
+
+  @override
+  String get atleastonenumber => 'رقم واحد على الأقل';
+
+  @override
+  String get atleastonespecialcharacter => 'رمز خاص واحد على الأقل';
+
+  @override
+  String get editimage => 'تعديل الصورة';
+
+  @override
+  String get replaceimage => 'استبدال الصورة';
+
+  @override
+  String get remove => 'إزالة';
+
+  @override
+  String get ideasroryou => 'أفكار لك';
+
+  @override
+  String get pollideas => 'أفكار استطلاعات الرأي';
+
+  @override
+  String get foryou => 'لك';
+
+  @override
+  String get dailylife => 'الحياة اليومية';
+
+  @override
+  String get food => 'الطعام';
+
+  @override
+  String get travel => 'السفر';
+
+  @override
+  String get tech => 'التكنولوجيا';
+
+  @override
+  String get entertainment => 'الترفيه';
+
+  @override
+  String get searchpolltopics => 'البحث عن مواضيع استطلاعات الرأي';
+
+  @override
+  String get recents => 'الأخيرة';
+
+  @override
+  String get rorecentsearches => 'لا توجد عمليات بحث حديثة';
+
+  @override
+  String get notopicsfoundfor => 'لم يتم العثور على مواضيع لـ';
+
+  @override
+  String get withselectedfilters => 'باستخدام عوامل التصفية المحددة';
 }

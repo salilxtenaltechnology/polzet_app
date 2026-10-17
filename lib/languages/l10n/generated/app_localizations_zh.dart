@@ -395,7 +395,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get editprofile => '编辑个人资料';
 
   @override
-  String get cropimage => '裁剪图片？';
+  String get cropimage => '裁剪图片';
 
   @override
   String get wouldyouliketocroptheimage => '您想裁剪这张图片吗？';
@@ -557,7 +557,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get newpassword => '新密码';
 
   @override
-  String get enternewpassword => '请输入新密码';
+  String get enternewpassword => '输入新密码';
 
   @override
   String get confirmpassword => '确认密码';
@@ -1746,7 +1746,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get norecentsearches => '没有最近的搜索记录';
 
   @override
-  String get tryanotherkeywordorexploretrendingpolls => '尝试其他关键词或探索热门投票。';
+  String get tryanotherkeywordorexploretrendingpolls => '尝试其他关键词或浏览热门投票';
 
   @override
   String get searching => '正在搜索...';
@@ -2512,4 +2512,202 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get postdetails => '帖子';
+
+  @override
+  String get curiouswhatpeoplethink => '好奇大家怎么想？👀';
+
+  @override
+  String get askitgetrealopinionsfromthecrowd => '问出来，获取大家真实的意见';
+
+  @override
+  String get whatsonyourmind => '你在想什么';
+
+  @override
+  String get createpoll => '创建投票';
+
+  @override
+  String get thispinwillbeusedtosecureyouraccount => '此 PIN 将用于保护您的账号';
+
+  @override
+  String get nochaseusers => '没有 Chase 用户';
+
+  @override
+  String get norechaseusers => '没有 Re-Chase 用户';
+
+  @override
+  String get youveblockedthisuser => '您已屏蔽此用户';
+
+  @override
+  String get unblockusertoviewtheirpollsorinteractwiththem =>
+      '解除对该用户的屏蔽，即可查看其投票或与其互动。对方将无法查看您的个人资料和内容。';
+
+  @override
+  String get letssetupyourprofile => '让我们设置您的个人资料';
+
+  @override
+  String get addaphotoandyournamesopeoplecanrecognizeyou => '添加照片和姓名，让大家能够认出您';
+
+  @override
+  String get uploading => '正在上传...';
+
+  @override
+  String get skipfornow => '暂时跳过';
+
+  @override
+  String get step => '步骤';
+
+  @override
+  String get followpeopleyoulike => '关注您喜欢的人';
+
+  @override
+  String get chooseafewtopersonalizeyourfeed => '选择一些人来个性化您的信息流';
+
+  @override
+  String get suggested => '推荐';
+
+  @override
+  String get popular => '热门';
+
+  @override
+  String get whatcatchesyourattention => '什么吸引了你的注意力？';
+
+  @override
+  String get selectatleastthreetopicsyouareinterestedin => '至少选择 3 个你感兴趣的话题';
+
+  @override
+  String get forgotpassword => '忘记密码';
+
+  @override
+  String get enteryouremailormobilenumbertoreceiveaverificationcode =>
+      '输入您的邮箱或手机号码以接收验证码';
+
+  @override
+  String get mobile => '手机';
+
+  @override
+  String get pleaseenteryouremail => '请输入您的邮箱';
+
+  @override
+  String get pleaseenteryourphonenumber => '请输入您的电话号码';
+
+  @override
+  String get pleaseenterthecompletesixdigitcode => '请输入完整的 6 位验证码';
+
+  @override
+  String get enterthesixdigitcodesentto => '请输入发送至以下号码的 6 位验证码';
+
+  @override
+  String get invalidotp => 'OTP 无效';
+
+  @override
+  String get verificationcodehasexpiredpleaserequestanewone =>
+      '验证码已过期。请重新请求验证码。';
+
+  @override
+  String get invalidphonenumber => '电话号码无效';
+
+  @override
+  String get toomanyattemptspleasetryagainlater => '尝试次数过多。请稍后再试';
+
+  @override
+  String get verifyyournumber => '验证您的号码';
+
+  @override
+  String get verifyyouremail => '验证您的邮箱';
+
+  @override
+  String get verifycode => '验证代码';
+
+  @override
+  String get otpwillexpirein => 'OTP 将在以下时间后过期';
+
+  @override
+  String get resendcodein => '重新发送验证码倒计时';
+
+  @override
+  String get didnotreceivecode => '没有收到验证码？';
+
+  @override
+  String get resendotp => '重新发送 OTP';
+
+  @override
+  String get createnewpassword => '创建新密码';
+
+  @override
+  String get confirmyourpassword => '确认您的密码';
+
+  @override
+  String get resetpassword => '重置密码';
+
+  @override
+  String get weakpassword => '密码强度弱';
+
+  @override
+  String get goodpassword => '密码强度良好';
+
+  @override
+  String get strongpassword => '密码强度强';
+
+  @override
+  String get eighttencharacters => '8 - 10 个字符';
+
+  @override
+  String get atleastoneuppercaseletter => '至少 1 个大写字母';
+
+  @override
+  String get atleastonelowercaseletter => '至少 1 个小写字母';
+
+  @override
+  String get atleastonenumber => '至少 1 个数字';
+
+  @override
+  String get atleastonespecialcharacter => '至少 1 个特殊字符';
+
+  @override
+  String get editimage => '编辑图片';
+
+  @override
+  String get replaceimage => '替换图片';
+
+  @override
+  String get remove => '移除';
+
+  @override
+  String get ideasroryou => '为你推荐的创意';
+
+  @override
+  String get pollideas => '投票创意';
+
+  @override
+  String get foryou => '为你推荐';
+
+  @override
+  String get dailylife => '日常生活';
+
+  @override
+  String get food => '美食';
+
+  @override
+  String get travel => '旅行';
+
+  @override
+  String get tech => '科技';
+
+  @override
+  String get entertainment => '娱乐';
+
+  @override
+  String get searchpolltopics => '搜索投票主题';
+
+  @override
+  String get recents => '最近';
+
+  @override
+  String get rorecentsearches => '没有最近的搜索记录';
+
+  @override
+  String get notopicsfoundfor => '未找到相关主题：';
+
+  @override
+  String get withselectedfilters => '使用所选筛选条件';
 }

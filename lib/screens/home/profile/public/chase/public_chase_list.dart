@@ -380,24 +380,30 @@ class _PublicChaseListState extends State<PublicChaseList>
       return RefreshIndicator(
         onRefresh: onRefresh,
         color: Theme.of(context).colorScheme.primary,
-        child: ListView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          children: [
-            SizedBox(height: 150.h),
-            Center(
-              child: Text(
-                _searchController.text.trim().isNotEmpty
-                    ? AppLocalizations.of(context)!.nousersfound
-                    : emptyMessage,
-                style: AppTextStyles.sectionHeading.copyWith(
-                  fontSize: 18.5,
-                  color: txt.title,
-                  fontWeight: FontWeight.w600,
-                  height: 1.4,
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            return ListView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              children: [
+                SizedBox(
+                  height: constraints.maxHeight,
+                  child: Center(
+                    child: Text(
+                      _searchController.text.trim().isNotEmpty
+                          ? AppLocalizations.of(context)!.nousersfound
+                          : emptyMessage,
+                      style: AppTextStyles.sectionHeading.copyWith(
+                        fontSize: 17,
+                        color: txt.title,
+                        fontWeight: FontWeight.w600,
+                        height: 1.4,
+                      ),
+                    ),
+                  ),
                 ),
-              ),
-            ),
-          ],
+              ],
+            );
+          },
         ),
       );
     }

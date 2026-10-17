@@ -893,7 +893,7 @@ abstract class AppLocalizations {
   /// No description provided for @cropimage.
   ///
   /// In en, this message translates to:
-  /// **'Crop Image?'**
+  /// **'Crop image'**
   String get cropimage;
 
   /// No description provided for @wouldyouliketocroptheimage.
@@ -3467,7 +3467,7 @@ abstract class AppLocalizations {
   /// No description provided for @tryanotherkeywordorexploretrendingpolls.
   ///
   /// In en, this message translates to:
-  /// **'Try another keyword or explore trending polls.'**
+  /// **'Try another keyword or explore trending polls'**
   String get tryanotherkeywordorexploretrendingpolls;
 
   /// No description provided for @searching.
@@ -4964,6 +4964,396 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Post'**
   String get postdetails;
+
+  /// No description provided for @curiouswhatpeoplethink.
+  ///
+  /// In en, this message translates to:
+  /// **'Curious what people think? 👀'**
+  String get curiouswhatpeoplethink;
+
+  /// No description provided for @askitgetrealopinionsfromthecrowd.
+  ///
+  /// In en, this message translates to:
+  /// **'Ask it. Get real opinions from the crowd'**
+  String get askitgetrealopinionsfromthecrowd;
+
+  /// No description provided for @whatsonyourmind.
+  ///
+  /// In en, this message translates to:
+  /// **'what’s on your mind'**
+  String get whatsonyourmind;
+
+  /// No description provided for @createpoll.
+  ///
+  /// In en, this message translates to:
+  /// **'Create Poll'**
+  String get createpoll;
+
+  /// No description provided for @thispinwillbeusedtosecureyouraccount.
+  ///
+  /// In en, this message translates to:
+  /// **'This PIN will be used to secure your account'**
+  String get thispinwillbeusedtosecureyouraccount;
+
+  /// No description provided for @nochaseusers.
+  ///
+  /// In en, this message translates to:
+  /// **'No chase users'**
+  String get nochaseusers;
+
+  /// No description provided for @norechaseusers.
+  ///
+  /// In en, this message translates to:
+  /// **'No re-chase users'**
+  String get norechaseusers;
+
+  /// No description provided for @youveblockedthisuser.
+  ///
+  /// In en, this message translates to:
+  /// **'You’ve blocked this user'**
+  String get youveblockedthisuser;
+
+  /// No description provided for @unblockusertoviewtheirpollsorinteractwiththem.
+  ///
+  /// In en, this message translates to:
+  /// **'Unblock user to view their polls or interact with them. They won’t be able to see your profile and content.'**
+  String get unblockusertoviewtheirpollsorinteractwiththem;
+
+  /// No description provided for @letssetupyourprofile.
+  ///
+  /// In en, this message translates to:
+  /// **'Let\'s set up your profile'**
+  String get letssetupyourprofile;
+
+  /// No description provided for @addaphotoandyournamesopeoplecanrecognizeyou.
+  ///
+  /// In en, this message translates to:
+  /// **'Add a photo and your name so people can recognize you'**
+  String get addaphotoandyournamesopeoplecanrecognizeyou;
+
+  /// No description provided for @uploading.
+  ///
+  /// In en, this message translates to:
+  /// **'Uploading...'**
+  String get uploading;
+
+  /// No description provided for @skipfornow.
+  ///
+  /// In en, this message translates to:
+  /// **'Skip for now'**
+  String get skipfornow;
+
+  /// No description provided for @step.
+  ///
+  /// In en, this message translates to:
+  /// **'Step'**
+  String get step;
+
+  /// No description provided for @followpeopleyoulike.
+  ///
+  /// In en, this message translates to:
+  /// **'Follow people you like'**
+  String get followpeopleyoulike;
+
+  /// No description provided for @chooseafewtopersonalizeyourfeed.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a few to personalize your feed'**
+  String get chooseafewtopersonalizeyourfeed;
+
+  /// No description provided for @suggested.
+  ///
+  /// In en, this message translates to:
+  /// **'Suggested'**
+  String get suggested;
+
+  /// No description provided for @popular.
+  ///
+  /// In en, this message translates to:
+  /// **'Popular'**
+  String get popular;
+
+  /// No description provided for @whatcatchesyourattention.
+  ///
+  /// In en, this message translates to:
+  /// **'What catches your attention?'**
+  String get whatcatchesyourattention;
+
+  /// No description provided for @selectatleastthreetopicsyouareinterestedin.
+  ///
+  /// In en, this message translates to:
+  /// **'Select at least 3 topics you are interested in'**
+  String get selectatleastthreetopicsyouareinterestedin;
+
+  /// No description provided for @forgotpassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Forgot password'**
+  String get forgotpassword;
+
+  /// No description provided for @enteryouremailormobilenumbertoreceiveaverificationcode.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter your email or mobile number to receive a verification code'**
+  String get enteryouremailormobilenumbertoreceiveaverificationcode;
+
+  /// No description provided for @mobile.
+  ///
+  /// In en, this message translates to:
+  /// **'Mobile'**
+  String get mobile;
+
+  /// No description provided for @pleaseenteryouremail.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter your email'**
+  String get pleaseenteryouremail;
+
+  /// No description provided for @pleaseenteryourphonenumber.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter your phone number'**
+  String get pleaseenteryourphonenumber;
+
+  /// No description provided for @pleaseenterthecompletesixdigitcode.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter the complete 6-digit code'**
+  String get pleaseenterthecompletesixdigitcode;
+
+  /// No description provided for @enterthesixdigitcodesentto.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter the 6-digit code sent to'**
+  String get enterthesixdigitcodesentto;
+
+  /// No description provided for @invalidotp.
+  ///
+  /// In en, this message translates to:
+  /// **'Invalid OTP'**
+  String get invalidotp;
+
+  /// No description provided for @verificationcodehasexpiredpleaserequestanewone.
+  ///
+  /// In en, this message translates to:
+  /// **'Verification code has expired. Please request a new one.'**
+  String get verificationcodehasexpiredpleaserequestanewone;
+
+  /// No description provided for @invalidphonenumber.
+  ///
+  /// In en, this message translates to:
+  /// **'Invalid phone number'**
+  String get invalidphonenumber;
+
+  /// No description provided for @toomanyattemptspleasetryagainlater.
+  ///
+  /// In en, this message translates to:
+  /// **'Too many attempts. Please try again later'**
+  String get toomanyattemptspleasetryagainlater;
+
+  /// No description provided for @verifyyournumber.
+  ///
+  /// In en, this message translates to:
+  /// **'Verify your number'**
+  String get verifyyournumber;
+
+  /// No description provided for @verifyyouremail.
+  ///
+  /// In en, this message translates to:
+  /// **'Verify your email'**
+  String get verifyyouremail;
+
+  /// No description provided for @verifycode.
+  ///
+  /// In en, this message translates to:
+  /// **'Verify Code'**
+  String get verifycode;
+
+  /// No description provided for @otpwillexpirein.
+  ///
+  /// In en, this message translates to:
+  /// **'OTP will expire in'**
+  String get otpwillexpirein;
+
+  /// No description provided for @resendcodein.
+  ///
+  /// In en, this message translates to:
+  /// **'Resend code in'**
+  String get resendcodein;
+
+  /// No description provided for @didnotreceivecode.
+  ///
+  /// In en, this message translates to:
+  /// **'Didn\'t receive code?'**
+  String get didnotreceivecode;
+
+  /// No description provided for @resendotp.
+  ///
+  /// In en, this message translates to:
+  /// **'Resend OTP'**
+  String get resendotp;
+
+  /// No description provided for @createnewpassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Create new password'**
+  String get createnewpassword;
+
+  /// No description provided for @confirmyourpassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm your password'**
+  String get confirmyourpassword;
+
+  /// No description provided for @resetpassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset password'**
+  String get resetpassword;
+
+  /// No description provided for @weakpassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Weak password'**
+  String get weakpassword;
+
+  /// No description provided for @goodpassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Good password'**
+  String get goodpassword;
+
+  /// No description provided for @strongpassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Strong password'**
+  String get strongpassword;
+
+  /// No description provided for @eighttencharacters.
+  ///
+  /// In en, this message translates to:
+  /// **'8 - 10 characters'**
+  String get eighttencharacters;
+
+  /// No description provided for @atleastoneuppercaseletter.
+  ///
+  /// In en, this message translates to:
+  /// **'At least 1 uppercase letter'**
+  String get atleastoneuppercaseletter;
+
+  /// No description provided for @atleastonelowercaseletter.
+  ///
+  /// In en, this message translates to:
+  /// **'At least 1 lowercase letter'**
+  String get atleastonelowercaseletter;
+
+  /// No description provided for @atleastonenumber.
+  ///
+  /// In en, this message translates to:
+  /// **'At least 1 number'**
+  String get atleastonenumber;
+
+  /// No description provided for @atleastonespecialcharacter.
+  ///
+  /// In en, this message translates to:
+  /// **'At least 1 special character'**
+  String get atleastonespecialcharacter;
+
+  /// No description provided for @editimage.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit Image'**
+  String get editimage;
+
+  /// No description provided for @replaceimage.
+  ///
+  /// In en, this message translates to:
+  /// **'Replace image'**
+  String get replaceimage;
+
+  /// No description provided for @remove.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove'**
+  String get remove;
+
+  /// No description provided for @ideasroryou.
+  ///
+  /// In en, this message translates to:
+  /// **'Ideas For You'**
+  String get ideasroryou;
+
+  /// No description provided for @pollideas.
+  ///
+  /// In en, this message translates to:
+  /// **'Poll ideas'**
+  String get pollideas;
+
+  /// No description provided for @foryou.
+  ///
+  /// In en, this message translates to:
+  /// **'For you'**
+  String get foryou;
+
+  /// No description provided for @dailylife.
+  ///
+  /// In en, this message translates to:
+  /// **'Daily Life'**
+  String get dailylife;
+
+  /// No description provided for @food.
+  ///
+  /// In en, this message translates to:
+  /// **'Food'**
+  String get food;
+
+  /// No description provided for @travel.
+  ///
+  /// In en, this message translates to:
+  /// **'Travel'**
+  String get travel;
+
+  /// No description provided for @tech.
+  ///
+  /// In en, this message translates to:
+  /// **'Tech'**
+  String get tech;
+
+  /// No description provided for @entertainment.
+  ///
+  /// In en, this message translates to:
+  /// **'Entertainment'**
+  String get entertainment;
+
+  /// No description provided for @searchpolltopics.
+  ///
+  /// In en, this message translates to:
+  /// **'Search poll topics'**
+  String get searchpolltopics;
+
+  /// No description provided for @recents.
+  ///
+  /// In en, this message translates to:
+  /// **'Recents'**
+  String get recents;
+
+  /// No description provided for @rorecentsearches.
+  ///
+  /// In en, this message translates to:
+  /// **'No recent searches'**
+  String get rorecentsearches;
+
+  /// No description provided for @notopicsfoundfor.
+  ///
+  /// In en, this message translates to:
+  /// **'No topics found for'**
+  String get notopicsfoundfor;
+
+  /// No description provided for @withselectedfilters.
+  ///
+  /// In en, this message translates to:
+  /// **'with selected filters'**
+  String get withselectedfilters;
 }
 
 class _AppLocalizationsDelegate

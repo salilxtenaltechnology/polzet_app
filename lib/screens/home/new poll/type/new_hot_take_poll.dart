@@ -19,7 +19,6 @@ import '../../../../api/services/image/image_picker_service.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/themes/app_text_colors.dart';
 import '../../../../core/themes/app_text_styles.dart';
-import 'image_preview_crop_screen.dart';
 import '../../../../data/token/shared_preferences.dart';
 import '../../../../gen/assets.gen.dart';
 import '../../../../languages/l10n/generated/app_localizations.dart';
@@ -34,7 +33,18 @@ import '../../../../widgets/show_toast.dart';
 import '../../../../widgets/text_field/secondry_textfield.dart';
 
 class NewHotTakePoll extends StatefulWidget {
-  const NewHotTakePoll({super.key});
+  final String? initialQuestion;
+  final String? initialDescription;
+  final List<String>? initialOptions;
+  final String? initialVotingType;
+
+  const NewHotTakePoll({
+    super.key,
+    this.initialQuestion,
+    this.initialDescription,
+    this.initialOptions,
+    this.initialVotingType,
+  });
 
   @override
   State<NewHotTakePoll> createState() => _NewHotTakePollState();
@@ -112,9 +122,28 @@ class _NewHotTakePollState extends State<NewHotTakePoll> {
   @override
   void initState() {
     super.initState();
+    if (widget.initialQuestion != null &&
+        widget.initialQuestion!.trim().isNotEmpty) {
+      questionController.text = widget.initialQuestion!;
+    }
+    if (widget.initialDescription != null &&
+        widget.initialDescription!.trim().isNotEmpty) {
+      descriptionController.text = widget.initialDescription!;
+    }
     _loadSavedAiLimit();
     questionController.addListener(_onQuestionChanged);
     _startHintAnimation();
+
+    final hasAutoFilled = (widget.initialQuestion != null &&
+            widget.initialQuestion!.trim().isNotEmpty) ||
+        (widget.initialOptions != null && widget.initialOptions!.isNotEmpty) ||
+        (widget.initialVotingType != null &&
+            widget.initialVotingType!.trim().isNotEmpty);
+    if (hasAutoFilled) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        showToast(message: 'Poll auto-filled! Review & publish');
+      });
+    }
   }
 
   void _startHintAnimation() {
@@ -214,18 +243,9 @@ class _NewHotTakePollState extends State<NewHotTakePoll> {
       );
 
       if (pickedFiles != null && pickedFiles.isNotEmpty && mounted) {
-        final List<File>? finalFiles = await Navigator.push<List<File>>(
-          context,
-          MaterialPageRoute(
-            builder: (_) => ImagePreviewCropScreen(initialImages: pickedFiles),
-          ),
-        );
-
-        if (finalFiles != null && finalFiles.isNotEmpty && mounted) {
-          setState(() {
-            _image = finalFiles[0];
-          });
-        }
+        setState(() {
+          _image = pickedFiles[0];
+        });
       }
     } catch (e) {
       showToast(message: 'Error picking image: ${e.toString()}');
@@ -265,7 +285,7 @@ class _NewHotTakePollState extends State<NewHotTakePoll> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(
-                    'Edit Image',
+                   AppLocalizations.of(context)!.editimage,
                     style: AppTextStyles.sectionHeading.copyWith(
                       color: txt.title,
                       fontSize: 14.sp,
@@ -285,7 +305,7 @@ class _NewHotTakePollState extends State<NewHotTakePoll> {
                 child: Padding(
                   padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10),
                   child: Text(
-                    'Crop image',
+                   AppLocalizations.of(context)!.cropimage,
                     style: AppTextStyles.bodyText.copyWith(
                       color: txt.body,
                       fontSize: 13.5.sp,
@@ -302,7 +322,7 @@ class _NewHotTakePollState extends State<NewHotTakePoll> {
                 padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10),
                 child: GestureDetector(
                   child: Text(
-                    'Replace image',
+                  AppLocalizations.of(context)!.replaceimage,
                     style: AppTextStyles.bodyText.copyWith(
                       color: txt.body,
                       fontSize: 13.5.sp,
@@ -319,7 +339,7 @@ class _NewHotTakePollState extends State<NewHotTakePoll> {
                 padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10),
                 child: GestureDetector(
                   child: Text(
-                    'Remove',
+                   AppLocalizations.of(context)!.remove,
                     style: AppTextStyles.bodyText.copyWith(
                       color: Theme.of(context).colorScheme.error,
                       fontSize: 13.5.sp,

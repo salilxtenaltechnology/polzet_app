@@ -6,6 +6,7 @@ import 'package:polzet_app/mixin/utility_mixins.dart';
 import '../../../api/api_service.dart';
 import '../../../core/themes/app_text_colors.dart';
 import '../../../core/themes/app_text_styles.dart';
+import '../../../languages/l10n/generated/app_localizations.dart';
 import '../../../models/country/country_model.dart';
 import '../../../widgets/country_code/code_bottomsheet.dart';
 import '../../../widgets/loader.dart';
@@ -41,7 +42,7 @@ class _NewForgotPasswordSceenState extends State<NewForgotPasswordScreen>
     if (_isMobileSelected) {
       final phone = _phoneController.text.trim();
       if (phone.isEmpty) {
-        setState(() => _emailOrMobileError = 'Please enter your mobile number');
+        setState(() => _emailOrMobileError = AppLocalizations.of(context)!.pleaseenteryourphonenumber);
         return false;
       }
       if (phone.length < 7) {
@@ -53,7 +54,7 @@ class _NewForgotPasswordSceenState extends State<NewForgotPasswordScreen>
     } else {
       final email = _emailController.text.trim();
       if (email.isEmpty) {
-        setState(() => _emailOrMobileError = 'Please enter your email address');
+        setState(() => _emailOrMobileError = AppLocalizations.of(context)!.pleaseenteryouremail);
         return false;
       }
       final emailRegex = RegExp(r'^[\w.-]+@[\w.-]+\.[a-zA-Z]{2,}$');
@@ -214,11 +215,11 @@ class _NewForgotPasswordSceenState extends State<NewForgotPasswordScreen>
             switch (e.code) {
               case 'invalid-phone-number':
                 errorMessage =
-                    'Invalid phone number. Please check and try again.';
+                    AppLocalizations.of(context)!.invalidphonenumber;
                 break;
               case 'too-many-requests':
                 errorMessage =
-                    'Too many attempts. Please try again later.';
+                    AppLocalizations.of(context)!.toomanyattemptspleasetryagainlater;
                 break;
               case 'network-request-failed':
                 errorMessage =
@@ -343,7 +344,7 @@ class _NewForgotPasswordSceenState extends State<NewForgotPasswordScreen>
                 ),
                 alignment: Alignment.center,
                 child: Text(
-                  'Email',
+                  AppLocalizations.of(context)!.email,
                   style: AppTextStyles.subText.copyWith(
                     fontSize: 14.5,
                     fontWeight: FontWeight.w500,
@@ -375,7 +376,7 @@ class _NewForgotPasswordSceenState extends State<NewForgotPasswordScreen>
                 ),
                 alignment: Alignment.center,
                 child: Text(
-                  'Mobile',
+              AppLocalizations.of(context)!.mobile,
                   style: AppTextStyles.subText.copyWith(
                     fontSize: 14.5,
                     fontWeight: FontWeight.w500,
@@ -529,9 +530,9 @@ class _NewForgotPasswordSceenState extends State<NewForgotPasswordScreen>
         ),
         child: _isSendingOtp
             ? Loader(color: Colors.white)
-            : const Text(
-                'Continue',
-                style: TextStyle(
+            :  Text(
+                AppLocalizations.of(context)!.continueButton,
+                style: const TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
                   letterSpacing: 0.2,
@@ -568,7 +569,7 @@ class _NewForgotPasswordSceenState extends State<NewForgotPasswordScreen>
             children: [
               const SizedBox(height: 80),
               Text(
-                'Forgot password',
+                AppLocalizations.of(context)!.forgotpassword,
                 style: AppTextStyles.subSectionHeading.copyWith(
                   fontSize: 23,
                   color: Theme.of(context).colorScheme.onSurface,
@@ -576,7 +577,8 @@ class _NewForgotPasswordSceenState extends State<NewForgotPasswordScreen>
               ),
               const SizedBox(height: 8),
               Text(
-                'Enter your email or mobile number to receive a verification code',
+                 AppLocalizations.of(context)!.enteryouremailormobilenumbertoreceiveaverificationcode,
+        
                 style: AppTextStyles.bodyText.copyWith(
                   fontSize: 13.5,
                   color: txt.body,
@@ -587,7 +589,7 @@ class _NewForgotPasswordSceenState extends State<NewForgotPasswordScreen>
               _buildTabSwitcher(),
               const SizedBox(height: 30),
               if (_isMobileSelected) ...[
-                _buildFieldLabel('Mobile Number'),
+                _buildFieldLabel(AppLocalizations.of(context)!.phonenumber),
 
                 const SizedBox(height: 10),
                 Row(
@@ -597,7 +599,7 @@ class _NewForgotPasswordSceenState extends State<NewForgotPasswordScreen>
                     Expanded(
                       child: _buildTextField(
                         controller: _phoneController,
-                        hint: 'Enter your phone number',
+                        hint: AppLocalizations.of(context)!.enteryourphonenumber,
                         keyboardType: TextInputType.phone,
                       ),
                     ),
@@ -605,12 +607,12 @@ class _NewForgotPasswordSceenState extends State<NewForgotPasswordScreen>
                 ),
                 _buildErrorText(),
               ] else ...[
-                _buildFieldLabel('Email Address'),
+                _buildFieldLabel(AppLocalizations.of(context)!.email),
 
                 const SizedBox(height: 10),
                 _buildTextField(
                   controller: _emailController,
-                  hint: 'Enter your email address',
+                  hint: AppLocalizations.of(context)!.enteryouremail,
                   keyboardType: TextInputType.emailAddress,
                 ),
                 _buildErrorText(),

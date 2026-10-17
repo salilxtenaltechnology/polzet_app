@@ -95,7 +95,7 @@ class _SetPinScreenState extends State<SetPinScreen> {
 
                     // ── Subtitle ───────────────────────────────────────────
                     Text(
-                      'This PIN will be used to secure your account',
+                     AppLocalizations.of(context)!.thispinwillbeusedtosecureyouraccount,
                       style: AppTextStyles.subSectionHeading.copyWith(
                         fontSize: 13,
                         fontWeight: FontWeight.w400,

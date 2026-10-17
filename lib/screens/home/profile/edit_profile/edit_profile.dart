@@ -23,9 +23,9 @@ import '../../../../core/themes/app_text_styles.dart';
 import '../../../../widgets/base64/image_convert.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../../../api/api_config.dart';
-import '../../../../widgets/bottomsheets/verify/profile_email_verify_bottom_sheet.dart';
 import '../../../../widgets/show_toast.dart';
-import 'edit_profile_number_verify_otp_screen.dart';
+import '../../../../core/utils/phone_verify_logger.dart';
+import 'edit_profile_email_number_verify_otp_screen.dart';
 
 class EditProfile extends StatefulWidget {
   const EditProfile({super.key});
@@ -55,6 +55,11 @@ class _EditProfileState extends State<EditProfile> {
 
   String _originalPhone = '';
   bool _isVerifyingPhone = false;
+  bool _isSendingPhoneOtp = false;
+  DateTime? _lastPhoneOtpSentAt;
+  int? _lastPhoneResendToken;
+  String? _lastAttemptPhoneNumber;
+  static const int _phoneOtpCooldownSeconds = 30;
 
   String _selectedGender = 'Prefer not to say';
   String _originalFirstName = '';
@@ -67,6 +72,7 @@ class _EditProfileState extends State<EditProfile> {
   String _firstNameErrorText = '';
   String _lastNameErrorText = '';
   String _usernameErrorText = '';
+  String _emailErrorText = '';
 
   final List<String> _genderOptions = ['Male', 'Female', 'Prefer not to say'];
 
@@ -103,6 +109,9 @@ class _EditProfileState extends State<EditProfile> {
     if (_lastNameErrorText.isNotEmpty) {
       _lastNameErrorText = '';
     }
+    if (_emailErrorText.isNotEmpty) {
+      _emailErrorText = '';
+    }
 
     // Always rebuild so the Verify button's visual state updates dynamically
     setState(() {});
@@ -134,16 +143,39 @@ class _EditProfileState extends State<EditProfile> {
     _usernameController.text = userProvider.username ?? '';
     _bioController.text = userProvider.bio ?? '';
     _emailController.text = userProvider.email ?? '';
-    _phoneController.text = userProvider.mobile_number ?? '';
-    _originalPhone = _phoneController.text.trim();
+    _originalEmail = _emailController.text.trim();
+    final String mobileNumber = (userProvider.mobile_number ?? '').trim();
+    _phoneController.text = mobileNumber;
+    _originalPhone = mobileNumber;
 
-    if (userProvider.country_code != null &&
-        userProvider.country_code!.isNotEmpty) {
-      final code = userProvider.country_code!.replaceAll('+', '');
+    if (mobileNumber.isEmpty) {
+      _selectedCountry = Country(
+        name: 'India',
+        code: 'IN',
+        dialCode: '+91',
+        flag: '🇮🇳',
+      );
+    } else if (userProvider.country_code != null &&
+        userProvider.country_code!.trim().isNotEmpty) {
+      final code = userProvider.country_code!.replaceAll('+', '').trim();
       final country = getCountryByDialCode(code);
       if (country != null) {
         _selectedCountry = country;
+      } else {
+        _selectedCountry = Country(
+          name: 'India',
+          code: 'IN',
+          dialCode: '+91',
+          flag: '🇮🇳',
+        );
       }
+    } else {
+      _selectedCountry = Country(
+        name: 'India',
+        code: 'IN',
+        dialCode: '+91',
+        flag: '🇮🇳',
+      );
     }
 
     _dob = userProvider.dob != null ? DateTime.parse(userProvider.dob!) : null;
@@ -162,7 +194,7 @@ class _EditProfileState extends State<EditProfile> {
     _originalBio = _bioController.text;
     _originalDob = _dob != null ? DateFormat('yyyy-MM-dd').format(_dob!) : '';
     _originalGender = _selectedGender;
-    _originalEmail = _emailController.text;
+    _originalEmail = _emailController.text.trim();
   }
 
   @override
@@ -307,13 +339,18 @@ class _EditProfileState extends State<EditProfile> {
   }
 
   Future<void> _verifyEmail() async {
+    setState(() {
+      _emailErrorText = '';
+    });
     final email = _emailController.text.trim();
     if (email.isEmpty) {
+      setState(() => _emailErrorText = 'Email address cannot be empty');
       showToast(message: 'Email address cannot be empty');
       return;
     }
     final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
     if (!emailRegex.hasMatch(email)) {
+      setState(() => _emailErrorText = 'Please enter a valid email address');
       showToast(message: 'Please enter a valid email address');
       return;
     }
@@ -328,16 +365,22 @@ class _EditProfileState extends State<EditProfile> {
         const successMsg = 'OTP sent';
         showToast(message: successMsg);
 
-        final verified = await showModalBottomSheet<bool>(
-          context: context,
-          isScrollControlled: true,
-          backgroundColor: Colors.transparent,
-          builder: (context) => ProfileEmailVerifyBottomSheet(email: email),
+        setState(() => _isVerifyingEmail = false);
+
+        final verified = await Navigator.push<bool>(
+          context,
+          MaterialPageRoute(
+            builder: (context) => EditProfilEmailNumberVeifyOTP(
+              email: email,
+              isEmail: true,
+            ),
+          ),
         );
 
         if (verified == true && mounted) {
           setState(() {
             _originalEmail = email;
+            _emailErrorText = '';
           });
           final userProvider = Provider.of<UserProvider>(
             context,
@@ -347,18 +390,37 @@ class _EditProfileState extends State<EditProfile> {
           showToast(message: 'Email updated successfully');
         }
       } else {
-        final errorMsg =
-            result['data']?['message'] ??
-            result['message'] ??
-            'Failed to send OTP';
-        showToast(message: errorMsg);
+        String errorMsg = 'Failed to send OTP';
+        if (result['errors'] is Map) {
+          final errors = result['errors'] as Map;
+          if (errors['email'] is List && (errors['email'] as List).isNotEmpty) {
+            errorMsg = (errors['email'] as List).first.toString();
+          } else if (errors['email'] is String) {
+            errorMsg = errors['email'];
+          } else if (errors.values.isNotEmpty) {
+            final firstVal = errors.values.first;
+            if (firstVal is List && firstVal.isNotEmpty) {
+              errorMsg = firstVal.first.toString();
+            } else if (firstVal is String) {
+              errorMsg = firstVal;
+            }
+          }
+        } else {
+          errorMsg =
+              result['data']?['message']?.toString() ??
+              result['message']?.toString() ??
+              'Failed to send OTP';
+        }
+        setState(() => _emailErrorText = errorMsg);
+       // showToast(message: errorMsg);
       }
     } catch (e) {
       if (mounted) {
         final errorMsg = e.toString().contains('Exception:')
             ? e.toString().replaceAll('Exception:', '').trim()
-            : 'Failed to send OTP. Please try again.';
-        showToast(message: errorMsg);
+            : e.toString();
+        setState(() => _emailErrorText = errorMsg);
+        // showToast(message: errorMsg);
       }
     } finally {
       if (mounted) {
@@ -368,6 +430,18 @@ class _EditProfileState extends State<EditProfile> {
   }
 
   Future<void> _verifyPhone() async {
+    // 1. Atomic concurrency guard against double-taps
+    if (_isSendingPhoneOtp || _isVerifyingPhone) {
+      PhoneVerifyLogger.log(
+        attemptId: 'none',
+        caller: 'EditProfile._verifyPhone',
+        event: 'BLOCKED_DUPLICATE_CALL',
+        details:
+            'isSendingPhoneOtp=$_isSendingPhoneOtp, isVerifyingPhone=$_isVerifyingPhone',
+      );
+      return;
+    }
+
     final cleanPhone = _phoneController.text.trim().replaceAll(
       RegExp(r'[\s\-().+]'),
       '',
@@ -383,15 +457,60 @@ class _EditProfileState extends State<EditProfile> {
       return;
     }
 
+    final countryCode = _selectedCountry.dialCode;
+    final fullPhoneNumber = '$countryCode$cleanPhone';
+
+    // 2. Cooldown guard to prevent rapid repeated OTP dispatches to same number
+    if (_lastPhoneOtpSentAt != null &&
+        _lastAttemptPhoneNumber == fullPhoneNumber) {
+      final elapsed = DateTime.now().difference(_lastPhoneOtpSentAt!).inSeconds;
+      if (elapsed < _phoneOtpCooldownSeconds) {
+        final remaining = _phoneOtpCooldownSeconds - elapsed;
+        PhoneVerifyLogger.log(
+          attemptId: 'cooldown',
+          caller: 'EditProfile._verifyPhone',
+          event: 'BLOCKED_COOLDOWN_ACTIVE',
+          phone: fullPhoneNumber,
+          details: 'remainingSeconds=$remaining',
+        );
+        showToast(
+          message:
+              'Please wait $remaining seconds before requesting another OTP',
+        );
+        return;
+      }
+    }
+
+    final attemptId = PhoneVerifyLogger.generateAttemptId('edit_profile');
+    _isSendingPhoneOtp = true;
     setState(() => _isVerifyingPhone = true);
 
-    try {
-      final countryCode = _selectedCountry.dialCode;
+    PhoneVerifyLogger.log(
+      attemptId: attemptId,
+      caller: 'EditProfile._verifyPhone',
+      event: 'VERIFY_TAP_ACCEPTED',
+      phone: fullPhoneNumber,
+    );
 
-      // 1. Call ApiService numberVerifyRequest
-      final result = await ApiService().numberVerifyRequest(
+    try {
+      // 3. Call ApiService phoneVerifyRequest
+      PhoneVerifyLogger.log(
+        attemptId: attemptId,
+        caller: 'EditProfile._verifyPhone',
+        event: 'BACKEND_REQUEST_START',
+        phone: fullPhoneNumber,
+      );
+
+      final result = await ApiService().phoneVerifyRequest(
         countryCode: countryCode,
         mobileNumber: cleanPhone,
+      );
+
+      PhoneVerifyLogger.log(
+        attemptId: attemptId,
+        caller: 'EditProfile._verifyPhone',
+        event: 'BACKEND_REQUEST_RESULT',
+        details: 'status=${result['status']}, success=${result['success']}',
       );
 
       if (!mounted) return;
@@ -434,28 +553,59 @@ class _EditProfileState extends State<EditProfile> {
         }
 
         showToast(message: errorMsg);
+        _isSendingPhoneOtp = false;
         setState(() => _isVerifyingPhone = false);
         return;
       }
 
-      // 2. Trigger Firebase Auth SMS OTP request
-      final fullPhoneNumber = '$countryCode$cleanPhone';
+      // 4. Trigger Firebase Auth SMS OTP request
+      final int? forceToken = (_lastAttemptPhoneNumber == fullPhoneNumber)
+          ? _lastPhoneResendToken
+          : null;
+
+      PhoneVerifyLogger.log(
+        attemptId: attemptId,
+        caller: 'EditProfile._verifyPhone',
+        event: 'FIREBASE_VERIFY_PHONE_INVOKED',
+        phone: fullPhoneNumber,
+        details: 'forceResendingToken=$forceToken',
+      );
+
+      bool hasHandledCodeSent = false;
+
       await FirebaseAuth.instance.verifyPhoneNumber(
         phoneNumber: fullPhoneNumber,
+        forceResendingToken: forceToken,
         timeout: const Duration(seconds: 60),
         codeSent: (String verificationId, int? resendToken) async {
+          PhoneVerifyLogger.log(
+            attemptId: attemptId,
+            caller: 'EditProfile.codeSent',
+            event: 'FIREBASE_CALLBACK_CODE_SENT',
+            details:
+                'hasHandled=$hasHandledCodeSent, hasResendToken=${resendToken != null}',
+          );
+
           if (!mounted) return;
+          if (hasHandledCodeSent) return;
+          hasHandledCodeSent = true;
+
+          _lastPhoneOtpSentAt = DateTime.now();
+          _lastPhoneResendToken = resendToken;
+          _lastAttemptPhoneNumber = fullPhoneNumber;
+          _isSendingPhoneOtp = false;
           setState(() => _isVerifyingPhone = false);
 
-          // 3. Navigate to screen to enter OTP
+          // 5. Navigate to screen to enter OTP
           final verified = await Navigator.push<bool>(
             context,
             MaterialPageRoute(
-              builder: (context) => EditProfilNumberVeifyOTP(
+              builder: (context) => EditProfilEmailNumberVeifyOTP(
                 countryCode: countryCode,
                 mobileNumber: cleanPhone,
                 verificationId: verificationId,
                 resendToken: resendToken,
+                initialAttemptId: attemptId,
               ),
             ),
           );
@@ -473,7 +623,15 @@ class _EditProfileState extends State<EditProfile> {
           }
         },
         verificationFailed: (FirebaseAuthException e) {
+          PhoneVerifyLogger.log(
+            attemptId: attemptId,
+            caller: 'EditProfile.verificationFailed',
+            event: 'FIREBASE_CALLBACK_VERIFICATION_FAILED',
+            details: 'code=${e.code}, message=${e.message}',
+          );
+
           if (!mounted) return;
+          _isSendingPhoneOtp = false;
           setState(() => _isVerifyingPhone = false);
           String errorMessage;
           switch (e.code) {
@@ -491,11 +649,31 @@ class _EditProfileState extends State<EditProfile> {
           }
           showToast(message: errorMessage);
         },
-        codeAutoRetrievalTimeout: (String verificationId) {},
-        verificationCompleted: (PhoneAuthCredential credential) {},
+        codeAutoRetrievalTimeout: (String verificationId) {
+          PhoneVerifyLogger.log(
+            attemptId: attemptId,
+            caller: 'EditProfile.codeAutoRetrievalTimeout',
+            event: 'FIREBASE_CALLBACK_CODE_AUTO_RETRIEVAL_TIMEOUT',
+          );
+        },
+        verificationCompleted: (PhoneAuthCredential credential) {
+          PhoneVerifyLogger.log(
+            attemptId: attemptId,
+            caller: 'EditProfile.verificationCompleted',
+            event: 'FIREBASE_CALLBACK_VERIFICATION_COMPLETED',
+          );
+        },
       );
     } catch (e) {
+      PhoneVerifyLogger.log(
+        attemptId: attemptId,
+        caller: 'EditProfile._verifyPhone',
+        event: 'ERROR_CAUGHT',
+        details: e.toString(),
+      );
+
       if (mounted) {
+        _isSendingPhoneOtp = false;
         setState(() => _isVerifyingPhone = false);
         final errorMsg = e.toString().contains('Exception:')
             ? e.toString().replaceAll('Exception:', '').trim()
@@ -568,8 +746,11 @@ class _EditProfileState extends State<EditProfile> {
     int? maxLines = 1,
     int? maxLength,
     List<TextInputFormatter>? inputFormatters,
+    bool showFocusBorder = true,
   }) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final effectiveShowFocusBorder =
+        showFocusBorder && (!isReadOnly || controller.text.trim().isEmpty);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -621,19 +802,25 @@ class _EditProfileState extends State<EditProfile> {
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(AppRadius.card),
                 borderSide: BorderSide(
-                  color: Theme.of(context).colorScheme.outline,
+                  color: errorText.isNotEmpty
+                      ? Theme.of(context).colorScheme.error
+                      : Theme.of(context).colorScheme.outline,
                   width: 1.5,
                 ),
               ),
               focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(
+                  effectiveShowFocusBorder ? 12 : AppRadius.card,
+                ),
                 borderSide: BorderSide(
                   color: errorText.isNotEmpty
                       ? Theme.of(context).colorScheme.error
-                      : (isDarkMode
-                            ? Colors.white.withValues(alpha: 0.3)
-                            : Theme.of(context).colorScheme.primary),
-                  width: 1,
+                      : (!effectiveShowFocusBorder
+                            ? Theme.of(context).colorScheme.outline
+                            : (isDarkMode
+                                ? Colors.white.withValues(alpha: 0.3)
+                                : Theme.of(context).colorScheme.primary)),
+                  width: !effectiveShowFocusBorder ? 1.5 : 1,
                 ),
               ),
             ),
@@ -706,7 +893,9 @@ class _EditProfileState extends State<EditProfile> {
 
   Widget _buildCountryCodeButton() {
     return GestureDetector(
-      onTap: _showCountryPicker,
+      onTap: _originalPhone.isNotEmpty
+          ? null
+          : _showCountryPicker,
       child: Container(
         height: 48,
         padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -961,44 +1150,50 @@ class _EditProfileState extends State<EditProfile> {
           const SizedBox(height: 6),
           _buildTextField(
             controller: _emailController,
-            hint: 'Enter email address',
+            hint: AppLocalizations.of(context)!.enteryouremail,
             keyboardType: TextInputType.emailAddress,
-            isReadOnly: true,
+            isReadOnly: _originalEmail.isNotEmpty,
+            errorText: _emailErrorText,
+            showFocusBorder: _originalEmail.isEmpty,
           ),
-          // const SizedBox(height: 5),
-          // Row(
-          //   mainAxisAlignment: MainAxisAlignment.end,
-          //   children: [
-          //     _isVerifyingEmail
-          //         ? const Padding(
-          //             padding: EdgeInsets.only(right: 8),
-          //             child: SizedBox(
-          //               width: 14,
-          //               height: 14,
-          //               child: CircularProgressIndicator(strokeWidth: 1.5),
-          //             ),
-          //           )
-          //         : GestureDetector(
-          //             onTap:
-          //                 (_emailController.text.trim() != _originalEmail &&
-          //                     _emailController.text.trim().isNotEmpty)
-          //                 ? _verifyEmail
-          //                 : null,
-          //             child: Text(
-          //               'Verify',
-          //               style: AppTextStyles.subText.copyWith(
-          //                 fontSize: 14,
-          //                 color:
-          //                     (_emailController.text.trim() != _originalEmail &&
-          //                         _emailController.text.trim().isNotEmpty)
-          //                     ? Theme.of(context).colorScheme.primary
-          //                     : Colors.transparent,
-          //                 fontWeight: FontWeight.w500,
-          //               ),
-          //             ),
-          //           ),
-          //   ],
-          // ),
+          const SizedBox(height: 5),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              if (_isVerifyingEmail)
+                const Padding(
+                  padding: EdgeInsets.only(right: 6),
+                  child: SizedBox(
+                    width: 14,
+                    height: 14,
+                    child: CircularProgressIndicator(strokeWidth: 1.5),
+                  ),
+                ),
+              GestureDetector(
+                onTap: _isVerifyingEmail
+                    ? null
+                    : ((_emailController.text.trim() != _originalEmail &&
+                              _emailController.text.trim().isNotEmpty)
+                          ? _verifyEmail
+                          : null),
+                child: Text(
+                  _isVerifyingEmail
+                      ? AppLocalizations.of(context)!.verifying
+                      : AppLocalizations.of(context)!.verify,
+                  style: AppTextStyles.subText.copyWith(
+                    fontSize: 14,
+                    color:
+                        (_isVerifyingEmail ||
+                            (_emailController.text.trim() != _originalEmail &&
+                                _emailController.text.trim().isNotEmpty))
+                        ? Theme.of(context).colorScheme.primary
+                        : Colors.transparent,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+            ],
+          ),
           const SizedBox(height: 20),
 
           // ── Phone ───────────────────────────────────────────────────────
@@ -1015,6 +1210,7 @@ class _EditProfileState extends State<EditProfile> {
                   keyboardType: TextInputType.phone,
                   isReadOnly: _originalPhone.isNotEmpty,
                   inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                  showFocusBorder: _originalPhone.isEmpty,
                 ),
               ),
             ],
@@ -1031,7 +1227,9 @@ class _EditProfileState extends State<EditProfile> {
                           ? _verifyPhone
                           : null),
                 child: Text(
-                  _isVerifyingPhone ? AppLocalizations.of(context)!.verifying : AppLocalizations.of(context)!.verify,
+                  _isVerifyingPhone
+                      ? AppLocalizations.of(context)!.verifying
+                      : AppLocalizations.of(context)!.verify,
                   style: AppTextStyles.subText.copyWith(
                     fontSize: 14,
                     color:

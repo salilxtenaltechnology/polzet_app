@@ -9,11 +9,11 @@ import '../../../core/themes/app_text_colors.dart';
 import '../../../core/themes/app_text_styles.dart';
 
 class AccountSuccessScreen extends StatefulWidget {
-  final String email;
+  final String username;
   final String password;
   const AccountSuccessScreen({
     super.key,
-    required this.email,
+    required this.username,
     required this.password,
   });
 
@@ -168,7 +168,7 @@ class _AccountSuccessScreenState extends State<AccountSuccessScreen>
     if (!mounted) return;
 
     await ApiService().loginUser(
-      email_username: widget.email,
+      email_username: widget.username,
       password: widget.password,
       context: context,
     );

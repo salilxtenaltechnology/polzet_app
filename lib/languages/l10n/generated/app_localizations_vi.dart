@@ -410,7 +410,7 @@ class AppLocalizationsVi extends AppLocalizations {
   String get editprofile => 'Chỉnh sửa hồ sơ';
 
   @override
-  String get cropimage => 'Cắt ảnh?';
+  String get cropimage => 'Cắt ảnh';
 
   @override
   String get wouldyouliketocroptheimage => 'Bạn có muốn cắt ảnh không?';
@@ -1862,7 +1862,7 @@ class AppLocalizationsVi extends AppLocalizations {
 
   @override
   String get tryanotherkeywordorexploretrendingpolls =>
-      'Thử từ khóa khác hoặc khám phá các cuộc thăm dò thịnh hành.';
+      'Thử từ khóa khác hoặc khám phá các cuộc bình chọn thịnh hành';
 
   @override
   String get searching => 'Đang tìm kiếm...';
@@ -2675,4 +2675,210 @@ class AppLocalizationsVi extends AppLocalizations {
 
   @override
   String get postdetails => 'Bài đăng';
+
+  @override
+  String get curiouswhatpeoplethink => 'Bạn tò mò mọi người nghĩ gì? 👀';
+
+  @override
+  String get askitgetrealopinionsfromthecrowd =>
+      'Hãy hỏi. Nhận ý kiến thực tế từ cộng đồng';
+
+  @override
+  String get whatsonyourmind => 'bạn đang nghĩ gì';
+
+  @override
+  String get createpoll => 'Tạo bình chọn';
+
+  @override
+  String get thispinwillbeusedtosecureyouraccount =>
+      'Mã PIN này sẽ được sử dụng để bảo vệ tài khoản của bạn';
+
+  @override
+  String get nochaseusers => 'Không có người dùng Chase';
+
+  @override
+  String get norechaseusers => 'Không có người dùng Re-Chase';
+
+  @override
+  String get youveblockedthisuser => 'Bạn đã chặn người dùng này';
+
+  @override
+  String get unblockusertoviewtheirpollsorinteractwiththem =>
+      'Bỏ chặn người dùng để xem các bình chọn của họ hoặc tương tác với họ. Họ sẽ không thể xem hồ sơ và nội dung của bạn.';
+
+  @override
+  String get letssetupyourprofile => 'Hãy thiết lập hồ sơ của bạn';
+
+  @override
+  String get addaphotoandyournamesopeoplecanrecognizeyou =>
+      'Thêm ảnh và tên của bạn để mọi người có thể nhận ra bạn';
+
+  @override
+  String get uploading => 'Đang tải lên...';
+
+  @override
+  String get skipfornow => 'Bỏ qua lúc này';
+
+  @override
+  String get step => 'Bước';
+
+  @override
+  String get followpeopleyoulike => 'Theo dõi những người bạn yêu thích';
+
+  @override
+  String get chooseafewtopersonalizeyourfeed =>
+      'Chọn một vài người để cá nhân hóa bảng tin của bạn';
+
+  @override
+  String get suggested => 'Được đề xuất';
+
+  @override
+  String get popular => 'Phổ biến';
+
+  @override
+  String get whatcatchesyourattention => 'Điều gì thu hút sự chú ý của bạn?';
+
+  @override
+  String get selectatleastthreetopicsyouareinterestedin =>
+      'Chọn ít nhất 3 chủ đề bạn quan tâm';
+
+  @override
+  String get forgotpassword => 'Quên mật khẩu';
+
+  @override
+  String get enteryouremailormobilenumbertoreceiveaverificationcode =>
+      'Nhập email hoặc số điện thoại di động để nhận mã xác minh';
+
+  @override
+  String get mobile => 'Di động';
+
+  @override
+  String get pleaseenteryouremail => 'Vui lòng nhập email của bạn';
+
+  @override
+  String get pleaseenteryourphonenumber =>
+      'Vui lòng nhập số điện thoại của bạn';
+
+  @override
+  String get pleaseenterthecompletesixdigitcode =>
+      'Vui lòng nhập đầy đủ mã 6 chữ số';
+
+  @override
+  String get enterthesixdigitcodesentto => 'Nhập mã 6 chữ số được gửi đến';
+
+  @override
+  String get invalidotp => 'OTP không hợp lệ';
+
+  @override
+  String get verificationcodehasexpiredpleaserequestanewone =>
+      'Mã xác minh đã hết hạn. Vui lòng yêu cầu mã mới.';
+
+  @override
+  String get invalidphonenumber => 'Số điện thoại không hợp lệ';
+
+  @override
+  String get toomanyattemptspleasetryagainlater =>
+      'Quá nhiều lần thử. Vui lòng thử lại sau';
+
+  @override
+  String get verifyyournumber => 'Xác minh số điện thoại';
+
+  @override
+  String get verifyyouremail => 'Xác minh email của bạn';
+
+  @override
+  String get verifycode => 'Xác minh mã';
+
+  @override
+  String get otpwillexpirein => 'OTP sẽ hết hạn sau';
+
+  @override
+  String get resendcodein => 'Gửi lại mã sau';
+
+  @override
+  String get didnotreceivecode => 'Không nhận được mã?';
+
+  @override
+  String get resendotp => 'Gửi lại OTP';
+
+  @override
+  String get createnewpassword => 'Tạo mật khẩu mới';
+
+  @override
+  String get confirmyourpassword => 'Xác nhận mật khẩu của bạn';
+
+  @override
+  String get resetpassword => 'Đặt lại mật khẩu';
+
+  @override
+  String get weakpassword => 'Mật khẩu yếu';
+
+  @override
+  String get goodpassword => 'Mật khẩu tốt';
+
+  @override
+  String get strongpassword => 'Mật khẩu mạnh';
+
+  @override
+  String get eighttencharacters => '8 - 10 ký tự';
+
+  @override
+  String get atleastoneuppercaseletter => 'Ít nhất 1 chữ cái viết hoa';
+
+  @override
+  String get atleastonelowercaseletter => 'Ít nhất 1 chữ cái viết thường';
+
+  @override
+  String get atleastonenumber => 'Ít nhất 1 số';
+
+  @override
+  String get atleastonespecialcharacter => 'Ít nhất 1 ký tự đặc biệt';
+
+  @override
+  String get editimage => 'Chỉnh sửa hình ảnh';
+
+  @override
+  String get replaceimage => 'Thay thế hình ảnh';
+
+  @override
+  String get remove => 'Xóa';
+
+  @override
+  String get ideasroryou => 'Ý tưởng dành cho bạn';
+
+  @override
+  String get pollideas => 'Ý tưởng bình chọn';
+
+  @override
+  String get foryou => 'Dành cho bạn';
+
+  @override
+  String get dailylife => 'Cuộc sống hằng ngày';
+
+  @override
+  String get food => 'Ẩm thực';
+
+  @override
+  String get travel => 'Du lịch';
+
+  @override
+  String get tech => 'Công nghệ';
+
+  @override
+  String get entertainment => 'Giải trí';
+
+  @override
+  String get searchpolltopics => 'Tìm kiếm chủ đề bình chọn';
+
+  @override
+  String get recents => 'Gần đây';
+
+  @override
+  String get rorecentsearches => 'Không có tìm kiếm gần đây';
+
+  @override
+  String get notopicsfoundfor => 'Không tìm thấy chủ đề cho';
+
+  @override
+  String get withselectedfilters => 'với các bộ lọc đã chọn';
 }
