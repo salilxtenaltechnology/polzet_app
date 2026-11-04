@@ -426,8 +426,8 @@ class ApiService with UtilityMixin {
     }
   }
 
-  // Send OTP - Mobile
-  Future<Map<String, dynamic>> sendMobileOtp({
+  // Send OTP via Twilio - Mobile
+  Future<Map<String, dynamic>> sendMobileOtpViaTwilio({
     required String phoneNumber,
     required String countryCode,
   }) async {
@@ -467,23 +467,19 @@ class ApiService with UtilityMixin {
   }
 
   // Verify Mobile OTP
-  Future<Map<String, dynamic>> verifyMobileOtp({
-    String? phoneNumber,
-    String? countryCode,
-    String? otp,
-    String? idToken,
+  Future<Map<String, dynamic>> verifyMobileOtpViaTwilio({
+    required String phoneNumber,
+    required String countryCode,
+    required String otp,
   }) async {
     try {
-      final Map<String, dynamic> body = idToken != null
-          ? {'id_token': idToken}
-          : {
-              'phone_number': phoneNumber,
-              'country_code': countryCode,
-              'otp': otp,
-            };
       final response = await _dio.post(
         ApiConstants.verifyMobileOtp,
-        data: body,
+        data: {
+          'phone_number': phoneNumber,
+          'country_code': countryCode,
+          'otp': otp,
+        },
       );
       debugPrint('verifyMobileOtp response: ${response.data}');
       return response.data as Map<String, dynamic>;
@@ -851,7 +847,7 @@ class ApiService with UtilityMixin {
               retryResponse.data is Map &&
               retryResponse.data['status'] != 'error' &&
               retryResponse.data['errors'] == null) {
-            showToast(message: 'Country updated successfully!');
+            showToast(message: 'Country updated!');
             return true;
           } else {
             response = retryResponse;
@@ -976,8 +972,8 @@ class ApiService with UtilityMixin {
     required String countryCode,
     required String mobileNumber,
     String? phoneNumber,
-    required String firebaseToken,
     String? otp,
+    String? firebaseToken,
   }) async {
     try {
       final fullPhone = phoneNumber ?? '$countryCode$mobileNumber';
@@ -985,8 +981,8 @@ class ApiService with UtilityMixin {
         'country_code': countryCode,
         'mobile_number': mobileNumber,
         'phone_number': fullPhone,
-        'firebase_token': firebaseToken,
         if (otp != null) 'otp': otp,
+        if (firebaseToken != null) 'firebase_token': firebaseToken,
       });
 
       final response = await _dio.post(
@@ -1057,14 +1053,18 @@ class ApiService with UtilityMixin {
       String message = _handleDioError(e, defaultMessage: 'Failed to send OTP');
       if (e.response?.data != null && e.response?.data is Map) {
         final data = e.response!.data as Map;
-        if (data['message'] != null && data['message'].toString().trim().isNotEmpty) {
+        if (data['message'] != null &&
+            data['message'].toString().trim().isNotEmpty) {
           message = data['message'].toString().trim();
         }
-        if (data['errors'] != null && data['errors'] is Map && (data['errors'] as Map).isNotEmpty) {
+        if (data['errors'] != null &&
+            data['errors'] is Map &&
+            (data['errors'] as Map).isNotEmpty) {
           final errors = data['errors'] as Map;
           if (errors['email'] is List && (errors['email'] as List).isNotEmpty) {
             message = (errors['email'] as List).first.toString();
-          } else if (errors['email'] is String && (errors['email'] as String).isNotEmpty) {
+          } else if (errors['email'] is String &&
+              (errors['email'] as String).isNotEmpty) {
             message = errors['email'];
           } else if (errors.values.isNotEmpty) {
             final firstVal = errors.values.first;
@@ -1094,15 +1094,20 @@ class ApiService with UtilityMixin {
       final data = response.data as Map<String, dynamic>;
       if (data['status'] == 'error' || data['success'] == false) {
         String message = data['message']?.toString() ?? 'Invalid OTP';
-        if (data['errors'] != null && data['errors'] is Map && (data['errors'] as Map).isNotEmpty) {
+        if (data['errors'] != null &&
+            data['errors'] is Map &&
+            (data['errors'] as Map).isNotEmpty) {
           final errors = data['errors'] as Map;
           if (errors['otp'] is List && (errors['otp'] as List).isNotEmpty) {
             message = (errors['otp'] as List).first.toString();
-          } else if (errors['otp'] is String && (errors['otp'] as String).isNotEmpty) {
+          } else if (errors['otp'] is String &&
+              (errors['otp'] as String).isNotEmpty) {
             message = errors['otp'];
-          } else if (errors['email'] is List && (errors['email'] as List).isNotEmpty) {
+          } else if (errors['email'] is List &&
+              (errors['email'] as List).isNotEmpty) {
             message = (errors['email'] as List).first.toString();
-          } else if (errors['email'] is String && (errors['email'] as String).isNotEmpty) {
+          } else if (errors['email'] is String &&
+              (errors['email'] as String).isNotEmpty) {
             message = errors['email'];
           } else if (errors.values.isNotEmpty) {
             final firstVal = errors.values.first;
@@ -1118,21 +1123,30 @@ class ApiService with UtilityMixin {
 
       return data;
     } on DioException catch (e) {
-      String message = _handleDioError(e, defaultMessage: 'Failed to verify OTP');
+      String message = _handleDioError(
+        e,
+        defaultMessage: 'Failed to verify OTP',
+      );
       if (e.response?.data != null && e.response?.data is Map) {
         final data = e.response!.data as Map;
-        if (data['message'] != null && data['message'].toString().trim().isNotEmpty) {
+        if (data['message'] != null &&
+            data['message'].toString().trim().isNotEmpty) {
           message = data['message'].toString().trim();
         }
-        if (data['errors'] != null && data['errors'] is Map && (data['errors'] as Map).isNotEmpty) {
+        if (data['errors'] != null &&
+            data['errors'] is Map &&
+            (data['errors'] as Map).isNotEmpty) {
           final errors = data['errors'] as Map;
           if (errors['otp'] is List && (errors['otp'] as List).isNotEmpty) {
             message = (errors['otp'] as List).first.toString();
-          } else if (errors['otp'] is String && (errors['otp'] as String).isNotEmpty) {
+          } else if (errors['otp'] is String &&
+              (errors['otp'] as String).isNotEmpty) {
             message = errors['otp'];
-          } else if (errors['email'] is List && (errors['email'] as List).isNotEmpty) {
+          } else if (errors['email'] is List &&
+              (errors['email'] as List).isNotEmpty) {
             message = (errors['email'] as List).first.toString();
-          } else if (errors['email'] is String && (errors['email'] as String).isNotEmpty) {
+          } else if (errors['email'] is String &&
+              (errors['email'] as String).isNotEmpty) {
             message = errors['email'];
           } else if (errors.values.isNotEmpty) {
             final firstVal = errors.values.first;
@@ -1247,7 +1261,7 @@ class ApiService with UtilityMixin {
           return data['message']?.toString() ?? 'Failed to update password';
         }
 
-        showToast(message: 'Password updated successfully!');
+        showToast(message: 'Password updated!');
         return '';
       }
 
@@ -1837,6 +1851,78 @@ class ApiService with UtilityMixin {
     }
   }
 
+  Future<Map<String, dynamic>> createSocialPost({
+    required String description,
+    required List<File> images,
+    String? category,
+  }) async {
+    try {
+      final formData = FormData();
+
+      formData.fields.add(MapEntry('description', description));
+
+      if (category != null && category.trim().isNotEmpty) {
+        formData.fields.add(MapEntry('category', category.trim()));
+      }
+
+      for (final image in images) {
+        final String ext = path.extension(image.path).toLowerCase();
+        final String subType = ext.startsWith('.') ? ext.substring(1) : 'jpeg';
+        formData.files.add(
+          MapEntry(
+            'images',
+            await MultipartFile.fromFile(
+              image.path,
+              filename: path.basename(image.path),
+              contentType: MediaType(
+                'image',
+                subType == 'jpg' ? 'jpeg' : (subType.isEmpty ? 'jpeg' : subType),
+              ),
+            ),
+          ),
+        );
+      }
+
+      final authHeaders = await _getAuthHeaders();
+      authHeaders.remove('Content-Type');
+
+      final response = await _dio.post(
+        ApiConstants.createPost,
+        data: formData,
+        options: Options(headers: authHeaders),
+      );
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        if (response.data is Map<String, dynamic>) {
+          return response.data as Map<String, dynamic>;
+        }
+        return {'success': true, 'data': response.data};
+      }
+
+      if (response.data is Map) {
+        final errorMsg = response.data['message'] ??
+            response.data['detail'] ??
+            response.data['error'] ??
+            'Failed to create post';
+        throw Exception(errorMsg);
+      }
+      throw Exception('Failed to create post. Status: ${response.statusCode}');
+    } on DioException catch (e) {
+      throw Exception(_handleDioError(e, defaultMessage: 'Failed to create post'));
+    }
+  }
+
+  // Alias for createSocialPost
+  Future<Map<String, dynamic>> createPost({
+    required String description,
+    required List<File> images,
+    String? category,
+  }) => createSocialPost(
+    description: description,
+    images: images,
+    category: category,
+  );
+
   // Text poll
   Future<Map<String, dynamic>> createTextPoll({
     required String question,
@@ -2158,18 +2244,33 @@ class ApiService with UtilityMixin {
   }
 
   /// Upload image poll
-  static Future<Map<String, dynamic>?> uploadImagePoll({
+  static Future<Map<String, dynamic>?> addImagePoll({
     required String description,
     required String question,
     required List<File> pollOptions,
     required int maxOptions,
     List<String>? labels,
     String votingType = 'single_choice',
+    String? category,
+    String? inspirationId,
+    String? inspiredByPostId,
+    String? parentPostId,
+    // ignore: non_constant_identifier_names
+    String? inspiration_id,
+    // ignore: non_constant_identifier_names
+    String? inspired_by_post_id,
+    // ignore: non_constant_identifier_names
+    String? parent_post_id,
     String? authToken,
     Function(double)? onProgress,
     int maxFileSizeMB = 50,
   }) async {
     try {
+      final effectiveInspirationId = inspiration_id ?? inspirationId;
+      final effectiveInspiredByPostId =
+          inspired_by_post_id ?? inspiredByPostId;
+      final effectiveParentPostId = parent_post_id ?? parentPostId;
+
       // Validation
       if (pollOptions.isEmpty) {
         throw Exception('At least one image is required');
@@ -2198,6 +2299,22 @@ class ApiService with UtilityMixin {
         MapEntry('voting_type', votingType),
         const MapEntry('max_options', "4"),
       ]);
+
+      if (category != null && category.isNotEmpty) {
+        formData.fields.add(MapEntry('category', category));
+      }
+      if (effectiveInspirationId != null &&
+          effectiveInspirationId.isNotEmpty) {
+        formData.fields.add(MapEntry('inspiration_id', effectiveInspirationId));
+      }
+      if (effectiveInspiredByPostId != null &&
+          effectiveInspiredByPostId.isNotEmpty) {
+        formData.fields.add(
+            MapEntry('inspired_by_post_id', effectiveInspiredByPostId));
+      }
+      if (effectiveParentPostId != null && effectiveParentPostId.isNotEmpty) {
+        formData.fields.add(MapEntry('parent_post_id', effectiveParentPostId));
+      }
 
       // Add poll_options for each image option
       for (int i = 0; i < pollOptions.length; i++) {

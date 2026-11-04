@@ -2,7 +2,6 @@
 
 import 'dart:async';
 
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -52,8 +51,6 @@ class _EditProfilEmailNumberVeifyOTPState extends State<EditProfilEmailNumberVei
   );
   final List<FocusNode> _focusNodes = List.generate(6, (_) => FocusNode());
 
-  late String _verificationId;
-  int? _resendToken;
   String _otpError = '';
   bool _isVerifying = false;
   bool _isConfirmed = false;
@@ -66,8 +63,6 @@ class _EditProfilEmailNumberVeifyOTPState extends State<EditProfilEmailNumberVei
   @override
   void initState() {
     super.initState();
-    _verificationId = widget.verificationId ?? '';
-    _resendToken = widget.resendToken;
     _currentAttemptId = widget.initialAttemptId ??
         PhoneVerifyLogger.generateAttemptId(
             widget.isEmail ? 'email_otp_screen' : 'otp_screen');
@@ -78,7 +73,6 @@ class _EditProfilEmailNumberVeifyOTPState extends State<EditProfilEmailNumberVei
         caller: 'EditProfilEmailNumberVeifyOTP.initState',
         event: 'SCREEN_INITIALIZED',
         phone: '${widget.countryCode ?? ''}${widget.mobileNumber ?? ''}',
-        details: 'hasResendToken=${widget.resendToken != null}',
       );
     }
 
@@ -184,80 +178,6 @@ class _EditProfilEmailNumberVeifyOTPState extends State<EditProfilEmailNumberVei
 
     final fullPhoneNumber = '${widget.countryCode}${widget.mobileNumber}';
 
-    // 1. Firebase verifies entered OTP
-    String? idToken;
-    try {
-      PhoneVerifyLogger.log(
-        attemptId: _currentAttemptId,
-        caller: 'EditProfilNumberVeifyOTP._onVerify',
-        event: 'FIREBASE_SIGN_IN_START',
-        phone: fullPhoneNumber,
-      );
-
-      final credential = PhoneAuthProvider.credential(
-        verificationId: _verificationId,
-        smsCode: otp,
-      );
-
-      final userCredential =
-          await FirebaseAuth.instance.signInWithCredential(credential);
-
-      idToken = await userCredential.user?.getIdToken();
-
-      PhoneVerifyLogger.log(
-        attemptId: _currentAttemptId,
-        caller: 'EditProfilNumberVeifyOTP._onVerify',
-        event: 'FIREBASE_SIGN_IN_SUCCESS',
-        details: 'hasIdToken=${idToken != null && idToken.isNotEmpty}',
-      );
-
-      if (idToken == null || idToken.isEmpty) {
-        throw Exception('Failed to obtain Firebase authorization token.');
-      }
-    } on FirebaseAuthException catch (e) {
-      PhoneVerifyLogger.log(
-        attemptId: _currentAttemptId,
-        caller: 'EditProfilNumberVeifyOTP._onVerify',
-        event: 'FIREBASE_SIGN_IN_FAILED',
-        details: 'code=${e.code}, message=${e.message}',
-      );
-
-      if (!mounted) return;
-      String errorMsg = 'Invalid verification code. Please check and try again.';
-      if (e.code == 'invalid-verification-code') {
-        errorMsg = 'Incorrect OTP. Please enter the code received on your phone.';
-      } else if (e.code == 'session-expired') {
-        errorMsg = 'OTP session has expired. Please tap Resend Code.';
-        _resendTimer?.cancel();
-        _secondsRemaining = 0;
-      } else if (e.code == 'too-many-requests') {
-        errorMsg = 'Too many attempts. Please try again later.';
-      } else if (e.message != null && e.message!.isNotEmpty) {
-        errorMsg = e.message!;
-      }
-
-      setState(() {
-        _isVerifying = false;
-        _otpError = errorMsg;
-      });
-      return;
-    } catch (e) {
-      PhoneVerifyLogger.log(
-        attemptId: _currentAttemptId,
-        caller: 'EditProfilNumberVeifyOTP._onVerify',
-        event: 'FIREBASE_SIGN_IN_ERROR',
-        details: e.toString(),
-      );
-
-      if (!mounted) return;
-      setState(() {
-        _isVerifying = false;
-        _otpError = 'Failed to verify code with Firebase. Please try again.';
-      });
-      return;
-    }
-
-    // 2. Confirm verification with backend: country_code, mobile_number, phone_number, firebase_token (no otp)
     try {
       PhoneVerifyLogger.log(
         attemptId: _currentAttemptId,
@@ -269,8 +189,7 @@ class _EditProfilEmailNumberVeifyOTPState extends State<EditProfilEmailNumberVei
       final result = await ApiService().phoneVerifyConfirm(
         countryCode: widget.countryCode ?? '',
         mobileNumber: widget.mobileNumber ?? '',
-        phoneNumber: fullPhoneNumber,
-        firebaseToken: idToken,
+        otp: otp,
       );
 
       PhoneVerifyLogger.log(
@@ -328,105 +247,6 @@ class _EditProfilEmailNumberVeifyOTPState extends State<EditProfilEmailNumberVei
     }
   }
 
-  Future<void> _handleAutoVerification(
-    PhoneAuthCredential credential,
-    String attemptId,
-  ) async {
-    if (_isConfirmed || _isVerifying) {
-      PhoneVerifyLogger.log(
-        attemptId: attemptId,
-        caller: 'EditProfilNumberVeifyOTP._handleAutoVerification',
-        event: 'BLOCKED_DUPLICATE_CALL',
-        details: 'isConfirmed=$_isConfirmed, isVerifying=$_isVerifying',
-      );
-      return;
-    }
-
-    setState(() {
-      _isVerifying = true;
-      _otpError = '';
-    });
-
-    final fullPhoneNumber = '${widget.countryCode}${widget.mobileNumber}';
-
-    try {
-      PhoneVerifyLogger.log(
-        attemptId: attemptId,
-        caller: 'EditProfilNumberVeifyOTP._handleAutoVerification',
-        event: 'FIREBASE_AUTO_SIGN_IN_START',
-        phone: fullPhoneNumber,
-      );
-
-      final userCredential =
-          await FirebaseAuth.instance.signInWithCredential(credential);
-      final idToken = await userCredential.user?.getIdToken();
-
-      PhoneVerifyLogger.log(
-        attemptId: attemptId,
-        caller: 'EditProfilNumberVeifyOTP._handleAutoVerification',
-        event: 'FIREBASE_AUTO_SIGN_IN_SUCCESS',
-        details: 'hasIdToken=${idToken != null && idToken.isNotEmpty}',
-      );
-
-      if (idToken == null || idToken.isEmpty) {
-        throw Exception('Failed to obtain token from auto-verification.');
-      }
-
-      PhoneVerifyLogger.log(
-        attemptId: attemptId,
-        caller: 'EditProfilNumberVeifyOTP._handleAutoVerification',
-        event: 'BACKEND_CONFIRM_START',
-        phone: fullPhoneNumber,
-      );
-
-      final result = await ApiService().phoneVerifyConfirm(
-        countryCode: widget.countryCode ?? '',
-        mobileNumber: widget.mobileNumber ?? '',
-        phoneNumber: fullPhoneNumber,
-        firebaseToken: idToken,
-      );
-
-      PhoneVerifyLogger.log(
-        attemptId: attemptId,
-        caller: 'EditProfilNumberVeifyOTP._handleAutoVerification',
-        event: 'BACKEND_CONFIRM_RESULT',
-        details: 'status=${result['status']}, success=${result['success']}',
-      );
-
-      if (!mounted) return;
-
-      final isSuccess = result['status'] == 'success' ||
-          result['success'] == true ||
-          (result['data'] != null && result['status'] != 'error');
-
-      if (isSuccess) {
-        _isConfirmed = true;
-        _resendTimer?.cancel();
-        Navigator.of(context).pop(true);
-      } else {
-        setState(() {
-          _isVerifying = false;
-          _otpError = result['message']?.toString() ??
-              'Auto-verification confirmation failed';
-        });
-      }
-    } catch (e) {
-      PhoneVerifyLogger.log(
-        attemptId: attemptId,
-        caller: 'EditProfilNumberVeifyOTP._handleAutoVerification',
-        event: 'ERROR_CAUGHT',
-        details: e.toString(),
-      );
-
-      if (mounted) {
-        setState(() {
-          _isVerifying = false;
-          _otpError = 'Auto-verification failed. Please enter the OTP manually.';
-        });
-      }
-    }
-  }
-
   Future<void> _resendOtp() async {
     if (_isResending || _isVerifying || _isConfirmed || _secondsRemaining > 0) {
       PhoneVerifyLogger.log(
@@ -470,7 +290,7 @@ class _EditProfilEmailNumberVeifyOTPState extends State<EditProfilEmailNumberVei
             _secondsRemaining = 60;
           });
           _startTimer();
-          showToast(message: 'OTP resent successfully');
+          showToast(message: 'OTP resent');
         } else {
           final msg = result['message']?.toString() ?? 'Failed to resend OTP';
           setState(() {
@@ -501,96 +321,60 @@ class _EditProfilEmailNumberVeifyOTPState extends State<EditProfilEmailNumberVei
       phone: fullPhoneNumber,
     );
 
-    PhoneVerifyLogger.log(
-      attemptId: newAttemptId,
-      caller: 'EditProfilNumberVeifyOTP._resendOtp',
-      event: 'FIREBASE_VERIFY_PHONE_INVOKED',
-      phone: fullPhoneNumber,
-      details: 'forceResendingToken=$_resendToken',
-    );
-
     try {
-      await FirebaseAuth.instance.verifyPhoneNumber(
-        phoneNumber: fullPhoneNumber,
-        forceResendingToken: _resendToken,
-        timeout: const Duration(seconds: 60),
-        codeSent: (String verificationId, int? resendToken) {
-          PhoneVerifyLogger.log(
-            attemptId: newAttemptId,
-            caller: 'EditProfilNumberVeifyOTP._resendOtp.codeSent',
-            event: 'FIREBASE_CALLBACK_CODE_SENT',
-            details: 'hasResendToken=${resendToken != null}',
-          );
-
-          if (!mounted) return;
-          for (final c in _otpControllers) {
-            c.clear();
-          }
-          if (_focusNodes.isNotEmpty) {
-            _focusNodes[0].requestFocus();
-          }
-          setState(() {
-            _verificationId = verificationId;
-            _resendToken = resendToken;
-            _isResending = false;
-            _secondsRemaining = 60;
-          });
-          _startTimer();
-          showToast(message: 'OTP resent successfully');
-        },
-        verificationFailed: (FirebaseAuthException e) {
-          PhoneVerifyLogger.log(
-            attemptId: newAttemptId,
-            caller: 'EditProfilNumberVeifyOTP._resendOtp.verificationFailed',
-            event: 'FIREBASE_CALLBACK_VERIFICATION_FAILED',
-            details: 'code=${e.code}, message=${e.message}',
-          );
-
-          if (!mounted) return;
-          String errorMessage;
-          switch (e.code) {
-            case 'invalid-phone-number':
-              errorMessage = 'Invalid phone number format.';
-              break;
-            case 'too-many-requests':
-              errorMessage = 'Too many attempts. Please try again later.';
-              break;
-            case 'network-request-failed':
-              errorMessage = 'Network error. Please check your connection.';
-              break;
-            default:
-              errorMessage = e.message ?? 'Failed to resend OTP. Try again.';
-          }
-          setState(() {
-            _isResending = false;
-            _otpError = errorMessage;
-            if (_secondsRemaining <= 0) {
-              _secondsRemaining = 15;
-            }
-          });
-          _startTimer();
-        },
-        codeAutoRetrievalTimeout: (String verificationId) {
-          PhoneVerifyLogger.log(
-            attemptId: newAttemptId,
-            caller:
-                'EditProfilNumberVeifyOTP._resendOtp.codeAutoRetrievalTimeout',
-            event: 'FIREBASE_CALLBACK_CODE_AUTO_RETRIEVAL_TIMEOUT',
-          );
-          if (mounted) {
-            _verificationId = verificationId;
-          }
-        },
-        verificationCompleted: (PhoneAuthCredential credential) {
-          PhoneVerifyLogger.log(
-            attemptId: newAttemptId,
-            caller:
-                'EditProfilNumberVeifyOTP._resendOtp.verificationCompleted',
-            event: 'FIREBASE_CALLBACK_VERIFICATION_COMPLETED',
-          );
-          _handleAutoVerification(credential, newAttemptId);
-        },
+      PhoneVerifyLogger.log(
+        attemptId: newAttemptId,
+        caller: 'EditProfilNumberVeifyOTP._resendOtp',
+        event: 'BACKEND_REQUEST_START',
+        phone: fullPhoneNumber,
       );
+
+      final result = await ApiService().phoneVerifyRequest(
+        countryCode: widget.countryCode ?? '',
+        mobileNumber: widget.mobileNumber ?? '',
+      );
+
+      PhoneVerifyLogger.log(
+        attemptId: newAttemptId,
+        caller: 'EditProfilNumberVeifyOTP._resendOtp',
+        event: 'BACKEND_RESEND_RESULT',
+        details: 'status=${result['status']}, success=${result['success']}',
+      );
+
+      if (!mounted) return;
+
+      final isSuccess = result['status'] == 'success' ||
+          result['success'] == true ||
+          (result['data'] != null &&
+              result['status'] != 'error' &&
+              result['success'] != false);
+
+      if (isSuccess) {
+        for (final c in _otpControllers) {
+          c.clear();
+        }
+        if (_focusNodes.isNotEmpty) {
+          _focusNodes[0].requestFocus();
+        }
+        setState(() {
+          _isResending = false;
+          _secondsRemaining = 60;
+        });
+        _startTimer();
+        showToast(message: 'OTP resent');
+      } else {
+        final msg = result['message']?.toString() ??
+            result['data']?['message']?.toString() ??
+            'Failed to resend OTP';
+        setState(() {
+          _isResending = false;
+          _otpError = msg;
+          if (_secondsRemaining <= 0) {
+            _secondsRemaining = 15;
+          }
+        });
+        _startTimer();
+      }
     } catch (e) {
       PhoneVerifyLogger.log(
         attemptId: newAttemptId,
@@ -600,9 +384,12 @@ class _EditProfilEmailNumberVeifyOTPState extends State<EditProfilEmailNumberVei
       );
 
       if (mounted) {
+        final msg = e.toString().contains('Exception:')
+            ? e.toString().replaceAll('Exception:', '').trim()
+            : 'Failed to resend OTP. Please try again.';
         setState(() {
           _isResending = false;
-          _otpError = 'Failed to resend OTP. Please try again.';
+          _otpError = msg;
           if (_secondsRemaining <= 0) {
             _secondsRemaining = 15;
           }

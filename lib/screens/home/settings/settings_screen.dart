@@ -23,6 +23,7 @@ import '../../../widgets/appbar/common_appbar.dart';
 import '../../../widgets/dialog/custom_diolog.dart';
 import '../../../widgets/show_toast.dart';
 import '../../auth/social/social_login_screen.dart';
+import '../dashboard/dashboard_import.dart';
 import 'account/private_account.dart';
 import 'block/block_account.dart';
 import 'feedback/feedback.dart';
@@ -55,11 +56,10 @@ class _SettingsScreenState extends State<SettingsScreen>
 
   Future<void> _clearAllCaches() async {
     try {
+      await DashboardState.clearAllFeedCaches();
       final prefs = await SharedPreferences.getInstance();
 
       const cacheKeys = [
-        'home_feed_cache',
-        'home_feed_cache_time',
         'cached_notifications',
         'cached_friend_requests',
         'cached_user_profile',
@@ -83,14 +83,29 @@ class _SettingsScreenState extends State<SettingsScreen>
     final refreshToken = await SharedPrefService.getRefreshToken(); // re_token
 
     showLoadingDialog(context);
+    bool backendSuccess = false;
     try {
-      final response = await http.post(
-        Uri.parse(ApiConstants.logout),
-        headers: {'Authorization': 'Bearer $accessToken'},
-        body: {'refresh_token': refreshToken},
-      );
+      if (accessToken != null && accessToken.isNotEmpty) {
+        final response = await http
+            .post(
+              Uri.parse(ApiConstants.logout),
+              headers: {'Authorization': 'Bearer $accessToken'},
+              body: {'refresh_token': refreshToken ?? ''},
+            )
+            .timeout(const Duration(seconds: 10));
 
-      if (response.statusCode == 205) {
+        if (response.statusCode == 205) {
+          backendSuccess = true;
+        } else {
+          debugPrint('Backend logout returned status: ${response.statusCode}');
+        }
+      }
+    } catch (e) {
+      debugPrint(
+        'Backend logout error or timeout (proceeding with local cleanup): $e',
+      );
+    } finally {
+      try {
         await _clearAllCaches();
         await SharedPrefService.clearTokens();
         await SharedPrefService.clearFirstname();
@@ -99,21 +114,23 @@ class _SettingsScreenState extends State<SettingsScreen>
         await SharedPrefService.clearUserBio();
         await SharedPrefService.removeFcmToken();
         await SharedPrefService.clearLanguage();
-        MyApp.of(context)?.resetLocale();
-
         if (mounted) {
+          MyApp.of(context)?.resetLocale();
           context.read<UserProvider>().clearUserData();
         }
-
-        clearStackAndAddScreen(context, const SocialLoginScreen());
-        showToast(message: 'Logged out successfully');
-      } else {
-        showToast(message: 'Token expired');
-        Navigator.pop(context);
+      } catch (cleanupError) {
+        debugPrint('Error during local session cleanup: $cleanupError');
       }
-    } catch (e) {
-      setState(() {});
-    } finally {}
+
+      if (mounted) {
+        clearStackAndAddScreen(context, const SocialLoginScreen());
+        if (backendSuccess) {
+          showToast(message: 'Logged out successfully');
+        } else {
+          showToast(message: 'Logged out');
+        }
+      }
+    }
   }
 
   @override

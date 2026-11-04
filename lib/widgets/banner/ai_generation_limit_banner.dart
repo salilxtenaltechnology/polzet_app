@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:polzet_app/languages/l10n/generated/app_localizations.dart';
 import '../../gen/assets.gen.dart';
-import '../../languages/l10n/generated/app_localizations.dart';
 
 class AiGenerationLimitBanner extends StatelessWidget {
   final int remainingGenerations;
@@ -34,55 +34,30 @@ class AiGenerationLimitBanner extends StatelessWidget {
     }
 
     return Container(
-      width: double.infinity,
-      padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 12.h),
+      width: 90,
+      padding: const EdgeInsets.fromLTRB(12, 5, 10, 5),
+      margin: EdgeInsets.only(right: 10.w),
       decoration: BoxDecoration(
         color: bgColor,
-        borderRadius: BorderRadius.circular(12.r),
+        borderRadius: BorderRadius.circular(8),
       ),
       child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
         crossAxisAlignment: isLimitReached
             ? CrossAxisAlignment.start
             : CrossAxisAlignment.center,
         children: [
-          Assets.images.icAssistant.image(
-            width: 18.w,
-            height: 18.h,
+          Assets.images.icAiGenerate.image(
+            width: 15,
+            height: 15,
             color: contentColor,
           ),
-          SizedBox(width: 8.w),
+          SizedBox(width: 5.w),
           Expanded(
-            child: isLimitReached
-                ? Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        AppLocalizations.of(context)!.noaigenerationslefttoday,
-                        style: TextStyle(
-                          fontSize: 12.sp,
-                          fontWeight: FontWeight.w500,
-                          color: contentColor,
-                        ),
-                      ),
-                      SizedBox(height: 3.h),
-                      Text(
-                        AppLocalizations.of(
-                          context,
-                        )!.yourcreditswillresettomorrow,
-                        style: TextStyle(
-                          fontSize: 12.sp,
-                          fontWeight: FontWeight.w400,
-                          color: isDark
-                              ? const Color(0xFF9CA3AF)
-                              : const Color(0xFF6B7280),
-                        ),
-                      ),
-                    ],
-                  )
-                : Text(
-                    '$remainingGenerations ${AppLocalizations.of(context)!.ai} ${remainingGenerations == 1 ? AppLocalizations.of(context)!.generation : AppLocalizations.of(context)!.generations} ${AppLocalizations.of(context)!.lefttoday}',
+            child:  Text(
+                    '$remainingGenerations ${AppLocalizations.of(context)!.left}',
                     style: TextStyle(
-                      fontSize: 12.sp,
+                      fontSize: 13,
                       fontWeight: FontWeight.w500,
                       color: contentColor,
                     ),

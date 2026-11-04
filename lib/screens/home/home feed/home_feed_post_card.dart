@@ -27,6 +27,7 @@ import '../../../widgets/base64/image_convert.dart';
 import '../../../core/utils/bottomsheet_util.dart';
 import '../../../core/utils/like_util.dart';
 import '../../../widgets/dialog/custom_diolog.dart';
+import '../../../widgets/image/post_images_carousel.dart';
 import '../dashboard/dashboard_import.dart';
 import '../home_imports.dart';
 import '../profile/public/public_profile_screen.dart';
@@ -35,6 +36,8 @@ import 'rank/result/image/image_result_screen.dart';
 import 'rank/result/things/things_result_screen.dart';
 import 'rank/things/homefeed_things_ranking.dart';
 import '../../../languages/l10n/generated/app_localizations.dart';
+import '../../../models/poll/inspired_poll_data.dart';
+import '../new poll/add_new_poll.dart';
 
 class HomeFeedPostCard extends StatefulWidget {
   final HomeFeedPost post;
@@ -462,21 +465,43 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
         votes: votes,
       );
 
-      if (result['success']) {
+      if (result['success'] == true || result['success'] == 1) {
         if (mounted) {
           setState(() {
             widget.post.isPolledByCurrentUser = true;
             pollResultsLoaded[pollKey] = true;
             pollVotingStates[pollKey] = false;
+
+            final responseOptions = result['data']?['options'];
+            if (responseOptions is List && responseOptions.isNotEmpty) {
+              for (final optionData in responseOptions) {
+                if (optionData is! Map) continue;
+                final rawId = optionData['option_id'];
+                if (rawId == null) continue;
+                final optId = rawId is int ? rawId : (rawId as num).toInt();
+                final pct =
+                    (optionData['percentage'] as num?)?.toDouble() ?? 0.0;
+
+                for (var option in poll.options) {
+                  if (option.id == optId) {
+                    option.percentage = pct;
+                  }
+                }
+              }
+            }
+
+            final rawTotalVotes = result['data']?['total_votes'];
+            if (rawTotalVotes is num) {
+              poll.totalVotes = rawTotalVotes.toInt();
+            } else {
+              poll.totalVotes = previousTotalVotes + 1;
+            }
+            pollTotalVotes[pollKey] = poll.totalVotes;
           });
         }
 
         showToast(message: 'Vote submitted!');
-        _notifyDashboardOfUpdate();
-        Future.delayed(
-          const Duration(milliseconds: 500),
-          _refreshHomeFeedSilently,
-        );
+        _updatePostInDashboard();
       } else {
         setState(() {
           widget.post.isPolledByCurrentUser = previousIsPolled;
@@ -555,15 +580,19 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
                 }
               }
             }
+
+            final rawTotalVotes = result['data']?['total_votes'];
+            if (rawTotalVotes is num) {
+              poll.totalVotes = rawTotalVotes.toInt();
+            } else {
+              poll.totalVotes = previousTotalVotes + 1;
+            }
+            pollTotalVotes[pollKey] = poll.totalVotes;
           });
         }
 
         showToast(message: 'Vote submitted!');
-        _notifyDashboardOfUpdate();
-        Future.delayed(
-          const Duration(milliseconds: 500),
-          _refreshHomeFeedSilently,
-        );
+        _updatePostInDashboard();
       } else {
         if (mounted) {
           setState(() {
@@ -605,6 +634,16 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
       context.findAncestorStateOfType<DashboardState>()?.notifyPostsChanged();
     } catch (e) {
       debugPrint('Could not notify dashboard: $e');
+    }
+  }
+
+  void _updatePostInDashboard() {
+    try {
+      context.findAncestorStateOfType<DashboardState>()?.updatePostLocally(
+        widget.post,
+      );
+    } catch (e) {
+      debugPrint('Could not update post in dashboard: $e');
     }
   }
 
@@ -663,7 +702,14 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
         HomeFeedPostCard.globallyChasedUserStates[widget.post.user.userid] ??
         (widget.post.followingStatus != 'none' ? 'hidden' : 'none');
 
-    if (!hasPolls || widget.post.polls.any((p) => p.options.isEmpty)) {
+    final bool hasImages = widget.post.images.isNotEmpty;
+    final bool hasDescription = widget.post.description.trim().isNotEmpty;
+
+    if (!hasPolls && !hasImages && !hasDescription) {
+      return const SizedBox.shrink();
+    }
+
+    if (hasPolls && widget.post.polls.any((p) => p.options.isEmpty)) {
       return const SizedBox.shrink();
     }
 
@@ -756,14 +802,16 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
                                   backgroundImage: (() {
                                     if (raw.isEmpty || raw == 'null') {
                                       return AssetImage(
-                                        Assets.images.icAvatar.path,
-                                      ) as ImageProvider;
+                                            Assets.images.icAvatar.path,
+                                          )
+                                          as ImageProvider;
                                     }
                                     if (raw == Assets.images.icAvatar.path ||
                                         raw.endsWith('ic_avatar.png')) {
                                       return AssetImage(
-                                        Assets.images.icAvatar.path,
-                                      ) as ImageProvider;
+                                            Assets.images.icAvatar.path,
+                                          )
+                                          as ImageProvider;
                                     }
                                     if (raw.startsWith('assets/')) {
                                       return AssetImage(raw) as ImageProvider;
@@ -778,14 +826,15 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
                                       final imageUrl = raw.startsWith('http')
                                           ? raw
                                           : (raw.startsWith('/')
-                                              ? '${ApiConfig.baseUrlImage}$raw'
-                                              : '${ApiConfig.baseUrlImage}/$raw');
+                                                ? '${ApiConfig.baseUrlImage}$raw'
+                                                : '${ApiConfig.baseUrlImage}/$raw');
                                       return NetworkImage(imageUrl)
                                           as ImageProvider;
                                     }
                                     return AssetImage(
-                                      Assets.images.icAvatar.path,
-                                    ) as ImageProvider;
+                                          Assets.images.icAvatar.path,
+                                        )
+                                        as ImageProvider;
                                   })(),
                                   onBackgroundImageError: (_, __) {},
                                 );
@@ -906,7 +955,7 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
                             ),
                             SizedBox(width: 4.w),
                             Text(
-                             AppLocalizations.of(context)!.aipick,
+                              AppLocalizations.of(context)!.aipick,
                               style: AppTextStyles.subText.copyWith(
                                 fontSize: 11.sp,
                                 fontWeight: FontWeight.w500,
@@ -1092,11 +1141,12 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
                                       child: Column(
                                         mainAxisSize: MainAxisSize.min,
                                         children: [
-                                          if (widget
-                                                  .post
-                                                  .isPolledByCurrentUser ||
-                                              widget.post.user.userid ==
-                                                  userProvider.userId)
+                                          if (hasPolls &&
+                                              (widget
+                                                      .post
+                                                      .isPolledByCurrentUser ||
+                                                  widget.post.user.userid ==
+                                                      userProvider.userId))
                                             InkWell(
                                               onTap: () => Navigator.pop(
                                                 ctx,
@@ -1110,7 +1160,9 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
                                                       vertical: 9,
                                                     ),
                                                 child: Text(
-                                                  'View Result',
+                                                  AppLocalizations.of(
+                                                    context,
+                                                  )!.viewresult,
                                                   style: AppTextStyles.bodyText
                                                       .copyWith(
                                                         color: txt.title,
@@ -1133,8 +1185,12 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
                                                   ),
                                               child: Text(
                                                 isSaved
-                                                    ? AppLocalizations.of(context)!.unsavepoll
-                                                    : AppLocalizations.of(context)!.savepoll,
+                                                    ? AppLocalizations.of(
+                                                        context,
+                                                      )!.unsavepoll
+                                                    : AppLocalizations.of(
+                                                        context,
+                                                      )!.savepoll,
                                                 style: AppTextStyles.bodyText
                                                     .copyWith(
                                                       color: txt.title,
@@ -1158,7 +1214,9 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
                                                     vertical: 9,
                                                   ),
                                               child: Text(
-                                               AppLocalizations.of(context)!.gotoprofile,
+                                                AppLocalizations.of(
+                                                  context,
+                                                )!.gotoprofile,
                                                 style: AppTextStyles.bodyText
                                                     .copyWith(
                                                       color: txt.title,
@@ -1185,8 +1243,12 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
                                                     ),
                                                 child: Text(
                                                   isUserBlocked
-                                                      ? AppLocalizations.of(context)!.unblockuser
-                                                      : AppLocalizations.of(context)!.blockuser,
+                                                      ? AppLocalizations.of(
+                                                          context,
+                                                        )!.unblockuser
+                                                      : AppLocalizations.of(
+                                                          context,
+                                                        )!.blockuser,
                                                   style: AppTextStyles.bodyText
                                                       .copyWith(
                                                         color: isUserBlocked
@@ -1292,7 +1354,22 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
               ),
               Divider(color: Theme.of(context).colorScheme.outlineVariant),
 
-              if (hasPolls) ..._buildPollContent(),
+              if (widget.post.inspiredByPost != null)
+                Padding(
+                  padding: EdgeInsets.fromLTRB(12.w, 4.h, 12.w, 6.h),
+                  child: _buildInspiredPostBadge(
+                    context,
+                    widget.post.inspiredByPost!,
+                  ),
+                ),
+
+              if (hasPolls)
+                ..._buildPollContent()
+              else if (hasImages || hasDescription)
+                Padding(
+                  padding: EdgeInsets.fromLTRB(10.w, 5.h, 10.w, 10.h),
+                  child: _buildImagePostSection(context, widget.post),
+                ),
 
               /*──── Actions ────*/
               Padding(
@@ -1329,7 +1406,7 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
                         ],
                       ),
                     ),
-                    SizedBox(width: 8.w),
+                    const SizedBox(width: 8),
                     GestureDetector(
                       onTap: () => _showCommentsBottomSheet(widget.post.id),
                       child: Row(
@@ -1347,7 +1424,7 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
                         ],
                       ),
                     ),
-                    SizedBox(width: 8.w),
+                    const SizedBox(width: 8),
                     GestureDetector(
                       onTap: () => ShareService.sharePost(
                         widget.post,
@@ -1372,6 +1449,67 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
                               fontWeight: FontWeight.w400,
                             ),
                           ),
+                          const SizedBox(width: 2)
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTap: () {
+                        final userProvider =
+                            Provider.of<UserProvider>(context, listen: false);
+                        final currentUsername =
+                            userProvider.username?.trim() ?? '';
+                        final currentUserId =
+                            userProvider.userId?.toString().trim() ?? '';
+                        final postUsername = widget.post.user.username.trim();
+                        final postUserId =
+                            widget.post.user.userid.toString().trim();
+
+                        final bool isOwnPost = (currentUsername.isNotEmpty &&
+                                postUsername.toLowerCase() ==
+                                    currentUsername.toLowerCase()) ||
+                            (currentUserId.isNotEmpty &&
+                                postUserId == currentUserId);
+
+                        if (isOwnPost) {
+                          showToast(
+                            message:
+                                'You can’t create an inspired post from your own post.',
+                          );
+                          return;
+                        }
+
+                        navigationPush(
+                          context,
+                          AddNewPoll(
+                            inspiredData: InspiredPollData.fromPost(
+                              widget.post,
+                            ),
+                            inspiredPostId: widget.post.id,
+                          ),
+                        );
+                      },
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          AppIcons.icInspire(
+                            color: isDarkMode
+                                ? const Color(0xFF595959)
+                                : const Color(0xFF6D6C6C),
+                          ),
+                          if (widget.post.inspiredCount > 0) ...[
+                            const SizedBox(width: 8),
+                            Text(
+                              '${widget.post.inspiredCount}',
+                              style: AppTextStyles.subText.copyWith(
+                                color: txt.body,
+                                fontSize: 13.5,
+                                fontWeight: FontWeight.w400,
+                              ),
+                            ),
+                          ],
                         ],
                       ),
                     ),
@@ -1433,6 +1571,29 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
             ],
           ),
         ),
+      ],
+    );
+  }
+
+  Widget _buildImagePostSection(BuildContext context, HomeFeedPost post) {
+    final txt = AppTextColors.of(context);
+    final hasImages = post.images.isNotEmpty;
+    final hasDescription = post.description.trim().isNotEmpty;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (hasDescription) ...[
+          Padding(
+            padding: const EdgeInsets.only(top: 2, bottom: 8),
+            child: _buildDescriptionWithHashtags(
+              context,
+              post.description,
+              txt,
+            ),
+          ),
+        ],
+        if (hasImages) ...[PostImagesCarousel(images: post.images)],
       ],
     );
   }
@@ -1539,15 +1700,95 @@ class _HomeFeedPostCardState extends State<HomeFeedPostCard> with UtilityMixin {
     );
   }
 
+  Widget _buildInspiredPostBadge(
+    BuildContext context,
+    InspiredByPost inspiredByPost,
+  ) {
+    final txt = AppTextColors.of(context);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    final backgroundColor = isDark
+        ? const Color(0xFF1E1517)
+        : const Color(0x0D9B3046);
+    final borderColor = isDark
+        ? const Color(0xFF382328)
+        : const Color(0xFFF3E4E7);
+    final textColor = isDark
+        ? const Color(0xFFDCDCDC)
+        : const Color(0xFF222222);
+
+    final rawUsername = inspiredByPost.author.username.trim();
+    final cleanUsername = rawUsername.startsWith('@')
+        ? rawUsername.substring(1).trim()
+        : rawUsername;
+    final displayUsername = cleanUsername.isNotEmpty ? cleanUsername : 'user';
+
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () {
+        if (displayUsername.isNotEmpty && displayUsername != 'user') {
+          navigationPush(
+            context,
+            PublicProfileScreen(username: displayUsername),
+          );
+        }
+      },
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        decoration: BoxDecoration(
+          color: backgroundColor,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: borderColor, width: 1),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            AppIcons.icInspire(
+              size: 15,
+              color: Theme.of(context).colorScheme.primary,
+            ),
+            SizedBox(width: 8.w),
+            Expanded(
+              child: Text.rich(
+                TextSpan(
+                  style: AppTextStyles.bodyText.copyWith(
+                    fontSize: 13.5,
+                    color: txt.title,
+                    fontWeight: FontWeight.w400,
+                  ),
+                  children: [
+                     TextSpan(text: '${AppLocalizations.of(context)!.inspiredby} '),
+                    TextSpan(
+                      text: displayUsername,
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.primary,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    TextSpan(text: ' ${AppLocalizations.of(context)!.polllowercase}'),
+                  ],
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildDescriptionWithHashtags(
     BuildContext context,
     String description,
     AppTextColors txt,
   ) {
-    return _ExpandableDescriptionWithHashtags(
-      description: description,
-      txt: txt,
-    );
+    final cleaned = description
+        .replaceAll(RegExp(r'\s*\[inspired_by:[^\]]+\]'), '')
+        .trim();
+    if (cleaned.isEmpty) return const SizedBox.shrink();
+    return _ExpandableDescriptionWithHashtags(description: cleaned, txt: txt);
   }
 
   Widget _buildAnonymousImageTextPollSection(

@@ -2661,7 +2661,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'Ask it. Get real opinions from the crowd';
 
   @override
-  String get whatsonyourmind => 'what’s on your mind';
+  String get whatsonyourmind => 'What’s on your mind';
 
   @override
   String get createpoll => 'Create Poll';
@@ -2857,4 +2857,124 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get withselectedfilters => 'with selected filters';
+
+  @override
+  String get notopicsavailable => 'No topics available';
+
+  @override
+  String get filter => 'Filter';
+
+  @override
+  String get applyfilters => 'Apply Filters';
+
+  @override
+  String get next => 'Next';
+
+  @override
+  String get create => 'Create';
+
+  @override
+  String get whatdoyouwanttocreate => 'What do you want to create?';
+
+  @override
+  String get askaquestiongetopinions => 'Ask a question & get opinions';
+
+  @override
+  String get createpost => 'Create Post';
+
+  @override
+  String get sharephotosandthoughts => 'Share photos and thoughts';
+
+  @override
+  String get privateconversationsshareddiscussions =>
+      'Private conversations & shared discussions';
+
+  @override
+  String get sharedphotosandthoughtswithyourscommunity =>
+      'Share photos and thoughts with your community';
+
+  @override
+  String get caption => 'Caption';
+
+  @override
+  String get whatsyourmind => 'What\'s on your mind?';
+
+  @override
+  String get publishpoll => 'Publish Poll';
+
+  @override
+  String get previewpost => 'Preview Post';
+
+  @override
+  String get seehowyourpollwillappearinthefeedbeforepublishing =>
+      'See how your poll will appear in the feed before publishing';
+
+  @override
+  String get pleaseenterlabel => 'Please enter label';
+
+  @override
+  String get nocategoryfound => 'No category found';
+
+  @override
+  String get searchcategory => 'Search category...';
+
+  @override
+  String get selectacategory => 'Select a category';
+
+  @override
+  String get preview => 'Preview';
+
+  @override
+  String get reorder => 'Reorder';
+
+  @override
+  String get reorderimages => 'Reorder images';
+
+  @override
+  String get dragdroptochangeorder => 'Drag & Drop to change order';
+
+  @override
+  String get done => 'Done';
+
+  @override
+  String get reject => 'Reject';
+
+  @override
+  String get pleaseenterlabelorselectimage =>
+      'Please enter label or select image';
+
+  @override
+  String get pleaseselectimage => 'Please select image';
+
+  @override
+  String get pleaseselectcategory => 'Please select category';
+
+  @override
+  String get pleaseenteravalidmobilenumber =>
+      'Please enter a valid mobile number';
+
+  @override
+  String get left => 'left';
+
+  @override
+  String
+  get mismatchedoptionsoneoptionwithtextonlyandonewithimageonlyisnotallowed =>
+      'Mismatched options: One option with text only and one with image only is not allowed';
+
+  @override
+  String get mismatchoptionsdonotmixtextonlyandimageoptions =>
+      'Mismatch options: Do not mix text-only and image options';
+
+  @override
+  String get deletepost => 'Delete post';
+
+  @override
+  String get areyousurewanttodeletethispost =>
+      'Are you sure you want to delete this post?';
+
+  @override
+  String get inspiredby => 'Inspired by';
+
+  @override
+  String get polllowercase => 'poll';
 }

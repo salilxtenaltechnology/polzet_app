@@ -6,12 +6,12 @@ import 'package:polzet_app/core/constants/feather_icons_compat.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:polzet_app/screens/home/new%20poll/add_new_poll.dart';
-import 'package:provider/provider.dart';
+import 'package:provider/provider.dart' hide Create;
 import 'package:showcaseview/showcaseview.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../api/services/notification/notification_services.dart';
+import 'create/create.dart';
 import 'profile/public/public_profile_screen.dart';
 import '../../core/navigation/notification_router.dart';
 import '../../core/themes/app_text_styles.dart';

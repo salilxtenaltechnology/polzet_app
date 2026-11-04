@@ -25,12 +25,18 @@ import '../../../../widgets/button/generate_description_button.dart';
 import '../../../../core/constants/app_radius.dart';
 import '../../../../core/themes/app_text_colors.dart';
 import '../../../../core/themes/app_text_styles.dart';
+import '../../../../models/poll/inspired_poll_data.dart';
+import '../widgets/category_dropdown_field.dart';
+import '../widgets/inspired_poll_card.dart';
+import '../widgets/poll_keyboard_dismiss_wrapper.dart';
 
 class NewTextPoll extends StatefulWidget {
   final String? initialQuestion;
   final String? initialDescription;
   final List<String>? initialOptions;
   final String? initialVotingType;
+  final InspiredPollData? inspiredData;
+  final String? inspiredPostId;
 
   const NewTextPoll({
     super.key,
@@ -38,6 +44,8 @@ class NewTextPoll extends StatefulWidget {
     this.initialDescription,
     this.initialOptions,
     this.initialVotingType,
+    this.inspiredData,
+    this.inspiredPostId,
   });
 
   @override
@@ -55,6 +63,8 @@ class _NewThingsPollState extends State<NewTextPoll> with UtilityMixin {
   final FocusNode questionFocusNode = FocusNode();
   final List<TextEditingController> optionControllers = [];
 
+  String? _selectedCategory;
+
   // State
   bool _isLoading = false;
   bool _isGeneratingQuestion = false;
@@ -66,10 +76,11 @@ class _NewThingsPollState extends State<NewTextPoll> with UtilityMixin {
   bool _isMultiChoice = false;
   String questionErrorText = '';
   String optionsErrorText = '';
+  String categoryErrorText = '';
 
   int _remainingGenerations = 8;
   int _dailyLimit = 8;
- 
+
   Future<void> _loadSavedAiLimit() async {
     final limitData = await SharedPrefService.getAiLimitData();
     if (mounted) {
@@ -82,8 +93,10 @@ class _NewThingsPollState extends State<NewTextPoll> with UtilityMixin {
 
   void _updateAiLimitFromResponse(Map<String, dynamic>? response) {
     if (response == null) return;
-    final rawRemaining = response['remaining'] ?? response['data']?['remaining'];
-    final rawLimit = response['daily_limit'] ?? response['data']?['daily_limit'];
+    final rawRemaining =
+        response['remaining'] ?? response['data']?['remaining'];
+    final rawLimit =
+        response['daily_limit'] ?? response['data']?['daily_limit'];
 
     if (rawRemaining != null) {
       final parsedRemaining = int.tryParse(rawRemaining.toString());
@@ -146,7 +159,8 @@ class _NewThingsPollState extends State<NewTextPoll> with UtilityMixin {
     questionController.addListener(_onQuestionChanged);
     _startHintAnimation();
 
-    final hasAutoFilled = (widget.initialQuestion != null &&
+    final hasAutoFilled =
+        (widget.initialQuestion != null &&
             widget.initialQuestion!.trim().isNotEmpty) ||
         (widget.initialOptions != null && widget.initialOptions!.isNotEmpty) ||
         (widget.initialVotingType != null &&
@@ -170,10 +184,8 @@ class _NewThingsPollState extends State<NewTextPoll> with UtilityMixin {
 
   /// Initialize with minimum required option fields
   void _initializeOptionFields() {
-    final options = widget.initialOptions
-            ?.where((o) => o.trim().isNotEmpty)
-            .toList() ??
-        [];
+    final options =
+        widget.initialOptions?.where((o) => o.trim().isNotEmpty).toList() ?? [];
     final count = options.isNotEmpty
         ? options.length.clamp(minOptions, maxOptions)
         : minOptions;
@@ -240,6 +252,14 @@ class _NewThingsPollState extends State<NewTextPoll> with UtilityMixin {
       isValid = false;
     }
 
+    // Validate category
+    if (_selectedCategory == null || _selectedCategory!.trim().isEmpty) {
+      setState(() {
+        categoryErrorText = 'Please select category';
+      });
+      isValid = false;
+    }
+
     if (kDebugMode) {
       print('Validation - Valid options: ${validOptions.length}');
       print('Validation - Is valid: $isValid');
@@ -288,6 +308,8 @@ class _NewThingsPollState extends State<NewTextPoll> with UtilityMixin {
       _initializeOptionFields();
       questionErrorText = '';
       optionsErrorText = '';
+      categoryErrorText = '';
+      _selectedCategory = null;
       _hasGeneratedQuestion = false;
       _hasGeneratedOptions = false;
       _hasGeneratedDescription = false;
@@ -532,11 +554,12 @@ class _NewThingsPollState extends State<NewTextPoll> with UtilityMixin {
   }
 
   /// Create poll post via API
-  Future<void> addPoll() async {
+  Future<void> addTextPoll() async {
     // Clear previous errors
     setState(() {
       questionErrorText = '';
       optionsErrorText = '';
+      categoryErrorText = '';
     });
 
     // Validate inputs
@@ -550,13 +573,25 @@ class _NewThingsPollState extends State<NewTextPoll> with UtilityMixin {
       final accessToken = await SharedPrefService.getToken();
       final validOptions = _getValidOptions();
 
-      final formData = FormData.fromMap({
+      final originalPostId =
+          widget.inspiredPostId ?? widget.inspiredData?.postId;
+
+      final formMap = <String, dynamic>{
         "question": questionController.text.trim(),
         "description": descriptionController.text.trim(),
         "poll_type": "text",
         "voting_type": _isMultiChoice ? "ranking" : "single_choice",
         "max_options": maxOptions.toString(),
-      });
+        "category": _selectedCategory,
+      };
+
+      if (originalPostId != null && originalPostId.isNotEmpty) {
+        formMap["inspiration_id"] = originalPostId;
+        formMap["inspired_by_post_id"] = originalPostId;
+        formMap["parent_post_id"] = originalPostId;
+      }
+
+      final formData = FormData.fromMap(formMap);
 
       // Add each poll option as a separate field
       for (var option in validOptions) {
@@ -683,32 +718,46 @@ class _NewThingsPollState extends State<NewTextPoll> with UtilityMixin {
       backgroundColor: Theme.of(context).colorScheme.background,
       appBar: CommonAppBar(
         title: AppLocalizations.of(context)!.addnewpollanswer,
+        actions: [
+          // AI Generation Limit Banner
+          AiGenerationLimitBanner(remainingGenerations: _remainingGenerations),
+        ],
       ),
-      body: SingleChildScrollView(
-        padding: EdgeInsets.symmetric(horizontal: 12.w),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SizedBox(height: 10.h),
+      body: PollKeyboardDismissWrapper(
+        child: SingleChildScrollView(
+          padding: EdgeInsets.symmetric(horizontal: 12.w),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SizedBox(height: 10.h),
 
-            // AI Generation Limit Banner
-            AiGenerationLimitBanner(
-              remainingGenerations: _remainingGenerations,
-            ),
-            SizedBox(height: 15.h),
+              // Inspired Poll Card
+              if (widget.inspiredData != null) ...[
+                InspiredPollCard(inspiredData: widget.inspiredData!),
+                SizedBox(height: 15.h),
+              ],
 
-            // Question Field
-            _buildQuestionField(),
-            SizedBox(height: 20.h),
+              // Question Field
+              _buildQuestionField(),
+              SizedBox(height: 20.h),
 
-            // Description Field
-            _buildDescriptionField(),
-            SizedBox(height: 20.h),
+              // Description Field
+              _buildDescriptionField(),
+              SizedBox(height: 20.h),
 
-            // Poll Options
-            _buildPollOptionsSection(),
-            SizedBox(height: 20.h),
-          ],
+              // Poll Options
+              _buildPollOptionsSection(),
+              SizedBox(height: 10.h),
+
+              // Category Field
+              _buildCategorySection(),
+              SizedBox(height: 20.h),
+
+              // Voting Mode
+              _buildVotingModeSection(),
+              SizedBox(height: 20.h),
+            ],
+          ),
         ),
       ),
       bottomNavigationBar: BottomAppBar(
@@ -719,7 +768,7 @@ class _NewThingsPollState extends State<NewTextPoll> with UtilityMixin {
           width: double.infinity,
           height: 50,
           child: ElevatedButton(
-            onPressed: _isLoading ? null : addPoll,
+            onPressed: _isLoading ? null : addTextPoll,
             style: ElevatedButton.styleFrom(
               backgroundColor: Theme.of(context).colorScheme.primary,
               disabledBackgroundColor: const Color(0x269B3046),
@@ -901,6 +950,25 @@ class _NewThingsPollState extends State<NewTextPoll> with UtilityMixin {
           SizedBox(height: 15.h),
         ],
 
+        if (optionsErrorText.isNotEmpty)
+          Padding(
+            padding: EdgeInsets.only(top: 10.h, bottom: 10.h),
+            child: Text(
+              optionsErrorText,
+              style: CustomTextStyles.msgErrorText(context),
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildVotingModeSection() {
+    final txt = AppTextColors.of(context);
+    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
         Text(
           AppLocalizations.of(context)!.votingmode,
           style: CustomTextStyles.lblPrimaryText(context),
@@ -916,7 +984,7 @@ class _NewThingsPollState extends State<NewTextPoll> with UtilityMixin {
                   });
                 },
                 child: Container(
-                  height: 85,
+                  height: 75,
                   padding: const EdgeInsets.symmetric(horizontal: 10),
                   decoration: BoxDecoration(
                     color: isDarkMode
@@ -968,7 +1036,7 @@ class _NewThingsPollState extends State<NewTextPoll> with UtilityMixin {
                   });
                 },
                 child: Container(
-                  height: 85,
+                  height: 75,
                   padding: const EdgeInsets.symmetric(horizontal: 10),
                   decoration: BoxDecoration(
                     color: isDarkMode
@@ -1013,15 +1081,47 @@ class _NewThingsPollState extends State<NewTextPoll> with UtilityMixin {
             ),
           ],
         ),
+      ],
+    );
+  }
 
-        if (optionsErrorText.isNotEmpty)
+  Widget _buildCategoryField() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        CategoryDropdownField(
+          selectedCategory: _selectedCategory,
+          onCategorySelected: (cat) {
+            setState(() {
+              _selectedCategory = cat;
+              if (categoryErrorText.isNotEmpty) {
+                categoryErrorText = '';
+              }
+            });
+          },
+        ),
+        if (categoryErrorText.isNotEmpty)
           Padding(
-            padding: EdgeInsets.only(top: 10.h, bottom: 10.h),
+            padding: EdgeInsets.only(top: 5.h),
             child: Text(
-              optionsErrorText,
+              categoryErrorText,
               style: CustomTextStyles.msgErrorText(context),
             ),
           ),
+      ],
+    );
+  }
+
+  Widget _buildCategorySection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          AppLocalizations.of(context)!.category,
+          style: CustomTextStyles.lblPrimaryText(context),
+        ),
+        SizedBox(height: 10.h),
+        _buildCategoryField(),
       ],
     );
   }

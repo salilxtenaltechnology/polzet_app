@@ -1,4 +1,7 @@
 // ignore_for_file: non_constant_identifier_names
+import 'homefeed_posts_model.dart';
+export 'homefeed_posts_model.dart' show InspiredByPost, InspiredByAuthor;
+
 class UserPostResponse {
   final int count;
   final String? next;
@@ -66,6 +69,9 @@ class UserPostModel {
   final String locationName;
   bool is_polled_by_current_user;
   bool isSaved;
+  final InspiredByPost? inspiredByPost;
+  final int inspiredCount;
+  final int repollCount;
 
   UserPostModel({
     required this.id,
@@ -86,6 +92,9 @@ class UserPostModel {
     required this.locationName,
     required this.is_polled_by_current_user,
     this.isSaved = false,
+    this.inspiredByPost,
+    this.inspiredCount = 0,
+    this.repollCount = 0,
   });
 
   factory UserPostModel.fromJson(Map<String, dynamic> json) {
@@ -145,6 +154,13 @@ class UserPostModel {
       is_polled_by_current_user: _parseBool(json['is_polled_by_current_user']),
       isSaved: _parseBool(json['is_saved'] ?? json['is_saved_by_current_user']),
       locationName: json['location_name']?.toString() ?? '',
+      inspiredByPost: json['inspired_by_post'] is Map
+          ? InspiredByPost.fromJson(
+              Map<String, dynamic>.from(json['inspired_by_post'] as Map),
+            )
+          : null,
+      inspiredCount: _toInt(json['inspired_count']),
+      repollCount: _toInt(json['repoll_count']),
     );
   }
 
@@ -161,6 +177,7 @@ class UserPostModel {
   bool get hasPollImages {
     final isPolzetAi = user.trim().toLowerCase() == 'polzet_ai';
     return (isPolzetAi && images.isNotEmpty) ||
+        images.isNotEmpty ||
         polls.any(
           (poll) => poll.options.any((option) => option.image != null),
         );
@@ -169,6 +186,7 @@ class UserPostModel {
   bool get isImagePoll {
     final isPolzetAi = user.trim().toLowerCase() == 'polzet_ai';
     return (isPolzetAi && images.isNotEmpty) ||
+        images.isNotEmpty ||
         (polls.isNotEmpty &&
             polls.any((p) => p.options.any((o) => o.image != null)));
   }
@@ -176,6 +194,7 @@ class UserPostModel {
   bool get isTextPoll {
     final isPolzetAi = user.trim().toLowerCase() == 'polzet_ai';
     if (isPolzetAi && images.isNotEmpty) return false;
+    if (images.isNotEmpty) return false;
     return polls.isNotEmpty &&
         polls.every((p) => p.options.every((o) => o.text != null && o.image == null));
   }
@@ -195,6 +214,9 @@ class UserPostModel {
       'is_liked': isLiked,
       'is_saved': isSaved,
       'location_name': locationName,
+      if (inspiredByPost != null) 'inspired_by_post': inspiredByPost!.toJson(),
+      'inspired_count': inspiredCount,
+      'repoll_count': repollCount,
     };
   }
 
@@ -217,6 +239,9 @@ class UserPostModel {
     bool? is_polled_by_current_user,
     bool? isSaved,
     String? locationName,
+    InspiredByPost? inspiredByPost,
+    int? inspiredCount,
+    int? repollCount,
   }) {
     return UserPostModel(
       id: id ?? this.id,
@@ -238,6 +263,9 @@ class UserPostModel {
           is_polled_by_current_user ?? this.is_polled_by_current_user,
       isSaved: isSaved ?? this.isSaved,
       locationName: locationName ?? this.locationName,
+      inspiredByPost: inspiredByPost ?? this.inspiredByPost,
+      inspiredCount: inspiredCount ?? this.inspiredCount,
+      repollCount: repollCount ?? this.repollCount,
     );
   }
 }

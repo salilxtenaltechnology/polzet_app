@@ -22,6 +22,7 @@ import '../../../../core/themes/app_text_styles.dart';
 import '../../../../data/token/shared_preferences.dart';
 import '../../../../gen/assets.gen.dart';
 import '../../../../languages/l10n/generated/app_localizations.dart';
+import '../../../../models/poll/inspired_poll_data.dart';
 import '../../../../provider/user_provider.dart';
 import '../../../../widgets/appbar/common_appbar.dart';
 import '../../../../widgets/banner/ai_generation_limit_banner.dart';
@@ -32,12 +33,17 @@ import '../../../../widgets/dotted_border/dotted_border.dart';
 import '../../../../widgets/loader.dart';
 import '../../../../widgets/show_toast.dart';
 import '../../../../widgets/text_field/secondry_textfield.dart';
+import '../widgets/category_dropdown_field.dart';
+import '../widgets/inspired_poll_card.dart';
+import '../widgets/poll_keyboard_dismiss_wrapper.dart';
 
 class NewAnonymousPoll extends StatefulWidget {
   final String? initialQuestion;
   final String? initialDescription;
   final List<String>? initialOptions;
   final String? initialVotingType;
+  final InspiredPollData? inspiredData;
+  final String? inspiredPostId;
 
   const NewAnonymousPoll({
     super.key,
@@ -45,6 +51,8 @@ class NewAnonymousPoll extends StatefulWidget {
     this.initialDescription,
     this.initialOptions,
     this.initialVotingType,
+    this.inspiredData,
+    this.inspiredPostId,
   });
 
   @override
@@ -67,12 +75,14 @@ class _NewAnonymousPollState extends State<NewAnonymousPoll> {
   bool _isLoading = false;
   String questionErrorText = '';
   String optionsErrorText = '';
+  String categoryErrorText = '';
 
   bool _isGeneratingQuestion = false;
   bool _hasGeneratedQuestion = false;
   bool _isGeneratingOptions = false;
   bool _hasGeneratedOptions = false;
   bool _isMultiChoice = false;
+  String? _selectedCategory;
 
   int _remainingGenerations = 8;
   int _dailyLimit = 8;
@@ -89,8 +99,10 @@ class _NewAnonymousPollState extends State<NewAnonymousPoll> {
 
   void _updateAiLimitFromResponse(Map<String, dynamic>? response) {
     if (response == null) return;
-    final rawRemaining = response['remaining'] ?? response['data']?['remaining'];
-    final rawLimit = response['daily_limit'] ?? response['data']?['daily_limit'];
+    final rawRemaining =
+        response['remaining'] ?? response['data']?['remaining'];
+    final rawLimit =
+        response['daily_limit'] ?? response['data']?['daily_limit'];
 
     if (rawRemaining != null) {
       final parsedRemaining = int.tryParse(rawRemaining.toString());
@@ -153,7 +165,8 @@ class _NewAnonymousPollState extends State<NewAnonymousPoll> {
     _initializeOptionFields();
     _startHintAnimation();
 
-    final hasAutoFilled = (widget.initialQuestion != null &&
+    final hasAutoFilled =
+        (widget.initialQuestion != null &&
             widget.initialQuestion!.trim().isNotEmpty) ||
         (widget.initialOptions != null && widget.initialOptions!.isNotEmpty) ||
         (widget.initialVotingType != null &&
@@ -188,7 +201,7 @@ class _NewAnonymousPollState extends State<NewAnonymousPoll> {
 
     if (query.isEmpty) {
       setState(() {
-        questionErrorText = 'Please enter a topic';
+        questionErrorText = AppLocalizations.of(context)!.pleaseenteratopic;
       });
       return;
     }
@@ -246,7 +259,9 @@ class _NewAnonymousPollState extends State<NewAnonymousPoll> {
 
     if (question.isEmpty) {
       setState(() {
-        questionErrorText = 'Please enter a question';
+        questionErrorText = AppLocalizations.of(
+          context,
+        )!.pleaseenteraquestionortopic;
       });
       return;
     }
@@ -311,10 +326,8 @@ class _NewAnonymousPollState extends State<NewAnonymousPoll> {
   }
 
   void _initializeOptionFields() {
-    final options = widget.initialOptions
-            ?.where((o) => o.trim().isNotEmpty)
-            .toList() ??
-        [];
+    final options =
+        widget.initialOptions?.where((o) => o.trim().isNotEmpty).toList() ?? [];
     final count = options.isNotEmpty
         ? options.length.clamp(minOptions, maxOptions)
         : minOptions;
@@ -419,7 +432,7 @@ class _NewAnonymousPollState extends State<NewAnonymousPoll> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(
-                    'Edit Image',
+                    AppLocalizations.of(context)!.editimage,
                     style: AppTextStyles.sectionHeading.copyWith(
                       color: txt.title,
                       fontSize: 14.sp,
@@ -439,7 +452,7 @@ class _NewAnonymousPollState extends State<NewAnonymousPoll> {
                 child: Padding(
                   padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10),
                   child: Text(
-                    'Crop image',
+                    AppLocalizations.of(context)!.cropimage,
                     style: AppTextStyles.bodyText.copyWith(
                       color: txt.body,
                       fontSize: 13.5.sp,
@@ -456,7 +469,7 @@ class _NewAnonymousPollState extends State<NewAnonymousPoll> {
                 padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10),
                 child: GestureDetector(
                   child: Text(
-                    'Replace image',
+                     AppLocalizations.of(context)!.replaceimage,
                     style: AppTextStyles.bodyText.copyWith(
                       color: txt.body,
                       fontSize: 13.5.sp,
@@ -473,7 +486,7 @@ class _NewAnonymousPollState extends State<NewAnonymousPoll> {
                 padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10),
                 child: GestureDetector(
                   child: Text(
-                    'Remove',
+                   AppLocalizations.of(context)!.remove,
                     style: AppTextStyles.bodyText.copyWith(
                       color: Theme.of(context).colorScheme.error,
                       fontSize: 13.5.sp,
@@ -558,6 +571,14 @@ class _NewAnonymousPollState extends State<NewAnonymousPoll> {
       isValid = false;
     }
 
+    // Validate category
+    if (_selectedCategory == null || _selectedCategory!.trim().isEmpty) {
+      setState(() {
+        categoryErrorText = AppLocalizations.of(context)!.pleaseselectcategory;
+      });
+      isValid = false;
+    }
+
     // Reset option errors
     setState(() {
       optionsErrorText = '';
@@ -605,7 +626,7 @@ class _NewAnonymousPollState extends State<NewAnonymousPoll> {
     if (hasTextOnly && (hasImageOnly || hasImageWithText)) {
       setState(() {
         optionsErrorText =
-            'Mismatch options: Do not mix text-only and image options';
+            AppLocalizations.of(context)!.mismatchoptionsdonotmixtextonlyandimageoptions;
       });
       isValid = false;
     }
@@ -616,7 +637,7 @@ class _NewAnonymousPollState extends State<NewAnonymousPoll> {
           final text = optionControllers[i].text.trim();
           final hasImage = _images[i] != null;
           if (hasImage && text.isEmpty) {
-            optionErrorTexts[i] = 'Please enter label';
+            optionErrorTexts[i] = AppLocalizations.of(context)!.pleaseenterlabel;
           }
         }
       });
@@ -697,11 +718,12 @@ class _NewAnonymousPollState extends State<NewAnonymousPoll> {
     }
   }
 
-  Future<void> addPoll() async {
+  Future<void> addAnonymousPoll() async {
     // Clear previous errors
     setState(() {
       questionErrorText = '';
       optionsErrorText = '';
+      categoryErrorText = '';
       for (int i = 0; i < optionErrorTexts.length; i++) {
         optionErrorTexts[i] = '';
       }
@@ -726,6 +748,18 @@ class _NewAnonymousPollState extends State<NewAnonymousPoll> {
         MapEntry("voting_type", _isMultiChoice ? "ranking" : "single_choice"),
         const MapEntry("is_anonymous", "true"),
       ]);
+
+      if (_selectedCategory != null && _selectedCategory!.isNotEmpty) {
+        formData.fields.add(MapEntry('category', _selectedCategory!));
+      }
+
+      final originalPostId =
+          widget.inspiredPostId ?? widget.inspiredData?.postId;
+      if (originalPostId != null && originalPostId.isNotEmpty) {
+        formData.fields.add(MapEntry('inspiration_id', originalPostId));
+        formData.fields.add(MapEntry('inspired_by_post_id', originalPostId));
+        formData.fields.add(MapEntry('parent_post_id', originalPostId));
+      }
 
       // Identify the filled options
       final List<int> filledIndices = [];
@@ -859,71 +893,81 @@ class _NewAnonymousPollState extends State<NewAnonymousPoll> {
     final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.background,
-      appBar: CommonAppBar(title: AppLocalizations.of(context)!.askanonymously),
-      body: SingleChildScrollView(
-        padding: EdgeInsets.symmetric(horizontal: 12.w),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SizedBox(height: 10.h),
-            AiGenerationLimitBanner(
-              remainingGenerations: _remainingGenerations,
-            ),
-            SizedBox(height: 15.h),
-            Text(
-              AppLocalizations.of(
-                context,
-              )!.sharequestionsprivatelyandgethonestopinionsfrompeople,
-              style: AppTextStyles.subText.copyWith(
-                fontSize: 14,
-                color: txt.body,
-                fontWeight: FontWeight.w400,
-              ),
-            ),
-            Container(
-              margin: EdgeInsets.symmetric(vertical: 12.h),
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: isDarkMode
-                    ? const Color.fromARGB(255, 28, 28, 28)
-                    : const Color(0XFFFAF7F8).withOpacity(0.8),
-                borderRadius: BorderRadius.circular(AppRadius.card),
-                border: Border.all(
-                  color: isDarkMode
-                      ? Colors.white.withOpacity(0.2)
-                      : const Color(0XFF9B3046).withOpacity(0.2),
-                  width: 1,
+      appBar: CommonAppBar(
+        title: AppLocalizations.of(context)!.askanonymously,
+        actions: [
+          AiGenerationLimitBanner(remainingGenerations: _remainingGenerations),
+        ],
+      ),
+      body: PollKeyboardDismissWrapper(
+        child: SingleChildScrollView(
+          padding: EdgeInsets.symmetric(horizontal: 12.w),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SizedBox(height: 10.h),
+
+              // Inspired Poll Card
+              if (widget.inspiredData != null) ...[
+                InspiredPollCard(inspiredData: widget.inspiredData!),
+                SizedBox(height: 15.h),
+              ],
+
+              Text(
+                AppLocalizations.of(
+                  context,
+                )!.sharequestionsprivatelyandgethonestopinionsfrompeople,
+                style: AppTextStyles.subText.copyWith(
+                  fontSize: 14,
+                  color: txt.body,
+                  fontWeight: FontWeight.w400,
                 ),
               ),
-              child: Row(
-                children: [
-                  Icon(
-                    FeatherIcons.eyeOff,
-                    color: Theme.of(context).colorScheme.onPrimary,
+              Container(
+                margin: EdgeInsets.symmetric(vertical: 12.h),
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: isDarkMode
+                      ? const Color.fromARGB(255, 28, 28, 28)
+                      : const Color(0XFFFAF7F8).withOpacity(0.8),
+                  borderRadius: BorderRadius.circular(AppRadius.card),
+                  border: Border.all(
+                    color: isDarkMode
+                        ? Colors.white.withOpacity(0.2)
+                        : const Color(0XFF9B3046).withOpacity(0.2),
+                    width: 1,
                   ),
-                  SizedBox(width: 10.w),
-                  Expanded(
-                    child: Text(
-                      AppLocalizations.of(
-                        context,
-                      )!.yourvoterswillbehiddenonthispoll,
-                      style: AppTextStyles.subText.copyWith(
-                        fontSize: 13.5,
-                        color: txt.title,
-                        fontWeight: FontWeight.w400,
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      FeatherIcons.eyeOff,
+                      color: Theme.of(context).colorScheme.onPrimary,
+                    ),
+                    SizedBox(width: 10.w),
+                    Expanded(
+                      child: Text(
+                        AppLocalizations.of(
+                          context,
+                        )!.yourvoterswillbehiddenonthispoll,
+                        style: AppTextStyles.subText.copyWith(
+                          fontSize: 13.5,
+                          color: txt.title,
+                          fontWeight: FontWeight.w400,
+                        ),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-            _buildQuestionField(),
-            SizedBox(height: 20.h),
-            _buildDescriptionField(),
-            SizedBox(height: 20.h),
-            _buildOptionsSection(),
-            SizedBox(height: 30.h),
-          ],
+              _buildQuestionField(),
+              SizedBox(height: 20.h),
+              _buildDescriptionField(),
+              SizedBox(height: 20.h),
+              _buildOptionsSection(),
+              SizedBox(height: 30.h),
+            ],
+          ),
         ),
       ),
       bottomNavigationBar: BottomAppBar(
@@ -934,7 +978,7 @@ class _NewAnonymousPollState extends State<NewAnonymousPoll> {
           width: double.infinity,
           height: 50,
           child: ElevatedButton(
-            onPressed: _isLoading ? null : addPoll,
+            onPressed: _isLoading ? null : addAnonymousPoll,
             style: ElevatedButton.styleFrom(
               backgroundColor: Theme.of(context).colorScheme.primary,
               disabledBackgroundColor: const Color(0x269B3046),
@@ -994,10 +1038,9 @@ class _NewAnonymousPollState extends State<NewAnonymousPoll> {
           controller: questionController,
           focusNode: questionFocusNode,
           hintText: _hintTexts[_currentHintIndex],
-          focusedBorderColor:
-              questionController.text.trim().isNotEmpty
-                  ? Theme.of(context).colorScheme.onPrimary
-                  : null,
+          focusedBorderColor: questionController.text.trim().isNotEmpty
+              ? Theme.of(context).colorScheme.onPrimary
+              : null,
         ),
         if (questionErrorText.isNotEmpty)
           Padding(
@@ -1153,8 +1196,8 @@ class _NewAnonymousPollState extends State<NewAnonymousPoll> {
                         hintText: _getOptionText(context, i),
                         focusedBorderColor:
                             optionControllers[i].text.trim().isNotEmpty
-                                ? Theme.of(context).colorScheme.onPrimary
-                                : null,
+                            ? Theme.of(context).colorScheme.onPrimary
+                            : null,
                         suffixIcon: IconButton(
                           icon: const Icon(
                             Icons.close,
@@ -1220,8 +1263,19 @@ class _NewAnonymousPollState extends State<NewAnonymousPoll> {
               ),
             ),
           ),
+          if (optionsErrorText.isNotEmpty)
+            Padding(
+              padding: EdgeInsets.only(top: 5.h, bottom: 10.h),
+              child: Text(
+                optionsErrorText,
+                style: CustomTextStyles.msgErrorText(context),
+                textAlign: TextAlign.start,
+              ),
+            ),
           SizedBox(height: 15.h),
         ],
+        _buildCategorySection(),
+        SizedBox(height: 20.h),
         Text(
           AppLocalizations.of(context)!.votingmode,
           style: CustomTextStyles.lblPrimaryText(context),
@@ -1237,7 +1291,7 @@ class _NewAnonymousPollState extends State<NewAnonymousPoll> {
                   });
                 },
                 child: Container(
-                  height: 85,
+                  height: 75,
                   padding: const EdgeInsets.symmetric(horizontal: 10),
                   decoration: BoxDecoration(
                     color: isDarkMode
@@ -1289,7 +1343,7 @@ class _NewAnonymousPollState extends State<NewAnonymousPoll> {
                   });
                 },
                 child: Container(
-                  height: 85,
+                  height: 75,
                   padding: const EdgeInsets.symmetric(horizontal: 10),
                   decoration: BoxDecoration(
                     color: isDarkMode
@@ -1334,15 +1388,47 @@ class _NewAnonymousPollState extends State<NewAnonymousPoll> {
             ),
           ],
         ),
-        if (optionsErrorText.isNotEmpty)
+      ],
+    );
+  }
+
+  Widget _buildCategoryField() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        CategoryDropdownField(
+          selectedCategory: _selectedCategory,
+          onCategorySelected: (cat) {
+            setState(() {
+              _selectedCategory = cat;
+              if (categoryErrorText.isNotEmpty) {
+                categoryErrorText = '';
+              }
+            });
+          },
+        ),
+        if (categoryErrorText.isNotEmpty)
           Padding(
-            padding: EdgeInsets.only(top: 5.h, bottom: 10.h),
+            padding: EdgeInsets.only(top: 5.h),
             child: Text(
-              optionsErrorText,
+              categoryErrorText,
               style: CustomTextStyles.msgErrorText(context),
-              textAlign: TextAlign.start,
             ),
           ),
+      ],
+    );
+  }
+
+  Widget _buildCategorySection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          AppLocalizations.of(context)!.category,
+          style: CustomTextStyles.lblPrimaryText(context),
+        ),
+        SizedBox(height: 10.h),
+        _buildCategoryField(),
       ],
     );
   }

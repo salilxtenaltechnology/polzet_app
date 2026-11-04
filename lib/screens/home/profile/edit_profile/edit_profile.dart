@@ -21,7 +21,6 @@ import '../../../../widgets/country_code/code_bottomsheet.dart';
 import '../../../../widgets/dialog/custom_diolog.dart';
 import '../../../../core/themes/app_text_styles.dart';
 import '../../../../widgets/base64/image_convert.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import '../../../../api/api_config.dart';
 import '../../../../widgets/show_toast.dart';
 import '../../../../core/utils/phone_verify_logger.dart';
@@ -387,7 +386,7 @@ class _EditProfileState extends State<EditProfile> {
             listen: false,
           );
           await userProvider.loadUserData();
-          showToast(message: 'Email updated successfully');
+          showToast(message: 'Email updated');
         }
       } else {
         String errorMsg = 'Failed to send OTP';
@@ -558,112 +557,38 @@ class _EditProfileState extends State<EditProfile> {
         return;
       }
 
-      // 4. Trigger Firebase Auth SMS OTP request
-      final int? forceToken = (_lastAttemptPhoneNumber == fullPhoneNumber)
-          ? _lastPhoneResendToken
-          : null;
+      _lastPhoneOtpSentAt = DateTime.now();
+      _lastAttemptPhoneNumber = fullPhoneNumber;
+      _isSendingPhoneOtp = false;
+      setState(() => _isVerifyingPhone = false);
 
-      PhoneVerifyLogger.log(
-        attemptId: attemptId,
-        caller: 'EditProfile._verifyPhone',
-        event: 'FIREBASE_VERIFY_PHONE_INVOKED',
-        phone: fullPhoneNumber,
-        details: 'forceResendingToken=$forceToken',
+      final successMsg = result['message']?.toString() ??
+          result['data']?['message']?.toString() ??
+          'OTP sent';
+      showToast(message: successMsg);
+
+      final verified = await Navigator.push<bool>(
+        context,
+        MaterialPageRoute(
+          builder: (context) => EditProfilEmailNumberVeifyOTP(
+            countryCode: countryCode,
+            mobileNumber: cleanPhone,
+            initialAttemptId: attemptId,
+          ),
+        ),
       );
 
-      bool hasHandledCodeSent = false;
-
-      await FirebaseAuth.instance.verifyPhoneNumber(
-        phoneNumber: fullPhoneNumber,
-        forceResendingToken: forceToken,
-        timeout: const Duration(seconds: 60),
-        codeSent: (String verificationId, int? resendToken) async {
-          PhoneVerifyLogger.log(
-            attemptId: attemptId,
-            caller: 'EditProfile.codeSent',
-            event: 'FIREBASE_CALLBACK_CODE_SENT',
-            details:
-                'hasHandled=$hasHandledCodeSent, hasResendToken=${resendToken != null}',
-          );
-
-          if (!mounted) return;
-          if (hasHandledCodeSent) return;
-          hasHandledCodeSent = true;
-
-          _lastPhoneOtpSentAt = DateTime.now();
-          _lastPhoneResendToken = resendToken;
-          _lastAttemptPhoneNumber = fullPhoneNumber;
-          _isSendingPhoneOtp = false;
-          setState(() => _isVerifyingPhone = false);
-
-          // 5. Navigate to screen to enter OTP
-          final verified = await Navigator.push<bool>(
-            context,
-            MaterialPageRoute(
-              builder: (context) => EditProfilEmailNumberVeifyOTP(
-                countryCode: countryCode,
-                mobileNumber: cleanPhone,
-                verificationId: verificationId,
-                resendToken: resendToken,
-                initialAttemptId: attemptId,
-              ),
-            ),
-          );
-
-          if (verified == true && mounted) {
-            setState(() {
-              _originalPhone = cleanPhone;
-            });
-            final userProvider = Provider.of<UserProvider>(
-              context,
-              listen: false,
-            );
-            await userProvider.loadUserData();
-            showToast(message: 'Mobile number verified successfully');
-          }
-        },
-        verificationFailed: (FirebaseAuthException e) {
-          PhoneVerifyLogger.log(
-            attemptId: attemptId,
-            caller: 'EditProfile.verificationFailed',
-            event: 'FIREBASE_CALLBACK_VERIFICATION_FAILED',
-            details: 'code=${e.code}, message=${e.message}',
-          );
-
-          if (!mounted) return;
-          _isSendingPhoneOtp = false;
-          setState(() => _isVerifyingPhone = false);
-          String errorMessage;
-          switch (e.code) {
-            case 'invalid-phone-number':
-              errorMessage = 'Invalid phone number format.';
-              break;
-            case 'too-many-requests':
-              errorMessage = 'Too many attempts. Please try again later.';
-              break;
-            case 'network-request-failed':
-              errorMessage = 'Network error. Please check your connection.';
-              break;
-            default:
-              errorMessage = e.message ?? 'Failed to send OTP. Try again.';
-          }
-          showToast(message: errorMessage);
-        },
-        codeAutoRetrievalTimeout: (String verificationId) {
-          PhoneVerifyLogger.log(
-            attemptId: attemptId,
-            caller: 'EditProfile.codeAutoRetrievalTimeout',
-            event: 'FIREBASE_CALLBACK_CODE_AUTO_RETRIEVAL_TIMEOUT',
-          );
-        },
-        verificationCompleted: (PhoneAuthCredential credential) {
-          PhoneVerifyLogger.log(
-            attemptId: attemptId,
-            caller: 'EditProfile.verificationCompleted',
-            event: 'FIREBASE_CALLBACK_VERIFICATION_COMPLETED',
-          );
-        },
-      );
+      if (verified == true && mounted) {
+        setState(() {
+          _originalPhone = cleanPhone;
+        });
+        final userProvider = Provider.of<UserProvider>(
+          context,
+          listen: false,
+        );
+        await userProvider.loadUserData();
+        showToast(message: 'Phone number verified');
+      }
     } catch (e) {
       PhoneVerifyLogger.log(
         attemptId: attemptId,

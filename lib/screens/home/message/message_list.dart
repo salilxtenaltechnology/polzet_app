@@ -6,6 +6,7 @@ import 'dart:io';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:dio/dio.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -681,21 +682,55 @@ class MessageListState extends State<MessageList>
   }
 
   ImageProvider? _avatarProvider(String? avatarUrl) {
-    if (avatarUrl == null || avatarUrl.trim().isEmpty || avatarUrl == 'null') {
+    if (avatarUrl == null) return null;
+    final trimmedAvatar = avatarUrl.trim();
+    if (trimmedAvatar.isEmpty ||
+        trimmedAvatar.toLowerCase() == 'null' ||
+        trimmedAvatar.toLowerCase() == 'undefined') {
       return null;
     }
-    if (avatarUrl == Assets.images.icAvatar.path ||
-        avatarUrl.startsWith('assets/')) {
-      return AssetImage(avatarUrl);
+    if (trimmedAvatar == Assets.images.icAvatar.path ||
+        trimmedAvatar.startsWith('assets/')) {
+      return AssetImage(trimmedAvatar);
     }
-    final url = _resolveProfileUrl(avatarUrl);
-    if (url == null) {
+    if (trimmedAvatar.startsWith('data:image')) {
+      try {
+        final commaIndex = trimmedAvatar.indexOf(',');
+        final base64Str = commaIndex != -1
+            ? trimmedAvatar.substring(commaIndex + 1)
+            : trimmedAvatar;
+        return MemoryImage(base64Decode(base64Str.trim()));
+      } catch (_) {
+        return null;
+      }
+    }
+    final url = _resolveProfileUrl(trimmedAvatar);
+    if (url == null || url.trim().isEmpty) {
       return null;
     }
     if (url.startsWith('assets/')) {
       return AssetImage(url);
     }
-    return NetworkImage(url);
+    if (url.startsWith('data:image')) {
+      try {
+        final commaIndex = url.indexOf(',');
+        final base64Str =
+            commaIndex != -1 ? url.substring(commaIndex + 1) : url;
+        return MemoryImage(base64Decode(base64Str.trim()));
+      } catch (_) {
+        return null;
+      }
+    }
+    final cleanUrl = url.trim();
+    final lower = cleanUrl.toLowerCase().split('?').first;
+    if (lower.endsWith('.svg')) {
+      return null;
+    }
+    final uri = Uri.tryParse(cleanUrl);
+    if (uri == null || (!uri.isScheme('http') && !uri.isScheme('https'))) {
+      return null;
+    }
+    return CachedNetworkImageProvider(cleanUrl, errorListener: (_) {});
   }
 
   @override
@@ -1344,13 +1379,19 @@ class MessageListState extends State<MessageList>
   }
 
   String? _resolveProfileUrl(String? url) {
-    if (url == null || url.trim().isEmpty || url == 'null') return null;
-    if (url.startsWith('assets/')) return url;
-    if (!url.startsWith('http') && !url.startsWith('data:image')) {
-      final separator = url.startsWith('/') ? '' : '/';
-      return '${ApiConfig.baseUrlImage}$separator$url';
+    if (url == null) return null;
+    final trimmed = url.trim();
+    if (trimmed.isEmpty ||
+        trimmed.toLowerCase() == 'null' ||
+        trimmed.toLowerCase() == 'undefined') {
+      return null;
     }
-    return url;
+    if (trimmed.startsWith('assets/')) return trimmed;
+    if (!trimmed.startsWith('http') && !trimmed.startsWith('data:image')) {
+      final separator = trimmed.startsWith('/') ? '' : '/';
+      return '${ApiConfig.baseUrlImage}$separator$trimmed';
+    }
+    return trimmed;
   }
 
   String? _avatarUrl(Map<String, dynamic> chat) {
@@ -2070,6 +2111,10 @@ class MessageListState extends State<MessageList>
                                                 context,
                                               ).primaryColor.withOpacity(0.08),
                                         backgroundImage: avatarProvider,
+                                        onBackgroundImageError:
+                                            avatarProvider != null
+                                                ? (_, __) {}
+                                                : null,
                                         child: avatarProvider == null
                                             ? Text(
                                                 title.isNotEmpty
@@ -2101,6 +2146,7 @@ class MessageListState extends State<MessageList>
                                           AssetImage(
                                             Assets.images.icAvatar.path,
                                           ),
+                                      onBackgroundImageError: (_, __) {},
                                     ),
                                     if (chat['chat_type'] == 'private' &&
                                         _isOtherMemberOnline(chat))
@@ -2658,7 +2704,11 @@ class MessageListState extends State<MessageList>
                 width: 1,
               ),
         image: avatarProvider != null
-            ? DecorationImage(image: avatarProvider, fit: BoxFit.cover)
+            ? DecorationImage(
+                image: avatarProvider,
+                fit: BoxFit.cover,
+                onError: (_, __) {},
+              )
             : null,
       ),
       child: avatarProvider == null

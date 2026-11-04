@@ -22,6 +22,7 @@ import '../../../../core/themes/app_text_styles.dart';
 import '../../../../data/token/shared_preferences.dart';
 import '../../../../gen/assets.gen.dart';
 import '../../../../languages/l10n/generated/app_localizations.dart';
+import '../../../../models/poll/inspired_poll_data.dart';
 import '../../../../provider/user_provider.dart';
 import '../../../../widgets/appbar/common_appbar.dart';
 import '../../../../widgets/banner/ai_generation_limit_banner.dart';
@@ -31,12 +32,17 @@ import '../../../../widgets/custom_text_styles.dart';
 import '../../../../widgets/dotted_border/dotted_border.dart';
 import '../../../../widgets/show_toast.dart';
 import '../../../../widgets/text_field/secondry_textfield.dart';
+import '../widgets/category_dropdown_field.dart';
+import '../widgets/inspired_poll_card.dart';
+import '../widgets/poll_keyboard_dismiss_wrapper.dart';
 
 class NewHotTakePoll extends StatefulWidget {
   final String? initialQuestion;
   final String? initialDescription;
   final List<String>? initialOptions;
   final String? initialVotingType;
+  final InspiredPollData? inspiredData;
+  final String? inspiredPostId;
 
   const NewHotTakePoll({
     super.key,
@@ -44,6 +50,8 @@ class NewHotTakePoll extends StatefulWidget {
     this.initialDescription,
     this.initialOptions,
     this.initialVotingType,
+    this.inspiredData,
+    this.inspiredPostId,
   });
 
   @override
@@ -58,10 +66,12 @@ class _NewHotTakePollState extends State<NewHotTakePoll> {
   final _dio = Dio();
   bool isLoading = false;
   String questionErrorText = '';
+  String categoryErrorText = '';
   File? _image;
 
   bool _isGeneratingQuestion = false;
   bool _hasGeneratedQuestion = false;
+  String? _selectedCategory;
 
   int _remainingGenerations = 8;
   int _dailyLimit = 8;
@@ -78,8 +88,10 @@ class _NewHotTakePollState extends State<NewHotTakePoll> {
 
   void _updateAiLimitFromResponse(Map<String, dynamic>? response) {
     if (response == null) return;
-    final rawRemaining = response['remaining'] ?? response['data']?['remaining'];
-    final rawLimit = response['daily_limit'] ?? response['data']?['daily_limit'];
+    final rawRemaining =
+        response['remaining'] ?? response['data']?['remaining'];
+    final rawLimit =
+        response['daily_limit'] ?? response['data']?['daily_limit'];
 
     if (rawRemaining != null) {
       final parsedRemaining = int.tryParse(rawRemaining.toString());
@@ -134,7 +146,8 @@ class _NewHotTakePollState extends State<NewHotTakePoll> {
     questionController.addListener(_onQuestionChanged);
     _startHintAnimation();
 
-    final hasAutoFilled = (widget.initialQuestion != null &&
+    final hasAutoFilled =
+        (widget.initialQuestion != null &&
             widget.initialQuestion!.trim().isNotEmpty) ||
         (widget.initialOptions != null && widget.initialOptions!.isNotEmpty) ||
         (widget.initialVotingType != null &&
@@ -179,7 +192,7 @@ class _NewHotTakePollState extends State<NewHotTakePoll> {
 
     if (query.isEmpty) {
       setState(() {
-        questionErrorText = 'Please enter a topic';
+        questionErrorText = AppLocalizations.of(context)!.pleaseenteratopic;
       });
       return;
     }
@@ -285,7 +298,7 @@ class _NewHotTakePollState extends State<NewHotTakePoll> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(
-                   AppLocalizations.of(context)!.editimage,
+                    AppLocalizations.of(context)!.editimage,
                     style: AppTextStyles.sectionHeading.copyWith(
                       color: txt.title,
                       fontSize: 14.sp,
@@ -305,7 +318,7 @@ class _NewHotTakePollState extends State<NewHotTakePoll> {
                 child: Padding(
                   padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10),
                   child: Text(
-                   AppLocalizations.of(context)!.cropimage,
+                    AppLocalizations.of(context)!.cropimage,
                     style: AppTextStyles.bodyText.copyWith(
                       color: txt.body,
                       fontSize: 13.5.sp,
@@ -322,7 +335,7 @@ class _NewHotTakePollState extends State<NewHotTakePoll> {
                 padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10),
                 child: GestureDetector(
                   child: Text(
-                  AppLocalizations.of(context)!.replaceimage,
+                    AppLocalizations.of(context)!.replaceimage,
                     style: AppTextStyles.bodyText.copyWith(
                       color: txt.body,
                       fontSize: 13.5.sp,
@@ -339,7 +352,7 @@ class _NewHotTakePollState extends State<NewHotTakePoll> {
                 padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10),
                 child: GestureDetector(
                   child: Text(
-                   AppLocalizations.of(context)!.remove,
+                    AppLocalizations.of(context)!.remove,
                     style: AppTextStyles.bodyText.copyWith(
                       color: Theme.of(context).colorScheme.error,
                       fontSize: 13.5.sp,
@@ -369,14 +382,28 @@ class _NewHotTakePollState extends State<NewHotTakePoll> {
   Future<void> _createHotTakePoll() async {
     setState(() {
       questionErrorText = '';
+      categoryErrorText = '';
     });
+
+    bool hasError = false;
 
     if (questionController.text.trim().isEmpty) {
       setState(() {
-        questionErrorText = 'Please enter a question or topic';
+        questionErrorText = AppLocalizations.of(
+          context,
+        )!.pleaseenteraquestionortopic;
       });
-      return;
+      hasError = true;
     }
+
+    if (_selectedCategory == null || _selectedCategory!.trim().isEmpty) {
+      setState(() {
+        categoryErrorText = AppLocalizations.of(context)!.pleaseselectcategory;
+      });
+      hasError = true;
+    }
+
+    if (hasError) return;
 
     setState(() => isLoading = true);
 
@@ -391,6 +418,18 @@ class _NewHotTakePollState extends State<NewHotTakePoll> {
         const MapEntry('voting_type', 'single_choice'),
         const MapEntry('max_options', '1'),
       ]);
+
+      if (_selectedCategory != null && _selectedCategory!.isNotEmpty) {
+        formData.fields.add(MapEntry('category', _selectedCategory!));
+      }
+
+      final originalPostId =
+          widget.inspiredPostId ?? widget.inspiredData?.postId;
+      if (originalPostId != null && originalPostId.isNotEmpty) {
+        formData.fields.add(MapEntry('inspiration_id', originalPostId));
+        formData.fields.add(MapEntry('inspired_by_post_id', originalPostId));
+        formData.fields.add(MapEntry('parent_post_id', originalPostId));
+      }
 
       // Add static poll_options: Agree, Disagree
       formData.fields.add(const MapEntry('poll_options', 'Agree'));
@@ -444,179 +483,194 @@ class _NewHotTakePollState extends State<NewHotTakePoll> {
     final txt = AppTextColors.of(context);
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.background,
-      appBar: CommonAppBar(title: AppLocalizations.of(context)!.shareahottake),
-      body: SingleChildScrollView(
-        physics: const BouncingScrollPhysics(),
-        child: Padding(
-          padding: EdgeInsets.symmetric(horizontal: 12.w),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              SizedBox(height: 10.h),
-              AiGenerationLimitBanner(
-                remainingGenerations: _remainingGenerations,
-              ),
-              SizedBox(height: 15.h),
-              Text(
-                AppLocalizations.of(
-                  context,
-                )!.postboldopinionssparkdebatesandhearbothsides,
-                style: AppTextStyles.subText.copyWith(
-                  fontSize: 14,
-                  color: txt.body,
-                  fontWeight: FontWeight.w400,
-                ),
-              ),
-              SizedBox(height: 20.h),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    AppLocalizations.of(context)!.yourhottake,
-                    style: CustomTextStyles.lblPrimaryText(context),
-                  ),
-                  SizedBox(
-                    height: 30,
-                    child: GenerateQuestionButton(
-                      isGenerating: _isGeneratingQuestion,
-                      hasGenerated: _hasGeneratedQuestion,
-                      isEnabled: _remainingGenerations > 0,
-                      onTap:
-                          (_isGeneratingQuestion || _remainingGenerations <= 0)
-                              ? null
-                              : generateQuestion,
-                    ),
-                  ),
+      appBar: CommonAppBar(
+        title: AppLocalizations.of(context)!.shareahottake,
+        actions: [
+          AiGenerationLimitBanner(remainingGenerations: _remainingGenerations),
+        ],
+      ),
+      body: PollKeyboardDismissWrapper(
+        child: SingleChildScrollView(
+          physics: const BouncingScrollPhysics(),
+          child: Padding(
+            padding: EdgeInsets.symmetric(horizontal: 12.w),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SizedBox(height: 10.h),
+
+                // Inspired Poll Card
+                if (widget.inspiredData != null) ...[
+                  InspiredPollCard(inspiredData: widget.inspiredData!),
+                  SizedBox(height: 15.h),
                 ],
-              ),
-              SizedBox(height: 7.h),
-              SecondryTextfield(
-                controller: questionController,
-                focusNode: questionFocusNode,
-                hintText: _hintTexts[_currentHintIndex],
-                focusedBorderColor:
-                    questionController.text.trim().isNotEmpty
-                        ? Theme.of(context).colorScheme.onPrimary
-                        : null,
-              ),
-              if (questionErrorText.isNotEmpty)
-                Padding(
-                  padding: EdgeInsets.only(top: 5.h),
-                  child: Text(
-                    questionErrorText,
-                    style: CustomTextStyles.msgErrorText(context),
+
+                Text(
+                  AppLocalizations.of(
+                    context,
+                  )!.postboldopinionssparkdebatesandhearbothsides,
+                  style: AppTextStyles.subText.copyWith(
+                    fontSize: 14,
+                    color: txt.body,
+                    fontWeight: FontWeight.w400,
                   ),
                 ),
-              SizedBox(height: 20.h),
-              Text(
-                AppLocalizations.of(context)!.descriptionhashtagsoptional,
-                style: CustomTextStyles.lblPrimaryText(context),
-              ),
-              SizedBox(height: 7.h),
-              SecondryTextfield(
-                controller: descriptionController,
-                hintText: AppLocalizations.of(
-                  context,
-                )!.typedescriptionorhashtags,
-                maxLines: 5,
-                minLines: 1,
-                focusedBorderColor: Theme.of(context).colorScheme.onPrimary,
-              ),
-              SizedBox(height: 20.h),
-              Text(
-                '${AppLocalizations.of(context)!.addimage} (${AppLocalizations.of(context)!.optional})',
-                style: CustomTextStyles.lblPrimaryText(context),
-              ),
-              SizedBox(height: 7.h),
-              _buildImageSelector(context),
-              SizedBox(height: 20.h),
-              Text(
-                AppLocalizations.of(context)!.reactions,
-                style: CustomTextStyles.lblPrimaryText(context),
-              ),
-              SizedBox(height: 10.h),
-              Row(
-                children: [
-                  Expanded(
-                    child: Container(
-                      height: 50,
-                      decoration: BoxDecoration(
-                        color: Theme.of(context).brightness == Brightness.dark
-                            ? const Color(0xFF101F1B)
-                            : const Color(0xFFE2FDF1),
-                        border: Border.all(
-                          color: Theme.of(context).brightness == Brightness.dark
-                              ? const Color(0xFF19322A)
-                              : const Color(0xFFD1FAE5),
-                          width: 1.5,
-                        ),
-                        borderRadius: BorderRadius.circular(AppRadius.button),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Image.asset(
-                            Assets.images.icAgree.path,
-                            height: 23,
-                            width: 23,
-                          ),
-                          SizedBox(width: 10.w),
-                          const Text(
-                            'Agree',
-                            style: TextStyle(
-                              color: Color(0xFF16A34A),
-                              fontWeight: FontWeight.w400,
-                            ),
-                          ),
-                        ],
+                SizedBox(height: 20.h),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      AppLocalizations.of(context)!.yourhottake,
+                      style: CustomTextStyles.lblPrimaryText(context),
+                    ),
+                    SizedBox(
+                      height: 30,
+                      child: GenerateQuestionButton(
+                        isGenerating: _isGeneratingQuestion,
+                        hasGenerated: _hasGeneratedQuestion,
+                        isEnabled: _remainingGenerations > 0,
+                        onTap:
+                            (_isGeneratingQuestion ||
+                                _remainingGenerations <= 0)
+                            ? null
+                            : generateQuestion,
                       ),
                     ),
-                  ),
-                  SizedBox(width: 16.w),
-                  Expanded(
-                    child: Container(
-                      height: 50,
-                      decoration: BoxDecoration(
-                        color: Theme.of(context).brightness == Brightness.dark
-                            ? const Color(0xFF201315)
-                            : const Color(0xFFFDE5E5),
-                        border: Border.all(
-                          color: Theme.of(context).brightness == Brightness.dark
-                              ? const Color(0xFFCB5B5B).withOpacity(0.5)
-                              : const Color(0xFFFC9393).withOpacity(0.4),
-                          width: 1,
-                        ),
-                        borderRadius: BorderRadius.circular(AppRadius.button),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Image.asset(
-                            Assets.images.icDisagree.path,
-                            height: 23,
-                            width: 23,
-                            key: const ValueKey('disagree_icon'),
-                          ),
-                          SizedBox(width: 10.w),
-                          Text(
-                            'Disagree',
-                            style: TextStyle(
-                              color:
-                                  Theme.of(context).brightness ==
-                                      Brightness.dark
-                                  ? const Color(0xFFE53E3E)
-                                  : const Color(0xFFC81E1E),
-                              fontSize: 14,
-                              fontWeight: FontWeight.w400,
-                            ),
-                          ),
-                        ],
-                      ),
+                  ],
+                ),
+                SizedBox(height: 7.h),
+                SecondryTextfield(
+                  controller: questionController,
+                  focusNode: questionFocusNode,
+                  hintText: _hintTexts[_currentHintIndex],
+                  focusedBorderColor: questionController.text.trim().isNotEmpty
+                      ? Theme.of(context).colorScheme.onPrimary
+                      : null,
+                ),
+                if (questionErrorText.isNotEmpty)
+                  Padding(
+                    padding: EdgeInsets.only(top: 5.h),
+                    child: Text(
+                      questionErrorText,
+                      style: CustomTextStyles.msgErrorText(context),
                     ),
                   ),
-                ],
-              ),
-            ],
+                SizedBox(height: 20.h),
+                Text(
+                  AppLocalizations.of(context)!.descriptionhashtagsoptional,
+                  style: CustomTextStyles.lblPrimaryText(context),
+                ),
+                SizedBox(height: 7.h),
+                SecondryTextfield(
+                  controller: descriptionController,
+                  hintText: AppLocalizations.of(
+                    context,
+                  )!.typedescriptionorhashtags,
+                  maxLines: 5,
+                  minLines: 1,
+                  focusedBorderColor: Theme.of(context).colorScheme.onPrimary,
+                ),
+                SizedBox(height: 20.h),
+                Text(
+                  '${AppLocalizations.of(context)!.addimage} (${AppLocalizations.of(context)!.optional})',
+                  style: CustomTextStyles.lblPrimaryText(context),
+                ),
+                SizedBox(height: 7.h),
+                _buildImageSelector(context),
+                SizedBox(height: 20.h),
+                Text(
+                  AppLocalizations.of(context)!.reactions,
+                  style: CustomTextStyles.lblPrimaryText(context),
+                ),
+                SizedBox(height: 10.h),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Container(
+                        height: 50,
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? const Color(0xFF101F1B)
+                              : const Color(0xFFE2FDF1),
+                          border: Border.all(
+                            color:
+                                Theme.of(context).brightness == Brightness.dark
+                                ? const Color(0xFF19322A)
+                                : const Color(0xFFD1FAE5),
+                            width: 1.5,
+                          ),
+                          borderRadius: BorderRadius.circular(AppRadius.button),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Image.asset(
+                              Assets.images.icAgree.path,
+                              height: 23,
+                              width: 23,
+                            ),
+                            SizedBox(width: 10.w),
+                            const Text(
+                              'Agree',
+                              style: TextStyle(
+                                color: Color(0xFF16A34A),
+                                fontWeight: FontWeight.w400,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    SizedBox(width: 16.w),
+                    Expanded(
+                      child: Container(
+                        height: 50,
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? const Color(0xFF201315)
+                              : const Color(0xFFFDE5E5),
+                          border: Border.all(
+                            color:
+                                Theme.of(context).brightness == Brightness.dark
+                                ? const Color(0xFFCB5B5B).withOpacity(0.5)
+                                : const Color(0xFFFC9393).withOpacity(0.4),
+                            width: 1,
+                          ),
+                          borderRadius: BorderRadius.circular(AppRadius.button),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Image.asset(
+                              Assets.images.icDisagree.path,
+                              height: 23,
+                              width: 23,
+                              key: const ValueKey('disagree_icon'),
+                            ),
+                            SizedBox(width: 10.w),
+                            Text(
+                              'Disagree',
+                              style: TextStyle(
+                                color:
+                                    Theme.of(context).brightness ==
+                                        Brightness.dark
+                                    ? const Color(0xFFE53E3E)
+                                    : const Color(0xFFC81E1E),
+                                fontSize: 14,
+                                fontWeight: FontWeight.w400,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                SizedBox(height: 20.h),
+                _buildCategorySection(),
+                SizedBox(height: 30.h),
+              ],
+            ),
           ),
         ),
       ),
@@ -704,6 +758,47 @@ class _NewHotTakePollState extends State<NewHotTakePoll> {
                 ),
               ),
       ),
+    );
+  }
+
+  Widget _buildCategoryField() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        CategoryDropdownField(
+          selectedCategory: _selectedCategory,
+          onCategorySelected: (cat) {
+            setState(() {
+              _selectedCategory = cat;
+              if (categoryErrorText.isNotEmpty) {
+                categoryErrorText = '';
+              }
+            });
+          },
+        ),
+        if (categoryErrorText.isNotEmpty)
+          Padding(
+            padding: EdgeInsets.only(top: 5.h),
+            child: Text(
+              categoryErrorText,
+              style: CustomTextStyles.msgErrorText(context),
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildCategorySection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          AppLocalizations.of(context)!.category,
+          style: CustomTextStyles.lblPrimaryText(context),
+        ),
+        SizedBox(height: 10.h),
+        _buildCategoryField(),
+      ],
     );
   }
 }

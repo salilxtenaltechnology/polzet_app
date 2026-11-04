@@ -327,6 +327,7 @@ class UserProvider with ChangeNotifier {
       cachedImagesPostsMap[currentUsername] = results.where((post) {
         final isPolzetAi = post.user.trim().toLowerCase() == 'polzet_ai';
         return (isPolzetAi && post.images.isNotEmpty) ||
+            post.images.isNotEmpty ||
             post.polls.any(
               (poll) => poll.options.any((o) => o.image != null),
             );

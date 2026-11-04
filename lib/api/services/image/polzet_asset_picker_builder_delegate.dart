@@ -49,6 +49,9 @@ class PolzetAssetPickerBuilderDelegate
     );
 
     final bool isDark = Theme.of(context).brightness == Brightness.dark;
+    final Color bgColor = isDark
+        ? const Color(0xFF05070E)
+        : const Color(0xFFFDFDFD);
     final DefaultAssetPickerProvider provider = DefaultAssetPickerProvider(
       maxAssets: maxAssets,
       pageSize: 90,
@@ -63,6 +66,10 @@ class PolzetAssetPickerBuilderDelegate
           pickerTheme: AssetPicker.themeData(
             AppColors.primaryColor,
             light: !isDark,
+          ).copyWith(
+            scaffoldBackgroundColor: bgColor,
+            canvasColor: bgColor,
+            cardColor: bgColor,
           ),
           textDelegate: const PolzetAssetPickerTextDelegate(),
         );
@@ -95,6 +102,27 @@ class PolzetAssetPickerBuilderDelegate
 
   @override
   double get itemSpacing => 4.0;
+
+  @override
+  ThemeData get theme {
+    final base = super.theme;
+    final isDark = base.brightness == Brightness.dark;
+    final Color bgColor = isDark
+        ? const Color(0xFF05070E)
+        : const Color(0xFFFDFDFD);
+    return base.copyWith(
+      scaffoldBackgroundColor: bgColor,
+      canvasColor: bgColor,
+      cardColor: bgColor,
+    );
+  }
+
+  /// Returns `false` so that `wechat_assets_picker` does not inject iOS-specific
+  /// duplicate [SliverGap] above the photo grid. Since [PolzetAssetPickerBuilderDelegate]
+  /// uses [AssetPickerAppBarWrapper] to position the body cleanly below the app bar,
+  /// returning `false` aligns iOS with the clean layout without changing Android logic.
+  @override
+  bool isAppleOS(BuildContext context) => false;
 
   @override
   Future<void> selectAsset(
@@ -487,7 +515,7 @@ class PolzetAssetPickerBuilderDelegate
             border: Border(
               top: BorderSide(
                 color: isDarkMode
-                    ? Theme.of(context).colorScheme.outline
+                    ? Colors.white.withOpacity(0.4)
                     : const Color(0xFFEEEEEE),
                 width: 1,
               ),
@@ -514,7 +542,7 @@ class PolzetAssetPickerBuilderDelegate
                                 clipBehavior: Clip.none,
                                 children: <Widget>[
                                   ClipRRect(
-                                    borderRadius: BorderRadius.circular(8),
+                                    borderRadius: BorderRadius.circular(6),
                                     child: SizedBox(
                                       width: 54,
                                       height: 54,
@@ -539,14 +567,14 @@ class PolzetAssetPickerBuilderDelegate
                                         width: 18,
                                         height: 18,
                                         decoration: BoxDecoration(
-                                          color: Colors.black.withOpacity(0.55),
+                                          color: Colors.black.withOpacity(0.7),
                                           shape: BoxShape.circle,
                                         ),
                                         child: const Center(
                                           child: Icon(
                                             Icons.close,
                                             color: Colors.white,
-                                            size: 11,
+                                            size: 12,
                                           ),
                                         ),
                                       ),
@@ -606,10 +634,11 @@ class PolzetAssetPickerBuilderDelegate
           ).isNotEmpty;
           final shouldDisplayAssets =
               hasAssetsToDisplay || shouldBuildSpecialItems;
+          final Color bgColor = isDarkMode
+              ? const Color(0xFF05070E)
+              : const Color(0xFFFDFDFD);
           return ColoredBox(
-            color:  isDarkMode
-          ? const Color(0xFF05070E)
-          : const Color(0xFFFDFDFD),
+            color: bgColor,
             child: AnimatedSwitcher(
               duration: switchingPathDuration,
               child: shouldDisplayAssets
@@ -618,7 +647,12 @@ class PolzetAssetPickerBuilderDelegate
                         RepaintBoundary(
                           child: Column(
                             children: <Widget>[
-                              Expanded(child: assetsGridBuilder(context)),
+                              Expanded(
+                                child: ColoredBox(
+                                  color: bgColor,
+                                  child: assetsGridBuilder(context),
+                                ),
+                              ),
                               bottomActionBar(context),
                             ],
                           ),

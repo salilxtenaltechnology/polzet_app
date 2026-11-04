@@ -2585,55 +2585,58 @@ class AppLocalizationsId extends AppLocalizations {
   String get submitreport => 'Kirim laporan';
 
   @override
-  String get applytheme => 'Apply Theme';
+  String get applytheme => 'Terapkan Tema';
 
   @override
-  String get notificationsettings => 'Notification Settings';
+  String get notificationsettings => 'Pengaturan Notifikasi';
 
   @override
-  String get mutechat => 'Mute Chat';
+  String get mutechat => 'Bisukan Obrolan';
 
   @override
-  String get verify => 'Verify';
+  String get verify => 'Memeriksa';
 
   @override
-  String get verifying => 'Verifying...';
+  String get verifying => 'Memverifikasi...';
 
   @override
-  String get viewresult => 'View Result';
+  String get viewresult => 'Lihat Hasil';
 
   @override
-  String get savepoll => 'Save poll';
+  String get savepoll => 'Simpan jajak pendapat';
 
   @override
-  String get unsavepoll => 'Unsave poll';
+  String get unsavepoll => 'Batalkan penyimpanan jajak pendapat';
 
   @override
-  String get deletepoll => 'Delete poll';
+  String get deletepoll => 'Hapus jajak pendapat';
 
   @override
-  String get gotoprofile => 'Go to profile';
+  String get gotoprofile => 'Buka profil';
 
   @override
-  String get aipick => 'AI Pick';
+  String get aipick => 'Pilihan AI';
 
   @override
-  String get aigenerationslefttoday => 'AI generations left today';
+  String get aigenerationslefttoday => 'Sisa kuota pembuatan AI hari ini';
 
   @override
-  String get noaigenerationslefttoday => 'No AI generations left today';
+  String get noaigenerationslefttoday =>
+      'Tidak ada lagi jatah pembuatan konten AI untuk hari ini';
 
   @override
-  String get yourcreditswillresettomorrow => 'Your credits will reset tomorrow';
+  String get yourcreditswillresettomorrow =>
+      'Kredit Anda akan diatur ulang besok';
 
   @override
-  String get archivedgroup => 'Archived Group';
+  String get archivedgroup => 'Grup yang Diarsipkan';
 
   @override
-  String get failedtoloadarchivedchats => 'Failed to load archived chats';
+  String get failedtoloadarchivedchats =>
+      'Gagal memuat obrolan yang diarsipkan';
 
   @override
-  String get retry => 'Retry';
+  String get retry => 'Mencoba kembali';
 
   @override
   String get unblockthisusertoallowmessagesandinteractions =>
@@ -2879,4 +2882,125 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String get withselectedfilters => 'dengan filter yang dipilih';
+
+  @override
+  String get notopicsavailable => 'Tidak ada topik yang tersedia';
+
+  @override
+  String get filter => 'Filter';
+
+  @override
+  String get applyfilters => 'Terapkan Filter';
+
+  @override
+  String get next => 'Berikutnya';
+
+  @override
+  String get create => 'Buat';
+
+  @override
+  String get whatdoyouwanttocreate => 'Apa yang ingin Anda buat?';
+
+  @override
+  String get askaquestiongetopinions =>
+      'Ajukan pertanyaan dan dapatkan pendapat';
+
+  @override
+  String get createpost => 'Buat Postingan';
+
+  @override
+  String get sharephotosandthoughts => 'Bagikan foto dan pemikiran';
+
+  @override
+  String get privateconversationsshareddiscussions =>
+      'Percakapan pribadi dan diskusi bersama';
+
+  @override
+  String get sharedphotosandthoughtswithyourscommunity =>
+      'Bagikan foto dan pemikiran dengan komunitas Anda';
+
+  @override
+  String get caption => 'Keterangan';
+
+  @override
+  String get whatsyourmind => 'Apa yang sedang Anda pikirkan?';
+
+  @override
+  String get publishpoll => 'Publikasikan Jajak Pendapat';
+
+  @override
+  String get previewpost => 'Pratinjau Postingan';
+
+  @override
+  String get seehowyourpollwillappearinthefeedbeforepublishing =>
+      'Lihat tampilan jajak pendapat Anda di feed sebelum dipublikasikan';
+
+  @override
+  String get pleaseenterlabel => 'Silakan masukkan label';
+
+  @override
+  String get nocategoryfound => 'Kategori tidak ditemukan';
+
+  @override
+  String get searchcategory => 'Cari kategori...';
+
+  @override
+  String get selectacategory => 'Pilih kategori';
+
+  @override
+  String get preview => 'Pratinjau';
+
+  @override
+  String get reorder => 'Atur ulang';
+
+  @override
+  String get reorderimages => 'Atur ulang gambar';
+
+  @override
+  String get dragdroptochangeorder => 'Seret dan lepas untuk mengubah urutan';
+
+  @override
+  String get done => 'Selesai';
+
+  @override
+  String get reject => 'Tolak';
+
+  @override
+  String get pleaseenterlabelorselectimage =>
+      'Silakan masukkan label atau pilih gambar';
+
+  @override
+  String get pleaseselectimage => 'Silakan pilih gambar';
+
+  @override
+  String get pleaseselectcategory => 'Silakan pilih kategori';
+
+  @override
+  String get pleaseenteravalidmobilenumber =>
+      'Silakan masukkan nomor ponsel yang valid';
+
+  @override
+  String get left => 'tersisa';
+
+  @override
+  String
+  get mismatchedoptionsoneoptionwithtextonlyandonewithimageonlyisnotallowed =>
+      'Opsi tidak cocok: Satu opsi hanya teks dan satu opsi hanya gambar tidak diperbolehkan';
+
+  @override
+  String get mismatchoptionsdonotmixtextonlyandimageoptions =>
+      'Opsi tidak cocok: Jangan campurkan opsi teks saja dengan opsi gambar';
+
+  @override
+  String get deletepost => 'Hapus postingan';
+
+  @override
+  String get areyousurewanttodeletethispost =>
+      'Apakah Anda yakin ingin menghapus postingan ini?';
+
+  @override
+  String get inspiredby => 'Terinspirasi oleh';
+
+  @override
+  String get polllowercase => 'jajak pendapat';
 }

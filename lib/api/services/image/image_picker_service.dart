@@ -13,7 +13,7 @@ import 'package:wechat_camera_picker/wechat_camera_picker.dart';
 
 import '../../../core/constants/app_colors.dart';
 import '../../../languages/l10n/generated/app_localizations.dart';
-import 'package:polzet_app/screens/home/new poll/type/image_preview_crop_screen.dart';
+import 'package:polzet_app/api/services/image/image_preview_crop_screen.dart';
 import 'gallery_config.dart';
 import 'polzet_asset_picker_builder_delegate.dart';
 
@@ -47,11 +47,14 @@ class ImagePickerService {
     int maxImages = 2,
     bool allowCamera = true,
   }) async {
-    final source = await showImageSourceDialog(
-      context,
-      allowCamera: allowCamera,
-    );
-    if (source == null) return null;
+    String? source = 'gallery';
+    if (allowCamera) {
+      source = await showImageSourceDialog(
+        context,
+        allowCamera: allowCamera,
+      );
+      if (source == null) return null;
+    }
 
     if (source == 'camera') {
       final File? cameraFile = await _pickFromCamera(context);
@@ -73,11 +76,14 @@ class ImagePickerService {
     bool allowCamera = true,
     bool pickOriginal = false,
   }) async {
-    final source = await showImageSourceDialog(
-      context,
-      allowCamera: allowCamera,
-    );
-    if (source == null) return null;
+    String? source = 'gallery';
+    if (allowCamera) {
+      source = await showImageSourceDialog(
+        context,
+        allowCamera: allowCamera,
+      );
+      if (source == null) return null;
+    }
 
     if (source == 'camera') {
       return await _pickFromCamera(context, pickOriginal: pickOriginal);

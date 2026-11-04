@@ -134,6 +134,10 @@ class $AssetsImagesGen {
   AssetGenImage get icAgree =>
       const AssetGenImage('assets/images/ic_agree.png');
 
+  /// File path: assets/images/ic_ai_generate.png
+  AssetGenImage get icAiGenerate =>
+      const AssetGenImage('assets/images/ic_ai_generate.png');
+
   /// File path: assets/images/ic_ai_pick.png
   AssetGenImage get icAiPick =>
       const AssetGenImage('assets/images/ic_ai_pick.png');
@@ -257,6 +261,10 @@ class $AssetsImagesGen {
   /// File path: assets/images/ic_image_poll.png
   AssetGenImage get icImagePoll =>
       const AssetGenImage('assets/images/ic_image_poll.png');
+
+  /// File path: assets/images/ic_inspire.png
+  AssetGenImage get icInspire =>
+      const AssetGenImage('assets/images/ic_inspire.png');
 
   /// File path: assets/images/ic_interest.png
   AssetGenImage get icInterest =>
@@ -465,9 +473,6 @@ class $AssetsImagesGen {
   AssetGenImage get noVotes =>
       const AssetGenImage('assets/images/no_votes.png');
 
-  /// File path: assets/images/poll.png
-  AssetGenImage get poll => const AssetGenImage('assets/images/poll.png');
-
   /// File path: assets/images/progress_indicator.json
   String get progressIndicator => 'assets/images/progress_indicator.json';
 
@@ -485,9 +490,6 @@ class $AssetsImagesGen {
   AssetGenImage get somethingWentWrong =>
       const AssetGenImage('assets/images/something_went_wrong.png');
 
-  /// File path: assets/images/things.png
-  AssetGenImage get things => const AssetGenImage('assets/images/things.png');
-
   /// File path: assets/images/things_icon.png
   AssetGenImage get thingsIcon =>
       const AssetGenImage('assets/images/things_icon.png');
@@ -495,9 +497,6 @@ class $AssetsImagesGen {
   /// File path: assets/images/thirdOnBoard.png
   AssetGenImage get thirdOnBoard =>
       const AssetGenImage('assets/images/thirdOnBoard.png');
-
-  /// Directory path: assets/images/topics
-  $AssetsImagesTopicsGen get topics => const $AssetsImagesTopicsGen();
 
   /// File path: assets/images/type_like.png
   AssetGenImage get typeLike =>
@@ -529,6 +528,7 @@ class $AssetsImagesGen {
     icAccountPrivacy,
     icAddUser,
     icAgree,
+    icAiGenerate,
     icAiPick,
     icAnonymous,
     icAppForeground,
@@ -561,6 +561,7 @@ class $AssetsImagesGen {
     icHelpSupport,
     icHot,
     icImagePoll,
+    icInspire,
     icInterest,
     icLanguage,
     icLeave,
@@ -616,74 +617,18 @@ class $AssetsImagesGen {
     noThingsPost,
     noUsersFound,
     noVotes,
-    poll,
     progressIndicator,
     secondOnBoard,
     server,
     share,
     somethingWentWrong,
-    things,
     thingsIcon,
     thirdOnBoard,
     typeLike,
   ];
 }
 
-class $AssetsImagesTopicsGen {
-  const $AssetsImagesTopicsGen();
-
-  /// File path: assets/images/topics/1ai.png
-  AssetGenImage get a1ai => const AssetGenImage('assets/images/topics/1ai.png');
-
-  /// File path: assets/images/topics/1dailylife.png
-  AssetGenImage get a1dailylife =>
-      const AssetGenImage('assets/images/topics/1dailylife.png');
-
-  /// File path: assets/images/topics/1entertainment.png
-  AssetGenImage get a1entertainment =>
-      const AssetGenImage('assets/images/topics/1entertainment.png');
-
-  /// File path: assets/images/topics/1food.png
-  AssetGenImage get a1food =>
-      const AssetGenImage('assets/images/topics/1food.png');
-
-  /// File path: assets/images/topics/2dailylife.png
-  AssetGenImage get a2dailylife =>
-      const AssetGenImage('assets/images/topics/2dailylife.png');
-
-  /// File path: assets/images/topics/3dailylife.png
-  AssetGenImage get a3dailylife =>
-      const AssetGenImage('assets/images/topics/3dailylife.png');
-
-  /// File path: assets/images/topics/4dailylife.png
-  AssetGenImage get a4dailylife =>
-      const AssetGenImage('assets/images/topics/4dailylife.png');
-
-  /// File path: assets/images/topics/5dailylife.png
-  AssetGenImage get a5dailylife =>
-      const AssetGenImage('assets/images/topics/5dailylife.png');
-
-  /// File path: assets/images/topics/6dailylife.png
-  AssetGenImage get a6dailylife =>
-      const AssetGenImage('assets/images/topics/6dailylife.png');
-
-  /// List of all assets
-  List<AssetGenImage> get values => [
-    a1ai,
-    a1dailylife,
-    a1entertainment,
-    a1food,
-    a2dailylife,
-    a3dailylife,
-    a4dailylife,
-    a5dailylife,
-    a6dailylife,
-  ];
-}
-
-class Assets {
-  const Assets._();
-
+abstract final class Assets {
   static const $AssetsFontsGen fonts = $AssetsFontsGen();
   static const $AssetsImagesGen images = $AssetsImagesGen();
 }

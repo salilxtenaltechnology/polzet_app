@@ -641,7 +641,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get polldesign => '설문 디자인';
 
   @override
-  String get things => 'Things';
+  String get things => '것들';
 
   @override
   String get photos => '사진';
@@ -2548,55 +2548,55 @@ class AppLocalizationsKo extends AppLocalizations {
   String get submitreport => '신고 제출';
 
   @override
-  String get applytheme => 'Apply Theme';
+  String get applytheme => '테마 적용';
 
   @override
-  String get notificationsettings => 'Notification Settings';
+  String get notificationsettings => '알림 설정';
 
   @override
-  String get mutechat => 'Mute Chat';
+  String get mutechat => '채팅 음소거';
 
   @override
-  String get verify => 'Verify';
+  String get verify => '인증';
 
   @override
-  String get verifying => 'Verifying...';
+  String get verifying => '인증 중...';
 
   @override
-  String get viewresult => 'View Result';
+  String get viewresult => '결과 보기';
 
   @override
-  String get savepoll => 'Save poll';
+  String get savepoll => '투표 저장';
 
   @override
-  String get unsavepoll => 'Unsave poll';
+  String get unsavepoll => '투표 저장 취소';
 
   @override
-  String get deletepoll => 'Delete poll';
+  String get deletepoll => '투표 삭제';
 
   @override
-  String get gotoprofile => 'Go to profile';
+  String get gotoprofile => '프로필로 이동';
 
   @override
-  String get aipick => 'AI Pick';
+  String get aipick => 'AI 추천';
 
   @override
-  String get aigenerationslefttoday => 'AI generations left today';
+  String get aigenerationslefttoday => '오늘 남은 AI 생성 횟수';
 
   @override
-  String get noaigenerationslefttoday => 'No AI generations left today';
+  String get noaigenerationslefttoday => '오늘 남은 AI 생성 횟수가 없습니다';
 
   @override
-  String get yourcreditswillresettomorrow => 'Your credits will reset tomorrow';
+  String get yourcreditswillresettomorrow => '크레딧은 내일 재설정됩니다';
 
   @override
-  String get archivedgroup => 'Archived Group';
+  String get archivedgroup => '보관된 그룹';
 
   @override
-  String get failedtoloadarchivedchats => 'Failed to load archived chats';
+  String get failedtoloadarchivedchats => '보관된 채팅을 불러오지 못했습니다';
 
   @override
-  String get retry => 'Retry';
+  String get retry => '다시 시도';
 
   @override
   String get unblockthisusertoallowmessagesandinteractions =>
@@ -2834,4 +2834,119 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get withselectedfilters => '선택한 필터 사용';
+
+  @override
+  String get notopicsavailable => '사용 가능한 주제가 없습니다';
+
+  @override
+  String get filter => '필터';
+
+  @override
+  String get applyfilters => '필터 적용';
+
+  @override
+  String get next => '다음';
+
+  @override
+  String get create => '만들기';
+
+  @override
+  String get whatdoyouwanttocreate => '무엇을 만들고 싶으신가요?';
+
+  @override
+  String get askaquestiongetopinions => '질문하고 의견을 받아보세요';
+
+  @override
+  String get createpost => '게시물 만들기';
+
+  @override
+  String get sharephotosandthoughts => '사진과 생각 공유하기';
+
+  @override
+  String get privateconversationsshareddiscussions => '비공개 대화 및 공유 토론';
+
+  @override
+  String get sharedphotosandthoughtswithyourscommunity => '커뮤니티와 사진 및 생각 공유하기';
+
+  @override
+  String get caption => '캡션';
+
+  @override
+  String get whatsyourmind => '무슨 생각을 하고 계신가요?';
+
+  @override
+  String get publishpoll => '투표 게시';
+
+  @override
+  String get previewpost => '게시물 미리보기';
+
+  @override
+  String get seehowyourpollwillappearinthefeedbeforepublishing =>
+      '게시하기 전에 피드에서 투표가 어떻게 표시되는지 확인하세요';
+
+  @override
+  String get pleaseenterlabel => '라벨을 입력하세요';
+
+  @override
+  String get nocategoryfound => '카테고리를 찾을 수 없습니다';
+
+  @override
+  String get searchcategory => '카테고리 검색...';
+
+  @override
+  String get selectacategory => '카테고리 선택';
+
+  @override
+  String get preview => '미리보기';
+
+  @override
+  String get reorder => '순서 변경';
+
+  @override
+  String get reorderimages => '이미지 순서 변경';
+
+  @override
+  String get dragdroptochangeorder => '드래그 앤 드롭하여 순서를 변경하세요';
+
+  @override
+  String get done => '완료';
+
+  @override
+  String get reject => '거부';
+
+  @override
+  String get pleaseenterlabelorselectimage => '라벨을 입력하거나 이미지를 선택하세요';
+
+  @override
+  String get pleaseselectimage => '이미지를 선택하세요';
+
+  @override
+  String get pleaseselectcategory => '카테고리를 선택하세요';
+
+  @override
+  String get pleaseenteravalidmobilenumber => '유효한 휴대전화 번호를 입력하세요';
+
+  @override
+  String get left => '남음';
+
+  @override
+  String
+  get mismatchedoptionsoneoptionwithtextonlyandonewithimageonlyisnotallowed =>
+      '옵션 불일치: 텍스트만 있는 옵션과 이미지만 있는 옵션을 함께 사용할 수 없습니다';
+
+  @override
+  String get mismatchoptionsdonotmixtextonlyandimageoptions =>
+      '옵션 불일치: 텍스트 전용 옵션과 이미지 옵션을 혼합하지 마세요';
+
+  @override
+  String get deletepost => '게시물 삭제';
+
+  @override
+  String get areyousurewanttodeletethispost => '이 게시물을 삭제하시겠습니까?';
+
+  @override
+  String get inspiredby => '영감을 받은 작품';
+
+  @override
+  String get polllowercase => '투표';
 }

@@ -2710,4 +2710,119 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get withselectedfilters => '使用所选筛选条件';
+
+  @override
+  String get notopicsavailable => '暂无可用主题';
+
+  @override
+  String get filter => '筛选';
+
+  @override
+  String get applyfilters => '应用筛选条件';
+
+  @override
+  String get next => '下一步';
+
+  @override
+  String get create => '创建';
+
+  @override
+  String get whatdoyouwanttocreate => '您想创建什么？';
+
+  @override
+  String get askaquestiongetopinions => '提出问题并获取意见';
+
+  @override
+  String get createpost => '创建帖子';
+
+  @override
+  String get sharephotosandthoughts => '分享照片和想法';
+
+  @override
+  String get privateconversationsshareddiscussions => '私人对话和共享讨论';
+
+  @override
+  String get sharedphotosandthoughtswithyourscommunity => '与社区分享照片和想法';
+
+  @override
+  String get caption => '说明文字';
+
+  @override
+  String get whatsyourmind => '您在想什么？';
+
+  @override
+  String get publishpoll => '发布投票';
+
+  @override
+  String get previewpost => '预览帖子';
+
+  @override
+  String get seehowyourpollwillappearinthefeedbeforepublishing =>
+      '发布前查看投票在信息流中的显示效果';
+
+  @override
+  String get pleaseenterlabel => '请输入标签';
+
+  @override
+  String get nocategoryfound => '未找到类别';
+
+  @override
+  String get searchcategory => '搜索类别...';
+
+  @override
+  String get selectacategory => '选择类别';
+
+  @override
+  String get preview => '预览';
+
+  @override
+  String get reorder => '重新排序';
+
+  @override
+  String get reorderimages => '重新排列图片';
+
+  @override
+  String get dragdroptochangeorder => '拖放以更改顺序';
+
+  @override
+  String get done => '完成';
+
+  @override
+  String get reject => '拒绝';
+
+  @override
+  String get pleaseenterlabelorselectimage => '请输入标签或选择图片';
+
+  @override
+  String get pleaseselectimage => '请选择图片';
+
+  @override
+  String get pleaseselectcategory => '请选择类别';
+
+  @override
+  String get pleaseenteravalidmobilenumber => '请输入有效的手机号码';
+
+  @override
+  String get left => '剩余';
+
+  @override
+  String
+  get mismatchedoptionsoneoptionwithtextonlyandonewithimageonlyisnotallowed =>
+      '选项不匹配：不允许一个选项仅包含文本，另一个选项仅包含图片';
+
+  @override
+  String get mismatchoptionsdonotmixtextonlyandimageoptions =>
+      '选项不匹配：请勿混合使用纯文本选项和图片选项';
+
+  @override
+  String get deletepost => '删除帖子';
+
+  @override
+  String get areyousurewanttodeletethispost => '确定要删除此帖子吗？';
+
+  @override
+  String get inspiredby => '灵感来自';
+
+  @override
+  String get polllowercase => '投票';
 }

@@ -13,6 +13,16 @@ import '../api/api_config.dart';
 import '../../models/chat/chat_theme_item.dart';
 
 class PrivateChatProvider extends ChangeNotifier {
+  bool _isDisposed = false;
+  bool get isDisposed => _isDisposed;
+
+  @override
+  void notifyListeners() {
+    if (!_isDisposed) {
+      super.notifyListeners();
+    }
+  }
+
   String? _memberName;
   String? _profileUrl;
   dynamic _chatId;
@@ -131,7 +141,7 @@ class PrivateChatProvider extends ChangeNotifier {
   dynamic currentUserId;
 
   void _emitMessages() {
-    if (!_messagesStreamController.isClosed) {
+    if (!_isDisposed && !_messagesStreamController.isClosed) {
       _messagesStreamController.add(List.unmodifiable(_messages));
     }
   }
@@ -247,11 +257,16 @@ class PrivateChatProvider extends ChangeNotifier {
   void _startPolling() {
     _pollingTimer?.cancel();
     _pollingTimer = Timer.periodic(const Duration(seconds: 10), (_) async {
+      if (_isDisposed) {
+        _pollingTimer?.cancel();
+        return;
+      }
       await _fetchLatestMessages();
     });
   }
 
   Future<void> _fetchLatestMessages() async {
+    if (_isDisposed) return;
     final cid = _chatId;
     if (cid == null) return;
 
@@ -308,6 +323,7 @@ class PrivateChatProvider extends ChangeNotifier {
   }
 
   Future<void> fetchMessageHistory() async {
+    if (_isDisposed) return;
     final cid = _chatId;
     if (cid == null) return;
     if (_isLoadingHistory) return;
@@ -357,6 +373,7 @@ class PrivateChatProvider extends ChangeNotifier {
   }
 
   Future<void> fetchMoreHistory() async {
+    if (_isDisposed) return;
     final cid = _chatId;
     final nextUrl = _nextPageUrl;
     if (cid == null || nextUrl == null) return;
@@ -513,6 +530,7 @@ class PrivateChatProvider extends ChangeNotifier {
       error.contains('404');
 
   Future<void> reconnect() async {
+    if (_isDisposed) return;
     debugPrint('🔄 Manual reconnect triggered');
     final token = await SharedPrefService.getToken();
     if (token == null || token.isEmpty) return;
@@ -749,7 +767,7 @@ class PrivateChatProvider extends ChangeNotifier {
     _isPresenceConnecting = false;
     notifyListeners();
 
-    if (!_shouldReconnect) return;
+    if (_isDisposed || !_shouldReconnect) return;
 
     if (_presenceReconnectAttempts < _maxReconnectAttempts) {
       _presenceReconnectAttempts++;
@@ -760,8 +778,9 @@ class PrivateChatProvider extends ChangeNotifier {
       );
       _presenceReconnectTimer?.cancel();
       _presenceReconnectTimer = Timer(delay, () async {
+        if (_isDisposed) return;
         final token = await SharedPrefService.getToken();
-        if (token != null) await _connectPresenceSocket(token);
+        if (token != null && !_isDisposed) await _connectPresenceSocket(token);
       });
     } else {
       debugPrint('❌ Max presence reconnect attempts reached.');
@@ -777,7 +796,7 @@ class PrivateChatProvider extends ChangeNotifier {
     _isMessageConnecting = false;
     notifyListeners();
 
-    if (!_shouldReconnect) return;
+    if (_isDisposed || !_shouldReconnect) return;
 
     if (_messageReconnectAttempts < _maxReconnectAttempts) {
       _messageReconnectAttempts++;
@@ -788,8 +807,9 @@ class PrivateChatProvider extends ChangeNotifier {
       );
       _messageReconnectTimer?.cancel();
       _messageReconnectTimer = Timer(delay, () async {
+        if (_isDisposed) return;
         final token = await SharedPrefService.getToken();
-        if (token != null) await _connectMessageSocket(token);
+        if (token != null && !_isDisposed) await _connectMessageSocket(token);
       });
     } else {
       debugPrint('❌ Max message reconnect attempts reached.');
@@ -1015,13 +1035,16 @@ class PrivateChatProvider extends ChangeNotifier {
 
   @override
   void dispose() {
+    _isDisposed = true;
     _shouldReconnect = false;
     _presenceReconnectTimer?.cancel();
     _messageReconnectTimer?.cancel();
-    _cleanupConnection();
-    _messagesStreamController.close();
     _typingTimer?.cancel();
     _pollingTimer?.cancel();
+    _cleanupConnection();
+    if (!_messagesStreamController.isClosed) {
+      _messagesStreamController.close();
+    }
     super.dispose();
   }
 }

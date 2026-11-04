@@ -1,5 +1,5 @@
+import 'dart:async';
 import 'package:dio/dio.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:polzet_app/mixin/utility_mixins.dart';
 
@@ -74,9 +74,17 @@ class _NewForgotPasswordSceenState extends State<NewForgotPasswordScreen>
     setState(() => _isSendingOtp = true);
 
     try {
-      final result = await ApiService().forgotPasswordSendOtp(
-        identifier: _emailController.text.trim(),
-      );
+      final result = await ApiService()
+          .forgotPasswordSendOtp(
+            identifier: _emailController.text.trim(),
+          )
+          .timeout(
+            const Duration(seconds: 60),
+            onTimeout: () => {
+              'success': false,
+              'message': 'Request timed out. Please try again.',
+            },
+          );
 
       if (!mounted) return;
 
@@ -113,8 +121,6 @@ class _NewForgotPasswordSceenState extends State<NewForgotPasswordScreen>
       _emailOrMobileError = '';
     });
 
-    bool startedFirebase = false;
-
     try {
       // ─── 1. Clean phone number ───────────────────────────────────────
       final String cleanPhone = _phoneController.text
@@ -127,9 +133,17 @@ class _NewForgotPasswordSceenState extends State<NewForgotPasswordScreen>
       debugPrint('📱 Sending Forgot Password OTP to: $fullPhoneNumber');
 
       // ─── 2. Call backend to send OTP ─────────────────────────────────
-      final result = await ApiService().forgotPasswordSendOtp(
-        identifier: fullPhoneNumber,
-      );
+      final result = await ApiService()
+          .forgotPasswordSendOtp(
+            identifier: fullPhoneNumber,
+          )
+          .timeout(
+            const Duration(seconds: 60),
+            onTimeout: () => {
+              'success': false,
+              'message': 'Request timed out. Please try again.',
+            },
+          );
 
       if (!mounted) return;
 
@@ -145,15 +159,6 @@ class _NewForgotPasswordSceenState extends State<NewForgotPasswordScreen>
 
       // ─── 3. Parse backend response ───────────────────────────────────
       final Map<String, dynamic> data = result['data'] ?? {};
-      final String resMessage = (result['message'] ?? '')
-          .toString()
-          .toLowerCase()
-          .trim();
-
-      final bool requiresFirebase =
-          data['requires_firebase'] == true ||
-          resMessage.contains('firebase') ||
-          resMessage.contains('use firebase client sdk to send otp');
 
       // Resolve phone from response or fallback to user input
       String resPhone = (data['phone_number'] ?? cleanPhone).toString().trim();
@@ -168,108 +173,20 @@ class _NewForgotPasswordSceenState extends State<NewForgotPasswordScreen>
         resPhone = resPhone.substring(resCountryCode.length);
       }
 
-      final String resolvedFullPhone = '$resCountryCode$resPhone';
       final String resolvedMasked =
           '$resCountryCode '
           '${'*' * (resPhone.length - 3)}'
           '${resPhone.substring(resPhone.length - 3)}';
 
-      debugPrint('📱 requiresFirebase=$requiresFirebase');
-      debugPrint('📱 resolvedFullPhone=$resolvedFullPhone');
-
-      // ─── 4. Firebase OTP path ─────────────────────────────────────────
-      if (requiresFirebase) {
-        startedFirebase = true;
-
-        await FirebaseAuth.instance.verifyPhoneNumber(
-          phoneNumber: resolvedFullPhone,
-          timeout: const Duration(seconds: 60),
-
-          // ── OTP SMS received → go to ForgotPasswordVerifyScreen ─────
-          codeSent: (String verificationId, int? resendToken) {
-            debugPrint('✅ codeSent: verificationId=$verificationId');
-
-            if (!mounted) return;
-            setState(() => _isSendingOtp = false);
-
-            navigationPushReplacement(
-              context,
-              ForgotPasswordVerifyScreen(
-                isMobile: true,
-                maskedContact: resolvedMasked,
-                phoneNumber: resPhone,
-                countryCode: resCountryCode,
-                verificationId: verificationId,
-                resendToken: resendToken,
-              ),
-            );
-          },
-
-          // ── Firebase send failed ─────────────────────────────────────
-          verificationFailed: (FirebaseAuthException e) {
-            debugPrint('❌ verificationFailed: ${e.code} - ${e.message}');
-
-            if (!mounted) return;
-
-            String errorMessage;
-            switch (e.code) {
-              case 'invalid-phone-number':
-                errorMessage =
-                    AppLocalizations.of(context)!.invalidphonenumber;
-                break;
-              case 'too-many-requests':
-                errorMessage =
-                    AppLocalizations.of(context)!.toomanyattemptspleasetryagainlater;
-                break;
-              case 'network-request-failed':
-                errorMessage =
-                    'Network error. Please check your connection.';
-                break;
-              case 'quota-exceeded':
-                errorMessage =
-                    'SMS quota exceeded. Please try again later.';
-                break;
-              case 'app-not-authorized':
-                errorMessage =
-                    'App not authorized for Firebase Authentication.';
-                break;
-              default:
-                errorMessage =
-                    e.message ?? 'Failed to send OTP. Try again.';
-            }
-
-            setState(() {
-              _isSendingOtp = false;
-              _emailOrMobileError = errorMessage;
-            });
-          },
-
-          // ── Auto-verified (Android SMS retrieval) ────────────────────
-          verificationCompleted: (PhoneAuthCredential credential) {
-            debugPrint('📱 verificationCompleted — credential=$credential');
-          },
-
-          // ── SMS auto-retrieval timed out ─────────────────────────────
-          codeAutoRetrievalTimeout: (String verificationId) {
-            debugPrint('⏱ codeAutoRetrievalTimeout: $verificationId');
-            if (mounted && _isSendingOtp) {
-              setState(() => _isSendingOtp = false);
-            }
-          },
-        );
-
-      // ─── 5. Non-Firebase OTP path ─────────────────────────────────────
-      } else {
-        navigationPushReplacement(
-          context,
-          ForgotPasswordVerifyScreen(
-            isMobile: true,
-            maskedContact: resolvedMasked,
-            phoneNumber: resPhone,
-            countryCode: resCountryCode,
-          ),
-        );
-      }
+      navigationPushReplacement(
+        context,
+        ForgotPasswordVerifyScreen(
+          isMobile: true,
+          maskedContact: resolvedMasked,
+          phoneNumber: resPhone,
+          countryCode: resCountryCode,
+        ),
+      );
     } on DioException catch (e) {
       setState(() {
         _emailOrMobileError = ApiService().handleDioError(
@@ -284,7 +201,7 @@ class _NewForgotPasswordSceenState extends State<NewForgotPasswordScreen>
         );
       }
     } finally {
-      if (!startedFirebase && mounted) {
+      if (mounted) {
         setState(() => _isSendingOtp = false);
       }
     }

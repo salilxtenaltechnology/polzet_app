@@ -2,7 +2,7 @@ name: polzet_app
 description: "Polzet is a social media platform that allows users to share their thoughts, ideas, and experiences with the world. It provides a space for people to connect, engage, and express themselves freely."
 publish_to: 'none'
 
-version: 1.1.0+9
+version: 1.1.0+11
 
 environment:
   sdk: '>=3.10.3 <4.0.0'
@@ -14,14 +14,11 @@ dependencies:
     sdk: flutter
   
   # Icons & UI
-  cupertino_icons: ^1.0.8
   google_fonts: ^6.3.3
   flutter_screenutil: ^5.9.3
   curved_navigation_bar: ^1.0.6
   lottie: ^3.3.2
   shimmer: ^3.0.0
-  glass: ^2.0.0+2
-  dotted_border: ^3.1.0
   
   # State Management & Logic
   provider: ^6.1.5+1
@@ -60,7 +57,6 @@ dependencies:
   firebase_auth: ^6.5.2
   firebase_app_check: ^0.4.4+2
   cached_network_image: ^3.4.1
-  in_app_update: ^4.2.5
   package_info_plus: ^9.0.1
   image: ^4.8.0
 

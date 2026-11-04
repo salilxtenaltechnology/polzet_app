@@ -3,7 +3,6 @@
 import 'dart:async';
 
 import 'package:dio/dio.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -42,9 +41,6 @@ class ForgotPasswordVerifyScreen extends StatefulWidget {
 
 class _ForgotPasswordVerifyScreenState
     extends State<ForgotPasswordVerifyScreen> {
-  String? _verificationId;
-  int? _resendToken;
-
   final List<TextEditingController> _otpControllers = List.generate(
     6,
     (_) => TextEditingController(),
@@ -62,12 +58,7 @@ class _ForgotPasswordVerifyScreenState
   @override
   void initState() {
     super.initState();
-    _verificationId = widget.verificationId;
-    _resendToken = widget.resendToken;
-    // Email → 2 min, Mobile → 10 min (same as OtpVerifyScreen)
-    _secondsRemaining = widget.isMobile
-        ? (widget.verificationId != null ? 60 : 600)
-        : 120;
+    _secondsRemaining = 60;
     _startTimer();
   }
 
@@ -124,37 +115,11 @@ class _ForgotPasswordVerifyScreenState
               ? widget.phoneNumber!
               : '$resCountryCode${widget.phoneNumber!}')
           : widget.email!;
-      final Map<String, dynamic> result;
 
-      if (widget.isMobile && _verificationId != null) {
-        debugPrint(
-          'Signing in to Firebase with verification ID: $_verificationId and SMS code: $otp',
-        );
-        final AuthCredential credential = PhoneAuthProvider.credential(
-          verificationId: _verificationId!,
-          smsCode: otp,
-        );
-        final UserCredential userCredential = await FirebaseAuth.instance
-            .signInWithCredential(credential);
-        debugPrint('Firebase sign in success: ${userCredential.user?.uid}');
-        final String? idToken = await userCredential.user?.getIdToken();
-        debugPrint(
-          'Firebase ID token fetched: ${idToken != null ? "Success" : "Failed"}',
-        );
-        if (idToken == null) {
-          throw Exception('Failed to retrieve Firebase ID token');
-        }
-        result = await ApiService().forgotPasswordVerifyOtp(
-          identifier: identifier,
-          idToken: idToken,
-          otp: otp,
-        );
-      } else {
-        result = await ApiService().forgotPasswordVerifyOtp(
-          identifier: identifier,
-          otp: otp,
-        );
-      }
+      final result = await ApiService().forgotPasswordVerifyOtp(
+        identifier: identifier,
+        otp: otp,
+      );
 
       if (!mounted) return;
 
@@ -168,24 +133,6 @@ class _ForgotPasswordVerifyScreenState
         );
       } else {
         setState(() => _otpError = result['message'] ?? AppLocalizations.of(context)!.invalidotp);
-      }
-    } on FirebaseAuthException catch (e) {
-      String errorMessage;
-      switch (e.code) {
-        case 'invalid-verification-code':
-          errorMessage = AppLocalizations.of(context)!.invalidotp;
-          break;
-        case 'session-expired':
-          errorMessage = AppLocalizations.of(context)!.verificationcodehasexpiredpleaserequestanewone;
-          break;
-        case 'invalid-phone-number':
-          errorMessage = AppLocalizations.of(context)!.invalidphonenumber;
-          break;
-        default:
-          errorMessage = e.message ?? 'Firebase verification failed';
-      }
-      if (mounted) {
-        setState(() => _otpError = errorMessage);
       }
     } on DioException catch (e) {
       final data = e.response?.data;
@@ -215,194 +162,39 @@ class _ForgotPasswordVerifyScreenState
       _otpError = '';
     });
 
-    bool startedFirebase = false;
-
     try {
-      final identifier = widget.isMobile ? widget.phoneNumber! : widget.email!;
+      final String resCountryCode = widget.countryCode ?? '';
+      final String identifier = widget.isMobile
+          ? (widget.phoneNumber!.startsWith('+')
+              ? widget.phoneNumber!
+              : '$resCountryCode${widget.phoneNumber!}')
+          : widget.email!;
 
-      if (widget.isMobile) {
-        final String resCountryCode = widget.countryCode ?? '';
-        final String fullPhoneNumber = '$resCountryCode$identifier';
-
-        if (_resendToken != null) {
-          debugPrint(
-            '📱 Resending via Firebase forceResendingToken: $_resendToken',
-          );
-          startedFirebase = true;
-          await FirebaseAuth.instance.verifyPhoneNumber(
-            phoneNumber: fullPhoneNumber,
-            forceResendingToken: _resendToken,
-            verificationCompleted: (PhoneAuthCredential credential) {
-              debugPrint('📱 verificationCompleted');
-            },
-            verificationFailed: (FirebaseAuthException e) {
-              debugPrint('📱 verificationFailed: ${e.code} - ${e.message}');
-              if (!mounted) return;
-              String errorMessage;
-              switch (e.code) {
-                case 'invalid-phone-number':
-                  errorMessage =
-                      'Invalid phone number. Please check and try again.';
-                  break;
-                case 'too-many-requests':
-                  errorMessage =
-                      'Too many attempts. Please try again later.';
-                  break;
-                case 'network-request-failed':
-                  errorMessage =
-                      'Network error. Please check your connection.';
-                  break;
-                case 'quota-exceeded':
-                  errorMessage =
-                      'SMS quota exceeded. Please try again later.';
-                  break;
-                case 'app-not-authorized':
-                  errorMessage =
-                      'App not authorized for Firebase Authentication.';
-                  break;
-                default:
-                  errorMessage =
-                      e.message ?? 'Failed to resend OTP. Try again.';
-              }
-              setState(() {
-                _isResending = false;
-                _otpError = errorMessage;
-              });
-            },
-            codeSent: (String verificationId, int? resendToken) {
-              debugPrint('📱 codeSent: id=$verificationId, token=$resendToken');
-              if (mounted) {
-                for (final c in _otpControllers) {
-                  c.clear();
-                }
-                _focusNodes[0].requestFocus();
-                setState(() {
-                  _isResending = false;
-                  _verificationId = verificationId;
-                  _resendToken = resendToken;
-                  _secondsRemaining = 60;
-                });
-                _startTimer();
-              }
-            },
-            codeAutoRetrievalTimeout: (String verificationId) {
-              debugPrint('📱 codeAutoRetrievalTimeout: $verificationId');
-              if (mounted && _isResending) {
-                setState(() => _isResending = false);
-              }
+      final result = await ApiService()
+          .forgotPasswordSendOtp(
+            identifier: identifier,
+          )
+          .timeout(
+            const Duration(seconds: 60),
+            onTimeout: () => {
+              'success': false,
+              'message': 'Request timed out. Please try again.',
             },
           );
-          return;
-        }
-      }
-
-      final result = await ApiService().forgotPasswordSendOtp(
-        identifier: identifier,
-      );
 
       if (!mounted) return;
 
       final success = result['success'] == true;
       if (success) {
-        final data = result['data'] ?? {};
-        final String resMessage = (result['message'] ?? '')
-            .toString()
-            .toLowerCase()
-            .trim();
-        final bool requiresFirebase =
-            data['requires_firebase'] == true ||
-            resMessage.contains('firebase') ||
-            resMessage.contains('use firebase client sdk to send otp');
-
-        if (widget.isMobile && requiresFirebase) {
-          startedFirebase = true;
-          String resPhone = (data['phone_number'] ?? identifier)
-              .toString()
-              .trim();
-          final String resCountryCode =
-              (data['country_code'] ?? widget.countryCode ?? '').toString();
-
-          final dialCodeDigits = resCountryCode.replaceAll('+', '');
-          if (resPhone.startsWith(dialCodeDigits)) {
-            resPhone = resPhone.substring(dialCodeDigits.length);
-          } else if (resPhone.startsWith(resCountryCode)) {
-            resPhone = resPhone.substring(resCountryCode.length);
-          }
-          final String fullPhone = '$resCountryCode$resPhone';
-
-          debugPrint('📱 First resend via Firebase for $fullPhone');
-          await FirebaseAuth.instance.verifyPhoneNumber(
-            phoneNumber: fullPhone,
-            forceResendingToken: null,
-            verificationCompleted: (PhoneAuthCredential credential) {},
-            verificationFailed: (FirebaseAuthException e) {
-              debugPrint('📱 verificationFailed: ${e.code} - ${e.message}');
-              if (!mounted) return;
-              String errorMessage;
-              switch (e.code) {
-                case 'invalid-phone-number':
-                  errorMessage =
-                      'Invalid phone number';
-                  break;
-                case 'too-many-requests':
-                  errorMessage =
-                      'Too many attempts. Please try again later.';
-                  break;
-                case 'network-request-failed':
-                  errorMessage =
-                      'Network error. Please check your connection.';
-                  break;
-                case 'quota-exceeded':
-                  errorMessage =
-                      'SMS quota exceeded. Please try again later.';
-                  break;
-                case 'app-not-authorized':
-                  errorMessage =
-                      'App not authorized for Firebase Authentication.';
-                  break;
-                default:
-                  errorMessage =
-                      e.message ?? 'Failed to resend OTP. Try again.';
-              }
-              setState(() {
-                _isResending = false;
-                _otpError = errorMessage;
-              });
-            },
-            codeSent: (String verificationId, int? resendToken) {
-              debugPrint('📱 codeSent: id=$verificationId, token=$resendToken');
-              if (mounted) {
-                for (final c in _otpControllers) {
-                  c.clear();
-                }
-                _focusNodes[0].requestFocus();
-                setState(() {
-                  _isResending = false;
-                  _verificationId = verificationId;
-                  _resendToken = resendToken;
-                  _secondsRemaining = 60;
-                });
-                _startTimer();
-              }
-            },
-            codeAutoRetrievalTimeout: (String verificationId) {
-              debugPrint('📱 codeAutoRetrievalTimeout: $verificationId');
-              if (mounted && _isResending) {
-                setState(() => _isResending = false);
-              }
-            },
-          );
-        } else {
-          for (final c in _otpControllers) {
-            c.clear();
-          }
-          _focusNodes[0].requestFocus();
-          setState(() {
-            _otpError = '';
-            _secondsRemaining = widget.isMobile ? 600 : 120;
-          });
-          _startTimer();
+        for (final c in _otpControllers) {
+          c.clear();
         }
+        _focusNodes[0].requestFocus();
+        setState(() {
+          _otpError = '';
+          _secondsRemaining = 60;
+        });
+        _startTimer();
       } else {
         setState(() => _otpError = result['message'] ?? 'Failed to resend OTP');
       }
@@ -418,7 +210,7 @@ class _ForgotPasswordVerifyScreenState
         setState(() => _otpError = 'Something went wrong. Please try again.');
       }
     } finally {
-      if (!startedFirebase && mounted) {
+      if (mounted) {
         setState(() => _isResending = false);
       }
     }

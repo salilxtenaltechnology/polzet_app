@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 
 /// Strategy/mode for image and media picking across build configurations.
 enum GalleryPickerMode {
@@ -12,34 +11,24 @@ enum GalleryPickerMode {
 }
 
 class GalleryConfig {
-  /// Allows override for unit/integration testing or debugging release mode in dev.
+  /// Allows override for unit/integration testing or debugging.
   static bool? _forceMode;
 
   /// Set to true to force system picker, false to force custom gallery, or null for default.
-  /// Overrides only take effect in debug/profile builds; release builds always enforce systemPhotoPicker.
   static void setForceSystemPickerForTesting(bool? forceSystemPicker) {
-    if (kReleaseMode) return;
     _forceMode = forceSystemPicker;
   }
 
-  /// Whether custom gallery is currently active.
-  /// In release mode (production Google Play builds), custom gallery is ALWAYS disabled (returns false),
-  /// regardless of any testing override. Overrides are strictly confined to debug/profile builds.
+  /// Whether custom gallery is currently active across all build configurations (Debug, Release, Production).
   static bool get isCustomGalleryActive {
-    if (kReleaseMode) {
-      return false;
-    }
     if (_forceMode != null) {
       return !_forceMode!;
     }
     return true;
   }
 
-  /// Active picker mode. Always GalleryPickerMode.systemPhotoPicker in release builds.
+  /// Active picker mode. Returns [GalleryPickerMode.customGallery] when custom gallery is active.
   static GalleryPickerMode get currentMode {
-    if (kReleaseMode) {
-      return GalleryPickerMode.systemPhotoPicker;
-    }
     return isCustomGalleryActive ? GalleryPickerMode.customGallery : GalleryPickerMode.systemPhotoPicker;
   }
 }

@@ -27,16 +27,22 @@ import '../../../../widgets/appbar/common_appbar.dart';
 import '../../../../widgets/banner/ai_generation_limit_banner.dart';
 import '../../../../widgets/button/primary_button.dart';
 import '../../../../widgets/button/generate_question_button.dart';
+import '../../../../models/poll/inspired_poll_data.dart';
 import '../../../../widgets/custom_text_styles.dart';
 import '../../../../widgets/dotted_border/dotted_border.dart';
 import '../../../../widgets/show_toast.dart';
 import '../../../../widgets/text_field/secondry_textfield.dart';
+import '../widgets/category_dropdown_field.dart';
+import '../widgets/inspired_poll_card.dart';
+import '../widgets/poll_keyboard_dismiss_wrapper.dart';
 
 class NewBattelPoll extends StatefulWidget {
   final String? initialQuestion;
   final String? initialDescription;
   final List<String>? initialOptions;
   final String? initialVotingType;
+  final InspiredPollData? inspiredData;
+  final String? inspiredPostId;
 
   const NewBattelPoll({
     super.key,
@@ -44,6 +50,8 @@ class NewBattelPoll extends StatefulWidget {
     this.initialDescription,
     this.initialOptions,
     this.initialVotingType,
+    this.inspiredData,
+    this.inspiredPostId,
   });
 
   @override
@@ -66,9 +74,11 @@ class _NewBattelPollState extends State<NewBattelPoll> {
   String imageErrorText = '';
   String label1ErrorText = '';
   String label2ErrorText = '';
+  String categoryErrorText = '';
 
   bool _isGeneratingQuestion = false;
   bool _hasGeneratedQuestion = false;
+  String? _selectedCategory;
 
   int _remainingGenerations = 8;
   int _dailyLimit = 8;
@@ -205,7 +215,7 @@ class _NewBattelPollState extends State<NewBattelPoll> {
 
     if (query.isEmpty) {
       setState(() {
-        questionErrorText = 'Please enter a topic';
+        questionErrorText = AppLocalizations.of(context)!.pleaseenteratopic;
       });
       return;
     }
@@ -418,13 +428,23 @@ class _NewBattelPollState extends State<NewBattelPoll> {
       imageErrorText = '';
       label1ErrorText = '';
       label2ErrorText = '';
+      categoryErrorText = '';
     });
 
     bool hasError = false;
 
     if (questionController.text.trim().isEmpty) {
       setState(() {
-        questionErrorText = 'Please enter a question or topic';
+        questionErrorText = AppLocalizations.of(
+          context,
+        )!.pleaseenteraquestionortopic;
+      });
+      hasError = true;
+    }
+
+    if (_selectedCategory == null || _selectedCategory!.trim().isEmpty) {
+      setState(() {
+        categoryErrorText = AppLocalizations.of(context)!.pleaseselectcategory;
       });
       hasError = true;
     }
@@ -436,7 +456,7 @@ class _NewBattelPollState extends State<NewBattelPoll> {
 
     if (!hasLabel1 && !hasLabel2 && !hasImage1 && !hasImage2) {
       setState(() {
-        imageErrorText = 'Please enter label or select image';
+        imageErrorText = AppLocalizations.of(context)!.pleaseenterlabelorselectimage;
       });
       hasError = true;
     } else if (hasLabel1 && hasLabel2 && hasImage1 && hasImage2) {
@@ -449,30 +469,30 @@ class _NewBattelPollState extends State<NewBattelPoll> {
       // 1 label 1 image -> not allow
       setState(() {
         imageErrorText =
-            'Mismatched options: One option with text only and one with image only is not allowed';
+            AppLocalizations.of(context)!.mismatchedoptionsoneoptionwithtextonlyandonewithimageonlyisnotallowed;
       });
       hasError = true;
     } else if (!hasLabel1 && hasImage1 && hasLabel2 && !hasImage2) {
       // 1 label 1 image -> not allow
       setState(() {
         imageErrorText =
-            'Mismatched options: One option with text only and one with image only is not allowed';
+            AppLocalizations.of(context)!.mismatchedoptionsoneoptionwithtextonlyandonewithimageonlyisnotallowed;
       });
       hasError = true;
     } else if (hasLabel1 && hasLabel2 && (hasImage1 != hasImage2)) {
       // 2 label 1 image
       setState(() {
-        imageErrorText = 'Please select image';
+        imageErrorText = AppLocalizations.of(context)!.pleaseselectimage;
       });
       hasError = true;
     } else if (hasImage1 && hasImage2 && (hasLabel1 != hasLabel2)) {
       // 2 image 1 label
       setState(() {
         if (!hasLabel1) {
-          label1ErrorText = 'Please enter label';
+          label1ErrorText = AppLocalizations.of(context)!.pleaseenterlabel;
         }
         if (!hasLabel2) {
-          label2ErrorText = 'Please enter label';
+          label2ErrorText = AppLocalizations.of(context)!.pleaseenterlabel;
         }
       });
       hasError = true;
@@ -480,27 +500,27 @@ class _NewBattelPollState extends State<NewBattelPoll> {
       // 1 label blank (no images at all)
       setState(() {
         if (!hasLabel1) {
-          label1ErrorText = 'Please enter label';
+          label1ErrorText = AppLocalizations.of(context)!.pleaseenterlabel;
         }
         if (!hasLabel2) {
-          label2ErrorText = 'Please enter label';
+          label2ErrorText = AppLocalizations.of(context)!.pleaseenterlabel;
         }
       });
       hasError = true;
     } else if (!hasLabel1 && !hasLabel2 && (hasImage1 != hasImage2)) {
       // 1 image blank (no labels at all)
       setState(() {
-        imageErrorText = 'Please select image';
+        imageErrorText = AppLocalizations.of(context)!.pleaseselectimage;
       });
       hasError = true;
     } else {
       // One option has both image + label, and the other is empty
       setState(() {
         if (!hasLabel1 && !hasImage1) {
-          label1ErrorText = 'Please enter label';
+          label1ErrorText = AppLocalizations.of(context)!.pleaseenterlabel;
         }
         if (!hasLabel2 && !hasImage2) {
-          label2ErrorText = 'Please enter label';
+          label2ErrorText = AppLocalizations.of(context)!.pleaseenterlabel;
         }
       });
       hasError = true;
@@ -521,6 +541,18 @@ class _NewBattelPollState extends State<NewBattelPoll> {
         const MapEntry('voting_type', 'single_choice'),
         const MapEntry('max_options', '1'),
       ]);
+
+      if (_selectedCategory != null && _selectedCategory!.isNotEmpty) {
+        formData.fields.add(MapEntry('category', _selectedCategory!));
+      }
+
+      final originalPostId =
+          widget.inspiredPostId ?? widget.inspiredData?.postId;
+      if (originalPostId != null && originalPostId.isNotEmpty) {
+        formData.fields.add(MapEntry('inspiration_id', originalPostId));
+        formData.fields.add(MapEntry('inspired_by_post_id', originalPostId));
+        formData.fields.add(MapEntry('parent_post_id', originalPostId));
+      }
 
       // Add labels as poll_options
       formData.fields.add(
@@ -587,98 +619,111 @@ class _NewBattelPollState extends State<NewBattelPoll> {
     final txt = AppTextColors.of(context);
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.background,
-      appBar: CommonAppBar(title: AppLocalizations.of(context)!.startabattle),
-      body: SingleChildScrollView(
-        physics: const BouncingScrollPhysics(),
-        child: Padding(
-          padding: EdgeInsets.symmetric(horizontal: 12.w),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              SizedBox(height: 10.h),
-              AiGenerationLimitBanner(
-                remainingGenerations: _remainingGenerations,
-              ),
-              SizedBox(height: 15.h),
-              Text(
-                AppLocalizations.of(
-                  context,
-                )!.putcompetitorsheadtoheadandseewhichsidewins,
-                style: AppTextStyles.subText.copyWith(
-                  fontSize: 14,
-                  color: txt.body,
-                  fontWeight: FontWeight.w400,
-                ),
-              ),
-              SizedBox(height: 20.h),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    AppLocalizations.of(context)!.startbattel,
-                    style: CustomTextStyles.lblPrimaryText(context),
+      appBar: CommonAppBar(
+        title: AppLocalizations.of(context)!.startabattle,
+        actions: [
+          AiGenerationLimitBanner(remainingGenerations: _remainingGenerations),
+        ],
+      ),
+      body: PollKeyboardDismissWrapper(
+        child: SingleChildScrollView(
+          physics: const BouncingScrollPhysics(),
+          child: Padding(
+            padding: EdgeInsets.symmetric(horizontal: 12.w),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SizedBox(height: 10.h),
+
+                // Inspired Poll Card
+                if (widget.inspiredData != null) ...[
+                  InspiredPollCard(inspiredData: widget.inspiredData!),
+                  SizedBox(height: 15.h),
+                ],
+
+                Text(
+                  AppLocalizations.of(
+                    context,
+                  )!.putcompetitorsheadtoheadandseewhichsidewins,
+                  style: AppTextStyles.subText.copyWith(
+                    fontSize: 14,
+                    color: txt.body,
+                    fontWeight: FontWeight.w400,
                   ),
-                  SizedBox(
-                    height: 30,
-                    child: GenerateQuestionButton(
-                      isGenerating: _isGeneratingQuestion,
-                      hasGenerated: _hasGeneratedQuestion,
-                      isEnabled: _remainingGenerations > 0,
-                      onTap:
-                          (_isGeneratingQuestion || _remainingGenerations <= 0)
-                          ? null
-                          : generateQuestion,
+                ),
+                SizedBox(height: 20.h),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      AppLocalizations.of(context)!.startbattel,
+                      style: CustomTextStyles.lblPrimaryText(context),
+                    ),
+                    SizedBox(
+                      height: 30,
+                      child: GenerateQuestionButton(
+                        isGenerating: _isGeneratingQuestion,
+                        hasGenerated: _hasGeneratedQuestion,
+                        isEnabled: _remainingGenerations > 0,
+                        onTap:
+                            (_isGeneratingQuestion ||
+                                _remainingGenerations <= 0)
+                            ? null
+                            : generateQuestion,
+                      ),
+                    ),
+                  ],
+                ),
+                SizedBox(height: 7.h),
+                SecondryTextfield(
+                  controller: questionController,
+                  focusNode: questionFocusNode,
+                  hintText: _hintTexts[_currentHintIndex],
+                  focusedBorderColor: questionController.text.trim().isNotEmpty
+                      ? Theme.of(context).colorScheme.onPrimary
+                      : null,
+                ),
+                if (questionErrorText.isNotEmpty)
+                  Padding(
+                    padding: EdgeInsets.only(top: 5.h),
+                    child: Text(
+                      questionErrorText,
+                      style: CustomTextStyles.msgErrorText(context),
                     ),
                   ),
-                ],
-              ),
-              SizedBox(height: 7.h),
-              SecondryTextfield(
-                controller: questionController,
-                focusNode: questionFocusNode,
-                hintText: _hintTexts[_currentHintIndex],
-                focusedBorderColor: questionController.text.trim().isNotEmpty
-                    ? Theme.of(context).colorScheme.onPrimary
-                    : null,
-              ),
-              if (questionErrorText.isNotEmpty)
-                Padding(
-                  padding: EdgeInsets.only(top: 5.h),
-                  child: Text(
-                    questionErrorText,
-                    style: CustomTextStyles.msgErrorText(context),
+                SizedBox(height: 20.h),
+                Text(
+                  AppLocalizations.of(context)!.descriptionhashtagsoptional,
+                  style: CustomTextStyles.lblPrimaryText(context),
+                ),
+                SizedBox(height: 7.h),
+                SecondryTextfield(
+                  controller: descriptionController,
+                  hintText: AppLocalizations.of(
+                    context,
+                  )!.typedescriptionorhashtags,
+                  maxLines: 5,
+                  minLines: 1,
+                  focusedBorderColor: Theme.of(context).colorScheme.onPrimary,
+                ),
+                SizedBox(height: 20.h),
+                _buildCompetitorsSection(context),
+                SizedBox(height: 12.h),
+                Text(
+                  AppLocalizations.of(
+                    context,
+                  )!.addtwosimilarimagesegoutfitsplacesfood,
+                  style: AppTextStyles.bodyText.copyWith(
+                    color: txt.muted,
+                    fontSize: 10.5.sp,
+                    fontWeight: FontWeight.w400,
                   ),
                 ),
-              SizedBox(height: 20.h),
-              Text(
-                AppLocalizations.of(context)!.descriptionhashtagsoptional,
-                style: CustomTextStyles.lblPrimaryText(context),
-              ),
-              SizedBox(height: 7.h),
-              SecondryTextfield(
-                controller: descriptionController,
-                hintText: AppLocalizations.of(
-                  context,
-                )!.typedescriptionorhashtags,
-                maxLines: 5,
-                minLines: 1,
-                focusedBorderColor: Theme.of(context).colorScheme.onPrimary,
-              ),
-              SizedBox(height: 20.h),
-              _buildCompetitorsSection(context),
-              SizedBox(height: 12.h),
-              Text(
-                AppLocalizations.of(
-                  context,
-                )!.addtwosimilarimagesegoutfitsplacesfood,
-                style: AppTextStyles.bodyText.copyWith(
-                  color: txt.muted,
-                  fontSize: 10.5.sp,
-                  fontWeight: FontWeight.w400,
-                ),
-              ),
-              SizedBox(height: 30.h),
-            ],
+                SizedBox(height: 20.h),
+                _buildCategorySection(),
+                SizedBox(height: 30.h),
+              ],
+            ),
           ),
         ),
       ),
@@ -729,12 +774,17 @@ class _NewBattelPollState extends State<NewBattelPoll> {
         if (imageErrorText.isNotEmpty)
           Padding(
             padding: EdgeInsets.only(top: 10.h),
-            child: Center(
-              child: Text(
-                imageErrorText,
-                style: CustomTextStyles.msgErrorText(context),
-                textAlign: TextAlign.center,
-              ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Text(
+                    imageErrorText,
+                    style: CustomTextStyles.msgErrorText(context),
+                  
+                  ),
+                ),
+              ],
             ),
           ),
       ],
@@ -843,6 +893,47 @@ class _NewBattelPollState extends State<NewBattelPoll> {
               style: CustomTextStyles.msgErrorText(context),
             ),
           ),
+      ],
+    );
+  }
+
+  Widget _buildCategoryField() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        CategoryDropdownField(
+          selectedCategory: _selectedCategory,
+          onCategorySelected: (cat) {
+            setState(() {
+              _selectedCategory = cat;
+              if (categoryErrorText.isNotEmpty) {
+                categoryErrorText = '';
+              }
+            });
+          },
+        ),
+        if (categoryErrorText.isNotEmpty)
+          Padding(
+            padding: EdgeInsets.only(top: 5.h),
+            child: Text(
+              categoryErrorText,
+              style: CustomTextStyles.msgErrorText(context),
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildCategorySection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          AppLocalizations.of(context)!.category,
+          style: CustomTextStyles.lblPrimaryText(context),
+        ),
+        SizedBox(height: 10.h),
+        _buildCategoryField(),
       ],
     );
   }

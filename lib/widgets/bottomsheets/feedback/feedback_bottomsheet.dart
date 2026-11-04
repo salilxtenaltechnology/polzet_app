@@ -5,11 +5,11 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:polzet_app/widgets/show_toast.dart';
 import 'package:provider/provider.dart';
 
 import '../../../api/api_service.dart';
+import '../../../api/services/image/image_picker_service.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../languages/l10n/generated/app_localizations.dart';
 import '../../../../provider/user_provider.dart';
@@ -49,15 +49,13 @@ class _FeedbackBottomsheetState extends State<FeedbackBottomsheet> {
   Future<void> _pickScreenshot() async {
     setState(() => _isPickingImage = true);
     try {
-      final picker = ImagePicker();
-      final XFile? picked = await picker.pickImage(
-        source: ImageSource.gallery,
-        imageQuality: 85,
+      final File? file = await ImagePickerService.pickImage(
+        context: context,
+        allowCamera: false,
       );
       if (!mounted) return;
-      if (picked == null) return;
+      if (file == null) return;
 
-      final file = File(picked.path);
       final int sizeInBytes = await file.length();
       if (!mounted) return;
 

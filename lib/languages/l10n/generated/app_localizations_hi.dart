@@ -2868,4 +2868,124 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get withselectedfilters => 'चयनित फ़िल्टर के साथ';
+
+  @override
+  String get notopicsavailable => 'कोई विषय उपलब्ध नहीं है';
+
+  @override
+  String get filter => 'फ़िल्टर';
+
+  @override
+  String get applyfilters => 'फ़िल्टर लागू करें';
+
+  @override
+  String get next => 'आगे';
+
+  @override
+  String get create => 'बनाएँ';
+
+  @override
+  String get whatdoyouwanttocreate => 'आप क्या बनाना चाहते हैं?';
+
+  @override
+  String get askaquestiongetopinions => 'प्रश्न पूछें और राय प्राप्त करें';
+
+  @override
+  String get createpost => 'पोस्ट बनाएँ';
+
+  @override
+  String get sharephotosandthoughts => 'फ़ोटो और विचार साझा करें';
+
+  @override
+  String get privateconversationsshareddiscussions =>
+      'निजी बातचीत और साझा चर्चाएँ';
+
+  @override
+  String get sharedphotosandthoughtswithyourscommunity =>
+      'अपने समुदाय के साथ फ़ोटो और विचार साझा करें';
+
+  @override
+  String get caption => 'कैप्शन';
+
+  @override
+  String get whatsyourmind => 'आपके मन में क्या है?';
+
+  @override
+  String get publishpoll => 'पोल प्रकाशित करें';
+
+  @override
+  String get previewpost => 'पोस्ट का पूर्वावलोकन';
+
+  @override
+  String get seehowyourpollwillappearinthefeedbeforepublishing =>
+      'प्रकाशित करने से पहले देखें कि आपका पोल फ़ीड में कैसा दिखाई देगा';
+
+  @override
+  String get pleaseenterlabel => 'कृपया लेबल दर्ज करें';
+
+  @override
+  String get nocategoryfound => 'कोई श्रेणी नहीं मिली';
+
+  @override
+  String get searchcategory => 'श्रेणी खोजें...';
+
+  @override
+  String get selectacategory => 'एक श्रेणी चुनें';
+
+  @override
+  String get preview => 'पूर्वावलोकन';
+
+  @override
+  String get reorder => 'क्रम बदलें';
+
+  @override
+  String get reorderimages => 'इमेज का क्रम बदलें';
+
+  @override
+  String get dragdroptochangeorder => 'क्रम बदलने के लिए खींचें और छोड़ें';
+
+  @override
+  String get done => 'हो गया';
+
+  @override
+  String get reject => 'अस्वीकार करें';
+
+  @override
+  String get pleaseenterlabelorselectimage =>
+      'कृपया लेबल दर्ज करें या इमेज चुनें';
+
+  @override
+  String get pleaseselectimage => 'कृपया इमेज चुनें';
+
+  @override
+  String get pleaseselectcategory => 'कृपया श्रेणी चुनें';
+
+  @override
+  String get pleaseenteravalidmobilenumber =>
+      'कृपया मान्य मोबाइल नंबर दर्ज करें';
+
+  @override
+  String get left => 'बाकी';
+
+  @override
+  String
+  get mismatchedoptionsoneoptionwithtextonlyandonewithimageonlyisnotallowed =>
+      'असंगत विकल्प: केवल टेक्स्ट वाला एक विकल्प और केवल इमेज वाला दूसरा विकल्प अनुमति नहीं है';
+
+  @override
+  String get mismatchoptionsdonotmixtextonlyandimageoptions =>
+      'असंगत विकल्प: केवल टेक्स्ट और इमेज वाले विकल्पों को एक साथ न मिलाएँ';
+
+  @override
+  String get deletepost => 'पोस्ट हटाएँ';
+
+  @override
+  String get areyousurewanttodeletethispost =>
+      'क्या आप वाकई इस पोस्ट को हटाना चाहते हैं?';
+
+  @override
+  String get inspiredby => 'से प्रेरित';
+
+  @override
+  String get polllowercase => 'पोल';
 }

@@ -22,16 +22,6 @@
 	<string>$(FLUTTER_BUILD_NAME)</string>
 	<key>CFBundleSignature</key>
 	<string>????</string>
-	<key>CFBundleVersion</key>
-	<string>$(FLUTTER_BUILD_NUMBER)</string>
-	<key>LSApplicationQueriesSchemes</key>
-	<array>
-		<string>instagram</string>
-		<string>whatsapp</string>
-		<string>mailto</string>
-		<string>https</string>
-		<string>http</string>
-	</array>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>
@@ -47,22 +37,37 @@
 			</array>
 		</dict>
 	</array>
-	<key>GIDClientID</key>
-	<string>470797111076-58rdcmqclbkkhu2jhg8up2tq751v8jia.apps.googleusercontent.com</string>
+	<key>CFBundleVersion</key>
+	<string>$(FLUTTER_BUILD_NUMBER)</string>
 	<key>FlutterDeepLinkingEnabled</key>
 	<true/>
-	<key>UIBackgroundModes</key>
+	<key>GIDClientID</key>
+	<string>470797111076-58rdcmqclbkkhu2jhg8up2tq751v8jia.apps.googleusercontent.com</string>
+	<key>LSApplicationQueriesSchemes</key>
 	<array>
-		<string>fetch</string>
-		<string>remote-notification</string>
+		<string>instagram</string>
+		<string>whatsapp</string>
+		<string>mailto</string>
+		<string>https</string>
+		<string>http</string>
 	</array>
+	<key>LSRequiresIPhoneOS</key>
+	<true/>
 	<key>NSAppTransportSecurity</key>
 	<dict>
 		<key>NSAllowsArbitraryLoads</key>
 		<true/>
 	</dict>
-	<key>LSRequiresIPhoneOS</key>
-	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>This app requires access to your camera to take photos for polls and profile pictures.</string>
+	<key>NSFaceIDUsageDescription</key>
+	<string>This app uses Face ID / Touch ID for secure biometric authentication.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>This app requires access to your microphone when capturing audio or video.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>This app requires access to save photos to your photo library.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>This app requires access to your photo library to select photos for polls and profile pictures.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>
@@ -86,6 +91,11 @@
 	</dict>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>fetch</string>
+		<string>remote-notification</string>
+	</array>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
 	<key>UIMainStoryboardFile</key>
@@ -99,15 +109,5 @@
 		<string>UIInterfaceOrientationPortrait</string>
 		<string>UIInterfaceOrientationPortraitUpsideDown</string>
 	</array>
-	<key>NSPhotoLibraryUsageDescription</key>
-	<string>This app requires access to your photo library to select photos for polls and profile pictures.</string>
-	<key>NSPhotoLibraryAddUsageDescription</key>
-	<string>This app requires access to save photos to your photo library.</string>
-	<key>NSCameraUsageDescription</key>
-	<string>This app requires access to your camera to take photos for polls and profile pictures.</string>
-	<key>NSMicrophoneUsageDescription</key>
-	<string>This app requires access to your microphone when capturing audio or video.</string>
-	<key>NSFaceIDUsageDescription</key>
-	<string>This app uses Face ID / Touch ID for secure biometric authentication.</string>
 </dict>
 </plist>

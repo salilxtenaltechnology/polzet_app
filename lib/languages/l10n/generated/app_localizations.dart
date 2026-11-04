@@ -4980,7 +4980,7 @@ abstract class AppLocalizations {
   /// No description provided for @whatsonyourmind.
   ///
   /// In en, this message translates to:
-  /// **'what’s on your mind'**
+  /// **'What’s on your mind'**
   String get whatsonyourmind;
 
   /// No description provided for @createpoll.
@@ -5354,6 +5354,229 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'with selected filters'**
   String get withselectedfilters;
+
+  /// No description provided for @notopicsavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'No topics available'**
+  String get notopicsavailable;
+
+  /// No description provided for @filter.
+  ///
+  /// In en, this message translates to:
+  /// **'Filter'**
+  String get filter;
+
+  /// No description provided for @applyfilters.
+  ///
+  /// In en, this message translates to:
+  /// **'Apply Filters'**
+  String get applyfilters;
+
+  /// No description provided for @next.
+  ///
+  /// In en, this message translates to:
+  /// **'Next'**
+  String get next;
+
+  /// No description provided for @create.
+  ///
+  /// In en, this message translates to:
+  /// **'Create'**
+  String get create;
+
+  /// No description provided for @whatdoyouwanttocreate.
+  ///
+  /// In en, this message translates to:
+  /// **'What do you want to create?'**
+  String get whatdoyouwanttocreate;
+
+  /// No description provided for @askaquestiongetopinions.
+  ///
+  /// In en, this message translates to:
+  /// **'Ask a question & get opinions'**
+  String get askaquestiongetopinions;
+
+  /// No description provided for @createpost.
+  ///
+  /// In en, this message translates to:
+  /// **'Create Post'**
+  String get createpost;
+
+  /// No description provided for @sharephotosandthoughts.
+  ///
+  /// In en, this message translates to:
+  /// **'Share photos and thoughts'**
+  String get sharephotosandthoughts;
+
+  /// No description provided for @privateconversationsshareddiscussions.
+  ///
+  /// In en, this message translates to:
+  /// **'Private conversations & shared discussions'**
+  String get privateconversationsshareddiscussions;
+
+  /// No description provided for @sharedphotosandthoughtswithyourscommunity.
+  ///
+  /// In en, this message translates to:
+  /// **'Share photos and thoughts with your community'**
+  String get sharedphotosandthoughtswithyourscommunity;
+
+  /// No description provided for @caption.
+  ///
+  /// In en, this message translates to:
+  /// **'Caption'**
+  String get caption;
+
+  /// No description provided for @whatsyourmind.
+  ///
+  /// In en, this message translates to:
+  /// **'What\'s on your mind?'**
+  String get whatsyourmind;
+
+  /// No description provided for @publishpoll.
+  ///
+  /// In en, this message translates to:
+  /// **'Publish Poll'**
+  String get publishpoll;
+
+  /// No description provided for @previewpost.
+  ///
+  /// In en, this message translates to:
+  /// **'Preview Post'**
+  String get previewpost;
+
+  /// No description provided for @seehowyourpollwillappearinthefeedbeforepublishing.
+  ///
+  /// In en, this message translates to:
+  /// **'See how your poll will appear in the feed before publishing'**
+  String get seehowyourpollwillappearinthefeedbeforepublishing;
+
+  /// No description provided for @pleaseenterlabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter label'**
+  String get pleaseenterlabel;
+
+  /// No description provided for @nocategoryfound.
+  ///
+  /// In en, this message translates to:
+  /// **'No category found'**
+  String get nocategoryfound;
+
+  /// No description provided for @searchcategory.
+  ///
+  /// In en, this message translates to:
+  /// **'Search category...'**
+  String get searchcategory;
+
+  /// No description provided for @selectacategory.
+  ///
+  /// In en, this message translates to:
+  /// **'Select a category'**
+  String get selectacategory;
+
+  /// No description provided for @preview.
+  ///
+  /// In en, this message translates to:
+  /// **'Preview'**
+  String get preview;
+
+  /// No description provided for @reorder.
+  ///
+  /// In en, this message translates to:
+  /// **'Reorder'**
+  String get reorder;
+
+  /// No description provided for @reorderimages.
+  ///
+  /// In en, this message translates to:
+  /// **'Reorder images'**
+  String get reorderimages;
+
+  /// No description provided for @dragdroptochangeorder.
+  ///
+  /// In en, this message translates to:
+  /// **'Drag & Drop to change order'**
+  String get dragdroptochangeorder;
+
+  /// No description provided for @done.
+  ///
+  /// In en, this message translates to:
+  /// **'Done'**
+  String get done;
+
+  /// No description provided for @reject.
+  ///
+  /// In en, this message translates to:
+  /// **'Reject'**
+  String get reject;
+
+  /// No description provided for @pleaseenterlabelorselectimage.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter label or select image'**
+  String get pleaseenterlabelorselectimage;
+
+  /// No description provided for @pleaseselectimage.
+  ///
+  /// In en, this message translates to:
+  /// **'Please select image'**
+  String get pleaseselectimage;
+
+  /// No description provided for @pleaseselectcategory.
+  ///
+  /// In en, this message translates to:
+  /// **'Please select category'**
+  String get pleaseselectcategory;
+
+  /// No description provided for @pleaseenteravalidmobilenumber.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter a valid mobile number'**
+  String get pleaseenteravalidmobilenumber;
+
+  /// No description provided for @left.
+  ///
+  /// In en, this message translates to:
+  /// **'left'**
+  String get left;
+
+  /// No description provided for @mismatchedoptionsoneoptionwithtextonlyandonewithimageonlyisnotallowed.
+  ///
+  /// In en, this message translates to:
+  /// **'Mismatched options: One option with text only and one with image only is not allowed'**
+  String
+  get mismatchedoptionsoneoptionwithtextonlyandonewithimageonlyisnotallowed;
+
+  /// No description provided for @mismatchoptionsdonotmixtextonlyandimageoptions.
+  ///
+  /// In en, this message translates to:
+  /// **'Mismatch options: Do not mix text-only and image options'**
+  String get mismatchoptionsdonotmixtextonlyandimageoptions;
+
+  /// No description provided for @deletepost.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete post'**
+  String get deletepost;
+
+  /// No description provided for @areyousurewanttodeletethispost.
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to delete this post?'**
+  String get areyousurewanttodeletethispost;
+
+  /// No description provided for @inspiredby.
+  ///
+  /// In en, this message translates to:
+  /// **'Inspired by'**
+  String get inspiredby;
+
+  /// No description provided for @polllowercase.
+  ///
+  /// In en, this message translates to:
+  /// **'poll'**
+  String get polllowercase;
 }
 
 class _AppLocalizationsDelegate

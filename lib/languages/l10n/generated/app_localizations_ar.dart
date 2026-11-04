@@ -2263,7 +2263,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get pleaseenteraquestionortopic => 'الرجاء إدخال سؤال أو موضوع';
 
   @override
-  String get pleaseselecttwoimages => 'الرجاء اختيار صورتين';
+  String get pleaseselecttwoimages => 'يرجى اختيار صورتين';
 
   @override
   String get markasread => 'تحديد كمقروء';
@@ -2848,4 +2848,122 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get withselectedfilters => 'باستخدام عوامل التصفية المحددة';
+
+  @override
+  String get notopicsavailable => 'لا توجد مواضيع متاحة';
+
+  @override
+  String get filter => 'تصفية';
+
+  @override
+  String get applyfilters => 'تطبيق عوامل التصفية';
+
+  @override
+  String get next => 'التالي';
+
+  @override
+  String get create => 'إنشاء';
+
+  @override
+  String get whatdoyouwanttocreate => 'ماذا تريد أن تنشئ؟';
+
+  @override
+  String get askaquestiongetopinions => 'اطرح سؤالًا واحصل على الآراء';
+
+  @override
+  String get createpost => 'إنشاء منشور';
+
+  @override
+  String get sharephotosandthoughts => 'شارك الصور والأفكار';
+
+  @override
+  String get privateconversationsshareddiscussions =>
+      'محادثات خاصة ونقاشات مشتركة';
+
+  @override
+  String get sharedphotosandthoughtswithyourscommunity =>
+      'شارك الصور والأفكار مع مجتمعك';
+
+  @override
+  String get caption => 'التعليق';
+
+  @override
+  String get whatsyourmind => 'بماذا تفكر؟';
+
+  @override
+  String get publishpoll => 'نشر الاستطلاع';
+
+  @override
+  String get previewpost => 'معاينة المنشور';
+
+  @override
+  String get seehowyourpollwillappearinthefeedbeforepublishing =>
+      'شاهد كيف سيظهر استطلاعك في الخلاصة قبل النشر';
+
+  @override
+  String get pleaseenterlabel => 'يرجى إدخال التسمية';
+
+  @override
+  String get nocategoryfound => 'لم يتم العثور على أي فئة';
+
+  @override
+  String get searchcategory => 'البحث عن فئة...';
+
+  @override
+  String get selectacategory => 'اختر فئة';
+
+  @override
+  String get preview => 'معاينة';
+
+  @override
+  String get reorder => 'إعادة الترتيب';
+
+  @override
+  String get reorderimages => 'إعادة ترتيب الصور';
+
+  @override
+  String get dragdroptochangeorder => 'اسحب وأفلت لتغيير الترتيب';
+
+  @override
+  String get done => 'تم';
+
+  @override
+  String get reject => 'رفض';
+
+  @override
+  String get pleaseenterlabelorselectimage => 'يرجى إدخال تسمية أو اختيار صورة';
+
+  @override
+  String get pleaseselectimage => 'يرجى اختيار صورة';
+
+  @override
+  String get pleaseselectcategory => 'يرجى اختيار فئة';
+
+  @override
+  String get pleaseenteravalidmobilenumber => 'يرجى إدخال رقم هاتف محمول صالح';
+
+  @override
+  String get left => 'متبقي';
+
+  @override
+  String
+  get mismatchedoptionsoneoptionwithtextonlyandonewithimageonlyisnotallowed =>
+      'خيارات غير متطابقة: لا يُسمح بوجود خيار نصي فقط وخيار آخر يحتوي على صورة فقط';
+
+  @override
+  String get mismatchoptionsdonotmixtextonlyandimageoptions =>
+      'خيارات غير متطابقة: لا تخلط بين خيارات النص فقط وخيارات الصور';
+
+  @override
+  String get deletepost => 'حذف المنشور';
+
+  @override
+  String get areyousurewanttodeletethispost =>
+      'هل أنت متأكد أنك تريد حذف هذا المنشور؟';
+
+  @override
+  String get inspiredby => 'مستوحى من';
+
+  @override
+  String get polllowercase => 'استطلاع';
 }

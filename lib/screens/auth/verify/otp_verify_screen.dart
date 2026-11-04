@@ -4,7 +4,6 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:dio/dio.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:polzet_app/core/constants/app_radius.dart';
@@ -27,8 +26,6 @@ class OtpVerifyScreen extends StatefulWidget {
   final String? email;
   final String? phoneNumber;
   final String? countryCode;
-  final String? verificationId;
-  final int? resendToken;
 
   const OtpVerifyScreen({
     super.key,
@@ -37,8 +34,6 @@ class OtpVerifyScreen extends StatefulWidget {
     this.email,
     this.phoneNumber,
     this.countryCode,
-    this.verificationId,
-    this.resendToken,
   });
 
   @override
@@ -46,8 +41,6 @@ class OtpVerifyScreen extends StatefulWidget {
 }
 
 class _OtpVerifyScreenState extends State<OtpVerifyScreen> with UtilityMixin {
-  String? _verificationId;
-  int? _resendToken;
   bool _isResending = false;
   static const int _otpLength = 6;
   Timer? _resendTimer;
@@ -137,55 +130,8 @@ class _OtpVerifyScreenState extends State<OtpVerifyScreen> with UtilityMixin {
       _otpError = '';
     });
 
-    bool startedFirebase = false;
-
     try {
-      final String fullPhoneNumber =
-          '${widget.countryCode}${widget.phoneNumber}';
-
-      // ── If we already have a resend token, skip API and go straight to Firebase
-      if (_resendToken != null) {
-        debugPrint(
-          '📱 Resending via Firebase forceResendingToken: $_resendToken',
-        );
-        startedFirebase = true;
-        await FirebaseAuth.instance.verifyPhoneNumber(
-          phoneNumber: fullPhoneNumber,
-          forceResendingToken:
-              _resendToken, // ← key: reuses session, avoids rate limit
-          verificationCompleted: (PhoneAuthCredential credential) {
-            debugPrint('📱 verificationCompleted');
-          },
-          verificationFailed: (FirebaseAuthException e) {
-            debugPrint('📱 verificationFailed: ${e.code} - ${e.message}');
-            if (mounted) {
-              setState(() {
-                _isResending = false;
-                _otpError = e.message ?? 'Firebase verification failed';
-              });
-            }
-          },
-          codeSent: (String verificationId, int? resendToken) {
-            debugPrint('📱 codeSent: id=$verificationId, token=$resendToken');
-            if (mounted) {
-              setState(() {
-                _isResending = false;
-                _verificationId = verificationId;
-                _resendToken = resendToken; // ← update for next resend
-                _secondsRemaining = 60;
-              });
-              _startTimer();
-            }
-          },
-          codeAutoRetrievalTimeout: (String verificationId) {
-            debugPrint('📱 codeAutoRetrievalTimeout');
-          },
-        );
-        return; // ← skip API call entirely
-      }
-
-      // ── First time: call your API (no resend token yet)
-      final result = await ApiService().sendMobileOtp(
+      final result = await ApiService().sendMobileOtpViaTwilio(
         phoneNumber: widget.phoneNumber!,
         countryCode: widget.countryCode!,
       );
@@ -195,52 +141,10 @@ class _OtpVerifyScreenState extends State<OtpVerifyScreen> with UtilityMixin {
       final success =
           result['success'] == true || result['status'] == 'success';
       if (success) {
-        final data = result['data'] ?? {};
-        final String resMessage = (result['message'] ?? '')
-            .toString()
-            .toLowerCase()
-            .trim();
-        final bool requiresFirebase =
-            data['requires_firebase'] == true ||
-            resMessage.contains('firebase') ||
-            resMessage.contains('use firebase client sdk to send otp');
-
-        if (requiresFirebase) {
-          startedFirebase = true;
-          debugPrint('📱 First send via Firebase for $fullPhoneNumber');
-          await FirebaseAuth.instance.verifyPhoneNumber(
-            phoneNumber: fullPhoneNumber,
-            forceResendingToken: null, // ← first time, no token
-            verificationCompleted: (PhoneAuthCredential credential) {},
-            verificationFailed: (FirebaseAuthException e) {
-              debugPrint('📱 verificationFailed: ${e.code} - ${e.message}');
-              if (mounted) {
-                setState(() {
-                  _isResending = false;
-                  _otpError = e.message ?? 'Firebase verification failed';
-                });
-              }
-            },
-            codeSent: (String verificationId, int? resendToken) {
-              debugPrint('📱 codeSent: id=$verificationId, token=$resendToken');
-              if (mounted) {
-                setState(() {
-                  _isResending = false;
-                  _verificationId = verificationId;
-                  _resendToken = resendToken; // ← save for future resends
-                  _secondsRemaining = 60;
-                });
-                _startTimer();
-              }
-            },
-            codeAutoRetrievalTimeout: (String verificationId) {},
-          );
-        } else {
-          setState(() => _secondsRemaining = 60);
-          _startTimer();
-        }
+        setState(() => _secondsRemaining = 60);
+        _startTimer();
       } else {
-        setState(() => _otpError = result['message'] ?? 'Failed to send OTP');
+        setState(() => _otpError = result['message'] ?? 'Failed to resend OTP');
       }
     } on DioException catch (e) {
       final msg = e.response?.data is Map
@@ -250,7 +154,7 @@ class _OtpVerifyScreenState extends State<OtpVerifyScreen> with UtilityMixin {
     } catch (e) {
       setState(() => _otpError = 'Something went wrong. Please try again.');
     } finally {
-      if (!startedFirebase) {
+      if (mounted) {
         setState(() => _isResending = false);
       }
     }
@@ -332,8 +236,6 @@ class _OtpVerifyScreenState extends State<OtpVerifyScreen> with UtilityMixin {
   @override
   void initState() {
     super.initState();
-    _verificationId = widget.verificationId;
-    _resendToken = widget.resendToken;
     for (int i = 0; i < _otpLength; i++) {
       final idx = i;
       _focusNodes[idx].onKeyEvent = (node, event) {
@@ -388,32 +290,11 @@ class _OtpVerifyScreenState extends State<OtpVerifyScreen> with UtilityMixin {
       final Map<String, dynamic> result;
 
       if (widget.isMobile) {
-        if (_verificationId != null) {
-          debugPrint(
-            'Signing in to Firebase with verification ID: $_verificationId and SMS code: $_otp',
-          );
-          final AuthCredential credential = PhoneAuthProvider.credential(
-            verificationId: _verificationId!,
-            smsCode: _otp,
-          );
-          final UserCredential userCredential = await FirebaseAuth.instance
-              .signInWithCredential(credential);
-          debugPrint('Firebase sign in success: ${userCredential.user?.uid}');
-          final String? idToken = await userCredential.user?.getIdToken();
-          debugPrint(
-            'Firebase ID token fetched: ${idToken != null ? "Success" : "Failed"}',
-          );
-          if (idToken == null) {
-            throw Exception('Failed to retrieve Firebase ID token');
-          }
-          result = await ApiService().verifyMobileOtp(idToken: idToken);
-        } else {
-          result = await ApiService().verifyMobileOtp(
-            phoneNumber: widget.phoneNumber!,
-            countryCode: widget.countryCode!,
-            otp: _otp,
-          );
-        }
+        result = await ApiService().verifyMobileOtpViaTwilio(
+          phoneNumber: widget.phoneNumber!,
+          countryCode: widget.countryCode!,
+          otp: _otp,
+        );
       } else {
         result = await ApiService().verifyEmailOtp(
           email: widget.email!,
@@ -511,8 +392,6 @@ class _OtpVerifyScreenState extends State<OtpVerifyScreen> with UtilityMixin {
             : result['message'] ?? 'Invalid OTP';
         setState(() => _otpError = errorMsg);
       }
-    } on FirebaseAuthException catch (e) {
-      setState(() => _otpError = e.message ?? 'Firebase verification failed');
     } on DioException catch (e) {
       final data = e.response?.data;
       final errors = data is Map ? data['errors'] : null;

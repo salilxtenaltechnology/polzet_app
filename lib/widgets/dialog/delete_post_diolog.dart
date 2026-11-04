@@ -32,7 +32,7 @@ class DeletePostDiolog extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Delete post',
+                  AppLocalizations.of(context)!.deletepost,
                   style: AppTextStyles.cardTitle.copyWith(
                     fontSize: 15,
                     fontWeight: FontWeight.w600,
@@ -41,8 +41,8 @@ class DeletePostDiolog extends StatelessWidget {
                 ),
                 SizedBox(height: 8.h),
                 Text(
-                  'Are you sure want to delete this post?',
-                  textAlign: TextAlign.center,
+                    AppLocalizations.of(context)!.areyousurewanttodeletethispost,
+                  textAlign: TextAlign.start,
                   style: AppTextStyles.bodyText.copyWith(
                     color: txt.body,
                     fontSize: 14,

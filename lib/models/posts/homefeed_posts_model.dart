@@ -51,6 +51,95 @@ class HomeFeedResponse {
   }
 }
 
+class InspiredByAuthor {
+  final String username;
+  final String? avatar;
+
+  InspiredByAuthor({
+    required this.username,
+    this.avatar,
+  });
+
+  factory InspiredByAuthor.fromJson(Map<String, dynamic> json) {
+    String? avatarUrl = json['avatar']?.toString();
+    if (avatarUrl != null && avatarUrl.isNotEmpty) {
+      if (!avatarUrl.startsWith('http') && !avatarUrl.startsWith('data:image')) {
+        if (avatarUrl.startsWith('/')) {
+          avatarUrl = '${ApiConfig.baseUrlImage}$avatarUrl';
+        } else {
+          avatarUrl = '${ApiConfig.baseUrlImage}/$avatarUrl';
+        }
+      }
+    }
+    return InspiredByAuthor(
+      username: json['username']?.toString() ?? '',
+      avatar: avatarUrl,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'username': username,
+      'avatar': avatar,
+    };
+  }
+}
+
+class InspiredByPost {
+  final String id;
+  final String publicId;
+  final InspiredByAuthor author;
+  final String description;
+  final bool hasPoll;
+  final String? primaryImage;
+
+  InspiredByPost({
+    required this.id,
+    required this.publicId,
+    required this.author,
+    required this.description,
+    required this.hasPoll,
+    this.primaryImage,
+  });
+
+  factory InspiredByPost.fromJson(Map<String, dynamic> json) {
+    String? imgUrl = json['primary_image']?.toString();
+    if (imgUrl != null && imgUrl.isNotEmpty) {
+      if (!imgUrl.startsWith('http') && !imgUrl.startsWith('data:image')) {
+        if (imgUrl.startsWith('/')) {
+          imgUrl = '${ApiConfig.baseUrlImage}$imgUrl';
+        } else {
+          imgUrl = '${ApiConfig.baseUrlImage}/$imgUrl';
+        }
+      }
+    }
+
+    return InspiredByPost(
+      id: json['id']?.toString() ?? '',
+      publicId: json['public_id']?.toString() ?? '',
+      author: InspiredByAuthor.fromJson(
+        json['author'] is Map
+            ? Map<String, dynamic>.from(json['author'] as Map)
+            : <String, dynamic>{},
+      ),
+      description: json['description']?.toString() ?? '',
+      hasPoll: json['has_poll'] == true,
+      primaryImage: imgUrl,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'public_id': publicId,
+      'author': author.toJson(),
+      'description': description,
+      'has_poll': hasPoll,
+      'primary_image': primaryImage,
+    };
+  }
+}
+
 class HomeFeedPost {
   final String id;
   final HomeFeedUser user;
@@ -67,6 +156,8 @@ class HomeFeedPost {
   bool isSaved;
 
   final List<HomeFeedLikeUser> viewLikes;
+  final InspiredByPost? inspiredByPost;
+  final int inspiredCount;
 
   HomeFeedPost({
     required this.id,
@@ -83,13 +174,19 @@ class HomeFeedPost {
     required this.sharesCount,
     required this.isPolledByCurrentUser,
     this.isSaved = false,
+    this.inspiredByPost,
+    this.inspiredCount = 0,
   });
 
   factory HomeFeedPost.fromJson(Map<String, dynamic> json) {
     try {
       return HomeFeedPost(
         id: _parseToString(json['id']),
-        user: HomeFeedUser.fromJson(json['user'] ?? {}),
+        user: HomeFeedUser.fromJson(
+          json['user'] is Map
+              ? Map<String, dynamic>.from(json['user'] as Map)
+              : <String, dynamic>{},
+        ),
         description: _parseToString(json['description']),
         createdAt: _parseToString(json['created_at']),
         polls: _parseList<HomeFeedPoll>(
@@ -111,6 +208,12 @@ class HomeFeedPost {
         sharesCount: _parseToInt(json['shares_count']),
         isPolledByCurrentUser: json['is_polled_by_current_user'] == true,
         isSaved: json['is_saved'] == true,
+        inspiredByPost: json['inspired_by_post'] is Map
+            ? InspiredByPost.fromJson(
+                Map<String, dynamic>.from(json['inspired_by_post'] as Map),
+              )
+            : null,
+        inspiredCount: _parseToInt(json['inspired_count']),
       );
     } catch (e) {
       debugPrint('Error parsing HomeFeedPost: $e');
@@ -135,6 +238,8 @@ class HomeFeedPost {
       'shares_count': sharesCount,
       'is_polled_by_current_user': isPolledByCurrentUser,
       'is_saved': isSaved,
+      'inspired_by_post': inspiredByPost?.toJson(),
+      'inspired_count': inspiredCount,
     };
   }
 
@@ -160,8 +265,8 @@ class HomeFeedPost {
     List<T> result = [];
     for (var item in value) {
       try {
-        if (item is Map<String, dynamic>) {
-          result.add(fromJson(item));
+        if (item is Map) {
+          result.add(fromJson(Map<String, dynamic>.from(item)));
         }
       } catch (e) {
         debugPrint('Error parsing list item: $e');
@@ -369,8 +474,8 @@ class HomeFeedPoll {
     List<T> result = [];
     for (var item in value) {
       try {
-        if (item is Map<String, dynamic>) {
-          result.add(fromJson(item));
+        if (item is Map) {
+          result.add(fromJson(Map<String, dynamic>.from(item)));
         }
       } catch (e) {
         debugPrint('Error parsing list item: $e');
@@ -411,8 +516,10 @@ class HomeFeedPollOption {
     return HomeFeedPollOption(
       id: _parseToInt(json['id']),
       text: json['text']?.toString(),
-      image: json['image'] != null
-          ? PollOptionImage.fromJson(json['image'] as Map<String, dynamic>)
+      image: json['image'] is Map
+          ? PollOptionImage.fromJson(
+              Map<String, dynamic>.from(json['image'] as Map),
+            )
           : null,
       voteCount: parsedVoteCount,
       originalVoteCount: parsedVoteCount,
@@ -462,8 +569,8 @@ class HomeFeedPollOption {
     List<T> result = [];
     for (var item in value) {
       try {
-        if (item is Map<String, dynamic>) {
-          result.add(fromJson(item));
+        if (item is Map) {
+          result.add(fromJson(Map<String, dynamic>.from(item)));
         }
       } catch (e) {
         debugPrint('Error parsing list item: $e');
@@ -555,8 +662,8 @@ class PollOptionImage {
     List<T> result = [];
     for (var item in value) {
       try {
-        if (item is Map<String, dynamic>) {
-          result.add(fromJson(item));
+        if (item is Map) {
+          result.add(fromJson(Map<String, dynamic>.from(item)));
         }
       } catch (e) {
         debugPrint('Error parsing list item: $e');

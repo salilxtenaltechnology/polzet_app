@@ -4,10 +4,14 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:polzet_app/core/themes/app_text_colors.dart';
 
-import '../../../../api/services/image/image_picker_service.dart';
-import '../../../../core/constants/app_colors.dart';
-import '../../../../core/themes/app_text_styles.dart';
+import '../../../core/constants/app_radius.dart';
+import '../../../languages/l10n/generated/app_localizations.dart';
+import '../../../widgets/button/back_button.dart';
+import 'image_picker_service.dart';
+import '../../../core/constants/app_colors.dart';
+import '../../../core/themes/app_text_styles.dart';
 
 class ImagePreviewCropScreen extends StatefulWidget {
   final List<File> initialImages;
@@ -37,8 +41,8 @@ class _ImagePreviewCropScreenState extends State<ImagePreviewCropScreen> {
     _images = List<File>.from(widget.initialImages);
     _currentIndex =
         (widget.initialIndex >= 0 && widget.initialIndex < _images.length)
-            ? widget.initialIndex
-            : 0;
+        ? widget.initialIndex
+        : 0;
     _pageController = PageController(initialPage: _currentIndex);
   }
 
@@ -64,40 +68,34 @@ class _ImagePreviewCropScreenState extends State<ImagePreviewCropScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final txt = AppTextColors.of(context);
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Theme.of(context).colorScheme.background,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: Theme.of(context).colorScheme.background,
         elevation: 0,
         scrolledUnderElevation: 0,
-        leading: IconButton(
-          icon: Icon(
-            Icons.arrow_back,
-            color: const Color(0xFF1A1A1A),
-            size: 24.sp,
-          ),
-          onPressed: () => Navigator.pop(context),
+        leadingWidth: 45.w,
+        leading: Padding(
+          padding: EdgeInsets.only(left: 8.w),
+          child: PrimaryBackButton(onTap: () => Navigator.pop(context)),
         ),
         title: Text(
-          'Preview',
+         AppLocalizations.of(context)!.preview,
           style: AppTextStyles.pageTitleTextStyle(context).copyWith(
             fontSize: 18.sp,
             fontWeight: FontWeight.bold,
-            color: const Color(0xFF1A1A1A),
+            color: Theme.of(context).colorScheme.onBackground,
           ),
         ),
         titleSpacing: 0,
         centerTitle: false,
         actions: [
           IconButton(
-            icon: Icon(
-              Icons.crop,
-              size: 24.sp,
-              color: const Color(0xFF555555),
-            ),
+            icon: Icon(Icons.crop, size: 22, color: txt.body),
             onPressed: _cropCurrentImage,
           ),
-          SizedBox(width: 8.w),
+          SizedBox(width: 5.w),
         ],
       ),
       body: SafeArea(
@@ -113,9 +111,9 @@ class _ImagePreviewCropScreenState extends State<ImagePreviewCropScreen> {
                     // Main Rounded Preview Card
                     Positioned.fill(
                       child: ClipRRect(
-                        borderRadius: BorderRadius.circular(16.r),
+                        borderRadius: BorderRadius.circular(12),
                         child: Container(
-                          color: const Color(0xFFF7F7F7),
+                          color: Theme.of(context).colorScheme.background,
                           child: PageView.builder(
                             controller: _pageController,
                             itemCount: _images.length,
@@ -127,7 +125,7 @@ class _ImagePreviewCropScreenState extends State<ImagePreviewCropScreen> {
                             itemBuilder: (context, index) {
                               return Image.file(
                                 _images[index],
-                                fit: BoxFit.cover,
+                                fit: BoxFit.contain,
                                 width: double.infinity,
                                 height: double.infinity,
                                 key: ValueKey(
@@ -229,8 +227,8 @@ class _ImagePreviewCropScreenState extends State<ImagePreviewCropScreen> {
                               decoration: BoxDecoration(
                                 shape: BoxShape.circle,
                                 color: isActive
-                                    ? AppColors.primaryColor
-                                    : const Color(0xFFE5CBD0),
+                                    ? Theme.of(context).colorScheme.onPrimary
+                                    : Theme.of(context).colorScheme.onPrimary.withOpacity(0.15)
                               ),
                             );
                           }),
@@ -246,22 +244,22 @@ class _ImagePreviewCropScreenState extends State<ImagePreviewCropScreen> {
               padding: EdgeInsets.fromLTRB(16.w, 10.h, 16.w, 16.h),
               child: SizedBox(
                 width: double.infinity,
-                height: 48.h,
+                height: 42.h,
                 child: ElevatedButton(
                   onPressed: () => Navigator.pop(context, _images),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primaryColor,
                     elevation: 0,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10.r),
+                      borderRadius: BorderRadius.circular(AppRadius.button),
                     ),
                   ),
                   child: Text(
-                    'Next',
-                    style: TextStyle(
+                    AppLocalizations.of(context)!.next,
+                    style: AppTextStyles.bodyText.copyWith(
                       color: Colors.white,
-                      fontSize: 16.sp,
-                      fontWeight: FontWeight.w600,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
                 ),

@@ -11,15 +11,25 @@ class Dashboard extends StatefulWidget {
 }
 
 class DashboardState extends State<Dashboard>
-    with UtilityMixin, TickerProviderStateMixin {
+    with
+        UtilityMixin,
+        TickerProviderStateMixin,
+        AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
+
   late final AnimationController _goldBorderController;
   late final AnimationController _aiAssistantController;
   late final AnimationController _aiOptionsController;
   late final AnimationController _aiDescriptionController;
   late final ApiService apiService = ApiService();
-  List<HomeFeedPost> posts = [];
+  static List<HomeFeedPost> _staticPosts = [];
+  static bool _everFetched = false;
+  List<HomeFeedPost> posts = List.from(_staticPosts);
   bool isLoading = false;
-  bool isInitialLoad = true;
+  late bool isInitialLoad = _staticPosts.isEmpty;
+  bool _isRestoringCache = false;
+  bool _isBackgroundRefreshing = false;
   String? errorMessage;
 
   final Set<dynamic> _chasedUserIds = {};
@@ -534,9 +544,87 @@ class DashboardState extends State<Dashboard>
   final StreamController<List<HomeFeedPost>> _postsStreamController =
       StreamController<List<HomeFeedPost>>.broadcast();
 
-  static const String _cacheKey = 'home_feed_cache';
-  static const String _cacheTimeKey = 'home_feed_cache_time';
-  static const Duration _cacheValidDuration = Duration(minutes: 10);
+  static String _getFeedCacheKey([String? userId]) {
+    final cleanId = userId?.trim();
+    if (cleanId != null && cleanId.isNotEmpty) {
+      return 'home_feed_cache_$cleanId';
+    }
+    return 'home_feed_cache';
+  }
+
+  static String _getFeedTimeKey([String? userId]) {
+    final cleanId = userId?.trim();
+    if (cleanId != null && cleanId.isNotEmpty) {
+      return 'home_feed_cache_time_$cleanId';
+    }
+    return 'home_feed_cache_time';
+  }
+
+  static List<HomeFeedPost> _parseCachedPostsJson(String jsonString) {
+    try {
+      final decoded = jsonDecode(jsonString);
+      if (decoded is! List) return [];
+      final List<HomeFeedPost> result = [];
+      for (final item in decoded) {
+        if (item is Map) {
+          try {
+            result.add(HomeFeedPost.fromJson(Map<String, dynamic>.from(item)));
+          } catch (e) {
+            debugPrint('Error parsing cached post item: $e');
+          }
+        }
+      }
+      return result;
+    } catch (e) {
+      debugPrint('Error decoding cached posts json: $e');
+      return [];
+    }
+  }
+
+  /// Pre-warms feed cache from local storage before Dashboard widget mounts
+  static Future<void> prewarmFeedCache({String? userId}) async {
+    try {
+      if (_staticPosts.isNotEmpty) return;
+      final activeUserId = userId ?? await SharedPrefService.getUserId();
+      final key = _getFeedCacheKey(activeUserId);
+      String? cachedJsonString = await SharedPrefService.getString(key);
+      if ((cachedJsonString == null || cachedJsonString.isEmpty) &&
+          activeUserId != null) {
+        cachedJsonString =
+            await SharedPrefService.getString(_getFeedCacheKey(null));
+      }
+      if (cachedJsonString != null && cachedJsonString.isNotEmpty) {
+        final parsed = _parseCachedPostsJson(cachedJsonString);
+        if (parsed.isNotEmpty) {
+          _staticPosts = parsed;
+          debugPrint('✅ Pre-warmed ${_staticPosts.length} posts from cache');
+        }
+      }
+    } catch (e) {
+      debugPrint('Error pre-warming feed cache: $e');
+    }
+  }
+
+  static void clearStaticCache() {
+    _staticPosts = [];
+    _everFetched = false;
+  }
+
+  static Future<void> clearAllFeedCaches() async {
+    clearStaticCache();
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final feedKeys = prefs
+          .getKeys()
+          .where((k) => k.startsWith('home_feed_cache'))
+          .toList();
+      for (final key in feedKeys) {
+        await prefs.remove(key);
+      }
+    } catch (e) {
+      debugPrint('Error clearing feed caches: $e');
+    }
+  }
 
   late Future<UserSuggestionsModel> _suggestionsFuture;
   UserProvider? _userProvider;
@@ -604,6 +692,7 @@ class DashboardState extends State<Dashboard>
       final originalLength = posts.length;
       setState(() {
         posts.removeWhere((post) => deletedIds.contains(post.id));
+        _staticPosts = List.from(posts);
       });
       if (posts.length != originalLength) {
         _savePostsToCache(posts);
@@ -666,6 +755,7 @@ class DashboardState extends State<Dashboard>
       if (!mounted) return;
       setState(() {
         posts.addAll(response.results);
+        _staticPosts = List.from(posts);
         _nextPage = response.page != null ? response.page! + 1 : null;
         _snapshot = response.snapshot;
         _hasMoreData = response.hasMore ?? false;
@@ -681,7 +771,10 @@ class DashboardState extends State<Dashboard>
   }
 
   Future<void> _loadInitialData() async {
-    await _loadCachedPosts();
+    if (posts.isEmpty) {
+      await _loadCachedPosts();
+    }
+    // Stale-while-revalidate: fetch latest data in background without blocking cached content
     fetchHomeFeed(showLoader: posts.isEmpty);
     if (mounted) {
       Provider.of<UserProvider>(context, listen: false).loadUserDataSilently();
@@ -690,11 +783,14 @@ class DashboardState extends State<Dashboard>
 
   Future<void> _savePostsToCache(List<HomeFeedPost> postsToCache) async {
     try {
+      final userId = await SharedPrefService.getUserId();
+      final cacheKey = _getFeedCacheKey(userId);
+      final cacheTimeKey = _getFeedTimeKey(userId);
       final jsonList = postsToCache.map((post) => post.toJson()).toList();
-      final jsonString = await compute(_encodePostsBackground, jsonList);
-      await SharedPrefService.setString(_cacheKey, jsonString);
+      final jsonString = jsonEncode(jsonList);
+      await SharedPrefService.setString(cacheKey, jsonString);
       await SharedPrefService.setString(
-        _cacheTimeKey,
+        cacheTimeKey,
         DateTime.now().toIso8601String(),
       );
     } catch (e) {
@@ -703,41 +799,39 @@ class DashboardState extends State<Dashboard>
   }
 
   Future<void> _loadCachedPosts() async {
+    if (posts.isNotEmpty) return;
     try {
-      final cachedJsonString = await SharedPrefService.getString(_cacheKey);
-      final cacheTimeString = await SharedPrefService.getString(_cacheTimeKey);
+      _isRestoringCache = true;
+      final userId = await SharedPrefService.getUserId();
+      final key = _getFeedCacheKey(userId);
+      String? cachedJsonString = await SharedPrefService.getString(key);
+      if ((cachedJsonString == null || cachedJsonString.isEmpty) &&
+          userId != null) {
+        cachedJsonString =
+            await SharedPrefService.getString(_getFeedCacheKey(null));
+      }
 
       if (cachedJsonString != null && cachedJsonString.isNotEmpty) {
-        if (cacheTimeString != null) {
-          final cacheTime = DateTime.parse(cacheTimeString);
-          final isValid =
-              DateTime.now().difference(cacheTime) < _cacheValidDuration;
-          if (!isValid) {
-            debugPrint(
-              'Cache expired, but loading anyway to show UI instantly',
-            );
-          }
-        }
-
-        final List<dynamic> jsonList = await compute(
-          _decodePostsBackground,
-          cachedJsonString,
-        );
-        final cachedPosts = jsonList
-            .map((json) => HomeFeedPost.fromJson(json as Map<String, dynamic>))
-            .toList();
-
-        if (mounted) {
+        final cachedPosts = _parseCachedPostsJson(cachedJsonString);
+        if (cachedPosts.isNotEmpty && mounted) {
           setState(() {
             posts = cachedPosts;
+            _staticPosts = List.from(cachedPosts);
             isInitialLoad = false;
+            _isRestoringCache = false;
           });
           _updateGloballyChasedUsers();
-          _postsStreamController.add(posts);
+          _postsStreamController.add(List.from(posts));
         }
       }
     } catch (e) {
       debugPrint('Error loading cached posts: $e');
+    } finally {
+      if (mounted && _isRestoringCache) {
+        setState(() {
+          _isRestoringCache = false;
+        });
+      }
     }
   }
 
@@ -749,6 +843,8 @@ class DashboardState extends State<Dashboard>
           isLoading = true;
           errorMessage = null;
         });
+      } else {
+        _isBackgroundRefreshing = true;
       }
 
       _nextPage = null;
@@ -764,8 +860,11 @@ class DashboardState extends State<Dashboard>
       if (mounted) {
         setState(() {
           posts = response.results;
+          _staticPosts = List.from(response.results);
+          _everFetched = true;
           isLoading = false;
           isInitialLoad = false;
+          _isBackgroundRefreshing = false;
           errorMessage = null;
         });
 
@@ -779,6 +878,7 @@ class DashboardState extends State<Dashboard>
         setState(() {
           isLoading = false;
           isInitialLoad = false;
+          _isBackgroundRefreshing = false;
           if (posts.isEmpty) errorMessage = 'no_internet: ${e.toString()}';
         });
       }
@@ -788,6 +888,7 @@ class DashboardState extends State<Dashboard>
         setState(() {
           isLoading = false;
           isInitialLoad = false;
+          _isBackgroundRefreshing = false;
           if (posts.isEmpty) {
             errorMessage = 'no_internet: timeout ${e.toString()}';
           }
@@ -799,6 +900,7 @@ class DashboardState extends State<Dashboard>
         setState(() {
           isLoading = false;
           isInitialLoad = false;
+          _isBackgroundRefreshing = false;
           if (posts.isEmpty) {
             final statusCode = e.response?.statusCode ?? 0;
             if (statusCode >= 500) {
@@ -819,9 +921,19 @@ class DashboardState extends State<Dashboard>
         setState(() {
           isLoading = false;
           isInitialLoad = false;
+          _isBackgroundRefreshing = false;
           if (posts.isEmpty) errorMessage = 'unknown: ${e.toString()}';
         });
       }
+    }
+  }
+
+  void updatePostLocally(HomeFeedPost updatedPost) {
+    final index = posts.indexWhere((post) => post.id == updatedPost.id);
+    if (index != -1) {
+      posts[index] = updatedPost;
+      _staticPosts = List.from(posts);
+      _savePostsToCache(posts);
     }
   }
 
@@ -829,11 +941,14 @@ class DashboardState extends State<Dashboard>
     final index = posts.indexWhere((post) => post.id == updatedPost.id);
     if (index != -1) {
       posts[index] = updatedPost;
+      _staticPosts = List.from(posts);
+      _savePostsToCache(posts);
       _postsStreamController.add(List.from(posts));
     }
   }
 
   void notifyPostsChanged() {
+    _savePostsToCache(posts);
     _postsStreamController.add(List.from(posts));
   }
 
@@ -847,6 +962,7 @@ class DashboardState extends State<Dashboard>
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.background,
       body: _buildBody(),
@@ -1878,7 +1994,7 @@ class DashboardState extends State<Dashboard>
   Widget _buildBody() {
     final txt = AppTextColors.of(context);
 
-    if (isLoading && isInitialLoad) {
+    if (posts.isEmpty && (_isRestoringCache || isLoading || isInitialLoad)) {
       return Center(
         child: Loader(color: Theme.of(context).colorScheme.onPrimary),
       );
@@ -1902,7 +2018,7 @@ class DashboardState extends State<Dashboard>
       );
     }
 
-    if (posts.isEmpty && !isLoading) {
+    if (posts.isEmpty && !_isRestoringCache && !isLoading && !isInitialLoad) {
       return const Center(child: Text('No posts available'));
     }
 
@@ -1934,6 +2050,11 @@ class DashboardState extends State<Dashboard>
               .toList();
 
           if (currentPosts.isEmpty) {
+            if (isLoading || isInitialLoad) {
+              return Center(
+                child: Loader(color: Theme.of(context).colorScheme.onPrimary),
+              );
+            }
             return ListView(
               children: [
                 SizedBox(height: 200.h),
@@ -1943,6 +2064,7 @@ class DashboardState extends State<Dashboard>
           }
 
           return ListView.builder(
+            key: const PageStorageKey<String>('dashboard_home_feed_list'),
             controller: _scrollController,
             padding: const EdgeInsets.fromLTRB(10, 10, 10, 70).w,
             itemCount: currentPosts.length + (_hasMoreData ? 1 : 0),
@@ -2462,13 +2584,6 @@ class DashboardState extends State<Dashboard>
   }
 }
 
-String _encodePostsBackground(List<dynamic> jsonList) {
-  return jsonEncode(jsonList);
-}
-
-List<dynamic> _decodePostsBackground(String jsonString) {
-  return jsonDecode(jsonString) as List<dynamic>;
-}
 
 class _AnimatedEntrance extends StatefulWidget {
   final Widget child;

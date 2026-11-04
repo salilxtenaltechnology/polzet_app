@@ -48,6 +48,15 @@ class NotificationService {
 
   static final Set<String> _processedNotificationIds = {};
   Timer? _cleanupTimer;
+  Timer? _tokenRetryTimer;
+  int _tokenRetryAttempts = 0;
+
+  /// Safely masks tokens for diagnostic logs without leaking full credentials
+  static String _maskToken(String? token) {
+    if (token == null || token.isEmpty) return 'null';
+    if (token.length <= 12) return '***';
+    return '${token.substring(0, 6)}...${token.substring(token.length - 6)} (${token.length} chars)';
+  }
 
   Function(NotificationPayload)? _onFCMMessageTap;
   NotificationPayload? _pendingTapPayload;
@@ -72,7 +81,9 @@ class NotificationService {
     _appLifecycleState = state;
     debugPrint('📱 NotificationService: App state updated to $state');
     if (state == AppLifecycleState.resumed) {
+      _tokenRetryAttempts = 0;
       processPendingTaps();
+      _checkAndSyncToken();
     }
   }
 
@@ -167,16 +178,56 @@ class NotificationService {
       if (accessToken != null && accessToken.isNotEmpty) {
         debugPrint("🔄 Syncing token & connecting Notification WebSocket...");
         connectToWebSocket(accessToken);
-        String? token = await _fcm.getToken();
-        if (token != null) {
-          debugPrint("🔄 Syncing FCM Token with backend...");
+        String? token = await getFCMToken(maxWaitSeconds: 6);
+        if (token != null && token.isNotEmpty) {
+          debugPrint("🔄 Syncing FCM Token with backend: ${_maskToken(token)}");
           final platform = Platform.isAndroid ? 'android' : 'ios';
-          await FcmApiService.registerFcmToken(token, platform);
+          final success = await FcmApiService.registerFcmToken(token, platform);
+          if (!success) {
+            debugPrint("⚠️ FCM Token registration with backend failed, scheduling retry...");
+            _scheduleTokenRetry();
+          }
+        } else {
+          debugPrint("⚠️ FCM token unavailable during sync, scheduling retry...");
+          _scheduleTokenRetry();
         }
       }
     } catch (e) {
       debugPrint("❌ Error syncing FCM token / connecting WS: $e");
+      _scheduleTokenRetry();
     }
+  }
+
+  void _scheduleTokenRetry() {
+    _tokenRetryTimer?.cancel();
+    if (_tokenRetryAttempts >= 5) {
+      debugPrint("🛑 Reached max FCM token retry attempts (5). Will retry on next app resume.");
+      return;
+    }
+    _tokenRetryAttempts++;
+    final delaySeconds = _tokenRetryAttempts * 4; // 4s, 8s, 12s, 16s, 20s
+    debugPrint("⏱️ Scheduling FCM token retry #$_tokenRetryAttempts in ${delaySeconds}s...");
+    _tokenRetryTimer = Timer(Duration(seconds: delaySeconds), () async {
+      try {
+        final accessToken = await SharedPrefService.getToken();
+        if (accessToken == null || accessToken.isEmpty) return;
+
+        final token = await getFCMToken(maxWaitSeconds: 4);
+        if (token != null && token.isNotEmpty) {
+          final platform = Platform.isAndroid ? 'android' : 'ios';
+          final success = await FcmApiService.registerFcmToken(token, platform);
+          if (success) {
+            debugPrint("✅ Background FCM token retry registration succeeded!");
+            _tokenRetryAttempts = 0;
+            return;
+          }
+        }
+        _scheduleTokenRetry();
+      } catch (e) {
+        debugPrint("❌ Background token retry error: $e");
+        _scheduleTokenRetry();
+      }
+    });
   }
 
   static Map<String, dynamic> _getParsedNotificationData(
@@ -1753,28 +1804,44 @@ class NotificationService {
         return;
       }
 
+      // ✅ Foreground Presentation Strategy:
+      // We deliberately keep alert: false, badge: false, sound: false here.
+      // In Polzet, all foreground notifications are displayed via _showNativeNotificationFromData
+      // (using flutter_local_notifications with DarwinNotificationDetails). This enables
+      // rich action buttons, attachments, and ensures unified deduplication against WebSocket events.
+      // If alert: true were set here, iOS would show an automatic duplicate system banner.
       await _fcm.setForegroundNotificationPresentationOptions(
         alert: false,
         badge: false,
         sound: false,
       );
 
-      String? token = await _fcm.getToken();
-      if (token != null) {
-        debugPrint("📱 FCM Token: $token");
+      // Safe token retrieval with APNs readiness check on iOS
+      String? token = await getFCMToken(maxWaitSeconds: 6);
+      if (token != null && token.isNotEmpty) {
+        debugPrint("📱 FCM Token: ${_maskToken(token)}");
         await SharedPrefService.saveFcmToken(token);
+      } else {
+        debugPrint("⚠️ Initial FCM token not yet available, scheduling retry...");
+        _scheduleTokenRetry();
       }
 
       // Token refresh listener
       _fcm.onTokenRefresh.listen((newToken) async {
-        debugPrint("🔄 FCM Token refreshed: ${newToken.substring(0, 30)}...");
+        debugPrint("🔄 FCM Token refreshed: ${_maskToken(newToken)}");
         final oldToken = await SharedPrefService.getFcmToken();
         String platform = Platform.isAndroid ? 'android' : 'ios';
+        await SharedPrefService.saveFcmToken(newToken);
 
-        if (oldToken != null && oldToken != newToken) {
-          await FcmApiService.updateFcmToken(oldToken, newToken, platform);
-        } else {
-          await SharedPrefService.saveFcmToken(newToken);
+        final accessToken = await SharedPrefService.getToken();
+        if (accessToken != null && accessToken.isNotEmpty) {
+          if (oldToken != null && oldToken.isNotEmpty && oldToken != newToken) {
+            await FcmApiService.updateFcmToken(oldToken, newToken, platform);
+          } else {
+            // CRITICAL FIX: If oldToken was null/empty, we MUST call registerFcmToken,
+            // otherwise the refreshed token is never sent to the backend!
+            await FcmApiService.registerFcmToken(newToken, platform);
+          }
         }
       });
 
@@ -1783,6 +1850,7 @@ class NotificationService {
       debugPrint("✅ FCM initialized");
     } catch (e) {
       debugPrint("❌ FCM initialization error: $e");
+      _scheduleTokenRetry();
     }
   }
 
@@ -1901,7 +1969,7 @@ class NotificationService {
 
       // 4. Construct fcmPayload in the data-only structure required by backend
       final Map<String, dynamic> fcmPayload = {
-        'to': fcmToken,
+        'to': _maskToken(fcmToken),
         'priority': 'high',
         'data': printedData,
       };
@@ -3022,14 +3090,53 @@ class NotificationService {
     });
   }
 
-  // ========== PUBLIC API ==========
-  Future<String?> getFCMToken() async {
+  /// Waits for APNs token availability on iOS before requesting FCM token
+  Future<String?> _waitForApnsToken({
+    int maxAttempts = 12,
+    Duration interval = const Duration(milliseconds: 500),
+  }) async {
+    if (!Platform.isIOS) return null;
     try {
-      return await _fcm.getToken();
+      String? apnsToken = await _fcm.getAPNSToken();
+      int attempts = 0;
+      while (apnsToken == null && attempts < maxAttempts) {
+        attempts++;
+        debugPrint(
+          "⏳ [APNs] Waiting for APNs device token (attempt $attempts/$maxAttempts)...",
+        );
+        await Future.delayed(interval);
+        apnsToken = await _fcm.getAPNSToken();
+      }
+      if (apnsToken != null) {
+        debugPrint("🍎 [APNs] Token acquired: ${_maskToken(apnsToken)}");
+      } else {
+        debugPrint(
+          "⚠️ [APNs] Token not yet available after ${attempts * interval.inMilliseconds}ms. Continuing...",
+        );
+      }
+      return apnsToken;
     } catch (e) {
-      debugPrint("❌ Error getting FCM token: $e");
+      debugPrint("❌ [APNs] Error getting APNs token: $e");
       return null;
     }
+  }
+
+  // ========== PUBLIC API ==========
+  Future<String?> getFCMToken({int maxWaitSeconds = 6}) async {
+    try {
+      if (Platform.isIOS) {
+        await _waitForApnsToken(maxAttempts: (maxWaitSeconds * 2).clamp(4, 20));
+      }
+      final token = await _fcm.getToken();
+      if (token != null && token.isNotEmpty) {
+        await SharedPrefService.saveFcmToken(token);
+        return token;
+      }
+    } catch (e) {
+      debugPrint("❌ Error getting FCM token: $e");
+    }
+    // Fallback to locally cached token
+    return await SharedPrefService.getFcmToken();
   }
 
   bool get isWebSocketConnected => _channel != null;
@@ -3037,6 +3144,7 @@ class NotificationService {
   Future<void> cleanup() async {
     disconnectWebSocket();
     _cleanupTimer?.cancel();
+    _tokenRetryTimer?.cancel();
     _processedNotificationIds.clear();
     await FcmApiService.unregisterFcmToken();
     await _fcm.deleteToken();

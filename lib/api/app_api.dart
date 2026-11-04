@@ -50,6 +50,7 @@ class ApiConstants {
   static String blockUser = "$baseUrl/users/block";
   static String unBlockUser = "$baseUrl/users/unblock";
   static String blockedUsrsList = "$baseUrl/users/blocked";
+  static String createPost = "$baseUrl/social_posts";
   static String userPosts = "$baseUrl/posts";
   static String deletePost = "$baseUrl/posts";
   static String chaseList = "$baseUrl/friends/followers";

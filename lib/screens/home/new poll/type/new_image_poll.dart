@@ -27,13 +27,19 @@ import '../../../../widgets/custom_text_styles.dart';
 import '../../../../widgets/dotted_border/dotted_border.dart';
 import '../../../../widgets/show_toast.dart';
 import '../../../../widgets/text_field/secondry_textfield.dart';
-import 'image_preview_crop_screen.dart';
+import '../../../../api/services/image/image_preview_crop_screen.dart';
+import '../../../../models/poll/inspired_poll_data.dart';
+import '../widgets/category_dropdown_field.dart';
+import '../widgets/inspired_poll_card.dart';
+import '../widgets/poll_keyboard_dismiss_wrapper.dart';
 
 class NewImagePoll extends StatefulWidget {
   final String? initialQuestion;
   final String? initialDescription;
   final List<String>? initialOptions;
   final String? initialVotingType;
+  final InspiredPollData? inspiredData;
+  final String? inspiredPostId;
 
   const NewImagePoll({
     super.key,
@@ -41,6 +47,8 @@ class NewImagePoll extends StatefulWidget {
     this.initialDescription,
     this.initialOptions,
     this.initialVotingType,
+    this.inspiredData,
+    this.inspiredPostId,
   });
 
   @override
@@ -55,6 +63,7 @@ class _NewImagePollState extends State<NewImagePoll> {
 
   String questionErrorText = '';
   String imageErrorText = '';
+  String categoryErrorText = '';
   bool isLoading = false;
   bool isUploading = false;
   double uploadProgress = 0.0;
@@ -64,6 +73,7 @@ class _NewImagePollState extends State<NewImagePoll> {
   bool _isGeneratingDescription = false;
   bool _hasGeneratedDescription = false;
   bool _isMultiChoice = false;
+  String? _selectedCategory;
 
   int _remainingGenerations = 8;
   int _dailyLimit = 8;
@@ -80,8 +90,10 @@ class _NewImagePollState extends State<NewImagePoll> {
 
   void _updateAiLimitFromResponse(Map<String, dynamic>? response) {
     if (response == null) return;
-    final rawRemaining = response['remaining'] ?? response['data']?['remaining'];
-    final rawLimit = response['daily_limit'] ?? response['data']?['daily_limit'];
+    final rawRemaining =
+        response['remaining'] ?? response['data']?['remaining'];
+    final rawLimit =
+        response['daily_limit'] ?? response['data']?['daily_limit'];
 
     if (rawRemaining != null) {
       final parsedRemaining = int.tryParse(rawRemaining.toString());
@@ -128,7 +140,8 @@ class _NewImagePollState extends State<NewImagePoll> {
   void _syncLabelControllers() {
     while (_labelControllers.length < _selectedImages.length) {
       final index = _labelControllers.length;
-      final initialText = (widget.initialOptions != null &&
+      final initialText =
+          (widget.initialOptions != null &&
               index < widget.initialOptions!.length)
           ? widget.initialOptions![index]
           : '';
@@ -169,7 +182,8 @@ class _NewImagePollState extends State<NewImagePoll> {
     questionController.addListener(_onQuestionChanged);
     _startHintAnimation();
 
-    final hasAutoFilled = (widget.initialQuestion != null &&
+    final hasAutoFilled =
+        (widget.initialQuestion != null &&
             widget.initialQuestion!.trim().isNotEmpty) ||
         (widget.initialOptions != null && widget.initialOptions!.isNotEmpty) ||
         (widget.initialVotingType != null &&
@@ -289,7 +303,9 @@ class _NewImagePollState extends State<NewImagePoll> {
 
     if (question.isEmpty) {
       setState(() {
-        questionErrorText = AppLocalizations.of(context)!.pleaseenteraquestion;
+        questionErrorText = AppLocalizations.of(
+          context,
+        )!.pleaseenteraquestionortopic;
       });
       return;
     }
@@ -463,7 +479,7 @@ class _NewImagePollState extends State<NewImagePoll> {
                 child: Padding(
                   padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10),
                   child: Text(
-                   AppLocalizations.of(context)!.cropimage,
+                    AppLocalizations.of(context)!.cropimage,
                     style: AppTextStyles.bodyText.copyWith(
                       color: txt.body,
                       fontSize: 13.5.sp,
@@ -480,7 +496,7 @@ class _NewImagePollState extends State<NewImagePoll> {
                 padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10),
                 child: GestureDetector(
                   child: Text(
-                   AppLocalizations.of(context)!.replaceimage,
+                    AppLocalizations.of(context)!.replaceimage,
                     style: AppTextStyles.bodyText.copyWith(
                       color: txt.body,
                       fontSize: 13.5.sp,
@@ -497,7 +513,7 @@ class _NewImagePollState extends State<NewImagePoll> {
                 padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10),
                 child: GestureDetector(
                   child: Text(
-                   AppLocalizations.of(context)!.remove,
+                    AppLocalizations.of(context)!.remove,
                     style: AppTextStyles.bodyText.copyWith(
                       color: Theme.of(context).colorScheme.error,
                       fontSize: 13.5.sp,
@@ -560,13 +576,15 @@ class _NewImagePollState extends State<NewImagePoll> {
     }
   }
 
-  void postImage() async {
+  void addImagePoll() async {
     final accessToken = await SharedPrefService.getToken();
 
     // Validate inputs
     if (questionController.text.trim().isEmpty) {
       setState(() {
-        questionErrorText = AppLocalizations.of(context)!.pleaseenteraquestion;
+        questionErrorText = AppLocalizations.of(
+          context,
+        )!.pleaseenteraquestionortopic;
       });
       return;
     }
@@ -587,14 +605,25 @@ class _NewImagePollState extends State<NewImagePoll> {
       return;
     }
 
+    if (_selectedCategory == null || _selectedCategory!.trim().isEmpty) {
+      setState(() {
+        categoryErrorText = 'Please select category';
+      });
+      return;
+    }
+
     setState(() {
       isLoading = true;
       uploadProgress = 0.0;
       questionErrorText = '';
       imageErrorText = '';
+      categoryErrorText = '';
     });
 
     try {
+      final originalPostId =
+          widget.inspiredPostId ?? widget.inspiredData?.postId;
+
       final labels = List.generate(
         _selectedImages.length,
         (i) => (i < _labelControllers.length)
@@ -602,13 +631,17 @@ class _NewImagePollState extends State<NewImagePoll> {
             : '',
       );
 
-      final response = await ApiService.uploadImagePoll(
+      final response = await ApiService.addImagePoll(
         question: questionController.text.trim(),
         description: descriptionController.text.trim(),
         pollOptions: _selectedImages,
         labels: labels,
         maxOptions: maxImages,
         votingType: _isMultiChoice ? "ranking" : "single_choice",
+        category: _selectedCategory,
+        inspiration_id: originalPostId,
+        inspired_by_post_id: originalPostId,
+        parent_post_id: originalPostId,
         authToken: accessToken,
         onProgress: (progress) {
           if (mounted) {
@@ -635,6 +668,8 @@ class _NewImagePollState extends State<NewImagePoll> {
           _selectedImages.clear();
           uploadProgress = 0.0;
           _isMultiChoice = false;
+          _selectedCategory = null;
+          categoryErrorText = '';
         });
         // Clear cached posts so the profile screen updates immediately
         Provider.of<UserProvider>(context, listen: false).clearUserPostsCache();
@@ -665,218 +700,231 @@ class _NewImagePollState extends State<NewImagePoll> {
       backgroundColor: Theme.of(context).colorScheme.background,
       appBar: CommonAppBar(
         title: AppLocalizations.of(context)!.addnewpollimage,
+        actions: [
+          // AI Generation Limit Banner
+          AiGenerationLimitBanner(remainingGenerations: _remainingGenerations),
+        ],
       ),
-      body: ListView(
-        padding: EdgeInsets.symmetric(horizontal: 12.w),
-        children: [
-          SizedBox(height: 10.h),
-          AiGenerationLimitBanner(
-            remainingGenerations: _remainingGenerations,
-          ),
-          SizedBox(height: 15.h),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                AppLocalizations.of(context)!.question,
-                style: CustomTextStyles.lblPrimaryText(context),
-              ),
-              SizedBox(
-                height: 30,
-                child: GenerateQuestionButton(
-                  isGenerating: _isGeneratingQuestion,
-                  hasGenerated: _hasGeneratedQuestion,
-                  isEnabled: _remainingGenerations > 0,
-                  onTap: (_isGeneratingQuestion || _remainingGenerations <= 0)
-                      ? null
-                      : generateQuestion,
-                ),
-              ),
+      body: PollKeyboardDismissWrapper(
+        child: ListView(
+          padding: EdgeInsets.symmetric(horizontal: 12.w),
+          children: [
+            SizedBox(height: 10.h),
+
+            // Inspired Poll Card
+            if (widget.inspiredData != null) ...[
+              InspiredPollCard(inspiredData: widget.inspiredData!),
+              SizedBox(height: 15.h),
             ],
-          ),
-          SizedBox(height: 7.h),
-          SecondryTextfield(
-            controller: questionController,
-            focusNode: questionFocusNode,
-            hintText: _hintTexts[_currentHintIndex],
-            focusedBorderColor:
-                questionController.text.trim().isNotEmpty
-                    ? Theme.of(context).colorScheme.onPrimary
-                    : null,
-          ),
-          if (questionErrorText.isNotEmpty)
-            Padding(
-              padding: EdgeInsets.only(top: 5.h),
-              child: Text(
-                questionErrorText,
-                style: CustomTextStyles.msgErrorText(context),
-              ),
-            ),
-          SizedBox(height: 20.h),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Expanded(
-                child: Text(
-                  AppLocalizations.of(context)!.descriptionhashtagsoptional,
+
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  AppLocalizations.of(context)!.question,
                   style: CustomTextStyles.lblPrimaryText(context),
                 ),
-              ),
-              SizedBox(
-                height: 30,
-                child: GenerateDescriptionButton(
-                  isGenerating: _isGeneratingDescription,
-                  hasGenerated: _hasGeneratedDescription,
-                  isEnabled: _remainingGenerations > 0,
-                  onTap:
-                      (_isGeneratingDescription || _remainingGenerations <= 0)
-                          ? null
-                          : generateDescription,
+                SizedBox(
+                  height: 30,
+                  child: GenerateQuestionButton(
+                    isGenerating: _isGeneratingQuestion,
+                    hasGenerated: _hasGeneratedQuestion,
+                    isEnabled: _remainingGenerations > 0,
+                    onTap: (_isGeneratingQuestion || _remainingGenerations <= 0)
+                        ? null
+                        : generateQuestion,
+                  ),
                 ),
-              ),
-            ],
-          ),
-          SizedBox(height: 7.h),
-          SecondryTextfield(
-            controller: descriptionController,
-            hintText: AppLocalizations.of(context)!.typedescriptionorhashtags,
-            maxLines: 5,
-            minLines: 1,
-            focusedBorderColor: Theme.of(context).colorScheme.onPrimary,
-          ),
-          SizedBox(height: 20.h),
-          Text(
-            AppLocalizations.of(context)!.polloptions,
-            style: CustomTextStyles.lblPrimaryText(context),
-          ),
-          SizedBox(height: 10.h),
-          _buildPollOptionsSection(context),
-          if (imageErrorText.isNotEmpty)
-            Padding(
-              padding: EdgeInsets.only(top: 8.h, bottom: 10.h),
-              child: Center(
-                child: Text(
-                  imageErrorText,
-                  style: CustomTextStyles.msgErrorText(context),
-                  textAlign: TextAlign.center,
-                ),
-              ),
+              ],
             ),
-          SizedBox(height: 16.h),
-          Text(
-            AppLocalizations.of(context)!.votingmode,
-            style: CustomTextStyles.lblPrimaryText(context),
-          ),
-          SizedBox(height: 10.h),
-          Row(
-            children: [
-              Expanded(
-                child: GestureDetector(
-                  onTap: () {
-                    setState(() {
-                      _isMultiChoice = false;
-                    });
-                  },
-                  child: Container(
-                    height: 85,
-                    padding: const EdgeInsets.symmetric(horizontal: 10),
-                    decoration: BoxDecoration(
-                      color: isDarkMode
-                          ? const Color.fromARGB(255, 28, 28, 28)
-                          : const Color(0XFFFAF7F8).withOpacity(0.8),
-                      borderRadius: BorderRadius.circular(AppRadius.card),
-                      border: Border.all(
-                        color: !_isMultiChoice
-                            ? Theme.of(context).colorScheme.primary
-                            : (isDarkMode
-                                  ? Colors.white.withOpacity(0.1)
-                                  : const Color(0XFF9B3046).withOpacity(0.1)),
-                        width: !_isMultiChoice ? 1.3 : 1.0,
-                      ),
+            SizedBox(height: 7.h),
+            SecondryTextfield(
+              controller: questionController,
+              focusNode: questionFocusNode,
+              hintText: _hintTexts[_currentHintIndex],
+              focusedBorderColor: questionController.text.trim().isNotEmpty
+                  ? Theme.of(context).colorScheme.onPrimary
+                  : null,
+            ),
+            if (questionErrorText.isNotEmpty)
+              Padding(
+                padding: EdgeInsets.only(top: 5.h),
+                child: Text(
+                  questionErrorText,
+                  style: CustomTextStyles.msgErrorText(context),
+                ),
+              ),
+            SizedBox(height: 20.h),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: Text(
+                    AppLocalizations.of(context)!.descriptionhashtagsoptional,
+                    style: CustomTextStyles.lblPrimaryText(context),
+                  ),
+                ),
+                SizedBox(
+                  height: 30,
+                  child: GenerateDescriptionButton(
+                    isGenerating: _isGeneratingDescription,
+                    hasGenerated: _hasGeneratedDescription,
+                    isEnabled: _remainingGenerations > 0,
+                    onTap:
+                        (_isGeneratingDescription || _remainingGenerations <= 0)
+                        ? null
+                        : generateDescription,
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(height: 7.h),
+            SecondryTextfield(
+              controller: descriptionController,
+              hintText: AppLocalizations.of(context)!.typedescriptionorhashtags,
+              maxLines: 5,
+              minLines: 1,
+              focusedBorderColor: Theme.of(context).colorScheme.onPrimary,
+            ),
+            SizedBox(height: 20.h),
+            Text(
+              AppLocalizations.of(context)!.polloptions,
+              style: CustomTextStyles.lblPrimaryText(context),
+            ),
+            SizedBox(height: 10.h),
+            _buildPollOptionsSection(context),
+            if (imageErrorText.isNotEmpty)
+              Padding(
+                padding: EdgeInsets.only(top: 8.h, bottom: 10.h),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.start,
+                  children: [
+                    Text(
+                      imageErrorText,
+                      style: CustomTextStyles.msgErrorText(context),
+                      textAlign: TextAlign.center,
                     ),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          AppLocalizations.of(context)!.singlechoice,
-                          style: AppTextStyles.bodyText.copyWith(
-                            fontSize: 13.5,
-                            fontWeight: FontWeight.w500,
-                            color: txt.title,
-                          ),
-                          textAlign: TextAlign.center,
+                  ],
+                ),
+              ),
+            SizedBox(height: 16.h),
+            _buildCategorySection(),
+            SizedBox(height: 20.h),
+            Text(
+              AppLocalizations.of(context)!.votingmode,
+              style: CustomTextStyles.lblPrimaryText(context),
+            ),
+            SizedBox(height: 10.h),
+            Row(
+              children: [
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () {
+                      setState(() {
+                        _isMultiChoice = false;
+                      });
+                    },
+                    child: Container(
+                      height: 75,
+                      padding: const EdgeInsets.symmetric(horizontal: 10),
+                      decoration: BoxDecoration(
+                        color: isDarkMode
+                            ? const Color.fromARGB(255, 28, 28, 28)
+                            : const Color(0XFFFAF7F8).withOpacity(0.8),
+                        borderRadius: BorderRadius.circular(AppRadius.card),
+                        border: Border.all(
+                          color: !_isMultiChoice
+                              ? Theme.of(context).colorScheme.primary
+                              : (isDarkMode
+                                    ? Colors.white.withOpacity(0.1)
+                                    : const Color(0XFF9B3046).withOpacity(0.1)),
+                          width: !_isMultiChoice ? 1.3 : 1.0,
                         ),
-                        SizedBox(height: 4.h),
-                        Text(
-                          AppLocalizations.of(context)!.voterspickoneoption,
-                          style: AppTextStyles.subText.copyWith(
-                            fontSize: 12,
-                            color: txt.body,
-                            fontWeight: FontWeight.w400,
+                      ),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            AppLocalizations.of(context)!.singlechoice,
+                            style: AppTextStyles.bodyText.copyWith(
+                              fontSize: 13.5,
+                              fontWeight: FontWeight.w500,
+                              color: txt.title,
+                            ),
+                            textAlign: TextAlign.center,
                           ),
-                          textAlign: TextAlign.center,
-                        ),
-                      ],
+                          SizedBox(height: 4.h),
+                          Text(
+                            AppLocalizations.of(context)!.voterspickoneoption,
+                            style: AppTextStyles.subText.copyWith(
+                              fontSize: 12,
+                              color: txt.body,
+                              fontWeight: FontWeight.w400,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ),
-              ),
-              SizedBox(width: 10.w),
-              Expanded(
-                child: GestureDetector(
-                  onTap: () {
-                    setState(() {
-                      _isMultiChoice = true;
-                    });
-                  },
-                  child: Container(
-                    height: 85,
-                    padding: const EdgeInsets.symmetric(horizontal: 10),
-                    decoration: BoxDecoration(
-                      color: isDarkMode
-                          ? const Color.fromARGB(255, 28, 28, 28)
-                          : const Color(0XFFFAF7F8).withOpacity(0.8),
-                      borderRadius: BorderRadius.circular(AppRadius.card),
-                      border: Border.all(
-                        color: _isMultiChoice
-                            ? Theme.of(context).colorScheme.primary
-                            : (isDarkMode
-                                  ? Colors.white.withOpacity(0.1)
-                                  : const Color(0XFF9B3046).withOpacity(0.1)),
-                        width: _isMultiChoice ? 1.3 : 1.0,
+                SizedBox(width: 10.w),
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () {
+                      setState(() {
+                        _isMultiChoice = true;
+                      });
+                    },
+                    child: Container(
+                      height: 75,
+                      padding: const EdgeInsets.symmetric(horizontal: 10),
+                      decoration: BoxDecoration(
+                        color: isDarkMode
+                            ? const Color.fromARGB(255, 28, 28, 28)
+                            : const Color(0XFFFAF7F8).withOpacity(0.8),
+                        borderRadius: BorderRadius.circular(AppRadius.card),
+                        border: Border.all(
+                          color: _isMultiChoice
+                              ? Theme.of(context).colorScheme.primary
+                              : (isDarkMode
+                                    ? Colors.white.withOpacity(0.1)
+                                    : const Color(0XFF9B3046).withOpacity(0.1)),
+                          width: _isMultiChoice ? 1.3 : 1.0,
+                        ),
                       ),
-                    ),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          AppLocalizations.of(context)!.multiplechoice,
-                          style: AppTextStyles.bodyText.copyWith(
-                            fontSize: 13.5,
-                            fontWeight: FontWeight.w500,
-                            color: txt.title,
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            AppLocalizations.of(context)!.multiplechoice,
+                            style: AppTextStyles.bodyText.copyWith(
+                              fontSize: 13.5,
+                              fontWeight: FontWeight.w500,
+                              color: txt.title,
+                            ),
+                            textAlign: TextAlign.center,
                           ),
-                          textAlign: TextAlign.center,
-                        ),
-                        SizedBox(height: 4.h),
-                        Text(
-                          AppLocalizations.of(context)!.votersrankalloptions,
-                          style: AppTextStyles.subText.copyWith(
-                            fontSize: 12,
-                            color: txt.body,
-                            fontWeight: FontWeight.w400,
+                          SizedBox(height: 4.h),
+                          Text(
+                            AppLocalizations.of(context)!.votersrankalloptions,
+                            style: AppTextStyles.subText.copyWith(
+                              fontSize: 12,
+                              color: txt.body,
+                              fontWeight: FontWeight.w400,
+                            ),
+                            textAlign: TextAlign.center,
                           ),
-                          textAlign: TextAlign.center,
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
                 ),
-              ),
-            ],
-          ),
-          SizedBox(height: 20.h),
-        ],
+              ],
+            ),
+            SizedBox(height: 20.h),
+          ],
+        ),
       ),
       bottomNavigationBar: BottomAppBar(
         padding: const EdgeInsets.only(bottom: 20),
@@ -884,7 +932,7 @@ class _NewImagePollState extends State<NewImagePoll> {
         color: Theme.of(context).colorScheme.background,
         child: PrimaryButton(
           title: AppLocalizations.of(context)!.addpoll,
-          onPressed: postImage,
+          onPressed: addImagePoll,
           isLoading: isLoading,
         ),
       ),
@@ -941,7 +989,7 @@ class _NewImagePollState extends State<NewImagePoll> {
             height: 45,
             child: OutlinedButton.icon(
               onPressed: _pickImages,
-              icon:  Icon(
+              icon: Icon(
                 Icons.add,
                 size: 18,
                 color: Theme.of(context).colorScheme.onPrimary,
@@ -1066,7 +1114,9 @@ class _NewImagePollState extends State<NewImagePoll> {
           if (_selectedImages.length < maxImages) ...[
             SizedBox(height: 4.h),
             Text(
-              'Add 2-4 similar images (e.g. outfits, places, food)',
+              AppLocalizations.of(
+                context,
+              )!.addtwoorfoursimilarimagesegoutfitsplacesfood,
               style: AppTextStyles.bodyText.copyWith(
                 fontSize: 11.5.sp,
                 color: txt.muted,
@@ -1079,10 +1129,10 @@ class _NewImagePollState extends State<NewImagePoll> {
               height: 45,
               child: OutlinedButton.icon(
                 onPressed: _pickImages,
-                icon:  Icon(
+                icon: Icon(
                   Icons.add,
                   size: 18,
-                  color: Theme.of(context).colorScheme.onPrimary
+                  color: Theme.of(context).colorScheme.onPrimary,
                 ),
                 label: Text(
                   AppLocalizations.of(context)!.addoption,
@@ -1114,8 +1164,49 @@ class _NewImagePollState extends State<NewImagePoll> {
     if (index >= _labelControllers.length) return const SizedBox();
     return SecondryTextfield(
       controller: _labelControllers[index],
-      hintText: 'Add label',
+      hintText: AppLocalizations.of(context)!.addlabel,
       focusedBorderColor: Theme.of(context).colorScheme.onPrimary,
+    );
+  }
+
+  Widget _buildCategoryField() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        CategoryDropdownField(
+          selectedCategory: _selectedCategory,
+          onCategorySelected: (cat) {
+            setState(() {
+              _selectedCategory = cat;
+              if (categoryErrorText.isNotEmpty) {
+                categoryErrorText = '';
+              }
+            });
+          },
+        ),
+        if (categoryErrorText.isNotEmpty)
+          Padding(
+            padding: EdgeInsets.only(top: 5.h),
+            child: Text(
+              categoryErrorText,
+              style: CustomTextStyles.msgErrorText(context),
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildCategorySection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          AppLocalizations.of(context)!.category,
+          style: CustomTextStyles.lblPrimaryText(context),
+        ),
+        SizedBox(height: 10.h),
+        _buildCategoryField(),
+      ],
     );
   }
 

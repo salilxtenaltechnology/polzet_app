@@ -31,12 +31,15 @@ import '../../../../widgets/dialog/custom_diolog.dart';
 import '../../../../widgets/loader.dart';
 import '../../../../core/utils/bottomsheet_util.dart';
 import '../../../../core/utils/like_util.dart';
+import '../../../../widgets/image/post_images_carousel.dart';
 import '../../home feed/rank/result/image/image_result_screen.dart';
 import '../../home feed/rank/result/things/things_result_screen.dart';
 import 'rank/single_post_image_ranking.dart';
 import 'rank/single_post_things_ranking.dart';
 import 'package:polzet_app/data/token/shared_preferences.dart';
 import 'package:polzet_app/gen/assets.gen.dart';
+import '../../new poll/add_new_poll.dart';
+import '../../../../models/poll/inspired_poll_data.dart';
 
 const _textSecondary = Color(0xFF888888);
 
@@ -74,6 +77,7 @@ class _SinglePostDetailsState extends State<SinglePostDetails>
   int _likesCount = 0;
   int _commentsCount = 0;
   int _sharesCount = 0;
+  int _inspiredCount = 0;
 
   Uint8List? _profileImageBytes;
   bool _isLikeLoading = false;
@@ -168,6 +172,7 @@ class _SinglePostDetailsState extends State<SinglePostDetails>
         _likesCount = result.likesCount;
         _commentsCount = result.commentsCount;
         _sharesCount = result.sharesCount;
+        _inspiredCount = result.inspiredCount;
         for (final poll in result.polls) {
           if (poll.userVote != null) {
             _selectedVotes[poll.id] = poll.userVote!;
@@ -1953,6 +1958,10 @@ class _SinglePostDetailsState extends State<SinglePostDetails>
   }
 
   Widget _buildPostCard(SinglePostModel post) {
+    final cleanedDesc = post.description
+        .replaceAll(RegExp(r'\s*\[inspired_by:[^\]]+\]'), '')
+        .trim();
+
     return Container(
       width: double.infinity,
       padding: EdgeInsets.only(bottom: 10.h),
@@ -1971,6 +1980,14 @@ class _SinglePostDetailsState extends State<SinglePostDetails>
         children: [
           _buildHeader(post),
           Divider(color: Theme.of(context).colorScheme.outlineVariant),
+          if (post.inspiredByPost != null)
+            Padding(
+              padding: EdgeInsets.fromLTRB(10.w, 4.h, 10.w, 6.h),
+              child: _buildInspiredPostBadge(
+                context,
+                post.inspiredByPost!,
+              ),
+            ),
           if (post.polls.isNotEmpty &&
               post.polls.first.question.isNotEmpty) ...[
             Padding(
@@ -1992,57 +2009,66 @@ class _SinglePostDetailsState extends State<SinglePostDetails>
               ),
             ),
           ],
-          if (post.description.isNotEmpty) ...[
+          if (cleanedDesc.isNotEmpty) ...[
             Padding(
               padding: EdgeInsets.fromLTRB(10.w, 0, 10.w, 2.h),
               child: _buildDescriptionWithHashtags(
                 context,
-                post.description,
+                cleanedDesc,
                 AppTextColors.of(context),
               ),
             ),
           ],
-          SizedBox(height: 5.h),
-          ...post.polls.asMap().entries.map((entry) {
-            final index = entry.key;
-            final poll = entry.value;
-            final showQuestion = index > 0;
-            if (poll.pollType == 'battle') {
-              return _buildBattlePollSection(
-                context,
-                poll,
-                post,
-                showQuestion: showQuestion,
-              );
-            } else if (poll.pollType == 'hot_take') {
-              return _buildHotTakePollSection(
-                context,
-                poll,
-                post,
-                showQuestion: showQuestion,
-              );
-            } else if (poll.pollType == 'this_or_that') {
-              return _buildThisOrThatPollSection(
-                context,
-                poll,
-                post,
-                showQuestion: showQuestion,
-              );
-            } else if (poll.pollType == 'anonymous' &&
-                _hasImageOptions(poll) &&
-                _hasTextOptions(poll)) {
-              return _buildAnonymousImageTextPollSection(
-                context,
-                poll,
-                post,
-                showQuestion: showQuestion,
-              );
-            } else {
-              return post.isImagePoll
-                  ? _buildImagePollBlock(poll, post.id, post)
-                  : _buildTextPollBlock(poll, showQuestion: showQuestion);
-            }
-          }),
+          if (post.polls.isEmpty) ...[
+            if (post.images.isNotEmpty) ...[
+              Padding(
+                padding: EdgeInsets.fromLTRB(10.w, 4.h, 10.w, 6.h),
+                child: PostImagesCarousel(images: post.images),
+              ),
+            ],
+          ] else ...[
+            SizedBox(height: 5.h),
+            ...post.polls.asMap().entries.map((entry) {
+              final index = entry.key;
+              final poll = entry.value;
+              final showQuestion = index > 0;
+              if (poll.pollType == 'battle') {
+                return _buildBattlePollSection(
+                  context,
+                  poll,
+                  post,
+                  showQuestion: showQuestion,
+                );
+              } else if (poll.pollType == 'hot_take') {
+                return _buildHotTakePollSection(
+                  context,
+                  poll,
+                  post,
+                  showQuestion: showQuestion,
+                );
+              } else if (poll.pollType == 'this_or_that') {
+                return _buildThisOrThatPollSection(
+                  context,
+                  poll,
+                  post,
+                  showQuestion: showQuestion,
+                );
+              } else if (poll.pollType == 'anonymous' &&
+                  _hasImageOptions(poll) &&
+                  _hasTextOptions(poll)) {
+                return _buildAnonymousImageTextPollSection(
+                  context,
+                  poll,
+                  post,
+                  showQuestion: showQuestion,
+                );
+              } else {
+                return post.isImagePoll
+                    ? _buildImagePollBlock(poll, post.id, post)
+                    : _buildTextPollBlock(poll, showQuestion: showQuestion);
+              }
+            }),
+          ],
           const SizedBox(height: 10),
           _buildInteractionBar(post),
           if ((postLikedUsers[post.id.toString()] ?? []).isNotEmpty) ...[
@@ -2330,7 +2356,8 @@ class _SinglePostDetailsState extends State<SinglePostDetails>
                             child: Column(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                if (isOwnPost || isPolled)
+                                if (post.polls.isNotEmpty &&
+                                    (isOwnPost || isPolled))
                                   InkWell(
                                     onTap: () => Navigator.pop(
                                       ctx,
@@ -3012,6 +3039,10 @@ class _SinglePostDetailsState extends State<SinglePostDetails>
     final txt = AppTextColors.of(context);
     final String commentText = _formatCount(_commentsCount);
     final String shareText = _formatCount(_sharesCount);
+    final int effectiveInspiredCount =
+        _inspiredCount > 0 ? _inspiredCount : post.inspiredCount;
+    final String inspiredText = _formatCount(effectiveInspiredCount);
+    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 10),
@@ -3096,6 +3127,67 @@ class _SinglePostDetailsState extends State<SinglePostDetails>
                     fontWeight: FontWeight.w400,
                   ),
                 ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 10),
+          GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: () {
+              final userProvider =
+                  Provider.of<UserProvider>(context, listen: false);
+              final currentUsername = userProvider.username?.trim() ?? '';
+              final currentUserId =
+                  userProvider.userId?.toString().trim() ?? '';
+              final postUsername = (post.user.username.isNotEmpty
+                      ? post.user.username
+                      : (_post?.user.username ?? ''))
+                  .trim();
+              final postUserId = (post.user.uuid.isNotEmpty
+                      ? post.user.uuid
+                      : (_post?.user.uuid ?? ''))
+                  .trim();
+
+              final bool isOwnPost =
+                  (currentUsername.isNotEmpty &&
+                      postUsername.toLowerCase() ==
+                          currentUsername.toLowerCase()) ||
+                  (currentUserId.isNotEmpty && postUserId == currentUserId);
+
+              if (isOwnPost) {
+                showToast(
+                  message:
+                      'You can’t create an inspired post from your own post.',
+                );
+                return;
+              }
+
+              navigationPush(
+                context,
+                AddNewPoll(
+                  inspiredData: InspiredPollData.fromSinglePost(post),
+                  inspiredPostId: post.id,
+                ),
+              );
+            },
+            child: Row(
+              children: [
+                AppIcons.icInspire(
+                  color: isDarkMode
+                      ? const Color(0xFF595959)
+                      : const Color(0xFF6D6C6C),
+                ),
+                if (inspiredText.isNotEmpty) ...[
+                  const SizedBox(width: 8),
+                  Text(
+                    inspiredText,
+                    style: AppTextStyles.subText.copyWith(
+                      color: txt.body,
+                      fontSize: 13.5,
+                      fontWeight: FontWeight.w400,
+                    ),
+                  ),
+                ],
               ],
             ),
           ),
@@ -3305,9 +3397,90 @@ class _SinglePostDetailsState extends State<SinglePostDetails>
     String description,
     AppTextColors txt,
   ) {
+    final cleaned = description
+        .replaceAll(RegExp(r'\s*\[inspired_by:[^\]]+\]'), '')
+        .trim();
+    if (cleaned.isEmpty) return const SizedBox.shrink();
     return _ExpandableDescriptionWithHashtags(
-      description: description,
+      description: cleaned,
       txt: txt,
+    );
+  }
+
+  Widget _buildInspiredPostBadge(
+    BuildContext context,
+    SinglePostInspiredByPost inspiredByPost,
+  ) {
+    final txt = AppTextColors.of(context);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    final backgroundColor = isDark
+        ? const Color(0xFF1E1517)
+        : const Color(0x0D9B3046);
+    final borderColor =
+        isDark ? const Color(0xFF382328) : const Color(0xFFF3E4E7);
+
+    final rawUsername = inspiredByPost.username.trim();
+    final cleanUsername = rawUsername.startsWith('@')
+        ? rawUsername.substring(1).trim()
+        : rawUsername;
+    final displayUsername =
+        cleanUsername.isNotEmpty ? cleanUsername : 'user';
+
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () {
+        if (displayUsername.isNotEmpty && displayUsername != 'user') {
+          navigationPush(
+            context,
+            PublicProfileScreen(username: displayUsername),
+          );
+        }
+      },
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        decoration: BoxDecoration(
+          color: backgroundColor,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: borderColor, width: 1),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            AppIcons.icInspire(
+              size: 15,
+              color: Theme.of(context).colorScheme.primary,
+            ),
+            SizedBox(width: 8.w),
+            Expanded(
+              child: Text.rich(
+                TextSpan(
+                  style: AppTextStyles.bodyText.copyWith(
+                    fontSize: 13.5,
+                    color: txt.title,
+                    fontWeight: FontWeight.w400,
+                  ),
+                  children: [
+                    TextSpan(text: '${AppLocalizations.of(context)!.inspiredby} '),
+                    TextSpan(
+                      text: displayUsername,
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.primary,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    TextSpan(text: ' ${AppLocalizations.of(context)!.polllowercase
+                    }'),
+                  ],
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

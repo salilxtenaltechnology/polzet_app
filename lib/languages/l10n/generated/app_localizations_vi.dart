@@ -2589,55 +2589,58 @@ class AppLocalizationsVi extends AppLocalizations {
   String get submitreport => 'Gửi báo cáo';
 
   @override
-  String get applytheme => 'Apply Theme';
+  String get applytheme => 'Áp dụng chủ đề';
 
   @override
-  String get notificationsettings => 'Notification Settings';
+  String get notificationsettings => 'Cài đặt thông báo';
 
   @override
-  String get mutechat => 'Mute Chat';
+  String get mutechat => 'Tắt tiếng trò chuyện';
 
   @override
-  String get verify => 'Verify';
+  String get verify => 'Xác minh';
 
   @override
-  String get verifying => 'Verifying...';
+  String get verifying => 'Đang xác minh...';
 
   @override
-  String get viewresult => 'View Result';
+  String get viewresult => 'Xem kết quả';
 
   @override
-  String get savepoll => 'Save poll';
+  String get savepoll => 'Lưu cuộc bình chọn';
 
   @override
-  String get unsavepoll => 'Unsave poll';
+  String get unsavepoll => 'Bỏ lưu cuộc bình chọn';
 
   @override
-  String get deletepoll => 'Delete poll';
+  String get deletepoll => 'Xóa cuộc bình chọn';
 
   @override
-  String get gotoprofile => 'Go to profile';
+  String get gotoprofile => 'Đi tới hồ sơ';
 
   @override
-  String get aipick => 'AI Pick';
+  String get aipick => 'Lựa chọn của AI';
 
   @override
-  String get aigenerationslefttoday => 'AI generations left today';
+  String get aigenerationslefttoday => 'Số lượt tạo bằng AI còn lại hôm nay';
 
   @override
-  String get noaigenerationslefttoday => 'No AI generations left today';
+  String get noaigenerationslefttoday =>
+      'Hôm nay không còn lượt tạo bằng AI nào';
 
   @override
-  String get yourcreditswillresettomorrow => 'Your credits will reset tomorrow';
+  String get yourcreditswillresettomorrow =>
+      'Số dư của bạn sẽ được đặt lại vào ngày mai';
 
   @override
-  String get archivedgroup => 'Archived Group';
+  String get archivedgroup => 'Nhóm đã lưu trữ';
 
   @override
-  String get failedtoloadarchivedchats => 'Failed to load archived chats';
+  String get failedtoloadarchivedchats =>
+      'Không thể tải cuộc trò chuyện đã lưu trữ';
 
   @override
-  String get retry => 'Retry';
+  String get retry => 'Thử lại';
 
   @override
   String get unblockthisusertoallowmessagesandinteractions =>
@@ -2881,4 +2884,124 @@ class AppLocalizationsVi extends AppLocalizations {
 
   @override
   String get withselectedfilters => 'với các bộ lọc đã chọn';
+
+  @override
+  String get notopicsavailable => 'Không có chủ đề nào';
+
+  @override
+  String get filter => 'Bộ lọc';
+
+  @override
+  String get applyfilters => 'Áp dụng bộ lọc';
+
+  @override
+  String get next => 'Tiếp theo';
+
+  @override
+  String get create => 'Tạo';
+
+  @override
+  String get whatdoyouwanttocreate => 'Bạn muốn tạo gì?';
+
+  @override
+  String get askaquestiongetopinions => 'Đặt câu hỏi và nhận ý kiến';
+
+  @override
+  String get createpost => 'Tạo bài đăng';
+
+  @override
+  String get sharephotosandthoughts => 'Chia sẻ ảnh và suy nghĩ';
+
+  @override
+  String get privateconversationsshareddiscussions =>
+      'Trò chuyện riêng tư và thảo luận chung';
+
+  @override
+  String get sharedphotosandthoughtswithyourscommunity =>
+      'Chia sẻ ảnh và suy nghĩ với cộng đồng của bạn';
+
+  @override
+  String get caption => 'Chú thích';
+
+  @override
+  String get whatsyourmind => 'Bạn đang nghĩ gì?';
+
+  @override
+  String get publishpoll => 'Đăng cuộc bình chọn';
+
+  @override
+  String get previewpost => 'Xem trước bài đăng';
+
+  @override
+  String get seehowyourpollwillappearinthefeedbeforepublishing =>
+      'Xem cuộc bình chọn sẽ hiển thị như thế nào trên bảng tin trước khi đăng';
+
+  @override
+  String get pleaseenterlabel => 'Vui lòng nhập nhãn';
+
+  @override
+  String get nocategoryfound => 'Không tìm thấy danh mục';
+
+  @override
+  String get searchcategory => 'Tìm kiếm danh mục...';
+
+  @override
+  String get selectacategory => 'Chọn danh mục';
+
+  @override
+  String get preview => 'Xem trước';
+
+  @override
+  String get reorder => 'Sắp xếp lại';
+
+  @override
+  String get reorderimages => 'Sắp xếp lại hình ảnh';
+
+  @override
+  String get dragdroptochangeorder => 'Kéo và thả để thay đổi thứ tự';
+
+  @override
+  String get done => 'Xong';
+
+  @override
+  String get reject => 'Từ chối';
+
+  @override
+  String get pleaseenterlabelorselectimage =>
+      'Vui lòng nhập nhãn hoặc chọn hình ảnh';
+
+  @override
+  String get pleaseselectimage => 'Vui lòng chọn hình ảnh';
+
+  @override
+  String get pleaseselectcategory => 'Vui lòng chọn danh mục';
+
+  @override
+  String get pleaseenteravalidmobilenumber =>
+      'Vui lòng nhập số điện thoại di động hợp lệ';
+
+  @override
+  String get left => 'còn lại';
+
+  @override
+  String
+  get mismatchedoptionsoneoptionwithtextonlyandonewithimageonlyisnotallowed =>
+      'Các tùy chọn không khớp: Không được phép có một tùy chọn chỉ chứa văn bản và một tùy chọn chỉ chứa hình ảnh';
+
+  @override
+  String get mismatchoptionsdonotmixtextonlyandimageoptions =>
+      'Các tùy chọn không khớp: Không kết hợp tùy chọn chỉ có văn bản với tùy chọn có hình ảnh';
+
+  @override
+  String get deletepost => 'Xóa bài đăng';
+
+  @override
+  String get areyousurewanttodeletethispost =>
+      'Bạn có chắc chắn muốn xóa bài đăng này không?';
+
+  @override
+  String get inspiredby => 'Lấy cảm hứng từ';
+
+  @override
+  String get polllowercase => 'bình chọn';
 }

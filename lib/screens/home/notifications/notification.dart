@@ -682,6 +682,8 @@ class NotificationState extends State<Notifications>
         return 'sent you a new message';
       case 'NEW_POST':
         return 'added new poll';
+      case 'POLL_INSPIRED' :
+        return 'created a poll inspired by your post';
       default:
         return 'sent you a notification';
     }
@@ -2012,7 +2014,7 @@ class NotificationState extends State<Notifications>
                     ),
                     child: Center(
                       child: Text(
-                        'Message',
+                        AppLocalizations.of(context)!.message,
                         style: TextStyle(
                           color: Theme.of(context).colorScheme.onBackground,
                           fontSize: 11.sp,

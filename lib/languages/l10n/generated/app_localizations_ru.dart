@@ -2295,7 +2295,7 @@ class AppLocalizationsRu extends AppLocalizations {
       'Bitte gib eine Вопрос oder ein Thema ein';
 
   @override
-  String get pleaseselecttwoimages => 'Bitte wähle 2 Изображениеer aus';
+  String get pleaseselecttwoimages => 'Выберите 2 изображения';
 
   @override
   String get markasread => 'Als gelesen markieren';
@@ -2589,55 +2589,55 @@ class AppLocalizationsRu extends AppLocalizations {
   String get submitreport => 'Отправить жалобу';
 
   @override
-  String get applytheme => 'Apply Theme';
+  String get applytheme => 'Применить тему';
 
   @override
-  String get notificationsettings => 'Notification Settings';
+  String get notificationsettings => 'Настройки уведомлений';
 
   @override
-  String get mutechat => 'Mute Chat';
+  String get mutechat => 'Отключить звук чата';
 
   @override
-  String get verify => 'Verify';
+  String get verify => 'Подтвердить';
 
   @override
-  String get verifying => 'Verifying...';
+  String get verifying => 'Проверка...';
 
   @override
-  String get viewresult => 'View Result';
+  String get viewresult => 'Посмотреть результат';
 
   @override
-  String get savepoll => 'Save poll';
+  String get savepoll => 'Сохранить опрос';
 
   @override
-  String get unsavepoll => 'Unsave poll';
+  String get unsavepoll => 'Удалить опрос из сохранённых';
 
   @override
-  String get deletepoll => 'Delete poll';
+  String get deletepoll => 'Удалить опрос';
 
   @override
-  String get gotoprofile => 'Go to profile';
+  String get gotoprofile => 'Перейти в профиль';
 
   @override
-  String get aipick => 'AI Pick';
+  String get aipick => 'Выбор ИИ';
 
   @override
-  String get aigenerationslefttoday => 'AI generations left today';
+  String get aigenerationslefttoday => 'Осталось генераций ИИ на сегодня';
 
   @override
-  String get noaigenerationslefttoday => 'No AI generations left today';
+  String get noaigenerationslefttoday => 'На сегодня генераций ИИ не осталось';
 
   @override
-  String get yourcreditswillresettomorrow => 'Your credits will reset tomorrow';
+  String get yourcreditswillresettomorrow => 'Ваши кредиты обновятся завтра';
 
   @override
-  String get archivedgroup => 'Archived Group';
+  String get archivedgroup => 'Архивированная группа';
 
   @override
-  String get failedtoloadarchivedchats => 'Failed to load archived chats';
+  String get failedtoloadarchivedchats => 'Не удалось загрузить архивные чаты';
 
   @override
-  String get retry => 'Retry';
+  String get retry => 'Повторить';
 
   @override
   String get unblockthisusertoallowmessagesandinteractions =>
@@ -2881,4 +2881,125 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get withselectedfilters => 'с выбранными фильтрами';
+
+  @override
+  String get notopicsavailable => 'Нет доступных тем';
+
+  @override
+  String get filter => 'Фильтр';
+
+  @override
+  String get applyfilters => 'Применить фильтры';
+
+  @override
+  String get next => 'Далее';
+
+  @override
+  String get create => 'Создать';
+
+  @override
+  String get whatdoyouwanttocreate => 'Что вы хотите создать?';
+
+  @override
+  String get askaquestiongetopinions => 'Задайте вопрос и получите мнения';
+
+  @override
+  String get createpost => 'Создать публикацию';
+
+  @override
+  String get sharephotosandthoughts => 'Делитесь фотографиями и мыслями';
+
+  @override
+  String get privateconversationsshareddiscussions =>
+      'Личные беседы и совместные обсуждения';
+
+  @override
+  String get sharedphotosandthoughtswithyourscommunity =>
+      'Делитесь фотографиями и мыслями со своим сообществом';
+
+  @override
+  String get caption => 'Подпись';
+
+  @override
+  String get whatsyourmind => 'О чём вы думаете?';
+
+  @override
+  String get publishpoll => 'Опубликовать опрос';
+
+  @override
+  String get previewpost => 'Предпросмотр публикации';
+
+  @override
+  String get seehowyourpollwillappearinthefeedbeforepublishing =>
+      'Посмотрите, как ваш опрос будет выглядеть в ленте перед публикацией';
+
+  @override
+  String get pleaseenterlabel => 'Введите метку';
+
+  @override
+  String get nocategoryfound => 'Категория не найдена';
+
+  @override
+  String get searchcategory => 'Поиск категории...';
+
+  @override
+  String get selectacategory => 'Выберите категорию';
+
+  @override
+  String get preview => 'Предпросмотр';
+
+  @override
+  String get reorder => 'Изменить порядок';
+
+  @override
+  String get reorderimages => 'Изменить порядок изображений';
+
+  @override
+  String get dragdroptochangeorder =>
+      'Перетащите элементы, чтобы изменить порядок';
+
+  @override
+  String get done => 'Готово';
+
+  @override
+  String get reject => 'Отклонить';
+
+  @override
+  String get pleaseenterlabelorselectimage =>
+      'Введите метку или выберите изображение';
+
+  @override
+  String get pleaseselectimage => 'Выберите изображение';
+
+  @override
+  String get pleaseselectcategory => 'Выберите категорию';
+
+  @override
+  String get pleaseenteravalidmobilenumber =>
+      'Введите действительный номер мобильного телефона';
+
+  @override
+  String get left => 'осталось';
+
+  @override
+  String
+  get mismatchedoptionsoneoptionwithtextonlyandonewithimageonlyisnotallowed =>
+      'Несовпадающие варианты: нельзя использовать один вариант только с текстом, а другой — только с изображением';
+
+  @override
+  String get mismatchoptionsdonotmixtextonlyandimageoptions =>
+      'Несовпадающие варианты: не смешивайте текстовые варианты и варианты с изображениями';
+
+  @override
+  String get deletepost => 'Удалить публикацию';
+
+  @override
+  String get areyousurewanttodeletethispost =>
+      'Вы уверены, что хотите удалить эту публикацию?';
+
+  @override
+  String get inspiredby => 'Вдохновлено';
+
+  @override
+  String get polllowercase => 'опрос';
 }

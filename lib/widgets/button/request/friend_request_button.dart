@@ -5,6 +5,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_radius.dart';
+import '../../../languages/l10n/generated/app_localizations.dart';
 import '../../../models/notifications/notification_model.dart';
 
 class FriendRequestButtons extends StatefulWidget {
@@ -46,7 +47,7 @@ class _FriendRequestButtonsState extends State<FriendRequestButtons> {
             ),
             child: Center(
               child: Text(
-                'Approve',
+              AppLocalizations.of(context)!.approve,
                 style: TextStyle(
                   color: Colors.white,
                   fontSize: 11.sp,

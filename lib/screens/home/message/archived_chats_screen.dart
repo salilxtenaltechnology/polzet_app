@@ -1,6 +1,8 @@
 // ignore_for_file: deprecated_member_use, unused_element, unused_local_variable
 
 import 'dart:async';
+import 'dart:convert';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -185,21 +187,71 @@ class _ArchivedChatsScreenState extends State<ArchivedChatsScreen>
   }
 
   String? _resolveProfileUrl(String? url) {
-    if (url == null || url.trim().isEmpty || url == 'null') return null;
-    if (url.startsWith('assets/')) return url;
-    if (!url.startsWith('http') && !url.startsWith('data:image')) {
-      final separator = url.startsWith('/') ? '' : '/';
-      return '${ApiConfig.baseUrlImage}$separator$url';
+    if (url == null) return null;
+    final trimmed = url.trim();
+    if (trimmed.isEmpty ||
+        trimmed.toLowerCase() == 'null' ||
+        trimmed.toLowerCase() == 'undefined') {
+      return null;
     }
-    return url;
+    if (trimmed.startsWith('assets/')) return trimmed;
+    if (!trimmed.startsWith('http') && !trimmed.startsWith('data:image')) {
+      final separator = trimmed.startsWith('/') ? '' : '/';
+      return '${ApiConfig.baseUrlImage}$separator$trimmed';
+    }
+    return trimmed;
   }
 
   ImageProvider? _avatarProvider(String? avatarUrl) {
-    final url = _resolveProfileUrl(avatarUrl);
-    if (url == null) {
+    if (avatarUrl == null) return null;
+    final trimmedAvatar = avatarUrl.trim();
+    if (trimmedAvatar.isEmpty ||
+        trimmedAvatar.toLowerCase() == 'null' ||
+        trimmedAvatar.toLowerCase() == 'undefined') {
       return null;
     }
-    return NetworkImage(url);
+    if (trimmedAvatar == Assets.images.icAvatar.path ||
+        trimmedAvatar.startsWith('assets/')) {
+      return AssetImage(trimmedAvatar);
+    }
+    if (trimmedAvatar.startsWith('data:image')) {
+      try {
+        final commaIndex = trimmedAvatar.indexOf(',');
+        final base64Str = commaIndex != -1
+            ? trimmedAvatar.substring(commaIndex + 1)
+            : trimmedAvatar;
+        return MemoryImage(base64Decode(base64Str.trim()));
+      } catch (_) {
+        return null;
+      }
+    }
+    final url = _resolveProfileUrl(trimmedAvatar);
+    if (url == null || url.trim().isEmpty) {
+      return null;
+    }
+    if (url.startsWith('assets/')) {
+      return AssetImage(url);
+    }
+    if (url.startsWith('data:image')) {
+      try {
+        final commaIndex = url.indexOf(',');
+        final base64Str =
+            commaIndex != -1 ? url.substring(commaIndex + 1) : url;
+        return MemoryImage(base64Decode(base64Str.trim()));
+      } catch (_) {
+        return null;
+      }
+    }
+    final cleanUrl = url.trim();
+    final lower = cleanUrl.toLowerCase().split('?').first;
+    if (lower.endsWith('.svg')) {
+      return null;
+    }
+    final uri = Uri.tryParse(cleanUrl);
+    if (uri == null || (!uri.isScheme('http') && !uri.isScheme('https'))) {
+      return null;
+    }
+    return CachedNetworkImageProvider(cleanUrl, errorListener: (_) {});
   }
 
   String? _avatarUrl(Map<String, dynamic> chat) {
@@ -1325,6 +1377,9 @@ class _ArchivedChatsScreenState extends State<ArchivedChatsScreen>
                                           context,
                                         ).primaryColor.withOpacity(0.08),
                                   backgroundImage: avatarProvider,
+                                  onBackgroundImageError: avatarProvider != null
+                                      ? (_, __) {}
+                                      : null,
                                   child: avatarProvider == null
                                       ? Text(
                                           title.isNotEmpty
@@ -1350,22 +1405,11 @@ class _ArchivedChatsScreenState extends State<ArchivedChatsScreen>
                                     : Theme.of(
                                         context,
                                       ).primaryColor.withOpacity(0.08),
-                                backgroundImage: avatarProvider,
-                                child: avatarProvider == null
-                                    ? Text(
-                                        title.isNotEmpty
-                                            ? title[0].toUpperCase()
-                                            : 'P',
-                                        style: AppTextStyles.subText.copyWith(
-                                          color: Theme.of(context)
-                                              .colorScheme
-                                              .onPrimary
-                                              .withOpacity(0.8),
-                                          fontWeight: FontWeight.w500,
-                                          fontSize: 20,
-                                        ),
-                                      )
-                                    : null,
+                                backgroundImage: avatarProvider ??
+                                    AssetImage(
+                                      Assets.images.icAvatar.path,
+                                    ),
+                                onBackgroundImageError: (_, __) {},
                               ),
                               if (chat['chat_type'] == 'private' &&
                                   _isOtherMemberOnline(chat))

@@ -44,6 +44,7 @@ class HomeScreenState extends State<HomeScreen>
     WidgetsBinding.instance.addObserver(this);
     pageIndex = widget.initialIndex;
     _loadCachedUserData();
+    DashboardState.prewarmFeedCache();
     _initializeDeepLinking();
     MessageListState.startGlobalPolling();
     NotificationState.startGlobalPolling();
@@ -89,7 +90,6 @@ class HomeScreenState extends State<HomeScreen>
         MessageListState.refreshGlobally(),
         NotificationState.refreshGlobally(),
       ]);
-      DashboardState.triggerRefresh();
       _setAppBarVisible(true);
     }
   }
@@ -475,16 +475,23 @@ class HomeScreenState extends State<HomeScreen>
                         },
                         notificationCount: unreadNotificationCount,
                         messageCount: unreadMessageCount,
-                        // onAddTap: () =>
-                        //     BottomSheetUtils.showNewPollBottomSheet(context),
                         onAddTap: () {
-                          // navigationPush(context, const AddNewPoll());
-                          Navigator.push(
+                          // Navigator.push(
+                          //   context,
+                          //   PageTransition(
+                          //     type: PageTransitionType.topToBottom,
+                          //     duration: const Duration(microseconds: 200),
+                          //     child: const AddNewPoll(),
+                          //   ),
+                          // );
+
+
+                           Navigator.push(
                             context,
                             PageTransition(
                               type: PageTransitionType.topToBottom,
                               duration: const Duration(microseconds: 200),
-                              child: const AddNewPoll(),
+                              child: const Create(),
                             ),
                           );
                         },

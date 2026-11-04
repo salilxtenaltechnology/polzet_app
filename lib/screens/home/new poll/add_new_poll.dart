@@ -12,12 +12,20 @@ import '../../../gen/assets.gen.dart';
 import '../../../languages/l10n/generated/app_localizations.dart';
 import '../../../widgets/appbar/common_appbar.dart';
 import '../../../mixin/utility_mixins.dart';
+import '../../../models/poll/inspired_poll_data.dart';
 import 'type/new_hot_take_poll.dart';
 import 'type/new_image_poll.dart';
 import 'type/new_text_poll.dart';
 
 class AddNewPoll extends StatefulWidget {
-  const AddNewPoll({super.key});
+  final InspiredPollData? inspiredData;
+  final String? inspiredPostId;
+
+  const AddNewPoll({
+    super.key,
+    this.inspiredData,
+    this.inspiredPostId,
+  });
 
   @override
   State<AddNewPoll> createState() => _AddNewPollState();
@@ -56,42 +64,60 @@ class _AddNewPollState extends State<AddNewPoll>
           context,
         )!.asksimplequestionswithtextchoices,
         'image': Assets.images.icTextPoll,
-        'screen': const NewTextPoll(),
+        'screen': NewTextPoll(
+          inspiredData: widget.inspiredData,
+          inspiredPostId: widget.inspiredPostId ?? widget.inspiredData?.postId,
+        ),
         'iconBackgroundColor': const Color(0XFFC026D3).withOpacity(0.1),
       },
       {
         'title': AppLocalizations.of(context)!.imagepoll,
         'subtitle': AppLocalizations.of(context)!.comparephotosandvisualchoices,
         'image': Assets.images.icImagePoll,
-        'screen': const NewImagePoll(),
+        'screen': NewImagePoll(
+          inspiredData: widget.inspiredData,
+          inspiredPostId: widget.inspiredPostId ?? widget.inspiredData?.postId,
+        ),
         'iconBackgroundColor': const Color(0XFFDE42AA).withOpacity(0.1),
       },
       {
         'title': AppLocalizations.of(context)!.battlepoll,
         'subtitle': AppLocalizations.of(context)!.comparerivalsandcrownawinner,
         'image': Assets.images.icBattel,
-        'screen': const NewBattelPoll(),
+        'screen': NewBattelPoll(
+          inspiredData: widget.inspiredData,
+          inspiredPostId: widget.inspiredPostId ?? widget.inspiredData?.postId,
+        ),
         'iconBackgroundColor': const Color(0XFFDC2626).withOpacity(0.1),
       },
       {
         'title': AppLocalizations.of(context)!.thisorthat,
         'subtitle': AppLocalizations.of(context)!.pickbetweentwoquickchoices,
         'image': Assets.images.icThisThat,
-        'screen': const NewThisOrThat(),
+        'screen': NewThisOrThat(
+          inspiredData: widget.inspiredData,
+          inspiredPostId: widget.inspiredPostId ?? widget.inspiredData?.postId,
+        ),
         'iconBackgroundColor': const Color(0XFF16A34A).withOpacity(0.12),
       },
       {
         'title': AppLocalizations.of(context)!.hottakespoll,
         'subtitle': AppLocalizations.of(context)!.shareopinionsandstartdebates,
         'image': Assets.images.icHot,
-        'screen': const NewHotTakePoll(),
+        'screen': NewHotTakePoll(
+          inspiredData: widget.inspiredData,
+          inspiredPostId: widget.inspiredPostId ?? widget.inspiredData?.postId,
+        ),
         'iconBackgroundColor': const Color(0XFFEA580C).withOpacity(0.12),
       },
       {
         'title': AppLocalizations.of(context)!.anonymouspoll,
         'subtitle': AppLocalizations.of(context)!.gethonestopinionsprivately,
         'image': Assets.images.icAnonymous,
-        'screen': const NewAnonymousPoll(),
+        'screen': NewAnonymousPoll(
+          inspiredData: widget.inspiredData,
+          inspiredPostId: widget.inspiredPostId ?? widget.inspiredData?.postId,
+        ),
         'iconBackgroundColor': const Color(0XFF7C3AED).withOpacity(0.12),
       },
       // {

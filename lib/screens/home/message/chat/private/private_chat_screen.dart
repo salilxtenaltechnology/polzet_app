@@ -668,7 +668,7 @@ class _PrivateChatScreenState extends State<PrivateChatScreen>
   void didChangeAppLifecycleState(AppLifecycleState state) {
     super.didChangeAppLifecycleState(state);
     // Reconnect WS when app comes back to foreground
-    if (state == AppLifecycleState.resumed) {
+    if (state == AppLifecycleState.resumed && mounted) {
       context.read<PrivateChatProvider>().reconnect();
     }
   }

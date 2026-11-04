@@ -329,9 +329,9 @@ class _CreateGroupState extends State<CreateGroup> with UtilityMixin {
                     child: AnimatedContainer(
                       duration: const Duration(milliseconds: 200),
                       margin: EdgeInsets.only(right: 8.w),
-                      padding: EdgeInsets.symmetric(
-                        horizontal: 11.w,
-                        vertical: 8.h,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 5,
                       ),
                       decoration: BoxDecoration(
                         border: Border.all(
@@ -363,10 +363,8 @@ class _CreateGroupState extends State<CreateGroup> with UtilityMixin {
                               color: isSelected
                                   ? AppColors.primaryColor
                                   : txt.title,
-                              fontSize: 12.sp,
-                              fontWeight: isSelected
-                                  ? FontWeight.w600
-                                  : FontWeight.w400,
+                              fontSize: 13,
+                              fontWeight:FontWeight.w500
                             ),
                           ),
                         ],

@@ -134,7 +134,7 @@ class _ImagePollScreenState extends State<ImagePollScreen> {
           .map((o) => o.image!)
           .toList();
 
-      final Map<String, dynamic>? result = await ApiService.uploadImagePoll(
+      final Map<String, dynamic>? result = await ApiService.addImagePoll(
         description: _questionCtrl.text.trim(),
         question: 'Image Preference Poll',
         pollOptions: selectedImages,

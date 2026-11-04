@@ -44,6 +44,9 @@ class AppIcons {
   static Widget sharePost({double size = 23, Color? color, Key? key}) =>
       _img(Assets.images.forward, size: size, color: color, key: key);
 
+  static Widget icInspire({double size = 20.7, Color? color, Key? key}) =>
+      _img(Assets.images.icInspire, size: size, color: color, key: key);
+
   static Widget filledSave({double size = 22, Color? color, Key? key}) =>
       Icon(Icons.bookmark, size: size, color: color, key: key);
 

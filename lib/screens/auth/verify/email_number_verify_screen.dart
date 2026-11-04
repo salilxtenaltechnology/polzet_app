@@ -1,6 +1,5 @@
 // ignore_for_file: deprecated_member_use
 import 'package:dio/dio.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:polzet_app/widgets/loader.dart';
@@ -196,166 +195,67 @@ class _EmailNumberVerifyScreenState extends State<EmailNumberVerifyScreen> {
   }
 
   Future<void> _mobileSendOtp() async {
-  if (!_validate()) return;
+    if (!_validate()) return;
 
-  setState(() {
-    _isSendingOtp = true;
-    _emailOrMobileError = '';
-    _passwordError = '';
-  });
+    setState(() {
+      _isSendingOtp = true;
+      _emailOrMobileError = '';
+      _passwordError = '';
+    });
 
-  bool startedFirebase = false;
+    try {
+      // ─── 1. Clean phone number ───────────────────────────────────────
+      final String cleanPhone = _phoneController.text
+          .trim()
+          .replaceAll(RegExp(r'[\s\-().+]'), '');
 
-  try {
-    // ─── 1. Clean phone number ───────────────────────────────────────
-    final String cleanPhone = _phoneController.text
-        .trim()
-        .replaceAll(RegExp(r'[\s\-().+]'), '');
+      final String countryCode = _selectedCountry.dialCode;
+      final String fullPhoneNumber = '$countryCode$cleanPhone';
 
-    final String countryCode = _selectedCountry.dialCode;
-    final String fullPhoneNumber = '$countryCode$cleanPhone';
+      debugPrint('📱 Sending OTP to: $fullPhoneNumber');
 
-    debugPrint('📱 Sending OTP to: $fullPhoneNumber');
-
-    // ─── 2. Call backend to register/validate the number first ───────
-    final result = await ApiService().sendMobileOtp(
-      phoneNumber: cleanPhone,
-      countryCode: countryCode,
-    );
-
-    if (!mounted) return;
-
-    final bool success =
-        result['success'] == true || result['status'] == 'success';
-
-    if (!success) {
-      setState(() {
-        _isLoginMode = true;
-        _emailOrMobileError =
-            result['message'] ?? 'Failed to send OTP';
-      });
-      return;
-    }
-
-    // ─── 3. Parse backend response ───────────────────────────────────
-    final Map<String, dynamic> data = result['data'] ?? {};
-    final String resMessage =
-        (result['message'] ?? '').toString().toLowerCase().trim();
-
-    final bool requiresFirebase =
-        data['requires_firebase'] == true ||
-        resMessage.contains('firebase') ||
-        resMessage.contains('use firebase client sdk to send otp');
-
-    // Resolve phone from response or fallback to user input
-    String resPhone =
-        (data['phone_number'] ?? cleanPhone).toString().trim();
-    final String resCountryCode =
-        (data['country_code'] ?? countryCode).toString();
-
-    // Strip country code prefix if already included in phone
-    final String dialCodeDigits = resCountryCode.replaceAll('+', '');
-    if (resPhone.startsWith(dialCodeDigits)) {
-      resPhone = resPhone.substring(dialCodeDigits.length);
-    } else if (resPhone.startsWith(resCountryCode)) {
-      resPhone = resPhone.substring(resCountryCode.length);
-    }
-
-    final String resolvedFullPhone = '$resCountryCode$resPhone';
-    final String resolvedMasked =
-        '$resCountryCode '
-        '${'*' * (resPhone.length - 3)}'
-        '${resPhone.substring(resPhone.length - 3)}';
-
-    debugPrint('📱 requiresFirebase=$requiresFirebase');
-    debugPrint('📱 resolvedFullPhone=$resolvedFullPhone');
-
-    // ─── 4. Firebase OTP path ─────────────────────────────────────────
-    if (requiresFirebase) {
-      startedFirebase = true;
-
-      await FirebaseAuth.instance.verifyPhoneNumber(
-        phoneNumber: resolvedFullPhone,
-        timeout: const Duration(seconds: 60),
-
-        // ── OTP SMS received → go to OtpVerifyScreen ────────────────
-        codeSent: (String verificationId, int? resendToken) {
-          debugPrint('✅ codeSent: verificationId=$verificationId');
-
-          if (!mounted) return;
-          setState(() => _isSendingOtp = false);
-
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => OtpVerifyScreen(
-                isMobile: true,
-                maskedContact: resolvedMasked,
-                phoneNumber: resPhone,
-                countryCode: resCountryCode,
-                verificationId: verificationId,
-                resendToken: resendToken,
-              ),
-            ),
-          );
-        },
-
-        // ── Firebase send failed ─────────────────────────────────────
-        verificationFailed: (FirebaseAuthException e) {
-          debugPrint('❌ verificationFailed: ${e.code} - ${e.message}');
-
-          if (!mounted) return;
-
-          String errorMessage;
-          switch (e.code) {
-            case 'invalid-phone-number':
-              errorMessage =
-                  'Invalid phone number. Please check and try again.';
-              break;
-            case 'too-many-requests':
-              errorMessage =
-                  'Too many attempts. Please try again later.';
-              break;
-            case 'network-request-failed':
-              errorMessage =
-                  'Network error. Please check your connection.';
-              break;
-            case 'quota-exceeded':
-              errorMessage =
-                  'SMS quota exceeded. Please try again later.';
-              break;
-            case 'app-not-authorized':
-              errorMessage =
-                  'App not authorized for Firebase Authentication.';
-              break;
-            default:
-              errorMessage =
-                  e.message ?? 'Failed to send OTP. Try again.';
-          }
-
-          setState(() {
-            _isSendingOtp = false;
-            _emailOrMobileError = errorMessage;
-          });
-        },
-
-        // ── Auto-verified (Android SMS retrieval) ────────────────────
-        // Just log it — OtpVerifyScreen handles the credential
-        verificationCompleted: (PhoneAuthCredential credential) {
-          debugPrint('📱 verificationCompleted — credential=$credential');
-        },
-
-        // ── SMS auto-retrieval timed out ─────────────────────────────
-        codeAutoRetrievalTimeout: (String verificationId) {
-          debugPrint('⏱ codeAutoRetrievalTimeout: $verificationId');
-          if (mounted && _isSendingOtp) {
-            setState(() => _isSendingOtp = false);
-          }
-        },
+      // ─── 2. Call backend via Twilio ──────────────────────────────────
+      final result = await ApiService().sendMobileOtpViaTwilio(
+        phoneNumber: cleanPhone,
+        countryCode: countryCode,
       );
 
-    // ─── 5. Non-Firebase OTP path ─────────────────────────────────────
-    } else {
+      if (!mounted) return;
+
+      final bool success =
+          result['success'] == true || result['status'] == 'success';
+
+      if (!success) {
+        setState(() {
+          _isLoginMode = true;
+          _emailOrMobileError =
+              result['message'] ?? 'Failed to send OTP';
+        });
+        return;
+      }
+
+      // ─── 3. Parse backend response ───────────────────────────────────
+      final Map<String, dynamic> data = result['data'] ?? {};
+
+      // Resolve phone from response or fallback to user input
+      String resPhone =
+          (data['phone_number'] ?? cleanPhone).toString().trim();
+      final String resCountryCode =
+          (data['country_code'] ?? countryCode).toString();
+
+      // Strip country code prefix if already included in phone
+      final String dialCodeDigits = resCountryCode.replaceAll('+', '');
+      if (resPhone.startsWith(dialCodeDigits)) {
+        resPhone = resPhone.substring(dialCodeDigits.length);
+      } else if (resPhone.startsWith(resCountryCode)) {
+        resPhone = resPhone.substring(resCountryCode.length);
+      }
+
+      final String resolvedMasked =
+          '$resCountryCode '
+          '${'*' * (resPhone.length - 3)}'
+          '${resPhone.substring(resPhone.length - 3)}';
+
       Navigator.push(
         context,
         MaterialPageRoute(
@@ -367,43 +267,40 @@ class _EmailNumberVerifyScreenState extends State<EmailNumberVerifyScreen> {
           ),
         ),
       );
-    }
 
-  // ─── 6. Dio / HTTP error ──────────────────────────────────────────
-  } on DioException catch (e) {
-    debugPrint('❌ DioException: ${e.response?.statusCode} - ${e.message}');
+    // ─── 4. Dio / HTTP error ──────────────────────────────────────────
+    } on DioException catch (e) {
+      debugPrint('❌ DioException: ${e.response?.statusCode} - ${e.message}');
 
-    final int? statusCode = e.response?.statusCode;
-    final bool isClientError =
-        statusCode != null && statusCode >= 400 && statusCode < 500;
+      final int? statusCode = e.response?.statusCode;
+      final bool isClientError =
+          statusCode != null && statusCode >= 400 && statusCode < 500;
 
-    if (mounted) {
-      setState(() {
-        if (isClientError) _isLoginMode = true;
-        _emailOrMobileError = ApiService().handleDioError(
-          e,
-          defaultMessage: 'Failed to send OTP',
-        );
-      });
-    }
+      if (mounted) {
+        setState(() {
+          if (isClientError) _isLoginMode = true;
+          _emailOrMobileError = ApiService().handleDioError(
+            e,
+            defaultMessage: 'Failed to send OTP',
+          );
+        });
+      }
 
-  // ─── 7. Unexpected error ──────────────────────────────────────────
-  } catch (e) {
-    debugPrint('❌ Unexpected error: $e');
-    if (mounted) {
-      setState(() =>
-          _emailOrMobileError = 'Connection error: ${e.toString()}');
-    }
+    // ─── 5. Unexpected error ──────────────────────────────────────────
+    } catch (e) {
+      debugPrint('❌ Unexpected error: $e');
+      if (mounted) {
+        setState(() =>
+            _emailOrMobileError = 'Connection error: ${e.toString()}');
+      }
 
-  // ─── 8. Final cleanup ─────────────────────────────────────────────
-  } finally {
-    // Firebase callbacks manage their own loader reset.
-    // Only reset here if Firebase was never started.
-    if (!startedFirebase && mounted) {
-      setState(() => _isSendingOtp = false);
+    // ─── 6. Final cleanup ─────────────────────────────────────────────
+    } finally {
+      if (mounted) {
+        setState(() => _isSendingOtp = false);
+      }
     }
   }
-}
   Widget _buildTextField({
     required TextEditingController controller,
     required String hint,

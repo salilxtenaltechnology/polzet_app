@@ -22,6 +22,7 @@ import '../../../../data/token/shared_preferences.dart';
 import '../../../../gen/assets.gen.dart';
 import '../../../../languages/l10n/generated/app_localizations.dart';
 import '../../../../provider/user_provider.dart';
+import '../../../../models/poll/inspired_poll_data.dart';
 import '../../../../widgets/appbar/common_appbar.dart';
 import '../../../../widgets/banner/ai_generation_limit_banner.dart';
 import '../../../../widgets/button/primary_button.dart';
@@ -30,12 +31,17 @@ import '../../../../widgets/custom_text_styles.dart';
 import '../../../../widgets/dotted_border/dotted_border.dart';
 import '../../../../widgets/show_toast.dart';
 import '../../../../widgets/text_field/secondry_textfield.dart';
+import '../widgets/category_dropdown_field.dart';
+import '../widgets/inspired_poll_card.dart';
+import '../widgets/poll_keyboard_dismiss_wrapper.dart';
 
 class NewThisOrThat extends StatefulWidget {
   final String? initialQuestion;
   final String? initialDescription;
   final List<String>? initialOptions;
   final String? initialVotingType;
+  final InspiredPollData? inspiredData;
+  final String? inspiredPostId;
 
   const NewThisOrThat({
     super.key,
@@ -43,6 +49,8 @@ class NewThisOrThat extends StatefulWidget {
     this.initialDescription,
     this.initialOptions,
     this.initialVotingType,
+    this.inspiredData,
+    this.inspiredPostId,
   });
 
   @override
@@ -66,9 +74,11 @@ class _NewThisOrThatState extends State<NewThisOrThat> {
   String imageErrorText = '';
   String label1ErrorText = '';
   String label2ErrorText = '';
+  String categoryErrorText = '';
 
   bool _isGeneratingQuestion = false;
   bool _hasGeneratedQuestion = false;
+  String? _selectedCategory;
 
   int _remainingGenerations = 8;
   int _dailyLimit = 8;
@@ -85,8 +95,10 @@ class _NewThisOrThatState extends State<NewThisOrThat> {
 
   void _updateAiLimitFromResponse(Map<String, dynamic>? response) {
     if (response == null) return;
-    final rawRemaining = response['remaining'] ?? response['data']?['remaining'];
-    final rawLimit = response['daily_limit'] ?? response['data']?['daily_limit'];
+    final rawRemaining =
+        response['remaining'] ?? response['data']?['remaining'];
+    final rawLimit =
+        response['daily_limit'] ?? response['data']?['daily_limit'];
 
     if (rawRemaining != null) {
       final parsedRemaining = int.tryParse(rawRemaining.toString());
@@ -151,7 +163,8 @@ class _NewThisOrThatState extends State<NewThisOrThat> {
     label2Controller.addListener(_onLabelChanged);
     _startHintAnimation();
 
-    final hasAutoFilled = (widget.initialQuestion != null &&
+    final hasAutoFilled =
+        (widget.initialQuestion != null &&
             widget.initialQuestion!.trim().isNotEmpty) ||
         (widget.initialOptions != null && widget.initialOptions!.isNotEmpty) ||
         (widget.initialVotingType != null &&
@@ -202,7 +215,7 @@ class _NewThisOrThatState extends State<NewThisOrThat> {
 
     if (query.isEmpty) {
       setState(() {
-        questionErrorText = 'Please enter a topic';
+        questionErrorText = AppLocalizations.of(context)!.pleaseenteratopic;
       });
       return;
     }
@@ -310,7 +323,7 @@ class _NewThisOrThatState extends State<NewThisOrThat> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(
-                   AppLocalizations.of(context)!.editimage,
+                    AppLocalizations.of(context)!.editimage,
                     style: AppTextStyles.sectionHeading.copyWith(
                       color: txt.title,
                       fontSize: 14.sp,
@@ -347,7 +360,7 @@ class _NewThisOrThatState extends State<NewThisOrThat> {
                 padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10),
                 child: GestureDetector(
                   child: Text(
-                   AppLocalizations.of(context)!.replaceimage,
+                    AppLocalizations.of(context)!.replaceimage,
                     style: AppTextStyles.bodyText.copyWith(
                       color: txt.body,
                       fontSize: 13.5.sp,
@@ -364,7 +377,7 @@ class _NewThisOrThatState extends State<NewThisOrThat> {
                 padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10),
                 child: GestureDetector(
                   child: Text(
-                   AppLocalizations.of(context)!.remove,
+                    AppLocalizations.of(context)!.remove,
                     style: AppTextStyles.bodyText.copyWith(
                       color: Theme.of(context).colorScheme.error,
                       fontSize: 13.5.sp,
@@ -430,13 +443,23 @@ class _NewThisOrThatState extends State<NewThisOrThat> {
       imageErrorText = '';
       label1ErrorText = '';
       label2ErrorText = '';
+      categoryErrorText = '';
     });
 
     bool hasError = false;
 
     if (questionController.text.trim().isEmpty) {
       setState(() {
-        questionErrorText = 'Please enter a question or topic';
+        questionErrorText = AppLocalizations.of(
+          context,
+        )!.pleaseenteraquestionortopic;
+      });
+      hasError = true;
+    }
+
+    if (_selectedCategory == null || _selectedCategory!.trim().isEmpty) {
+      setState(() {
+        categoryErrorText = AppLocalizations.of(context)!.pleaseselectcategory;
       });
       hasError = true;
     }
@@ -447,20 +470,20 @@ class _NewThisOrThatState extends State<NewThisOrThat> {
     if (_selectedImages.isNotEmpty) {
       if (!hasLabel1) {
         setState(() {
-          label1ErrorText = 'Please enter label';
+          label1ErrorText = AppLocalizations.of(context)!.pleaseenterlabel;
         });
         hasError = true;
       }
       if (_selectedImages.length > 1 && !hasLabel2) {
         setState(() {
-          label2ErrorText = 'Please enter label';
+          label2ErrorText = AppLocalizations.of(context)!.pleaseenterlabel;
         });
         hasError = true;
       }
     }
     if (_selectedImages.length < maxImages) {
       setState(() {
-        imageErrorText = 'Please select 2 images';
+        imageErrorText = AppLocalizations.of(context)!.pleaseselecttwoimages;
       });
       hasError = true;
     }
@@ -480,6 +503,18 @@ class _NewThisOrThatState extends State<NewThisOrThat> {
         const MapEntry('voting_type', 'single_choice'),
         const MapEntry('max_options', '1'),
       ]);
+
+      if (_selectedCategory != null && _selectedCategory!.isNotEmpty) {
+        formData.fields.add(MapEntry('category', _selectedCategory!));
+      }
+
+      final originalPostId =
+          widget.inspiredPostId ?? widget.inspiredData?.postId;
+      if (originalPostId != null && originalPostId.isNotEmpty) {
+        formData.fields.add(MapEntry('inspiration_id', originalPostId));
+        formData.fields.add(MapEntry('inspired_by_post_id', originalPostId));
+        formData.fields.add(MapEntry('parent_post_id', originalPostId));
+      }
 
       // Add labels as poll_options
       formData.fields.add(
@@ -544,88 +579,98 @@ class _NewThisOrThatState extends State<NewThisOrThat> {
       backgroundColor: Theme.of(context).colorScheme.background,
       appBar: CommonAppBar(
         title: AppLocalizations.of(context)!.createthisorthat,
+        actions: [
+          AiGenerationLimitBanner(remainingGenerations: _remainingGenerations),
+        ],
       ),
-      body: SingleChildScrollView(
-        physics: const BouncingScrollPhysics(),
-        child: Padding(
-          padding: EdgeInsets.symmetric(horizontal: 12.w),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              SizedBox(height: 10.h),
-              AiGenerationLimitBanner(
-                remainingGenerations: _remainingGenerations,
-              ),
-              SizedBox(height: 15.h),
-              Text(
-                AppLocalizations.of(
-                  context,
-                )!.comparetwochoicesanddiscoverwhatpeopleprefer,
-                style: AppTextStyles.subText.copyWith(
-                  fontSize: 14,
-                  color: txt.body,
-                  fontWeight: FontWeight.w400,
-                ),
-              ),
-              SizedBox(height: 20.h),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    AppLocalizations.of(context)!.askquickly,
-                    style: CustomTextStyles.lblPrimaryText(context),
+      body: PollKeyboardDismissWrapper(
+        child: SingleChildScrollView(
+          physics: const BouncingScrollPhysics(),
+          child: Padding(
+            padding: EdgeInsets.symmetric(horizontal: 12.w),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SizedBox(height: 10.h),
+
+                // Inspired Poll Card
+                if (widget.inspiredData != null) ...[
+                  InspiredPollCard(inspiredData: widget.inspiredData!),
+                  SizedBox(height: 15.h),
+                ],
+
+                Text(
+                  AppLocalizations.of(
+                    context,
+                  )!.comparetwochoicesanddiscoverwhatpeopleprefer,
+                  style: AppTextStyles.subText.copyWith(
+                    fontSize: 14,
+                    color: txt.body,
+                    fontWeight: FontWeight.w400,
                   ),
-                  SizedBox(
-                    height: 30,
-                    child: GenerateQuestionButton(
-                      isGenerating: _isGeneratingQuestion,
-                      hasGenerated: _hasGeneratedQuestion,
-                      isEnabled: _remainingGenerations > 0,
-                      onTap:
-                          (_isGeneratingQuestion || _remainingGenerations <= 0)
-                              ? null
-                              : generateQuestion,
+                ),
+                SizedBox(height: 20.h),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      AppLocalizations.of(context)!.askquickly,
+                      style: CustomTextStyles.lblPrimaryText(context),
+                    ),
+                    SizedBox(
+                      height: 30,
+                      child: GenerateQuestionButton(
+                        isGenerating: _isGeneratingQuestion,
+                        hasGenerated: _hasGeneratedQuestion,
+                        isEnabled: _remainingGenerations > 0,
+                        onTap:
+                            (_isGeneratingQuestion ||
+                                _remainingGenerations <= 0)
+                            ? null
+                            : generateQuestion,
+                      ),
+                    ),
+                  ],
+                ),
+                SizedBox(height: 7.h),
+                SecondryTextfield(
+                  controller: questionController,
+                  focusNode: questionFocusNode,
+                  hintText: _hintTexts[_currentHintIndex],
+                  focusedBorderColor: questionController.text.trim().isNotEmpty
+                      ? Theme.of(context).colorScheme.onPrimary
+                      : null,
+                ),
+                if (questionErrorText.isNotEmpty)
+                  Padding(
+                    padding: EdgeInsets.only(top: 5.h),
+                    child: Text(
+                      questionErrorText,
+                      style: CustomTextStyles.msgErrorText(context),
                     ),
                   ),
-                ],
-              ),
-              SizedBox(height: 7.h),
-              SecondryTextfield(
-                controller: questionController,
-                focusNode: questionFocusNode,
-                hintText: _hintTexts[_currentHintIndex],
-                focusedBorderColor:
-                    questionController.text.trim().isNotEmpty
-                        ? Theme.of(context).colorScheme.onPrimary
-                        : null,
-              ),
-              if (questionErrorText.isNotEmpty)
-                Padding(
-                  padding: EdgeInsets.only(top: 5.h),
-                  child: Text(
-                    questionErrorText,
-                    style: CustomTextStyles.msgErrorText(context),
-                  ),
+                SizedBox(height: 20.h),
+                Text(
+                  AppLocalizations.of(context)!.descriptionhashtagsoptional,
+                  style: CustomTextStyles.lblPrimaryText(context),
                 ),
-              SizedBox(height: 20.h),
-              Text(
-                AppLocalizations.of(context)!.descriptionhashtagsoptional,
-                style: CustomTextStyles.lblPrimaryText(context),
-              ),
-              SizedBox(height: 7.h),
-              SecondryTextfield(
-                controller: descriptionController,
-                hintText: AppLocalizations.of(
-                  context,
-                )!.typedescriptionorhashtags,
-                maxLines: 5,
-                minLines: 1,
-                focusedBorderColor: Theme.of(context).colorScheme.onPrimary,
-              ),
-              SizedBox(height: 20.h),
-              _buildCompetitorsSection(context),
-              SizedBox(height: 30.h),
-            ],
+                SizedBox(height: 7.h),
+                SecondryTextfield(
+                  controller: descriptionController,
+                  hintText: AppLocalizations.of(
+                    context,
+                  )!.typedescriptionorhashtags,
+                  maxLines: 5,
+                  minLines: 1,
+                  focusedBorderColor: Theme.of(context).colorScheme.onPrimary,
+                ),
+                SizedBox(height: 20.h),
+                _buildCompetitorsSection(context),
+                SizedBox(height: 20.h),
+                _buildCategorySection(),
+                SizedBox(height: 30.h),
+              ],
+            ),
           ),
         ),
       ),
@@ -890,7 +935,7 @@ class _NewThisOrThatState extends State<NewThisOrThat> {
       children: [
         SecondryTextfield(
           controller: controller,
-          hintText: 'Add label',
+          hintText: AppLocalizations.of(context)!.addlabel,
           focusedBorderColor: Theme.of(context).colorScheme.onPrimary,
           onChanged: (value) {
             if (errorText.isNotEmpty && value.trim().isNotEmpty) {
@@ -912,6 +957,47 @@ class _NewThisOrThatState extends State<NewThisOrThat> {
               style: CustomTextStyles.msgErrorText(context),
             ),
           ),
+      ],
+    );
+  }
+
+  Widget _buildCategoryField() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        CategoryDropdownField(
+          selectedCategory: _selectedCategory,
+          onCategorySelected: (cat) {
+            setState(() {
+              _selectedCategory = cat;
+              if (categoryErrorText.isNotEmpty) {
+                categoryErrorText = '';
+              }
+            });
+          },
+        ),
+        if (categoryErrorText.isNotEmpty)
+          Padding(
+            padding: EdgeInsets.only(top: 5.h),
+            child: Text(
+              categoryErrorText,
+              style: CustomTextStyles.msgErrorText(context),
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildCategorySection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          AppLocalizations.of(context)!.category,
+          style: CustomTextStyles.lblPrimaryText(context),
+        ),
+        SizedBox(height: 10.h),
+        _buildCategoryField(),
       ],
     );
   }

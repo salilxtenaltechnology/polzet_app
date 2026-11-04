@@ -2584,55 +2584,57 @@ class AppLocalizationsPt extends AppLocalizations {
   String get submitreport => 'Enviar denúncia';
 
   @override
-  String get applytheme => 'Apply Theme';
+  String get applytheme => 'Aplicar tema';
 
   @override
-  String get notificationsettings => 'Notification Settings';
+  String get notificationsettings => 'Configurações de notificação';
 
   @override
-  String get mutechat => 'Mute Chat';
+  String get mutechat => 'Silenciar conversa';
 
   @override
-  String get verify => 'Verify';
+  String get verify => 'Verificar';
 
   @override
-  String get verifying => 'Verifying...';
+  String get verifying => 'Verificando...';
 
   @override
-  String get viewresult => 'View Result';
+  String get viewresult => 'Ver resultado';
 
   @override
-  String get savepoll => 'Save poll';
+  String get savepoll => 'Salvar enquete';
 
   @override
-  String get unsavepoll => 'Unsave poll';
+  String get unsavepoll => 'Remover enquete salva';
 
   @override
-  String get deletepoll => 'Delete poll';
+  String get deletepoll => 'Excluir enquete';
 
   @override
-  String get gotoprofile => 'Go to profile';
+  String get gotoprofile => 'Ir para o perfil';
 
   @override
-  String get aipick => 'AI Pick';
+  String get aipick => 'Escolha da IA';
 
   @override
-  String get aigenerationslefttoday => 'AI generations left today';
+  String get aigenerationslefttoday => 'Gerações de IA restantes hoje';
 
   @override
-  String get noaigenerationslefttoday => 'No AI generations left today';
+  String get noaigenerationslefttoday => 'Nenhuma geração de IA restante hoje';
 
   @override
-  String get yourcreditswillresettomorrow => 'Your credits will reset tomorrow';
+  String get yourcreditswillresettomorrow =>
+      'Seus créditos serão redefinidos amanhã';
 
   @override
-  String get archivedgroup => 'Archived Group';
+  String get archivedgroup => 'Grupo arquivado';
 
   @override
-  String get failedtoloadarchivedchats => 'Failed to load archived chats';
+  String get failedtoloadarchivedchats =>
+      'Falha ao carregar conversas arquivadas';
 
   @override
-  String get retry => 'Retry';
+  String get retry => 'Tentar novamente';
 
   @override
   String get unblockthisusertoallowmessagesandinteractions =>
@@ -2877,4 +2879,124 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get withselectedfilters => 'com os filtros selecionados';
+
+  @override
+  String get notopicsavailable => 'Nenhum tópico disponível';
+
+  @override
+  String get filter => 'Filtro';
+
+  @override
+  String get applyfilters => 'Aplicar filtros';
+
+  @override
+  String get next => 'Próximo';
+
+  @override
+  String get create => 'Criar';
+
+  @override
+  String get whatdoyouwanttocreate => 'O que você quer criar?';
+
+  @override
+  String get askaquestiongetopinions => 'Faça uma pergunta e receba opiniões';
+
+  @override
+  String get createpost => 'Criar publicação';
+
+  @override
+  String get sharephotosandthoughts => 'Compartilhe fotos e pensamentos';
+
+  @override
+  String get privateconversationsshareddiscussions =>
+      'Conversas privadas e discussões compartilhadas';
+
+  @override
+  String get sharedphotosandthoughtswithyourscommunity =>
+      'Compartilhe fotos e pensamentos com sua comunidade';
+
+  @override
+  String get caption => 'Legenda';
+
+  @override
+  String get whatsyourmind => 'O que você está pensando?';
+
+  @override
+  String get publishpoll => 'Publicar enquete';
+
+  @override
+  String get previewpost => 'Pré-visualizar publicação';
+
+  @override
+  String get seehowyourpollwillappearinthefeedbeforepublishing =>
+      'Veja como sua enquete aparecerá no feed antes de publicar';
+
+  @override
+  String get pleaseenterlabel => 'Insira uma etiqueta';
+
+  @override
+  String get nocategoryfound => 'Nenhuma categoria encontrada';
+
+  @override
+  String get searchcategory => 'Pesquisar categoria...';
+
+  @override
+  String get selectacategory => 'Selecione uma categoria';
+
+  @override
+  String get preview => 'Pré-visualização';
+
+  @override
+  String get reorder => 'Reordenar';
+
+  @override
+  String get reorderimages => 'Reordenar imagens';
+
+  @override
+  String get dragdroptochangeorder => 'Arraste e solte para alterar a ordem';
+
+  @override
+  String get done => 'Concluído';
+
+  @override
+  String get reject => 'Rejeitar';
+
+  @override
+  String get pleaseenterlabelorselectimage =>
+      'Insira uma etiqueta ou selecione uma imagem';
+
+  @override
+  String get pleaseselectimage => 'Selecione uma imagem';
+
+  @override
+  String get pleaseselectcategory => 'Selecione uma categoria';
+
+  @override
+  String get pleaseenteravalidmobilenumber =>
+      'Insira um número de telemóvel válido';
+
+  @override
+  String get left => 'restantes';
+
+  @override
+  String
+  get mismatchedoptionsoneoptionwithtextonlyandonewithimageonlyisnotallowed =>
+      'Opções incompatíveis: não é permitido ter uma opção apenas com texto e outra apenas com imagem';
+
+  @override
+  String get mismatchoptionsdonotmixtextonlyandimageoptions =>
+      'Opções incompatíveis: não misture opções apenas de texto com opções de imagem';
+
+  @override
+  String get deletepost => 'Excluir publicação';
+
+  @override
+  String get areyousurewanttodeletethispost =>
+      'Tem certeza de que deseja excluir esta publicação?';
+
+  @override
+  String get inspiredby => 'Inspirado por';
+
+  @override
+  String get polllowercase => 'enquete';
 }

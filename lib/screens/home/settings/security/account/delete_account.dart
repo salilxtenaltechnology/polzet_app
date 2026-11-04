@@ -18,6 +18,7 @@ import '../../../../../widgets/appbar/common_appbar.dart';
 import '../../../../../widgets/loader.dart';
 import '../../../../../widgets/show_toast.dart';
 import '../../../../auth/social/social_login_screen.dart';
+import '../../../dashboard/dashboard_import.dart';
 
 class DeleteAccountScreen extends StatefulWidget {
   const DeleteAccountScreen({super.key});
@@ -42,11 +43,10 @@ class _DeleteAccountScreenState extends State<DeleteAccountScreen>
 
   Future<void> _clearAllCaches() async {
     try {
+      await DashboardState.clearAllFeedCaches();
       final prefs = await SharedPreferences.getInstance();
 
       const cacheKeys = [
-        'home_feed_cache',
-        'home_feed_cache_time',
         'cached_notifications',
         'cached_friend_requests',
         'cached_user_profile',

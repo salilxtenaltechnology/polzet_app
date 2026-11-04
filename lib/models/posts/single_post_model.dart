@@ -22,6 +22,9 @@ class SinglePostModel {
   final int likesCount;
   final String followingStatus;
   final int sharesCount;
+  final SinglePostInspiredByPost? inspiredByPost;
+  final int inspiredCount;
+  final int repollCount;
 
   SinglePostModel({
     required this.id,
@@ -43,6 +46,9 @@ class SinglePostModel {
     required this.likesCount,
     required this.followingStatus,
     required this.sharesCount,
+    this.inspiredByPost,
+    this.inspiredCount = 0,
+    this.repollCount = 0,
   });
 
   factory SinglePostModel.fromJson(Map<String, dynamic> json) {
@@ -119,6 +125,72 @@ class SinglePostModel {
       likesCount: json['likes_count'] as int? ?? 0,
       followingStatus: json['following_status'] as String? ?? 'none',
       sharesCount: json['shares_count'] as int? ?? 0,
+      inspiredByPost: json['inspired_by_post'] is Map
+          ? SinglePostInspiredByPost.fromJson(
+              Map<String, dynamic>.from(json['inspired_by_post'] as Map),
+            )
+          : null,
+      inspiredCount: _toInt(json['inspired_count']),
+      repollCount: _toInt(json['repoll_count']),
+    );
+  }
+
+  static int _toInt(dynamic value) {
+    if (value == null) return 0;
+    if (value is int) return value;
+    if (value is double) return value.toInt();
+    if (value is String) return int.tryParse(value) ?? (double.tryParse(value)?.toInt() ?? 0);
+    return int.tryParse(value.toString()) ?? 0;
+  }
+
+  SinglePostModel copyWith({
+    String? id,
+    String? firstName,
+    String? lastName,
+    SinglePostUser? user,
+    String? profileImage,
+    String? description,
+    String? createdAt,
+    List<SinglePostPoll>? polls,
+    List<SinglePostImage>? images,
+    List<SinglePostLike>? viewLikes,
+    bool? isLiked,
+    bool? isPolledByCurrentUser,
+    bool? isSaved,
+    bool? isBlocked,
+    String? locationName,
+    int? commentsCount,
+    int? likesCount,
+    String? followingStatus,
+    int? sharesCount,
+    SinglePostInspiredByPost? inspiredByPost,
+    int? inspiredCount,
+    int? repollCount,
+  }) {
+    return SinglePostModel(
+      id: id ?? this.id,
+      firstName: firstName ?? this.firstName,
+      lastName: lastName ?? this.lastName,
+      user: user ?? this.user,
+      profileImage: profileImage ?? this.profileImage,
+      description: description ?? this.description,
+      createdAt: createdAt ?? this.createdAt,
+      polls: polls ?? this.polls,
+      images: images ?? this.images,
+      viewLikes: viewLikes ?? this.viewLikes,
+      isLiked: isLiked ?? this.isLiked,
+      isPolledByCurrentUser:
+          isPolledByCurrentUser ?? this.isPolledByCurrentUser,
+      isSaved: isSaved ?? this.isSaved,
+      isBlocked: isBlocked ?? this.isBlocked,
+      locationName: locationName ?? this.locationName,
+      commentsCount: commentsCount ?? this.commentsCount,
+      likesCount: likesCount ?? this.likesCount,
+      followingStatus: followingStatus ?? this.followingStatus,
+      sharesCount: sharesCount ?? this.sharesCount,
+      inspiredByPost: inspiredByPost ?? this.inspiredByPost,
+      inspiredCount: inspiredCount ?? this.inspiredCount,
+      repollCount: repollCount ?? this.repollCount,
     );
   }
 
@@ -142,6 +214,9 @@ class SinglePostModel {
     'likes_count': likesCount,
     'following_status': followingStatus,
     'shares_count': sharesCount,
+    'inspired_by_post': inspiredByPost?.toJson(),
+    'inspired_count': inspiredCount,
+    'repoll_count': repollCount,
   };
 
   bool get isImagePoll =>
@@ -151,6 +226,100 @@ class SinglePostModel {
   bool get isTextPoll =>
       polls.isNotEmpty &&
       polls.every((p) => p.options.every((o) => o.text != null && o.image == null));
+}
+
+class SinglePostInspiredByPost {
+  final String id;
+  final String? publicId;
+  final String username;
+  final String? avatar;
+  final String description;
+  final int inspiredCount;
+  final bool hasPoll;
+  final String? primaryImage;
+
+  SinglePostInspiredByPost({
+    required this.id,
+    this.publicId,
+    required this.username,
+    this.avatar,
+    required this.description,
+    this.inspiredCount = 0,
+    this.hasPoll = false,
+    this.primaryImage,
+  });
+
+  factory SinglePostInspiredByPost.fromJson(Map<String, dynamic> json) {
+    String extractedUsername = '';
+    String? extractedAvatar;
+
+    if (json['author'] is Map) {
+      final author = json['author'] as Map;
+      extractedUsername = author['username']?.toString() ?? '';
+      extractedAvatar =
+          author['avatar']?.toString() ?? author['profile_image']?.toString();
+    } else if (json['user'] is Map) {
+      final user = json['user'] as Map;
+      extractedUsername = user['username']?.toString() ?? '';
+      extractedAvatar =
+          user['avatar']?.toString() ?? user['profile_image']?.toString();
+    }
+
+    if (extractedUsername.isEmpty) {
+      extractedUsername = json['username']?.toString() ?? '';
+    }
+
+    if (extractedAvatar == null || extractedAvatar.isEmpty) {
+      extractedAvatar =
+          json['avatar']?.toString() ?? json['profile_image']?.toString();
+    }
+
+    if (extractedAvatar != null && extractedAvatar.isNotEmpty) {
+      if (!extractedAvatar.startsWith('http') &&
+          !extractedAvatar.startsWith('data:image')) {
+        if (extractedAvatar.startsWith('/')) {
+          extractedAvatar = '${ApiConfig.baseUrlImage}$extractedAvatar';
+        } else {
+          extractedAvatar = '${ApiConfig.baseUrlImage}/$extractedAvatar';
+        }
+      }
+    }
+
+    String? imgUrl = json['primary_image']?.toString();
+    if (imgUrl != null && imgUrl.isNotEmpty) {
+      if (!imgUrl.startsWith('http') && !imgUrl.startsWith('data:image')) {
+        if (imgUrl.startsWith('/')) {
+          imgUrl = '${ApiConfig.baseUrlImage}$imgUrl';
+        } else {
+          imgUrl = '${ApiConfig.baseUrlImage}/$imgUrl';
+        }
+      }
+    }
+
+    return SinglePostInspiredByPost(
+      id: json['id']?.toString() ?? '',
+      publicId: json['public_id']?.toString(),
+      username: extractedUsername,
+      avatar: extractedAvatar,
+      description: json['description']?.toString() ?? '',
+      inspiredCount: json['inspired_count'] is int
+          ? json['inspired_count'] as int
+          : int.tryParse(json['inspired_count']?.toString() ?? '0') ?? 0,
+      hasPoll: json['has_poll'] == true,
+      primaryImage: imgUrl,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'public_id': publicId,
+    'username': username,
+    'avatar': avatar,
+    'description': description,
+    'inspired_count': inspiredCount,
+    'has_poll': hasPoll,
+    'primary_image': primaryImage,
+  };
 }
 
 

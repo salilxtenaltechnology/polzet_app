@@ -641,7 +641,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get polldesign => 'アンケートデザイン';
 
   @override
-  String get things => 'Things';
+  String get things => 'もの';
 
   @override
   String get photos => '写真';
@@ -2545,55 +2545,55 @@ class AppLocalizationsJa extends AppLocalizations {
   String get submitreport => '報告を送信';
 
   @override
-  String get applytheme => 'Apply Theme';
+  String get applytheme => 'テーマを適用';
 
   @override
-  String get notificationsettings => 'Notification Settings';
+  String get notificationsettings => '通知設定';
 
   @override
-  String get mutechat => 'Mute Chat';
+  String get mutechat => 'チャットをミュート';
 
   @override
-  String get verify => 'Verify';
+  String get verify => '確認';
 
   @override
-  String get verifying => 'Verifying...';
+  String get verifying => '確認中...';
 
   @override
-  String get viewresult => 'View Result';
+  String get viewresult => '結果を見る';
 
   @override
-  String get savepoll => 'Save poll';
+  String get savepoll => '投票を保存';
 
   @override
-  String get unsavepoll => 'Unsave poll';
+  String get unsavepoll => '投票の保存を解除';
 
   @override
-  String get deletepoll => 'Delete poll';
+  String get deletepoll => '投票を削除';
 
   @override
-  String get gotoprofile => 'Go to profile';
+  String get gotoprofile => 'プロフィールへ移動';
 
   @override
-  String get aipick => 'AI Pick';
+  String get aipick => 'AIのおすすめ';
 
   @override
-  String get aigenerationslefttoday => 'AI generations left today';
+  String get aigenerationslefttoday => '本日の残りAI生成回数';
 
   @override
-  String get noaigenerationslefttoday => 'No AI generations left today';
+  String get noaigenerationslefttoday => '本日のAI生成回数は残っていません';
 
   @override
-  String get yourcreditswillresettomorrow => 'Your credits will reset tomorrow';
+  String get yourcreditswillresettomorrow => 'クレジットは明日リセットされます';
 
   @override
-  String get archivedgroup => 'Archived Group';
+  String get archivedgroup => 'アーカイブされたグループ';
 
   @override
-  String get failedtoloadarchivedchats => 'Failed to load archived chats';
+  String get failedtoloadarchivedchats => 'アーカイブされたチャットの読み込みに失敗しました';
 
   @override
-  String get retry => 'Retry';
+  String get retry => '再試行';
 
   @override
   String get unblockthisusertoallowmessagesandinteractions =>
@@ -2831,4 +2831,119 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get withselectedfilters => '選択したフィルターで';
+
+  @override
+  String get notopicsavailable => '利用可能なトピックはありません';
+
+  @override
+  String get filter => 'フィルター';
+
+  @override
+  String get applyfilters => 'フィルターを適用';
+
+  @override
+  String get next => '次へ';
+
+  @override
+  String get create => '作成';
+
+  @override
+  String get whatdoyouwanttocreate => '何を作成しますか？';
+
+  @override
+  String get askaquestiongetopinions => '質問して意見を集めましょう';
+
+  @override
+  String get createpost => '投稿を作成';
+
+  @override
+  String get sharephotosandthoughts => '写真や考えを共有';
+
+  @override
+  String get privateconversationsshareddiscussions => 'プライベートな会話と共有ディスカッション';
+
+  @override
+  String get sharedphotosandthoughtswithyourscommunity => 'コミュニティで写真や考えを共有';
+
+  @override
+  String get caption => 'キャプション';
+
+  @override
+  String get whatsyourmind => '今、何を考えていますか？';
+
+  @override
+  String get publishpoll => '投票を公開';
+
+  @override
+  String get previewpost => '投稿をプレビュー';
+
+  @override
+  String get seehowyourpollwillappearinthefeedbeforepublishing =>
+      '公開前に、フィードで投票がどのように表示されるか確認できます';
+
+  @override
+  String get pleaseenterlabel => 'ラベルを入力してください';
+
+  @override
+  String get nocategoryfound => 'カテゴリが見つかりません';
+
+  @override
+  String get searchcategory => 'カテゴリを検索...';
+
+  @override
+  String get selectacategory => 'カテゴリを選択';
+
+  @override
+  String get preview => 'プレビュー';
+
+  @override
+  String get reorder => '並べ替え';
+
+  @override
+  String get reorderimages => '画像を並べ替え';
+
+  @override
+  String get dragdroptochangeorder => 'ドラッグ＆ドロップして順序を変更';
+
+  @override
+  String get done => '完了';
+
+  @override
+  String get reject => '拒否';
+
+  @override
+  String get pleaseenterlabelorselectimage => 'ラベルを入力するか画像を選択してください';
+
+  @override
+  String get pleaseselectimage => '画像を選択してください';
+
+  @override
+  String get pleaseselectcategory => 'カテゴリを選択してください';
+
+  @override
+  String get pleaseenteravalidmobilenumber => '有効な携帯電話番号を入力してください';
+
+  @override
+  String get left => '残り';
+
+  @override
+  String
+  get mismatchedoptionsoneoptionwithtextonlyandonewithimageonlyisnotallowed =>
+      '選択肢の不一致：テキストのみの選択肢と画像のみの選択肢を混在させることはできません';
+
+  @override
+  String get mismatchoptionsdonotmixtextonlyandimageoptions =>
+      '選択肢の不一致：テキストのみの選択肢と画像付きの選択肢を混在させないでください';
+
+  @override
+  String get deletepost => '投稿を削除';
+
+  @override
+  String get areyousurewanttodeletethispost => 'この投稿を削除してもよろしいですか？';
+
+  @override
+  String get inspiredby => '〜にインスパイアされた';
+
+  @override
+  String get polllowercase => '投票';
 }

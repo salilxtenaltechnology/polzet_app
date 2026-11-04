@@ -11,6 +11,7 @@ import '../../mixin/utility_mixins.dart';
 import '../auth/onboarding/onboarding_screen.dart';
 import '../auth/social/social_login_screen.dart';
 import '../home/home_imports.dart';
+import '../home/dashboard/dashboard_import.dart';
 import '../home/settings/security/biometric/biometric_service.dart';
 import '../home/settings/security/security_gate_screen.dart';
 import '../home/settings/security/pin/pin_status.dart';
@@ -98,7 +99,12 @@ class SplashScreenState extends State<SplashScreen>
             context,
             listen: false,
           );
-          await userProvider.loadUserData().timeout(const Duration(seconds: 3));
+          await Future.wait([
+            userProvider.loadUserData().timeout(const Duration(seconds: 3)),
+            DashboardState.prewarmFeedCache(),
+          ]);
+        } else {
+          await DashboardState.prewarmFeedCache();
         }
       } catch (e) {
         debugPrint('Error or timeout loading user data during splash: $e');

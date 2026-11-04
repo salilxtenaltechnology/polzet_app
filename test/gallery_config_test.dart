@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 import 'package:polzet_app/api/services/image/gallery_config.dart';
@@ -125,24 +126,27 @@ void main() {
       );
 
       await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: Builder(
-              builder: (ctx) => ElevatedButton(
-                onPressed: () {
-                  Navigator.push(
-                    ctx,
-                    MaterialPageRoute(
-                      builder: (newCtx) => ChangeNotifierProvider<DefaultAssetPickerProvider>.value(
-                        value: provider,
-                        child: Scaffold(
-                          appBar: delegate.appBar(newCtx),
+        ScreenUtilInit(
+          designSize: const Size(360, 800),
+          child: MaterialApp(
+            home: Scaffold(
+              body: Builder(
+                builder: (ctx) => ElevatedButton(
+                  onPressed: () {
+                    Navigator.push(
+                      ctx,
+                      MaterialPageRoute(
+                        builder: (newCtx) => ChangeNotifierProvider<DefaultAssetPickerProvider>.value(
+                          value: provider,
+                          child: Scaffold(
+                            appBar: delegate.appBar(newCtx),
+                          ),
                         ),
                       ),
-                    ),
-                  );
-                },
-                child: const Text('Open'),
+                    );
+                  },
+                  child: const Text('Open'),
+                ),
               ),
             ),
           ),
@@ -152,8 +156,8 @@ void main() {
       await tester.tap(find.text('Open'));
       await tester.pumpAndSettle();
 
-      expect(find.byIcon(Icons.arrow_back), findsOneWidget);
-      expect(find.text('Recents'), findsOneWidget);
+      expect(find.byIcon(Icons.arrow_back_ios), findsOneWidget);
+      expect(find.text('Recent'), findsOneWidget);
       expect(find.byIcon(Icons.keyboard_arrow_down), findsOneWidget);
     });
 
@@ -179,8 +183,11 @@ void main() {
       );
 
       await tester.pumpWidget(
-        MaterialApp(
-          home: picker,
+        ScreenUtilInit(
+          designSize: const Size(360, 800),
+          child: MaterialApp(
+            home: picker,
+          ),
         ),
       );
 
@@ -189,6 +196,48 @@ void main() {
 
       // Verify widget mounted successfully and initState ran with no State subtype exception
       expect(find.byWidget(picker), findsOneWidget);
+    });
+
+    testWidgets('PolzetAssetPickerBuilderDelegate isAppleOS returns false on both iOS and Android to prevent duplicate top gaps', (WidgetTester tester) async {
+      final provider = DefaultAssetPickerProvider(
+        maxAssets: 4,
+        pageSize: 90,
+        requestType: RequestType.image,
+      );
+
+      final delegate = PolzetAssetPickerBuilderDelegate(
+        provider: provider,
+        initialPermission: PermissionState.authorized,
+        gridCount: 3,
+        pickerTheme: AssetPicker.themeData(AppColors.primaryColor, light: true),
+        textDelegate: const PolzetAssetPickerTextDelegate(),
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: ThemeData(platform: TargetPlatform.iOS),
+          home: Builder(
+            builder: (context) {
+              expect(delegate.isAppleOS(context), isFalse);
+              return const SizedBox.shrink();
+            },
+          ),
+        ),
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: ThemeData(platform: TargetPlatform.android),
+          home: Builder(
+            builder: (context) {
+              expect(delegate.isAppleOS(context), isFalse);
+              return const SizedBox.shrink();
+            },
+          ),
+        ),
+      );
+
+      await tester.pump(const Duration(milliseconds: 300));
     });
   });
 }
