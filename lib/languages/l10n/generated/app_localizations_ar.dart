@@ -2966,4 +2966,22 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get polllowercase => 'استطلاع';
+
+  @override
+  String get pollcontent => 'محتوى الاستطلاع';
+
+  @override
+  String get polldetails => 'تفاصيل الاستطلاع';
+
+  @override
+  String get howshouldpeoplevote => 'كيف يجب أن يصوّت الأشخاص؟';
+
+  @override
+  String get chooseone => 'اختر واحدًا';
+
+  @override
+  String get rankoptions => 'ترتيب الخيارات';
+
+  @override
+  String get nextdetails => 'التفاصيل التالية';
 }

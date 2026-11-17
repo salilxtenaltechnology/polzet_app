@@ -157,17 +157,25 @@ class _UserImageRankState extends State<UserImageRanking> {
                 padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
                 proxyDecorator: _proxyDecorator,
                 onReorder: _onReorder,
-                buildDefaultDragHandles: false,
                 header: _buildPostHeader(),
                 itemCount: _orderedImages.length,
                 itemBuilder: (context, index) {
                   final option = _orderedImages[index];
-                  return _UserRankImageCard(
-                    key: ValueKey(option.id),
+                  final itemKey = ValueKey(option.hashCode);
+
+                  final card = _UserRankImageCard(
                     option: option,
                     rank: _hasRanked ? index + 1 : null,
                     allImages: _orderedImages,
                     index: index,
+                  );
+
+                  return KeyedSubtree(
+                    key: itemKey,
+                    child: Padding(
+                      padding: const EdgeInsets.only(bottom: 10),
+                      child: card,
+                    ),
                   );
                 },
               ),
@@ -188,7 +196,7 @@ class _UserImageRankState extends State<UserImageRanking> {
     return AnimatedBuilder(
       animation: animation,
       builder: (_, __) => Material(
-        elevation: 1,
+        color: Colors.transparent,
         borderRadius: BorderRadius.circular(AppRadius.card),
         child: child,
       ),
@@ -362,7 +370,6 @@ class _UserRankImageCard extends StatelessWidget {
   final int index;
 
   const _UserRankImageCard({
-    super.key,
     required this.option,
     required this.rank,
     required this.allImages,
@@ -375,63 +382,63 @@ class _UserRankImageCard extends StatelessWidget {
         ? option.image!.resolvedUrl(ApiConfig.baseUrlImage)
         : '';
 
-    return ReorderableDragStartListener(
-      index: index,
-      child: Stack(
-        children: [
-          // ── Image ──────────────────────────────────────────────────────
-          GestureDetector(
-            onTap: () {
-              final urls = allImages
-                  .where((o) => o.image != null)
-                  .map((o) => o.image!.resolvedUrl(ApiConfig.baseUrlImage))
-                  .toList();
+    return Stack(
+      children: [
+        // ── Image ──────────────────────────────────────────────────────
+        GestureDetector(
+          onTap: () {
+            final urls = allImages
+                .where((o) => o.image != null)
+                .map((o) => o.image!.resolvedUrl(ApiConfig.baseUrlImage))
+                .toList();
 
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  fullscreenDialog: true,
-                  builder: (_) =>
-                      ImagePreviewScreen(imageUrls: urls, initialIndex: index),
-                ),
-              );
-            },
-            child: Container(
-              margin: const EdgeInsets.only(bottom: 10),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(AppRadius.card),
-                border: Border.all(
-                  color: Theme.of(context).colorScheme.outlineVariant,
-                  width: 1,
-                ),
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                fullscreenDialog: true,
+                builder: (_) =>
+                    ImagePreviewScreen(imageUrls: urls, initialIndex: index),
               ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(AppRadius.card),
-                child: imageUrl.isNotEmpty
-                    ? CachedNetworkImage(
-                        imageUrl: imageUrl,
-                        width: double.infinity,
-                        height: 200,
-                        fit: BoxFit.cover,
-                        placeholder: (context, url) => const SizedBox(
-                          height: 200,
-                          child: Center(
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                            ),
-                          ),
-                        ),
-                        errorWidget: (_, __, ___) => _placeholder(),
-                      )
-                    : _placeholder(),
+            );
+          },
+          child: Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(AppRadius.card),
+              border: Border.all(
+                color: Theme.of(context).colorScheme.outlineVariant,
+                width: 1,
               ),
             ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(AppRadius.card),
+              child: imageUrl.isNotEmpty
+                  ? CachedNetworkImage(
+                      imageUrl: imageUrl,
+                      width: double.infinity,
+                      height: 200,
+                      fit: BoxFit.cover,
+                      placeholder: (context, url) => const SizedBox(
+                        height: 200,
+                        child: Center(
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                          ),
+                        ),
+                      ),
+                      errorWidget: (_, __, ___) => _placeholder(),
+                    )
+                  : _placeholder(),
+            ),
           ),
+        ),
 
-          // ── Rank badge ─────────────────────────────────────────────────
-          if (rank != null)
-            Positioned(
-              top: 10,
-              right: 10,
+        // ── Rank badge ─────────────────────────────────────────────────
+        if (rank != null)
+          Positioned(
+            top: 10,
+            right: 10,
+            child: AnimatedScale(
+              scale: 1.0,
+              duration: const Duration(milliseconds: 200),
               child: Container(
                 width: 28,
                 height: 28,
@@ -439,19 +446,20 @@ class _UserRankImageCard extends StatelessWidget {
                   color: Color(0xFFB82B53),
                   shape: BoxShape.circle,
                 ),
-                alignment: Alignment.center,
-                child: Text(
-                  rank.toString(),
-                  style: AppTextStyles.subText.copyWith(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w600,
-                    fontSize: 13,
+                child: Center(
+                  child: Text(
+                    rank.toString(),
+                    style: AppTextStyles.subText.copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 13,
+                    ),
                   ),
                 ),
               ),
             ),
-        ],
-      ),
+          ),
+      ],
     );
   }
 

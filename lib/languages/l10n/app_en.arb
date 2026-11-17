@@ -1853,5 +1853,17 @@
     "inspiredby" : "Inspired by",
     "@inspiredby" : {},
     "polllowercase" : "poll",
-    "@polllowercase" : {}
+    "@polllowercase" : {},
+    "pollcontent" : "Poll Content",
+    "@pollcontent" : {},
+    "polldetails" : "Poll Details",
+    "@polldetails" : {},
+    "howshouldpeoplevote" : "How should people vote?",
+    "@howshouldpeoplevote" : {},
+    "chooseone" : "Choose One",
+    "@chooseone" : {},
+    "rankoptions" : "Rank Options",
+    "@rankoptions" : {},
+    "nextdetails" : "Next details",
+    "@nextdetails" : {}
 }

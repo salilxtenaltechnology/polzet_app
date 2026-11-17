@@ -2825,4 +2825,22 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get polllowercase => '投票';
+
+  @override
+  String get pollcontent => '投票内容';
+
+  @override
+  String get polldetails => '投票详情';
+
+  @override
+  String get howshouldpeoplevote => '人们应该如何投票？';
+
+  @override
+  String get chooseone => '选择一个';
+
+  @override
+  String get rankoptions => '选项排序';
+
+  @override
+  String get nextdetails => '下一步详情';
 }

@@ -925,5 +925,11 @@
     "deletepost" : "投稿を削除",
     "areyousurewanttodeletethispost" : "この投稿を削除してもよろしいですか？",
     "inspiredby" : "〜にインスパイアされた",
-    "polllowercase" : "投票"
+    "polllowercase" : "投票",
+    "pollcontent" : "投票内容",
+    "polldetails" : "投票の詳細",
+    "howshouldpeoplevote" : "どのように投票してもらいますか？",
+    "chooseone" : "1つ選択",
+    "rankoptions" : "選択肢を順位付け",
+    "nextdetails" : "次の詳細"
 }

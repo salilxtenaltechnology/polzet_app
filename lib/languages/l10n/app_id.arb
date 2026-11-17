@@ -924,5 +924,11 @@
     "deletepost" : "Hapus postingan",
     "areyousurewanttodeletethispost" : "Apakah Anda yakin ingin menghapus postingan ini?",
     "inspiredby" : "Terinspirasi oleh",
-    "polllowercase" : "jajak pendapat"
+    "polllowercase" : "jajak pendapat",
+    "pollcontent" : "Konten Jajak Pendapat",
+    "polldetails" : "Detail Jajak Pendapat",
+    "howshouldpeoplevote" : "Bagaimana orang harus memilih?",
+    "chooseone" : "Pilih Satu",
+    "rankoptions" : "Urutkan Opsi",
+    "nextdetails" : "Detail Berikutnya"
 }

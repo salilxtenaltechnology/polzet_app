@@ -3004,4 +3004,22 @@ class AppLocalizationsVi extends AppLocalizations {
 
   @override
   String get polllowercase => 'bình chọn';
+
+  @override
+  String get pollcontent => 'Nội dung bình chọn';
+
+  @override
+  String get polldetails => 'Chi tiết bình chọn';
+
+  @override
+  String get howshouldpeoplevote => 'Mọi người nên bình chọn như thế nào?';
+
+  @override
+  String get chooseone => 'Chọn một';
+
+  @override
+  String get rankoptions => 'Xếp hạng các tùy chọn';
+
+  @override
+  String get nextdetails => 'Chi tiết tiếp theo';
 }

@@ -925,5 +925,11 @@
     "deletepost" : "게시물 삭제",
     "areyousurewanttodeletethispost" : "이 게시물을 삭제하시겠습니까?",
     "inspiredby" : "영감을 받은 작품",
-    "polllowercase" : "투표"
+    "polllowercase" : "투표",
+    "pollcontent" : "투표 콘텐츠",
+    "polldetails" : "투표 세부정보",
+    "howshouldpeoplevote" : "사람들은 어떻게 투표해야 하나요?",
+    "chooseone" : "하나 선택",
+    "rankoptions" : "옵션 순위 지정",
+    "nextdetails" : "다음 세부정보"
 }

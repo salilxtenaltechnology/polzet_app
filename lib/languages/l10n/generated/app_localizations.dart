@@ -5577,6 +5577,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'poll'**
   String get polllowercase;
+
+  /// No description provided for @pollcontent.
+  ///
+  /// In en, this message translates to:
+  /// **'Poll Content'**
+  String get pollcontent;
+
+  /// No description provided for @polldetails.
+  ///
+  /// In en, this message translates to:
+  /// **'Poll Details'**
+  String get polldetails;
+
+  /// No description provided for @howshouldpeoplevote.
+  ///
+  /// In en, this message translates to:
+  /// **'How should people vote?'**
+  String get howshouldpeoplevote;
+
+  /// No description provided for @chooseone.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose One'**
+  String get chooseone;
+
+  /// No description provided for @rankoptions.
+  ///
+  /// In en, this message translates to:
+  /// **'Rank Options'**
+  String get rankoptions;
+
+  /// No description provided for @nextdetails.
+  ///
+  /// In en, this message translates to:
+  /// **'Next details'**
+  String get nextdetails;
 }
 
 class _AppLocalizationsDelegate

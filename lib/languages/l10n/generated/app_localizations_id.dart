@@ -3003,4 +3003,22 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String get polllowercase => 'jajak pendapat';
+
+  @override
+  String get pollcontent => 'Konten Jajak Pendapat';
+
+  @override
+  String get polldetails => 'Detail Jajak Pendapat';
+
+  @override
+  String get howshouldpeoplevote => 'Bagaimana orang harus memilih?';
+
+  @override
+  String get chooseone => 'Pilih Satu';
+
+  @override
+  String get rankoptions => 'Urutkan Opsi';
+
+  @override
+  String get nextdetails => 'Detail Berikutnya';
 }

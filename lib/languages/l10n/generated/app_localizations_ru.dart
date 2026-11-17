@@ -3002,4 +3002,22 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get polllowercase => 'опрос';
+
+  @override
+  String get pollcontent => 'Содержание опроса';
+
+  @override
+  String get polldetails => 'Детали опроса';
+
+  @override
+  String get howshouldpeoplevote => 'Как должны голосовать люди?';
+
+  @override
+  String get chooseone => 'Выбрать один';
+
+  @override
+  String get rankoptions => 'Ранжировать варианты';
+
+  @override
+  String get nextdetails => 'Следующие детали';
 }

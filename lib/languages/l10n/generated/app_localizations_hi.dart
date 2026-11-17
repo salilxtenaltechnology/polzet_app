@@ -2988,4 +2988,22 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get polllowercase => 'पोल';
+
+  @override
+  String get pollcontent => 'पोल सामग्री';
+
+  @override
+  String get polldetails => 'पोल विवरण';
+
+  @override
+  String get howshouldpeoplevote => 'लोगों को कैसे वोट देना चाहिए?';
+
+  @override
+  String get chooseone => 'एक चुनें';
+
+  @override
+  String get rankoptions => 'विकल्पों को क्रम दें';
+
+  @override
+  String get nextdetails => 'अगले विवरण';
 }

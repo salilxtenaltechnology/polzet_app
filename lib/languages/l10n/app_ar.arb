@@ -927,5 +927,11 @@
     "deletepost" : "حذف المنشور",
     "areyousurewanttodeletethispost" : "هل أنت متأكد أنك تريد حذف هذا المنشور؟",
     "inspiredby" : "مستوحى من",
-    "polllowercase" : "استطلاع"
+    "polllowercase" : "استطلاع",
+    "pollcontent" : "محتوى الاستطلاع",
+    "polldetails" : "تفاصيل الاستطلاع",
+    "howshouldpeoplevote" : "كيف يجب أن يصوّت الأشخاص؟",
+    "chooseone" : "اختر واحدًا",
+    "rankoptions" : "ترتيب الخيارات",
+    "nextdetails" : "التفاصيل التالية"
 }

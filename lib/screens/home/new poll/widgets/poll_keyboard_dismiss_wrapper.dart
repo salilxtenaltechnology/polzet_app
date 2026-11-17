@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 
 /// A reusable wrapper for poll creation screens that ensures:
 /// 1. When the soft keyboard transitions from visible to hidden (e.g., via Android system Back button),
@@ -35,10 +36,6 @@ class _PollKeyboardDismissWrapperState
   }
 
   bool get _isKeyboardVisible {
-    final view = View.maybeOf(context);
-    if (view != null) {
-      return view.viewInsets.bottom > 0;
-    }
     final views = WidgetsBinding.instance.platformDispatcher.views;
     if (views.isNotEmpty) {
       return views.first.viewInsets.bottom > 0;
@@ -73,17 +70,25 @@ class _PollKeyboardDismissWrapperState
     return Listener(
       behavior: HitTestBehavior.translucent,
       onPointerDown: (event) {
-        // When tapping outside of the currently focused widget, remove focus.
-        // We use primaryFocus's render box to check if pointer is outside its bounds.
+        // When tapping outside of any TextField, remove focus.
+        // If the tap landed on any TextField/EditableText, do not unfocus
+        // so switching between TextFields works seamlessly without hiding the keyboard.
         final primaryFocus = FocusManager.instance.primaryFocus;
         if (primaryFocus != null && primaryFocus.hasFocus) {
-          final renderObject = primaryFocus.context?.findRenderObject();
-          if (renderObject is RenderBox && renderObject.hasSize) {
-            final localPos = renderObject.globalToLocal(event.position);
-            if (!renderObject.paintBounds.contains(localPos)) {
-              primaryFocus.unfocus();
-            }
-          } else {
+          final HitTestResult hitTestResult = HitTestResult();
+          WidgetsBinding.instance.hitTestInView(
+            hitTestResult,
+            event.position,
+            event.viewId,
+          );
+
+          final bool hitTextField = hitTestResult.path.any((entry) {
+            final target = entry.target;
+            return target is RenderEditable ||
+                (target is RenderTapRegion && target.groupId == EditableText);
+          });
+
+          if (!hitTextField) {
             primaryFocus.unfocus();
           }
         }
@@ -92,3 +97,4 @@ class _PollKeyboardDismissWrapperState
     );
   }
 }
+

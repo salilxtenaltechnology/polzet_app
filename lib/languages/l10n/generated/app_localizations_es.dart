@@ -3010,4 +3010,22 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get polllowercase => 'encuesta';
+
+  @override
+  String get pollcontent => 'Contenido de la encuesta';
+
+  @override
+  String get polldetails => 'Detalles de la encuesta';
+
+  @override
+  String get howshouldpeoplevote => '¿Cómo deberían votar las personas?';
+
+  @override
+  String get chooseone => 'Elegir una';
+
+  @override
+  String get rankoptions => 'Ordenar opciones';
+
+  @override
+  String get nextdetails => 'Siguientes detalles';
 }

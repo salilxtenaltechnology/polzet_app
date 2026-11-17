@@ -1352,6 +1352,7 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen>
   }
 
   Widget _buildPopularThingCard(SearchPost post) {
+    final txt = AppTextColors.of(context);
     final poll = post.polls.isNotEmpty ? post.polls.first : null;
     if (poll == null) return const SizedBox.shrink();
 
@@ -1414,11 +1415,14 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen>
           children: [
             Text(
               post.description.isNotEmpty ? post.description : poll.question,
-              style: AppTextStyles.cardTitle.copyWith(
-                fontSize: 15.5,
-                fontWeight: FontWeight.bold,
-                color: Theme.of(context).colorScheme.onBackground,
-              ),
+               maxLines: 2,
+             style: AppTextStyles.bodyText.copyWith(
+              color: txt.heading,
+              fontSize: 14.5,
+              fontWeight: FontWeight.w500,
+             
+  overflow: TextOverflow.ellipsis,
+            ),
             ),
             SizedBox(height: 14.h),
             Row(

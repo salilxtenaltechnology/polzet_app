@@ -926,5 +926,11 @@
      "deletepost" : "删除帖子",
      "areyousurewanttodeletethispost" : "确定要删除此帖子吗？",
      "inspiredby" : "灵感来自",
-     "polllowercase" : "投票"
+     "polllowercase" : "投票",
+     "pollcontent" : "投票内容",
+     "polldetails" : "投票详情",
+     "howshouldpeoplevote" : "人们应该如何投票？",
+     "chooseone" : "选择一个",
+     "rankoptions" : "选项排序",
+     "nextdetails" : "下一步详情"
 }

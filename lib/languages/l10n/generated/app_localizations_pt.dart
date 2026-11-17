@@ -2999,4 +2999,22 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get polllowercase => 'enquete';
+
+  @override
+  String get pollcontent => 'Conteúdo da enquete';
+
+  @override
+  String get polldetails => 'Detalhes da enquete';
+
+  @override
+  String get howshouldpeoplevote => 'Como as pessoas devem votar?';
+
+  @override
+  String get chooseone => 'Escolher uma';
+
+  @override
+  String get rankoptions => 'Classificar opções';
+
+  @override
+  String get nextdetails => 'Próximos detalhes';
 }

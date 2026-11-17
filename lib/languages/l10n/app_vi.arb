@@ -926,5 +926,11 @@
   "deletepost" : "Xóa bài đăng",
   "areyousurewanttodeletethispost" : "Bạn có chắc chắn muốn xóa bài đăng này không?",
   "inspiredby" : "Lấy cảm hứng từ",
-  "polllowercase" : "bình chọn"
+  "polllowercase" : "bình chọn",
+  "pollcontent" : "Nội dung bình chọn",
+  "polldetails" : "Chi tiết bình chọn",
+  "howshouldpeoplevote" : "Mọi người nên bình chọn như thế nào?",
+  "chooseone" : "Chọn một",
+  "rankoptions" : "Xếp hạng các tùy chọn",
+  "nextdetails" : "Chi tiết tiếp theo"
 }

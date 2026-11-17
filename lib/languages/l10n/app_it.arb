@@ -924,5 +924,11 @@
     "deletepost" : "Elimina post",
     "areyousurewanttodeletethispost" : "Sei sicuro di voler eliminare questo post?",
     "inspiredby" : "Ispirato da",
-    "polllowercase" : "sondaggio"
+    "polllowercase" : "sondaggio",
+    "pollcontent" : "Contenuto del sondaggio",
+    "polldetails" : "Dettagli del sondaggio",
+    "howshouldpeoplevote" : "Come dovrebbero votare le persone?",
+    "chooseone" : "Scegline uno",
+    "rankoptions" : "Classifica le opzioni",
+    "nextdetails" : "Dettagli successivi"
 }

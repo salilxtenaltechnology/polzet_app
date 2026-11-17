@@ -75,7 +75,7 @@ class _FriendRequestButtonsState extends State<FriendRequestButtons> {
             ),
             child: Center(
               child: Text(
-                'Reject',
+              AppLocalizations.of(context)!.reject,
                 style: TextStyle(
                   color: Theme.of(context).colorScheme.onBackground,
                   fontSize: 11.sp,

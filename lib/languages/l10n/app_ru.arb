@@ -926,5 +926,11 @@
     "deletepost" : "Удалить публикацию",
     "areyousurewanttodeletethispost" : "Вы уверены, что хотите удалить эту публикацию?",
     "inspiredby" : "Вдохновлено",
-    "polllowercase" : "опрос"
+    "polllowercase" : "опрос",
+    "pollcontent" : "Содержание опроса",
+    "polldetails" : "Детали опроса",
+    "howshouldpeoplevote" : "Как должны голосовать люди?",
+    "chooseone" : "Выбрать один",
+    "rankoptions" : "Ранжировать варианты",
+    "nextdetails" : "Следующие детали"
 }

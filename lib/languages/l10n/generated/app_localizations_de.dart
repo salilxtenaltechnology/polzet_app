@@ -3003,4 +3003,22 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get polllowercase => 'Umfrage';
+
+  @override
+  String get pollcontent => 'Umfrageinhalt';
+
+  @override
+  String get polldetails => 'Umfragedetails';
+
+  @override
+  String get howshouldpeoplevote => 'Wie sollen die Leute abstimmen?';
+
+  @override
+  String get chooseone => 'Eine auswählen';
+
+  @override
+  String get rankoptions => 'Optionen sortieren';
+
+  @override
+  String get nextdetails => 'Weitere Details';
 }

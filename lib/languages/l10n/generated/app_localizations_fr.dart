@@ -3011,4 +3011,22 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get polllowercase => 'sondage';
+
+  @override
+  String get pollcontent => 'Contenu du sondage';
+
+  @override
+  String get polldetails => 'Détails du sondage';
+
+  @override
+  String get howshouldpeoplevote => 'Comment les gens doivent-ils voter ?';
+
+  @override
+  String get chooseone => 'Choisir une option';
+
+  @override
+  String get rankoptions => 'Classer les options';
+
+  @override
+  String get nextdetails => 'Détails suivants';
 }

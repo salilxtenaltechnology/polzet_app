@@ -983,7 +983,9 @@ class GroupChatScreenState extends State<GroupChatScreen>
     final firstName = user['first_name']?.toString() ?? '';
     final lastName = user['last_name']?.toString() ?? '';
     final name = '$firstName $lastName'.trim();
-    final username = user['username']?.toString() ?? '';
+    final username =
+        (user is Map ? user['username'] : post['user'])?.toString() ?? '';
+    final bool isPolzetAi = _isPolzetAiUsername(username);
     final String? avatarUrlRaw =
         user['profile_image']?.toString() ??
         user['profile_picture']?.toString() ??
@@ -1100,8 +1102,9 @@ class GroupChatScreenState extends State<GroupChatScreen>
           return;
         }
 
-        final isImagePoll = imageUrls.isNotEmpty;
         final isThingsPoll = pollTextOptions.isNotEmpty;
+        final isImagePoll =
+            (!isPolzetAi || !isThingsPoll) && imageUrls.isNotEmpty;
 
         if (!isImagePoll && !isThingsPoll) return;
 
@@ -1137,6 +1140,7 @@ class GroupChatScreenState extends State<GroupChatScreen>
               'description': post['description'],
               'created_at': post['created_at'],
               'polls': post['polls'],
+              'images': post['images'],
               'is_liked': post['is_liked_by_current_user'],
               'is_polled_by_current_user': post['is_polled_by_current_user'],
               'location_name': post['location_name'],
@@ -1363,7 +1367,15 @@ class GroupChatScreenState extends State<GroupChatScreen>
               ),
             ],
 
-            if (imageUrls.isNotEmpty) ...[
+            if (isPolzetAi && imageUrls.isNotEmpty && pollTextOptions.isNotEmpty) ...[
+              SizedBox(height: 10.h),
+              _buildStackedImages(imageUrls),
+              _buildTextPoll(
+                context,
+                pollTextOptions,
+                isSentByMe: message.isSentByMe,
+              ),
+            ] else if (imageUrls.isNotEmpty) ...[
               SizedBox(height: 10.h),
               _buildStackedImages(imageUrls),
             ] else if (pollTextOptions.isNotEmpty) ...[

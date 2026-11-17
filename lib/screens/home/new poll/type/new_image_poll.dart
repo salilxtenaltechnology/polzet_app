@@ -29,7 +29,6 @@ import '../../../../widgets/show_toast.dart';
 import '../../../../widgets/text_field/secondry_textfield.dart';
 import '../../../../api/services/image/image_preview_crop_screen.dart';
 import '../../../../models/poll/inspired_poll_data.dart';
-import '../widgets/category_dropdown_field.dart';
 import '../widgets/inspired_poll_card.dart';
 import '../widgets/poll_keyboard_dismiss_wrapper.dart';
 
@@ -56,6 +55,27 @@ class NewImagePoll extends StatefulWidget {
 }
 
 class _NewImagePollState extends State<NewImagePoll> {
+  int _currentStep = 0;
+  final ScrollController _scrollController = ScrollController();
+
+  final List<Map<String, dynamic>> _categories = [
+    {'name': 'Movies', 'image': Assets.images.icMovie.path},
+    {'name': 'Sports', 'image': Assets.images.icSports.path},
+    {'name': 'Technology', 'image': Assets.images.icTechnology.path},
+    {'name': 'AI & Tech', 'image': Assets.images.icTech.path},
+    {'name': 'Gaming', 'image': Assets.images.icGame.path},
+    {'name': 'Travel', 'image': Assets.images.icTravel.path},
+    {'name': 'Music', 'image': Assets.images.icMusic.path},
+    {'name': 'Memes', 'image': Assets.images.icMeme.path},
+    {'name': 'Fitness', 'image': Assets.images.icFiteness.path},
+    {'name': 'Fashion', 'image': Assets.images.icFashion.path},
+    {'name': 'Food', 'image': Assets.images.icFood.path},
+    {'name': 'Education', 'image': Assets.images.icBook.path},
+    {'name': 'Finance', 'image': Assets.images.icFinance.path},
+    {'name': 'Relationships', 'image': Assets.images.icRelationships.path},
+    {'name': 'Current Affairs', 'image': Assets.images.icCurrentAffairs.path},
+  ];
+
   final ApiService service = ApiService();
   final questionController = TextEditingController();
   final descriptionController = TextEditingController();
@@ -576,6 +596,49 @@ class _NewImagePollState extends State<NewImagePoll> {
     }
   }
 
+  void _onNextStep() {
+    setState(() {
+      questionErrorText = '';
+      imageErrorText = '';
+    });
+
+    bool isValid = true;
+
+    // Validate question
+    if (questionController.text.trim().isEmpty) {
+      setState(() {
+        questionErrorText = AppLocalizations.of(
+          context,
+        )!.pleaseenteraquestionortopic;
+      });
+      isValid = false;
+    }
+
+    // Validate images
+    if (_selectedImages.length < 2) {
+      setState(() {
+        imageErrorText = AppLocalizations.of(
+          context,
+        )!.pleaseenteratleastoneimage;
+      });
+      isValid = false;
+    } else if (_selectedImages.length > maxImages) {
+      setState(() {
+        imageErrorText = 'Maximum $maxImages images allowed';
+      });
+      isValid = false;
+    }
+
+    if (isValid) {
+      setState(() {
+        _currentStep = 1;
+      });
+      if (_scrollController.hasClients) {
+        _scrollController.jumpTo(0.0);
+      }
+    }
+  }
+
   void addImagePoll() async {
     final accessToken = await SharedPrefService.getToken();
 
@@ -585,6 +648,7 @@ class _NewImagePollState extends State<NewImagePoll> {
         questionErrorText = AppLocalizations.of(
           context,
         )!.pleaseenteraquestionortopic;
+        _currentStep = 0;
       });
       return;
     }
@@ -594,6 +658,7 @@ class _NewImagePollState extends State<NewImagePoll> {
         imageErrorText = AppLocalizations.of(
           context,
         )!.pleaseenteratleastoneimage;
+        _currentStep = 0;
       });
       return;
     }
@@ -601,6 +666,7 @@ class _NewImagePollState extends State<NewImagePoll> {
     if (_selectedImages.length > maxImages) {
       setState(() {
         imageErrorText = 'Maximum $maxImages images allowed';
+        _currentStep = 0;
       });
       return;
     }
@@ -670,6 +736,7 @@ class _NewImagePollState extends State<NewImagePoll> {
           _isMultiChoice = false;
           _selectedCategory = null;
           categoryErrorText = '';
+          _currentStep = 0;
         });
         // Clear cached posts so the profile screen updates immediately
         Provider.of<UserProvider>(context, listen: false).clearUserPostsCache();
@@ -694,248 +761,473 @@ class _NewImagePollState extends State<NewImagePoll> {
   @override
   Widget build(BuildContext context) {
     final txt = AppTextColors.of(context);
-    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
-
-    return Scaffold(
-      backgroundColor: Theme.of(context).colorScheme.background,
-      appBar: CommonAppBar(
-        title: AppLocalizations.of(context)!.addnewpollimage,
-        actions: [
-          // AI Generation Limit Banner
-          AiGenerationLimitBanner(remainingGenerations: _remainingGenerations),
-        ],
-      ),
-      body: PollKeyboardDismissWrapper(
-        child: ListView(
-          padding: EdgeInsets.symmetric(horizontal: 12.w),
-          children: [
-            SizedBox(height: 10.h),
-
-            // Inspired Poll Card
-            if (widget.inspiredData != null) ...[
-              InspiredPollCard(inspiredData: widget.inspiredData!),
-              SizedBox(height: 15.h),
-            ],
-
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  AppLocalizations.of(context)!.question,
-                  style: CustomTextStyles.lblPrimaryText(context),
-                ),
-                SizedBox(
-                  height: 30,
-                  child: GenerateQuestionButton(
-                    isGenerating: _isGeneratingQuestion,
-                    hasGenerated: _hasGeneratedQuestion,
-                    isEnabled: _remainingGenerations > 0,
-                    onTap: (_isGeneratingQuestion || _remainingGenerations <= 0)
-                        ? null
-                        : generateQuestion,
-                  ),
-                ),
-              ],
-            ),
-            SizedBox(height: 7.h),
-            SecondryTextfield(
-              controller: questionController,
-              focusNode: questionFocusNode,
-              hintText: _hintTexts[_currentHintIndex],
-              focusedBorderColor: questionController.text.trim().isNotEmpty
-                  ? Theme.of(context).colorScheme.onPrimary
-                  : null,
-            ),
-            if (questionErrorText.isNotEmpty)
-              Padding(
-                padding: EdgeInsets.only(top: 5.h),
-                child: Text(
-                  questionErrorText,
-                  style: CustomTextStyles.msgErrorText(context),
-                ),
-              ),
-            SizedBox(height: 20.h),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Expanded(
-                  child: Text(
-                    AppLocalizations.of(context)!.descriptionhashtagsoptional,
-                    style: CustomTextStyles.lblPrimaryText(context),
-                  ),
-                ),
-                SizedBox(
-                  height: 30,
-                  child: GenerateDescriptionButton(
-                    isGenerating: _isGeneratingDescription,
-                    hasGenerated: _hasGeneratedDescription,
-                    isEnabled: _remainingGenerations > 0,
-                    onTap:
-                        (_isGeneratingDescription || _remainingGenerations <= 0)
-                        ? null
-                        : generateDescription,
-                  ),
-                ),
-              ],
-            ),
-            SizedBox(height: 7.h),
-            SecondryTextfield(
-              controller: descriptionController,
-              hintText: AppLocalizations.of(context)!.typedescriptionorhashtags,
-              maxLines: 5,
-              minLines: 1,
-              focusedBorderColor: Theme.of(context).colorScheme.onPrimary,
-            ),
-            SizedBox(height: 20.h),
-            Text(
-              AppLocalizations.of(context)!.polloptions,
-              style: CustomTextStyles.lblPrimaryText(context),
-            ),
-            SizedBox(height: 10.h),
-            _buildPollOptionsSection(context),
-            if (imageErrorText.isNotEmpty)
-              Padding(
-                padding: EdgeInsets.only(top: 8.h, bottom: 10.h),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.start,
-                  children: [
-                    Text(
-                      imageErrorText,
-                      style: CustomTextStyles.msgErrorText(context),
-                      textAlign: TextAlign.center,
-                    ),
-                  ],
-                ),
-              ),
-            SizedBox(height: 16.h),
-            _buildCategorySection(),
-            SizedBox(height: 20.h),
-            Text(
-              AppLocalizations.of(context)!.votingmode,
-              style: CustomTextStyles.lblPrimaryText(context),
-            ),
-            SizedBox(height: 10.h),
-            Row(
-              children: [
-                Expanded(
-                  child: GestureDetector(
-                    onTap: () {
-                      setState(() {
-                        _isMultiChoice = false;
-                      });
-                    },
-                    child: Container(
-                      height: 75,
-                      padding: const EdgeInsets.symmetric(horizontal: 10),
-                      decoration: BoxDecoration(
-                        color: isDarkMode
-                            ? const Color.fromARGB(255, 28, 28, 28)
-                            : const Color(0XFFFAF7F8).withOpacity(0.8),
-                        borderRadius: BorderRadius.circular(AppRadius.card),
-                        border: Border.all(
-                          color: !_isMultiChoice
-                              ? Theme.of(context).colorScheme.primary
-                              : (isDarkMode
-                                    ? Colors.white.withOpacity(0.1)
-                                    : const Color(0XFF9B3046).withOpacity(0.1)),
-                          width: !_isMultiChoice ? 1.3 : 1.0,
-                        ),
-                      ),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            AppLocalizations.of(context)!.singlechoice,
-                            style: AppTextStyles.bodyText.copyWith(
-                              fontSize: 13.5,
-                              fontWeight: FontWeight.w500,
-                              color: txt.title,
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                          SizedBox(height: 4.h),
-                          Text(
-                            AppLocalizations.of(context)!.voterspickoneoption,
-                            style: AppTextStyles.subText.copyWith(
-                              fontSize: 12,
-                              color: txt.body,
-                              fontWeight: FontWeight.w400,
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-                SizedBox(width: 10.w),
-                Expanded(
-                  child: GestureDetector(
-                    onTap: () {
-                      setState(() {
-                        _isMultiChoice = true;
-                      });
-                    },
-                    child: Container(
-                      height: 75,
-                      padding: const EdgeInsets.symmetric(horizontal: 10),
-                      decoration: BoxDecoration(
-                        color: isDarkMode
-                            ? const Color.fromARGB(255, 28, 28, 28)
-                            : const Color(0XFFFAF7F8).withOpacity(0.8),
-                        borderRadius: BorderRadius.circular(AppRadius.card),
-                        border: Border.all(
-                          color: _isMultiChoice
-                              ? Theme.of(context).colorScheme.primary
-                              : (isDarkMode
-                                    ? Colors.white.withOpacity(0.1)
-                                    : const Color(0XFF9B3046).withOpacity(0.1)),
-                          width: _isMultiChoice ? 1.3 : 1.0,
-                        ),
-                      ),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            AppLocalizations.of(context)!.multiplechoice,
-                            style: AppTextStyles.bodyText.copyWith(
-                              fontSize: 13.5,
-                              fontWeight: FontWeight.w500,
-                              color: txt.title,
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                          SizedBox(height: 4.h),
-                          Text(
-                            AppLocalizations.of(context)!.votersrankalloptions,
-                            style: AppTextStyles.subText.copyWith(
-                              fontSize: 12,
-                              color: txt.body,
-                              fontWeight: FontWeight.w400,
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            SizedBox(height: 20.h),
+    return PopScope(
+      canPop: _currentStep == 0,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop && _currentStep > 0) {
+          setState(() => _currentStep = 0);
+          if (_scrollController.hasClients) {
+            _scrollController.jumpTo(0.0);
+          }
+        }
+      },
+      child: Scaffold(
+        backgroundColor: Theme.of(context).colorScheme.background,
+        appBar: CommonAppBar(
+          title: AppLocalizations.of(context)!.addnewpollimage,
+          onBack: () {
+            if (_currentStep > 0) {
+              setState(() => _currentStep = 0);
+              if (_scrollController.hasClients) {
+                _scrollController.jumpTo(0.0);
+              }
+            } else {
+              Navigator.of(context).pop();
+            }
+          },
+          actions: [
+            // AI Generation Limit Banner
+            AiGenerationLimitBanner(remainingGenerations: _remainingGenerations),
           ],
         ),
-      ),
-      bottomNavigationBar: BottomAppBar(
-        padding: const EdgeInsets.only(bottom: 20),
-        height: 70.h,
-        color: Theme.of(context).colorScheme.background,
-        child: PrimaryButton(
-          title: AppLocalizations.of(context)!.addpoll,
-          onPressed: addImagePoll,
-          isLoading: isLoading,
+        body: PollKeyboardDismissWrapper(
+          child: SingleChildScrollView(
+            controller: _scrollController,
+            padding: EdgeInsets.symmetric(horizontal: 12.w),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SizedBox(height: 12.h),
+
+                // Steps UI
+                _buildStepIndicator(),
+                SizedBox(height: 18.h),
+
+                // Step 1: Poll Content
+                if (_currentStep == 0) ...[
+                  // Inspired Poll Card
+                  if (widget.inspiredData != null) ...[
+                    InspiredPollCard(inspiredData: widget.inspiredData!),
+                    SizedBox(height: 15.h),
+                  ],
+
+                  // Question Field
+                  _buildQuestionField(),
+                  SizedBox(height: 20.h),
+
+                  // Poll Options (Images)
+                  Text(
+                    AppLocalizations.of(context)!.polloptions,
+                    style: AppTextStyles.bodyText.copyWith(
+                color: txt.title,
+                fontSize: 14, 
+                fontWeight: FontWeight.w500,
+              ),
+                  ),
+                  SizedBox(height: 10.h),
+                  _buildPollOptionsSection(context),
+                  if (imageErrorText.isNotEmpty)
+                    Padding(
+                      padding: EdgeInsets.only(top: 8.h, bottom: 10.h),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.start,
+                        children: [
+                          Text(
+                            imageErrorText,
+                            style: CustomTextStyles.msgErrorText(context),
+                            textAlign: TextAlign.center,
+                          ),
+                        ],
+                      ),
+                    ),
+                  SizedBox(height: 20.h),
+
+                  // Voting Mode (New UI)
+                  _buildVotingModeSection(),
+                  SizedBox(height: 20.h),
+                ],
+
+                // Step 2: Poll Details
+                if (_currentStep == 1) ...[
+                  // Description Field
+                  _buildDescriptionField(),
+                  SizedBox(height: 20.h),
+
+                  // Category Section
+                  _buildCategorySection(),
+                  SizedBox(height: 20.h),
+                ],
+              ],
+            ),
+          ),
+        ),
+        bottomNavigationBar: BottomAppBar(
+          padding: const EdgeInsets.only(bottom: 20),
+          height: 70.h,
+          color: Theme.of(context).colorScheme.background,
+          child: PrimaryButton(
+            title: _currentStep == 0
+                ? AppLocalizations.of(context)!.nextdetails
+                : AppLocalizations.of(context)!.addpoll,
+            onPressed: isLoading
+                ? null
+                : (_currentStep == 0 ? _onNextStep : addImagePoll),
+            isLoading: isLoading,
+          ),
         ),
       ),
+    );
+  }
+
+  Widget _buildStepIndicator() {
+    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final lineColor =
+        isDarkMode ? const Color(0xFF383840) : const Color(0xFFD9D9D9);
+    final txt = AppTextColors.of(context);
+
+    final bool isStep1Active = _currentStep == 0;
+    final bool isStep2Active = _currentStep == 1;
+
+    final bool isStep1Complete =
+        questionController.text.trim().isNotEmpty &&
+        _selectedImages.length >= 2 &&
+        _selectedImages.length <= maxImages;
+    final bool isStep2Complete =
+        _selectedCategory != null && _selectedCategory!.trim().isNotEmpty;
+
+    return Row(
+      children: [
+        // Step 1: Poll Content
+        GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: () {
+            if (_currentStep > 0) {
+              setState(() => _currentStep = 0);
+              if (_scrollController.hasClients) {
+                _scrollController.jumpTo(0.0);
+              }
+            }
+          },
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 25,
+                height: 25,
+                decoration: BoxDecoration(
+                  color: isStep1Complete || isStep1Active || _currentStep > 0
+                      ? AppColors.primaryColor
+                      : txt.title.withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: Center(
+                  child: isStep1Complete
+                      ? const Icon(Icons.check, size: 17, color: Colors.white)
+                      : Text(
+                          '1',
+                          style: TextStyle(
+                            color: isStep1Active || _currentStep > 0
+                                ? Colors.white
+                                : txt.title,
+                            fontSize: 13.2,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                ),
+              ),
+              SizedBox(width: 8.w),
+              Text(
+                AppLocalizations.of(context)!.pollcontent,
+                style: AppTextStyles.bodyText.copyWith(
+                  fontSize: 14.2,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.primaryColor,
+                ),
+              ),
+            ],
+          ),
+        ),
+
+        // Connecting Line
+        Expanded(
+          child: Container(
+            margin: EdgeInsets.symmetric(horizontal: 14.w),
+            height: 2,
+            decoration: BoxDecoration(
+              color: isStep2Active
+                  ? AppColors.primaryColor.withOpacity(0.8)
+                  : lineColor,
+              borderRadius: BorderRadius.circular(1.0),
+            ),
+          ),
+        ),
+
+        // Step 2: Poll Details
+        GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: () {
+            if (_currentStep == 0) {
+              _onNextStep();
+            }
+          },
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 25,
+                height: 25,
+                decoration: BoxDecoration(
+                  color: isStep2Complete || isStep2Active
+                      ? AppColors.primaryColor
+                      : txt.title.withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: Center(
+                  child: isStep2Complete
+                      ? const Icon(Icons.check, size: 17, color: Colors.white)
+                      : Text(
+                          '2',
+                          style: TextStyle(
+                            color: isStep2Active ? Colors.white : txt.title,
+                            fontSize: 13.2,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                ),
+              ),
+              SizedBox(width: 8.w),
+              Text(
+                AppLocalizations.of(context)!.polldetails,
+                style: AppTextStyles.bodyText.copyWith(
+                  fontSize: 14.2,
+                  fontWeight: isStep2Active ? FontWeight.w600 : FontWeight.w400,
+                  color: isStep2Active ? AppColors.primaryColor : txt.title,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildQuestionField() {
+    final txt = AppTextColors.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              AppLocalizations.of(context)!.question,
+              style: AppTextStyles.bodyText.copyWith(
+                color: txt.title,
+                fontSize: 14, 
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            SizedBox(
+              height: 30,
+              child: GenerateQuestionButton(
+                isGenerating: _isGeneratingQuestion,
+                hasGenerated: _hasGeneratedQuestion,
+                isEnabled: _remainingGenerations > 0,
+                onTap: (_isGeneratingQuestion || _remainingGenerations <= 0)
+                    ? null
+                    : generateQuestion,
+              ),
+            ),
+          ],
+        ),
+        SizedBox(height: 7.h),
+        SecondryTextfield(
+          controller: questionController,
+          focusNode: questionFocusNode,
+          hintText: _hintTexts[_currentHintIndex],
+          focusedBorderColor: questionController.text.trim().isNotEmpty
+              ? Theme.of(context).colorScheme.onPrimary
+              : null,
+        ),
+        if (questionErrorText.isNotEmpty)
+          Padding(
+            padding: EdgeInsets.only(top: 5.h),
+            child: Text(
+              questionErrorText,
+              style: CustomTextStyles.msgErrorText(context),
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildDescriptionField() {
+    final txt = AppTextColors.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Expanded(
+              child: Text(
+                AppLocalizations.of(context)!.descriptionhashtagsoptional,
+               style: AppTextStyles.bodyText.copyWith(
+                color: txt.title,
+                fontSize: 14, 
+                fontWeight: FontWeight.w500,
+              ),
+              ),
+            ),
+            SizedBox(
+              height: 30,
+              child: GenerateDescriptionButton(
+                isGenerating: _isGeneratingDescription,
+                hasGenerated: _hasGeneratedDescription,
+                isEnabled: _remainingGenerations > 0,
+                onTap: (_isGeneratingDescription || _remainingGenerations <= 0)
+                    ? null
+                    : generateDescription,
+              ),
+            ),
+          ],
+        ),
+        SizedBox(height: 7.h),
+        SecondryTextfield(
+          controller: descriptionController,
+          hintText: AppLocalizations.of(context)!.typedescriptionorhashtags,
+          maxLines: 5,
+          minLines: 1,
+          focusedBorderColor: Theme.of(context).colorScheme.onPrimary,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildVotingModeSection() {
+    final txt = AppTextColors.of(context);
+    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final primaryColor = Theme.of(context).colorScheme.primary;
+    final unselectedBorderColor =
+        isDarkMode ? Colors.white54 : const Color(0xFF595959);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          AppLocalizations.of(context)!.howshouldpeoplevote,
+          style: AppTextStyles.bodyText.copyWith(
+            color: txt.title,
+            fontSize: 15,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        const SizedBox(height: 10),
+         Row(
+          children: [
+            GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: () {
+                if (_isMultiChoice) {
+                  setState(() {
+                    _isMultiChoice = false;
+                  });
+                }
+              },
+              child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _buildRadioIndicator(
+                    isSelected: !_isMultiChoice,
+                    primaryColor: primaryColor,
+                    unselectedBorderColor: unselectedBorderColor,
+                  ),
+                  const SizedBox(width: 8),
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 1), 
+                    child: Text(
+                    AppLocalizations.of(context)!.chooseone,
+                      style: AppTextStyles.bodyText.copyWith(
+                        fontSize: 14,
+                        fontWeight:
+                            !_isMultiChoice ? FontWeight.w600 : FontWeight.w400,
+                        color: txt.heading,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            SizedBox(width: 32.w),
+            GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: () {
+                if (!_isMultiChoice) {
+                  setState(() {
+                    _isMultiChoice = true;
+                  });
+                }
+              },
+              child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _buildRadioIndicator(
+                    isSelected: _isMultiChoice,
+                    primaryColor: primaryColor,
+                    unselectedBorderColor: unselectedBorderColor,
+                  ),
+                  const SizedBox(width: 8),
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 1), 
+                    child: Text(
+                     AppLocalizations.of(context)!.rankoptions,
+                      style: AppTextStyles.bodyText.copyWith(
+                        fontSize: 14,
+                        fontWeight:
+                            _isMultiChoice ? FontWeight.w600 : FontWeight.w400,
+                        color: txt.heading,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+ Widget _buildRadioIndicator({
+    required bool isSelected,
+    required Color primaryColor,
+    required Color unselectedBorderColor,
+  }) {
+    final txt = AppTextColors.of(context);
+    return Container(
+      width: 22,
+      height: 22,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        border: Border.all(
+          color: isSelected ? primaryColor : txt.body,
+          width: 1.2,
+        ),
+      ),
+      child: isSelected
+          ? Center(
+              child: Container(
+                width: 12,
+                height: 12,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: primaryColor,
+                ),
+              ),
+            )
+          : null,
     );
   }
 
@@ -1170,20 +1462,129 @@ class _NewImagePollState extends State<NewImagePoll> {
   }
 
   Widget _buildCategoryField() {
+    final txt = AppTextColors.of(context);
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+
+    final midpoint = (_categories.length / 2).ceil();
+    final firstLayer = _categories.sublist(0, midpoint);
+    final secondLayer = _categories.sublist(midpoint);
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(10, 15, 10, 15),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.background,
+        borderRadius: BorderRadius.circular(AppRadius.card),
+        border: Border.all(
+          color: isDarkMode ? const Color(0xFF222222) : const Color(0xFFDDDDDD),
+          width: isDarkMode ? 1.3 : 1,
+        ),
+      ),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        physics: const BouncingScrollPhysics(),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: firstLayer
+                  .map((cat) => _buildCategoryChip(cat, txt, isDarkMode))
+                  .toList(),
+            ),
+            SizedBox(height: 10.h),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: secondLayer
+                  .map((cat) => _buildCategoryChip(cat, txt, isDarkMode))
+                  .toList(),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCategoryChip(
+    Map<String, dynamic> cat,
+    AppTextColors txt,
+    bool isDarkMode,
+  ) {
+    final isSelected = _selectedCategory == cat['name'];
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () {
+        setState(() {
+          if (_selectedCategory == cat['name']) {
+            _selectedCategory = null;
+          } else {
+            _selectedCategory = cat['name'] as String;
+            if (categoryErrorText.isNotEmpty) {
+              categoryErrorText = '';
+            }
+          }
+        });
+      },
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        margin: const EdgeInsets.only(right: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: isSelected ? AppColors.primaryColor : Colors.transparent,
+          border: Border.all(
+            color: isSelected
+                ? AppColors.primaryColor
+                : (isDarkMode
+                      ? Colors.white.withOpacity(0.12)
+                      : const Color(0xFFDDDDDD)),
+            width: 1,
+          ),
+          borderRadius: BorderRadius.circular(AppRadius.button),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Image.asset(
+              cat['image'] as String,
+              width: 18,
+              height: 18,
+              color: isSelected
+                  ? Colors.white
+                  : Theme.of(context).colorScheme.onBackground.withOpacity(0.8),
+            ),
+            SizedBox(width: 6.w),
+            Text(
+              cat['name'] as String,
+              style: AppTextStyles.bodyText.copyWith(
+                color: isSelected
+                    ? Colors.white
+                    : Theme.of(context).colorScheme.onBackground,
+                fontSize: 12.7,
+                fontWeight: FontWeight.w400,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCategorySection() {
+    final txt = AppTextColors.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        CategoryDropdownField(
-          selectedCategory: _selectedCategory,
-          onCategorySelected: (cat) {
-            setState(() {
-              _selectedCategory = cat;
-              if (categoryErrorText.isNotEmpty) {
-                categoryErrorText = '';
-              }
-            });
-          },
+        Text(
+          AppLocalizations.of(context)!.category,
+          style: AppTextStyles.bodyText.copyWith(
+                color: txt.title,
+                fontSize: 14, 
+                fontWeight: FontWeight.w500,
+              ),
         ),
+        SizedBox(height: 10.h),
+        _buildCategoryField(),
         if (categoryErrorText.isNotEmpty)
           Padding(
             padding: EdgeInsets.only(top: 5.h),
@@ -1196,23 +1597,10 @@ class _NewImagePollState extends State<NewImagePoll> {
     );
   }
 
-  Widget _buildCategorySection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          AppLocalizations.of(context)!.category,
-          style: CustomTextStyles.lblPrimaryText(context),
-        ),
-        SizedBox(height: 10.h),
-        _buildCategoryField(),
-      ],
-    );
-  }
-
   @override
   void dispose() {
     _hintTimer?.cancel();
+    _scrollController.dispose();
     questionController.removeListener(_onQuestionChanged);
     questionController.dispose();
     questionFocusNode.dispose();

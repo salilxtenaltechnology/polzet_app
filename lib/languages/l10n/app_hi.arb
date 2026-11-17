@@ -926,5 +926,11 @@
     "deletepost" : "पोस्ट हटाएँ",
     "areyousurewanttodeletethispost" : "क्या आप वाकई इस पोस्ट को हटाना चाहते हैं?",
     "inspiredby" : "से प्रेरित",
-    "polllowercase" : "पोल"
+    "polllowercase" : "पोल",
+    "pollcontent" : "पोल सामग्री",
+    "polldetails" : "पोल विवरण",
+    "howshouldpeoplevote" : "लोगों को कैसे वोट देना चाहिए?",
+    "chooseone" : "एक चुनें",
+    "rankoptions" : "विकल्पों को क्रम दें",
+    "nextdetails" : "अगले विवरण"
 }

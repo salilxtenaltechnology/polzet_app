@@ -2977,4 +2977,22 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get polllowercase => 'poll';
+
+  @override
+  String get pollcontent => 'Poll Content';
+
+  @override
+  String get polldetails => 'Poll Details';
+
+  @override
+  String get howshouldpeoplevote => 'How should people vote?';
+
+  @override
+  String get chooseone => 'Choose One';
+
+  @override
+  String get rankoptions => 'Rank Options';
+
+  @override
+  String get nextdetails => 'Next details';
 }

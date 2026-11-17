@@ -925,5 +925,11 @@
     "deletepost" : "Excluir publicação",
     "areyousurewanttodeletethispost" : "Tem certeza de que deseja excluir esta publicação?",
     "inspiredby" : "Inspirado por",
-    "polllowercase" : "enquete"
+    "polllowercase" : "enquete",
+    "pollcontent" : "Conteúdo da enquete",
+    "polldetails" : "Detalhes da enquete",
+    "howshouldpeoplevote" : "Como as pessoas devem votar?",
+    "chooseone" : "Escolher uma",
+    "rankoptions" : "Classificar opções",
+    "nextdetails" : "Próximos detalhes"
 }

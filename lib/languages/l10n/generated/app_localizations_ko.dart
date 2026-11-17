@@ -2949,4 +2949,22 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get polllowercase => '투표';
+
+  @override
+  String get pollcontent => '투표 콘텐츠';
+
+  @override
+  String get polldetails => '투표 세부정보';
+
+  @override
+  String get howshouldpeoplevote => '사람들은 어떻게 투표해야 하나요?';
+
+  @override
+  String get chooseone => '하나 선택';
+
+  @override
+  String get rankoptions => '옵션 순위 지정';
+
+  @override
+  String get nextdetails => '다음 세부정보';
 }

@@ -1,4 +1,4 @@
-// ignore_for_file: deprecated_member_use
+// ignore_for_file: prefer_interpolation_to_compose_strings, deprecated_member_use
 
 import 'dart:io';
 
@@ -64,12 +64,7 @@ class HashtagTextEditingController extends TextEditingController {
       },
       onNonMatch: (String nonMatch) {
         if (nonMatch.isNotEmpty) {
-          spans.add(
-            TextSpan(
-              text: nonMatch,
-              style: style,
-            ),
-          );
+          spans.add(TextSpan(text: nonMatch, style: style));
         }
         return '';
       },
@@ -98,14 +93,6 @@ class _CreatePostState extends State<CreatePost>
   bool _isLoading = false;
   bool _wasKeyboardVisible = false;
 
-  final _categoryLayerLink = LayerLink();
-  final GlobalKey _categoryFieldKey = GlobalKey();
-  OverlayEntry? _categoryOverlayEntry;
-  bool _isCategoryDropdownOpen = false;
-  double _categoryFieldWidth = 0;
-  final _categorySearchController = TextEditingController();
-  final FocusNode _categorySearchFocusNode = FocusNode();
-
   String? _selectedCategory;
   final List<String> _suggestedHashtags = [
     'travel',
@@ -115,22 +102,22 @@ class _CreatePostState extends State<CreatePost>
     'trending',
   ];
 
-  final List<String> _categories = [
-    'AI & Tech',
-    'Current Affairs',
-    'Education',
-    'Fashion',
-    'Finance',
-    'Fitness',
-    'Food',
-    'Gaming',
-    'Memes',
-    'Movies',
-    'Music',
-    'Relationships',
-    'Sports',
-    'Technology',
-    'Travel',
+  final List<Map<String, dynamic>> _categories = [
+    {'name': 'Movies', 'image': Assets.images.icMovie.path},
+    {'name': 'Sports', 'image': Assets.images.icSports.path},
+    {'name': 'Technology', 'image': Assets.images.icTechnology.path},
+    {'name': 'AI & Tech', 'image': Assets.images.icTech.path},
+    {'name': 'Gaming', 'image': Assets.images.icGame.path},
+    {'name': 'Travel', 'image': Assets.images.icTravel.path},
+    {'name': 'Music', 'image': Assets.images.icMusic.path},
+    {'name': 'Memes', 'image': Assets.images.icMeme.path},
+    {'name': 'Fitness', 'image': Assets.images.icFiteness.path},
+    {'name': 'Fashion', 'image': Assets.images.icFashion.path},
+    {'name': 'Food', 'image': Assets.images.icFood.path},
+    {'name': 'Education', 'image': Assets.images.icBook.path},
+    {'name': 'Finance', 'image': Assets.images.icFinance.path},
+    {'name': 'Relationships', 'image': Assets.images.icRelationships.path},
+    {'name': 'Current Affairs', 'image': Assets.images.icCurrentAffairs.path},
   ];
 
   @override
@@ -154,10 +141,6 @@ class _CreatePostState extends State<CreatePost>
       _captionFocusNode.unfocus();
     }
 
-    if (_isCategoryDropdownOpen) {
-      _categoryOverlayEntry?.markNeedsBuild();
-    }
-
     _wasKeyboardVisible = isKeyboardVisible;
   }
 
@@ -168,11 +151,6 @@ class _CreatePostState extends State<CreatePost>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
-
-    _categoryOverlayEntry?.remove();
-    _categoryOverlayEntry = null;
-    _categorySearchController.dispose();
-    _categorySearchFocusNode.dispose();
 
     _captionController.removeListener(_onCaptionChanged);
     _captionController.dispose();
@@ -185,7 +163,6 @@ class _CreatePostState extends State<CreatePost>
       _captionController.text.trim().isNotEmpty && _selectedImages.isNotEmpty;
 
   Future<void> _onTapPreview() async {
-    _closeCategoryDropdown();
     if (_captionController.text.trim().isEmpty) {
       showToast(message: 'Please enter a caption');
       return;
@@ -207,7 +184,6 @@ class _CreatePostState extends State<CreatePost>
   }
 
   Future<void> _publishPost() async {
-    _closeCategoryDropdown();
     if (_isLoading) return;
 
     final caption = _captionController.text.trim();
@@ -231,7 +207,7 @@ class _CreatePostState extends State<CreatePost>
 
       if (!mounted) return;
 
-      showToast(message: 'Post created successfully!');
+      showToast(message: 'Post created!');
       Provider.of<UserProvider>(context, listen: false).clearUserPostsCache();
       Provider.of<UserProvider>(
         context,
@@ -380,7 +356,7 @@ class _CreatePostState extends State<CreatePost>
                   padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10),
                   child: GestureDetector(
                     child: Text(
-                    AppLocalizations.of(context)!.reorder,
+                      AppLocalizations.of(context)!.reorder,
                       style: AppTextStyles.bodyText.copyWith(
                         color: txt.body,
                         fontSize: 13.5.sp,
@@ -478,6 +454,7 @@ class _CreatePostState extends State<CreatePost>
   @override
   Widget build(BuildContext context) {
     final txt = AppTextColors.of(context);
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.background,
       appBar: CommonAppBar(
@@ -487,7 +464,6 @@ class _CreatePostState extends State<CreatePost>
       body: GestureDetector(
         behavior: HitTestBehavior.translucent,
         onTap: () {
-          _closeCategoryDropdown();
           FocusScope.of(context).unfocus();
         },
         child: SingleChildScrollView(
@@ -940,8 +916,9 @@ class _CreatePostState extends State<CreatePost>
         newText = hashtag;
       } else {
         final trimmed = currentText.trimRight();
-        final bool endsWithHashtag =
-            RegExp(r'#[a-zA-Z0-9_]+$').hasMatch(trimmed);
+        final bool endsWithHashtag = RegExp(
+          r'#[a-zA-Z0-9_]+$',
+        ).hasMatch(trimmed);
         if (endsWithHashtag) {
           newText = '$trimmed $hashtag';
         } else {
@@ -1043,358 +1020,111 @@ class _CreatePostState extends State<CreatePost>
     );
   }
 
-  // ── Category Dropdown Overlay Logic ──────────────────────────────────────────
-  void _toggleCategoryDropdown() {
-    if (_isCategoryDropdownOpen) {
-      _closeCategoryDropdown();
-    } else {
-      _openCategoryDropdown();
-    }
-  }
-
-  void _openCategoryDropdown() {
-    if (_categoryOverlayEntry != null) return;
-
-    _categorySearchController.clear();
-
-    _categoryOverlayEntry = OverlayEntry(
-      builder: (context) {
-        List<String> currentFiltered = List.from(_categories);
-
-        return StatefulBuilder(
-          builder: (context, setOverlayState) {
-            final mediaQuery = MediaQuery.of(context);
-            final keyboardHeight = mediaQuery.viewInsets.bottom;
-            final screenHeight = mediaQuery.size.height;
-            final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-            final txt = AppTextColors.of(context);
-
-            // Calculate field's global position and available space above/below
-            final renderBox =
-                _categoryFieldKey.currentContext?.findRenderObject()
-                    as RenderBox?;
-            final fieldOffset = renderBox?.localToGlobal(Offset.zero);
-            final fieldTop = fieldOffset?.dy ?? 0;
-            final fieldHeight = renderBox?.size.height ?? 48.0;
-            final fieldBottom = fieldTop + fieldHeight;
-
-            final spaceBelow = screenHeight - keyboardHeight - fieldBottom;
-            final spaceAbove =
-                fieldTop - mediaQuery.padding.top - kToolbarHeight;
-
-            // When keyboard is visible or space below is too tight, show above the field
-            final bool showAbove =
-                (keyboardHeight > 0 || spaceBelow < 250) &&
-                (spaceAbove > spaceBelow);
-
-            final double availableListHeight = showAbove
-                ? (spaceAbove - 85).clamp(80.0, 220.0)
-                : (spaceBelow - 85).clamp(80.0, 220.0);
-
-            return Stack(
-              children: [
-                // Dismiss on outside tap
-                GestureDetector(
-                  onTap: () {
-                    FocusScope.of(context).unfocus();
-                    _closeCategoryDropdown();
-                  },
-                  behavior: HitTestBehavior.translucent,
-                  child: const SizedBox(
-                    width: double.infinity,
-                    height: double.infinity,
-                  ),
-                ),
-                // Dropdown overlay menu positioned relative to dropdown field
-                Positioned(
-                  width: _categoryFieldWidth > 0
-                      ? _categoryFieldWidth
-                      : (mediaQuery.size.width - 24.w),
-                  child: CompositedTransformFollower(
-                    link: _categoryLayerLink,
-                    showWhenUnlinked: false,
-                    targetAnchor: showAbove
-                        ? Alignment.topLeft
-                        : Alignment.bottomLeft,
-                    followerAnchor: showAbove
-                        ? Alignment.bottomLeft
-                        : Alignment.topLeft,
-                    offset: Offset(0, showAbove ? -6 : 6),
-                    child: Material(
-                      elevation: 6,
-                      borderRadius: BorderRadius.circular(12),
-                      color: isDarkMode
-                          ? const Color(0xFF1F1F23)
-                          : Colors.white,
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: isDarkMode
-                              ? const Color(0xFF1F1F23)
-                              : Colors.white,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: Theme.of(
-                              context,
-                            ).colorScheme.outline.withOpacity(0.5),
-                            width: 1,
-                          ),
-                        ),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            // Search field inside dropdown menu
-                            Padding(
-                              padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
-                              child: Container(
-                                height: 40,
-                                decoration: BoxDecoration(
-                                  color: isDarkMode
-                                      ? const Color(0xFF2A2A2E)
-                                      : const Color(0xFFF3F4F6),
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: TextField(
-                                  controller: _categorySearchController,
-                                  focusNode: _categorySearchFocusNode,
-                                  textAlignVertical: TextAlignVertical.center,
-                                  style: AppTextStyles.bodyText.copyWith(
-                                    fontSize: 13.5,
-                                    color: txt.title,
-                                  ),
-                                  onChanged: (q) {
-                                    setOverlayState(() {
-                                      if (q.trim().isEmpty) {
-                                        currentFiltered = List.from(
-                                          _categories,
-                                        );
-                                      } else {
-                                        final query = q.toLowerCase().trim();
-                                        currentFiltered = _categories.where((
-                                          c,
-                                        ) {
-                                          return c.toLowerCase().contains(
-                                            query,
-                                          );
-                                        }).toList();
-                                      }
-                                    });
-                                  },
-                                  decoration: InputDecoration(
-                                    hintText: AppLocalizations.of(context)!.searchcategory,
-                                    hintStyle: AppTextStyles.bodyText.copyWith(
-                                      fontSize: 13.5,
-                                      color: const Color(0xFF898989),
-                                      fontWeight: FontWeight.w400,
-                                    ),
-                                    prefixIcon: const Icon(
-                                      Icons.search_rounded,
-                                      size: 19,
-                                      color: Color(0xFF898989),
-                                    ),
-                                    prefixIconConstraints: const BoxConstraints(
-                                      minWidth: 38,
-                                      minHeight: 40,
-                                    ),
-                                    suffixIcon:
-                                        _categorySearchController
-                                            .text
-                                            .isNotEmpty
-                                        ? IconButton(
-                                            padding: EdgeInsets.zero,
-                                            constraints: const BoxConstraints(
-                                              minWidth: 34,
-                                              minHeight: 40,
-                                            ),
-                                            icon: const Icon(
-                                              Icons.close_rounded,
-                                              size: 16,
-                                              color: Color(0xFF898989),
-                                            ),
-                                            onPressed: () {
-                                              _categorySearchController.clear();
-                                              setOverlayState(() {
-                                                currentFiltered = List.from(
-                                                  _categories,
-                                                );
-                                              });
-                                            },
-                                          )
-                                        : null,
-                                    suffixIconConstraints: const BoxConstraints(
-                                      minWidth: 34,
-                                      minHeight: 40,
-                                    ),
-                                    border: InputBorder.none,
-                                    isDense: true,
-                                    contentPadding: const EdgeInsets.only(
-                                      right: 10,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                            const Divider(height: 1, thickness: 0.5),
-                            // Filtered category list
-                            ConstrainedBox(
-                              constraints: BoxConstraints(
-                                maxHeight: availableListHeight,
-                              ),
-                              child: currentFiltered.isEmpty
-                                  ? Padding(
-                                      padding: const EdgeInsets.all(14.0),
-                                      child: Text(
-                                        'No category found',
-                                        style: AppTextStyles.bodyText.copyWith(
-                                          fontSize: 13,
-                                          color: txt.muted,
-                                        ),
-                                      ),
-                                    )
-                                  : ListView.builder(
-                                      padding: EdgeInsets.zero,
-                                      shrinkWrap: true,
-                                      itemCount: currentFiltered.length,
-                                      itemBuilder: (context, index) {
-                                        final category = currentFiltered[index];
-                                        final isSelected =
-                                            category.toLowerCase() ==
-                                            (_selectedCategory ?? '')
-                                                .toLowerCase();
-
-                                        return InkWell(
-                                          onTap: () {
-                                            setState(() {
-                                              _selectedCategory = category;
-                                            });
-                                            _closeCategoryDropdown();
-                                          },
-                                          child: Container(
-                                            padding: const EdgeInsets.symmetric(
-                                              horizontal: 14,
-                                              vertical: 10,
-                                            ),
-                                            color: isSelected
-                                                ? (isDarkMode
-                                                      ? const Color(0xFF2A2A2E)
-                                                      : const Color(0xFFF0F0F0))
-                                                : Colors.transparent,
-                                            child: Row(
-                                              children: [
-                                                Expanded(
-                                                  child: Text(
-                                                    category,
-                                                    style: AppTextStyles
-                                                        .bodyText
-                                                        .copyWith(
-                                                          fontSize: 13.5,
-                                                          fontWeight: isSelected
-                                                              ? FontWeight.w600
-                                                              : FontWeight.w400,
-                                                          color: txt.title,
-                                                        ),
-                                                  ),
-                                                ),
-                                                if (isSelected)
-                                                  Icon(
-                                                    Icons.check_rounded,
-                                                    size: 18,
-                                                    color: Theme.of(
-                                                      context,
-                                                    ).colorScheme.onPrimary,
-                                                  ),
-                                              ],
-                                            ),
-                                          ),
-                                        );
-                                      },
-                                    ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            );
-          },
-        );
-      },
-    );
-
-    Overlay.of(context).insert(_categoryOverlayEntry!);
-    setState(() {
-      _isCategoryDropdownOpen = true;
-    });
-  }
-
-  void _closeCategoryDropdown() {
-    _categorySearchFocusNode.unfocus();
-    _categoryOverlayEntry?.remove();
-    _categoryOverlayEntry = null;
-    if (mounted) {
-      setState(() {
-        _isCategoryDropdownOpen = false;
-      });
-    }
-  }
+  // ── Category Selector Field ──────────────────────────────────────────────────
 
   Widget _buildCategoryField() {
-    return LayoutBuilder(
-      key: _categoryFieldKey,
-      builder: (context, constraints) {
-        _categoryFieldWidth = constraints.maxWidth;
+    final txt = AppTextColors.of(context);
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
-        return CompositedTransformTarget(
-          link: _categoryLayerLink,
-          child: InkWell(
-            onTap: _toggleCategoryDropdown,
-            borderRadius: BorderRadius.circular(AppRadius.card),
-            child: Container(
-              height: 48,
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.background,
-                borderRadius: BorderRadius.circular(AppRadius.card),
-                border: Border.all(
-                  color: Theme.of(context).colorScheme.outline,
-                  width: 1.5,
-                ),
-              ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      _selectedCategory ?? AppLocalizations.of(context)!.selectacategory,
-                      style: _selectedCategory != null
-                          ? AppTextStyles.bodyText.copyWith(
-                              fontSize: 14.5,
-                              color: Theme.of(context).colorScheme.onBackground,
-                              fontWeight: FontWeight.w500,
-                            )
-                          : AppTextStyles.subText.copyWith(
-                              fontSize: 14,
-                              color: const Color(0XFF898989),
-                              fontWeight: FontWeight.w400,
-                            ),
-                    ),
-                  ),
-                  AnimatedRotation(
-                    turns: _isCategoryDropdownOpen ? 0.5 : 0,
-                    duration: const Duration(milliseconds: 200),
-                    child: const Icon(
-                      Icons.keyboard_arrow_down_rounded,
-                      size: 20,
-                      color: Color(0xFF8A8A8A),
-                    ),
-                  ),
-                ],
+    final midpoint = (_categories.length / 2).ceil();
+    final firstLayer = _categories.sublist(0, midpoint);
+    final secondLayer = _categories.sublist(midpoint);
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.background,
+        borderRadius: BorderRadius.circular(AppRadius.card),
+        border: Border.all(
+          color: isDarkMode ? const Color(0xFF222222) : const Color(0xFFDDDDDD),
+          width: isDarkMode ? 1.3 : 1,
+        ),
+      ),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        physics: const BouncingScrollPhysics(),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: firstLayer
+                  .map((cat) => _buildCategoryChip(cat, txt, isDarkMode))
+                  .toList(),
+            ),
+            SizedBox(height: 8.h),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: secondLayer
+                  .map((cat) => _buildCategoryChip(cat, txt, isDarkMode))
+                  .toList(),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCategoryChip(
+    Map<String, dynamic> cat,
+    AppTextColors txt,
+    bool isDarkMode,
+  ) {
+    final isSelected = _selectedCategory == cat['name'];
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () {
+        setState(() {
+          if (_selectedCategory == cat['name']) {
+            _selectedCategory = null;
+          } else {
+            _selectedCategory = cat['name'] as String;
+          }
+        });
+      },
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        margin: const EdgeInsets.only(right: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: isSelected ? AppColors.primaryColor : Colors.transparent,
+          border: Border.all(
+            color: isSelected
+                ? AppColors.primaryColor
+                : (isDarkMode
+                      ? Colors.white.withOpacity(0.12)
+                      : const Color(0xFFDDDDDD)),
+            width: 1,
+          ),
+          borderRadius: BorderRadius.circular(AppRadius.button),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Image.asset(
+              cat['image'] as String,
+              width: 18,
+              height: 18,
+              color: isSelected
+                  ? Colors.white
+                  : Theme.of(context).colorScheme.onBackground.withOpacity(0.8),
+            ),
+            SizedBox(width: 6.w),
+            Text(
+              cat['name'] as String,
+              style: AppTextStyles.bodyText.copyWith(
+                color: isSelected
+                    ? Colors.white
+                    : Theme.of(context).colorScheme.onBackground,
+                fontSize: 12.7,
+                fontWeight: FontWeight.w400,
               ),
             ),
-          ),
-        );
-      },
+          ],
+        ),
+      ),
     );
   }
 }

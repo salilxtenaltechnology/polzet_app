@@ -2946,4 +2946,22 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get polllowercase => '投票';
+
+  @override
+  String get pollcontent => '投票内容';
+
+  @override
+  String get polldetails => '投票の詳細';
+
+  @override
+  String get howshouldpeoplevote => 'どのように投票してもらいますか？';
+
+  @override
+  String get chooseone => '1つ選択';
+
+  @override
+  String get rankoptions => '選択肢を順位付け';
+
+  @override
+  String get nextdetails => '次の詳細';
 }
